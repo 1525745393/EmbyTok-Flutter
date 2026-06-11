@@ -19,7 +19,7 @@
 
 ---
 
-## [ ] Task 2: Android Gradle 根工程（settings.gradle、build.gradle、gradle-wrapper）
+## [x] Task 2: Android Gradle 根工程（settings.gradle、build.gradle、gradle-wrapper）
 - **Priority**: P0
 - **Depends On**: Task 1
 - **Description**:
@@ -37,7 +37,7 @@
 
 ---
 
-## [ ] Task 3: Android app 模块配置（app/build.gradle + AndroidManifest）
+## [x] Task 3: Android app 模块配置（app/build.gradle + AndroidManifest）
 - **Priority**: P0
 - **Depends On**: Task 2
 - **Description**:
@@ -65,7 +65,7 @@
 
 ---
 
-## [ ] Task 4: Android release 签名机制（key.properties + signingConfigs）
+## [x] Task 4: Android release 签名机制（key.properties + signingConfigs）
 - **Priority**: P0
 - **Depends On**: Task 3
 - **Description**:
@@ -85,7 +85,7 @@
 
 ---
 
-## [ ] Task 5: Android ProGuard/R8 混淆规则（proguard-rules.pro）
+## [x] Task 5: Android ProGuard/R8 混淆规则（proguard-rules.pro）
 - **Priority**: P1
 - **Depends On**: Task 4
 - **Description**:
@@ -106,7 +106,7 @@
 
 ---
 
-## [ ] Task 6: Android 应用图标与资源（可选但推荐）
+## [x] Task 6: Android 应用图标与资源（可选但推荐）
 - **Priority**: P2
 - **Depends On**: Task 3
 - **Description**:
@@ -120,7 +120,7 @@
 
 ---
 
-## [ ] Task 7: iOS Xcode 工程骨架（Runner 目录 + Podfile + Info.plist）
+## [x] Task 7: iOS Xcode 工程骨架（Runner 目录 + Podfile + Info.plist）
 - **Priority**: P0
 - **Depends On**: Task 1
 - **Description**:
@@ -157,7 +157,7 @@
 
 ---
 
-## [ ] Task 8: iOS 签名与发布配置（Debug.xcconfig / Release.xcconfig / ExportOptions）
+## [x] Task 8: iOS 签名与发布配置（Debug.xcconfig / Release.xcconfig / ExportOptions）
 - **Priority**: P1
 - **Depends On**: Task 7
 - **Description**:
@@ -182,7 +182,7 @@
 
 ---
 
-## [ ] Task 9: 构建脚本（build_android.sh + build_ios.sh）
+## [x] Task 9: 构建脚本（build_android.sh + build_ios.sh）
 - **Priority**: P1
 - **Depends On**: Task 4, Task 8
 - **Description**:
@@ -207,7 +207,7 @@
 
 ---
 
-## [ ] Task 10: README 打包与发布指南（README_PACKAGING.md）
+## [x] Task 10: README 打包与发布指南（README_PACKAGING.md）
 - **Priority**: P1
 - **Depends On**: Task 9
 - **Description**:
