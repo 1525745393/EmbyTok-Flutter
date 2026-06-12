@@ -1,25 +1,14 @@
 # ===========================================================
-# EmbyTok Flutter Web 多阶段构建镜像
+# EmbyTok Flutter Web 生产镜像
+# 注：Flutter Web 构建在 CI 中完成（build/web 目录）
+# 本 Dockerfile 仅打包已构建的静态资源
 # ===========================================================
 
-# Stage 1: 构建 Flutter Web 应用
-FROM cirrusci/flutter:3.24.0 AS builder
+FROM nginx:1.27-alpine
 
-WORKDIR /app
-
-# 只复制依赖文件以利用 Docker 层缓存
-COPY pubspec.yaml pubspec.lock ./
-RUN flutter pub get
-
-# 复制源代码并构建
-COPY . .
-RUN flutter build web --release --source-maps
-
-# Stage 2: Nginx 生产镜像
-FROM nginx:1.27-alpine AS production
-
-# 从 builder 阶段复制构建产物
-COPY --from=builder /app/build/web /usr/share/nginx/html
+# 从构建上下文复制 Flutter Web 静态资源
+# 构建上下文需要在 CI 中先执行 flutter build web
+COPY build/web /usr/share/nginx/html
 
 # 复制自定义 nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf
