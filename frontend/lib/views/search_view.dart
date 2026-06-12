@@ -117,7 +117,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildBody(SearchState state, List<String> history) {

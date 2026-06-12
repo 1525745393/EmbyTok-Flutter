@@ -164,29 +164,32 @@ jobs:
         working-directory: frontend
 
       - name: 构建 APK (split per ABI)
-        run: flutter build apk --${BUILD_TYPE} --split-per-abi 2>&1 | tee flutter_build.log | tail -80
+        shell: bash
+        run: flutter build apk --${BUILD_TYPE} --split-per-abi
         working-directory: frontend
 
       - name: 构建 App Bundle (AAB)
+        shell: bash
         if: ${{ env.BUILD_TYPE == 'release' }}
-        run: flutter build appbundle --${BUILD_TYPE} 2>&1 | tee flutter_aab.log | tail -50
+        run: flutter build appbundle --${BUILD_TYPE}
         working-directory: frontend
 
       - name: 检查构建产物
+        shell: bash
         run: |
+          set -euo pipefail
           echo "=== 检查 APK 路径 ==="
-          find frontend/build -name "*.apk" 2>/dev/null || echo "未找到 APK"
+          find frontend/build -name "*.apk" 2>/dev/null || { echo "❌ 未找到 APK 产物"; exit 1; }
           echo ""
           echo "=== 检查 AAB 路径 ==="
-          find frontend/build -name "*.aab" 2>/dev/null || echo "未找到 AAB"
-
+          find frontend/build -name "*.aab" 2>/dev/null || { echo "⚠️  未找到 AAB 产物（debug 模式正常）"; }
 
       - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-${{ env.BUILD_TYPE }}
           path: frontend/build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: 上传 AAB 产物
         if: ${{ env.BUILD_TYPE == 'release' }}
