@@ -33,12 +33,13 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Row(
-          children: const [
-          Icon(Icons.favorite, color: Color(0xFFFF5983), size: 24),
-          SizedBox(width: 8),
-          Text('我的收藏'),
-        ],
+        title: const Row(
+          children: [
+            Icon(Icons.favorite, color: Color(0xFFFF5983), size: 24),
+            SizedBox(width: 8),
+            Text('我的收藏'),
+          ],
+        ),
       ),
       body: _buildBody(state),
     );

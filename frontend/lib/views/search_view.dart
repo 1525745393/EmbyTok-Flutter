@@ -239,6 +239,7 @@ class _SearchResultTile extends StatelessWidget {
         Navigator.push<void>(
           context,
           MaterialPageRoute(builder: (_) => _VideoPlayPage(item: item)),
+        );
       },
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: ClipRRect(

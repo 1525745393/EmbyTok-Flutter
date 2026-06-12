@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import 'auth_provider.dart';
+import 'library_provider.dart';
 
 // 视频列表状态
 class VideoListState {
