@@ -1,0 +1,102 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "发布类型"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ===========================================================
+  # Android 签名构建
+  # ===========================================================
+  build-android:
+    name: Android 签名构建
+    runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.24.0"
+          cache: true
+
+      # -----------------------------------------------------------
+      # 从 GitHub Secrets 恢复签名配置
+      # 注意：需要在仓库设置中配置以下 Secrets:
+      #   ANDROID_KEYSTORE     - keystore 文件 base64 编码内容
+      #   ANDROID_KEYSTORE_PWD - keystore 密码
+      #   ANDROID_KEY_ALIAS    - key 别名
+      #   ANDROID_KEY_PWD      - key 密码
+      # -----------------------------------------------------------
+      - name: 恢复签名配置
+        run: |
+          echo "创建 key.properties..."
+          cat > frontend/android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PWD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PWD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=embbytok-keystore.jks
+          EOF
+
+          echo "解码 keystore 文件..."
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 --decode > frontend/android/app/embbytok-keystore.jks
+
+          echo "签名配置已就绪"
+
+      - name: 安装依赖
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: 构建 APK (split per ABI)
+        run: flutter build apk --${BUILD_TYPE} --split-per-abi
+        working-directory: frontend
+
+      - name: 构建 App Bundle (AAB)
+        if: ${{ env.BUILD_TYPE == 'release' }}
+        run: flutter build appbundle --release
+        working-directory: frontend
+
+      - name: 上传 APK 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ env.BUILD_TYPE }}
+          path: frontend/build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+
+      - name: 上传 AAB 产物
+        if: ${{ env.BUILD_TYPE == 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab-release
+          path: frontend/build/app/outputs/bundle/release/*.aab
+          if-no-files-found: ignore
+
+      - name: 创建 GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            frontend/build/app/outputs/flutter-apk/*.apk
+            frontend/build/app/outputs/bundle/release/*.aab
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

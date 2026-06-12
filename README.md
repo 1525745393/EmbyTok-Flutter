@@ -171,43 +171,88 @@ EmbyTok-Flutter/
 
 ## 快速开始
 
+[![CI 状态](https://github.com/1525745393/EmbyTok-Flutter/actions/workflows/ci.yml/badge.svg)](https://github.com/1525745393/EmbyTok-Flutter/actions)
+
 ### 环境要求
 
 - **Flutter SDK**: >= 3.10.0
 - **Dart SDK**: >= 3.0.0 (null safety)
+- **Python**: >= 3.11（后端中间层）
+- **Docker**（可选，用于后端镜像构建 & 部署）
 - **iOS** (macOS 开发环境) / **Android** / **macOS** / **Windows** / **Linux** / **Web**
 - **Emby Server** 4.7+ 或 **Jellyfin** 10.8+（自托管）
 
-### 1. 安装 Flutter
+### 一行命令启动（推荐）
 
-按官方文档安装 Flutter SDK：<https://docs.flutter.dev/get-started/install>
-
-安装完成后检查：
+项目根目录提供 `Makefile`，统一所有开发命令：
 
 ```bash
-flutter --version
-flutter doctor
+# 1. 安装依赖（Flutter + Python）
+make setup
+
+# 2. 同时启动前后端
+make run-all
 ```
 
-### 2. 克隆仓库
+### 常用命令速查表
+
+| 命令 | 说明 |
+| --- | --- |
+| `make help` | 显示所有可用命令 |
+| `make setup` | 安装 Flutter 和 Python 依赖 |
+| `make run-all` | 同时启动前后端服务 |
+| `make run-backend` | 启动后端服务（Docker） |
+| `make run-frontend` | 启动 Flutter 应用 |
+| `make test-all` | 运行 Flutter 和 Python 测试 |
+| `make lint` | 代码质量检查（flutter analyze） |
+| `make build-apk` | 构建 Android APK（Release） |
+| `make build-docker` | 构建后端 Docker 镜像 |
+| `make clean` | 清理构建产物 |
+
+也可使用 `scripts/` 下的 Shell 脚本：
 
 ```bash
+bash scripts/setup.sh       # 环境检查与依赖安装
+bash scripts/run-all.sh     # 一键启动前后端
+bash scripts/run-tests.sh   # 统一测试执行
+bash scripts/build-all.sh   # 全量构建（APK + Docker 镜像）
+bash scripts/docker-push.sh # 镜像推送（需配置仓库账号）
+```
+
+### 标准流程（分步骤）
+
+```bash
+# 1. 克隆仓库
 git clone https://github.com/1525745393/EmbyTok-Flutter.git
 cd EmbyTok-Flutter
+
+# 2. 安装依赖
+make setup
+# 或手动：
+#   cd frontend && flutter pub get
+#   cd ../backend && pip install -r requirements.txt
+
+# 3. 运行测试
+make test-all
+
+# 4. 启动应用
+make run-all
+# 或分别启动：
+#   make run-backend   # 后端（http://localhost:8000）
+#   make run-frontend  # Flutter 应用
 ```
 
-### 3. 安装前端依赖
+### 手动启动（不使用 Make）
 
 ```bash
+# 前端
 cd frontend
 flutter pub get
-```
+flutter devices          # 查看可用设备
+flutter run              # 启动到默认设备
+flutter run -d chrome    # Web 调试
 
-### 4. 启动后端（可选）
-
-如果使用 EmbyTok 自建中间层：
-
-```bash
+# 后端（可选，使用 EmbyTok 中间层）
 cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
@@ -215,22 +260,7 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-或直接连接已有的 Emby 服务器地址。
-
-### 5. 运行 Flutter 应用
-
-```bash
-cd frontend
-
-# 查看可用设备
-flutter devices
-
-# 启动（选择一个设备）
-flutter run                       # 默认设备
-flutter run -d chrome             # Web 调试
-flutter run -d macos              # macOS 桌面
-flutter run --release             # 生产模式
-```
+也可直接连接已有的 Emby 服务器地址，无需启动中间层。
 
 ---
 
