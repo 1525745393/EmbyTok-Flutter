@@ -209,6 +209,36 @@ make run-all
 | `make build-docker` | 构建后端 Docker 镜像 |
 | `make clean` | 清理构建产物 |
 
+---
+
+## 发布配置
+
+在触发自动发布前，需要在 GitHub 仓库中配置以下 Secrets：
+
+### Android 签名（必需）
+
+| Secret | 用途 |
+|--------|------|
+| `ANDROID_KEYSTORE` | keystore 文件的 base64 编码 |
+| `ANDROID_KEYSTORE_PWD` | keystore 密码 |
+| `ANDROID_KEY_ALIAS` | key 别名（默认 `embbytok`） |
+| `ANDROID_KEY_PWD` | key 密码 |
+
+### Docker 镜像（必需）
+
+| Secret | 用途 |
+|--------|------|
+| `DOCKER_USERNAME` | Docker Hub 用户名 |
+| `DOCKER_PASSWORD` | Docker Hub Access Token |
+| `DOCKER_REGISTRY` | 镜像仓库（可选，默认 `docker.io`） |
+
+详细配置步骤请参阅 [.github/SECRETS.md](.github/SECRETS.md)。
+
+### 触发发布
+
+- **自动触发**：推送以 `v` 开头的 git tag（如 `git tag v1.0.0 && git push --tags`）
+- **手动触发**：在 Actions 页面选择对应工作流 → Run workflow
+
 也可使用 `scripts/` 下的 Shell 脚本：
 
 ```bash
