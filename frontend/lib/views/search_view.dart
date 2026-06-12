@@ -130,7 +130,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
       return const _Centered(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             CircularProgressIndicator(color: Color(0xFFE91E63)),
             SizedBox(height: 12),
             Text('搜索中...', style: TextStyle(color: Colors.white70)),
@@ -194,6 +194,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
               TextButton(
                 onPressed: _clearHistory,
                 child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
+              ),
             ],
           ),
           const SizedBox(height: 8),

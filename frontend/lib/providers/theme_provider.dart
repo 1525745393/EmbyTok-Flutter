@@ -19,7 +19,7 @@ class ThemeModeNotifier extends StateNotifier<String> {
   Future<void> _loadFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final value = prefs.getString(kStorageKeyTheme);
+      final value = prefs.getString(_kStorageKeyTheme);
       if (value == 'dark' || value == 'light' || value == 'system') {
         state = value!;
       }
