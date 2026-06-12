@@ -1,0 +1,8 @@
+
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig
+#include "Generated.xcconfig"
+
+// 开发者签名 Team —— 通过环境变量 DEVELOPMENT_TEAM 注入，或在此硬编码（不推荐）
+// 请在首次构建后修改此文件，或通过 Xcode GUI 配置
+
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1

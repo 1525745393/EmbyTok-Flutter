@@ -1,0 +1,23 @@
+
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig
+#include "Generated.xcconfig"
+
+// Flutter 版本（由 flutter build 自动维护）
+FLUTTER_BUILD_NAME = 0.1.0
+FLUTTER_BUILD_NUMBER = 1
+
+// Bundle ID
+PRODUCT_BUNDLE_IDENTIFIER = com.embbytok.app
+
+// 开发者签名 Team —— 通过环境变量 DEVELOPMENT_TEAM 注入
+// 请在 Xcode → Signing 中设置真实 Team，或在此硬编码
+
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
+
+// 发布构建优化
+DEAD_CODE_STRIPPING = YES
+STRIP_INSTALLED_PRODUCT = YES
+STRIP_STYLE = all
+COPY_PHASE_STRIP = NO
+GCC_GENERATE_DEBUGGING_SYMBOLS = NO
+DEBUG_INFORMATION_FORMAT = dwarf-with-dsym

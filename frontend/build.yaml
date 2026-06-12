@@ -1,0 +1,7 @@
+# build.yaml - mockito 代码生成配置
+targets:
+  $default:
+    builders:
+      mockito:
+        generate_for:
+          - test/**_test.dart
