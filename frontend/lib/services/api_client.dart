@@ -16,6 +16,17 @@ class ApiClient {
     _setupInterceptors();
   }
 
+  /// 测试友好的构造函数，允许注入自定义 Dio 实例
+  ApiClient.withDio(this._dio, {String? baseUrl}) {
+    if (baseUrl != null) {
+      _dio.options.baseUrl = baseUrl;
+    }
+    _setupInterceptors();
+  }
+
+  /// 暴露内部 Dio 实例，用于测试验证
+  Dio get dio => _dio;
+
   // 注册拦截器：自动注入 Token、请求日志、错误日志
   void _setupInterceptors() {
     _dio.interceptors.add(
