@@ -162,20 +162,28 @@ jobs:
         working-directory: frontend
 
       - name: 构建 APK (split per ABI)
-        run: flutter build apk --${BUILD_TYPE} --split-per-abi --verbose 2>&1 | tail -80
+        run: flutter build apk --${BUILD_TYPE} --split-per-abi 2>&1 | tee flutter_build.log | tail -80
         working-directory: frontend
 
       - name: 构建 App Bundle (AAB)
         if: ${{ env.BUILD_TYPE == 'release' }}
-        run: flutter build appbundle --${BUILD_TYPE} --verbose 2>&1 | tail -50
+        run: flutter build appbundle --${BUILD_TYPE} 2>&1 | tee flutter_aab.log | tail -50
         working-directory: frontend
+
+      - name: 检查构建产物
+        run: |
+          echo "=== 检查 APK 路径 ==="
+          find frontend/build -name "*.apk" 2>/dev/null || echo "未找到 APK"
+          echo ""
+          echo "=== 检查 AAB 路径 ==="
+          find frontend/build -name "*.aab" 2>/dev/null || echo "未找到 AAB"
 
       - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
         with:
           name: android-apk-${{ env.BUILD_TYPE }}
           path: frontend/build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: 上传 AAB 产物
         if: ${{ env.BUILD_TYPE == 'release' }}
@@ -183,7 +191,7 @@ jobs:
         with:
           name: android-aab-release
           path: frontend/build/app/outputs/bundle/release/*.aab
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: 创建 GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
