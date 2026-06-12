@@ -96,7 +96,11 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     final dx = d.globalPosition.dx - _dragStartX;
     final seekMs = (dx * kSeekPerPixelMs).toInt();
     final target = _dragStartPosition + Duration(milliseconds: seekMs);
-    final clamped = target.clamp(Duration.zero, c.value.duration);
+    final clamped = target < Duration.zero
+        ? Duration.zero
+        : target > c.value.duration
+            ? c.value.duration
+            : target;
     c.seekTo(clamped);
   }
 

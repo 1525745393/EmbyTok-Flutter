@@ -98,7 +98,7 @@ class SettingsView extends ConsumerWidget {
           style: const TextStyle(color: Colors.white54, fontSize: 13)),
       trailing: const Icon(Icons.chevron_right, color: Colors.white38),
       onTap: onTap,
-      tileColor: Colors.white5,
+      tileColor: Colors.white10,
     );
   }
 
@@ -117,7 +117,7 @@ class SettingsView extends ConsumerWidget {
           style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
       subtitle: Text(auth.backendUrl ?? '未连接服务器',
           style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      tileColor: Colors.white5,
+      tileColor: Colors.white10,
     );
   }
 

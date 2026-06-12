@@ -18,6 +18,7 @@ void main() {
   setUp(() {
     dio = Dio();
     dioAdapter = DioAdapter(dio: dio);
+    dio.httpClientAdapter = dioAdapter;
     apiClient = ApiClient.withDio(dio);
     service = EmbytokService(apiClient: apiClient);
   });
