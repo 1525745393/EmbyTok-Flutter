@@ -124,16 +124,18 @@ jobs:
       # -----------------------------------------------------------
       - name: 构建 Flutter Web
         run: |
-          echo "安装 Flutter..."
+          echo "安装 Flutter SDK..."
           curl -sL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz | tar xJ -C /opt
-          echo "/opt/flutter/bin" >> $GITHUB_PATH
+          export PATH="/opt/flutter/bin:$PATH"
           flutter config --no-analytics
-          flutter precache --web
-
-          echo "构建 Flutter Web..."
+          echo ""
+          echo "=== Flutter Doctor 诊断 ==="
+          flutter doctor -v || true
+          echo ""
+          echo "=== 构建 Flutter Web ==="
           cd ${{ github.workspace }}/frontend
           flutter pub get
-          flutter build web --release
+          flutter build web --release --source-maps --verbose 2>&1 | tail -50
 
       - name: 构建并推送前端镜像
         uses: docker/build-push-action@v5

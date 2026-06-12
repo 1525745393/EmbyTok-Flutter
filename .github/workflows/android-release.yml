@@ -152,13 +152,25 @@ jobs:
         run: flutter pub get
         working-directory: frontend
 
+      - name: Flutter 环境诊断
+        run: |
+          echo "=== Flutter Doctor 诊断 ==="
+          flutter doctor -v || true
+          echo ""
+          echo "=== Flutter Version ==="
+          flutter --version
+          echo ""
+          echo "=== Android SDK 诊断 ==="
+          flutter doctor --android-licenses 2>&1 | head -10 || true
+        working-directory: frontend
+
       - name: 构建 APK (split per ABI)
-        run: flutter build apk --${BUILD_TYPE} --split-per-abi
+        run: flutter build apk --${BUILD_TYPE} --split-per-abi --verbose 2>&1 | tail -80
         working-directory: frontend
 
       - name: 构建 App Bundle (AAB)
         if: ${{ env.BUILD_TYPE == 'release' }}
-        run: flutter build appbundle --release
+        run: flutter build appbundle --${BUILD_TYPE} --verbose 2>&1 | tail -50
         working-directory: frontend
 
       - name: 上传 APK 产物
