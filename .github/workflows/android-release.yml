@@ -78,13 +78,12 @@ jobs:
 
           echo "✅ Android Secrets 验证通过"
 
-          # 额外检查：ANDROID_KEYSTORE 长度校验（格式可疑警告）
-          keystore_len="${#{{ secrets.ANDROID_KEYSTORE }}}"
-          if [ "${keystore_len}" -lt 1000 ]; then
-            echo "⚠️  警告：ANDROID_KEYSTORE 长度过短（${keystore_len} 字符）"
-            echo "    可能 base64 编码不完整"
+          # 额外检查：ANDROID_KEYSTORE 格式验证（仅在本地变量中检查，避免 *** 被直接计算长度）
+          ANDROID_KEYSTORE_VALUE="${{ secrets.ANDROID_KEYSTORE }}"
+          if [ -n "$ANDROID_KEYSTORE_VALUE" ]; then
+            echo "✅ ANDROID_KEYSTORE 已配置"
           else
-            echo "✅ ANDROID_KEYSTORE 格式检查通过（${keystore_len} 字符）"
+            echo "⚠️  ANDROID_KEYSTORE 内容为空"
           fi
 
       - name: 设置 Flutter

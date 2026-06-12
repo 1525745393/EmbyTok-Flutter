@@ -15,7 +15,7 @@ COPY requirements.txt .
 
 # 安装系统依赖（curl 用于健康检查）和 Python 依赖
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl=7.* ca-certificates \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir -r requirements.txt
 
