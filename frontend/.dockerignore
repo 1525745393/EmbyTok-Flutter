@@ -1,5 +1,13 @@
-# Flutter 构建产物（会在镜像内重新构建）
-build/
+# Flutter 非 Web 构建产物（Web 构建产物 build/web/ 需保留用于镜像）
+build/app/
+build/flutter_assets/
+build/ios/
+build/windows/
+build/linux/
+build/macos/
+build/.*
+
+# Dart/Flutter 缓存
 .dart_tool/
 .pub-cache/
 .pub/
