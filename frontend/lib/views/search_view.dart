@@ -127,13 +127,13 @@ class _SearchViewState extends ConsumerState<SearchView> {
     }
     // 加载中
     if (state.isLoading && state.results.isEmpty) {
-      return const _Centered(
+      return _Centered(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(color: Color(0xFFE91E63)),
-            SizedBox(height: 12),
-            Text('搜索中...', style: TextStyle(color: Colors.white70)),
+          children: [
+            const CircularProgressIndicator(color: Color(0xFFE91E63)),
+            const SizedBox(height: 12),
+            const Text('搜索中...', style: TextStyle(color: Colors.white70)),
           ],
         ),
       );
@@ -178,7 +178,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   Widget _buildHistory(List<String> history) {
     if (history.isEmpty) {
-      return const _Centered(
+      return _Centered(
         child: Text('还没有搜索历史',
             style: TextStyle(color: Colors.white54, fontSize: 16)),
       );
@@ -194,6 +194,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
               TextButton(
                 onPressed: _clearHistory,
                 child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
+              ),
             ],
           ),
           const SizedBox(height: 8),
