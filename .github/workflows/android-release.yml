@@ -35,6 +35,8 @@ jobs:
   build-android:
     name: Android 签名构建
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
     steps:

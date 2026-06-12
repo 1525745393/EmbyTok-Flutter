@@ -31,6 +31,8 @@ jobs:
   build-and-push:
     name: 构建并推送镜像
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -122,28 +124,32 @@ jobs:
       # -----------------------------------------------------------
       # 步骤 5：构建并推送前端 Flutter Web 镜像
       # -----------------------------------------------------------
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.24.0"
+          cache: true
+
       - name: 构建 Flutter Web
         run: |
-          echo "=== 安装 Flutter SDK ==="
-          curl -sL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz | tar xJ -C /opt
-          export PATH="/opt/flutter/bin:$PATH"
           flutter config --no-analytics
-          echo ""
-          echo "=== Flutter 版本 ==="
-          flutter --version
-          echo ""
-          echo "=== 构建 Flutter Web ==="
-          cd ${{ github.workspace }}/frontend
           flutter pub get
-          flutter build web --release 2>&1 | tee web_build.log
+          flutter build web --release
           echo ""
           echo "=== 检查构建产物 ==="
           ls -la build/web/ 2>/dev/null || echo "build/web 不存在"
+          echo ""
+          echo "=== 关键文件检查 ==="
+          test -f build/web/index.html && echo "✅ index.html 存在" || echo "❌ index.html 不存在"
+          test -d build/web/assets && echo "✅ assets/ 目录存在" || echo "❌ assets/ 目录不存在"
+        working-directory: frontend
 
       - name: 构建并推送前端镜像
         uses: docker/build-push-action@v5
         with:
           context: frontend/
+          file: frontend/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
