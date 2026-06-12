@@ -1,6 +1,6 @@
 # EmbyTok Flutter - 完善工作流 任务分解
 
-## [ ] Task 1: 根级 .gitignore 和 .editorconfig
+## [x] Task 1: 根级 .gitignore 和 .editorconfig
 - **Priority**: P0
 - **Depends On**: None
 - **Description**:
@@ -13,7 +13,7 @@
   - `programmatic` TR-1.2: `.editorconfig` 文件存在，内容格式正确（可通过 `editorconfig-checker` 或手动检查）
 - **Notes**: 注意 Flutter 官方推荐的 gitignore 条目（参考 flutter create 生成的默认 .gitignore）
 
-## [ ] Task 2: Makefile（统一命令入口）
+## [x] Task 2: Makefile（统一命令入口）
 - **Priority**: P0
 - **Depends On**: Task 1
 - **Description**:
@@ -41,7 +41,7 @@
   - `programmatic` TR-2.2: `make -n setup`（dry-run）不报错
   - `human-judgement` TR-2.3: 命令描述为中文且清晰易理解
 
-## [ ] Task 3: 根级 scripts 目录（Shell 脚本集）
+## [x] Task 3: 根级 scripts 目录（Shell 脚本集）
 - **Priority**: P0
 - **Depends On**: Task 1
 - **Description**:
@@ -63,7 +63,7 @@
   - `programmatic` TR-3.2: `bash -n scripts/setup.sh`（语法检查）无错误
   - `programmatic` TR-3.3: 每个脚本中包含 `set -e` 或等效错误处理
 
-## [ ] Task 4: GitHub Actions CI workflow（主流程）
+## [x] Task 4: GitHub Actions CI workflow（主流程）
 - **Priority**: P0
 - **Depends On**: Task 3
 - **Description**:
@@ -98,7 +98,7 @@
   - `human-judgement` TR-4.2: workflow 包含至少 5 个 job 步骤（checkout → flutter setup → pub get → test → analyze → build → docker）
   - `human-judgement` TR-4.3: 步骤名称使用中文描述，便于查看 CI 日志
 
-## [ ] Task 5: GitHub Actions Android 发布 workflow
+## [x] Task 5: GitHub Actions Android 发布 workflow
 - **Priority**: P1
 - **Depends On**: Task 4
 - **Description**:
@@ -123,7 +123,7 @@
   - `human-judgement` TR-5.2: 包含 keystore 解码、签名构建、artifact 上传三个关键步骤
   - `human-judgement` TR-5.3: 有中文注释说明如何配置 secret
 
-## [ ] Task 6: GitHub Actions Docker 发布 workflow
+## [x] Task 6: GitHub Actions Docker 发布 workflow
 - **Priority**: P1
 - **Depends On**: Task 4
 - **Description**:
@@ -145,7 +145,7 @@
   - `human-judgement` TR-6.2: 使用标准 docker/actions 官方 action（setup-buildx, login, build-push）
   - `human-judgement` TR-6.3: 包含多架构构建（amd64 + arm64）和 version/latest 双 tag
 
-## [ ] Task 7: README 更新（快速开始章节）
+## [x] Task 7: README 更新（快速开始章节）
 - **Priority**: P1
 - **Depends On**: Task 2, Task 3
 - **Description**:
@@ -163,7 +163,7 @@
   - `human-judgement` TR-7.2: 包含完整的「快速开始」流程（setup → run → test）
   - `programmatic` TR-7.3: README.md 文件存在且语法正确（可通过 markdown 检查工具）
 
-## [ ] Task 8: Python 后端测试脚手架（可选但推荐）
+## [x] Task 8: Python 后端测试脚手架（可选但推荐）
 - **Priority**: P2
 - **Depends On**: Task 3
 - **Description**:
