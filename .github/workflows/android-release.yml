@@ -154,14 +154,11 @@ jobs:
 
       - name: Flutter 环境诊断
         run: |
-          echo "=== Flutter Doctor 诊断 ==="
-          flutter doctor -v || true
-          echo ""
           echo "=== Flutter Version ==="
           flutter --version
           echo ""
-          echo "=== Android SDK 诊断 ==="
-          flutter doctor --android-licenses 2>&1 | head -10 || true
+          echo "=== Flutter Doctor ==="
+          flutter doctor 2>&1 | head -20 || true
         working-directory: frontend
 
       - name: 构建 APK (split per ABI)
