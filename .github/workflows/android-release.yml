@@ -78,14 +78,8 @@ jobs:
 
           echo "✅ Android Secrets 验证通过"
 
-          # 额外检查：ANDROID_KEYSTORE 长度校验（格式可疑警告）
-          keystore_len="${#{{ secrets.ANDROID_KEYSTORE }}}"
-          if [ "${keystore_len}" -lt 1000 ]; then
-            echo "⚠️  警告：ANDROID_KEYSTORE 长度过短（${keystore_len} 字符）"
-            echo "    可能 base64 编码不完整"
-          else
-            echo "✅ ANDROID_KEYSTORE 格式检查通过（${keystore_len} 字符）"
-          fi
+          # 注意：secrets.ANDROID_KEYSTORE 在日志中显示为 ***，无法通过 ${#var} 获取长度
+          # 但 keystore 的 base64 编码通常 >= 2500 字符，这里只需要确认非空
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
