@@ -196,34 +196,120 @@
     └── icon-192x192.svg
 ```
 
-### 3.2 Flutter 版项目结构（规划中）
+### 3.2 Flutter 版项目结构
+
+以下为**当前仓库（EmbyTok-Flutter）** 的实际目录结构：
 
 ```
 EmbyTok-Flutter/
-├── frontend/                 # Flutter 客户端
+├── frontend/                    # Flutter 客户端
 │   ├── lib/
-│   │   ├── main.dart        # 应用入口
-│   │   ├── app.dart         # 根组件，路由与主题配置
-│   │   ├── models/          # 数据模型（视频项、配置等）
-│   │   ├── views/           # 页面视图（登录、视频流、搜索等）
-│   │   ├── widgets/         # UI 组件（视频卡片、播放器、控制条等）
-│   │   ├── services/        # API 服务层（网络请求封装）
-│   │   ├── providers/       # Riverpod 状态管理
-│   │   └── utils/           # 工具函数
-│   └── pubspec.yaml         # Flutter 依赖配置
+│   │   ├── main.dart           # 应用入口（ProviderScope 包装）
+│   │   ├── app.dart            # 根组件，路由与主题配置
+│   │   ├── models/             # 数据模型（不可变 Dart 对象）
+│   │   │   ├── user.dart       #   用户模型（id / name / accessToken）
+│   │   │   ├── library.dart    #   媒体库（id / name / type / itemCount）
+│   │   │   ├── media_item.dart #   媒体项（id / title / type / duration 等）
+│   │   │   ├── paginated_response.dart # 分页响应（items / total / offset / limit）
+│   │   │   ├── subtitle_track.dart    #   字幕轨道（id / name / language / url）
+│   │   │   ├── watch_history_item.dart # 观看历史项
+│   │   │   ├── app_config.dart #   应用配置（后端地址 / 主题 / 字幕偏好）
+│   │   │   └── models.dart     #   统一导出
+│   │   ├── providers/          # Riverpod 状态管理（业务逻辑核心）
+│   │   │   ├── auth_provider.dart     #   登录态 / Token / 用户信息
+│   │   │   ├── library_provider.dart  #   媒体库列表
+│   │   │   ├── video_list_provider.dart # 视频列表与分页
+│   │   │   ├── favorites_provider.dart #   收藏管理
+│   │   │   ├── search_provider.dart    #   搜索状态与结果
+│   │   │   ├── search_history_provider.dart # 搜索历史
+│   │   │   ├── theme_provider.dart     #   主题切换（浅色/深色/跟随系统）
+│   │   │   ├── user_preferences_provider.dart # 用户偏好
+│   │   │   ├── video_playback_controller.dart # 视频播放控制
+│   │   │   ├── watch_history_provider.dart # 观看历史
+│   │   │   └── providers.dart  #   统一导出
+│   │   ├── services/           # API 服务层
+│   │   │   ├── api_client.dart #   Dio 封装，统一注入认证 Header
+│   │   │   ├── embbytok_service.dart #   业务 API（login / getLibraries / search 等）
+│   │   │   └── services.dart  #   统一导出
+│   │   ├── views/              # 页面视图
+│   │   │   ├── login_view.dart #   登录页（服务器地址 + 凭证输入）
+│   │   │   ├── feed_view.dart  #   视频流首页（TikTok 式竖屏滑动）
+│   │   │   ├── search_view.dart #  搜索页（含搜索历史）
+│   │   │   ├── favorites_view.dart # 收藏页
+│   │   │   ├── history_view.dart # 观看历史页（可继续播放）
+│   │   │   ├── home_scaffold.dart # 首页脚手架（底部导航）
+│   │   │   └── settings_view.dart # 设置页（主题 / 服务器 / 字幕）
+│   │   ├── widgets/            # 可复用 UI 组件
+│   │   │   ├── video_player_widget.dart # 视频播放器封装（video_player）
+│   │   │   ├── video_page_item.dart    # 单页视频项（在 PageView 中）
+│   │   │   ├── video_controls.dart     # 播放控制条（进度/倍速/按钮）
+│   │   │   ├── gesture_overlay.dart    # 手势识别层（单击/双击/长按/水平滑动）
+│   │   │   ├── heart_animation.dart    # 双击爱心动画
+│   │   │   ├── subtitle_renderer.dart  # 字幕文本渲染层
+│   │   │   └── subtitle_controls.dart  # 字幕语言切换与开关
+│   │   └── utils/              # 工具函数
+│   │       ├── constants.dart  #   常量配置
+│   │       ├── formatters.dart #   时间/数字格式化
+│   │       └── utils.dart      #   通用工具
+│   ├── android/                # Android 平台配置
+│   │   ├── build.gradle        #   Android Gradle 构建配置
+│   │   └── app/build.gradle    #   APK 签名与依赖配置
+│   ├── ios/                    # iOS 平台配置
+│   ├── web/                    # Web 构建模板
+│   ├── pubspec.yaml            # Flutter 依赖清单
+│   ├── README.md               # Flutter 端开发指南
+│   ├── README_PACKAGING.md     # 打包发布说明
+│   └── android/README_ANDROID_SIGN.md # Android 签名配置说明
 │
-├── backend/                  # FastAPI 后端
-│   ├── main.py              # FastAPI 应用入口
-│   ├── routers/             # API 路由定义
-│   ├── services/            # 业务逻辑层
-│   ├── models/              # Pydantic 数据模型
-│   ├── clients/             # Emby / Plex API 客户端
-│   └── requirements.txt     # Python 依赖
+├── backend/                     # FastAPI 后端（Python）
+│   ├── main.py                 # FastAPI 应用入口，注册路由与中间件
+│   ├── routers/                # API 路由模块
+│   │   ├── __init__.py
+│   │   ├── auth.py             # POST /api/auth/login（登录认证）
+│   │   ├── libraries.py        # 媒体库查询与视频列表
+│   │   ├── items.py            # 媒体项详情 / 播放地址 / 进度读写
+│   │   ├── search.py           # 搜索接口（支持 GET/POST 两种方式）
+│   │   ├── favorites.py        # 收藏列表 / 添加 / 移除
+│   │   ├── subtitles.py        # 字幕轨道查询
+│   │   └── deps.py             # 依赖注入（从 Header 提取 Emby 配置）
+│   ├── clients/                # 第三方媒体服务器客户端
+│   │   └── emby_client.py      #   Emby HTTP 客户端（基于 httpx 异步实现）
+│   ├── models/                 # Pydantic 数据模型
+│   │   └── base_models.py      #   AuthRequest / AuthResponse / Library / MediaItem 等
+│   ├── core/                   # 基础设施模块
+│   │   ├── config.py           #   配置（默认值 / 环境变量）
+│   │   ├── errors.py           #   错误定义与错误响应
+│   │   └── response_utils.py   #   通用响应工具（分页、模型转换）
+│   ├── tests/                  # 测试（test_health.py 等）
+│   ├── requirements.txt        # Python 依赖清单
+│   └── Dockerfile              # 后端容器镜像构建
 │
-├── docker-compose.yml
-├── Dockerfile
-└── README.md
+├── .github/                    # GitHub Actions CI/CD 工作流
+│   └── workflows/
+│       ├── android-release.yml # Android 自动构建与 Release 上传
+│       ├── docker-release.yml  # Docker 镜像自动构建与推送
+│       ├── ci.yml              # 代码静态检查与测试
+│       └── secrets-check.yml   # 密钥敏感信息扫描
+│
+├── Makefile                    # 统一命令入口（make setup / run-all / build-apk 等）
+├── docker-compose.yml          # Docker Compose 一键部署
+├── CODE_WIKI.md                # 本文档
+└── README.md                   # 项目主文档与快速入门
 ```
+
+### 3.3 Flutter 版核心模块职责（与 3.1 React 版对应）
+
+| 层级 | 典型文件 | 职责 | 对应 React 版概念 |
+|------|---------|------|------------------|
+| **入口层** | `lib/main.dart`、`lib/app.dart` | 初始化 ProviderScope、注册路由、配置主题 | App.tsx + index.tsx |
+| **页面层 (views)** | `feed_view.dart`、`search_view.dart`、`login_view.dart`、`settings_view.dart` | 页面级 UI，组合多个 Widget，从 providers 获取状态 | views/ 页面组件 |
+| **组件层 (widgets)** | `video_player_widget.dart`、`gesture_overlay.dart`、`subtitle_renderer.dart`、`heart_animation.dart` | 可复用 UI 组件，封装具体交互与渲染 | components/ 目录 |
+| **状态管理层 (providers)** | `auth_provider.dart`、`video_list_provider.dart`、`favorites_provider.dart`、`search_provider.dart` | 使用 Riverpod 管理业务状态，每个 Provider 负责单一领域 | src/hooks/* 各类 Hook |
+| **API 服务层 (services)** | `api_client.dart`、`embbytok_service.dart` | Dio HTTP 客户端封装，统一注入认证 Header，提供业务级 API 调用 | services/* 各类服务 |
+| **数据模型层 (models)** | `media_item.dart`、`library.dart`、`subtitle_track.dart`、`watch_history_item.dart` | 不可变 Dart 类，定义数据结构、JSON 序列化与反序列化 | TypeScript 类型定义 |
+| **工具函数层 (utils)** | `formatters.dart`、`constants.dart`、`utils.dart` | 时间/数字格式化、常量定义等通用工具 | utils/* |
+| **路由层** | 在 `app.dart` 中声明路由，使用 Material PageRoute 或 GoRouter | 页面间跳转与导航 | React Router 或嵌套路由 |
+
 
 ---
 
@@ -558,40 +644,82 @@ npm run cap:sync
 npm run build:android
 ```
 
-### 7.2 Flutter 版运行方式（规划中）
+### 7.2 Flutter 版运行方式（已实现）
 
 #### 环境要求
 
-- **Flutter SDK** 3.x
-- **Dart** 3.x
-- **Python** 3.11+
-- **Emby** 或 **Plex** 媒体服务器
+- **Flutter SDK**: 3.24.0+
+- **Dart SDK**: 3.5+
+- **Python**: 3.11+
+- **Emby Server**: 4.7+
+- **Android Studio**: Hedgehog+（构建 APK 用）
 
-#### 完整启动流程
+#### 快速启动（推荐：使用 Makefile）
 
 ```bash
-# 克隆仓库
+# 1. 克隆仓库
 git clone https://github.com/1525745393/EmbyTok-Flutter.git
 cd EmbyTok-Flutter
 
-# ===== 后端启动 =====
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
+# 2. 一键安装 Flutter 与 Python 依赖
+make setup
 
-# ===== Flutter 客户端启动 =====
-cd ../frontend
-flutter pub get
-flutter run         # 运行到已连接的设备 / 模拟器
+# 3. 同时启动前后端
+make run-all
+# 启动后：
+#   - 后端服务监听 http://localhost:8000
+#   - Flutter 应用安装到已连接的设备/模拟器
 ```
 
-#### 配置 Emby 服务器
+#### 分别启动（更灵活）
 
-在应用登录页面输入三项配置：
+```bash
+# ===== 后端 =====
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
+# 健康检查: curl http://localhost:8000/health
+# Swagger UI: 浏览器打开 http://localhost:8000/docs
 
-1. **Emby 服务器地址**（如 `http://192.168.1.100:8096`）
-2. **用户名和密码**
-3. **后端代理地址**（如 `http://localhost:8000`，即 FastAPI 服务地址）
+# ===== Flutter 前端 =====
+cd frontend
+flutter pub get
+flutter devices                     # 查看可用设备
+flutter run                         # 运行到已连接的设备
+flutter run -d chrome               # 在 Chrome 浏览器调试
+
+# ===== 构建 Release APK =====
+flutter build apk --release --split-per-abi
+# 产物位置: build/app/outputs/flutter-apk/
+#   app-arm64-v8a-release.apk    ← 现代手机
+#   app-armeabi-v7a-release.apk ← 较旧设备
+#   app-x86_64-release.apk    ← 模拟器
+```
+
+#### 在应用登录页面输入三项配置（见 docs/user-guide.md 详细说明）：
+
+1. **后端代理地址（FastAPI）：`http://192.168.1.6:8000`（改为你的后端机器 IP）
+2. **Emby 服务器地址**：`http://192.168.1.6:8096`（或自定义端口）
+3. **用户名 + 密码**
+
+> **注意**：手机必须与运行后端的电脑在同一局域网内，或通过 Tailscale/VPN 等方式接入内网。公网访问需配合 Nginx 反向代理（见 部署文档 /docs/deployment.md）。
+
+#### 常用命令速查（Makefile）
+
+| 命令 | 功能 |
+|------|------|
+| `make help` | 显示所有可用命令 |
+| `make setup` | 安装 Flutter 和 Python 依赖 |
+| `make run-all` | 同时启动前后端 |
+| `make run-frontend` | 仅启动 Flutter 应用 |
+| `make run-backend` | 仅启动后端（Docker Compose） |
+| `make test-all` | 运行所有测试 |
+| `make lint` | Flutter 静态分析 |
+| `make build-apk` | 构建 Android APK |
+| `make build-docker` | 构建后端 Docker 镜像 |
+| `make clean` | 清理构建产物 |
 
 ### 7.3 Docker 部署（React 版）
 
