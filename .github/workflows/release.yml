@@ -1,0 +1,143 @@
+name: Release
+
+# 推送 v* tag 时触发自动构建与发布
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# 任务权限：写入 Releases 内容
+permissions:
+  contents: write
+
+jobs:
+  # ============================================================
+  # 任务 1：构建 Flutter Android APK（手机安装包）
+  # ============================================================
+  build-apk:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      # 检出源码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 设置 Flutter SDK（使用官方 action）
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: "stable"
+          cache: true
+
+      # 打印 Flutter 环境信息（便于排查问题）
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      # 获取依赖
+      - name: Install pub dependencies
+        run: flutter pub get
+
+      # 构建 Release 版本 APK
+      - name: Build release APK
+        run: flutter build apk --release --no-pub
+
+      # 验证构建产物存在
+      - name: Verify APK exists
+        run: |
+          ls -la build/app/outputs/flutter-apk/*.apk
+
+      # 获取版本号（从 tag 提取，如 v1.0.8 → 1.0.8）
+      - name: Extract version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # 重命名 APK，使文件名包含版本号
+      - name: Rename APK with version
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             build/app/outputs/flutter-apk/embbytok-${VERSION}.apk
+
+      # 上传 APK 到当前运行记录的 artifacts（便于临时下载）
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embbytok-apk
+          path: frontend/build/app/outputs/flutter-apk/embbytok-*.apk
+
+      # 上传 APK 到 Release 发布页面的附件
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            frontend/build/app/outputs/flutter-apk/embbytok-*.apk
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+  # ============================================================
+  # 任务 2：构建并推送 FastAPI 后端 Docker 镜像
+  # ============================================================
+  build-docker:
+    name: Build and Push Backend Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: build-apk
+
+    steps:
+      # 检出源码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 获取版本号
+      - name: Extract version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      # 登录 Docker Hub（需要在仓库 Settings → Secrets 中配置 DOCKERHUB_USERNAME 和 DOCKERHUB_TOKEN）
+      - name: Login to Docker Hub
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 设置 QEMU 以支持多平台构建（可选）
+      - name: Set up QEMU
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/setup-qemu-action@v3
+
+      # 设置 Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 构建后端镜像（使用 linux/amd64 平台，群晖/主流服务器都支持）
+      - name: Build and push backend image
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/embbytok-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/embbytok-backend:${{ steps.get_version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 仅本地构建用于校验（没有 Docker Hub 凭证时也能确认 Dockerfile 正常）
+      - name: Build backend image (no push, verification only)
+        if: ${{ secrets.DOCKERHUB_USERNAME == '' || secrets.DOCKERHUB_TOKEN == '' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: embbytok-backend:local
