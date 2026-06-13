@@ -11,12 +11,24 @@ class User {
     required this.accessToken,
   });
 
-  // 从后端 snake_case JSON 字段解析
-  factory User.fromJson(Map<String, dynamic> json) => User(
-        id: json['user_id'] as String? ?? '',
-        name: json['username'] as String? ?? '',
-        accessToken: json['access_token'] as String? ?? '',
-      );
+  // 从 Emby 原生响应格式解析：
+  // {
+  //   "User": {"Id": "...", "Name": "..."},
+  //   "AccessToken": "...",
+  //   ...
+  // }
+  factory User.fromJson(Map<String, dynamic> json) {
+    final userObj = json['User'] as Map<String, dynamic>?;
+    return User(
+      id: (userObj?['Id'] as String?) ?? json['user_id'] as String? ?? '',
+      name: (userObj?['Name'] as String?) ??
+          json['username'] as String? ??
+          '',
+      accessToken: (json['AccessToken'] as String?) ??
+          json['access_token'] as String? ??
+          '',
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'user_id': id,

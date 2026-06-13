@@ -1,4 +1,4 @@
-// 认证状态管理：用户登录状态、Token、服务地址等
+// 认证状态管理：用户登录状态、Token、Emby 服务器地址
 
 import 'dart:convert';
 
@@ -9,20 +9,18 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 
-// 认证状态类
+// 认证状态类（简化：不再区分后端代理地址，直接存 Emby 服务器地址）
 class AuthState {
   final bool isAuthenticated;
   final User? user;
-  final String? backendUrl;
-  final String? embyServerUrl;
-  final String? token;
+  final String? embyServerUrl; // 直接连到 Emby 服务器
+  final String? token; // Emby AccessToken
   final bool isLoading;
   final String? error;
 
   const AuthState({
     this.isAuthenticated = false,
     this.user,
-    this.backendUrl,
     this.embyServerUrl,
     this.token,
     this.isLoading = false,
@@ -32,7 +30,6 @@ class AuthState {
   AuthState copyWith({
     bool? isAuthenticated,
     User? user,
-    String? backendUrl,
     String? embyServerUrl,
     String? token,
     bool? isLoading,
@@ -41,7 +38,6 @@ class AuthState {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       user: user ?? this.user,
-      backendUrl: backendUrl ?? this.backendUrl,
       embyServerUrl: embyServerUrl ?? this.embyServerUrl,
       token: token ?? this.token,
       isLoading: isLoading ?? this.isLoading,
@@ -70,7 +66,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final Map<String, dynamic> config =
           json.decode(configStr) as Map<String, dynamic>;
 
-      final backendUrl = config['backend_url'] as String?;
       final embyServerUrl = config['emby_server_url'] as String?;
       final userId = config['user_id'] as String?;
       final userName = config['user_name'] as String?;
@@ -84,36 +79,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
             name: userName ?? '',
             accessToken: accessToken,
           ),
-          backendUrl: backendUrl,
           embyServerUrl: embyServerUrl,
           token: accessToken,
         );
       }
     } catch (e) {
-      // 读取失败不中断启动，仅忽略已损坏的缓存
+      // 读取失败不中断启动
     }
   }
 
-  // 登录：调用后端并持久化
+  // 登录：直接 POST 到 Emby 服务器
   Future<void> login(
     String embyServerUrl,
-    String backendUrl,
     String username,
     String password,
   ) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = await _service.login(
-        embyServerUrl,
-        backendUrl,
-        username,
-        password,
+      // 直接调用 Emby /Users/AuthenticateByName 接口
+      final respData = await _service.login(
+        embyServerUrl: embyServerUrl,
+        username: username,
+        password: password,
       );
 
-      // 持久化到 shared_preferences
+      final user = User.fromJson(respData);
+
+      // 持久化
       final prefs = await SharedPreferences.getInstance();
       final config = <String, dynamic>{
-        'backend_url': backendUrl,
         'emby_server_url': embyServerUrl,
         'user_id': user.id,
         'user_name': user.name,
@@ -124,7 +118,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isAuthenticated: true,
         user: user,
-        backendUrl: backendUrl,
         embyServerUrl: embyServerUrl,
         token: user.accessToken,
       );
@@ -137,7 +130,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // 退出登录：清除本地 Token
+  // 退出登录
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();

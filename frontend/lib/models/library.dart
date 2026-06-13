@@ -1,4 +1,4 @@
-// 媒体库模型：对应后端 Library
+// 媒体库模型：对应 Emby VirtualFolder
 
 class Library {
   final String id;
@@ -15,13 +15,32 @@ class Library {
     this.coverImageUrl,
   });
 
-  factory Library.fromJson(Map<String, dynamic> json) => Library(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        itemCount: json['item_count'] as int?,
-        coverImageUrl: json['cover_image_url'] as String?,
-      );
+  // 从 Emby 原生响应格式解析：
+  // {
+  //   "Id": "...",
+  //   "Name": "...",
+  //   "CollectionType": "movies" | "tvshows" | "music" | "homevideos" | ...,
+  //   "ItemId": "...",
+  //   ...
+  // }
+  // 同时兼容后端 snake_case 格式（向前兼容）
+  factory Library.fromJson(Map<String, dynamic> json) {
+    // 优先使用 Emby 格式，其次使用后端格式
+    final id = (json['Id'] as String?) ?? json['id'] as String? ?? '';
+    final name =
+        (json['Name'] as String?) ?? json['name'] as String? ?? '';
+    final type = (json['CollectionType'] as String?) ??
+        json['type'] as String? ??
+        '';
+    return Library(
+      id: id,
+      name: name,
+      type: type,
+      itemCount: json['item_count'] as int? ??
+          (json['RefreshProgress'] as int?),
+      coverImageUrl: json['cover_image_url'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

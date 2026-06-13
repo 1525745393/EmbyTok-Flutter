@@ -46,25 +46,27 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   AuthState get _auth => _ref.read(authProvider);
 
-  // 辅助方法：从 auth 状态配置服务认证
   void _setupServiceAuth() {
     final auth = _auth;
-    final backendUrl = auth.backendUrl;
     final embyServerUrl = auth.embyServerUrl;
     final userId = auth.user?.id;
     final token = auth.token;
 
-    if (backendUrl != null &&
-        embyServerUrl != null &&
-        userId != null &&
-        token != null) {
+    if (embyServerUrl != null && userId != null && token != null) {
       _service.setupAuth(
-        backendUrl: backendUrl,
         embyServerUrl: embyServerUrl,
         userId: userId,
-        token: token,
+        apiKey: token,
       );
     }
+  }
+
+  bool get _hasAuth {
+    final auth = _auth;
+    return auth.isAuthenticated &&
+        auth.embyServerUrl != null &&
+        auth.user?.id != null &&
+        auth.token != null;
   }
 
   // 判断是否已收藏
@@ -76,19 +78,16 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   Future<void> loadFavorites() async {
     state = state.copyWith(isLoading: true, error: null);
 
-    final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.backendUrl == null ||
-        auth.embyServerUrl == null ||
-        auth.user?.id == null ||
-        auth.token == null) {
+    if (!_hasAuth) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
 
     try {
       _setupServiceAuth();
-      final items = await _service.getFavorites();
+      // getFavorites 现在返回 PaginatedResponse<MediaItem>
+      final resp = await _service.getFavorites();
+      final items = resp.items;
       final ids = items.map((e) => e.id).toSet();
       state = FavoritesState(
         items: items,
@@ -103,12 +102,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   // 切换收藏状态
   Future<void> toggleFavorite(MediaItem item) async {
-    final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.backendUrl == null ||
-        auth.embyServerUrl == null ||
-        auth.user?.id == null ||
-        auth.token == null) {
+    if (!_hasAuth) {
       state = state.copyWith(error: '尚未登录');
       return;
     }
@@ -130,7 +124,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     try {
       _setupServiceAuth();
-      await _service.toggleFavorite(item.id, newFavoriteState);
+      await _service.toggleFavorite(item.id, isFavorite: newFavoriteState);
     } catch (e) {
       // 回滚
       final rollbackIds = Set<String>.from(state.favoriteIds);

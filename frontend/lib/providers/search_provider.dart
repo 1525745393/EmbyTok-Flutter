@@ -59,25 +59,27 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   AuthState get _auth => _ref.read(authProvider);
 
-  // 辅助方法：从 auth 状态配置服务认证
   void _setupServiceAuth() {
     final auth = _auth;
-    final backendUrl = auth.backendUrl;
     final embyServerUrl = auth.embyServerUrl;
     final userId = auth.user?.id;
     final token = auth.token;
 
-    if (backendUrl != null &&
-        embyServerUrl != null &&
-        userId != null &&
-        token != null) {
+    if (embyServerUrl != null && userId != null && token != null) {
       _service.setupAuth(
-        backendUrl: backendUrl,
         embyServerUrl: embyServerUrl,
         userId: userId,
-        token: token,
+        apiKey: token,
       );
     }
+  }
+
+  bool get _hasAuth {
+    final auth = _auth;
+    return auth.isAuthenticated &&
+        auth.embyServerUrl != null &&
+        auth.user?.id != null &&
+        auth.token != null;
   }
 
   // 发起一次新搜索（重置状态）
@@ -97,12 +99,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
       limit: state.limit,
     );
 
-    final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.backendUrl == null ||
-        auth.embyServerUrl == null ||
-        auth.user?.id == null ||
-        auth.token == null) {
+    if (!_hasAuth) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
@@ -136,12 +133,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     state = state.copyWith(isLoading: true, error: null);
 
-    final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.backendUrl == null ||
-        auth.embyServerUrl == null ||
-        auth.user?.id == null ||
-        auth.token == null) {
+    if (!_hasAuth) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }

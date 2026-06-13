@@ -115,7 +115,7 @@ class SettingsView extends ConsumerWidget {
       ),
       title: Text(name,
           style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-      subtitle: Text(auth.backendUrl ?? '未连接服务器',
+      subtitle: Text(auth.embyServerUrl ?? '未连接服务器',
           style: const TextStyle(color: Colors.white54, fontSize: 12)),
       tileColor: Colors.white10,
     );

@@ -14,16 +14,41 @@ class PaginatedResponse<T> {
     required this.limit,
   });
 
+  // 从后端 snake_case 格式解析
+  // {"items": [...], "total": N, "offset": 0, "limit": 20}
+  //
+  // 同时兼容 Emby 原生格式：
+  // {"Items": [...], "TotalRecordCount": N}
   factory PaginatedResponse.fromJson(
     Map<String, dynamic> json,
     T Function(dynamic) itemFromJson,
   ) {
-    final rawItems = json['items'] as List<dynamic>? ?? <dynamic>[];
+    // 先尝试 Emby 格式（Items / TotalRecordCount）
+    final embyItems = json['Items'] as List<dynamic>?;
+    final embyTotal = json['TotalRecordCount'] as int?;
+
+    List<T> items;
+    int total;
+
+    if (embyItems != null) {
+      // Emby 原生格式
+      items = embyItems.map((e) => itemFromJson(e)).toList();
+      total = embyTotal ?? items.length;
+    } else {
+      // 后端 snake_case 格式（向后兼容）
+      final rawItems = json['items'] as List<dynamic>? ?? <dynamic>[];
+      items = rawItems.map((e) => itemFromJson(e)).toList();
+      total = json['total'] as int? ?? 0;
+    }
+
+    final offset = json['offset'] as int? ?? 0;
+    final limit = json['limit'] as int? ?? 20;
+
     return PaginatedResponse<T>(
-      items: rawItems.map((e) => itemFromJson(e)).toList(),
-      total: json['total'] as int? ?? 0,
-      offset: json['offset'] as int? ?? 0,
-      limit: json['limit'] as int? ?? 20,
+      items: items,
+      total: total,
+      offset: offset,
+      limit: limit,
     );
   }
 
