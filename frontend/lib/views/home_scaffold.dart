@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'feed_view.dart';
+import 'favorites_view.dart';
+import 'history_view.dart';
+import 'search_view.dart';
+import 'settings_view.dart';
 
 // 页面索引常量
 const int _indexFeed = 0;
@@ -31,10 +35,10 @@ class _HomeScaffoldState extends State<HomeScaffold> {
         index: _currentIndex,
         children: const [
           FeedView(),
-          _SearchPlaceholder(),
-          _FavoritesPlaceholder(),
-          _HistoryPlaceholder(),
-          _SettingsPlaceholder(),
+          SearchView(),
+          FavoritesView(),
+          HistoryView(),
+          SettingsView(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -97,96 +101,6 @@ class _HomeScaffoldState extends State<HomeScaffold> {
             label: '设置',
           ),
         ],
-      ),
-    );
-  }
-}
-
-// 以下为占位页：稍后由具体任务替换为完整实现
-
-class _SearchPlaceholder extends StatelessWidget {
-  const _SearchPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('搜索'),
-      ),
-      body: const Center(
-        child: Text(
-          '功能待实现',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
-      ),
-    );
-  }
-}
-
-class _FavoritesPlaceholder extends StatelessWidget {
-  const _FavoritesPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('收藏'),
-      ),
-      body: const Center(
-        child: Text(
-          '功能待实现',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
-      ),
-    );
-  }
-}
-
-class _HistoryPlaceholder extends StatelessWidget {
-  const _HistoryPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('观看历史'),
-      ),
-      body: const Center(
-        child: Text(
-          '功能待实现',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsPlaceholder extends StatelessWidget {
-  const _SettingsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('设置'),
-      ),
-      body: const Center(
-        child: Text(
-          '功能待实现',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
-        ),
       ),
     );
   }
