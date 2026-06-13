@@ -1,6 +1,6 @@
 # EmbyTok-Flutter
 
-> 为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的沉浸式滑动体验。
+> 为 Emby 媒体服务器设计的竖屏视频浏览客户端，直接连接 Emby 服务器，提供类似 TikTok 的沉浸式滑动体验。
 
 [![Flutter 3.x](https://img.shields.io/badge/Flutter-3.x-0175C2?logo=flutter)](https://flutter.dev)
 [![Dart 3.x](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)](https://dart.dev)
@@ -24,7 +24,9 @@
 
 ## 项目简介
 
-EmbyTok-Flutter 是一款跨平台的 Emby 媒体库客户端，将海量电影 / 剧集 / 音乐视频以**上下滑动的竖屏信息流**呈现，结合**手势交互、倍速播放、字幕渲染、智能搜索、收藏与历史**等核心能力，让用户可以在移动端、桌面端获得流畅的观影体验。
+EmbyTok-Flutter 是一款跨平台的 **Emby 原生**客户端，将海量电影 / 剧集 / 音乐视频以**上下滑动的竖屏信息流**呈现，结合**手势交互、倍速播放、字幕渲染、智能搜索、收藏与历史**等核心能力，让用户可以在移动端、桌面端获得流畅的观影体验。
+
+**不需要任何额外部署的后端或中间层** —— 安装 App 后直接填入你的 Emby 服务器地址、用户名、密码即可使用。
 
 ### 核心体验
 
@@ -45,12 +47,12 @@ EmbyTok-Flutter 是一款跨平台的 Emby 媒体库客户端，将海量电影 
 | **UI 框架** | Flutter 3.x + Dart 3 (null safety / patterns / records) |
 | **状态管理** | flutter_riverpod 2.x（全局 Provider + StateNotifier） |
 | **路由导航** | Material PageRoute（原生 Navigator） |
-| **网络请求** | Dio（封装为 `EmbytokService`） |
+| **网络请求** | Dio（封装为 `EmbytokService`，直连 Emby API） |
 | **视频播放** | video_player（全平台） |
 | **本地持久化** | shared_preferences（搜索历史 / 观看历史 / 用户设置） |
 | **图片缓存** | cached_network_image |
 | **国际化** | intl |
-| **后端服务** | Emby API / FastAPI（可选中间层） |
+| **认证方式** | Emby `AccessToken`（登录接口换取 Token，后续请求通过 `X-Emby-Token` 鉴权） |
 
 ---
 
@@ -122,14 +124,14 @@ EmbyTok-Flutter/
 │   │   │   ├── heart_animation.dart
 │   │   │   ├── subtitle_renderer.dart
 │   │   │   └── subtitle_controls.dart
-│   │   └── utils/                   # 工具与常量
-│   │       ├── constants.dart
-│   │       ├── formatters.dart
 │   │       └── utils.dart
+│   │           ├── constants.dart
+│   │           ├── formatters.dart
+│   │           └── utils.dart
 │   ├── pubspec.yaml                 # 依赖清单
 │   └── README.md                    # 前端开发指南
-├── backend/                          # FastAPI 中间层（可选）
-│   └── main.py
+├── backend/                          # （预留扩展：可选 FastAPI 中间层
+│   └── main.py                   # 未来扩展用
 ├── docker-compose.yml
 └── README.md                        # 本文档
 ```
@@ -161,15 +163,14 @@ EmbyTok-Flutter/
         │ (API Service层)  │      Emby API 抽象
         └────────▲─────────┘
                  │
-         (HTTP / WebSocket)
-                 │
-        ┌────────┴─────────┐
-        │   FastAPI 中间层  │      统一鉴权、缓存、跨源
-        └────────▲─────────┘
+         (HTTP / X-Emby-Token)
                  │
         ┌────────┴─────────┐
         │   Emby / Jellyfin │      媒体库 & 转码
         └──────────────────┘
+
+  【可选扩展】 ────┐
+                    │   FastAPI 中间层（预留，可插入缓存/多源/统计等）
 ────────────────────────────────────────────────────────────
 ```
 
@@ -191,37 +192,44 @@ EmbyTok-Flutter/
 
 - **Flutter SDK**: >= 3.10.0
 - **Dart SDK**: >= 3.0.0 (null safety)
-- **Python**: >= 3.11（后端中间层）
-- **Docker**（可选，用于后端镜像构建 & 部署）
 - **iOS** (macOS 开发环境) / **Android** / **macOS** / **Windows** / **Linux** / **Web**
 - **Emby Server** 4.7+ 或 **Jellyfin** 10.8+（自托管）
+- **Python**: >= 3.11（仅在需要扩展后端中间层时）
+- **Docker**（可选，用于后端镜像构建 & 部署）
 
 ### 一行命令启动（推荐）
 
 项目根目录提供 `Makefile`，统一所有开发命令：
 
 ```bash
-# 1. 安装依赖（Flutter + Python）
-make setup
+# 1. 安装依赖（Flutter）
+make setup-frontend
 
-# 2. 同时启动前后端
-make run-all
+# 2. 运行 Flutter App
+cd frontend && flutter run
 ```
+
+> ✅ **不需要额外启动任何后端服务**：App 直连你的 Emby 服务器。
+> （`backend/` 目录中的 FastAPI 项目仅作为预留扩展）
 
 ### 常用命令速查表
 
 | 命令 | 说明 |
 | --- | --- |
 | `make help` | 显示所有可用命令 |
-| `make setup` | 安装 Flutter 和 Python 依赖 |
-| `make run-all` | 同时启动前后端服务 |
-| `make run-backend` | 启动后端服务（Docker） |
+| `make setup-frontend` | 安装 Flutter 依赖（仅 App 开发） |
 | `make run-frontend` | 启动 Flutter 应用 |
-| `make test-all` | 运行 Flutter 和 Python 测试 |
 | `make lint` | 代码质量检查（flutter analyze） |
 | `make build-apk` | 构建 Android APK（Release） |
-| `make build-docker` | 构建后端 Docker 镜像 |
 | `make clean` | 清理构建产物 |
+
+| **可选：中间层相关命令** | |
+| --- | --- |
+| `make setup` | 安装 Flutter + Python 全部依赖 |
+| `make run-all` | 同时启动前后端服务 |
+| `make run-backend` | 启动后端服务（Docker） |
+| `make test-all` | 运行 Flutter 和 Python 测试 |
+| `make build-docker` | 构建后端 Docker 镜像 |
 
 ---
 
@@ -238,7 +246,7 @@ make run-all
 | `ANDROID_KEY_ALIAS` | key 别名（默认 `embbytok`） |
 | `ANDROID_KEY_PWD` | key 密码 |
 
-### Docker 镜像（必需）
+### Docker 镜像（可选——仅在启用中间层时需要）
 
 | Secret | 用途 |
 |--------|------|
@@ -270,33 +278,40 @@ bash scripts/docker-push.sh # 镜像推送（需配置仓库账号）
 git clone https://github.com/1525745393/EmbyTok-Flutter.git
 cd EmbyTok-Flutter
 
-# 2. 安装依赖
-make setup
-# 或手动：
-#   cd frontend && flutter pub get
-#   cd ../backend && pip install -r requirements.txt
+# 2. 安装 Flutter 依赖（核心）
+cd frontend && flutter pub get && cd ..
 
-# 3. 运行测试
-make test-all
+# 3. 运行 Flutter App
+cd frontend && flutter run      # 默认连接你的 Emby 服务器
+```
 
-# 4. 启动应用
-make run-all
-# 或分别启动：
-#   make run-backend   # 后端（http://localhost:8000）
-#   make run-frontend  # Flutter 应用
+**可选——启用中间层时使用：**
+
+```bash
+make setup        # 安装 Flutter + Python
+make run-all      # 同时启动前后端
+make test-all     # 统一测试
+make build-all    # 构建 APK + Docker 镜像
 ```
 
 ### 手动启动（不使用 Make）
 
 ```bash
-# 前端
+# Flutter App（核心）
 cd frontend
 flutter pub get
 flutter devices          # 查看可用设备
 flutter run              # 启动到默认设备
 flutter run -d chrome    # Web 调试
+```
 
-# 后端（可选，使用 EmbyTok 中间层）
+> 💡 **启动后在 App 中填入你的 Emby 服务器地址 + 用户名 + 密码即可**
+
+---
+
+**可选——启用中间层时的手动启动：**
+
+```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
@@ -304,7 +319,7 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-也可直接连接已有的 Emby 服务器地址，无需启动中间层。
+
 
 ---
 
