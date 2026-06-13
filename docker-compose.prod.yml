@@ -1,0 +1,123 @@
+# ============================================================
+# EmbyTok - 生产环境 Docker Compose 配置（完整版）
+# ============================================================
+# 用途：从 Docker Hub 拉取官方镜像，同时运行后端 API 和前端 Web
+# 适用场景：
+#   - 想同时使用手机 App 和浏览器 Web 界面
+#   - 在 NAS / 服务器上长期运行
+#
+# 使用方式：
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# 镜像来源：
+#   1525745393/embbytok-backend:latest   (FastAPI 后端)
+#   1525745393/embbytok-frontend:latest  (Flutter Web + Nginx)
+# ============================================================
+
+version: "3.8"
+
+services:
+  # =========================================================
+  # EmbyTok 后端服务（FastAPI + Python 3.11）
+  # 为手机 App 提供 Emby 媒体服务器的 REST API 代理
+  # =========================================================
+  embbytok-backend:
+    image: 1525745393/embbytok-backend:latest
+    container_name: embbytok-backend
+    hostname: embbytok-backend
+    restart: unless-stopped
+
+    # 端口映射：主机 8000 -> 容器 8000
+    ports:
+      - "8000:8000"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+      # 可选：预设 Emby 服务器地址和 API Key
+      #   （如在此处配置，手机 App 登录时可自动填充）
+      # - EMBY_URL=http://192.168.1.100:8096
+      # - EMBY_API_KEY=你的_emby_api_key
+
+    # 健康检查：每 30 秒探测一次 /health 接口
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # 资源限制（防止容器占用过多资源，可根据硬件调整）
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpus: "1.0"
+
+    # 日志配置：限制大小，防止日志撑爆磁盘
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 网络
+    networks:
+      - embbytok-net
+
+  # =========================================================
+  # EmbyTok 前端 Web（Flutter Web + Nginx）
+  # 提供浏览器访问的 Web 界面（可选，手机 App 不需要这个）
+  # =========================================================
+  embbytok-frontend:
+    image: 1525745393/embbytok-frontend:latest
+    container_name: embbytok-frontend
+    hostname: embbytok-frontend
+    restart: unless-stopped
+
+    # 端口映射：主机 8080 -> 容器 80
+    ports:
+      - "8080:80"
+
+    # 环境变量
+    environment:
+      - TZ=Asia/Shanghai
+
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # 资源限制
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: "0.5"
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # 依赖后端启动后再启动
+    depends_on:
+      - embbytok-backend
+
+    networks:
+      - embbytok-net
+
+# =========================================================
+# 网络定义
+# =========================================================
+networks:
+  embbytok-net:
+    driver: bridge
+    name: embbytok-net
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

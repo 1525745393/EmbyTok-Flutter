@@ -1,20 +1,17 @@
 # ============================================================
-# EmbyTok - 开发者 Docker Compose 配置（从源码构建）
+# EmbyTok - 生产环境 Docker Compose 配置（最小版）
 # ============================================================
-# 用途：基于本地源码构建镜像并运行后端 API
+# 用途：从 Docker Hub 拉取官方镜像，只运行后端 API（手机 App 用户首选）
 # 适用场景：
-#   - 开发者本地开发和调试
-#   - 想自定义源码
-#   - 不想从 Docker Hub 拉取镜像
+#   - 只使用手机 App（EmbyTok-Flutter APK）
+#   - 不需要浏览器 Web 界面
+#   - 资源受限的设备（如低配置 NAS / 树莓派）
 #
 # 使用方式：
-#   docker compose up -d --build
+#   docker compose -f docker-compose.minimal.yml up -d
 #
-# 如只想从 Docker Hub 拉取官方镜像，使用：
-#   docker-compose.minimal.yml  (仅后端)
-#   docker-compose.prod.yml     (后端 + 前端)
-#
-# 详见 docker-compose.README.md
+# 镜像来源：
+#   1525745393/embbytok-backend:latest   (FastAPI 后端)
 # ============================================================
 
 version: "3.8"
@@ -23,10 +20,9 @@ services:
   # =========================================================
   # EmbyTok 后端服务（FastAPI + Python 3.11）
   # 为手机 App 提供 Emby 媒体服务器的 REST API 代理
-  # 从本地 ./backend 目录中的 Dockerfile 构建
   # =========================================================
   embbytok-backend:
-    build: ./backend
+    image: 1525745393/embbytok-backend:latest
     container_name: embbytok-backend
     hostname: embbytok-backend
     restart: unless-stopped
@@ -41,6 +37,10 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - LOG_LEVEL=info
+      # 可选：预设 Emby 服务器地址和 API Key
+      #   （如在此处配置，手机 App 登录时可自动填充）
+      # - EMBY_URL=http://192.168.1.100:8096
+      # - EMBY_API_KEY=你的_emby_api_key
 
     # 健康检查：每 30 秒探测一次 /health 接口
     healthcheck:
@@ -50,12 +50,12 @@ services:
       retries: 3
       start_period: 10s
 
-    # 资源限制
+    # 资源限制（防止容器占用过多资源，可根据硬件调整）
     mem_limit: 512m
     mem_reservation: 128m
     cpus: "1.0"
 
-    # 日志配置
+    # 日志配置：限制大小，防止日志撑爆磁盘
     logging:
       driver: "json-file"
       options:
