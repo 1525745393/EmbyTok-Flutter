@@ -57,6 +57,27 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
 
+  // 辅助方法：从 auth 状态配置服务认证
+  void _setupServiceAuth() {
+    final auth = _auth;
+    final backendUrl = auth.backendUrl;
+    final embyServerUrl = auth.embyServerUrl;
+    final userId = auth.user?.id;
+    final token = auth.token;
+
+    if (backendUrl != null &&
+        embyServerUrl != null &&
+        userId != null &&
+        token != null) {
+      _service.setupAuth(
+        backendUrl: backendUrl,
+        embyServerUrl: embyServerUrl,
+        userId: userId,
+        token: token,
+      );
+    }
+  }
+
   // 刷新：重置偏移并加载第一页
   Future<void> refresh({String? libraryId}) async {
     state = VideoListState(
@@ -70,7 +91,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
+        auth.backendUrl == null ||
         auth.embyServerUrl == null ||
+        auth.user?.id == null ||
         auth.token == null) {
       state = state.copyWith(
         isLoading: false,
@@ -86,12 +109,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      _setupServiceAuth();
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
         offset: 0,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
       );
 
       final hasMore = resp.offset + resp.items.length < resp.total;
@@ -117,7 +139,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
+        auth.backendUrl == null ||
         auth.embyServerUrl == null ||
+        auth.user?.id == null ||
         auth.token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
@@ -130,12 +154,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      _setupServiceAuth();
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
         offset: state.offset,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
       );
 
       final newItems = <MediaItem>[...state.items, ...resp.items];

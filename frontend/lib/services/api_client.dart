@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 class ApiClient {
   final Dio _dio;
   String? _token;
+  String? _embyServerUrl;
+  String? _userId;
 
   ApiClient({String? baseUrl})
       : _dio = Dio(BaseOptions(
@@ -27,14 +29,23 @@ class ApiClient {
   /// 暴露内部 Dio 实例，用于测试验证
   Dio get dio => _dio;
 
-  // 注册拦截器：自动注入 Token、请求日志、错误日志
+  // 注册拦截器：自动注入 Token、服务器地址、用户 ID 到请求头
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          // 注入 Token（X-Emby-Token + Authorization: Bearer）
           if (_token != null && _token!.isNotEmpty) {
             options.headers['X-Emby-Token'] = _token!;
             options.headers['Authorization'] = 'Bearer $_token';
+          }
+          // 注入 Emby 服务器地址（后端用于代理到正确的 Emby 实例）
+          if (_embyServerUrl != null && _embyServerUrl!.isNotEmpty) {
+            options.headers['X-Emby-Server-Url'] = _embyServerUrl!;
+          }
+          // 注入用户 ID（后端代理请求到 Emby 时使用）
+          if (_userId != null && _userId!.isNotEmpty) {
+            options.headers['X-Emby-UserId'] = _userId!;
           }
           return handler.next(options);
         },
@@ -48,7 +59,7 @@ class ApiClient {
     );
   }
 
-  // 更新 baseUrl
+  // 更新 baseUrl（始终指向 FastAPI 后端，不是 Emby 服务器）
   void setBaseUrl(String url) {
     _dio.options.baseUrl = url;
   }
@@ -58,9 +69,21 @@ class ApiClient {
     _token = token;
   }
 
-  // 清除 Token
-  void clearToken() {
+  // 设置 Emby 服务器地址（会被注入到 X-Emby-Server-Url 请求头）
+  void setEmbyServerUrl(String url) {
+    _embyServerUrl = url;
+  }
+
+  // 设置用户 ID（会被注入到 X-Emby-UserId 请求头）
+  void setUserId(String userId) {
+    _userId = userId;
+  }
+
+  // 清除所有认证信息
+  void clearAuth() {
     _token = null;
+    _embyServerUrl = null;
+    _userId = null;
   }
 
   // 统一错误处理：将 DioException 转换为可读字符串

@@ -59,6 +59,27 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   AuthState get _auth => _ref.read(authProvider);
 
+  // 辅助方法：从 auth 状态配置服务认证
+  void _setupServiceAuth() {
+    final auth = _auth;
+    final backendUrl = auth.backendUrl;
+    final embyServerUrl = auth.embyServerUrl;
+    final userId = auth.user?.id;
+    final token = auth.token;
+
+    if (backendUrl != null &&
+        embyServerUrl != null &&
+        userId != null &&
+        token != null) {
+      _service.setupAuth(
+        backendUrl: backendUrl,
+        embyServerUrl: embyServerUrl,
+        userId: userId,
+        token: token,
+      );
+    }
+  }
+
   // 发起一次新搜索（重置状态）
   Future<void> search(String query) async {
     if (query.isEmpty) {
@@ -78,19 +99,20 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
+        auth.backendUrl == null ||
         auth.embyServerUrl == null ||
+        auth.user?.id == null ||
         auth.token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
 
     try {
+      _setupServiceAuth();
       final resp = await _service.search(
         query,
         limit: state.limit,
         offset: 0,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
       );
       final hasMore = resp.offset + resp.items.length < resp.total;
       state = SearchState(
@@ -116,19 +138,20 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
+        auth.backendUrl == null ||
         auth.embyServerUrl == null ||
+        auth.user?.id == null ||
         auth.token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
 
     try {
+      _setupServiceAuth();
       final resp = await _service.search(
         state.query,
         limit: state.limit,
         offset: state.offset,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
       );
       final newItems = <MediaItem>[...state.results, ...resp.items];
       final hasMore = state.offset + resp.items.length < resp.total;
