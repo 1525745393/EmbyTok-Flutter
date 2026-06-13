@@ -1,5 +1,9 @@
 // 视频流单页：全屏视频 + 右侧操作按钮 + 左下角标题信息
 // 采用 GestureOverlay 处理手势交互（单击/双击/长按/水平拖动）
+//
+// 相比原始版本新增：
+//   - 右上角齿轮按钮 → 打开 PlaybackSettingsSheet（音轨/字幕/清晰度）
+//   - 续播提示：播放器从 userData 位置继续播放时，顶部闪现 "已从 XX:XX 继续"
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +12,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import 'gesture_overlay.dart';
+import 'playback_settings_sheet.dart';
 import 'video_player_widget.dart';
 
 // 单个视频页：TikTok 卡片样式
@@ -23,6 +28,10 @@ class VideoPageItem extends ConsumerStatefulWidget {
 class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   VideoPlayerController? _videoController;
 
+  // 续播提示
+  Duration? _resumedFrom;
+  bool _showResumeHint = false;
+
   @override
   Widget build(BuildContext context) {
     final favorited =
@@ -37,9 +46,21 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           item: widget.item,
           child: VideoPlayerWidget(
             item: widget.item,
-            onControllerReady: (c) {
+            onControllerReady: (c, resumedFrom) {
               setState(() {
                 _videoController = c;
+                _resumedFrom = resumedFrom;
+                if (resumedFrom != null) {
+                  _showResumeHint = true;
+                  // 3 秒后自动隐藏
+                  Future<void>.delayed(const Duration(seconds: 3), () {
+                    if (mounted) {
+                      setState(() {
+                        _showResumeHint = false;
+                      });
+                    }
+                  });
+                }
               });
               ref.read(isPlayingProvider.notifier).state = true;
               ref.read(currentPlayingItemProvider.notifier).state =
@@ -48,12 +69,86 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           ),
         ),
 
+        // 顶部：齿轮按钮（右上角）+ 续播提示
+        _buildTopBar(),
+
         // 底部渐变 + 标题/简介/类型标签
         _buildBottomGradient(),
 
         // 右侧渐变 + 操作按钮
         _buildRightActions(favorited),
       ],
+    );
+  }
+
+  // 顶部栏：右上角齿轮 + 左上角续播提示
+  Widget _buildTopBar() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // 续播提示（动画：淡入淡出 + 下滑）
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _showResumeHint && _resumedFrom != null
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.history,
+                                color: Colors.white70, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              '已从 ${_formatDuration(_resumedFrom!)} 继续',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              // 齿轮按钮（打开播放设置）
+              IconButton(
+                icon: const Icon(
+                  Icons.settings,
+                  color: Colors.white70,
+                  size: 26,
+                ),
+                onPressed: () {
+                  _openPlaybackSettings();
+                },
+                tooltip: '播放设置',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 打开播放设置底部面板
+  void _openPlaybackSettings() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const PlaybackSettingsSheet(),
     );
   }
 
@@ -203,6 +298,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         ],
       ),
     );
+  }
+
+  // Duration → mm:ss
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (d.inHours > 0) {
+      final hours = d.inHours.toString().padLeft(2, '0');
+      return '$hours:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
   }
 
   String _titleText() {

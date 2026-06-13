@@ -7,9 +7,13 @@ import 'package:go_router/go_router.dart';
 import 'providers/providers.dart';
 import 'views/favorites_view.dart';
 import 'views/feed_view.dart';
+import 'views/genres_browse_view.dart';
 import 'views/history_view.dart';
 import 'views/home_scaffold.dart';
+import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
+import 'views/next_up_view.dart';
+import 'views/people_browse_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
 
@@ -66,6 +70,34 @@ class EmbyTokApp extends ConsumerWidget {
         GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsView(),
+        ),
+        // 继续观看
+        GoRoute(
+          path: '/continue-watching',
+          builder: (context, state) => const ContinueWatchingView(),
+        ),
+        // 下一步看什么
+        GoRoute(
+          path: '/next-up',
+          builder: (context, state) => const NextUpView(),
+        ),
+        // 浏览（类型 + 工作室）
+        GoRoute(
+          path: '/browse',
+          builder: (context, state) => const GenresBrowseView(),
+        ),
+        // 演员与导演
+        GoRoute(
+          path: '/people',
+          builder: (context, state) => const PeopleBrowseView(),
+        ),
+        // 详情页（按 itemId 路由）
+        GoRoute(
+          path: '/item/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return ItemDetailView(itemId: id);
+          },
         ),
       ],
     );
