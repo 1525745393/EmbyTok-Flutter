@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
-import '../utils/constants.dart';
 import 'auth_provider.dart';
-import 'library_provider.dart';
 
 // 视频列表状态
 class VideoListState {
@@ -16,6 +14,8 @@ class VideoListState {
   final String? error;
   final int offset;
   final int limit;
+  final String? currentLibraryId;
+  final String? currentLibraryType; // 新增：当前库类型
 
   const VideoListState({
     this.items = const <MediaItem>[],
@@ -23,7 +23,9 @@ class VideoListState {
     this.hasMore = true,
     this.error,
     this.offset = 0,
-    this.limit = kDefaultPageLimit,
+    this.limit = 20,
+    this.currentLibraryId,
+    this.currentLibraryType,
   });
 
   VideoListState copyWith({
@@ -33,6 +35,8 @@ class VideoListState {
     String? error,
     int? offset,
     int? limit,
+    String? currentLibraryId,
+    String? currentLibraryType,
   }) {
     return VideoListState(
       items: items ?? this.items,
@@ -41,6 +45,8 @@ class VideoListState {
       error: error ?? this.error,
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
+      currentLibraryId: currentLibraryId ?? this.currentLibraryId,
+      currentLibraryType: currentLibraryType ?? this.currentLibraryType,
     );
   }
 }
@@ -54,15 +60,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       : _service = service ?? EmbytokService(),
         super(const VideoListState());
 
-  AuthState get _auth => _ref.read(authProvider);
-
-  // 辅助方法：配置服务认证
+  // ——— 辅助方法 ———
   void _setupServiceAuth() {
-    final auth = _auth;
+    final auth = _ref.read(authProvider);
     final embyServerUrl = auth.embyServerUrl;
     final userId = auth.user?.id;
     final token = auth.token;
-
     if (embyServerUrl != null && userId != null && token != null) {
       _service.setupAuth(
         embyServerUrl: embyServerUrl,
@@ -73,15 +76,18 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   }
 
   bool get _hasAuth {
-    final auth = _auth;
+    final auth = _ref.read(authProvider);
     return auth.isAuthenticated &&
         auth.embyServerUrl != null &&
         auth.user?.id != null &&
         auth.token != null;
   }
 
-  // 刷新：重置偏移并加载第一页
-  Future<void> refresh({String? libraryId}) async {
+  // ——— 刷新：重置偏移并加载第一页 ———
+  Future<void> refresh({
+    String? libraryId,
+    String? libraryType,
+  }) async {
     state = VideoListState(
       items: const <MediaItem>[],
       isLoading: true,
@@ -89,6 +95,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       error: null,
       offset: 0,
       limit: state.limit,
+      currentLibraryId: libraryId,
+      currentLibraryType: libraryType,
     );
 
     if (!_hasAuth) {
@@ -97,7 +105,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
+      final targetLibraryId = libraryId ?? state.currentLibraryId;
+      final targetLibraryType = libraryType ?? state.currentLibraryType;
+
       if (targetLibraryId == null || targetLibraryId.isEmpty) {
         state = state.copyWith(isLoading: false);
         return;
@@ -106,6 +116,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       _setupServiceAuth();
       final resp = await _service.getItems(
         libraryId: targetLibraryId,
+        libraryType: targetLibraryType,
         limit: state.limit,
         offset: 0,
       );
@@ -118,6 +129,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         error: null,
         offset: resp.items.length,
         limit: state.limit,
+        currentLibraryId: targetLibraryId,
+        currentLibraryType: targetLibraryType,
       );
     } catch (e) {
       final message = e is String ? e : '加载视频失败：$e';
@@ -125,8 +138,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 加载更多：在当前列表末尾追加
-  Future<void> loadMore({String? libraryId}) async {
+  // ——— 加载更多：在当前列表末尾追加 ———
+  Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore) return;
 
     state = state.copyWith(isLoading: true, error: null);
@@ -137,15 +150,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
-      if (targetLibraryId == null || targetLibraryId.isEmpty) {
-        state = state.copyWith(isLoading: false);
-        return;
-      }
-
       _setupServiceAuth();
       final resp = await _service.getItems(
-        libraryId: targetLibraryId,
+        libraryId: state.currentLibraryId,
+        libraryType: state.currentLibraryType,
         limit: state.limit,
         offset: state.offset,
       );
@@ -160,6 +168,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         error: null,
         offset: state.offset + resp.items.length,
         limit: state.limit,
+        currentLibraryId: state.currentLibraryId,
+        currentLibraryType: state.currentLibraryType,
       );
     } catch (e) {
       final message = e is String ? e : '加载更多失败：$e';

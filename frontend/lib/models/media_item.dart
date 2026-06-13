@@ -11,6 +11,7 @@ class MediaItem {
   final double? rating;
   final List<String>? genres;
   final String? playbackUrl;
+  final Map<String, String>? playbackHttpHeaders; // 视频流认证头
   final bool? isFavorite;
 
   MediaItem({
@@ -24,24 +25,11 @@ class MediaItem {
     this.rating,
     this.genres,
     this.playbackUrl,
+    this.playbackHttpHeaders,
     this.isFavorite,
   });
 
-  // 从 Emby 原生响应格式解析：
-  // {
-  //   "Id": "...",
-  //   "Name": "...",
-  //   "Type": "Movie" | "Episode" | "MusicVideo" | ...,
-  //   "RuntimeTicks": 12345678901,
-  //   "Overview": "...",
-  //   "ProductionYear": 2023,
-  //   "CommunityRating": 8.5,
-  //   "Genres": ["动作", "科幻"],
-  //   "ImageTags": {"Primary": "abc123"},
-  //   "UserData": {"IsFavorite": true, "PlaybackPositionTicks": 0},
-  //   ...
-  // }
-  // 同时兼容后端 snake_case 格式（向前兼容）
+  // 从 Emby 原生响应格式解析
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     // 辅助函数：从 tick 转换为秒（Emby 使用 100ns 为单位的 tick）
     double? ticksToSeconds(dynamic ticks) {
@@ -69,7 +57,9 @@ class MediaItem {
         (json['rating'] as num?)?.toDouble();
 
     // 类型
-    final type = (json['Type'] as String?) ?? json['type'] as String? ?? '';
+    final type = (json['Type'] as String?) ??
+        json['type'] as String? ??
+        'Video';
 
     // 标题/名称
     final title = (json['Name'] as String?) ??
@@ -108,7 +98,7 @@ class MediaItem {
     );
   }
 
-  // 序列化（供持久化使用，与旧的 JSON 字段保持一致）
+  // 序列化（供持久化使用）
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
@@ -122,14 +112,39 @@ class MediaItem {
         'playback_url': playbackUrl,
       };
 
-  // 返回一条新 MediaItem，使用提供的服务器地址与令牌生成缩略图与播放地址
+  // 返回一条新 MediaItem，使用 Emby 标准 URL 格式
+  //
+  // 缩略图 URL: {server}/Items/{id}/Images/Primary?MaxWidth=800&Format=jpg&api_key={token}
+  // 视频流 URL: {server}/Videos/{id}/stream?static=true&api_key={token}
+  // httpHeaders:  { X-Emby-Token: <token>, X-Emby-Authorization: ... } （双重保险）
   MediaItem withEmbyUrls(String embyServerUrl, String apiKey) {
     final base = embyServerUrl.endsWith('/')
         ? embyServerUrl.substring(0, embyServerUrl.length - 1)
         : embyServerUrl;
     final safeKey = apiKey;
-    final thumb = '$base/Items/$id/Images/Primary?api_key=$safeKey';
-    final play = '$base/Videos/$id/stream?api_key=$safeKey';
+
+    // Emby 标准图片 URL：带 MaxWidth 和 Format 参数以获得合适大小的图片
+    // api_key 作为查询参数，兼容不支持请求头的图片加载器（如 Image.network）
+    final thumb =
+        '$base/Items/$id/Images/Primary?MaxWidth=800&Format=jpg&Quality=80&api_key=$safeKey';
+
+    // Emby 标准视频流 URL：
+    // /Videos/{id}/stream 是 Emby 官方推荐的直接流访问路径
+    // static=true 告诉服务器这是一个稳定 URL（非转码会话）
+    final play = '$base/Videos/$id/stream?static=true&api_key=$safeKey';
+
+    // 构造 video_player 需要的认证头
+    final headers = <String, String>{
+      // 主要认证方式：X-Emby-Token
+      'X-Emby-Token': safeKey,
+      // Emby 标准客户端标识头
+      'X-Emby-Client': 'EmbyTok',
+      'X-Emby-Device-Name': 'Mobile',
+      'X-Emby-Client-Version': '1.0.0',
+      // Accept 头
+      'Accept': '*/*',
+    };
+
     return MediaItem(
       id: id,
       title: title,
@@ -141,6 +156,7 @@ class MediaItem {
       rating: rating,
       genres: genres,
       playbackUrl: play,
+      playbackHttpHeaders: headers,
       isFavorite: isFavorite,
     );
   }

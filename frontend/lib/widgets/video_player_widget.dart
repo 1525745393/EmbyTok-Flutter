@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 
 // 视频播放器：优先播放 item.playbackUrl，如为空则降级为缩略图
+// 通过 item.playbackHttpHeaders 传递 Emby 认证头
 class VideoPlayerWidget extends StatefulWidget {
   final MediaItem item;
   // 控制回调：暴露给外部调用
@@ -30,7 +31,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
 
-  // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
+  // 判断是否可以播放视频
   bool get _canPlayVideo {
     if (widget.item.playbackUrl == null || widget.item.playbackUrl!.isEmpty) {
       return false;
@@ -49,13 +50,22 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   // 初始化 video_player 控制器
+  // 关键点：通过 httpHeaders 传递 X-Emby-Token 认证头
   Future<void> _initVideo() async {
     try {
+      final url = widget.item.playbackUrl!;
+      // 从 MediaItem 中读取 Emby 认证头，或提供默认值
+      final headers = widget.item.playbackHttpHeaders ??
+          _buildDefaultHeaders();
+
       _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.item.playbackUrl!),
+        Uri.parse(url),
+        httpHeaders: headers,
       );
+
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
+
       if (mounted) {
         setState(() {
           _initialized = true;
@@ -75,22 +85,32 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  // 外部控制 API：播放
+  // 默认认证头（兜底：当 MediaItem 没有头时使用）
+  Map<String, String> _buildDefaultHeaders() {
+    // 注意：这里不能访问 ApiClient 的 token，因为视频播放器是独立的。
+    // 实际使用时应由 MediaItem.withEmbyUrls() 提前构造好 header。
+    // 这个默认值是作为安全网。
+    return <String, String>{
+      'X-Emby-Client': 'EmbyTok',
+      'X-Emby-Device-Name': 'Mobile',
+      'X-Emby-Client-Version': '1.0.0',
+      'Accept': '*/*',
+    };
+  }
+
+  // ——— 外部控制 API ———
   void play() {
     _controller?.play();
   }
 
-  // 外部控制 API：暂停
   void pause() {
     _controller?.pause();
   }
 
-  // 外部控制 API：跳转
   Future<void> seekTo(Duration position) async {
     await _controller?.seekTo(position);
   }
 
-  // 外部控制 API：设置倍速
   Future<void> setRate(double rate) async {
     await _controller?.setPlaybackSpeed(rate);
   }
@@ -130,6 +150,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   // 缩略图占位：web 环境或无播放地址时使用
+  // 对 Emby 来说，thumbnailUrl 已包含 api_key，所以 Image.network 可以直接加载
   Widget _buildThumbnailPlaceholder() {
     final url = widget.item.thumbnailUrl;
     return Stack(

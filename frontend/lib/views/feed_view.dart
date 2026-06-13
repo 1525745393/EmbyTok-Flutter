@@ -19,7 +19,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
   int _currentPage = 0;
-  bool _hasInitializedLibrary = false;  // 标记：是否已经执行过首次媒体库自动选择
+  bool _hasInitializedLibrary = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -39,18 +39,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     super.dispose();
   }
 
-  // 选择媒体库：先更新 selectedLibraryId，再刷新视频列表
+  // 选择媒体库：刷新视频列表
   Future<void> _selectLibrary(Library lib) async {
     ref.read(selectedLibraryIdProvider.notifier).state = lib.id;
-    await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
+    await ref.read(videoListProvider.notifier).refresh(
+          libraryId: lib.id,
+          libraryType: lib.collectionType, // 传递类型给排序策略
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    // 调用 super.build 以便 AutomaticKeepAliveClientMixin 生效
     super.build(context);
 
-    // 媒体库列表（异步）
+    // 媒体库列表（异步加载）
     final librariesAsync = ref.watch(libraryListProvider);
 
     // 加载成功后：自动选择第一个媒体库（仅在首次加载时执行一次）
@@ -258,7 +260,7 @@ class _FeedViewState extends ConsumerState<FeedView>
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: () {
-                      // 刷新媒体库列表：让 libraryListProvider 重新执行
+                      // 刷新媒体库列表
                       ref.invalidate(libraryListProvider);
                     },
                     child: const Text(
