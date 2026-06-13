@@ -31,6 +31,8 @@ jobs:
   build-and-push:
     name: 构建并推送镜像
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -60,7 +62,7 @@ jobs:
 
           if [ -n "${missing}" ]; then
             echo ""
-            echo "缺少必需的 Docker Secrets: ${missing}"
+            echo "⚠️  缺少必需的 Docker Secrets: ${missing}"
             echo "请在仓库 Settings → Secrets and variables → Actions 中配置："
             echo "  • DOCKER_USERNAME - Docker Hub 用户名"
             echo "  • DOCKER_PASSWORD - Docker Hub Access Token"
@@ -84,7 +86,7 @@ jobs:
           if [[ "$VERSION" == refs/tags/* ]]; then
             VERSION="${VERSION#refs/tags/}"
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "✅ 版本标签: ${VERSION}"
 
           # REGISTRY 解析（可选，有默认值）
@@ -114,34 +116,44 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:${{ steps.meta.outputs.VERSION }}
             ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       # -----------------------------------------------------------
-      # 步骤 5：构建 Flutter Web 再打包 Docker 镜像
+      # 步骤 5：构建并推送前端 Flutter Web 镜像
       # -----------------------------------------------------------
-      - name: 安装 Flutter
-        run: |
-          curl -sL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.0-stable.tar.xz | tar xJ -C /opt
-          echo "/opt/flutter/bin" >> $GITHUB_PATH
+      - name: 设置 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.24.0"
+          cache: true
 
       - name: 构建 Flutter Web
         run: |
-          cd ${{ github.workspace }}/frontend
           flutter config --no-analytics
           flutter pub get
           flutter build web --release
+          echo ""
+          echo "=== 检查构建产物 ==="
+          ls -la build/web/ 2>/dev/null || echo "build/web 不存在"
+          echo ""
+          echo "=== 关键文件检查 ==="
+          test -f build/web/index.html && echo "✅ index.html 存在" || echo "❌ index.html 不存在"
+          test -d build/web/assets && echo "✅ assets/ 目录存在" || echo "❌ assets/ 目录不存在"
+        working-directory: frontend
 
       - name: 构建并推送前端镜像
         uses: docker/build-push-action@v5
         with:
           context: frontend/
+          file: frontend/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:${{ steps.meta.outputs.version }}
+            ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:${{ steps.meta.outputs.VERSION }}
             ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -153,10 +165,10 @@ jobs:
           echo "镜像构建与推送完成"
           echo "============================================"
           echo "后端镜像:"
-          echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:${{ steps.meta.outputs.version }}"
+          echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:${{ steps.meta.outputs.VERSION }}"
           echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-backend:latest"
           echo ""
           echo "前端镜像:"
-          echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:${{ steps.meta.outputs.version }}"
+          echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:${{ steps.meta.outputs.VERSION }}"
           echo "  ${{ steps.meta.outputs.registry }}/${{ steps.meta.outputs.owner }}/embbytok-frontend:latest"
           echo "============================================"

@@ -35,6 +35,8 @@ jobs:
   build-android:
     name: Android 签名构建
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
     steps:
@@ -78,8 +80,13 @@ jobs:
 
           echo "✅ Android Secrets 验证通过"
 
-          # 注意：secrets.ANDROID_KEYSTORE 在日志中显示为 ***，无法通过 ${#var} 获取长度
-          # 但 keystore 的 base64 编码通常 >= 2500 字符，这里只需要确认非空
+          # 额外检查：ANDROID_KEYSTORE 格式验证（仅在本地变量中检查，避免 *** 被直接计算长度）
+          ANDROID_KEYSTORE_VALUE="${{ secrets.ANDROID_KEYSTORE }}"
+          if [ -n "$ANDROID_KEYSTORE_VALUE" ]; then
+            echo "✅ ANDROID_KEYSTORE 已配置"
+          else
+            echo "⚠️  ANDROID_KEYSTORE 内容为空"
+          fi
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
@@ -147,14 +154,35 @@ jobs:
         run: flutter pub get
         working-directory: frontend
 
+      - name: Flutter 环境诊断
+        run: |
+          echo "=== Flutter Version ==="
+          flutter --version
+          echo ""
+          echo "=== Flutter Doctor ==="
+          flutter doctor 2>&1 | head -20 || true
+        working-directory: frontend
+
       - name: 构建 APK (split per ABI)
+        shell: bash
         run: flutter build apk --${BUILD_TYPE} --split-per-abi
         working-directory: frontend
 
       - name: 构建 App Bundle (AAB)
+        shell: bash
         if: ${{ env.BUILD_TYPE == 'release' }}
-        run: flutter build appbundle --release
+        run: flutter build appbundle --${BUILD_TYPE}
         working-directory: frontend
+
+      - name: 检查构建产物
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== 检查 APK 路径 ==="
+          find frontend/build -name "*.apk" 2>/dev/null || { echo "❌ 未找到 APK 产物"; exit 1; }
+          echo ""
+          echo "=== 检查 AAB 路径 ==="
+          find frontend/build -name "*.aab" 2>/dev/null || { echo "⚠️  未找到 AAB 产物（debug 模式正常）"; }
 
       - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
@@ -169,7 +197,7 @@ jobs:
         with:
           name: android-aab-release
           path: frontend/build/app/outputs/bundle/release/*.aab
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: 创建 GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')

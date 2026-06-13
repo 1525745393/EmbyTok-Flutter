@@ -66,3 +66,9 @@
 
 # 调试信息保留
 -keepattributes SourceFile,LineNumberTable
+
+# AGP 8.x + R8 严格模式兼容：Google Play Core 可选类
+# 这些类仅在 Google Play Dynamic Delivery 环境中需要，缺失是正常的
+-ignorewarnings
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }

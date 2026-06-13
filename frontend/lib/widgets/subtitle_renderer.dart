@@ -61,7 +61,7 @@ class SubtitleRenderer extends ConsumerWidget {
               fontSize: settings.fontSize,
               fontWeight: FontWeight.w600,
               height: 1.3,
-              shadows: [
+              shadows: const [
                 Shadow(
                   color: Colors.black87,
                   blurRadius: 4,

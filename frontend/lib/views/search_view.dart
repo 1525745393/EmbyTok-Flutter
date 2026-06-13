@@ -82,43 +82,42 @@ class _SearchViewState extends ConsumerState<SearchView> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                onChanged: _onQueryChanged,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: '输入关键词搜索...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                  suffixIcon: _controller.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white54),
-                          onPressed: () {
-                            _controller.clear();
-                            _onQueryChanged('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white10,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              onChanged: _onQueryChanged,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: '输入关键词搜索...',
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                suffixIcon: _controller.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54),
+                        onPressed: () {
+                          _controller.clear();
+                          _onQueryChanged('');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white10,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
-            Expanded(
-              child: _buildBody(state, history),
-            ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _buildBody(state, history),
+          ),
+        ],
       ),
-    );
+    ));
   }
 
   Widget _buildBody(SearchState state, List<String> history) {
@@ -128,13 +127,13 @@ class _SearchViewState extends ConsumerState<SearchView> {
     }
     // 加载中
     if (state.isLoading && state.results.isEmpty) {
-      return _Centered(
+      return const _Centered(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Color(0xFFE91E63)),
-            const SizedBox(height: 12),
-            const Text('搜索中...', style: TextStyle(color: Colors.white70)),
+            CircularProgressIndicator(color: Color(0xFFE91E63)),
+            SizedBox(height: 12),
+            Text('搜索中...', style: TextStyle(color: Colors.white70)),
           ],
         ),
       );
@@ -179,7 +178,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   Widget _buildHistory(List<String> history) {
     if (history.isEmpty) {
-      return _Centered(
+      return const _Centered(
         child: Text('还没有搜索历史',
             style: TextStyle(color: Colors.white54, fontSize: 16)),
       );

@@ -1,5 +1,5 @@
 # ===========================================================
-#  EmbyTok - 统一 Makefile (中文工作流入口
+#  EmbyTok - 统一 Makefile (中文工作流入口)
 # ===========================================================
 .DEFAULT_GOAL := help
 
@@ -36,7 +36,7 @@ help: ## 显示本帮助信息
 	@echo "$(BOLD)$(CYAN)╚══════════════════════════════════════════════════════════╝$(RESET)"
 	@echo ""
 	@echo "$(BOLD)$(YELLOW)◆ 环境配置$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)' | grep -E '^\s+(setup|lint'
+	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E '^\s+(setup|lint)'
 	@echo ""
 	@echo "$(BOLD)$(YELLOW)◆ 运行服务$(RESET)"
 	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)' $(MAKEFILE_LIST) | grep -E '^\s+run-'
@@ -59,7 +59,7 @@ help: ## 显示本帮助信息
 # ===========================================================
 # 环境配置
 # ===========================================================
-setup: ## 安装所有依赖（Flutter + Python
+setup: ## 安装所有依赖（Flutter + Python）
 	@echo "$(BOLD)$(GREEN)◆ 开始安装依赖...$(RESET)"
 	@echo "----------------------------------------"
 	@echo "$(YELLOW)► 检查 Flutter 环境$(RESET)"
@@ -84,7 +84,7 @@ setup: ## 安装所有依赖（Flutter + Python
 # ===========================================================
 # 运行服务
 # ===========================================================
-run-backend: ## 启动后端服务（Docker Compose
+run-backend: ## 启动后端服务（Docker Compose）
 	@echo "$(BOLD)$(CYAN)◆ 启动后端服务$(RESET)"
 	@echo "----------------------------------------"
 	docker-compose up -d
@@ -130,15 +130,15 @@ test-frontend: ## 运行 Flutter 测试
 test-backend: ## 运行 Python 后端测试
 	@echo "$(BOLD)$(CYAN)◆ 运行 Python 测试$(RESET)"
 	@echo "----------------------------------------"
-	@if [ -d "$(BACKEND_DIR)/tests ]; then \
+	@if [ -d "$(BACKEND_DIR)/tests" ]; then \
 		cd $(BACKEND_DIR) && python3 -m pytest -v || { \
-			echo "$(MAGENTA)后端测试完成（可能无测试或测试失败，详见上方输出$(RESET)"; \
+			echo "$(MAGENTA)后端测试完成（可能无测试或测试失败，详见上方输出)$(RESET)"; \
 		}; \
 	else \
 		echo "$(YELLOW)提示：backend/tests 目录不存在，跳过后端测试$(RESET)"; \
 	fi
 
-lint: ## 代码质量检查（flutter analyze
+lint: ## 代码质量检查（flutter analyze）
 	@echo "$(BOLD)$(CYAN)◆ 代码质量检查$(RESET)"
 	@echo "----------------------------------------"
 	@echo "$(YELLOW)► Flutter 静态分析$(RESET)"
@@ -175,7 +175,7 @@ build-docker: ## 构建 Docker 后端镜像
 # ===========================================================
 # 推送 Docker 镜像
 # ===========================================================
-docker-push: ## 推送 Docker 镜像（需配置 REGISTRY/IMAGE/TAG 环境变量
+docker-push: ## 推送 Docker 镜像（需配置 REGISTRY/IMAGE/TAG 环境变量）
 	@echo "$(BOLD)$(CYAN)◆ 推送 Docker 镜像$(RESET)"
 	@echo "----------------------------------------"
 	@REGISTRY=$${REGISTRY:-docker.io}; \

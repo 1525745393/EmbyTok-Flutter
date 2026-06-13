@@ -8,6 +8,20 @@
 
 ---
 
+## 📚 文档导航
+
+> 完整的文档体系已迁移到 `docs/` 目录，按读者角色推荐阅读路径如下：
+
+| 你是…… | 推荐阅读路径 | 核心文档 |
+|--------|-------------|---------|
+| 👤 **普通用户** | 📖 先了解基本用法 → 遇到问题看故障排查 | [用户使用指南](docs/user-guide.md) → [故障排查指南](docs/troubleshooting.md) |
+| 👨‍💻 **开发者** | 🏗️ 先理解整体架构 → 搭建开发环境 → 看代码规范 | [架构总览](docs/architecture.md) → [开发者指南](docs/developer-guide.md) → [API 参考](docs/api-reference.md) → [故障排查指南](docs/troubleshooting.md) |
+| 🛠 **部署工程师** | 🚀 看部署方案 → 运维命令 → 故障排查 | [部署指南](docs/deployment.md) → [故障排查指南](docs/troubleshooting.md) |
+
+**📑 文档索引**：[docs/index.md](docs/index.md)（所有文档的入口）
+
+---
+
 ## 项目简介
 
 EmbyTok-Flutter 是一款跨平台的 Emby 媒体库客户端，将海量电影 / 剧集 / 音乐视频以**上下滑动的竖屏信息流**呈现，结合**手势交互、倍速播放、字幕渲染、智能搜索、收藏与历史**等核心能力，让用户可以在移动端、桌面端获得流畅的观影体验。
