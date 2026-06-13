@@ -22,9 +22,15 @@ class EmbyClient:
         self.user_id: Optional[str] = None
         self.timeout: float = timeout
 
+        # 构造基础请求头（Emby 客户端标识 + 鉴权 token）
+        headers: Dict[str, str] = {}
+        headers.update(get_emby_client_header())
+        if token:
+            headers["X-Emby-Token"] = str(token)
+
         self._client: httpx.AsyncClient = httpx.AsyncClient(
             timeout=httpx.Timeout(timeout),
-            headers=get_emby_client_header(),
+            headers=headers,
         )
 
     # ------------------------------------------------------------------
@@ -107,6 +113,8 @@ class EmbyClient:
             uid = user_info.get("Id")
             if access_token:
                 self.token = access_token
+                # 关键：将 token 注入到 httpx 客户端的请求头中
+                self._client.headers["X-Emby-Token"] = str(access_token)
             if uid:
                 self.user_id = str(uid)
         return data

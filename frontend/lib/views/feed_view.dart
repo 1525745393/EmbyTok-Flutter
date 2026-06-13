@@ -19,6 +19,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
   int _currentPage = 0;
+  bool _hasInitializedLibrary = false;  // 标记：是否已经执行过首次媒体库自动选择
 
   @override
   bool get wantKeepAlive => true;
@@ -52,6 +53,22 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 媒体库列表（异步）
     final librariesAsync = ref.watch(libraryListProvider);
 
+    // 加载成功后：自动选择第一个媒体库（仅在首次加载时执行一次）
+    librariesAsync.when(
+      loading: () {},
+      error: (_, __) {},
+      data: (libraries) {
+        if (libraries.isNotEmpty && !_hasInitializedLibrary) {
+          _hasInitializedLibrary = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _selectLibrary(libraries.first);
+            }
+          });
+        }
+      },
+    );
+
     // 视频列表状态
     final videoState = ref.watch(videoListProvider);
 
@@ -61,10 +78,9 @@ class _FeedViewState extends ConsumerState<FeedView>
         children: [
           // 主体：竖向 PageView 视频流
           _buildVideoPageView(videoState),
-          // 顶部：媒体库切换器
+          // 顶部：媒体库切换器（覆盖在视频流之上）
           Positioned(
             left: 0,
-            right: 0,
             top: 0,
             child: _buildLibraryChips(librariesAsync),
           ),
@@ -90,9 +106,13 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 空状态
     if (videoState.items.isEmpty) {
       return const Center(
-        child: Text(
-          '暂无视频，请选择其他媒体库',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            '暂无视频，请选择其他媒体库',
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -126,7 +146,28 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 错误提示 UI
+  // 将原始错误信息转换为用户友好的中文提示
+  String _friendlyError(String raw) {
+    final lower = raw.toLowerCase();
+    if (lower.contains('token') ||
+        lower.contains('unauthorized') ||
+        lower.contains('expired') ||
+        lower.contains('invalid')) {
+      return '登录信息已过期，请重新登录';
+    }
+    if (lower.contains('unreachable') || lower.contains('无法连接')) {
+      return '无法连接到服务器，请检查网络';
+    }
+    if (lower.contains('timeout') || lower.contains('超时')) {
+      return '请求超时，请重试';
+    }
+    if (lower.contains('尚未登录')) {
+      return '尚未登录';
+    }
+    return raw;
+  }
+
+  // 视频流的错误提示 UI
   Widget _buildErrorState(String error) {
     return Center(
       child: Padding(
@@ -137,7 +178,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
             const SizedBox(height: 12),
             Text(
-              error,
+              _friendlyError(error),
               style: const TextStyle(color: Colors.white70, fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -169,7 +210,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           end: Alignment.bottomCenter,
           colors: [
             Colors.black87,
-            Colors.black45,
+            Colors.black54,
             Colors.transparent,
           ],
         ),
@@ -177,10 +218,74 @@ class _FeedViewState extends ConsumerState<FeedView>
       child: SafeArea(
         bottom: false,
         child: librariesAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
+          // 加载中：显示加载指示器（不再隐藏）
+          loading: () => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFFE91E63),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  '加载媒体库中…',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          // 错误：显示错误提示 + 重试按钮（不再隐藏）
+          error: (error, stackTrace) {
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Colors.orangeAccent, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    _friendlyError(error.toString()),
+                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      // 刷新媒体库列表：让 libraryListProvider 重新执行
+                      ref.invalidate(libraryListProvider);
+                    },
+                    child: const Text(
+                      '重试',
+                      style: TextStyle(
+                          color: Color(0xFFE91E63),
+                          fontSize: 13,
+                          decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+          // 加载成功
           data: (libraries) {
-            if (libraries.isEmpty) return const SizedBox.shrink();
+            // 空列表
+            if (libraries.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  '未找到媒体库',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              );
+            }
+            // 正常：显示横向切换栏
             final selectedId = ref.watch(selectedLibraryIdProvider);
             return SizedBox(
               height: 40,
