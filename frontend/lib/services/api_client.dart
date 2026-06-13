@@ -9,25 +9,36 @@ class ApiClient {
   String? _userId;
   String? _baseUrl;
 
+  // Emby 客户端标识 —— Emby 服务器会校验此头
+  static const _clientAuthorization =
+      'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+
   ApiClient({Dio? dio}) : _dio = dio ?? Dio() {
     _setupInterceptors();
+    // 默认配置
+    _dio.options.contentType = 'application/json';
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 30);
   }
 
-  // 核心配置：所有请求统一注入 X-Emby-Token
+  // 核心配置：统一注入 Emby 所需的请求头
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // X-Emby-Token: Emby 标准的鉴权头
+          // Emby 标准：客户端标识头（必须）
+          options.headers['X-Emby-Authorization'] = _clientAuthorization;
+          // Emby 标准：Token 鉴权头（登录后才有）
           if (_token != null && _token!.isNotEmpty) {
             options.headers['X-Emby-Token'] = _token!;
           }
-          // Emby 要求的客户端标识头（可选，但推荐）
+          // 确保请求体以 JSON 格式发送
           options.headers['Accept'] = 'application/json';
+          options.headers['Content-Type'] = 'application/json';
           return handler.next(options);
         },
         onError: (error, handler) {
-          // 将 Dio 错误统一成可读的错误信息
+          // 将 Dio 错误统一成可读的错误信息，并附原始响应体信息
           final message = _humanReadableError(error);
           return handler.next(
             DioException(
@@ -40,28 +51,47 @@ class ApiClient {
         },
       ),
     );
-    // 默认超时
-    _dio.options.connectTimeout = const Duration(seconds: 15);
-    _dio.options.receiveTimeout = const Duration(seconds: 30);
   }
 
-  // 友好的错误信息
+  // 友好的错误信息 —— 尽量带上服务器返回的原始错误
   String _humanReadableError(DioException error) {
     final status = error.response?.statusCode;
-    if (status == 401) return '认证失败，请重新登录';
-    if (status == 403) return '没有权限访问此内容';
-    if (status == 404) return '内容不存在';
-    if (status != null && status >= 500) return '服务器错误（$status）';
+    final respData = error.response?.data;
+
+    // 尝试提取 Emby 服务器返回的错误信息
+    String? serverMsg;
+    if (respData is Map<String, dynamic>) {
+      serverMsg = (respData['Message'] as String?) ??
+          (respData['message'] as String?) ??
+          (respData['errorMessage'] as String?) ??
+          (respData['error_description'] as String?);
+    } else if (respData is String && respData.isNotEmpty) {
+      serverMsg = respData;
+    }
+
+    if (status == 401) {
+      return '认证失败：${serverMsg ?? "请检查用户名或密码"}';
+    }
+    if (status == 403) return '没有权限访问此内容（403）';
+    if (status == 404) return '请求的地址不存在（404），请检查服务器地址是否正确';
+    if (status != null && status >= 500) {
+      return '服务器错误（$status）${serverMsg != null ? '：$serverMsg' : ''}';
+    }
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
-      return '请求超时，请检查网络';
+      return '请求超时，请检查网络或服务器地址';
     }
     if (error.type == DioExceptionType.connectionError) {
-      return '无法连接到服务器';
+      return '无法连接到服务器：请检查地址和端口是否正确，以及手机是否在同一局域网';
     }
-    if (error.message != null) return error.message!;
-    return '请求失败';
+    if (serverMsg != null && serverMsg.isNotEmpty) {
+      return serverMsg;
+    }
+    if (error.message != null && error.message!.isNotEmpty) {
+      return error.message!;
+    }
+    return '请求失败，请检查网络后重试';
   }
 
   // ——— setter ———
@@ -92,7 +122,10 @@ class ApiClient {
         path,
         queryParameters: queryParameters,
         data: data,
-        options: Options(method: method),
+        options: Options(
+          method: method,
+          contentType: 'application/json',
+        ),
       );
     } on DioException catch (e) {
       // 重新抛出更友好的错误
