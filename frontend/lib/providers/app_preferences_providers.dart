@@ -6,6 +6,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../utils/app_preferences.dart';
 
+// ---------------- 设备模式（standard / tv） ----------------
+// 初始值从 SharedPreferences 异步加载，设备模式变更时自动持久化
+class DeviceModeNotifier extends StateNotifier<DeviceMode> {
+  DeviceModeNotifier() : super(DeviceMode.standard) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.forceDeviceMode;
+  }
+
+  Future<void> setMode(DeviceMode mode) async {
+    state = mode;
+    await const AppPreferencesService().setForceDeviceMode(mode);
+  }
+}
+
+final deviceModeProvider =
+    StateNotifierProvider<DeviceModeNotifier, DeviceMode>((ref) => DeviceModeNotifier());
+
 // ---------------- feedType（最新/随机/收藏） ----------------
 class FeedTypeNotifier extends StateNotifier<FeedType> {
   FeedTypeNotifier() : super(FeedType.latest) {

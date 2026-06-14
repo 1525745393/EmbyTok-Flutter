@@ -17,28 +17,7 @@ import 'views/settings_view.dart';
 import 'views/standard_root_view.dart';
 import 'views/tv_root_view.dart';
 
-// 应用级设备模式 Provider：启动时读取 SharedPreferences 持久化值
-// 使用 StateNotifier 与现有 auth_provider 风格保持一致
-class _DeviceModeNotifier extends StateNotifier<DeviceMode> {
-  _DeviceModeNotifier() : super(DeviceMode.standard) {
-    _init();
-  }
-
-  Future<void> _init() async {
-    final prefs = const AppPreferencesService();
-    final loaded = await prefs.load();
-    state = loaded.forceDeviceMode;
-  }
-
-  Future<void> setMode(DeviceMode mode) async {
-    state = mode;
-    await const AppPreferencesService().setForceDeviceMode(mode);
-  }
-}
-
-// 导出设备模式 Provider（Task 1 新增）
-final deviceModeProvider =
-    StateNotifierProvider<_DeviceModeNotifier, DeviceMode>((ref) => _DeviceModeNotifier());
+// deviceModeProvider 已迁移到 providers/app_preferences_providers.dart 并通过 providers.dart 导出
 
 class EmbyTokApp extends ConsumerWidget {
   const EmbyTokApp({super.key});
