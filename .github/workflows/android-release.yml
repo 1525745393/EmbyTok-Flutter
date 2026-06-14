@@ -1,10 +1,16 @@
 # ===========================================================
 # Android Release 工作流
-# 依赖的 GitHub Secrets:
-#   ANDROID_KEYSTORE       - keystore 文件的 base64 编码内容
-#   ANDROID_KEYSTORE_PWD   - keystore 密码
-#   ANDROID_KEY_ALIAS      - key 别名（默认: embbytok）
-#   ANDROID_KEY_PWD        - key 密码
+# 说明：当前使用 Android SDK 自带的 debug 签名密钥进行构建
+# 如需正式发布到应用商店，请按以下步骤配置 release 签名：
+#   1. 生成 keystore: keytool -genkey -v -keystore embbytok-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias embbytok
+#   2. 在 GitHub Secrets 中配置:
+#      ANDROID_KEYSTORE       - keystore 文件的 base64 编码
+#      ANDROID_KEYSTORE_PWD   - keystore 密码
+#      ANDROID_KEY_ALIAS      - key 别名 (embbytok)
+#      ANDROID_KEY_PWD        - key 密码
+#   3. 将 frontend/android/app/build.gradle 中的
+#      signingConfig signingConfigs.debug
+#      改为 signingConfig signingConfigs.release
 # ===========================================================
 
 name: Android Release
@@ -43,112 +49,12 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 验证 Android 签名配置
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "开始验证 Android Secrets..."
-
-          # 定义缺失列表
-          missing=""
-
-          # 检查每个 Secret
-          if [ -z "${{ secrets.ANDROID_KEYSTORE }}" ]; then
-            missing="${missing}ANDROID_KEYSTORE "
-          fi
-          if [ -z "${{ secrets.ANDROID_KEYSTORE_PWD }}" ]; then
-            missing="${missing}ANDROID_KEYSTORE_PWD "
-          fi
-          if [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]; then
-            missing="${missing}ANDROID_KEY_ALIAS "
-          fi
-          if [ -z "${{ secrets.ANDROID_KEY_PWD }}" ]; then
-            missing="${missing}ANDROID_KEY_PWD "
-          fi
-
-          # 如果有缺失，输出错误并退出
-          if [ -n "${missing}" ]; then
-            echo ""
-            echo "⚠️  缺少必需的 Android Secrets: ${missing}"
-            echo "请在仓库 Settings → Secrets and variables → Actions 中配置："
-            echo "  • ANDROID_KEYSTORE     - keystore 文件的 base64 编码内容"
-            echo "  • ANDROID_KEYSTORE_PWD - keystore 密码"
-            echo "  • ANDROID_KEY_ALIAS    - key 别名（如 embbytok）"
-            echo "  • ANDROID_KEY_PWD      - key 密码"
-            exit 1
-          fi
-
-          echo "✅ Android Secrets 验证通过"
-
-          # 额外检查：ANDROID_KEYSTORE 格式验证（仅在本地变量中检查，避免 *** 被直接计算长度）
-          ANDROID_KEYSTORE_VALUE="${{ secrets.ANDROID_KEYSTORE }}"
-          if [ -n "$ANDROID_KEYSTORE_VALUE" ]; then
-            echo "✅ ANDROID_KEYSTORE 已配置"
-          else
-            echo "⚠️  ANDROID_KEYSTORE 内容为空"
-          fi
-
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
           flutter-version: "3.24.0"
           cache: true
-
-      - name: 恢复签名配置
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "开始恢复 Android 签名配置..."
-
-          # 创建 key.properties（使用绝对路径，避免 Gradle 工作目录问题）
-          KEYSTORE_DIR="${{ github.workspace }}/frontend/android/app"
-          mkdir -p "${KEYSTORE_DIR}"
-
-          echo "生成 key.properties..."
-          printf '%s\n' \
-            "storePassword=${{ secrets.ANDROID_KEYSTORE_PWD }}" \
-            "keyPassword=${{ secrets.ANDROID_KEY_PWD }}" \
-            "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" \
-            "storeFile=${KEYSTORE_DIR}/embbytok-keystore.jks" \
-            > "${{ github.workspace }}/frontend/android/key.properties"
-
-          echo "✅ key.properties 生成成功"
-
-          # 解码 keystore 文件
-          echo "解码 keystore 文件..."
-          echo "${{ secrets.ANDROID_KEYSTORE }}" \
-            | base64 --decode > "${KEYSTORE_DIR}/embbytok-keystore.jks"
-
-          # 验证解码结果
-          echo "验证 keystore 文件..."
-          if [ ! -s "${KEYSTORE_DIR}/embbytok-keystore.jks" ]; then
-            echo "❌ keystore 文件解码失败或为空，请确认 ANDROID_KEYSTORE 的 base64 格式正确"
-            exit 1
-          fi
-
-          echo "✅ keystore 文件解码成功，文件大小："
-          stat -c%s "${KEYSTORE_DIR}/embbytok-keystore.jks" 2>/dev/null \
-            || stat -f%z "${KEYSTORE_DIR}/embbytok-keystore.jks"
-          echo "字节"
-
-          # 使用 keytool 验证 keystore 完整性
-          echo "验证 keystore 完整性..."
-          keytool_output=$(
-            keytool -list \
-              -keystore "${KEYSTORE_DIR}/embbytok-keystore.jks" \
-              -storepass "${{ secrets.ANDROID_KEYSTORE_PWD }}" \
-              2>&1 | head -3
-          )
-
-          if echo "${keytool_output}" | grep -q "Keystore type:"; then
-            echo "✅ keystore 完整性验证通过"
-            echo "    ${keytool_output}"
-          else
-            echo "❌ keystore 完整性验证失败，请检查密码是否正确"
-            echo "    keytool 输出：${keytool_output}"
-            exit 1
-          fi
 
       - name: 安装依赖
         run: flutter pub get
