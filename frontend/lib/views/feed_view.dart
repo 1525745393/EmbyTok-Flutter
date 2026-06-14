@@ -121,7 +121,19 @@ class _FeedViewState extends ConsumerState<FeedView>
           );
         }
         final item = videoState.items[index];
-        return VideoPageItem(item: item);
+        return VideoPageItem(
+          item: item,
+          onNextVideo: () {
+            // 切换到下一个视频（如果有）
+            if (index < videoState.items.length - 1) {
+              _pageController.animateToPage(
+                index + 1,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            }
+          },
+        );
       },
     );
   }

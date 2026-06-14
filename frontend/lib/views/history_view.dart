@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/formatters.dart';
 import '../widgets/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
@@ -20,7 +19,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(watchHistoryProvider.notifier).load();
+      ref.read(watchHistoryProvider.notifier).loadFromStorage();
     });
   }
 
@@ -39,7 +38,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(watchHistoryProvider.notifier).clear();
+              ref.read(watchHistoryProvider.notifier).clearHistory();
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -55,6 +54,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(watchHistoryProvider);
+    final sortedList = ref.read(watchHistoryProvider.notifier).getSortedList();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -69,24 +69,24 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           ],
         ),
         actions: [
-          if (state.items.isNotEmpty)
+          if (sortedList.isNotEmpty)
             TextButton(
               onPressed: _confirmClear,
               child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
             ),
         ],
       ),
-      body: _buildBody(state),
+      body: _buildBody(state, sortedList),
     );
   }
 
-  Widget _buildBody(WatchHistoryState state) {
-    if (state.isLoading && state.items.isEmpty) {
+  Widget _buildBody(WatchHistoryState state, List<WatchHistoryEntry> items) {
+    if (state.isLoading && items.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFE91E63)),
       );
     }
-    if (state.error != null && state.items.isEmpty) {
+    if (state.error != null && items.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -98,7 +98,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         ),
       );
     }
-    if (state.items.isEmpty) {
+    if (items.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -117,37 +117,37 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: state.items.length,
+      itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = state.items[index];
-        return _HistoryTile(item: item);
+        final item = items[index];
+        return _HistoryTile(entry: item);
       },
     );
   }
 }
 
 class _HistoryTile extends StatelessWidget {
-  final WatchHistoryItem item;
-  const _HistoryTile({required this.item});
+  final WatchHistoryEntry entry;
+  const _HistoryTile({required this.entry});
 
   @override
   Widget build(BuildContext context) {
-    final progressPct = item.totalSeconds > 0
-        ? (item.progressSeconds / item.totalSeconds).clamp(0.0, 1.0)
+    final progressPct = entry.duration > 0
+        ? (entry.position / entry.duration).clamp(0.0, 1.0)
         : 0.0;
 
     return InkWell(
       onTap: () {
         final media = MediaItem(
-          id: item.itemId,
-          title: item.itemTitle,
+          id: entry.itemId,
+          title: entry.itemTitle ?? '未知',
           type: '电影',
-          thumbnailUrl: item.thumbnailUrl,
+          thumbnailUrl: entry.thumbnailUrl,
         );
         Navigator.push<void>(
           context,
-          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: media)),
+          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: media, initialPosition: entry.position)),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -162,9 +162,9 @@ class _HistoryTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
+              child: entry.thumbnailUrl != null && entry.thumbnailUrl!.isNotEmpty
                   ? Image.network(
-                      item.thumbnailUrl!,
+                      entry.thumbnailUrl!,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
@@ -178,7 +178,7 @@ class _HistoryTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.itemTitle,
+                    entry.itemTitle ?? '未知',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -213,12 +213,12 @@ class _HistoryTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${_formatSeconds(item.progressSeconds)} / ${_formatSeconds(item.totalSeconds)}',
+                    '${_formatSeconds(entry.position)} / ${_formatSeconds(entry.duration)}',
                     style: const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _formatDateTime(item.watchedAt),
+                    _formatDateTime(entry.lastWatchedAt),
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
@@ -264,7 +264,8 @@ class _HistoryTile extends StatelessWidget {
 
 class _HistoryPlayPage extends StatelessWidget {
   final MediaItem item;
-  const _HistoryPlayPage({required this.item});
+  final int? initialPosition;
+  const _HistoryPlayPage({required this.item, this.initialPosition});
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +276,7 @@ class _HistoryPlayPage extends StatelessWidget {
         foregroundColor: Colors.white,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
-      body: VideoPageItem(item: item),
+      body: VideoPageItem(item: item, initialPosition: initialPosition),
     );
   }
 }

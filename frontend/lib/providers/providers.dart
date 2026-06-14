@@ -1,5 +1,13 @@
 // 统一导出所有 Provider
 
+import '../services/embbytok_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// EmbytokService 全局 Provider
+final embytokServiceProvider = Provider<EmbytokService>((ref) {
+  return EmbytokService();
+});
+
 export 'auth_provider.dart';
 export 'library_provider.dart';
 export 'video_list_provider.dart';

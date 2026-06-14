@@ -668,6 +668,64 @@ class EmbytokService {
   }
 
   // ============================
+  // 获取字幕轨道列表
+  // ============================
+  Future<List<SubtitleTrack>> getSubtitleTracks({
+    required String itemId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    
+    // 先获取媒体详情，从中提取字幕轨道
+    final item = await getItemDetail(itemId, serverUrl: serverUrl, token: token);
+    final tracks = <SubtitleTrack>[];
+    
+    if (item.mediaSources != null) {
+      for (final source in item.mediaSources!) {
+        for (final stream in source.subtitleStreams) {
+          // 构造字幕 URL
+          String? subtitleUrl;
+          if (stream.deliveryUrl != null) {
+            final base = _defaultServerUrl ?? serverUrl ?? '';
+            if (base.isNotEmpty) {
+              final url = stream.deliveryUrl!;
+              subtitleUrl = url.startsWith('http://') || url.startsWith('https://')
+                  ? url
+                  : '$base$url';
+              // 添加认证 token
+              if (_defaultToken != null && subtitleUrl != null) {
+                subtitleUrl = '$subtitleUrl${subtitleUrl.contains('?') ? '&' : '?'}api_key=$_defaultToken';
+              }
+            }
+          } else if (stream.isExternal && stream.codec != null) {
+            // 外挂字幕，构造 URL
+            final base = _defaultServerUrl ?? serverUrl ?? '';
+            if (base.isNotEmpty) {
+              subtitleUrl = '$base/Videos/$itemId/$itemId/Subtitles/${stream.index}/Stream.${stream.codec}';
+              if (_defaultToken != null) {
+                subtitleUrl = '$subtitleUrl?api_key=$_defaultToken';
+              }
+            }
+          }
+          
+          tracks.add(SubtitleTrack(
+            id: '${source.id}_${stream.index}',
+            name: stream.displayTitle ?? stream.language ?? 'Subtitle ${stream.index}',
+            language: stream.language ?? '',
+            format: stream.codec ?? 'srt',
+            url: subtitleUrl,
+            displayTitle: stream.displayTitle,
+            isDefault: stream.isDefault,
+          ));
+        }
+      }
+    }
+    
+    return tracks;
+  }
+
+  // ============================
   // 搜索提示
   // ============================
   Future<List<SearchHint>> searchHints(
