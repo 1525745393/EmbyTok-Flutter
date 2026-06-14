@@ -83,8 +83,10 @@ class SubtitleSelector extends ConsumerWidget {
             const Divider(color: Colors.white12, height: 1),
             
             // 字幕列表
-            ConstrainedConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.4,
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
               child: ListView(
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 8),

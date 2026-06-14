@@ -71,6 +71,34 @@ class ApiClient {
     _token = null;
   }
 
+  // 直接发起 GET 请求（用于加载字幕等已包含完整 URL 的资源）
+  // 会自动注入已设置的 X-Emby-Token 请求头
+  Future<Response<T>> directGet<T>(
+    String fullUrl, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    final extraHeaders = <String, dynamic>{};
+    if (_token != null && _token!.isNotEmpty) {
+      extraHeaders['X-Emby-Token'] = _token!;
+    }
+    extraHeaders['X-Emby-Authorization'] =
+        'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+    if (headers != null) extraHeaders.addAll(headers);
+    try {
+      final response = await Dio().get<T>(
+        fullUrl,
+        queryParameters: queryParameters,
+        options: Options(headers: extraHeaders),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw '请求异常：$e';
+    }
+  }
+
   // 统一错误处理：将 DioException 转换为可读字符串
   String _handleError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||

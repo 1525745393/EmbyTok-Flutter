@@ -113,25 +113,46 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 加载字幕内容
   Future<void> _loadSubtitleContent(SubtitleTrack track) async {
     if (track.url == null || track.url!.isEmpty) return;
-    
+
     // 避免重复加载
     if (_loadedSubtitleUrl == track.url) return;
-    
+
+    setState(() {
+      _isLoadingSubtitles = true;
+    });
+
     try {
-      // 这里简化处理，实际应该通过 HTTP 请求获取字幕内容
-      // 由于 Flutter 的限制，这里需要使用 http 包或其他方式获取
-      // 暂时留空，等待实际实现
-      
-      // final response = await http.get(Uri.parse(track.url!));
-      // final content = response.body;
-      // final cues = parseSrt(content);
-      
-      // setState(() {
-      //   _currentCues = cues;
-      //   _loadedSubtitleUrl = track.url;
-      // });
+      // 使用 EmbytokService 中已认证的 ApiClient 发起请求
+      // 这样会自动注入 X-Emby-Token 请求头
+      final service = ref.read(embytokServiceProvider);
+      final response = await service.apiClient.directGet<String>(track.url!);
+      final content = response.data;
+      if (content == null || content.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoadingSubtitles = false;
+          });
+        }
+        return;
+      }
+
+      // 解析 SRT 字幕
+      final cues = parseSrt(content);
+
+      if (mounted) {
+        setState(() {
+          _currentCues = cues;
+          _loadedSubtitleUrl = track.url!;
+          _isLoadingSubtitles = false;
+        });
+      }
     } catch (e) {
       debugPrint('加载字幕失败: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSubtitles = false;
+        });
+      }
     }
   }
 
@@ -224,14 +245,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
         ),
 
-        // 字幕显示层
+        // 字幕显示层（通过 VideoPlayerController 自动随播放位置更新）
         if (_videoController != null && _currentCues.isNotEmpty)
           Positioned(
             left: 0,
             right: 96,
             bottom: 120,
             child: SubtitleRenderer(
-              position: _videoController!.value.position,
+              controller: _videoController,
               cues: _currentCues,
               enabled: true,
             ),

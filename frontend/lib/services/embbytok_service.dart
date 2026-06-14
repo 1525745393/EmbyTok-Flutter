@@ -13,6 +13,9 @@ class EmbytokService {
   EmbytokService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
+  // 暴露已认证的 ApiClient，便于外部直接使用（如字幕加载）
+  ApiClient get apiClient => _apiClient;
+
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
   // ============================
@@ -686,29 +689,30 @@ class EmbytokService {
         for (final stream in source.subtitleStreams) {
           // 构造字幕 URL
           String? subtitleUrl;
-          if (stream.deliveryUrl != null) {
-            final base = _defaultServerUrl ?? serverUrl ?? '';
-            if (base.isNotEmpty) {
-              final url = stream.deliveryUrl!;
-              subtitleUrl = url.startsWith('http://') || url.startsWith('https://')
-                  ? url
-                  : '$base$url';
-              // 添加认证 token
-              if (_defaultToken != null && subtitleUrl != null) {
-                subtitleUrl = '$subtitleUrl${subtitleUrl.contains('?') ? '&' : '?'}api_key=$_defaultToken';
-              }
+          final base = _defaultServerUrl ?? serverUrl ?? '';
+          final tk = _defaultToken ?? token ?? '';
+          if (stream.deliveryUrl != null && base.isNotEmpty) {
+            final url = stream.deliveryUrl!;
+            subtitleUrl = url.startsWith('http://') || url.startsWith('https://')
+                ? url
+                : '$base$url';
+            // 添加认证 token（URL 编码）
+            if (tk.isNotEmpty && subtitleUrl != null) {
+              final encodedToken = Uri.encodeQueryComponent(tk);
+              final separator = subtitleUrl.contains('?') ? '&' : '?';
+              subtitleUrl = '$subtitleUrl${separator}api_key=$encodedToken';
             }
-          } else if (stream.isExternal && stream.codec != null) {
+          } else if (stream.isExternal && stream.codec != null && base.isNotEmpty) {
             // 外挂字幕，构造 URL
-            final base = _defaultServerUrl ?? serverUrl ?? '';
-            if (base.isNotEmpty) {
-              subtitleUrl = '$base/Videos/$itemId/$itemId/Subtitles/${stream.index}/Stream.${stream.codec}';
-              if (_defaultToken != null) {
-                subtitleUrl = '$subtitleUrl?api_key=$_defaultToken';
-              }
+            final mediaSourceId = source.id.isNotEmpty ? source.id : itemId;
+            subtitleUrl =
+                '$base/Videos/$mediaSourceId/$mediaSourceId/Subtitles/${stream.index}/Stream.${stream.codec}';
+            if (tk.isNotEmpty) {
+              final encodedToken = Uri.encodeQueryComponent(tk);
+              subtitleUrl = '$subtitleUrl?api_key=$encodedToken';
             }
           }
-          
+
           tracks.add(SubtitleTrack(
             id: '${source.id}_${stream.index}',
             name: stream.displayTitle ?? stream.language ?? 'Subtitle ${stream.index}',
