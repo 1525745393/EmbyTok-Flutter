@@ -225,6 +225,33 @@ release-docs: ## 打开 RELEASE.md 和 COMMIT_CONVENTION.md 文档说明
 	@echo "    make release-docs     — 查看文档列表"
 
 # ===========================================================
+# 一键发布流程（封装 scripts/release.sh 和 rollback-release.sh）
+# ===========================================================
+release-patch: ## 一键发布 patch 版本（自动 bump PATCH 版本号）
+	@echo "$(BOLD)$(CYAN)◆ 发布 Patch 版本$(RESET)"
+	@$(SCRIPTS_DIR)/release.sh patch
+
+release-minor: ## 一键发布 minor 版本（自动 bump MINOR 版本号）
+	@echo "$(BOLD)$(CYAN)◆ 发布 Minor 版本$(RESET)"
+	@$(SCRIPTS_DIR)/release.sh minor
+
+release-major: ## 一键发布 major 版本（自动 bump MAJOR 版本号）
+	@echo "$(BOLD)$(CYAN)◆ 发布 Major 版本$(RESET)"
+	@$(SCRIPTS_DIR)/release.sh major
+
+release-bump: ## 交互式选择版本号升级
+	@echo "$(BOLD)$(CYAN)◆ 交互式版本发布$(RESET)"
+	@$(SCRIPTS_DIR)/release.sh bump
+
+release-dry-run: ## 预览下一个 patch 版本发布流程，不实际变更
+	@echo "$(BOLD)$(YELLOW)◆ DRY RUN 预览发布$(RESET)"
+	@$(SCRIPTS_DIR)/release.sh --dry-run patch
+
+release-rollback: ## 回滚到上一个 tag（删除最新 tag）
+	@echo "$(BOLD)$(RED)◆ 发布回滚（到上一个 tag）$(RESET)"
+	@$(SCRIPTS_DIR)/rollback-release.sh
+
+# ===========================================================
 # 清理
 # ===========================================================
 clean: ## 清理构建产物
