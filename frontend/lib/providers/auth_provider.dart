@@ -94,26 +94,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // 登录：调用后端并持久化
+  // 登录：直接调用 Emby 原生 API 并持久化
   Future<void> login(
     String embyServerUrl,
-    String backendUrl,
     String username,
-    String password,
-  ) async {
+    String password, {
+    String? backendUrl, // 保留向后兼容
+  }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final user = await _service.login(
-        embyServerUrl,
-        backendUrl,
-        username,
-        password,
+        embyServerUrl: embyServerUrl,
+        username: username,
+        password: password,
       );
 
       // 持久化到 shared_preferences
       final prefs = await SharedPreferences.getInstance();
       final config = <String, dynamic>{
-        'backend_url': backendUrl,
+        'backend_url': backendUrl ?? '',
         'emby_server_url': embyServerUrl,
         'user_id': user.id,
         'user_name': user.name,
@@ -124,7 +123,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isAuthenticated: true,
         user: user,
-        backendUrl: backendUrl,
+        backendUrl: backendUrl ?? '',
         embyServerUrl: embyServerUrl,
         token: user.accessToken,
       );

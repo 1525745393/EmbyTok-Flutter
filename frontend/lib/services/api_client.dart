@@ -27,14 +27,19 @@ class ApiClient {
   /// 暴露内部 Dio 实例，用于测试验证
   Dio get dio => _dio;
 
-  // 注册拦截器：自动注入 Token、请求日志、错误日志
+  // Emby 客户端标识（用于 Emby 原生 API 认证）
+  static const _clientAuthorization =
+      'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+
+  // 注册拦截器：自动注入 X-Emby-Token + X-Emby-Authorization 头
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          options.headers['X-Emby-Authorization'] = _clientAuthorization;
+          options.headers['Accept'] = 'application/json';
           if (_token != null && _token!.isNotEmpty) {
             options.headers['X-Emby-Token'] = _token!;
-            options.headers['Authorization'] = 'Bearer $_token';
           }
           return handler.next(options);
         },
