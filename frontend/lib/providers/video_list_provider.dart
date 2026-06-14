@@ -57,6 +57,15 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
 
+  // 根据 libraryId 获取对应 library 的 type；找不到时返回 null（走默认 IncludeItemTypes）
+  String? _findLibraryType(String libraryId) {
+    final libs = _ref.read(libraryListProvider).value;
+    if (libs == null || libs.isEmpty) return null;
+    final matched = libs.firstWhere((lib) => lib.id == libraryId,
+        orElse: () => libs.first);
+    return matched.type;
+  }
+
   // 刷新：重置偏移并加载第一页
   Future<void> refresh({String? libraryId}) async {
     state = VideoListState(
@@ -86,10 +95,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      final libraryType = _findLibraryType(targetLibraryId);
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
         offset: 0,
+        libraryType: libraryType,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );
@@ -130,10 +141,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      final libraryType = _findLibraryType(targetLibraryId);
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
         offset: state.offset,
+        libraryType: libraryType,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );

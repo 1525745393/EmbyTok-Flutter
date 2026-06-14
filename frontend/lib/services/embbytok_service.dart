@@ -3,6 +3,7 @@
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
 import '../models/models.dart';
+import '../utils/constants.dart';
 import 'api_client.dart';
 
 class EmbytokService {
@@ -89,23 +90,18 @@ class EmbytokService {
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
 
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => Library(
-              id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: (e['CollectionType'] as String?) ?? 'movies',
-            ))
-        .toList();
+    return items.whereType<Map<String, dynamic>>().map(Library.fromJson).toList();
   }
 
   // ============================
   // 获取某媒体库下的视频列表
+  // libraryType：媒体库类型（movies/tvshows/homevideos/photos/...），决定 IncludeItemTypes
   // ============================
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
     String libraryId, {
     int limit = 20,
     int offset = 0,
+    String? libraryType,
     String? serverUrl,
     String? token,
   }) async {
@@ -119,7 +115,8 @@ class EmbytokService {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      // 根据媒体库类型动态选择 ItemTypes，确保 HomeVideo/Photo 都能被正确获取
+      'IncludeItemTypes': includeItemTypesForLibraryType(libraryType),
     };
 
     final resp = await _apiClient.get<dynamic>(

@@ -44,6 +44,26 @@ class _FeedViewState extends ConsumerState<FeedView>
     await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
   }
 
+  // 根据当前选中的库确定空状态提示文案
+  String _getEmptyHintText(WidgetRef ref) {
+    final libId = ref.read(selectedLibraryIdProvider);
+    final libs = ref.read(libraryListProvider).value;
+    if (libId != null && libs != null && libs.isNotEmpty) {
+      final matched = libs.firstWhere(
+        (lib) => lib.id == libId,
+        orElse: () => libs.first,
+      );
+      if (matched.isPhotoLibrary) {
+        return '该媒体库暂无图片';
+      }
+      if (matched.isVideoLibrary) {
+        return '该媒体库暂无视频';
+      }
+      return '该媒体库暂无内容';
+    }
+    return '暂无视频，请选择其他媒体库';
+  }
+
   @override
   Widget build(BuildContext context) {
     // 调用 super.build 以便 AutomaticKeepAliveClientMixin 生效
@@ -89,10 +109,10 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     // 空状态
     if (videoState.items.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          '暂无视频，请选择其他媒体库',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
+          _getEmptyHintText(ref),
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
       );
     }

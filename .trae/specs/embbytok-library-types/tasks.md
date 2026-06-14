@@ -3,20 +3,20 @@
 ## [x] Task 1: 建立媒体库类型与Emby CollectionType映射常量
 - **Priority**: P0
 - **Depends On**: None
-- **Description**:
-  - 在 `utils/` 或 `models/` 中创建集中的类型映射常量：
-    - Emby CollectionType → 内部类型标识（string enum 映射）
-    - Emby CollectionType → IncludeItemTypes （用于 API 查询参数）
-    - 内部类型标识 → 中文标签（用于 UI 展示）
-  - 在 `Library` 模型中增加计算属性：如 `isVideoLibrary`, `isPhotoLibrary`, `displayTypeName`
+- **Status**: **已完成** — 在 `utils/constants.dart` 新增：
+  - Emby CollectionType 常量（kLibraryType*）与 ItemType 常量（kItemType*）
+  - `kLibraryCollectionTypeToItemTypes` 映射表
+  - `kLibraryCollectionTypeDisplayLabel` 中文标签映射
+  - `kVideoItemTypes` / `kPhotoItemTypes` 类型集合
+  - 工具函数 `includeItemTypesForLibraryType` / `libraryDisplayLabel` / `isPhotoLibraryType` / `isVideoLibraryType`
 - **Acceptance Criteria Addressed**: AC-1, AC-2, AC-4
 - **Test Requirements**:
-  - `programmatic` TR-1.1: `libraryCollectionTypeMap` 覆盖 homevideos/photos/movies/tvshows/musicvideos/music/mixed
-  - `programmatic` TR-1.2: `includeItemTypesForLibraryType(homevideos)` 返回包含 `Video,Movie,HomeVideo,Episode` 的字符串
-  - `programmatic` TR-1.3: `includeItemTypesForLibraryType(photos)` 返回包含 `Photo` 的字符串
-  - `programmatic` TR-1.4: `includeItemTypesForLibraryType(movies)` 返回包含 `Movie,Series,MusicVideo,Episode` 的字符串（向后兼容）
-  - `programmatic` TR-1.5: `libraryDisplayTypeName(homevideos)` 返回 "家庭视频"，`photos` 返回 "照片"
-- **Notes**: 新增文件推荐路径 `frontend/lib/utils/constants.dart`（如果已有该文件则补充其内容）
+  - `programmatic` TR-1.1: ✅ `constants.dart` 中常量覆盖 homevideos/photos/movies/tvshows/musicvideos/music/mixed/books/boxsets
+  - `programmatic` TR-1.2: ✅ `includeItemTypesForLibraryType('homevideos')` 返回 `Video,Movie,HomeVideo,Episode`
+  - `programmatic` TR-1.3: ✅ `includeItemTypesForLibraryType('photos')` 返回 `Photo`
+  - `programmatic` TR-1.4: ✅ `includeItemTypesForLibraryType('movies')` 返回 `Movie,Series,MusicVideo,Episode`（向后兼容）
+  - `programmatic` TR-1.5: ✅ `libraryDisplayLabel('homevideos')` 返回 "家庭视频"，`libraryDisplayLabel('photos')` 返回 "照片"
+- **Notes**: 新增内容已追加到现有 `utils/constants.dart` 文件末尾
 
 ## [x] Task 2: 修改 getLibraryItems 支持动态 IncludeItemTypes
 - **Priority**: P0

@@ -1,7 +1,8 @@
-// 媒体项模型：电影/剧集/集数/音乐视频等（支持 Emby 原生字段与简化字段）
+// 媒体项模型：电影/剧集/集数/音乐视频/家庭视频/照片等（支持 Emby 原生字段与简化字段）
 
 import 'dart:convert';
 
+import '../utils/constants.dart';
 import 'media_source.dart';
 import 'person.dart';
 import 'user_data.dart';
@@ -10,8 +11,8 @@ class MediaItem {
   // 基本信息
   final String id;
   final String title;
-  final String type;                    // Movie/Series/Episode/MusicVideo/...
-  final String? seriesName;             // 剧集名（集数项的归属剧集）
+  final String type; // Movie/Series/Episode/MusicVideo/HomeVideo/Video/Photo/...
+  final String? seriesName; // 剧集名（集数项的归属剧集）
   final int? indexNumber;              // 集序号（集数）
   final int? parentIndexNumber;        // 季序号
   final int? productionYear;            // 制作年份
@@ -249,7 +250,11 @@ class MediaItem {
   /// 根据 Emby 服务器地址和 token 动态构造视频流播放 URL
   /// 若 mediaSources 不为空，则优先使用第一个 mediaSource 的 URL
   /// 否则使用通用 Videos/{id}/stream 端点
+  /// Photo 类型项没有视频流，此方法返回 null
   String? computePlaybackUrl(String? embyServerUrl, String? token) {
+    // 图片类项没有视频流
+    if (isPhoto) return null;
+
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
     if (token == null || token.isEmpty) return null;
 
@@ -294,6 +299,18 @@ class MediaItem {
       userData != null && userData!.playbackPositionTicks > 0;
 
   bool get isWatched => userData?.played ?? false;
+
+  // 类型判断：是否为视频（可播放）类型
+  bool get isVideo => kVideoItemTypes.contains(type) ||
+      type == 'Movie' ||
+      type == 'Series' ||
+      type == 'Episode' ||
+      type == 'MusicVideo' ||
+      type == 'HomeVideo' ||
+      type == 'Video';
+
+  // 类型判断：是否为图片（不可播放）类型
+  bool get isPhoto => kPhotoItemTypes.contains(type) || type == 'Photo';
 
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
   // type: Primary/Backdrop/Thumb/Art/Logo/Box/BoxRear

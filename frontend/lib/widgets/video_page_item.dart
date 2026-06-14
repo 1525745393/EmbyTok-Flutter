@@ -185,6 +185,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   @override
   Widget build(BuildContext context) {
+    // Photo 类型项：以全屏图片方式展示，不再走视频播放逻辑
+    if (widget.item.isPhoto) {
+      return _buildPhotoPage();
+    }
+
     final authState = ref.watch(authProvider);
     final favorited =
         ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
@@ -279,6 +284,124 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
         ),
       ],
+    );
+  }
+
+  // 图片类型项：全屏图片展示（代替视频播放器）
+  Widget _buildPhotoPage() {
+    final authState = ref.watch(authProvider);
+    final favorited =
+        ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
+
+    // 构造 Emby 图片 URL（带 token 认证）
+    final embyUrl = authState.embyServerUrl;
+    final token = authState.token;
+    final imageUrl = widget.item.primaryUrl(
+      embyServerUrl: embyUrl,
+      apiKey: token,
+      maxWidth: 1600,
+    );
+
+    return GestureDetector(
+      onTap: _onScreenTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 全屏图片展示
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              width: double.infinity,
+              height: double.infinity,
+              alignment: Alignment.center,
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.black,
+                child: const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 80,
+                ),
+              ),
+              loadingBuilder: (_, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      color: const Color(0xFFE91E63),
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+            )
+          else
+            Container(
+              color: Colors.black,
+              child: const Icon(
+                Icons.image,
+                color: Colors.white54,
+                size: 80,
+              ),
+            ),
+
+          // 底部渐变 + 标题/年份/简介（带淡入淡出动画）
+          AnimatedOpacity(
+            opacity: _showInfoPanel ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: _buildBottomInfoPanel(),
+          ),
+
+          // 右侧操作按钮（图片项不显示自动播放/静音/字幕按钮）
+          AnimatedOpacity(
+            opacity: _showInfoPanel ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: _buildPhotoRightActions(
+              favorited: favorited,
+              embyServerUrl: embyUrl,
+              token: token,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 图片项右侧操作按钮：只有收藏和信息
+  Widget _buildPhotoRightActions({
+    required bool favorited,
+    String? embyServerUrl,
+    String? token,
+  }) {
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 96,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(0, 40, 8, 24),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerRight,
+            end: Alignment.centerLeft,
+            colors: [Colors.black54, Colors.transparent],
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            _buildFavoriteButton(favorited),
+            const SizedBox(height: 20),
+            _buildInfoButton(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 
@@ -428,6 +551,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         return '系列';
       case 'musicvideo':
         return 'MV';
+      case 'homevideo':
+      case 'video':
+        return '视频';
+      case 'photo':
+        return '图片';
       default:
         return type;
     }
