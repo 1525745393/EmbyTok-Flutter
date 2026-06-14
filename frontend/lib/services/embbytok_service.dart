@@ -298,8 +298,14 @@ class EmbytokService {
         .map((e) {
           final id = (e['Id'] as String?) ?? '';
           final name = (e['Name'] as String?) ?? '';
-          final imageTag = (e['PrimaryImageTag'] as String?) ??
-              (e['ImageTags']?['Primary'] as String?);
+          // 优先使用 PrimaryImageTag；若没有则从 ImageTags map 中取 Primary
+          final primaryImageTag = e['PrimaryImageTag'] as String?;
+          final imageTagsDynamic = e['ImageTags'];
+          final imageTags = imageTagsDynamic is Map
+              ? Map<String, dynamic>.from(imageTagsDynamic)
+              : null;
+          final imageTag = primaryImageTag ??
+              (imageTags != null ? imageTags['Primary'] as String? : null);
           String? imgUrl;
           if (imageTag != null && baseUrl.isNotEmpty) {
             imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'

@@ -1,16 +1,21 @@
 # ===========================================================
 # Android Release 工作流
-# 说明：当前使用 Android SDK 自带的 debug 签名密钥进行构建
-# 如需正式发布到应用商店，请按以下步骤配置 release 签名：
-#   1. 生成 keystore: keytool -genkey -v -keystore embbytok-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias embbytok
-#   2. 在 GitHub Secrets 中配置:
-#      ANDROID_KEYSTORE       - keystore 文件的 base64 编码
+# 签名配置说明：
+#   1. 生成 keystore:
+#      keytool -genkey -v -keystore embbytok-keystore.jks \
+#        -keyalg RSA -keysize 2048 -validity 36500 -alias embbytok
+#   2. Base64 编码 keystore:
+#      base64 -w 0 embbytok-keystore.jks > keystore_base64.txt
+#   3. 在 GitHub Secrets (仓库 Settings → Secrets and variables → Actions) 中配置:
+#      ANDROID_KEYSTORE       - keystore 文件的 base64 编码（上一步输出的内容）
 #      ANDROID_KEYSTORE_PWD   - keystore 密码
-#      ANDROID_KEY_ALIAS      - key 别名 (embbytok)
-#      ANDROID_KEY_PWD        - key 密码
-#   3. 将 frontend/android/app/build.gradle 中的
-#      signingConfig signingConfigs.debug
-#      改为 signingConfig signingConfigs.release
+#      ANDROID_KEY_ALIAS      - key 别名（默认 embbytok）
+#      ANDROID_KEY_PWD        - key 密码（通常与 keystore 密码相同）
+#   4. 若 Secrets 中存在 ANDROID_KEYSTORE，则构建时会自动：
+#      - 将 base64 解码为 frontend/android/app/embbytok-keystore.jks
+#      - 生成 frontend/android/key.properties 配置文件
+#      - 使用 release 签名进行构建
+#      若 Secrets 中不存在 ANDROID_KEYSTORE，则降级使用 Android debug 签名
 # ===========================================================
 
 name: Android Release
@@ -49,6 +54,36 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 诊断签名密钥 Secret 是否配置
+        id: sign-check
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE }}" ] && [ -n "${{ secrets.ANDROID_KEYSTORE_PWD }}" ] && [ -n "${{ secrets.ANDROID_KEY_ALIAS }}" ] && [ -n "${{ secrets.ANDROID_KEY_PWD }}" ]; then
+            echo "✅ 已配置 ANDROID_KEYSTORE 系列 Secrets，将使用正式 release 签名"
+            echo "use_release_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "⚠️  未检测到 ANDROID_KEYSTORE 系列 Secrets（或有缺失），将降级使用 debug 签名"
+            echo "use_release_signing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 还原 release 签名 keystore 和 key.properties
+        if: steps.sign-check.outputs.use_release_signing == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > frontend/android/app/embbytok-keystore.jks
+          echo "✅ keystore 已还原: frontend/android/app/embbytok-keystore.jks"
+          ls -lh frontend/android/app/embbytok-keystore.jks
+
+          cat > frontend/android/key.properties << 'KEYEOF'
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PWD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PWD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=app/embbytok-keystore.jks
+          KEYEOF
+          echo "✅ key.properties 已生成: frontend/android/key.properties"
+          echo "   注意：storeFile 使用 app/ 相对路径（相对于 android/app/build.gradle 所在目录）"
+
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -67,6 +102,10 @@ jobs:
           echo ""
           echo "=== Flutter Doctor ==="
           flutter doctor 2>&1 | head -20 || true
+          echo ""
+          echo "=== 签名文件检查 ==="
+          ls -lh frontend/android/key.properties 2>/dev/null || echo "（无 key.properties，使用 debug 签名）"
+          ls -lh frontend/android/app/embbytok-keystore.jks 2>/dev/null || echo "（无 embbytok-keystore.jks）"
         working-directory: frontend
 
       - name: 构建 APK (split per ABI)

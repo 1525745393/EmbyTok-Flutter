@@ -144,7 +144,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   // 缩略图占位：web 环境或无播放地址时使用
   Widget _buildThumbnailPlaceholder() {
-    final url = widget.item.thumbnailUrl;
+    // 优先使用 thumbnailUrl（简化字段），否则用 Emby imageUrl 构造
+    final url = widget.item.thumbnailUrl ??
+        widget.item.primaryUrl(
+          embyServerUrl: widget.embyServerUrl,
+          apiKey: widget.token,
+          maxWidth: 800,
+        );
     return Stack(
       fit: StackFit.expand,
       children: [
