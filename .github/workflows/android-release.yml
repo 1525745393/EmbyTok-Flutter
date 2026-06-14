@@ -63,12 +63,15 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$ANDROID_KEYSTORE" ] && [ -n "$ANDROID_KEYSTORE_PWD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PWD" ]; then
-            echo "$ANDROID_KEYSTORE" | base64 -d > frontend/android/app/embbytok-keystore.jks
-            echo "✅ 已配置签名密钥，keystore 已还原: frontend/android/app/embbytok-keystore.jks"
-            ls -lh frontend/android/app/embbytok-keystore.jks
+            # keystore 放在 frontend/android/ 下（与 key.properties 同级，即 rootProject 根目录）
+            echo "$ANDROID_KEYSTORE" | base64 -d > frontend/android/embbytok-keystore.jks
+            echo "✅ 已配置签名密钥，keystore 已还原: frontend/android/embbytok-keystore.jks"
+            ls -lh frontend/android/embbytok-keystore.jks
 
+            # storeFile 写 embbytok-keystore.jks（相对于 rootProject 即 frontend/android/）
+            # build.gradle 中用 rootProject.file() 解析，因此路径就是文件名本身
             printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n" \
-              "$ANDROID_KEYSTORE_PWD" "$ANDROID_KEY_PWD" "$ANDROID_KEY_ALIAS" "app/embbytok-keystore.jks" \
+              "$ANDROID_KEYSTORE_PWD" "$ANDROID_KEY_PWD" "$ANDROID_KEY_ALIAS" "embbytok-keystore.jks" \
               > frontend/android/key.properties
             echo "✅ key.properties 已生成: frontend/android/key.properties"
           else
