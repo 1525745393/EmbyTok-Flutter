@@ -120,6 +120,16 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE }}" \
             | base64 --decode > "${KEYSTORE_DIR}/embbytok-keystore.jks"
 
+          # Task 4 修复: 设置 keystore 文件权限为 600（仅拥有者可读写）
+          # 防止敏感文件被其他进程或用户读取
+          echo "设置 keystore 文件权限..."
+          chmod 600 "${KEYSTORE_DIR}/embbytok-keystore.jks"
+
+          # 权限验证日志（确认权限设置成功）
+          echo "验证 keystore 文件权限..."
+          stat -c '%a %n' "${KEYSTORE_DIR}/embbytok-keystore.jks" 2>/dev/null \
+            || stat -f '%Lp %N' "${KEYSTORE_DIR}/embbytok-keystore.jks"
+
           # 验证解码结果
           echo "验证 keystore 文件..."
           if [ ! -s "${KEYSTORE_DIR}/embbytok-keystore.jks" ]; then
