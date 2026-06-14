@@ -7,9 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.errors import APIError, INTERNAL_ERROR
 from routers import auth, favorites, items, libraries, search, subtitles
 
+# 版本号从 core/version.py 导入，保证单一来源
+from core.version import __version__
+
 app = FastAPI(
     title="EmbyTok Backend",
-    version="1.0.0",
+    version=__version__,
     description="EmbyTok 后端 API 服务",
 )
 
