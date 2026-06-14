@@ -11,3 +11,4 @@ export 'video_playback_controller.dart';
 export 'subtitle_settings_provider.dart';
 export 'user_preferences_provider.dart';
 export 'search_history_provider.dart';
+export 'item_detail_provider.dart';

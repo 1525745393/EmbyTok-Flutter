@@ -85,7 +85,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
 
     try {
-      final resp = await _service.search(
+      final resp = await _service.searchItems(
         query,
         limit: state.limit,
         offset: 0,
@@ -123,7 +123,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
 
     try {
-      final resp = await _service.search(
+      final resp = await _service.searchItems(
         state.query,
         limit: state.limit,
         offset: state.offset,

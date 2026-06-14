@@ -27,6 +27,9 @@ class ApiClient {
   /// 暴露内部 Dio 实例，用于测试验证
   Dio get dio => _dio;
 
+  /// 当前配置的 baseUrl（供 service 层判断是否需要切换）
+  String? get optionsBaseUrl => _dio.options.baseUrl;
+
   // Emby 客户端标识（用于 Emby 原生 API 认证）
   static const _clientAuthorization =
       'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';

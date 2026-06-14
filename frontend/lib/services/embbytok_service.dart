@@ -1,42 +1,41 @@
 // 核心业务服务：直接调用 Emby 原生 API（不再经过后端）
-// 提供：登录、媒体库、视频列表、继续观看、NextUp、相似影片、演员、类型、
-//       工作室、收藏、标记已看、播放信息、季/集、预告片、搜索提示
-
-import 'dart:convert';
+// 设计思路：每个方法都接受可选的 serverUrl / token 参数，调用方可以显式传入，
+// 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
 import '../models/models.dart';
 import 'api_client.dart';
 
 class EmbytokService {
   final ApiClient _apiClient;
-  String? _embyServerUrl;
-  String? _userId;
-  String? _apiKey;
+  String? _defaultServerUrl;
+  String? _defaultToken;
 
   EmbytokService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
   // ============================
-  // 认证配置
+  // 认证配置（设置默认 server/token，后续调用可省略参数）
   // ============================
-
-  // 配置 Emby 服务器连接信息（在其他 API 调用前设置）
   void setupAuth({
     required String embyServerUrl,
-    required String userId,
     required String apiKey,
+    String? userId,
   }) {
-    _embyServerUrl = embyServerUrl;
-    _userId = userId;
-    _apiKey = apiKey;
+    _defaultServerUrl = embyServerUrl;
+    _defaultToken = apiKey;
     _apiClient.setBaseUrl(embyServerUrl);
     _apiClient.setToken(apiKey);
+  }
+
+  // 清除认证信息
+  void clearAuth() {
+    _defaultServerUrl = null;
+    _defaultToken = null;
   }
 
   // ============================
   // 登录：Emby /Users/AuthenticateByName
   // ============================
-
   Future<User> login({
     required String embyServerUrl,
     required String username,
@@ -54,35 +53,30 @@ class EmbytokService {
 
     final data = resp.data as Map<String, dynamic>;
     final userInfo = data['User'] as Map<String, dynamic>? ?? {};
-    final authInfo = data['SessionInfo'] as Map<String, dynamic>? ?? {};
-    final accessToken = data['AccessToken'] as String? ??
-        (authInfo['AccessToken'] as String?) ??
-        '';
-    final serverId = (data['ServerId'] as String?) ?? '';
+    final accessToken = (data['AccessToken'] as String?) ?? '';
 
     final user = User(
       id: (userInfo['Id'] as String?) ?? '',
       name: (userInfo['Name'] as String?) ?? username,
       accessToken: accessToken,
-      serverUrl: embyServerUrl,
-      serverId: serverId,
     );
 
     // 保存配置方便后续直接调用
-    _embyServerUrl = embyServerUrl;
-    _userId = user.id;
-    _apiKey = accessToken;
+    _defaultServerUrl = embyServerUrl;
+    _defaultToken = accessToken;
     _apiClient.setToken(accessToken);
 
     return user;
   }
 
   // ============================
-  // 媒体库列表：/Library/VirtualFolders 或 /Library/MediaFolders
+  // 媒体库列表：/Library/VirtualFolders
   // ============================
-
-  Future<List<Library>> getLibraries() async {
-    _requireAuth();
+  Future<List<Library>> getLibraries({
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final resp = await _apiClient.get<dynamic>(
       '/Library/VirtualFolders',
       queryParameters: {},
@@ -103,53 +97,55 @@ class EmbytokService {
   }
 
   // ============================
-  // 获取某媒体库下的视频列表：/Users/{userId}/Items
+  // 获取某媒体库下的视频列表
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
     String libraryId, {
     int limit = 20,
     int offset = 0,
-    String sortBy = 'DateCreated,SortName',
-    String sortOrder = 'Descending',
-    List<String>? includeTypes,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'ParentId': libraryId,
       'Limit': '$limit',
       'StartIndex': '$offset',
-      'SortBy': sortBy,
-      'SortOrder': sortOrder,
+      'SortBy': 'DateCreated,SortName',
+      'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes':
-          includeTypes?.join(',') ?? 'Movie,Series,MusicVideo,Episode',
-      if (_userId != null) 'UserId': _userId,
+      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
     };
 
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
   // 获取项详情
   // ============================
-
-  Future<MediaItem> getItemDetail(String itemId) async {
-    _requireAuth();
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Fields':
           'Overview,Genres,People,CommunityRating,CriticRating,OfficialRating,'
               'RunTimeTicks,ProductionYear,PremiereDate,DateCreated,Studios,'
               'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
               'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items/$itemId' : '/Items/$itemId';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$itemId',
+      queryParameters: params,
+    );
     final data = resp.data is Map ? resp.data as Map<String, dynamic> : {};
     return MediaItem.fromJson(data);
   }
@@ -157,56 +153,59 @@ class EmbytokService {
   // ============================
   // 继续观看列表
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getResumeItems({
     int limit = 20,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null
-        ? '/Users/$_userId/Items/Resume'
-        : '/Items/Resume';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/Resume',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // Next Up（下一步看什么）——剧集的下一集
+  // Next Up（下一步看什么）—— 剧集的下一集
   // ============================
-
-  Future<PaginatedResponse<MediaItem>> getNextUp({int limit = 20}) async {
-    _requireAuth();
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    int limit = 20,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Fields':
           'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber',
-      if (_userId != null) 'UserId': _userId,
     };
     final resp = await _apiClient.get<dynamic>(
       '/Shows/NextUp',
       queryParameters: params,
     );
-    return _parsePaginatedResponse(resp.data);
+    return _parsePaginatedResponse(resp.data, offset: 0, limit: limit);
   }
 
   // ============================
   // 最近添加
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getRecentlyAdded({
     int limit = 20,
     int offset = 0,
     String? libraryId,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -217,11 +216,11 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'IncludeItemTypes': 'Movie,Series,MusicVideo',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path =
-        _userId != null ? '/Users/$_userId/Items/Latest' : '/Items/Latest';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/Latest',
+      queryParameters: params,
+    );
 
     // Latest 接口有些返回 flat array 而不是 { Items, TotalRecordCount }
     if (resp.data is List) {
@@ -231,32 +230,33 @@ class EmbytokService {
             .whereType<Map<String, dynamic>>()
             .map((e) => MediaItem.fromJson(e))
             .toList(),
-        totalRecordCount: items.length,
+        total: items.length,
+        offset: offset,
+        limit: limit,
       );
     }
-    return _parsePaginatedResponse(resp.data);
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
   // 相似影片
   // ============================
-
   Future<List<MediaItem>> getSimilarItems(
     String itemId, {
     int limit = 20,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path =
-        _userId != null
-            ? '/Users/$_userId/Items/$itemId/Similar'
-            : '/Items/$itemId/Similar';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$itemId/Similar',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
@@ -269,12 +269,13 @@ class EmbytokService {
   // ============================
   // 人员（演员/导演）列表
   // ============================
-
   Future<List<Person>> getPeople({
     int limit = 50,
     List<String>? personTypes,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
@@ -282,25 +283,26 @@ class EmbytokService {
         'PersonTypes': personTypes.join(','),
       'Fields': 'PrimaryImageTag,Overview',
     };
-    final path =
-        _userId != null ? '/Users/$_userId/Persons' : '/Persons';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Persons',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
+    final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
     return items
         .whereType<Map<String, dynamic>>()
         .map((e) {
-          // 解析 Person（Emby 字段）
           final id = (e['Id'] as String?) ?? '';
           final name = (e['Name'] as String?) ?? '';
           final imageTag = (e['PrimaryImageTag'] as String?) ??
               (e['ImageTags']?['Primary'] as String?);
           String? imgUrl;
-          if (imageTag != null && _embyServerUrl != null) {
-            imgUrl =
-                '$_embyServerUrl/Items/$id/Images/Primary?MaxWidth=300&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-                '${_apiKey != null ? '&api_key=$_apiKey' : ''}';
+          if (imageTag != null && baseUrl.isNotEmpty) {
+            imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
+                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
+                '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}';
           }
           return Person(
             id: id,
@@ -315,13 +317,14 @@ class EmbytokService {
   // ============================
   // 某演员出演的作品
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getPersonItems(
     String personId, {
     int limit = 30,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -329,26 +332,31 @@ class EmbytokService {
       'PersonIds': personId,
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // 类型列表
+  // 类型列表（Genres）
   // ============================
-
-  Future<List<Library>> getGenres({int limit = 100}) async {
-    _requireAuth();
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Genres' : '/Genres';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Genres',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
@@ -363,15 +371,16 @@ class EmbytokService {
   }
 
   // ============================
-  // 某类型下的作品
+  // 某类型下的影片
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
     int limit = 30,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -379,26 +388,31 @@ class EmbytokService {
       'Genres': genre,
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
   // 工作室列表
   // ============================
-
-  Future<List<Library>> getStudios({int limit = 100}) async {
-    _requireAuth();
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Studios' : '/Studios';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Studios',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
@@ -413,15 +427,16 @@ class EmbytokService {
   }
 
   // ============================
-  // 某工作室下的作品
+  // 某工作室下的影片
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getItemsByStudio(
     String studio, {
     int limit = 30,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -429,60 +444,102 @@ class EmbytokService {
       'Studios': studio,
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // 收藏切换
+  // 收藏列表（从 Emby 获取）
   // ============================
+  Future<List<MediaItem>> getFavorites({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
 
-  Future<void> toggleFavorite(String itemId, {required bool isFavorite}) async {
-    _requireAuth();
-    if (_userId == null) throw '未登录';
+  // ============================
+  // 切换收藏状态
+  // ============================
+  Future<void> toggleFavorite(
+    String itemId, {
+    required bool isFavorite,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     if (isFavorite) {
-      await _apiClient.post<dynamic>('/Users/$_userId/FavoriteItems/$itemId');
+      await _apiClient.post<dynamic>('/UserFavoriteItems/$itemId');
     } else {
-      await _apiClient.delete<dynamic>('/Users/$_userId/FavoriteItems/$itemId');
+      await _apiClient.delete<dynamic>('/UserFavoriteItems/$itemId');
     }
   }
 
   // ============================
   // 标记已看 / 未看
   // ============================
-
-  Future<void> markAsPlayed(String itemId) async {
-    _requireAuth();
-    if (_userId == null) throw '未登录';
-    await _apiClient.post<dynamic>(
-      '/Users/$_userId/PlayedItems/$itemId',
-    );
+  Future<void> markAsPlayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.post<dynamic>('/UserPlayedItems/$itemId');
   }
 
-  Future<void> markAsUnplayed(String itemId) async {
-    _requireAuth();
-    if (_userId == null) throw '未登录';
-    await _apiClient.delete<dynamic>(
-      '/Users/$_userId/PlayedItems/$itemId',
-    );
+  Future<void> markAsUnplayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.delete<dynamic>('/UserPlayedItems/$itemId');
   }
 
   // ============================
   // 剧集季列表
   // ============================
-
-  Future<List<MediaItem>> getSeasons(String seriesId) async {
-    _requireAuth();
+  Future<List<MediaItem>> getSeasons(
+    String seriesId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Fields':
           'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = '/Shows/$seriesId/Seasons';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Shows/$seriesId/Seasons',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
@@ -495,41 +552,42 @@ class EmbytokService {
   // ============================
   // 剧集集列表
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getEpisodes(
     String seriesId, {
     String? seasonId,
     int limit = 100,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Fields':
           'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber,ParentIndexNumber,SeriesName',
-      if (_userId != null) 'UserId': _userId,
+      if (seasonId != null && seasonId.isNotEmpty) 'SeasonId': seasonId,
     };
     String path;
     if (seasonId != null && seasonId.isNotEmpty) {
       path = '/Shows/$seriesId/Episodes';
-      params['SeasonId'] = seasonId;
     } else {
       path = '/Shows/$seriesId/Episodes';
     }
     final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
   // 预告片
   // ============================
-
   Future<PaginatedResponse<MediaItem>> getTrailers({
     int limit = 30,
     int offset = 0,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -537,35 +595,37 @@ class EmbytokService {
       'IncludeItemTypes': 'Trailer',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // 播放信息（获取媒体源 & 音/字幕轨）
+  // 播放信息（通过 getItemDetail 获取，MediaSources 在详情中已包含）
   // ============================
-
-  Future<MediaItem?> getPlaybackInfo(String itemId) async {
-    _requireAuth();
-    // 通过 getItemDetail + MediaSources 信息获取播放信息
-    // Emby 在 getItemDetail 时已经包含 MediaSources
-    return getItemDetail(itemId);
+  Future<MediaItem?> getPlaybackInfo(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    return getItemDetail(itemId, serverUrl: serverUrl, token: token);
   }
 
   // ============================
   // 上报播放进度 / 停止位置
   // ============================
-
   Future<void> reportPlaybackPosition({
     required String itemId,
     required int positionTicks,
     String? mediaSourceId,
     String? playSessionId,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': positionTicks,
@@ -583,8 +643,10 @@ class EmbytokService {
     required int positionTicks,
     String? mediaSourceId,
     String? playSessionId,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': positionTicks,
@@ -600,24 +662,23 @@ class EmbytokService {
   // ============================
   // 搜索提示
   // ============================
-
   Future<List<SearchHint>> searchHints(
     String query, {
     int limit = 20,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
+    _ensureConfig(serverUrl, token);
     if (query.isEmpty) return [];
     final params = <String, dynamic>{
       'SearchTerm': query,
       'Limit': '$limit',
       'Recursive': 'true',
-      if (_userId != null) 'UserId': _userId,
     };
-    final path =
-        _userId != null
-            ? '/Users/$_userId/Search/Hints'
-            : '/Search/Hints';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    final resp = await _apiClient.get<dynamic>(
+      '/Search/Hints',
+      queryParameters: params,
+    );
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['SearchHints'] as List<dynamic>?) ??
@@ -629,11 +690,13 @@ class EmbytokService {
               id: (e['Id'] as String?) ?? '',
               name: (e['Name'] as String?) ?? '',
               type: (e['Type'] as String?),
-              thumbnailUrl: _embyServerUrl != null
-                  ? '$_embyServerUrl/Items/${e['Id']}/Images/Primary?MaxWidth=200&Format=jpg${_apiKey != null ? '&api_key=$_apiKey' : ''}'
-                  : null,
               year: (e['ProductionYear'] as int?) ?? (e['year'] as int?),
               seriesName: (e['SeriesName'] as String?),
+              thumbnailUrl: _defaultServerUrl != null
+                  ? '$_defaultServerUrl/Items/${e['Id']}/Images/Primary'
+                      '?MaxWidth=200&Format=jpg'
+                      '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}'
+                  : null,
             ))
         .toList();
   }
@@ -641,15 +704,23 @@ class EmbytokService {
   // ============================
   // 通用搜索（获取完整 MediaItem 对象）
   // ============================
-
   Future<PaginatedResponse<MediaItem>> searchItems(
     String query, {
     int limit = 30,
     int offset = 0,
     List<String>? includeTypes,
+    String? serverUrl,
+    String? token,
   }) async {
-    _requireAuth();
-    if (query.isEmpty) return PaginatedResponse(items: [], totalRecordCount: 0);
+    _ensureConfig(serverUrl, token);
+    if (query.isEmpty) {
+      return PaginatedResponse(
+        items: const [],
+        total: 0,
+        offset: offset,
+        limit: limit,
+      );
+    }
     final params = <String, dynamic>{
       'SearchTerm': query,
       'Limit': '$limit',
@@ -658,26 +729,46 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
-      if (_userId != null) 'UserId': _userId,
     };
-    final path = _userId != null ? '/Users/$_userId/Items' : '/Items';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data);
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // 辅助方法
+  // 内部辅助方法
   // ============================
 
-  void _requireAuth() {
-    if (_embyServerUrl == null || _embyServerUrl!.isEmpty) {
-      throw '未配置 Emby 服务器地址，请先登录';
+  // 确保 API client 已配置 serverUrl 和 token
+  void _ensureConfig(String? serverUrl, String? token) {
+    final url = serverUrl ?? _defaultServerUrl;
+    final tk = token ?? _defaultToken;
+    if (url == null || url.isEmpty) {
+      throw '请先登录或提供 Emby 服务器地址';
+    }
+    if (url != _apiClient.optionsBaseUrl) {
+      _apiClient.setBaseUrl(url);
+    }
+    if (tk != null && tk.isNotEmpty) {
+      _apiClient.setToken(tk);
     }
   }
 
-  PaginatedResponse<MediaItem> _parsePaginatedResponse(dynamic data) {
+  // 解析分页响应
+  PaginatedResponse<MediaItem> _parsePaginatedResponse(
+    dynamic data, {
+    int offset = 0,
+    int limit = 20,
+  }) {
     if (data is! Map<String, dynamic>) {
-      return PaginatedResponse(items: [], totalRecordCount: 0);
+      return PaginatedResponse(
+        items: const [],
+        total: 0,
+        offset: offset,
+        limit: limit,
+      );
     }
     final items = (data['Items'] as List<dynamic>?) ?? [];
     final total = (data['TotalRecordCount'] as int?) ?? items.length;
@@ -686,7 +777,9 @@ class EmbytokService {
           .whereType<Map<String, dynamic>>()
           .map((e) => MediaItem.fromJson(e))
           .toList(),
-      totalRecordCount: total,
+      total: total,
+      offset: offset,
+      limit: limit,
     );
   }
 }

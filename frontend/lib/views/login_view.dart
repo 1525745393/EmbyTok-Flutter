@@ -43,7 +43,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final password = _passwordController.text;
 
     try {
-      await ref.read(authProvider.notifier).login(emby, backend, username, password);
+      await ref.read(authProvider.notifier).login(
+            emby,
+            username,
+            password,
+            backendUrl: backend,
+          );
       if (mounted) {
         context.go('/');
       }
