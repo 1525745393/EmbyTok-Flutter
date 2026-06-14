@@ -40,8 +40,9 @@ android {
     }
 
     signingConfigs {
-        release {
-            if (keystorePropertiesFile.exists()) {
+        // 仅在 key.properties 存在时才配置 release 签名
+        if (keystorePropertiesFile.exists()) {
+            release {
                 storeFile file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
@@ -57,8 +58,12 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            // 使用 release 签名：若存在 key.properties 则用正式签名，否则降级为 debug 签名
-            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            // 若 key.properties 存在则使用 release 签名，否则降级为 debug 签名
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
