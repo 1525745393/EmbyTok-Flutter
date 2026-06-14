@@ -50,25 +50,32 @@ jobs:
       contents: write
     env:
       BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
+      ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+      ANDROID_KEYSTORE_PWD: ${{ secrets.ANDROID_KEYSTORE_PWD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PWD: ${{ secrets.ANDROID_KEY_PWD }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
       - name: 还原 release 签名 keystore 和 key.properties
-        if: ${{ secrets.ANDROID_KEYSTORE != '' && secrets.ANDROID_KEYSTORE_PWD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PWD != '' }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > frontend/android/app/embbytok-keystore.jks
-          echo "✅ keystore 已还原: frontend/android/app/embbytok-keystore.jks"
-          ls -lh frontend/android/app/embbytok-keystore.jks
+          if [ -n "$ANDROID_KEYSTORE" ] && [ -n "$ANDROID_KEYSTORE_PWD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PWD" ]; then
+            echo "$ANDROID_KEYSTORE" | base64 -d > frontend/android/app/embbytok-keystore.jks
+            echo "✅ 已配置签名密钥，keystore 已还原: frontend/android/app/embbytok-keystore.jks"
+            ls -lh frontend/android/app/embbytok-keystore.jks
 
-          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n" \
-            "${{ secrets.ANDROID_KEYSTORE_PWD }}" \
-            "${{ secrets.ANDROID_KEY_PWD }}" \
-            "${{ secrets.ANDROID_KEY_ALIAS }}" \
-            "app/embbytok-keystore.jks" > frontend/android/key.properties
-          echo "✅ key.properties 已生成: frontend/android/key.properties"
+            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n" \
+              "$ANDROID_KEYSTORE_PWD" "$ANDROID_KEY_PWD" "$ANDROID_KEY_ALIAS" "app/embbytok-keystore.jks" \
+              > frontend/android/key.properties
+            echo "✅ key.properties 已生成: frontend/android/key.properties"
+          else
+            echo "ℹ️  未配置 ANDROID_KEYSTORE 系列 Secrets，将使用 Android debug 签名进行构建"
+            echo "   如需使用正式签名，请在仓库 Settings → Secrets and variables → Actions 中配置："
+            echo "   ANDROID_KEYSTORE / ANDROID_KEYSTORE_PWD / ANDROID_KEY_ALIAS / ANDROID_KEY_PWD"
+          fi
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
