@@ -65,7 +65,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       final headers = widget.item.authHeaders(widget.token);
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(url),
-        httpHeaders: headers.isNotEmpty ? headers : null,
+        httpHeaders: headers,
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
