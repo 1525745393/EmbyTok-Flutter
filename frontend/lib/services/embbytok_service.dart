@@ -102,6 +102,8 @@ class EmbytokService {
     int limit = 20,
     int offset = 0,
     String? libraryType,
+    String? sortBy,
+    String? includeItemTypes,
     String? serverUrl,
     String? token,
   }) async {
@@ -110,13 +112,13 @@ class EmbytokService {
       'ParentId': libraryId,
       'Limit': '$limit',
       'StartIndex': '$offset',
-      'SortBy': 'DateCreated,SortName',
+      'SortBy': sortBy ?? 'DateCreated,SortName',
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      // 根据媒体库类型动态选择 ItemTypes，确保 HomeVideo/Photo 都能被正确获取
-      'IncludeItemTypes': includeItemTypesForLibraryType(libraryType),
+      'IncludeItemTypes':
+          includeItemTypes ?? includeItemTypesForLibraryType(libraryType),
     };
 
     final resp = await _apiClient.get<dynamic>(
@@ -848,5 +850,61 @@ class EmbytokService {
       offset: offset,
       limit: limit,
     );
+  }
+
+  // ============================
+  // 获取某父项的子项（如 Playlist 的内容、Season 的 Episodes）
+  // /Users/{userId}/Items?ParentId={itemId}
+  // ============================
+  Future<List<MediaItem>> getChildren(
+    String parentId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'ParentId': parentId,
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'Recursive': 'false',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 发送 POST 请求到完整 URL（如创建 Playlist / 添加 Playlist 项）
+  // ============================
+  Future<Map<String, dynamic>> postRaw(
+    String fullUrl, {
+    String? token,
+  }) async {
+    if (token != null && token.isNotEmpty) {
+      _apiClient.setToken(token);
+    }
+    final response = await _apiClient.directPost<Map<String, dynamic>>(fullUrl);
+    return response.data ?? <String, dynamic>{};
+  }
+
+  // ============================
+  // 发送 DELETE 请求到完整 URL（如从 Playlist 移除项）
+  // ============================
+  Future<void> deleteRaw(
+    String fullUrl, {
+    String? token,
+  }) async {
+    if (token != null && token.isNotEmpty) {
+      _apiClient.setToken(token);
+    }
+    await _apiClient.directDelete<String>(fullUrl);
   }
 }

@@ -99,6 +99,64 @@ class ApiClient {
     }
   }
 
+  // 直接发起 POST 请求（用于创建 Playlist / 添加 Playlist 项等需要完整 URL 的场景）
+  // 会自动注入已设置的 X-Emby-Token 请求头
+  Future<Response<T>> directPost<T>(
+    String fullUrl, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    final extraHeaders = <String, dynamic>{};
+    if (_token != null && _token!.isNotEmpty) {
+      extraHeaders['X-Emby-Token'] = _token!;
+    }
+    extraHeaders['X-Emby-Authorization'] =
+        'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+    extraHeaders['Content-Type'] = Headers.jsonContentType;
+    if (headers != null) extraHeaders.addAll(headers);
+    try {
+      final response = await Dio().post<T>(
+        fullUrl,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(headers: extraHeaders),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw '请求异常：$e';
+    }
+  }
+
+  // 直接发起 DELETE 请求（用于从 Playlist 移除项等）
+  Future<Response<T>> directDelete<T>(
+    String fullUrl, {
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+  }) async {
+    final extraHeaders = <String, dynamic>{};
+    if (_token != null && _token!.isNotEmpty) {
+      extraHeaders['X-Emby-Token'] = _token!;
+    }
+    extraHeaders['X-Emby-Authorization'] =
+        'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+    if (headers != null) extraHeaders.addAll(headers);
+    try {
+      final response = await Dio().delete<T>(
+        fullUrl,
+        queryParameters: queryParameters,
+        options: Options(headers: extraHeaders),
+      );
+      return response;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    } catch (e) {
+      throw '请求异常：$e';
+    }
+  }
+
   // 统一错误处理：将 DioException 转换为可读字符串
   String _handleError(DioException e) {
     if (e.type == DioExceptionType.connectionTimeout ||

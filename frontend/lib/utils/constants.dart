@@ -8,6 +8,35 @@ const String kStorageKeySearchHistory = 'embbytok_search_history';
 const String kStorageKeySubtitle = 'embbytok_subtitle';
 const String kStorageKeyPlaybackRate = 'embbytok_playback_rate';
 
+// ============================
+// 用户偏好持久化键（Task 1 新增）
+// ============================
+const String kStorageKeyForceDeviceMode = 'embbytok_force_device_mode';
+const String kStorageKeyOrientationMode = 'embbytok_orientation_mode';
+const String kStorageKeyFeedType = 'embbytok_feed_type';
+const String kStorageKeyViewMode = 'embbytok_view_mode';
+const String kStorageKeyIsMuted = 'embbytok_is_muted';
+const String kStorageKeyIsAutoPlay = 'embbytok_is_auto_play';
+const String kStorageKeyHiddenLibraryIds = 'embbytok_hidden_library_ids';
+
+// 设备模式（standard / tv）
+const String kDeviceModeStandard = 'standard';
+const String kDeviceModeTv = 'tv';
+
+// 浏览模式枚举（latest / random / favorites）
+const String kFeedTypeLatest = 'latest';
+const String kFeedTypeRandom = 'random';
+const String kFeedTypeFavorites = 'favorites';
+
+// 视图模式枚举（feed / grid）
+const String kViewModeFeed = 'feed';
+const String kViewModeGrid = 'grid';
+
+// 视频方向过滤（vertical / horizontal / both）
+const String kOrientationModeVertical = 'vertical';
+const String kOrientationModeHorizontal = 'horizontal';
+const String kOrientationModeBoth = 'both';
+
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
 const double kLongPressPlaybackRate = 2.0;

@@ -1,10 +1,12 @@
 // 应用入口：GoRouter 路由配置 + 登录守卫 + 主题
+// 标准模式/TV 模式分流（Task 1 新增）
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'providers/providers.dart';
+import 'utils/app_preferences.dart';
 import 'views/favorites_view.dart';
 import 'views/feed_view.dart';
 import 'views/history_view.dart';
@@ -12,6 +14,31 @@ import 'views/home_scaffold.dart';
 import 'views/login_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
+import 'views/standard_root_view.dart';
+import 'views/tv_root_view.dart';
+
+// 应用级设备模式 Provider：启动时读取 SharedPreferences 持久化值
+// 使用 StateNotifier 与现有 auth_provider 风格保持一致
+class _DeviceModeNotifier extends StateNotifier<DeviceMode> {
+  _DeviceModeNotifier() : super(DeviceMode.standard) {
+    _init();
+  }
+
+  Future<void> _init() async {
+    final prefs = const AppPreferencesService();
+    final loaded = await prefs.load();
+    state = loaded.forceDeviceMode;
+  }
+
+  Future<void> setMode(DeviceMode mode) async {
+    state = mode;
+    await const AppPreferencesService().setForceDeviceMode(mode);
+  }
+}
+
+// 导出设备模式 Provider（Task 1 新增）
+final deviceModeProvider =
+    StateNotifierProvider<_DeviceModeNotifier, DeviceMode>((ref) => _DeviceModeNotifier());
 
 class EmbyTokApp extends ConsumerWidget {
   const EmbyTokApp({super.key});
@@ -22,6 +49,10 @@ class EmbyTokApp extends ConsumerWidget {
     final isLoggedIn = ref.watch(
       authProvider.select((s) => s.isAuthenticated),
     );
+
+    // 当前设备模式（standard / tv）
+    // 首次启动前为 null，使用 SharedPreferences 读取后更新
+    final deviceMode = ref.watch(deviceModeProvider);
 
     // GoRouter 路由配置
     final router = GoRouter(
@@ -43,8 +74,19 @@ class EmbyTokApp extends ConsumerWidget {
           builder: (context, state) => const LoginView(),
         ),
         // 首页（视频流 + 底部导航）
+        // 根据设备模式路由到不同的根视图
         GoRoute(
           path: '/',
+          builder: (context, state) {
+            if (deviceMode == DeviceMode.tv) {
+              return const TVRootView();
+            }
+            return const StandardRootView();
+          },
+        ),
+        // 兼容旧路由：底部导航中的子页面
+        GoRoute(
+          path: '/feed',
           builder: (context, state) => const HomeScaffold(),
         ),
         // 搜索
