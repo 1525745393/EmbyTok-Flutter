@@ -3,11 +3,7 @@
 import '../services/embbytok_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// EmbytokService 全局 Provider
-final embytokServiceProvider = Provider<EmbytokService>((ref) {
-  return EmbytokService();
-});
-
+// 所有 export 指令必须放在声明之前（Dart 语法要求）
 export 'auth_provider.dart';
 export 'library_provider.dart';
 export 'video_list_provider.dart';
@@ -22,3 +18,8 @@ export 'search_history_provider.dart';
 export 'item_detail_provider.dart';
 export 'app_preferences_providers.dart';
 export 'favorites_service_provider.dart';
+
+// EmbytokService 全局 Provider
+final embytokServiceProvider = Provider<EmbytokService>((ref) {
+  return EmbytokService();
+});
