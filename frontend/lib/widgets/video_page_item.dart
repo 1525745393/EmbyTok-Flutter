@@ -25,6 +25,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
     final favorited =
         ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
 
@@ -37,6 +38,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           item: widget.item,
           child: VideoPlayerWidget(
             item: widget.item,
+            embyServerUrl: authState.embyServerUrl,
+            token: authState.token,
             onControllerReady: (c) {
               setState(() {
                 _videoController = c;

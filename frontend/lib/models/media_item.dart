@@ -1,5 +1,7 @@
 // 媒体项模型：电影/剧集/集数/音乐视频等（支持 Emby 原生字段与简化字段）
 
+import 'dart:convert';
+
 import 'media_source.dart';
 import 'person.dart';
 import 'user_data.dart';
@@ -239,6 +241,45 @@ class MediaItem {
         'user_data': userData?.toJson(),
         'is_favorite': isFavorite,
       };
+
+  // ============================
+  // 播放 URL 与认证（直接连接 Emby 服务器）
+  // ============================
+
+  /// 根据 Emby 服务器地址和 token 动态构造视频流播放 URL
+  /// 若 mediaSources 不为空，则优先使用第一个 mediaSource 的 URL
+  /// 否则使用通用 Videos/{id}/stream 端点
+  String? computePlaybackUrl(String? embyServerUrl, String? token) {
+    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
+    if (token == null || token.isEmpty) return null;
+
+    final base = embyServerUrl.endsWith('/')
+        ? embyServerUrl.substring(0, embyServerUrl.length - 1)
+        : embyServerUrl;
+    final encodedToken = Uri.encodeQueryComponent(token);
+
+    // 优先使用第一个 MediaSource（若有）
+    if (mediaSources != null && mediaSources!.isNotEmpty) {
+      final source = mediaSources!.first;
+      if (source.directPlayUrl != null && source.directPlayUrl!.isNotEmpty) {
+        // directPlayUrl 可能是绝对或相对路径
+        final url = source.directPlayUrl!;
+        final fullUrl = url.startsWith('http://') || url.startsWith('https://')
+            ? url
+            : '$base$url';
+        return '$fullUrl${fullUrl.contains('?') ? '&' : '?'}api_key=$encodedToken&Static=true';
+      }
+    }
+
+    // 通用 Videos/{id}/stream 端点
+    return '$base/Videos/$id/stream?api_key=$encodedToken&Static=true';
+  }
+
+  /// 获取播放视频时需要的 HTTP 认证请求头
+  Map<String, String> authHeaders(String? token) {
+    if (token == null || token.isEmpty) return const {};
+    return {'X-Emby-Token': token};
+  }
 
   // ============================
   // 便捷属性

@@ -13,6 +13,8 @@ class VideoPlayerWidget extends StatefulWidget {
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
   final bool loop;
+  final String? embyServerUrl;
+  final String? token;
 
   const VideoPlayerWidget({
     super.key,
@@ -20,6 +22,8 @@ class VideoPlayerWidget extends StatefulWidget {
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
+    this.embyServerUrl,
+    this.token,
   });
 
   @override
@@ -30,12 +34,17 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
 
-  // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
-  bool get _canPlayVideo {
-    if (widget.item.playbackUrl == null || widget.item.playbackUrl!.isEmpty) {
-      return false;
+  /// 解析出有效的播放 URL（优先 playbackUrl，否则动态构造 Emby 流 URL）
+  String? _resolvePlaybackUrl() {
+    if (widget.item.playbackUrl != null && widget.item.playbackUrl!.isNotEmpty) {
+      return widget.item.playbackUrl;
     }
-    // web 环境下 video_player 需要额外配置，降级为缩略图展示
+    return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+  }
+
+  /// 是否可以播放视频：有有效的 URL 且非 web 环境
+  bool get _canPlayVideo {
+    if (_resolvePlaybackUrl() == null) return false;
     if (kIsWeb) return false;
     return true;
   }
@@ -50,9 +59,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   // 初始化 video_player 控制器
   Future<void> _initVideo() async {
+    final url = _resolvePlaybackUrl();
+    if (url == null) return;
     try {
+      final headers = widget.item.authHeaders(widget.token);
       _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.item.playbackUrl!),
+        Uri.parse(url),
+        httpHeaders: headers.isNotEmpty ? headers : null,
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
