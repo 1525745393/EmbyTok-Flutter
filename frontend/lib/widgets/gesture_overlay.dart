@@ -5,7 +5,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'video_player/video_player.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
