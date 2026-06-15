@@ -131,8 +131,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     );
   }
 
-  // 右侧操作按钮列：关注 / 点赞 / 收藏 / 评论 / 分享
+  // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
   Widget _buildRightActions(bool favorited) {
+    // 监听静音状态
+    final isMuted = ref.watch(isMutedProvider);
+
     return Positioned(
       right: 0,
       top: 0,
@@ -153,7 +156,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            _buildActionButton(Icons.person_add, '关注', onTap: () {}),
+            // 静音按钮
+            _buildActionButton(
+              isMuted ? Icons.volume_off : Icons.volume_up,
+              isMuted ? '静音' : '音量',
+              color: isMuted ? Colors.redAccent : Colors.white,
+              onTap: () {
+                ref.read(isMutedProvider.notifier).toggle();
+                // 同时设置视频控制器音量
+                _videoController?.setVolume(isMuted ? 1.0 : 0.0);
+              },
+            ),
             const SizedBox(height: 20),
             _buildActionButton(
               favorited ? Icons.favorite : Icons.favorite_border,

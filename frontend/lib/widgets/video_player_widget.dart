@@ -5,9 +5,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 
@@ -41,7 +43,7 @@ class VideoPlayerWidget extends StatefulWidget {
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
@@ -49,6 +51,15 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   Timer? _progressTimer;
   int _lastReportedSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // 监听静音状态变化
+    ref.listenManual(isMutedProvider, (previous, next) {
+      _controller?.setVolume(next ? 0.0 : 1.0);
+    });
+  }
 
   // 获取播放 URL
   String? get _playbackUrl {
@@ -99,6 +110,10 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
+
+      // 根据静音状态设置初始音量
+      final isMuted = ref.read(isMutedProvider);
+      _controller!.setVolume(isMuted ? 0.0 : 1.0);
 
       if (mounted) {
         setState(() {
