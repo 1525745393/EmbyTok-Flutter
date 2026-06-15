@@ -11,9 +11,6 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 
-/// 双击间隔（与单击区分）
-const int _kDoubleTapMs = 300;
-
 /// 连续两次"双击"之间的最小间隔：避免快速连点产生重复 API 请求
 const int _kDoubleTapDebounceMs = 400;
 
@@ -124,7 +121,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     } else {
       _pendingSingleTap = true;
       _singleTapTimer =
-          Timer(const Duration(milliseconds: _kDoubleTapMs), () {
+          Timer(const Duration(milliseconds: kDoubleTapMs), () {
         if (_pendingSingleTap) {
           _pendingSingleTap = false;
           _onSingleTap();
