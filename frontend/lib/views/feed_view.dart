@@ -41,12 +41,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     super.dispose();
   }
 
-  // 选择媒体库：先更新 selectedLibraryId，再刷新视频列表
-  Future<void> _selectLibrary(Library lib) async {
-    ref.read(selectedLibraryIdProvider.notifier).state = lib.id;
-    await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
