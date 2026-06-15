@@ -14,7 +14,7 @@ import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 
 // 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
-class VideoPlayerWidget extends StatefulWidget {
+class VideoPlayerWidget extends ConsumerStatefulWidget {
   final MediaItem item;
   // Emby 服务器认证信息（用于动态构造播放 URL 和上报进度）
   final String? embyServerUrl;
@@ -59,6 +59,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     ref.listenManual(isMutedProvider, (previous, next) {
       _controller?.setVolume(next ? 0.0 : 1.0);
     });
+    // 可播放时初始化视频
+    if (_canPlayVideo) {
+      _initVideo();
+    }
   }
 
   // 获取播放 URL
@@ -75,14 +79,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (url == null || url.isEmpty) return false;
     if (kIsWeb) return false;
     return true;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    if (_canPlayVideo) {
-      _initVideo();
-    }
   }
 
   // 初始化视频控制器 + 从上次位置继续播放

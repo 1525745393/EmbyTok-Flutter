@@ -62,9 +62,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     });
 
-    // 媒体库列表（异步）
-    final librariesAsync = ref.watch(libraryListProvider);
-
     // 视频列表状态（原始列表，用于分页和加载状态）
     final videoState = ref.watch(videoListProvider);
 
@@ -91,7 +88,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             child: SafeArea(
               bottom: false,
               child: TopToolBar(
-                onFullscreenPressed: _toggleFullscreen,
+                onFullscreenPressed: (_) => _toggleFullscreen(),
               ),
             ),
           ),
