@@ -126,7 +126,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.folder_outlined,
                           size: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -142,7 +142,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.expand_more,
                           size: 18,
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ],
                     ),
