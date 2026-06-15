@@ -5,6 +5,18 @@
 
 ---
 
+## [1.3.1] - 2026-06-15
+
+### 修复
+
+- Flutter 静态分析错误：`VideoPlayerWidget.createState` 返回类型改为 `ConsumerState<VideoPlayerWidget>`
+- `providers.dart` 添加 `app_preferences_providers` 导出，修复 `viewModeProvider` / `feedTypeProvider` / `orientationModeProvider` 未定义问题
+- `FullscreenCallback` 类型匹配修复
+- 移除 `feed_view.dart` 中未使用的 `_selectLibrary` 方法和 `_buildLibraryChips` 元素
+- 移除 `top_tool_bar.dart` 中未使用的 `FeedType` 导入
+
+---
+
 ## [1.3.0] - 2026-06-15
 
 ### 新增

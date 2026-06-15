@@ -5,10 +5,10 @@
 /// ============================================================
 
 /// 语义化版本号 (MAJOR.MINOR.PATCH)
-const String embbytokVersion = '1.3.0';
+const String embbytokVersion = '1.3.1';
 
 /// 构建号（与 Android versionCode / iOS buildNumber 对齐）
-const int embbytokBuildNumber = 27;
+const int embbytokBuildNumber = 28;
 
 /// 完整版本信息
 String get embbytokFullVersion => '$embbytokVersion+$embbytokBuildNumber';
