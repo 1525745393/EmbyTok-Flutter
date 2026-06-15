@@ -46,9 +46,12 @@ class FavoritesService {
 
   // 创建一个新的 Playlist 并返回其 ID
   Future<String> _createPlaylist(String libraryName) async {
-    final url = '${_auth.embyServerUrl}/Playlists?Name=${Uri.encodeQueryComponent(_playlistName(libraryName))}&UserId=${_auth.user?.id ?? ''}';
+    final name = Uri.encodeQueryComponent(_playlistName(libraryName));
+    final userId = _auth.user?.id ?? '';
     final response = await _service.postRaw(
-      url,
+      '/Playlists',
+      queryParameters: {'Name': name, 'UserId': userId},
+      serverUrl: _auth.embyServerUrl!,
       token: _auth.token!,
     );
     // Emby 返回的响应体为 {"Id":"..."} 或类似结构
@@ -63,8 +66,13 @@ class FavoritesService {
     if (!isAuthenticated) return;
     final id = await _getOrCreatePlaylistId(libraryName);
     if (id.isEmpty) return;
-    final url = '${_auth.embyServerUrl}/Playlists/$id/Items?Ids=$itemId&UserId=${_auth.user?.id ?? ''}';
-    await _service.postRaw(url, token: _auth.token!);
+    final userId = _auth.user?.id ?? '';
+    await _service.postRaw(
+      '/Playlists/$id/Items',
+      queryParameters: {'Ids': itemId, 'UserId': userId},
+      serverUrl: _auth.embyServerUrl!,
+      token: _auth.token!,
+    );
   }
 
   // 将指定 item 从收藏中移除
@@ -96,8 +104,13 @@ class FavoritesService {
       // fallback：尝试用 entry.id
       entryId = entry.id;
     }
-    final url = '${_auth.embyServerUrl}/Playlists/$playlistId/Items?EntryIds=$entryId&UserId=${_auth.user?.id ?? ''}';
-    await _service.deleteRaw(url, token: _auth.token!);
+    final userId = _auth.user?.id ?? '';
+    await _service.deleteRaw(
+      '/Playlists/$playlistId/Items',
+      queryParameters: {'EntryIds': entryId, 'UserId': userId},
+      serverUrl: _auth.embyServerUrl!,
+      token: _auth.token!,
+    );
   }
 
   // 获取或创建 Playlist 的 ID
