@@ -35,8 +35,8 @@ android {
         applicationId "com.embbytok.app"
         minSdk 21
         targetSdk 34
-        versionCode 17
-        versionName "1.1.7"
+        versionCode 21
+        versionName "1.2.5"
     }
 
     signingConfigs {

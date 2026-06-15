@@ -5,6 +5,21 @@
 
 ---
 
+## [1.2.5] - 2026-06-15
+
+### 新增
+- 发布流程脚本系统（release.sh / verify-release.sh / rollback-release.sh）
+- 版本号统一管理文件（version.dart / version.py）
+- CI 构建安全增强（keystore 文件权限设置）
+
+### 修复
+- 发布脚本跨平台兼容性（macOS/Linux sed 语法差异）
+- Git 提交安全性（精确文件列表替代 `git add -A`）
+- 回滚脚本错误消息语义清晰化
+- 后端 API 版本号动态导入（从 version.py 读取，而非硬编码）
+
+---
+
 ## [1.1.7] - 2026-06-15
 
 ### 新增
