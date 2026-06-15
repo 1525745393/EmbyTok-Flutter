@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
+import '../utils/app_preferences.dart' show OrientationMode;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'library_provider.dart';
 
@@ -167,4 +169,26 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 final videoListProvider =
     StateNotifierProvider<VideoListNotifier, VideoListState>((ref) {
   return VideoListNotifier(ref);
+});
+
+// ==================== 方向过滤的派生 Provider ====================
+
+// 过滤后的视频列表（根据方向模式）
+final filteredVideoListProvider = Provider<List<MediaItem>>((ref) {
+  final videoState = ref.watch(videoListProvider);
+  final orientationMode = ref.watch(orientationModeProvider);
+
+  // 如果是加载中或错误状态，直接返回原列表
+  if (videoState.isLoading || videoState.error != null) {
+    return videoState.items;
+  }
+
+  // 根据方向模式过滤
+  return videoState.items.where((item) {
+    return switch (orientationMode) {
+      OrientationMode.vertical => item.isPortrait,
+      OrientationMode.horizontal => item.isLandscape,
+      OrientationMode.both => true, // 显示全部
+    };
+  }).toList();
 });

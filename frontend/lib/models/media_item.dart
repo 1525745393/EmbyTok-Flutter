@@ -259,6 +259,26 @@ class MediaItem {
 
   bool get isWatched => userData?.played ?? false;
 
+  // 判断是否为横屏视频（根据媒体源的宽高）
+  bool get isLandscape {
+    if (mediaSources == null || mediaSources!.isEmpty) return true; // 默认显示为横屏
+    for (final source in mediaSources!) {
+      if (source.isLandscape) return true;
+      if (source.isPortrait) return false;
+    }
+    return true; // 默认显示为横屏
+  }
+
+  // 判断是否为竖屏视频（根据媒体源的宽高）
+  bool get isPortrait {
+    if (mediaSources == null || mediaSources!.isEmpty) return false;
+    for (final source in mediaSources!) {
+      if (source.isPortrait) return true;
+      if (source.isLandscape) return false;
+    }
+    return false;
+  }
+
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
   // type: Primary/Backdrop/Thumb/Art/Logo/Box/BoxRear
   String? imageUrl(

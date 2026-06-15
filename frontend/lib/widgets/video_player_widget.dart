@@ -299,16 +299,61 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
 
-    return SizedBox.expand(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
-        ),
-      ),
+    // 视频方向自适应显示
+    return _buildVideoWithAdaptiveFit();
+  }
+
+  // 根据视频内容和屏幕方向自适应显示
+  Widget _buildVideoWithAdaptiveFit() {
+    final videoSize = _controller!.value.size;
+    // 计算视频宽高比（>1 表示横屏，<1 表示竖屏）
+    final videoAspectRatio = videoSize.width / videoSize.height;
+    // 判断视频是否为横屏
+    final isLandscapeVideo = videoAspectRatio > 1.0;
+
+    // 获取缩略图 URL 作为模糊背景
+    final thumbnailUrl = widget.item.thumbnailUrlWithAuth(
+      widget.embyServerUrl,
+      widget.token,
+      maxWidth: 800,
     );
+
+    if (isLandscapeVideo) {
+      // 横屏视频：在竖屏设备上使用 BoxFit.contain + 模糊背景
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          // 模糊背景图
+          if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
+            Image.network(
+              thumbnailUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: Colors.black),
+            )
+          else
+            Container(color: Colors.black),
+          // 视频居中显示（BoxFit.contain）
+          Center(
+            child: AspectRatio(
+              aspectRatio: videoAspectRatio,
+              child: VideoPlayer(_controller!),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // 竖屏视频：全屏填充（BoxFit.cover）
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: videoSize.width,
+            height: videoSize.height,
+            child: VideoPlayer(_controller!),
+          ),
+        ),
+      );
+    }
   }
 
   // 缩略图占位

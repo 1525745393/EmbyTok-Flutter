@@ -14,6 +14,12 @@ final currentPositionProvider = StateProvider<Duration>((ref) => Duration.zero);
 // 是否正在播放
 final isPlayingProvider = StateProvider<bool>((ref) => false);
 
+// 当前视频索引（用于网格视图跳转）
+final currentIndexProvider = StateProvider<int>((ref) => 0);
+
+// 是否全屏播放
+final isFullscreenProvider = StateProvider<bool>((ref) => false);
+
 // 播放倍速：1.0 / 1.25 / 1.5 / 2.0
 final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
