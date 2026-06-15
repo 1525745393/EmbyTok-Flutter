@@ -41,7 +41,7 @@ jobs:
       BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 验证 Android 签名配置
         shell: bash
@@ -211,7 +211,7 @@ jobs:
 
       - name: 创建 GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             frontend/build/app/outputs/flutter-apk/*.apk
