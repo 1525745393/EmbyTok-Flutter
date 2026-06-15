@@ -6,24 +6,35 @@ import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/services/embbytok_service.dart';
 
 /// EmbytokService 的 Mock 实现
+/// 注意：只覆盖测试实际需要的方法，其他方法继承自 EmbytokService
 class MockEmbytokService extends Mock implements EmbytokService {
+  // ============================
+  // 登录
+  // ============================
   @override
-  Future<User> login(
-    String embyUrl,
-    String backendUrl,
-    String username,
-    String password,
-  ) =>
+  Future<User> login({
+    required String embyServerUrl,
+    required String username,
+    required String password,
+  }) =>
       super.noSuchMethod(
-        Invocation.method(#login, [embyUrl, backendUrl, username, password]),
+        Invocation.method(#login, [], {
+          #embyServerUrl: embyServerUrl,
+          #username: username,
+          #password: password,
+        }),
         returnValue: Future.value(User(id: '', name: '', accessToken: '')),
-        returnValueForMissingStub: Future.value(User(id: '', name: '', accessToken: '')),
-      );
+        returnValueForMissingStub:
+            Future.value(User(id: '', name: '', accessToken: '')),
+      ) as Future<User>;
 
+  // ============================
+  // 媒体库
+  // ============================
   @override
   Future<List<Library>> getLibraries({
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraries, [], {
@@ -32,15 +43,15 @@ class MockEmbytokService extends Mock implements EmbytokService {
         }),
         returnValue: Future.value(<Library>[]),
         returnValueForMissingStub: Future.value(<Library>[]),
-      );
+      ) as Future<List<Library>>;
 
   @override
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
     String libraryId, {
     int limit = 20,
     int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraryItems, [libraryId], {
@@ -61,48 +72,41 @@ class MockEmbytokService extends Mock implements EmbytokService {
           offset: 0,
           limit: limit,
         )),
-      );
+      ) as Future<PaginatedResponse<MediaItem>>;
 
+  // ============================
+  // 详情
+  // ============================
   @override
-  Future<MediaItem> getItem(
+  Future<MediaItem> getItemDetail(
     String itemId, {
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
-        Invocation.method(#getItem, [itemId], {
+        Invocation.method(#getItemDetail, [itemId], {
           #serverUrl: serverUrl,
           #token: token,
         }),
         returnValue: Future.value(MediaItem(id: '', title: '', type: '')),
-        returnValueForMissingStub: Future.value(MediaItem(id: '', title: '', type: '')),
-      );
+        returnValueForMissingStub:
+            Future.value(MediaItem(id: '', title: '', type: '')),
+      ) as Future<MediaItem>;
 
+  // ============================
+  // 搜索
+  // ============================
   @override
-  Future<String> getPlaybackUrl(
-    String itemId, {
-    required String serverUrl,
-    required String token,
-  }) =>
-      super.noSuchMethod(
-        Invocation.method(#getPlaybackUrl, [itemId], {
-          #serverUrl: serverUrl,
-          #token: token,
-        }),
-        returnValue: Future.value(''),
-        returnValueForMissingStub: Future.value(''),
-      );
-
-  @override
-  Future<PaginatedResponse<MediaItem>> search(
+  Future<PaginatedResponse<MediaItem>> searchItems(
     String query, {
-    int limit = 20,
+    int limit = 30,
     int offset = 0,
-    required String serverUrl,
-    required String token,
+    List<String>? includeTypes,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
-        Invocation.method(#search, [query], {
+        Invocation.method(#searchItems, [query], {
           #limit: limit,
           #offset: offset,
           #serverUrl: serverUrl,
@@ -120,66 +124,136 @@ class MockEmbytokService extends Mock implements EmbytokService {
           offset: 0,
           limit: limit,
         )),
-      );
+      ) as Future<PaginatedResponse<MediaItem>>;
 
-  @override
-  Future<void> toggleFavorite(
-    String itemId,
-    bool isFavorite, {
-    required String serverUrl,
-    required String token,
-  }) =>
-      super.noSuchMethod(
-        Invocation.method(#toggleFavorite, [itemId, isFavorite], {
-          #serverUrl: serverUrl,
-          #token: token,
-        }),
-        returnValue: Future.value(),
-        returnValueForMissingStub: Future.value(),
-      );
-
+  // ============================
+  // 收藏
+  // ============================
   @override
   Future<List<MediaItem>> getFavorites({
-    required String serverUrl,
-    required String token,
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavorites, [], {
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
         returnValue: Future.value(<MediaItem>[]),
         returnValueForMissingStub: Future.value(<MediaItem>[]),
-      );
+      ) as Future<List<MediaItem>>;
 
   @override
-  Future<void> saveProgress(
-    String itemId,
-    int positionSeconds, {
-    required String serverUrl,
-    required String token,
+  Future<void> toggleFavorite({
+    required String itemId,
+    required bool isFavorite,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
-        Invocation.method(#saveProgress, [itemId, positionSeconds], {
+        Invocation.method(#toggleFavorite, [], {
+          #itemId: itemId,
+          #isFavorite: isFavorite,
           #serverUrl: serverUrl,
           #token: token,
         }),
         returnValue: Future.value(),
         returnValueForMissingStub: Future.value(),
-      );
+      ) as Future<void>;
 
+  // ============================
+  // 继续观看 / 下一集
+  // ============================
   @override
-  Future<int?> getProgress(
-    String itemId, {
-    required String serverUrl,
-    required String token,
+  Future<PaginatedResponse<MediaItem>> getResumeItems({
+    int limit = 20,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
-        Invocation.method(#getProgress, [itemId], {
+        Invocation.method(#getResumeItems, [], {
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
-        returnValue: Future.value(null),
-        returnValueForMissingStub: Future.value(null),
-      );
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    int limit = 20,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getNextUp, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
+  // ============================
+  // 标记观看状态
+  // ============================
+  @override
+  Future<void> markAsPlayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#markAsPlayed, [itemId], {
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(),
+        returnValueForMissingStub: Future.value(),
+      ) as Future<void>;
+
+  @override
+  Future<void> markAsUnplayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#markAsUnplayed, [itemId], {
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(),
+        returnValueForMissingStub: Future.value(),
+      ) as Future<void>;
 }

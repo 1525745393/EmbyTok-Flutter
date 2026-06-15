@@ -790,7 +790,7 @@ class EmbytokService {
   // ============================
   // 获取子项（孩子节点）
   // ============================
-  Future<PaginatedResponse<MediaItem>> getChildren(
+  Future<List<MediaItem>> getChildren(
     String parentId, {
     int limit = 100,
     int offset = 0,
@@ -807,7 +807,8 @@ class EmbytokService {
       '/Items/$parentId/Children',
       queryParameters: params,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    return result.items;
   }
 
   // ============================

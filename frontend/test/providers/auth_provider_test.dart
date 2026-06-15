@@ -81,7 +81,6 @@ void main() {
     });
 
     test('初始状态：isAuthenticated = false, user = null', () async {
-      // 创建 ProviderContainer 并注入 mock service
       container = ProviderContainer(
         overrides: [
           authProvider.overrideWith(
@@ -90,7 +89,6 @@ void main() {
         ],
       );
 
-      // 等待 _loadFromStorage 完成
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(authProvider);
@@ -107,12 +105,11 @@ void main() {
         accessToken: 'test-token',
       );
 
-      // 配置 mock service 返回成功
+      // mock login 使用命名参数调用
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
       )).thenAnswer((_) async => testUser);
 
       container = ProviderContainer(
@@ -123,15 +120,15 @@ void main() {
         ],
       );
 
-      // 等待初始化完成
       await Future.delayed(const Duration(milliseconds: 50));
 
       final notifier = container.read(authProvider.notifier);
+      // 当前 API 签名: login(embyServerUrl, username, password, {backendUrl})
       await notifier.login(
         'http://emby.example.com',
-        'http://backend.example.com',
         'testuser',
         'password',
+        backendUrl: 'http://backend.example.com',
       );
 
       final state = container.read(authProvider);
@@ -149,20 +146,17 @@ void main() {
 
       // 验证 service 被正确调用
       verify(mockService.login(
-        'http://emby.example.com',
-        'http://backend.example.com',
-        'testuser',
-        'password',
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'password',
       )).called(1);
     });
 
     test('login() 失败：error 包含错误信息', () async {
-      // 配置 mock service 抛出异常
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
       )).thenThrow(Exception('网络错误'));
 
       container = ProviderContainer(
@@ -177,18 +171,16 @@ void main() {
 
       final notifier = container.read(authProvider.notifier);
 
-      // 调用 login 并捕获异常
       expect(
         () => notifier.login(
           'http://emby.example.com',
-          'http://backend.example.com',
           'testuser',
           'wrong-password',
+          backendUrl: 'http://backend.example.com',
         ),
         throwsA(isA<Exception>()),
       );
 
-      // 等待状态更新
       await Future.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(authProvider);
@@ -199,12 +191,10 @@ void main() {
     });
 
     test('login() 失败：字符串错误信息', () async {
-      // 配置 mock service 抛出字符串异常
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
       )).thenThrow('用户名或密码错误');
 
       container = ProviderContainer(
@@ -222,9 +212,9 @@ void main() {
       expect(
         () => notifier.login(
           'http://emby.example.com',
-          'http://backend.example.com',
           'testuser',
           'wrong-password',
+          backendUrl: 'http://backend.example.com',
         ),
         throwsA('用户名或密码错误'),
       );
@@ -237,7 +227,6 @@ void main() {
     });
 
     test('logout()：清除状态', () async {
-      // 预设已登录状态
       final testUser = User(
         id: 'user-123',
         name: 'testuser',
@@ -245,10 +234,9 @@ void main() {
       );
 
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
       )).thenAnswer((_) async => testUser);
 
       container = ProviderContainer(
@@ -266,9 +254,9 @@ void main() {
       // 先登录
       await notifier.login(
         'http://emby.example.com',
-        'http://backend.example.com',
         'testuser',
         'password',
+        backendUrl: 'http://backend.example.com',
       );
 
       // 验证已登录
@@ -286,7 +274,6 @@ void main() {
     });
 
     test('从 SharedPreferences 恢复登录状态', () async {
-      // 预设 SharedPreferences 中的配置
       final config = {
         'backend_url': 'http://backend.example.com',
         'emby_server_url': 'http://emby.example.com',
@@ -307,7 +294,6 @@ void main() {
         ],
       );
 
-      // 等待 _loadFromStorage 完成
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(authProvider);
@@ -337,7 +323,6 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(authProvider);
-      // 应该保持初始状态，不抛出异常
       expect(state.isAuthenticated, false);
       expect(state.user, isNull);
     });
