@@ -5,10 +5,8 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.errors import APIError, INTERNAL_ERROR
-from routers import auth, favorites, items, libraries, search, subtitles
-
-# 版本号从 core/version.py 导入，保证单一来源
 from core.version import __version__
+from routers import auth, favorites, items, libraries, search, subtitles
 
 app = FastAPI(
     title="EmbyTok Backend",
@@ -81,7 +79,7 @@ async def general_exception_handler(_: Request, exc: Exception) -> JSONResponse:
 def health_check():
     return {
         "status": "ok",
-        "version": "1.0.0",
+        "version": __version__,
         "service": "embbytok-backend",
     }
 
@@ -90,7 +88,7 @@ def health_check():
 def root():
     return {
         "message": "EmbyTok API - Use /docs for Swagger UI",
-        "version": "1.0.0",
+        "version": __version__,
     }
 
 

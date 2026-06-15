@@ -1,119 +1,94 @@
 # Changelog
 
-所有重要变更将在此文件记录。
-
-> 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范，
-> 并使用 [语义版本号（Semantic Versioning）](https://semver.org/lang/zh-CN/)。
-
-## 变更分类
-
-本项目使用以下标准分类（每项按顺序排列）：
-
-| 分类 | 含义 | Git 提交前缀示例 |
-| --- | --- | --- |
-| **Added** | 新功能 / 新增特性 | `feat:` |
-| **Changed** | 既有功能行为变更 | `refactor:`、`chore(deps):` |
-| **Deprecated** | 标记为将被移除的功能 | `deprecate:` |
-| **Removed** | 移除已废弃功能 | `remove:` |
-| **Fixed** | Bug 修复 | `fix:` |
-| **Security** | 安全相关修复 | `security:` / `fix(sec):` |
-| **Performance** | 性能优化 | `perf:` |
-| **Docs** | 文档 / 注释变更 | `docs:` |
-| **Style** | 代码格式化 / 风格调整 | `style:` |
-| **Test** | 测试相关变更 | `test:` |
+本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，
+版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/) 语义化版本规范。
 
 ---
 
-## [未发布] — yyyy-mm-dd
+## [1.2.5] - 2026-06-15
 
-> 说明：每次新的变更**优先追加到此区块**，直到下一次版本发布时将此处内容移动到对应版本号区块，并更新日期。
+### 新增
+- 发布流程脚本系统（release.sh / verify-release.sh / rollback-release.sh）
+- 版本号统一管理文件（version.dart / version.py）
+- CI 构建安全增强（keystore 文件权限设置）
 
-### Added
-
-- （待补充）
-
-### Changed
-
-- （待补充）
-
-### Fixed
-
-- （待补充）
+### 修复
+- 发布脚本跨平台兼容性（macOS/Linux sed 语法差异）
+- Git 提交安全性（精确文件列表替代 `git add -A`）
+- 回滚脚本错误消息语义清晰化
+- 后端 API 版本号动态导入（从 version.py 读取，而非硬编码）
 
 ---
 
-## [1.2.4] — 2026-06-14
+## [1.1.7] - 2026-06-15
 
-### Fixed
+### 新增
+- 发布流程脚本系统（release.sh / verify-release.sh / rollback-release.sh）
+- 版本号统一管理文件（version.dart / version.py）
+- CI 构建安全增强（keystore 文件权限设置）
 
-- 修复 Flutter 构建失败：`providers.dart` 中 `export` 指令位于声明之后，违反 Dart 语法规则
-- 统一 `pubspec.yaml`、`build.gradle`、`lib/utils/version.dart` 之间版本号不一致问题
-
-### Added
-
-- 新增语义版本管理系统：`frontend/lib/utils/version.dart（Dart）与 `backend/core/version.py`（Python）
-- 新增发布验证脚本 `scripts/verify-release.sh`
-- 新增版本升级步骤文档 `docs/RELEASE.md`
-- 新增 Git 提交信息规范 `docs/COMMIT_CONVENTION.md`
+### 修复
+- 发布脚本跨平台兼容性（macOS/Linux sed 语法差异）
+- Git 提交安全性（精确文件列表替代 `git add -A`）
+- 回滚脚本错误消息语义清晰化
 
 ---
 
-## [1.2.3] — 2026-06-14
+## [1.1.3] - 2025-06-14
 
-### Changed
+### 新增
+- `scripts/release.sh` - 自动化版本发布脚本，支持 patch/minor/major 三种发布类型
+- `scripts/rollback-release.sh` - 发布回滚脚本，支持 dry-run 预览模式
+- `scripts/verify-release.sh` - 发布前版本一致性验证脚本
+- `frontend/lib/utils/version.dart` - Flutter 版本信息常量文件
+- `backend/core/version.py` - Python 后端版本信息常量文件
 
-- 根据项目整体代码整理
-- （历史版本的详细信息请参考 Git 提交历史
+### 修复
+- **跨平台兼容性**: `release.sh` 中实现 `sed_inplace()` 函数，根据 `uname -s` 自动检测操作系统，在 macOS (BSD sed) 和 Linux (GNU sed) 上正确执行就地编辑，之前硬编码的 `sed -i` 在 macOS 上会产生临时文件或错误
+- **发布安全性**: `release.sh` 中将 `git add -A` 替换为精确文件列表 `git add frontend/pubspec.yaml frontend/android/app/build.gradle frontend/lib/utils/version.dart backend/core/version.py CHANGELOG.md`，防止意外提交未跟踪的敏感文件（如密钥、本地配置等）
+- **命令健壮性**: `release.sh` 开头增加 `git`/`sed`/`grep`/`awk` 命令存在性预检查，缺失时输出中文错误消息并优雅退出，避免因命令不存在导致脚本中途失败
+- **CI 构建安全**: GitHub Actions workflow 中 keystore 文件解码后立即设置 `chmod 600` 权限，仅允许拥有者读写，并在日志中输出权限验证结果
+- **回滚消息修复**: `rollback-release.sh` 中将矛盾的"已存在或不存在"消息修正为清晰的"远程 tag 不存在，跳过"，使错误信息与实际分支判断逻辑一致
 
----
-
-## [1.2.2] — 2026-06-14
-
-### Changed
-
-- （请在每次发布时补充）
-
----
-
-## [1.2.1] — 2026-06-14
-
-### Changed
-
-- （请在每次发布时补充）
-
----
-
-## [1.2.0] — 2026-06-14
-
-### Added
-
-- EmbyTok Flutter 项目初始化，完成竖屏视频浏览核心功能
+### 改进
+- 同步 `frontend/android/app/build.gradle` 版本号（`versionName` 1.0.7 → 1.1.3，`versionCode` 7 → 13），与 `frontend/pubspec.yaml` 保持一致
+- 所有发布脚本使用统一的颜色输出风格，增强可读性
+- `release.sh` 支持 `--dry-run` 参数，在不实际修改任何文件的情况下预览发布流程
+- `verify-release.sh` 检查项目中 4 个版本号位置（pubspec/build.gradle/version.dart/version.py）的一致性
 
 ---
 
-## [1.0.0] — 2026-06-01
+## [1.1.2] - 历史版本
 
-### Added
-
-- 初始版本发布
+- EmbyTok Flutter 客户端基础架构
+- 视频浏览、搜索、收藏功能实现
 
 ---
 
-## 版本号格式说明
+## [1.1.0] - 初始版本
 
-**MAJOR.MINOR.PATCH**
+- EmbyTok Flutter 应用首次发布
+- 竖屏视频浏览体验
+- 媒体库管理
+- 用户偏好设置
 
-- **MAJOR**（主版本号）：当你做了不兼容的 API 修改
-- **MINOR**（次版本号）：当你做了向下兼容的功能性新增
-- **PATCH**（修订号）：当你做了向下兼容的问题修正
+---
 
-**预发布版本标识**（可选，可选于 PATCH 之后）：`1.2.4-beta.1`、`1.2.4-rc.1`
+## 版本号说明
 
-## 本文件编辑规范
+- **MAJOR** 版本：API 不兼容的变更
+- **MINOR** 版本：向下兼容的功能性新增
+- **PATCH** 版本：向下兼容的问题修正
 
-1. **最新版本永远在最上方，旧版本按时间倒序排列；
-2. 相同类型的变更应归为同一组（Added / Changed / Fixed ...）；
-3. 每条变更行以动词开头，结尾不加句号；
-4. 每条变更描述面向**用户**而非开发者（即“可以理解为什么有用途），必要时补充到提交哈希以便引用；
-5. 发布版本标题格式固定为：`## [X.Y.Z] — YYYY-MM-DD`；
-6. 在 GitHub 链接中列出链接到对应 tag。
+## 发布流程
+
+1. 执行 `./scripts/verify-release.sh` 确认当前版本号一致
+2. 执行 `./scripts/release.sh --dry-run patch|minor|major` 预览发布
+3. 移除 `--dry-run` 正式执行发布
+4. 推送标签：`git push origin vX.Y.Z`，自动触发 GitHub Actions 构建
+
+## 回滚流程
+
+1. 执行 `./scripts/rollback-release.sh --dry-run` 预览回滚
+2. 移除 `--dry-run` 确认执行
+3. 如需回滚远程提交，执行 `git push -f origin main`（请谨慎使用）

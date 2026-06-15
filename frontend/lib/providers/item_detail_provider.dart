@@ -7,7 +7,7 @@ import '../services/embbytok_service.dart';
 import 'auth_provider.dart';
 
 // 公共辅助：初始化带认证信息的 service
-EmbytokService _authService(Ref ref, AuthState auth) {
+EmbytokService _authService(WidgetRef ref, AuthState auth) {
   final service = EmbytokService();
   final embyServerUrl = auth.embyServerUrl;
   final userId = auth.user?.id;
@@ -204,7 +204,7 @@ final searchHintsProvider =
 // 标记已看 / 未看
 // ============================
 
-Future<void> markItemPlayed(String itemId, Ref ref) async {
+Future<void> markItemPlayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);
@@ -215,7 +215,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
   ref.invalidate(itemDetailProvider(itemId));
 }
 
-Future<void> markItemUnplayed(String itemId, Ref ref) async {
+Future<void> markItemUnplayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);

@@ -104,12 +104,20 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
   }
 }
 
-class _FavoriteTile extends StatelessWidget {
+class _FavoriteTile extends ConsumerWidget {
   final MediaItem item;
   const _FavoriteTile({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 获取认证状态以构造带认证的图片 URL
+    final authState = ref.watch(authProvider);
+    final thumbnailUrl = item.thumbnailUrlWithAuth(
+      authState.embyServerUrl,
+      authState.token,
+    );
+    final headers = item.authHeaders(authState.token);
+
     return InkWell(
       onTap: () {
         Navigator.push<void>(
@@ -129,12 +137,13 @@ class _FavoriteTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
+              child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
                   ? Image.network(
-                      item.thumbnailUrl!,
+                      thumbnailUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
+                      httpHeaders: headers.isNotEmpty ? headers : null,
                       errorBuilder: (_, __, ___) =>
                           _thumbPlaceholder(),
                     )

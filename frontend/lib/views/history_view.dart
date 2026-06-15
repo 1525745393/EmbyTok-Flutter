@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/formatters.dart';
 import '../widgets/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
@@ -19,7 +20,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(watchHistoryProvider.notifier).loadFromStorage();
+      ref.read(watchHistoryProvider.notifier).load();
     });
   }
 
@@ -38,7 +39,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(watchHistoryProvider.notifier).clearHistory();
+              ref.read(watchHistoryProvider.notifier).clear();
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -54,7 +55,6 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(watchHistoryProvider);
-    final sortedList = ref.read(watchHistoryProvider.notifier).getSortedList();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -69,24 +69,24 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           ],
         ),
         actions: [
-          if (sortedList.isNotEmpty)
+          if (state.items.isNotEmpty)
             TextButton(
               onPressed: _confirmClear,
               child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
             ),
         ],
       ),
-      body: _buildBody(state, sortedList),
+      body: _buildBody(state),
     );
   }
 
-  Widget _buildBody(WatchHistoryState state, List<WatchHistoryEntry> items) {
-    if (state.isLoading && items.isEmpty) {
+  Widget _buildBody(WatchHistoryState state) {
+    if (state.isLoading && state.items.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFE91E63)),
       );
     }
-    if (state.error != null && items.isEmpty) {
+    if (state.error != null && state.items.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -98,7 +98,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         ),
       );
     }
-    if (items.isEmpty) {
+    if (state.items.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -117,37 +117,53 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: items.length,
+      itemCount: state.items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = items[index];
-        return _HistoryTile(entry: item);
+        final item = state.items[index];
+        return _HistoryTile(item: item);
       },
     );
   }
 }
 
-class _HistoryTile extends StatelessWidget {
-  final WatchHistoryEntry entry;
-  const _HistoryTile({required this.entry});
+class _HistoryTile extends ConsumerWidget {
+  final WatchHistoryItem item;
+  const _HistoryTile({required this.item});
 
   @override
-  Widget build(BuildContext context) {
-    final progressPct = entry.duration > 0
-        ? (entry.position / entry.duration).clamp(0.0, 1.0)
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 获取认证状态以构造带认证的图片 URL
+    final authState = ref.watch(authProvider);
+
+    // 构造带认证的图片 URL
+    String? thumbnailUrl = item.thumbnailUrl;
+    if (authState.embyServerUrl != null && authState.embyServerUrl!.isNotEmpty) {
+      // 如果有 Emby 服务器地址，构造 Emby 图片 URL
+      final serverUrl = authState.embyServerUrl!;
+      final token = authState.token ?? '';
+      thumbnailUrl = '$serverUrl/Items/${item.itemId}/Images/Primary?MaxWidth=400&api_key=$token';
+    }
+
+    final headers = authState.token != null && authState.token!.isNotEmpty
+        ? {'X-Emby-Token': authState.token!}
+        : <String, String>{};
+
+    final progressPct = item.totalSeconds > 0
+        ? (item.progressSeconds / item.totalSeconds).clamp(0.0, 1.0)
         : 0.0;
 
     return InkWell(
       onTap: () {
         final media = MediaItem(
-          id: entry.itemId,
-          title: entry.itemTitle ?? '未知',
+          id: item.itemId,
+          title: item.itemTitle,
           type: '电影',
-          thumbnailUrl: entry.thumbnailUrl,
+          thumbnailUrl: thumbnailUrl,
         );
         Navigator.push<void>(
           context,
-          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: media, initialPosition: entry.position)),
+          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: media)),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -162,12 +178,13 @@ class _HistoryTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: entry.thumbnailUrl != null && entry.thumbnailUrl!.isNotEmpty
+              child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
                   ? Image.network(
-                      entry.thumbnailUrl!,
+                      thumbnailUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
+                      httpHeaders: headers.isNotEmpty ? headers : null,
                       errorBuilder: (_, __, ___) => _thumbPlaceholder(),
                     )
                   : _thumbPlaceholder(),
@@ -178,7 +195,7 @@ class _HistoryTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    entry.itemTitle ?? '未知',
+                    item.itemTitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -213,12 +230,12 @@ class _HistoryTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${_formatSeconds(entry.position)} / ${_formatSeconds(entry.duration)}',
+                    '${_formatSeconds(item.progressSeconds)} / ${_formatSeconds(item.totalSeconds)}',
                     style: const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _formatDateTime(entry.lastWatchedAt),
+                    _formatDateTime(item.watchedAt),
                     style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                 ],
@@ -264,8 +281,7 @@ class _HistoryTile extends StatelessWidget {
 
 class _HistoryPlayPage extends StatelessWidget {
   final MediaItem item;
-  final int? initialPosition;
-  const _HistoryPlayPage({required this.item, this.initialPosition});
+  const _HistoryPlayPage({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -276,7 +292,7 @@ class _HistoryPlayPage extends StatelessWidget {
         foregroundColor: Colors.white,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
-      body: VideoPageItem(item: item, initialPosition: initialPosition),
+      body: VideoPageItem(item: item),
     );
   }
 }

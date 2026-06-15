@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -39,32 +38,6 @@ class SettingsView extends ConsumerWidget {
             title: '主题',
             subtitle: _themeLabel(themeMode),
             onTap: () => _showThemeDialog(context, ref, themeMode),
-          ),
-          _settingTile(
-            icon: Icons.tv_outlined,
-            title: '设备模式',
-            subtitle: _deviceModeLabel(ref.watch(deviceModeProvider)),
-            onTap: () => _showDeviceModeDialog(context, ref),
-          ),
-
-          _sectionTitle('视频浏览'),
-          _settingTile(
-            icon: Icons.filter_list_outlined,
-            title: '浏览模式',
-            subtitle: _feedTypeLabel(ref.watch(feedTypeProvider)),
-            onTap: () => _showFeedTypeDialog(context, ref),
-          ),
-          _settingTile(
-            icon: Icons.video_settings_outlined,
-            title: '视图模式',
-            subtitle: _viewModeLabel(ref.watch(viewModeProvider)),
-            onTap: () => _showViewModeDialog(context, ref),
-          ),
-          _settingTile(
-            icon: Icons.crop_rotate,
-            title: '方向过滤',
-            subtitle: _orientationModeLabel(ref.watch(orientationModeProvider)),
-            onTap: () => _showOrientationModeDialog(context, ref),
           ),
 
           _sectionTitle('播放'),
@@ -190,88 +163,6 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 设备模式 ----
-  void _showDeviceModeDialog(BuildContext context, WidgetRef ref) {
-    final current = ref.read(deviceModeProvider);
-    showDialog<void>(
-      context: context,
-      builder: (_) => _OptionDialog<DeviceMode>(
-        title: '设备模式',
-        options: const [
-          ('标准模式（手机/平板）', DeviceMode.standard),
-          ('TV 模式（大屏/遥控器）', DeviceMode.tv),
-        ],
-        currentValue: current,
-        onSelect: (v) {
-          ref.read(deviceModeProvider.notifier).setMode(v);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  // ---- 浏览模式 ----
-  void _showFeedTypeDialog(BuildContext context, WidgetRef ref) {
-    final current = ref.read(feedTypeProvider);
-    showDialog<void>(
-      context: context,
-      builder: (_) => _OptionDialog<FeedType>(
-        title: '浏览模式',
-        options: const [
-          ('最新视频（按时间排序）', FeedType.latest),
-          ('随机推荐', FeedType.random),
-          ('收藏夹', FeedType.favorites),
-        ],
-        currentValue: current,
-        onSelect: (v) {
-          ref.read(feedTypeProvider.notifier).setType(v);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  // ---- 视图模式 ----
-  void _showViewModeDialog(BuildContext context, WidgetRef ref) {
-    final current = ref.read(viewModeProvider);
-    showDialog<void>(
-      context: context,
-      builder: (_) => _OptionDialog<ViewMode>(
-        title: '视图模式',
-        options: const [
-          ('视频流（上下滑动）', ViewMode.feed),
-          ('网格视图', ViewMode.grid),
-        ],
-        currentValue: current,
-        onSelect: (v) {
-          ref.read(viewModeProvider.notifier).setMode(v);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
-  // ---- 方向过滤 ----
-  void _showOrientationModeDialog(BuildContext context, WidgetRef ref) {
-    final current = ref.read(orientationModeProvider);
-    showDialog<void>(
-      context: context,
-      builder: (_) => _OptionDialog<OrientationMode>(
-        title: '方向过滤',
-        options: const [
-          ('全部视频', OrientationMode.both),
-          ('仅竖屏（短视频）', OrientationMode.vertical),
-          ('仅横屏（电影/剧集）', OrientationMode.horizontal),
-        ],
-        currentValue: current,
-        onSelect: (v) {
-          ref.read(orientationModeProvider.notifier).setMode(v);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
-
   // ---- 倍速选择 ----
   void _showPlaybackRateDialog(
       BuildContext context, WidgetRef ref, double current) {
@@ -388,46 +279,6 @@ class SettingsView extends ConsumerWidget {
       case 'system':
       default:
         return '跟随系统';
-    }
-  }
-
-  static String _deviceModeLabel(DeviceMode mode) {
-    switch (mode) {
-      case DeviceMode.tv:
-        return 'TV 模式';
-      case DeviceMode.standard:
-        return '标准模式';
-    }
-  }
-
-  static String _feedTypeLabel(FeedType type) {
-    switch (type) {
-      case FeedType.latest:
-        return '最新视频';
-      case FeedType.random:
-        return '随机推荐';
-      case FeedType.favorites:
-        return '收藏夹';
-    }
-  }
-
-  static String _viewModeLabel(ViewMode mode) {
-    switch (mode) {
-      case ViewMode.feed:
-        return '视频流';
-      case ViewMode.grid:
-        return '网格视图';
-    }
-  }
-
-  static String _orientationModeLabel(OrientationMode mode) {
-    switch (mode) {
-      case OrientationMode.vertical:
-        return '仅竖屏';
-      case OrientationMode.horizontal:
-        return '仅横屏';
-      case OrientationMode.both:
-        return '全部';
     }
   }
 

@@ -3,7 +3,6 @@
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
 import '../models/models.dart';
-import '../utils/constants.dart';
 import 'api_client.dart';
 
 class EmbytokService {
@@ -13,9 +12,6 @@ class EmbytokService {
 
   EmbytokService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
-
-  // 暴露已认证的 ApiClient，便于外部直接使用（如字幕加载）
-  ApiClient get apiClient => _apiClient;
 
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
@@ -90,20 +86,23 @@ class EmbytokService {
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
 
-    return items.whereType<Map<String, dynamic>>().map(Library.fromJson).toList();
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => Library(
+              id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: (e['CollectionType'] as String?) ?? 'movies',
+            ))
+        .toList();
   }
 
   // ============================
   // 获取某媒体库下的视频列表
-  // libraryType：媒体库类型（movies/tvshows/homevideos/photos/...），决定 IncludeItemTypes
   // ============================
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
     String libraryId, {
     int limit = 20,
     int offset = 0,
-    String? libraryType,
-    String? sortBy,
-    String? includeItemTypes,
     String? serverUrl,
     String? token,
   }) async {
@@ -112,13 +111,12 @@ class EmbytokService {
       'ParentId': libraryId,
       'Limit': '$limit',
       'StartIndex': '$offset',
-      'SortBy': sortBy ?? 'DateCreated,SortName',
+      'SortBy': 'DateCreated,SortName',
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes':
-          includeItemTypes ?? includeItemTypesForLibraryType(libraryType),
+      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
     };
 
     final resp = await _apiClient.get<dynamic>(
@@ -148,9 +146,7 @@ class EmbytokService {
       '/Items/$itemId',
       queryParameters: params,
     );
-    final data = resp.data is Map
-        ? Map<String, dynamic>.from(resp.data as Map)
-        : <String, dynamic>{};
+    final data = resp.data is Map ? resp.data as Map<String, dynamic> : {};
     return MediaItem.fromJson(data);
   }
 
@@ -300,14 +296,8 @@ class EmbytokService {
         .map((e) {
           final id = (e['Id'] as String?) ?? '';
           final name = (e['Name'] as String?) ?? '';
-          // 优先使用 PrimaryImageTag；若没有则从 ImageTags map 中取 Primary
-          final primaryImageTag = e['PrimaryImageTag'] as String?;
-          final imageTagsDynamic = e['ImageTags'];
-          final imageTags = imageTagsDynamic is Map
-              ? Map<String, dynamic>.from(imageTagsDynamic)
-              : null;
-          final imageTag = primaryImageTag ??
-              (imageTags != null ? imageTags['Primary'] as String? : null);
+          final imageTag = (e['PrimaryImageTag'] as String?) ??
+              (e['ImageTags']?['Primary'] as String?);
           String? imgUrl;
           if (imageTag != null && baseUrl.isNotEmpty) {
             imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
@@ -670,65 +660,6 @@ class EmbytokService {
   }
 
   // ============================
-  // 获取字幕轨道列表
-  // ============================
-  Future<List<SubtitleTrack>> getSubtitleTracks({
-    required String itemId,
-    String? serverUrl,
-    String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    
-    // 先获取媒体详情，从中提取字幕轨道
-    final item = await getItemDetail(itemId, serverUrl: serverUrl, token: token);
-    final tracks = <SubtitleTrack>[];
-    
-    if (item.mediaSources != null) {
-      for (final source in item.mediaSources!) {
-        for (final stream in source.subtitleStreams) {
-          // 构造字幕 URL
-          String? subtitleUrl;
-          final base = _defaultServerUrl ?? serverUrl ?? '';
-          final tk = _defaultToken ?? token ?? '';
-          if (stream.deliveryUrl != null && base.isNotEmpty) {
-            final url = stream.deliveryUrl!;
-            subtitleUrl = url.startsWith('http://') || url.startsWith('https://')
-                ? url
-                : '$base$url';
-            // 添加认证 token（URL 编码）
-            if (tk.isNotEmpty && subtitleUrl != null) {
-              final encodedToken = Uri.encodeQueryComponent(tk);
-              final separator = subtitleUrl.contains('?') ? '&' : '?';
-              subtitleUrl = '$subtitleUrl${separator}api_key=$encodedToken';
-            }
-          } else if (stream.isExternal && stream.codec != null && base.isNotEmpty) {
-            // 外挂字幕，构造 URL
-            final mediaSourceId = source.id.isNotEmpty ? source.id : itemId;
-            subtitleUrl =
-                '$base/Videos/$mediaSourceId/$mediaSourceId/Subtitles/${stream.index}/Stream.${stream.codec}';
-            if (tk.isNotEmpty) {
-              final encodedToken = Uri.encodeQueryComponent(tk);
-              subtitleUrl = '$subtitleUrl?api_key=$encodedToken';
-            }
-          }
-
-          tracks.add(SubtitleTrack(
-            id: '${source.id}_${stream.index}',
-            name: stream.displayTitle ?? stream.language ?? 'Subtitle ${stream.index}',
-            language: stream.language ?? '',
-            format: stream.codec ?? 'srt',
-            url: subtitleUrl,
-            displayTitle: stream.displayTitle,
-            isDefault: stream.isDefault,
-          ));
-        }
-      }
-    }
-    
-    return tracks;
-  }
-
-  // ============================
   // 搜索提示
   // ============================
   Future<List<SearchHint>> searchHints(
@@ -850,61 +781,5 @@ class EmbytokService {
       offset: offset,
       limit: limit,
     );
-  }
-
-  // ============================
-  // 获取某父项的子项（如 Playlist 的内容、Season 的 Episodes）
-  // /Users/{userId}/Items?ParentId={itemId}
-  // ============================
-  Future<List<MediaItem>> getChildren(
-    String parentId, {
-    String? serverUrl,
-    String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'ParentId': parentId,
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'Recursive': 'false',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
-    );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
-  }
-
-  // ============================
-  // 发送 POST 请求到完整 URL（如创建 Playlist / 添加 Playlist 项）
-  // ============================
-  Future<Map<String, dynamic>> postRaw(
-    String fullUrl, {
-    String? token,
-  }) async {
-    if (token != null && token.isNotEmpty) {
-      _apiClient.setToken(token);
-    }
-    final response = await _apiClient.directPost<Map<String, dynamic>>(fullUrl);
-    return response.data ?? <String, dynamic>{};
-  }
-
-  // ============================
-  // 发送 DELETE 请求到完整 URL（如从 Playlist 移除项）
-  // ============================
-  Future<void> deleteRaw(
-    String fullUrl, {
-    String? token,
-  }) async {
-    if (token != null && token.isNotEmpty) {
-      _apiClient.setToken(token);
-    }
-    await _apiClient.directDelete<String>(fullUrl);
   }
 }

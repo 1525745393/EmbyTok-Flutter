@@ -229,12 +229,20 @@ class _Centered extends StatelessWidget {
       Center(child: child);
 }
 
-class _SearchResultTile extends StatelessWidget {
+class _SearchResultTile extends ConsumerWidget {
   final MediaItem item;
   const _SearchResultTile({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 获取认证状态以构造带认证的图片 URL
+    final authState = ref.watch(authProvider);
+    final thumbnailUrl = item.thumbnailUrlWithAuth(
+      authState.embyServerUrl,
+      authState.token,
+    );
+    final headers = item.authHeaders(authState.token);
+
     return ListTile(
       onTap: () {
         Navigator.push<void>(
@@ -245,12 +253,13 @@ class _SearchResultTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
+        child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
             ? Image.network(
-                item.thumbnailUrl!,
+                thumbnailUrl,
                 width: 120,
                 height: 72,
                 fit: BoxFit.cover,
+                httpHeaders: headers.isNotEmpty ? headers : null,
                 errorBuilder: (_, __, ___) => _thumbPlaceholder(),
                 loadingBuilder: (_, child, ___) => child,
               )

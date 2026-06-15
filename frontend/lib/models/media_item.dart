@@ -1,8 +1,5 @@
-// 媒体项模型：电影/剧集/集数/音乐视频/家庭视频/照片等（支持 Emby 原生字段与简化字段）
+// 媒体项模型：电影/剧集/集数/音乐视频等（支持 Emby 原生字段与简化字段）
 
-import 'dart:convert';
-
-import '../utils/constants.dart';
 import 'media_source.dart';
 import 'person.dart';
 import 'user_data.dart';
@@ -11,8 +8,8 @@ class MediaItem {
   // 基本信息
   final String id;
   final String title;
-  final String type; // Movie/Series/Episode/MusicVideo/HomeVideo/Video/Photo/...
-  final String? seriesName; // 剧集名（集数项的归属剧集）
+  final String type;                    // Movie/Series/Episode/MusicVideo/...
+  final String? seriesName;             // 剧集名（集数项的归属剧集）
   final int? indexNumber;              // 集序号（集数）
   final int? parentIndexNumber;        // 季序号
   final int? productionYear;            // 制作年份
@@ -42,9 +39,6 @@ class MediaItem {
   final List<MediaSource>? mediaSources;
   final String? playbackUrl;            // 兼容字段
 
-  // 原始 JSON（Task 2 新增，用于从 Playlist 获取 PlaylistItemId 等场景）
-  final Map<String, dynamic>? rawJson;
-
   const MediaItem({
     required this.id,
     required this.title,
@@ -70,7 +64,6 @@ class MediaItem {
     this.isFavorite,
     this.mediaSources,
     this.playbackUrl,
-    this.rawJson,
   });
 
   // 从 JSON 解析（同时支持 Emby 原生 PascalCase 与简化 snake_case）
@@ -220,7 +213,6 @@ class MediaItem {
       isFavorite: isFavorite,
       mediaSources: mediaSources,
       playbackUrl: playbackUrl,
-      rawJson: json,
     );
   }
 
@@ -249,49 +241,6 @@ class MediaItem {
       };
 
   // ============================
-  // 播放 URL 与认证（直接连接 Emby 服务器）
-  // ============================
-
-  /// 根据 Emby 服务器地址和 token 动态构造视频流播放 URL
-  /// 若 mediaSources 不为空，则优先使用第一个 mediaSource 的 URL
-  /// 否则使用通用 Videos/{id}/stream 端点
-  /// Photo 类型项没有视频流，此方法返回 null
-  String? computePlaybackUrl(String? embyServerUrl, String? token) {
-    // 图片类项没有视频流
-    if (isPhoto) return null;
-
-    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
-    if (token == null || token.isEmpty) return null;
-
-    final base = embyServerUrl.endsWith('/')
-        ? embyServerUrl.substring(0, embyServerUrl.length - 1)
-        : embyServerUrl;
-    final encodedToken = Uri.encodeQueryComponent(token);
-
-    // 优先使用第一个 MediaSource（若有）
-    if (mediaSources != null && mediaSources!.isNotEmpty) {
-      final source = mediaSources!.first;
-      if (source.directPlayUrl != null && source.directPlayUrl!.isNotEmpty) {
-        // directPlayUrl 可能是绝对或相对路径
-        final url = source.directPlayUrl!;
-        final fullUrl = url.startsWith('http://') || url.startsWith('https://')
-            ? url
-            : '$base$url';
-        return '$fullUrl${fullUrl.contains('?') ? '&' : '?'}api_key=$encodedToken&Static=true';
-      }
-    }
-
-    // 通用 Videos/{id}/stream 端点
-    return '$base/Videos/$id/stream?api_key=$encodedToken&Static=true';
-  }
-
-  /// 获取播放视频时需要的 HTTP 认证请求头
-  Map<String, String> authHeaders(String? token) {
-    if (token == null || token.isEmpty) return const {};
-    return {'X-Emby-Token': token};
-  }
-
-  // ============================
   // 便捷属性
   // ============================
   bool get hasImage =>
@@ -304,18 +253,6 @@ class MediaItem {
       userData != null && userData!.playbackPositionTicks > 0;
 
   bool get isWatched => userData?.played ?? false;
-
-  // 类型判断：是否为视频（可播放）类型
-  bool get isVideo => kVideoItemTypes.contains(type) ||
-      type == 'Movie' ||
-      type == 'Series' ||
-      type == 'Episode' ||
-      type == 'MusicVideo' ||
-      type == 'HomeVideo' ||
-      type == 'Video';
-
-  // 类型判断：是否为图片（不可播放）类型
-  bool get isPhoto => kPhotoItemTypes.contains(type) || type == 'Photo';
 
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
   // type: Primary/Backdrop/Thumb/Art/Logo/Box/BoxRear
@@ -342,6 +279,33 @@ class MediaItem {
   // 获取背景图 URL
   String? backdropUrl({String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
     return imageUrl('Backdrop', embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+  }
+
+  // 动态构造 Emby 视频流播放 URL
+  // Emby API 不返回 playbackUrl，需要根据服务器地址和 token 动态构造
+  String? computePlaybackUrl(String? embyServerUrl, String? token) {
+    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
+    if (token == null || token.isEmpty) return null;
+    final encodedToken = Uri.encodeQueryComponent(token);
+    return '$embyServerUrl/Videos/$id/stream?api_key=$encodedToken&Static=true';
+  }
+
+  // 获取认证 HTTP 请求头（用于 video_player 插件）
+  Map<String, String> authHeaders(String? token) {
+    if (token == null || token.isEmpty) return {};
+    return {'X-Emby-Token': token};
+  }
+
+  // 获取缩略图 URL（带认证信息）
+  // 优先使用 Emby 图片 URL，fallback 到 thumbnailUrl
+  String? thumbnailUrlWithAuth(String? embyServerUrl, String? apiKey, {int maxWidth = 400}) {
+    // 如果有 Emby 服务器地址和图片标签，构造 Emby 图片 URL
+    if (embyServerUrl != null && embyServerUrl.isNotEmpty) {
+      final embUrl = primaryUrl(embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+      if (embUrl != null) return embUrl;
+    }
+    // Fallback 到直接 URL
+    return thumbnailUrl;
   }
 
   // 带 Emby URL 的副本（便捷构造）

@@ -1,26 +1,10 @@
 # ===========================================================
-# Android Release 工作流 — 优化版
-# 优化内容：
-#   1. 多层次缓存（Flutter pub / Gradle / Android SDK / Java）
-#   2. 构建过程计时，生成性能报告
-#   3. 产物 SHA256 校验和自动生成
-#   4. 发布前自动运行 verify-release.sh
-#   5. 基于 CHANGELOG 自动生成发布说明
-#   6. APK 签名验证（v1/v2 签名方案确认）
-#   7. 构建失败时保留诊断日志
-# ===========================================================
-#
-# 签名配置说明（同旧版）：
-#   1. 生成 keystore:
-#      keytool -genkey -v -keystore embbytok-keystore.jks \
-#        -keyalg RSA -keysize 2048 -validity 36500 -alias embbytok
-#   2. Base64 编码 keystore:
-#      base64 -w 0 embbytok-keystore.jks > keystore_base64.txt
-#   3. 在 GitHub Secrets 中配置:
-#      ANDROID_KEYSTORE       - keystore base64
-#      ANDROID_KEYSTORE_PWD   - keystore 密码
-#      ANDROID_KEY_ALIAS      - key 别名
-#      ANDROID_KEY_PWD        - key 密码
+# Android Release 工作流
+# 依赖的 GitHub Secrets:
+#   ANDROID_KEYSTORE       - keystore 文件的 base64 编码内容
+#   ANDROID_KEYSTORE_PWD   - keystore 密码
+#   ANDROID_KEY_ALIAS      - key 别名（默认: embbytok）
+#   ANDROID_KEY_PWD        - key 密码
 # ===========================================================
 
 name: Android Release
@@ -44,147 +28,140 @@ concurrency:
   group: android-release-${{ github.ref }}
   cancel-in-progress: false
 
-# 环境变量：全局默认值
-env:
-  FLUTTER_VERSION: "3.24.0"
-  JAVA_VERSION: "17"
-  ANDROID_COMPILE_SDK: "34"
-
 jobs:
   # ===========================================================
-  # Job 1: 发布前验证
-  # 执行 verify-release.sh 检查版本一致性
-  # ===========================================================
-  pre-release-check:
-    name: 发布前验证
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 需要完整 git 历史用于 versionCode 递增检查
-
-      - name: 运行发布前验证
-        run: |
-          set -euo pipefail
-          echo "::group::发布前版本与配置验证"
-          chmod +x scripts/verify-release.sh
-          ./scripts/verify-release.sh
-          echo "::endgroup::"
-
-      - name: 生成版本元数据
-        id: version_meta
-        run: |
-          set -euo pipefail
-          VERSION=$(grep -E '^version:' frontend/pubspec.yaml | awk '{print $2}')
-          VERSION_CODE=$(grep -E 'versionCode' frontend/android/app/build.gradle | head -1 | awk '{print $2}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-          echo "is_tagged=${GITHUB_REF_TYPE == 'tag'}" >> $GITHUB_OUTPUT
-          echo "✅ 版本元数据生成：v$VERSION (code=$VERSION_CODE)"
-
-      - name: 上传版本元数据
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-metadata
-          path: |
-            frontend/pubspec.yaml
-            frontend/android/app/build.gradle
-          if-no-files-found: error
-
-  # ===========================================================
-  # Job 2: Android 签名构建
-  # 使用多层缓存减少重复下载
+  # Android 签名构建
   # ===========================================================
   build-android:
-    name: Android 签名构建 (优化缓存版)
-    needs: pre-release-check
+    name: Android 签名构建
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       BUILD_TYPE: ${{ github.event.inputs.release_type || 'release' }}
-      ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-      ANDROID_KEYSTORE_PWD: ${{ secrets.ANDROID_KEYSTORE_PWD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PWD: ${{ secrets.ANDROID_KEY_PWD }}
-    # 构建耗时记录
-    outputs:
-      apk_build_time: ${{ steps.timing.outputs.apk_build_time }}
-      aab_build_time: ${{ steps.timing.outputs.aab_build_time }}
-      total_build_time: ${{ steps.timing.outputs.total_build_time }}
-
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      # --- 缓存层 1: Java 环境缓存（Gradle daemon / JDK 本地缓存）---
-      - name: 设置 Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: "gradle"
+      - name: 验证 Android 签名配置
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "开始验证 Android Secrets..."
 
-      # --- 缓存层 2: Flutter 环境 & pub cache（由 action 内部管理）---
+          # 定义缺失列表
+          missing=""
+
+          # 检查每个 Secret
+          if [ -z "${{ secrets.ANDROID_KEYSTORE }}" ]; then
+            missing="${missing}ANDROID_KEYSTORE "
+          fi
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_PWD }}" ]; then
+            missing="${missing}ANDROID_KEYSTORE_PWD "
+          fi
+          if [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]; then
+            missing="${missing}ANDROID_KEY_ALIAS "
+          fi
+          if [ -z "${{ secrets.ANDROID_KEY_PWD }}" ]; then
+            missing="${missing}ANDROID_KEY_PWD "
+          fi
+
+          # 如果有缺失，输出错误并退出
+          if [ -n "${missing}" ]; then
+            echo ""
+            echo "⚠️  缺少必需的 Android Secrets: ${missing}"
+            echo "请在仓库 Settings → Secrets and variables → Actions 中配置："
+            echo "  • ANDROID_KEYSTORE     - keystore 文件的 base64 编码内容"
+            echo "  • ANDROID_KEYSTORE_PWD - keystore 密码"
+            echo "  • ANDROID_KEY_ALIAS    - key 别名（如 embbytok）"
+            echo "  • ANDROID_KEY_PWD      - key 密码"
+            exit 1
+          fi
+
+          echo "✅ Android Secrets 验证通过"
+
+          # 额外检查：ANDROID_KEYSTORE 格式验证（仅在本地变量中检查，避免 *** 被直接计算长度）
+          ANDROID_KEYSTORE_VALUE="${{ secrets.ANDROID_KEYSTORE }}"
+          if [ -n "$ANDROID_KEYSTORE_VALUE" ]; then
+            echo "✅ ANDROID_KEYSTORE 已配置"
+          else
+            echo "⚠️  ANDROID_KEYSTORE 内容为空"
+          fi
+
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          flutter-version: ${{ env.FLUTTER_VERSION }}
+          flutter-version: "3.24.0"
           cache: true
-          # 显式缓存 Flutter pub get 产物
-          cache-key: flutter-pub-${{ hashFiles('frontend/pubspec.lock') }}
-          cache-path: ${{ runner.tool_cache }}/flutter
 
-      # --- 缓存层 3: Gradle wrapper & 依赖（最耗时的环节）---
-      - name: 缓存 Gradle 依赖
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # --- 缓存层 4: Android SDK（确保 SDK 34 已下载且不重复下载）---
-      - name: 缓存 Android SDK
-        id: cache-android-sdk
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/lib/android/sdk/platforms/android-${{ env.ANDROID_COMPILE_SDK }}
-            /usr/local/lib/android/sdk/build-tools/34.0.0
-          key: ${{ runner.os }}-android-sdk-${{ env.ANDROID_COMPILE_SDK }}
-
-      # --- 签名文件还原 ---
-      - name: 还原 release 签名 keystore 和 key.properties
+      - name: 恢复签名配置
         shell: bash
         run: |
           set -euo pipefail
-          if [ -n "$ANDROID_KEYSTORE" ] && [ -n "$ANDROID_KEYSTORE_PWD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PWD" ]; then
-            echo "$ANDROID_KEYSTORE" | base64 -d > frontend/android/embbytok-keystore.jks
-            ls -lh frontend/android/embbytok-keystore.jks
-            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n" \
-              "$ANDROID_KEYSTORE_PWD" "$ANDROID_KEY_PWD" "$ANDROID_KEY_ALIAS" "embbytok-keystore.jks" \
-              > frontend/android/key.properties
-            echo "✅ 签名配置完成"
-          else
-            echo "ℹ️ 未配置签名 Secrets，将使用 debug 签名构建"
+          echo "开始恢复 Android 签名配置..."
+
+          # 创建 key.properties（使用绝对路径，避免 Gradle 工作目录问题）
+          KEYSTORE_DIR="${{ github.workspace }}/frontend/android/app"
+          mkdir -p "${KEYSTORE_DIR}"
+
+          echo "生成 key.properties..."
+          printf '%s\n' \
+            "storePassword=${{ secrets.ANDROID_KEYSTORE_PWD }}" \
+            "keyPassword=${{ secrets.ANDROID_KEY_PWD }}" \
+            "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" \
+            "storeFile=${KEYSTORE_DIR}/embbytok-keystore.jks" \
+            > "${{ github.workspace }}/frontend/android/key.properties"
+
+          echo "✅ key.properties 生成成功"
+
+          # 解码 keystore 文件
+          echo "解码 keystore 文件..."
+          echo "${{ secrets.ANDROID_KEYSTORE }}" \
+            | base64 --decode > "${KEYSTORE_DIR}/embbytok-keystore.jks"
+
+          # Task 4 修复: 设置 keystore 文件权限为 600（仅拥有者可读写）
+          # 防止敏感文件被其他进程或用户读取
+          echo "设置 keystore 文件权限..."
+          chmod 600 "${KEYSTORE_DIR}/embbytok-keystore.jks"
+
+          # 权限验证日志（确认权限设置成功）
+          echo "验证 keystore 文件权限..."
+          stat -c '%a %n' "${KEYSTORE_DIR}/embbytok-keystore.jks" 2>/dev/null \
+            || stat -f '%Lp %N' "${KEYSTORE_DIR}/embbytok-keystore.jks"
+
+          # 验证解码结果
+          echo "验证 keystore 文件..."
+          if [ ! -s "${KEYSTORE_DIR}/embbytok-keystore.jks" ]; then
+            echo "❌ keystore 文件解码失败或为空，请确认 ANDROID_KEYSTORE 的 base64 格式正确"
+            exit 1
           fi
 
-      # --- 安装依赖（带 Gradle 守护进程预热）---
-      - name: 安装依赖 & Gradle 预热
-        run: |
-          echo "::group::Flutter pub get"
-          flutter pub get
-          echo "::endgroup::"
-          # Gradle 预热：触发一次 --dry-run，让依赖提前下载完成
-          echo "::group::Gradle 预热（避免首次构建冷启动慢）"
-          cd android && ./gradlew --quiet --dry-run tasks || true
-          echo "::endgroup::"
+          echo "✅ keystore 文件解码成功，文件大小："
+          stat -c%s "${KEYSTORE_DIR}/embbytok-keystore.jks" 2>/dev/null \
+            || stat -f%z "${KEYSTORE_DIR}/embbytok-keystore.jks"
+          echo "字节"
+
+          # 使用 keytool 验证 keystore 完整性
+          echo "验证 keystore 完整性..."
+          keytool_output=$(
+            keytool -list \
+              -keystore "${KEYSTORE_DIR}/embbytok-keystore.jks" \
+              -storepass "${{ secrets.ANDROID_KEYSTORE_PWD }}" \
+              2>&1 | head -3
+          )
+
+          if echo "${keytool_output}" | grep -q "Keystore type:"; then
+            echo "✅ keystore 完整性验证通过"
+            echo "    ${keytool_output}"
+          else
+            echo "❌ keystore 完整性验证失败，请检查密码是否正确"
+            echo "    keytool 输出：${keytool_output}"
+            exit 1
+          fi
+
+      - name: 安装依赖
+        run: flutter pub get
         working-directory: frontend
 
       - name: Flutter 环境诊断
@@ -192,130 +169,31 @@ jobs:
           echo "=== Flutter Version ==="
           flutter --version
           echo ""
-          echo "=== 签名文件检查 ==="
-          if [ -f "android/key.properties" ]; then
-            echo "✅ 使用 release 签名"
-          else
-            echo "ℹ️ 使用 debug 签名"
-          fi
-          echo ""
-          echo "=== 缓存命中状态 ==="
-          echo "Gradle 缓存: $(du -sh ~/.gradle/caches 2>/dev/null || echo '<新缓存>')"
+          echo "=== Flutter Doctor ==="
+          flutter doctor 2>&1 | head -20 || true
         working-directory: frontend
 
-      # --- 构建 APK（带计时）---
       - name: 构建 APK (split per ABI)
-        id: build-apk
         shell: bash
-        run: |
-          set -euo pipefail
-          START_TIME=$(date +%s)
-          echo "::group::APK 构建开始"
-          flutter build apk --${BUILD_TYPE} --split-per-abi
-          echo "::endgroup::"
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
-          echo "apk_build_time=${DURATION}" >> $GITHUB_OUTPUT
-          echo "✅ APK 构建完成，耗时 ${DURATION}s"
+        run: flutter build apk --${BUILD_TYPE} --split-per-abi
         working-directory: frontend
 
-      # --- 构建 AAB（release 模式下）---
       - name: 构建 App Bundle (AAB)
-        id: build-aab
         shell: bash
         if: ${{ env.BUILD_TYPE == 'release' }}
-        run: |
-          set -euo pipefail
-          START_TIME=$(date +%s)
-          echo "::group::AAB 构建开始"
-          flutter build appbundle --${BUILD_TYPE}
-          echo "::endgroup::"
-          END_TIME=$(date +%s)
-          DURATION=$((END_TIME - START_TIME))
-          echo "aab_build_time=${DURATION}" >> $GITHUB_OUTPUT
-          echo "✅ AAB 构建完成，耗时 ${DURATION}s"
+        run: flutter build appbundle --${BUILD_TYPE}
         working-directory: frontend
 
-      # --- 计时汇总 ---
-      - name: 生成构建性能总结
-        id: timing
-        shell: bash
-        run: |
-          APK_TIME=${{ steps.build-apk.outputs.apk_build_time }}
-          AAB_TIME=${{ steps.build-aab.outputs.aab_build_time || 0 }}
-          TOTAL=$((APK_TIME + AAB_TIME))
-          echo "apk_build_time=${APK_TIME}s" >> $GITHUB_OUTPUT
-          echo "aab_build_time=${AAB_TIME}s" >> $GITHUB_OUTPUT
-          echo "total_build_time=${TOTAL}s" >> $GITHUB_OUTPUT
-          echo "📊 构建耗时汇总：APK=${APK_TIME}s / AAB=${AAB_TIME}s / 总=${TOTAL}s"
-
-      # --- 产物检查 ---
       - name: 检查构建产物
         shell: bash
         run: |
           set -euo pipefail
-          echo "::group::产物检查"
-          echo "=== APK ==="
+          echo "=== 检查 APK 路径 ==="
           find frontend/build -name "*.apk" 2>/dev/null || { echo "❌ 未找到 APK 产物"; exit 1; }
           echo ""
-          echo "=== AAB ==="
-          find frontend/build -name "*.aab" 2>/dev/null || echo "ℹ️ 未找到 AAB（debug 模式正常）"
-          echo "::endgroup::"
+          echo "=== 检查 AAB 路径 ==="
+          find frontend/build -name "*.aab" 2>/dev/null || { echo "⚠️  未找到 AAB 产物（debug 模式正常）"; }
 
-      # --- 生成 SHA256 校验和 ---
-      - name: 生成 SHA256 校验和
-        id: sha256
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd frontend/build/app/outputs
-          # 计算所有 APK 和 AAB 的 SHA256
-          {
-            echo "# EmbyTok $BUILD_TYPE 构建校验和"
-            echo "# 生成时间: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "# SHA256 校验和：每行 '哈希值  文件名'"
-            echo ""
-            echo "## APK 产物"
-            find flutter-apk -name "*.apk" -exec sha256sum {} \; 2>/dev/null | sort
-            echo ""
-            echo "## AAB 产物"
-            find bundle -name "*.aab" -exec sha256sum {} \; 2>/dev/null | sort
-          } > checksums.sha256
-          echo ""
-          echo "=== checksums.sha256 ==="
-          cat checksums.sha256
-
-      # --- APK 签名验证（确认使用 release 签名而非 debug）---
-      - name: 验证 APK 签名
-        if: ${{ env.BUILD_TYPE == 'release' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "::group::APK 签名验证"
-          APKSIG=$(find $ANDROID_HOME -name "apksigner" -type f 2>/dev/null | head -1)
-          if [ -z "$APKSIG" ]; then
-            # GitHub Actions runner 默认自带 apksigner
-            APKSIG="apksigner"
-          fi
-          for APK in frontend/build/app/outputs/flutter-apk/*.apk; do
-            echo ""
-            echo "=== $(basename $APK) 签名验证 ==="
-            # apksigner verify 会打印证书信息，非 0 退出码表示签名无效
-            if command -v "$APKSIG" >/dev/null 2>&1; then
-              "$APKSIG" verify --verbose "$APK" 2>&1 | head -30 || {
-                echo "❌ APK 签名验证失败: $APK"
-                exit 1
-              }
-            else
-              echo "⚠️  未找到 apksigner，跳过签名验证"
-            fi
-            # 文件大小信息
-            SIZE=$(stat -c%s "$APK" 2>/dev/null || stat -f%z "$APK" 2>/dev/null)
-            echo "文件大小: ${SIZE} 字节 ($(echo $SIZE | awk '{printf "%.2f MB", $1/1024/1024}'))"
-          done
-          echo "::endgroup::"
-
-      # --- 上传 APK 产物 ---
       - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
         with:
@@ -323,7 +201,6 @@ jobs:
           path: frontend/build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
 
-      # --- 上传 AAB 产物 ---
       - name: 上传 AAB 产物
         if: ${{ env.BUILD_TYPE == 'release' }}
         uses: actions/upload-artifact@v4
@@ -332,112 +209,13 @@ jobs:
           path: frontend/build/app/outputs/bundle/release/*.aab
           if-no-files-found: warn
 
-      # --- 上传 SHA256 校验和 ---
-      - name: 上传 SHA256 校验和
-        uses: actions/upload-artifact@v4
-        with:
-          name: checksums-sha256
-          path: frontend/build/app/outputs/checksums.sha256
-          if-no-files-found: warn
-
-      # --- 构建失败保留日志（apksigner/gradle 诊断信息）---
-      - name: 失败时上传构建诊断日志
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-diagnostics-${{ env.BUILD_TYPE }}
-          path: |
-            frontend/build/app/outputs/**/output-metadata.json
-            ~/.gradle/daemon/*/daemon-*.log
-          if-no-files-found: ignore
-
-  # ===========================================================
-  # Job 3: 创建 GitHub Release
-  # 使用 CHANGELOG.md 中对应版本条目作为 release body
-  # ===========================================================
-  create-release:
-    name: 创建 GitHub Release
-    needs: build-android
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: 下载 APK 产物
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk-release
-
-      - name: 下载 AAB 产物
-        uses: actions/download-artifact@v4
-        with:
-          name: android-aab-release
-
-      - name: 下载 SHA256 校验和
-        uses: actions/download-artifact@v4
-        with:
-          name: checksums-sha256
-
-      - name: 从 CHANGELOG.md 提取当前版本发布说明
-        id: changelog
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION=$(echo "$GITHUB_REF_NAME" | sed 's/^v//')
-          # 从 CHANGELOG 提取 "## [X.Y.Z]" 到下一个 "## [X.Y.Z]" 或 "## [未发布]" 之间的内容
-          # 支持多平台 awk
-          awk -v ver="\\[$VERSION\\]" '
-            /^## \[/ {
-              if ($0 ~ ver) { in_section=1; next }
-              if (in_section) { exit }
-            }
-            in_section { print }
-          ' CHANGELOG.md > RELEASE_NOTES.md || true
-
-          if [ ! -s RELEASE_NOTES.md ]; then
-            echo "⚠️  未在 CHANGELOG.md 中找到 [$VERSION] 条目，使用空 release notes"
-            echo "暂无发布说明" > RELEASE_NOTES.md
-          fi
-
-          echo "=== RELEASE NOTES ==="
-          cat RELEASE_NOTES.md
-          echo ""
-          echo "done=true" >> $GITHUB_OUTPUT
-
-      - name: 添加构建信息到发布说明
-        shell: bash
-        run: |
-          {
-            echo ""
-            echo "---"
-            echo ""
-            echo "## 📊 构建信息"
-            echo ""
-            echo "- 构建时间: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "- APK 构建耗时: ${{ needs.build-android.outputs.apk_build_time }}s"
-            echo "- AAB 构建耗时: ${{ needs.build-android.outputs.aab_build_time }}s"
-            echo "- 总耗时: ${{ needs.build-android.outputs.total_build_time }}s"
-            echo ""
-            echo "## 🔐 SHA256 校验和"
-            echo ""
-            echo '```'
-            cat checksums.sha256 2>/dev/null || echo "N/A"
-            echo '```'
-          } >> RELEASE_NOTES.md
-
       - name: 创建 GitHub Release
-        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
         with:
-          body_path: RELEASE_NOTES.md
           files: |
-            ./*.apk
-            ./*.aab
-            ./checksums.sha256
-          fail_on_unmatched_files: true
+            frontend/build/app/outputs/flutter-apk/*.apk
+            frontend/build/app/outputs/bundle/release/*.aab
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

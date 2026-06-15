@@ -24,7 +24,7 @@ RESET  := $(shell tput -Txterm sgr0)
 BOLD   := $(shell tput -Txterm bold)
 
 # ===========================================================
-.PHONY: help setup run-backend run-frontend run-all stop test-all test-frontend test-backend lint build-apk build-ios build-docker clean docker-push version verify-release release-check release-docs
+.PHONY: help setup run-backend run-frontend run-all stop test-all test-frontend test-backend lint build-apk build-ios build-docker clean docker-push
 
 # ===========================================================
 # 目标：显示帮助
@@ -49,9 +49,6 @@ help: ## 显示本帮助信息
 	@echo "$(BOLD)$(YELLOW)◆ 构建与发布$(RESET)"
 	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E '^\s+build-'
 	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E '^\s+docker-push'
-	@echo ""
-	@echo "$(BOLD)$(YELLOW)◆ 版本管理$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E '^\s+(version|verify|release-)'
 	@echo ""
 	@echo "$(BOLD)$(YELLOW)◆ 其他$(RESET)"
 	@awk 'BEGIN {FS = ":.*?## } /^[a-zA-Z][a-zA-Z0-9_-]*:/ { printf "  $(GREEN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST) | grep -E '^\s+clean'
@@ -189,67 +186,6 @@ docker-push: ## 推送 Docker 镜像（需配置 REGISTRY/IMAGE/TAG 环境变量
 	docker build -t $${IMAGE_TAG} $(BACKEND_DIR)/; \
 	docker push $${IMAGE_TAG}; \
 	echo "$(GREEN)✅ 镜像已推送: $${IMAGE_TAG}$(RESET)"
-
-# ===========================================================
-# 版本管理与发布
-# ===========================================================
-version: ## 显示当前项目版本号（前端 + 后端 + Git tag）
-	@echo "$(BOLD)$(CYAN)◆ 项目版本信息$(RESET)"
-	@echo "----------------------------------------"
-	@echo "  前端 (pubspec.yaml):  $(YELLOW)$(shell grep -E '^version:' $(FRONTEND_DIR)/pubspec.yaml | awk '{print $$2}')$(RESET)"
-	@echo "  前端 (build.gradle):  $(YELLOW)$(shell grep -E 'versionName' $(FRONTEND_DIR)/android/app/build.gradle | head -1 | sed -E 's/.*"([0-9.]+)".*/\1/') (code=$(shell grep -E 'versionCode' $(FRONTEND_DIR)/android/app/build.gradle | head -1 | awk '{print $$2}'))$(RESET)"
-	@echo "  前端 (version.dart):  $(YELLOW)$(shell grep -E "kAppVersion = " $(FRONTEND_DIR)/lib/utils/version.dart | head -1 | sed -E "s/.*'([0-9.]+)'.*/\1/") (code=$(shell grep -E "kAppVersionCode = " $(FRONTEND_DIR)/lib/utils/version.dart | head -1 | awk -F'= ' '{print $$2}' | tr -d ';'))$(RESET)"
-	@echo "  后端 (version.py):    $(YELLOW)$(shell grep -E '__version__.*=' $(BACKEND_DIR)/core/version.py | head -1 | sed -E 's/.*"([0-9.]+)".*/\1/')$(RESET)"
-	@if command -v git >/dev/null 2>&1; then \
-		echo "  Git 最新 tag:         $(YELLOW)$(shell git describe --tags --abbrev=0 2>/dev/null || echo "<暂无>")$(RESET)"; \
-		echo "  Git 当前分支:         $(YELLOW)$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)$(RESET)"; \
-	fi
-
-verify-release: ## 运行发布前验证（版本号一致性 + CHANGELOG + Git 工作树）
-	@echo "$(BOLD)$(CYAN)◆ 发布前验证$(RESET)"
-	@echo "----------------------------------------"
-	@$(SCRIPTS_DIR)/verify-release.sh
-
-release-check: verify-release ## verify-release 的别名
-
-release-docs: ## 打开 RELEASE.md 和 COMMIT_CONVENTION.md 文档说明
-	@echo "$(BOLD)$(CYAN)◆ 版本管理文档$(RESET)"
-	@echo "----------------------------------------"
-	@echo "  $(GREEN)docs/RELEASE.md$(RESET)              - 版本升级与发布流程"
-	@echo "  $(GREEN)docs/COMMIT_CONVENTION.md$(RESET) - Git 提交信息规范"
-	@echo "  $(GREEN)CHANGELOG.md$(RESET)                 - 变更日志（Keep a Changelog）"
-	@echo ""
-	@echo "  快速命令："
-	@echo "    make version          — 查看当前版本"
-	@echo "    make verify-release   — 发布前检查"
-	@echo "    make release-docs     — 查看文档列表"
-
-# ===========================================================
-# 一键发布流程（封装 scripts/release.sh 和 rollback-release.sh）
-# ===========================================================
-release-patch: ## 一键发布 patch 版本（自动 bump PATCH 版本号）
-	@echo "$(BOLD)$(CYAN)◆ 发布 Patch 版本$(RESET)"
-	@$(SCRIPTS_DIR)/release.sh patch
-
-release-minor: ## 一键发布 minor 版本（自动 bump MINOR 版本号）
-	@echo "$(BOLD)$(CYAN)◆ 发布 Minor 版本$(RESET)"
-	@$(SCRIPTS_DIR)/release.sh minor
-
-release-major: ## 一键发布 major 版本（自动 bump MAJOR 版本号）
-	@echo "$(BOLD)$(CYAN)◆ 发布 Major 版本$(RESET)"
-	@$(SCRIPTS_DIR)/release.sh major
-
-release-bump: ## 交互式选择版本号升级
-	@echo "$(BOLD)$(CYAN)◆ 交互式版本发布$(RESET)"
-	@$(SCRIPTS_DIR)/release.sh bump
-
-release-dry-run: ## 预览下一个 patch 版本发布流程，不实际变更
-	@echo "$(BOLD)$(YELLOW)◆ DRY RUN 预览发布$(RESET)"
-	@$(SCRIPTS_DIR)/release.sh --dry-run patch
-
-release-rollback: ## 回滚到上一个 tag（删除最新 tag）
-	@echo "$(BOLD)$(RED)◆ 发布回滚（到上一个 tag）$(RESET)"
-	@$(SCRIPTS_DIR)/rollback-release.sh
 
 # ===========================================================
 # 清理

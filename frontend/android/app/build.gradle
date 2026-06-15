@@ -35,16 +35,14 @@ android {
         applicationId "com.embbytok.app"
         minSdk 21
         targetSdk 34
-        versionCode 15
-        versionName "1.2.4"
+        versionCode 23
+        versionName "1.2.7"
     }
 
     signingConfigs {
-        // 仅在 key.properties 存在时才配置 release 签名
-        if (keystorePropertiesFile.exists()) {
-            release {
-                // 注意：storeFile 以 rootProject 为基准解析（即 frontend/android/ 目录）
-                storeFile rootProject.file(keystoreProperties['storeFile'])
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
@@ -59,12 +57,7 @@ android {
         release {
             minifyEnabled false
             shrinkResources false
-            // 若 key.properties 存在则使用 release 签名，否则降级为 debug 签名
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig signingConfigs.debug
-            }
+            signingConfig signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

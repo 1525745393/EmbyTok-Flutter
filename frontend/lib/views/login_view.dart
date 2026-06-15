@@ -102,13 +102,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ),
                   const SizedBox(height: 48),
 
-                  // 后端代理地址（可选）
+                  // 后端代理地址
                   _buildTextField(
                     controller: _backendController,
-                    label: '后端代理地址（可选）',
+                    label: '后端代理地址',
                     icon: Icons.cloud_outlined,
                     hint: 'http://localhost:8000',
-                    required: false,
                   ),
                   const SizedBox(height: 16),
 
@@ -195,7 +194,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     String? hint,
     bool obscureText = false,
     Widget? suffixIcon,
-    bool required = true,
   }) {
     return TextFormField(
       controller: controller,
@@ -227,14 +225,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
           borderSide: const BorderSide(color: Colors.redAccent),
         ),
       ),
-      validator: required
-          ? (value) {
-              if (value == null || value.trim().isEmpty) {
-                return '请输入$label';
-              }
-              return null;
-            }
-          : null,
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return '请输入$label';
+        }
+        return null;
+      },
     );
   }
 }
