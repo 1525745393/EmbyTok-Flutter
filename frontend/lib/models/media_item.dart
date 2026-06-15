@@ -39,6 +39,9 @@ class MediaItem {
   final List<MediaSource>? mediaSources;
   final String? playbackUrl;            // 兼容字段
 
+  // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
+  final Map<String, dynamic>? rawJson;
+
   const MediaItem({
     required this.id,
     required this.title,
@@ -64,6 +67,7 @@ class MediaItem {
     this.isFavorite,
     this.mediaSources,
     this.playbackUrl,
+    this.rawJson,
   });
 
   // 从 JSON 解析（同时支持 Emby 原生 PascalCase 与简化 snake_case）
@@ -213,6 +217,7 @@ class MediaItem {
       isFavorite: isFavorite,
       mediaSources: mediaSources,
       playbackUrl: playbackUrl,
+      rawJson: json,
     );
   }
 
