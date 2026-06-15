@@ -178,7 +178,45 @@ NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
 log_info "新 versionCode: $CURRENT_VERSION_CODE → $NEW_VERSION_CODE"
 
 # ============================================================
-# 3. 预览将修改的文件
+# 3. 前置验证：Flutter 静态分析和构建验证
+# ============================================================
+log_step "前置验证：Flutter 代码质量检查..."
+
+# 检查 flutter 是否可用
+if command -v flutter >/dev/null 2>&1; then
+    log_info "Flutter 已安装，执行静态分析..."
+
+    # 进入 frontend 目录执行检查
+    cd "$PROJECT_ROOT/frontend"
+
+    # 运行 flutter analyze（不允许 error，warning 可以）
+    if ! flutter analyze --no-pub 2>&1; then
+        log_error "Flutter 静态分析失败，存在编译错误！"
+        log_info "请修复上述错误后重新运行发布脚本"
+        log_info "提示：可先本地运行 'flutter analyze' 检查问题"
+        cd "$PROJECT_ROOT"
+        exit 1
+    fi
+    log_success "Flutter 静态分析通过"
+
+    # 运行 flutter build --debug 验证构建
+    log_info "执行 Debug 构建验证..."
+    if ! flutter build apk --debug 2>&1 | tee /tmp/flutter-build-debug.log; then
+        log_error "Flutter Debug 构建失败！"
+        log_info "查看构建日志: /tmp/flutter-build-debug.log"
+        cd "$PROJECT_ROOT"
+        exit 1
+    fi
+    log_success "Flutter Debug 构建验证通过"
+
+    cd "$PROJECT_ROOT"
+else
+    log_warn "Flutter 未安装，跳过本地构建验证"
+    log_info "提示：Flutter 静态分析已在 CI 中执行，建议本地安装 Flutter"
+fi
+
+# ============================================================
+# 4. 预览将修改的文件
 # ============================================================
 log_step "预览修改内容..."
 

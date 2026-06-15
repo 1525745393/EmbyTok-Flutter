@@ -95,6 +95,18 @@ jobs:
           flutter-version: "3.24.0"
           cache: true
 
+      - name: Flutter 静态分析
+        run: |
+          set -euo pipefail
+          echo "执行 Flutter 静态分析..."
+          cd frontend
+          flutter pub get
+          if ! flutter analyze --no-pub; then
+            echo "❌ Flutter 静态分析失败！"
+            exit 1
+          fi
+          echo "✅ Flutter 静态分析通过"
+
       - name: 恢复签名配置
         shell: bash
         run: |
