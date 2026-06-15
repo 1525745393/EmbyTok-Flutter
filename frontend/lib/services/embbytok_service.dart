@@ -907,8 +907,8 @@ class EmbytokService {
     int limit = 20,
   }) {
     if (data is! Map<String, dynamic>) {
-      return PaginatedResponse(
-        items: const [],
+      return PaginatedResponse<MediaItem>(
+        items: const <MediaItem>[],
         total: 0,
         offset: offset,
         limit: limit,
