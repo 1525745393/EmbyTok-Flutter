@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'providers/providers.dart';
 import 'views/favorites_view.dart';
-import 'views/feed_view.dart';
 import 'views/history_view.dart';
 import 'views/home_scaffold.dart';
 import 'views/login_view.dart';

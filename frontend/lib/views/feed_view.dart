@@ -18,7 +18,6 @@ class FeedView extends ConsumerStatefulWidget {
 class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
-  int _currentPage = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -103,9 +102,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       scrollDirection: Axis.vertical,
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
-        setState(() {
-          _currentPage = index;
-        });
         // 滚动到倒数第 2 项时触发分页加载
         if (videoState.hasMore &&
             index >= videoState.items.length - 2 &&
