@@ -40,7 +40,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+  ConsumerState<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
 }
 
 class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
