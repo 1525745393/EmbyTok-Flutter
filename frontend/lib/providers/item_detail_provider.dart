@@ -7,7 +7,8 @@ import '../services/embbytok_service.dart';
 import 'auth_provider.dart';
 
 // 公共辅助：初始化带认证信息的 service
-EmbytokService _authService(WidgetRef ref, AuthState auth) {
+// 使用 Ref 而非 WidgetRef，因为 FutureProvider 中使用的是 FutureProviderRef
+EmbytokService _authService(Ref ref, AuthState auth) {
   final service = EmbytokService();
   final embyServerUrl = auth.embyServerUrl;
   final userId = auth.user?.id;

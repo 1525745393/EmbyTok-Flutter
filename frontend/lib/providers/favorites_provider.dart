@@ -114,8 +114,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     try {
       await _service.toggleFavorite(
-        item.id,
-        newState,
+        itemId: item.id,
+        isFavorite: newState,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );

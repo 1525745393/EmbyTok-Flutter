@@ -172,7 +172,9 @@ class EmbytokService {
       '/Items/$itemId',
       queryParameters: params,
     );
-    final data = resp.data is Map ? resp.data as Map<String, dynamic> : {};
+    final data = resp.data is Map
+        ? Map<String, dynamic>.from(resp.data as Map)
+        : <String, dynamic>{};
     return MediaItem.fromJson(data);
   }
 
@@ -514,8 +516,8 @@ class EmbytokService {
   // ============================
   // 切换收藏状态
   // ============================
-  Future<void> toggleFavorite(
-    String itemId, {
+  Future<void> toggleFavorite({
+    required String itemId,
     required bool isFavorite,
     String? serverUrl,
     String? token,
