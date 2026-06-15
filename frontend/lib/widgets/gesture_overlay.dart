@@ -11,7 +11,12 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 
-// 手势交互层：根据任务要求，统一处理视频画面上的手势事件
+/// 双击间隔（与单击区分）
+const int _kDoubleTapMs = 300;
+
+/// 连续两次"双击"之间的最小间隔：避免快速连点产生重复 API 请求
+const int _kDoubleTapDebounceMs = 400;
+
 class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
@@ -36,6 +41,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   double _dragStartX = 0.0;
   Duration _dragStartPosition = Duration.zero;
   bool _showHeart = false;
+  DateTime? _lastDoubleTapAt;
 
   // ---- 单击 ----
   void _onSingleTap() {
@@ -51,15 +57,16 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   // ---- 双击 ----
   void _onDoubleTap() {
+    // 400ms 内的重复"双击"忽略，避免反复触发 API
+    final now = DateTime.now();
+    if (_lastDoubleTapAt != null &&
+        now.difference(_lastDoubleTapAt!).inMilliseconds < _kDoubleTapDebounceMs) {
+      return;
+    }
+    _lastDoubleTapAt = now;
+
     setState(() {
       _showHeart = true;
-    });
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() {
-          _showHeart = false;
-        });
-      }
     });
     unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
   }
@@ -69,7 +76,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
     _isLongPressing = true;
-    c.setPlaybackSpeed(kLongPressPlaybackRate);
+    c.setPlaybackRate(kLongPressPlaybackRate);
   }
 
   void _onLongPressEnd() {
@@ -77,7 +84,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isLongPressing = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    c.setPlaybackSpeed(ref.read(playbackRateProvider));
+    c.setPlaybackRate(ref.read(playbackRateProvider));
   }
 
   // ---- 水平拖动（快进/快退） ----
@@ -111,14 +118,13 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   // ---- 单击/双击区分：300ms 定时器 ----
   void _handleTap() {
     if (_pendingSingleTap) {
-      // 300ms 内第二次点击 -> 双击
       _singleTapTimer?.cancel();
       _pendingSingleTap = false;
       _onDoubleTap();
     } else {
       _pendingSingleTap = true;
       _singleTapTimer =
-          Timer(const Duration(milliseconds: kDoubleTapMs), () {
+          Timer(const Duration(milliseconds: _kDoubleTapMs), () {
         if (_pendingSingleTap) {
           _pendingSingleTap = false;
           _onSingleTap();
@@ -156,8 +162,16 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         ),
         // 双击心形动画
         if (_showHeart)
-          const IgnorePointer(
-            child: _FlyingHeart(),
+          IgnorePointer(
+            child: _FlyingHeart(
+              onComplete: () {
+                if (mounted) {
+                  setState(() {
+                    _showHeart = false;
+                  });
+                }
+              },
+            ),
           ),
         // 长按倍速提示
         if (_isLongPressing)
@@ -174,7 +188,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
 // ---- 内部子组件：飞行心形 ----
 class _FlyingHeart extends StatefulWidget {
-  const _FlyingHeart();
+  final VoidCallback onComplete;
+  const _FlyingHeart({required this.onComplete});
 
   @override
   State<_FlyingHeart> createState() => _FlyingHeartState();
@@ -199,7 +214,9 @@ class _FlyingHeartState extends State<_FlyingHeart>
     _scale = Tween<double>(begin: 0.6, end: 2.8).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    _ctrl.forward();
+    _ctrl.forward().whenComplete(() {
+      widget.onComplete();
+    });
   }
 
   @override

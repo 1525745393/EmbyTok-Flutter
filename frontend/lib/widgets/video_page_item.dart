@@ -10,7 +10,7 @@ import '../providers/providers.dart';
 import 'gesture_overlay.dart';
 import 'video_player_widget.dart';
 
-// 单个视频页：TikTok 卡片样式
+/// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
 
@@ -25,11 +25,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   Widget build(BuildContext context) {
-    // 从认证状态获取 Emby 服务器信息
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
 
+    // 响应式读取收藏状态：任何来源的切换都会立即反映到 UI
     final favorited =
         ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
 
@@ -133,7 +133,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
   Widget _buildRightActions(bool favorited) {
-    // 监听静音状态
     final isMuted = ref.watch(isMutedProvider);
 
     return Positioned(
@@ -156,14 +155,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // 静音按钮
             _buildActionButton(
               isMuted ? Icons.volume_off : Icons.volume_up,
               isMuted ? '静音' : '音量',
               color: isMuted ? Colors.redAccent : Colors.white,
               onTap: () {
                 ref.read(isMutedProvider.notifier).toggle();
-                // 同时设置视频控制器音量
                 _videoController?.setVolume(isMuted ? 1.0 : 0.0);
               },
             ),
@@ -172,18 +169,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               favorited ? Icons.favorite : Icons.favorite_border,
               '点赞',
               color: favorited ? const Color(0xFFE91E63) : Colors.white,
-              onTap: () {
-                ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
-              },
+              onTap: () =>
+                  ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
             const SizedBox(height: 20),
             _buildActionButton(
               favorited ? Icons.star : Icons.star_border,
               '收藏',
               color: favorited ? Colors.amber : Colors.white,
-              onTap: () {
-                ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
-              },
+              onTap: () =>
+                  ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
             const SizedBox(height: 20),
             _buildActionButton(Icons.mode_comment_outlined, '评论', onTap: () {}),
@@ -195,33 +190,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     );
   }
 
+  /// 通用操作按钮：图标 + 标签，带按下缩放动画
   Widget _buildActionButton(
     IconData icon,
     String label, {
     Color? color,
     VoidCallback? onTap,
   }) {
-    return InkWell(
+    return _PressableActionButton(
+      icon: icon,
+      label: label,
+      color: color ?? Colors.white,
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: color ?? Colors.white,
-            size: 32,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -230,5 +210,68 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
       return '${widget.item.title} (${widget.item.year})';
     }
     return widget.item.title;
+  }
+}
+
+/// 带按下缩放动画的按钮（内部 Stateful 管理自己的按下状态）
+class _PressableActionButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _PressableActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  State<_PressableActionButton> createState() => _PressableActionButtonState();
+}
+
+class _PressableActionButtonState extends State<_PressableActionButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const duration = Duration(milliseconds: 120);
+    return GestureDetector(
+      onTapDown: (_) {
+        if (mounted) setState(() => _pressed = true);
+      },
+      onTapUp: (_) {
+        if (mounted) setState(() => _pressed = false);
+        widget.onTap?.call();
+      },
+      onTapCancel: () {
+        if (mounted) setState(() => _pressed = false);
+      },
+      child: AnimatedScale(
+        scale: _pressed ? 0.8 : 1.0,
+        duration: duration,
+        curve: Curves.easeOut,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              widget.icon,
+              color: widget.color,
+              size: 32,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/formatters.dart';
-import '../widgets/video_page_item.dart';
+import 'video_page_item.dart';
 
 class FavoritesView extends ConsumerStatefulWidget {
   const FavoritesView({super.key});
@@ -33,11 +33,27 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.favorite, color: Color(0xFFFF5983), size: 24),
-            SizedBox(width: 8),
-            Text('我的收藏'),
+            const Icon(Icons.favorite, color: Color(0xFFE91E63), size: 24),
+            const SizedBox(width: 8),
+            const Text('我的收藏'),
+            const SizedBox(width: 12),
+            Text(
+              '${state.items.length}',
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white70, size: 22),
+              onPressed: () =>
+                  ref.read(favoritesProvider.notifier).loadFavorites(),
+              tooltip: '刷新',
+            ),
           ],
         ),
       ),
@@ -52,31 +68,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
       );
     }
     if (state.error != null && state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-            const SizedBox(height: 12),
-            Text(state.error!, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
-      );
+      return _buildError(state.error!);
     }
     if (state.items.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.favorite_border, size: 80, color: Colors.white30),
-            SizedBox(height: 16),
-            Text('还没有收藏', style: TextStyle(color: Colors.white70, fontSize: 18)),
-            SizedBox(height: 8),
-            Text('双击视频即可收藏 💖',
-                style: TextStyle(color: Colors.white54, fontSize: 14)),
-          ],
-        ),
-      );
+      return const _EmptyState();
     }
 
     return ListView.separated(
@@ -102,6 +97,68 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
       },
     );
   }
+
+  Widget _buildError(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE91E63),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('重试'),
+              onPressed: () {
+                ref.read(favoritesProvider.notifier).loadFavorites();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.favorite_border, size: 80, color: Colors.white30),
+          SizedBox(height: 16),
+          Text(
+            '还没有收藏',
+            style: TextStyle(color: Colors.white70, fontSize: 18),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '双击视频即可收藏 💖',
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _FavoriteTile extends ConsumerWidget {
@@ -110,7 +167,6 @@ class _FavoriteTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 获取认证状态以构造带认证的图片 URL
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
@@ -144,8 +200,7 @@ class _FavoriteTile extends ConsumerWidget {
                       height: 72,
                       fit: BoxFit.cover,
                       headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) =>
-                          _thumbPlaceholder(),
+                      errorBuilder: (_, __, ___) => _thumbPlaceholder(),
                     )
                   : _thumbPlaceholder(),
             ),
