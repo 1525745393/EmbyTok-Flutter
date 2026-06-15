@@ -15,8 +15,7 @@ class LoginView extends ConsumerStatefulWidget {
 }
 
 class _LoginViewState extends ConsumerState<LoginView> {
-  // 表单控制器：后端代理地址、Emby 服务器地址、用户名、密码
-  final _backendController = TextEditingController(text: 'http://localhost:8000');
+  // 表单控制器：Emby 服务器地址、用户名、密码
   final _embyController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -26,7 +25,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   @override
   void dispose() {
-    _backendController.dispose();
     _embyController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -37,7 +35,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() != true) return;
 
-    final backend = _backendController.text.trim();
     final emby = _embyController.text.trim();
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
@@ -47,7 +44,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
             emby,
             username,
             password,
-            backendUrl: backend,
           );
       if (mounted) {
         context.go('/');
@@ -102,21 +98,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ),
                   const SizedBox(height: 48),
 
-                  // 后端代理地址
-                  _buildTextField(
-                    controller: _backendController,
-                    label: '后端代理地址',
-                    icon: Icons.cloud_outlined,
-                    hint: 'http://localhost:8000',
-                  ),
-                  const SizedBox(height: 16),
-
                   // Emby 服务器地址
                   _buildTextField(
                     controller: _embyController,
                     label: 'Emby 服务器地址',
                     icon: Icons.dns_outlined,
-                    hint: 'https://your-emby-server.example.com',
+                    hint: 'http://192.168.1.1:8096',
                   ),
                   const SizedBox(height: 16),
 
@@ -186,7 +173,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 
-  // 通用表单项：圆角灰色背景 + 前缀图标 + 下划线文字
+  // 通用表单项：圆角灰色背景 + 前缀图标
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
