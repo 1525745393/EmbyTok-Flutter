@@ -5,6 +5,38 @@
 
 ---
 
+## [1.3.0] - 2026-06-15
+
+### 新增
+
+- **视频流 / 网格视图切换**：顶部工具栏一键切换视频流与网格浏览模式
+- **方向过滤**：支持只看竖屏 / 只看横屏 / 全部三种过滤模式
+- **全屏播放模式**：横屏旋转 + 隐藏系统 UI 的沉浸式观看体验
+- **视频方向自适应**：横屏视频以 `BoxFit.contain` + 海报背景显示，竖屏视频以 `BoxFit.cover` 全屏填充
+- **网格视图卡片**：显示封面图、标题、时长和播放进度条
+
+### 修改
+
+- `TopToolBar` 顶部工具栏新增方向过滤、视图切换、全屏、静音按钮
+- `VideoGridView` 网格视图支持 2 列（竖屏）/ 4 列（横屏）自适应布局
+- `FeedView` 添加视图模式切换和 `filteredVideoListProvider` 过滤列表支持
+- `MediaItem` / `MediaSource` 模型添加 `isLandscape` / `isPortrait` 方向判断属性
+- `video_list_provider.dart` 新增 `filteredVideoListProvider` 派生 provider，基于 `OrientationMode` 对视频列表进行实时过滤
+- `video_player_widget.dart` 实现 `_buildVideoWithAdaptiveFit()` 方向自适应显示逻辑
+
+### 关联文件
+
+- `frontend/lib/views/video_grid_view.dart`
+- `frontend/lib/widgets/video_grid_card.dart`
+- `frontend/lib/widgets/top_tool_bar.dart`
+- `frontend/lib/views/feed_view.dart`
+- `frontend/lib/providers/video_list_provider.dart`
+- `frontend/lib/widgets/video_player_widget.dart`
+- `frontend/lib/models/media_item.dart`
+- `frontend/lib/models/media_source.dart`
+
+---
+
 ## [1.2.8] - 2026-06-15
 
 ### 新增
