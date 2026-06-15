@@ -1,4 +1,4 @@
-// 收藏管理页面：显示收藏列表，左滑删除，点击跳转播放
+// 收藏管理页面：三栏（影片 / 合集 / 人物）横向滚动布局
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/formatters.dart';
-import '../widgets/video_page_item.dart';
+import 'boxset_detail_view.dart';
+import 'person_detail_view.dart';
+import 'video_page_item.dart';
 
 class FavoritesView extends ConsumerStatefulWidget {
   const FavoritesView({super.key});
@@ -40,7 +42,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
             const Text('我的收藏'),
             const SizedBox(width: 12),
             Text(
-              '${state.items.length}',
+              '${state.movies.length + state.boxSets.length + state.people.length}',
               style: const TextStyle(
                 color: Colors.white54,
                 fontSize: 14,
@@ -62,39 +64,109 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
   }
 
   Widget _buildBody(FavoritesState state) {
-    if (state.isLoading && state.items.isEmpty) {
+    // 加载中
+    if (state.isLoading &&
+        state.movies.isEmpty &&
+        state.boxSets.isEmpty &&
+        state.people.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFE91E63)),
       );
     }
-    if (state.error != null && state.items.isEmpty) {
+
+    // 错误
+    if (state.error != null &&
+        state.movies.isEmpty &&
+        state.boxSets.isEmpty &&
+        state.people.isEmpty) {
       return _buildError(state.error!);
     }
-    if (state.items.isEmpty) {
+
+    // 空状态
+    if (state.movies.isEmpty && state.boxSets.isEmpty && state.people.isEmpty) {
       return const _EmptyState();
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = state.items[index];
-        return Dismissible(
-          key: Key(item.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 16),
-            color: Colors.redAccent,
-            child: const Icon(Icons.delete_forever, color: Colors.white, size: 32),
+    // 三栏布局
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 收藏影片
+          _SectionHeader(
+            title: '收藏影片',
+            count: state.movies.length,
           ),
-          onDismissed: (_) {
-            ref.read(favoritesProvider.notifier).toggleFavorite(item);
-          },
-          child: _FavoriteTile(item: item),
-        );
-      },
+          _buildHorizontalCardList(
+            items: state.movies,
+            itemType: _CardType.movie,
+          ),
+          const SizedBox(height: 24),
+
+          // 收藏合集
+          _SectionHeader(
+            title: '收藏合集',
+            count: state.boxSets.length,
+          ),
+          _buildHorizontalCardList(
+            items: state.boxSets,
+            itemType: _CardType.boxSet,
+          ),
+          const SizedBox(height: 24),
+
+          // 收藏人物
+          _SectionHeader(
+            title: '收藏人物',
+            count: state.people.length,
+          ),
+          _buildHorizontalCardList(
+            items: state.people,
+            itemType: _CardType.person,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalCardList({
+    required List<MediaItem> items,
+    required _CardType itemType,
+  }) {
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Text(
+          '暂无收藏',
+          style: TextStyle(color: Colors.white54, fontSize: 14),
+        ),
+      );
+    }
+
+    final double cardWidth = itemType == _CardType.person ? 100 : 120;
+    final double cardHeight = itemType == _CardType.person ? 140 : 180;
+
+    return SizedBox(
+      height: cardHeight + 50,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index < items.length - 1 ? 12 : 0,
+            ),
+            child: _FavoriteCard(
+              item: item,
+              itemType: itemType,
+              width: cardWidth,
+              height: cardHeight,
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -135,6 +207,38 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
   }
 }
 
+enum _CardType { movie, boxSet, person }
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int count;
+  const _SectionHeader({required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '($count)',
+            style: const TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 
@@ -161,112 +265,144 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _FavoriteTile extends ConsumerWidget {
+class _FavoriteCard extends ConsumerWidget {
   final MediaItem item;
-  const _FavoriteTile({required this.item});
+  final _CardType itemType;
+  final double width;
+  final double height;
+
+  const _FavoriteCard({
+    required this.item,
+    required this.itemType,
+    required this.width,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    final thumbnailUrl = item.thumbnailUrlWithAuth(
+    final imageUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
       authState.token,
+      maxWidth: width.toInt(),
     );
     final headers = item.authHeaders(authState.token);
 
     return InkWell(
-      onTap: () {
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(builder: (_) => _FavoritePlayPage(item: item)),
-        );
-      },
+      onTap: () => _navigateTo(context),
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white10,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
-        ),
-        child: Row(
+      child: SizedBox(
+        width: width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
-                  ? Image.network(
-                      thumbnailUrl,
-                      width: 120,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) => _thumbPlaceholder(),
-                    )
-                  : _thumbPlaceholder(),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE91E63),
-                          borderRadius: BorderRadius.circular(4),
+            Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.grey[800],
+                border: Border.all(color: Colors.white12),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: imageUrl != null && imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        headers: headers.isNotEmpty ? headers : null,
+                        errorBuilder: (_, __, ___) => _PlaceholderIcon(
+                          itemType: itemType,
                         ),
-                        child: Text(
-                          item.type,
-                          style: const TextStyle(color: Colors.white, fontSize: 11),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        formatDuration(item.durationSeconds),
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  if (item.overview != null && item.overview!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        item.overview!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ),
-                ],
+                      )
+                    : _PlaceholderIcon(itemType: itemType),
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.play_circle_fill, color: Color(0xFFFF5983), size: 32),
+            const SizedBox(height: 8),
+            Text(
+              item.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _subtitleText,
+              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _thumbPlaceholder() => Container(
-        width: 120,
-        height: 72,
-        color: Colors.grey[800],
-        child: const Icon(Icons.movie_outlined, color: Colors.white30),
-      );
+  String get _subtitleText {
+    if (itemType == _CardType.person) {
+      return '演员';
+    }
+    final year = item.productionYear ?? item.year;
+    if (year != null) {
+      return year.toString();
+    }
+    return item.type;
+  }
+
+  void _navigateTo(BuildContext context) {
+    switch (itemType) {
+      case _CardType.movie:
+        Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => _FavoritePlayPage(item: item),
+          ),
+        );
+        break;
+      case _CardType.boxSet:
+        Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BoxsetDetailView(item: item),
+          ),
+        );
+        break;
+      case _CardType.person:
+        Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PersonDetailView(person: item),
+          ),
+        );
+        break;
+    }
+  }
+}
+
+class _PlaceholderIcon extends StatelessWidget {
+  final _CardType itemType;
+  const _PlaceholderIcon({required this.itemType});
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    switch (itemType) {
+      case _CardType.person:
+        icon = Icons.person;
+        break;
+      case _CardType.boxSet:
+        icon = Icons.featured_play_list;
+        break;
+      case _CardType.movie:
+        icon = Icons.movie_outlined;
+        break;
+    }
+    return Icon(icon, color: Colors.white30, size: 48);
+  }
 }
 
 class _FavoritePlayPage extends StatelessWidget {

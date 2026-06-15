@@ -1,8 +1,8 @@
-// 收藏列表 & 切换收藏状态
-// - 自动监听登录状态：登录后自动从 Emby 拉取收藏，登出后清除本地缓存
+// 收藏列表与状态管理（三栏：影片 / 合集 / 人物）
+// - 自动监听登录状态：登录后从 Emby 并行拉取三栏数据，登出后清除本地缓存
 // - toggleFavorite 采用乐观更新 + 失败回滚，提供即时 UI 反馈
 // - 同一 itemId 的并发 toggleFavorite 自动合并（_pendingToggles 去重）
-// - 网络层去重：_isLoading 标志避免重复 loadFavorites
+// - 网络层去重：_hasLoaded + _isLoading 标志避免重复 loadFavorites
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,28 +11,36 @@ import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 
-/// 收藏状态：items 为完整媒体对象，favoriteIds 提供 O(1) 快速查询
+/// 收藏状态：三组独立列表 + 合并的 favoriteIds 提供 O(1) 快速查询
 class FavoritesState {
-  final List<MediaItem> items;
+  final List<MediaItem> movies;
+  final List<MediaItem> boxSets;
+  final List<MediaItem> people;
   final bool isLoading;
   final String? error;
   final Set<String> favoriteIds;
 
   const FavoritesState({
-    this.items = const <MediaItem>[],
+    this.movies = const <MediaItem>[],
+    this.boxSets = const <MediaItem>[],
+    this.people = const <MediaItem>[],
     this.isLoading = false,
     this.error,
     this.favoriteIds = const <String>{},
   });
 
   FavoritesState copyWith({
-    List<MediaItem>? items,
+    List<MediaItem>? movies,
+    List<MediaItem>? boxSets,
+    List<MediaItem>? people,
     bool? isLoading,
     String? error,
     Set<String>? favoriteIds,
   }) {
     return FavoritesState(
-      items: items ?? this.items,
+      movies: movies ?? this.movies,
+      boxSets: boxSets ?? this.boxSets,
+      people: people ?? this.people,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
       favoriteIds: favoriteIds ?? this.favoriteIds,
@@ -40,7 +48,26 @@ class FavoritesState {
   }
 }
 
-/// 收藏 Notifier：管理整个 app 的收藏状态
+/// 合并三组列表的 id 到一个 Set
+Set<String> _mergeIds(
+  List<MediaItem> a,
+  List<MediaItem> b,
+  List<MediaItem> c,
+) {
+  final ids = <String>{};
+  for (final item in a) {
+    ids.add(item.id);
+  }
+  for (final item in b) {
+    ids.add(item.id);
+  }
+  for (final item in c) {
+    ids.add(item.id);
+  }
+  return ids;
+}
+
+/// 收藏 Notifier：管理整个 app 的三栏收藏状态
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -61,7 +88,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         // 用户登出：清空本地缓存，避免展示上一账号的数据
         reset();
       } else if (!wasAuthenticated && isNowAuthenticated) {
-        // 用户登录：自动拉取当前账号的收藏
+        // 用户登录：自动拉取当前账号的三栏收藏
         loadFavorites();
       }
     });
@@ -80,12 +107,12 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     await loadFavorites();
   }
 
-  /// 从 Emby 服务器拉取当前用户的全部收藏
+  /// 从 Emby 服务器并行拉取三栏收藏
   Future<void> loadFavorites() async {
     if (_isLoading) return;
     _isLoading = true;
     state = state.copyWith(isLoading: true, error: null);
-    AppLogger.info('加载收藏列表');
+    AppLogger.info('加载收藏列表（三栏）');
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
@@ -97,18 +124,35 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     }
 
     try {
-      final items = await _service.getFavorites(
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-      );
-      final ids = items.map((e) => e.id).toSet();
+      // 并行请求三栏数据
+      final serverUrl = auth.embyServerUrl!;
+      final token = auth.token!;
+      final results = await Future.wait<List<MediaItem>>([
+        _service.getFavoriteMovies(serverUrl: serverUrl, token: token),
+        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token),
+        _service.getFavoritePeople(serverUrl: serverUrl, token: token),
+      ], eagerError: false);
+
+      final movies = results[0];
+      final boxSets = results[1];
+      final people = results[2];
+
+      // 合并 favoriteIds
+      final ids = _mergeIds(movies, boxSets, people);
+
       state = FavoritesState(
-        items: items,
+        movies: movies,
+        boxSets: boxSets,
+        people: people,
         isLoading: false,
         favoriteIds: ids,
       );
       _hasLoaded = true;
-      AppLogger.info('收藏列表加载成功', data: {'count': items.length});
+      AppLogger.info('收藏列表加载成功', data: {
+        'movies': movies.length,
+        'boxSets': boxSets.length,
+        'people': people.length,
+      });
     } catch (e) {
       final message = e is String ? e : '加载收藏失败：$e';
       state = state.copyWith(isLoading: false, error: message);
@@ -120,7 +164,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   /// 切换某条目的收藏状态
   ///
-  /// 乐观更新 UI → 发送网络请求 → 成功则保留，失败则回滚
+  /// 乐观更新 UI → 发网络请求 → 成功则保留，失败则回滚
   /// 同一 itemId 的并发调用会自动合并为一次，避免重复请求与状态抖动
   Future<void> toggleFavorite(MediaItem item) async {
     final auth = _auth;
@@ -140,22 +184,43 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     final newIsFavorite = !currentlyFavorite;
 
     AppLogger.info('切换收藏状态',
-        data: {'itemId': item.id, 'newState': newIsFavorite});
+        data: {'itemId': item.id, 'itemTitle': item.title, 'newState': newIsFavorite});
 
-    // 2. 乐观更新 UI：先按目标状态渲染，给用户即时反馈
+    // 2. 乐观更新 UI：先按目标状态渲染
     final newIds = Set<String>.from(state.favoriteIds);
-    final newItems = List<MediaItem>.from(state.items);
+    final newMovies = List<MediaItem>.from(state.movies);
+    final newBoxSets = List<MediaItem>.from(state.boxSets);
+    final newPeople = List<MediaItem>.from(state.people);
+
     if (newIsFavorite) {
       newIds.add(item.id);
-      if (!newItems.any((e) => e.id == item.id)) {
-        newItems.insert(0, item);
+      // 根据类型加入对应的列表
+      final type = item.type.toLowerCase();
+      if (type == 'boxset') {
+        if (!newBoxSets.any((e) => e.id == item.id)) {
+          newBoxSets.insert(0, item);
+        }
+      } else if (type == 'person') {
+        if (!newPeople.any((e) => e.id == item.id)) {
+          newPeople.insert(0, item);
+        }
+      } else {
+        // 默认作为影片
+        if (!newMovies.any((e) => e.id == item.id)) {
+          newMovies.insert(0, item);
+        }
       }
     } else {
       newIds.remove(item.id);
-      newItems.removeWhere((e) => e.id == item.id);
+      newMovies.removeWhere((e) => e.id == item.id);
+      newBoxSets.removeWhere((e) => e.id == item.id);
+      newPeople.removeWhere((e) => e.id == item.id);
     }
+
     state = state.copyWith(
-      items: newItems,
+      movies: newMovies,
+      boxSets: newBoxSets,
+      people: newPeople,
       favoriteIds: newIds,
       error: null,
     );
@@ -171,19 +236,38 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态
       final rollbackIds = Set<String>.from(state.favoriteIds);
-      final rollbackItems = List<MediaItem>.from(state.items);
+      final rollbackMovies = List<MediaItem>.from(state.movies);
+      final rollbackBoxSets = List<MediaItem>.from(state.boxSets);
+      final rollbackPeople = List<MediaItem>.from(state.people);
+
       if (currentlyFavorite) {
         rollbackIds.add(item.id);
-        if (!rollbackItems.any((el) => el.id == item.id)) {
-          rollbackItems.insert(0, item);
+        final type = item.type.toLowerCase();
+        if (type == 'boxset') {
+          if (!rollbackBoxSets.any((e) => e.id == item.id)) {
+            rollbackBoxSets.insert(0, item);
+          }
+        } else if (type == 'person') {
+          if (!rollbackPeople.any((e) => e.id == item.id)) {
+            rollbackPeople.insert(0, item);
+          }
+        } else {
+          if (!rollbackMovies.any((e) => e.id == item.id)) {
+            rollbackMovies.insert(0, item);
+          }
         }
       } else {
         rollbackIds.remove(item.id);
-        rollbackItems.removeWhere((el) => el.id == item.id);
+        rollbackMovies.removeWhere((e) => e.id == item.id);
+        rollbackBoxSets.removeWhere((e) => e.id == item.id);
+        rollbackPeople.removeWhere((e) => e.id == item.id);
       }
+
       final message = e is String ? e : '切换收藏失败：$e';
       state = state.copyWith(
-        items: rollbackItems,
+        movies: rollbackMovies,
+        boxSets: rollbackBoxSets,
+        people: rollbackPeople,
         favoriteIds: rollbackIds,
         error: message,
       );

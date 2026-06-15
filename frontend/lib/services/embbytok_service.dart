@@ -514,6 +514,108 @@ class EmbytokService {
   }
 
   // ============================
+  // 收藏影片（按类型：电影/剧集/音乐视频/单集）
+  // ============================
+  Future<List<MediaItem>> getFavoriteMovies({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 收藏合集（BoxSet）
+  // ============================
+  Future<List<MediaItem>> getFavoriteBoxSets({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'BoxSet',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 收藏人物（Person）
+  // ============================
+  Future<List<MediaItem>> getFavoritePeople({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Person',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
   // 切换收藏状态
   // ============================
   Future<void> toggleFavorite({
