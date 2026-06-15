@@ -5,6 +5,31 @@
 
 ---
 
+## [1.3.3] - 2026-06-15
+
+### 新增
+
+- **收藏功能**：双击视频画面即可收藏/取消收藏，伴随红心动画（放大淡出 700ms）
+- **我的收藏页**：独立的收藏列表视图，显示收藏的视频卡片、类型标签、时长、简介
+- **右侧操作按钮**：点赞（心形图标）+ 收藏（星形图标）按钮，点击有缩放动画，状态与 `favoritesProvider` 响应式同步
+- **手势交互层**：单击播放/暂停、双击收藏、长按 2x 倍速、水平拖动快进/快退（300ms 区分单/双击，400ms 双击防抖防重复请求）
+
+### 改进
+
+- `favorites_provider.dart`：重构为完整的 `StateNotifier` 状态管理器
+  - 自动监听 `authProvider`：登录后自动拉取收藏，登出/切换账号自动清理缓存
+  - `_pendingToggles` 去重：同一 item 并发点击只发送一次网络请求
+  - 乐观更新 + 失败回滚：UI 即时反馈 + 数据最终一致
+  - `ensureLoaded()` / `reset()` 幂等辅助方法
+- `video_page_item.dart`：`favorited` 状态改为 `ref.watch(favoritesProvider)` 响应式读取，任何来源的状态变化都立即反映到 UI
+
+### 修复
+
+- **CI - 导入路径错误**：`favorites_view.dart` 中 `import 'video_page_item.dart'` → `import '../widgets/video_page_item.dart'`（`uri_does_not_exist` / `undefined_method: VideoPageItem`）
+- **CI - API 名称**：`gesture_overlay.dart` 中 `setPlaybackRate` 改为 `video_player` 包正确方法 `setPlaybackSpeed`（2 处 `undefined_method`）
+
+---
+
 ## [1.3.2] - 2026-06-15
 
 ### 修复
