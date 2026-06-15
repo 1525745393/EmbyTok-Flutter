@@ -2,6 +2,8 @@
 
 import 'package:dio/dio.dart';
 
+import '../utils/formatters.dart';
+
 class ApiClient {
   final Dio _dio;
   String? _token;
@@ -92,6 +94,8 @@ class ApiClient {
     } else if (data is String) {
       detail = data;
     }
+    // HTML 解码错误信息（服务器可能返回 HTML 编码的错误）
+    detail = htmlDecode(detail);
     if (status == 401) return detail.isNotEmpty ? detail : '未授权，请重新登录';
     if (status == 403) return detail.isNotEmpty ? detail : '访问被拒绝';
     if (status == 404) return detail.isNotEmpty ? detail : '资源未找到';

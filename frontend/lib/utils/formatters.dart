@@ -20,3 +20,13 @@ String formatWatchProgress(double current, double total) {
   final display = pct.clamp(0.0, 100.0);
   return '已观看 ${display.toInt()}%';
 }
+
+// HTML 实体解码：将 &#39; 转换为 ' 等
+String htmlDecode(String input) {
+  return input
+      .replaceAll('&#39;', "'")
+      .replaceAll('&quot;', '"')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>');
+}
