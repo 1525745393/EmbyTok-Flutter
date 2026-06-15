@@ -701,6 +701,37 @@ class EmbytokService {
   }
 
   // ============================
+  // 观看历史（从 Emby 获取最近观看的条目）
+  // ============================
+  Future<List<MediaItem>> getWatchHistory({
+    int limit = 50,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+      'SortBy': 'DatePlayed',
+      'SortOrder': 'Descending',
+      'Filters': 'IsResumable',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
   // 搜索提示
   // ============================
   Future<List<SearchHint>> searchHints(

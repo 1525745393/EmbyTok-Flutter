@@ -1,4 +1,4 @@
-// 观看历史页面：显示用户已播放过的内容，支持清空和继续播放
+// 观看历史页面：从 Emby 服务器获取最近观看的条目
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,34 +23,6 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
     });
   }
 
-  void _confirmClear() {
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text('清空历史', style: TextStyle(color: Colors.white)),
-        content: const Text('确定要清空所有观看历史吗？此操作不可恢复。',
-            style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Colors.white70)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(watchHistoryProvider.notifier).clear();
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-            ),
-            child: const Text('清空', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(watchHistoryProvider);
@@ -60,20 +32,13 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.history, color: Color(0xFFFF5983), size: 24),
             SizedBox(width: 8),
             Text('观看历史'),
           ],
         ),
-        actions: [
-          if (state.items.isNotEmpty)
-            TextButton(
-              onPressed: _confirmClear,
-              child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
-            ),
-        ],
       ),
       body: _buildBody(state),
     );
@@ -90,9 +55,18 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline,
+                color: Colors.redAccent, size: 48),
             const SizedBox(height: 12),
-            Text(state.error!, style: const TextStyle(color: Colors.white70)),
+            Text(state.error!,
+                style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(watchHistoryProvider.notifier).load();
+              },
+              child: const Text('重试'),
+            ),
           ],
         ),
       );
@@ -101,7 +75,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.movie_outlined, size: 80, color: Colors.white30),
             SizedBox(height: 16),
             Text('暂无观看历史',
@@ -127,42 +101,31 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
 }
 
 class _HistoryTile extends ConsumerWidget {
-  final WatchHistoryItem item;
+  final MediaItem item;
   const _HistoryTile({required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 获取认证状态以构造带认证的图片 URL
     final authState = ref.watch(authProvider);
+    final thumbnailUrl = item.thumbnailUrlWithAuth(
+      authState.embyServerUrl,
+      authState.token,
+    );
+    final headers = item.authHeaders(authState.token);
 
-    // 构造带认证的图片 URL
-    String? thumbnailUrl = item.thumbnailUrl;
-    if (authState.embyServerUrl != null && authState.embyServerUrl!.isNotEmpty) {
-      // 如果有 Emby 服务器地址，构造 Emby 图片 URL
-      final serverUrl = authState.embyServerUrl!;
-      final token = authState.token ?? '';
-      thumbnailUrl = '$serverUrl/Items/${item.itemId}/Images/Primary?MaxWidth=400&api_key=$token';
-    }
-
-    final headers = authState.token != null && authState.token!.isNotEmpty
-        ? {'X-Emby-Token': authState.token!}
-        : <String, String>{};
-
-    final progressPct = item.totalSeconds > 0
-        ? (item.progressSeconds / item.totalSeconds).clamp(0.0, 1.0)
+    // 计算播放进度
+    final durationSec = item.durationSeconds ?? 0.0;
+    final progressTicks = item.userData?.playbackPositionTicks ?? 0.0;
+    final progressSec = progressTicks / 10000000.0;
+    final progressPct = durationSec > 0
+        ? (progressSec / durationSec).clamp(0.0, 1.0)
         : 0.0;
 
     return InkWell(
       onTap: () {
-        final media = MediaItem(
-          id: item.itemId,
-          title: item.itemTitle,
-          type: '电影',
-          thumbnailUrl: thumbnailUrl,
-        );
         Navigator.push<void>(
           context,
-          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: media)),
+          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: item)),
         );
       },
       borderRadius: BorderRadius.circular(12),
@@ -194,7 +157,7 @@ class _HistoryTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.itemTitle,
+                    item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -203,40 +166,49 @@ class _HistoryTile extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.type,
+                    style: const TextStyle(
+                      color: Color(0xFFE91E63),
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   // 进度条
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: progressPct,
-                            backgroundColor: Colors.white12,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFFE91E63),
+                  if (progressPct > 0) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progressPct,
+                              backgroundColor: Colors.white12,
+                              valueColor:
+                                  const AlwaysStoppedAnimation<Color>(
+                                Color(0xFFE91E63),
+                              ),
+                              minHeight: 4,
                             ),
-                            minHeight: 4,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${(progressPct * 100).toInt()}%',
-                        style: const TextStyle(color: Colors.white54, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${_formatSeconds(item.progressSeconds)} / ${_formatSeconds(item.totalSeconds)}',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatDateTime(item.watchedAt),
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${(progressPct * 100).toInt()}%',
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                  if (item.userData?.lastPlayedDate != null)
+                    Text(
+                      '上次观看：${item.userData!.lastPlayedDate!.split('T').first}',
+                      style: const TextStyle(
+                          color: Colors.white38, fontSize: 11),
+                    ),
                 ],
               ),
             ),
@@ -252,30 +224,6 @@ class _HistoryTile extends ConsumerWidget {
         color: Colors.grey[800],
         child: const Icon(Icons.movie_outlined, color: Colors.white30),
       );
-
-  static String _formatSeconds(int seconds) {
-    if (seconds <= 0) return '0:00';
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    final s = seconds % 60;
-    if (h > 0) {
-      return '${h}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-    }
-    return '${m}:${s.toString().padLeft(2, '0')}';
-  }
-
-  static String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) {
-      return '今天 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } else if (diff.inDays == 1) {
-      return '昨天 ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays} 天前';
-    }
-    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-  }
 }
 
 class _HistoryPlayPage extends StatelessWidget {

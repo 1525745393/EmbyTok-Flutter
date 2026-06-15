@@ -1,16 +1,20 @@
 // 视频播放器 Widget：基于 video_player 插件，支持播放/暂停/跳转/倍速
+// 自动上报播放进度到 Emby 服务器
+
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 
 // 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
 class VideoPlayerWidget extends StatefulWidget {
   final MediaItem item;
-  // Emby 服务器认证信息（用于动态构造播放 URL）
+  // Emby 服务器认证信息（用于动态构造播放 URL 和上报进度）
   final String? embyServerUrl;
   final String? token;
   // 控制回调：暴露给外部调用
@@ -18,8 +22,8 @@ class VideoPlayerWidget extends StatefulWidget {
   final bool autoPlay;
   final bool loop;
   // 降级策略参数
-  final String? fallbackUrl;  // 降级 URL（Emby 原生 API）
-  final VoidCallback? onFallback;  // 降级回调
+  final String? fallbackUrl;
+  final VoidCallback? onFallback;
 
   const VideoPlayerWidget({
     super.key,
@@ -43,21 +47,21 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   bool _hasError = false;
   String? _errorMessage;
 
-  // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
+  Timer? _progressTimer;
+  int _lastReportedSeconds = 0;
+
+  // 获取播放 URL
   String? get _playbackUrl {
-    // 优先使用预置的 playbackUrl
     if (widget.item.playbackUrl != null && widget.item.playbackUrl!.isNotEmpty) {
       return widget.item.playbackUrl;
     }
-    // 尝试动态构造 Emby 视频流 URL
     return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
   }
 
-  // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
+  // 判断是否可以播放视频
   bool get _canPlayVideo {
     final url = _playbackUrl;
     if (url == null || url.isEmpty) return false;
-    // web 环境下 video_player 需要额外配置，降级为缩略图展示
     if (kIsWeb) return false;
     return true;
   }
@@ -70,7 +74,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  // 初始化 video_player 控制器
+  // 初始化视频控制器 + 从上次位置继续播放
   Future<void> _initVideo() async {
     final url = _playbackUrl;
     if (url == null) {
@@ -84,11 +88,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       return;
     }
 
-    // 记录初始化开始
     AppLogger.info('初始化视频播放器', data: {'itemId': widget.item.id, 'url': url});
 
     try {
-      // 获取认证头
       final headers = widget.item.authHeaders(widget.token);
 
       _controller = VideoPlayerController.networkUrl(
@@ -97,12 +99,26 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
+
       if (mounted) {
         setState(() {
           _initialized = true;
           _hasError = false;
         });
-        // 记录初始化成功
+
+        // 从上次位置继续播放
+        final resumeTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
+        if (resumeTicks > 0) {
+          final resumeSec = (resumeTicks / 10000000.0).round();
+          if (resumeSec > 0 && resumeSec < _controller!.value.duration.inSeconds) {
+            AppLogger.info('从上次位置继续播放', data: {
+              'itemId': widget.item.id,
+              'resumeSeconds': resumeSec,
+            });
+            await _controller!.seekTo(Duration(seconds: resumeSec));
+          }
+        }
+
         AppLogger.info('视频播放器初始化成功', data: {
           'itemId': widget.item.id,
           'duration': _controller!.value.duration.inSeconds,
@@ -110,12 +126,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         widget.onControllerReady?.call(_controller!);
         if (widget.autoPlay) {
           await _controller!.play();
+          _startProgressReporting();
         }
       }
     } catch (e) {
-      // 初始化失败：记录错误并尝试降级
       AppLogger.error('视频播放器初始化失败', error: e, data: {'itemId': widget.item.id, 'url': url});
-      
+
       // 尝试降级策略
       if (widget.fallbackUrl != null && widget.fallbackUrl!.isNotEmpty) {
         AppLogger.warn('主播放 URL 失败，尝试降级', data: {
@@ -123,13 +139,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           'fallbackUrl': widget.fallbackUrl,
         });
         widget.onFallback?.call();
-        
+
         try {
-          // 尝试使用降级 URL 重新初始化
           _controller = VideoPlayerController.networkUrl(Uri.parse(widget.fallbackUrl!));
           _controller!.setLooping(widget.loop);
           await _controller!.initialize();
-          
+
           if (mounted) {
             setState(() {
               _initialized = true;
@@ -142,19 +157,18 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             widget.onControllerReady?.call(_controller!);
             if (widget.autoPlay) {
               await _controller!.play();
+              _startProgressReporting();
             }
           }
-          return; // 降级成功，直接返回
+          return;
         } catch (fallbackError) {
-          // 降级 URL 也失败
           AppLogger.error('降级 URL 也失败', error: fallbackError, data: {
             'itemId': widget.item.id,
             'fallbackUrl': widget.fallbackUrl,
           });
         }
       }
-      
-      // 所有尝试都失败，显示错误
+
       if (mounted) {
         setState(() {
           _initialized = false;
@@ -165,28 +179,83 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  // 外部控制 API：播放
+  // 定时上报播放进度（每 30 秒上报一次）
+  void _startProgressReporting() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _reportProgress();
+    });
+  }
+
+  // 上报当前播放进度到 Emby
+  Future<void> _reportProgress() async {
+    if (_controller == null || !_initialized) return;
+    final position = _controller!.value.position;
+    final currentSeconds = position.inSeconds;
+    // 避免重复上报相同位置
+    if ((currentSeconds - _lastReportedSeconds).abs() < 10) return;
+    _lastReportedSeconds = currentSeconds;
+
+    final positionTicks = currentSeconds * 10000000;
+    try {
+      if (widget.embyServerUrl != null && widget.token != null) {
+        await EmbytokService().reportPlaybackPosition(
+          itemId: widget.item.id,
+          positionTicks: positionTicks,
+          serverUrl: widget.embyServerUrl,
+          token: widget.token,
+        );
+      }
+    } catch (e) {
+      AppLogger.error('上报播放进度失败', error: e, data: {'itemId': widget.item.id});
+    }
+  }
+
+  // 上报停止位置（离开页面时调用）
+  Future<void> _reportStopped() async {
+    if (_controller == null || !_initialized) return;
+    final position = _controller!.value.position;
+    final positionTicks = position.inSeconds * 10000000;
+
+    try {
+      if (widget.embyServerUrl != null && widget.token != null) {
+        await EmbytokService().reportPlaybackStopped(
+          itemId: widget.item.id,
+          positionTicks: positionTicks,
+          serverUrl: widget.embyServerUrl,
+          token: widget.token,
+        );
+      }
+    } catch (e) {
+      AppLogger.error('上报播放停止位置失败', error: e, data: {'itemId': widget.item.id});
+    }
+  }
+
+  // 外部控制 API
   void play() {
     _controller?.play();
+    _startProgressReporting();
   }
 
-  // 外部控制 API：暂停
   void pause() {
     _controller?.pause();
+    _reportProgress();
+    _progressTimer?.cancel();
   }
 
-  // 外部控制 API：跳转
   Future<void> seekTo(Duration position) async {
     await _controller?.seekTo(position);
+    _reportProgress();
   }
 
-  // 外部控制 API：设置倍速
   Future<void> setRate(double rate) async {
     await _controller?.setPlaybackSpeed(rate);
   }
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
+    _reportStopped();
     _controller?.dispose();
     _controller = null;
     super.dispose();
@@ -194,7 +263,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
       AppLogger.warn('无法播放视频，显示缩略图占位', data: {
         'itemId': widget.item.id,
@@ -204,9 +272,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       return _buildThumbnailPlaceholder();
     }
 
-    // 场景 2：视频正在初始化，显示加载指示器
     if (_controller == null || !_initialized) {
-      // 如果有错误，记录日志
       if (_hasError) {
         AppLogger.error('视频播放器处于错误状态', data: {
           'itemId': widget.item.id,
@@ -218,7 +284,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：正常播放视频，用 FittedBox 填满容器
     return SizedBox.expand(
       child: FittedBox(
         fit: BoxFit.cover,
@@ -231,11 +296,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     );
   }
 
-  // 缩略图占位：web 环境或无播放地址时使用
+  // 缩略图占位
   Widget _buildThumbnailPlaceholder() {
-    // 优先使用带认证信息的缩略图 URL
     final url = widget.item.thumbnailUrlWithAuth(widget.embyServerUrl, widget.token);
-    // 获取认证头用于图片请求
     final headers = widget.item.authHeaders(widget.token);
 
     return Stack(
@@ -278,7 +341,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
               ),
             ),
           ),
-        // web 环境或无法播放时的播放图标占位
         if (kIsWeb || !_canPlayVideo)
           const Center(
             child: Icon(

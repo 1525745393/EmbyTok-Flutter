@@ -1,27 +1,26 @@
-// 观看历史：本地持久化，保留最近播放的条目
-
-import 'dart:convert';
+// 观看历史：从 Emby 服务器获取最近观看的条目
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
-import '../utils/constants.dart';
+import '../services/embbytok_service.dart';
+import '../utils/logger.dart';
+import 'auth_provider.dart';
 
 // 观看历史状态
 class WatchHistoryState {
-  final List<WatchHistoryItem> items;
+  final List<MediaItem> items;
   final bool isLoading;
   final String? error;
 
   const WatchHistoryState({
-    this.items = const <WatchHistoryItem>[],
+    this.items = const <MediaItem>[],
     this.isLoading = false,
     this.error,
   });
 
   WatchHistoryState copyWith({
-    List<WatchHistoryItem>? items,
+    List<MediaItem>? items,
     bool? isLoading,
     String? error,
   }) {
@@ -35,82 +34,50 @@ class WatchHistoryState {
 
 // 观看历史 Notifier
 class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
-  WatchHistoryNotifier() : super(const WatchHistoryState()) {
+  final Ref _ref;
+  final EmbytokService _service;
+
+  WatchHistoryNotifier(this._ref)
+      : _service = EmbytokService(),
+        super(const WatchHistoryState()) {
     load();
   }
 
-  // 从本地存储加载
+  // 从 Emby 服务器加载
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
+    final auth = _ref.read(authProvider);
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      state = state.copyWith(isLoading: false, error: '尚未登录');
+      return;
+    }
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(kStorageKeyHistory);
-      if (raw == null || raw.isEmpty) {
-        state = const WatchHistoryState();
-        return;
-      }
-      final list = json.decode(raw) as List<dynamic>;
-      final items = list
-          .map((e) =>
-              WatchHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList()
-        ..sort((a, b) => b.watchedAt.compareTo(a.watchedAt));
-      state = WatchHistoryState(items: items);
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: '加载观看历史失败',
+      final items = await _service.getWatchHistory(
+        limit: 50,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
       );
+      state = WatchHistoryState(items: items);
+      AppLogger.info('观看历史加载成功', data: {'count': items.length});
+    } catch (e) {
+      final message = e is String ? e : '加载观看历史失败：$e';
+      state = state.copyWith(isLoading: false, error: message);
+      AppLogger.error('加载观看历史失败', error: e);
     }
   }
 
-  // 新增 / 更新一条观看记录
-  Future<void> upsert({
-    required String itemId,
-    required String itemTitle,
-    String? thumbnailUrl,
-    required int progressSeconds,
-    required int totalSeconds,
-  }) async {
-    final now = DateTime.now();
-    final newItem = WatchHistoryItem(
-      itemId: itemId,
-      itemTitle: itemTitle,
-      thumbnailUrl: thumbnailUrl,
-      watchedAt: now,
-      progressSeconds: progressSeconds,
-      totalSeconds: totalSeconds,
-    );
-
-    final list = List<WatchHistoryItem>.from(state.items)
-      ..removeWhere((e) => e.itemId == itemId)
-      ..insert(0, newItem);
-
-    // 只保留最近 100 条
-    if (list.length > 100) list.length = 100;
-
-    state = state.copyWith(items: list);
-    await _persist(list);
-  }
-
-  // 清除全部历史
-  Future<void> clear() async {
-    state = const WatchHistoryState();
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(kStorageKeyHistory);
-    } catch (_) {}
-  }
-
-  Future<void> _persist(List<WatchHistoryItem> items) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final data = items.map((e) => e.toJson()).toList();
-      await prefs.setString(kStorageKeyHistory, json.encode(data));
-    } catch (_) {}
+  // 刷新观看历史
+  Future<void> refresh() async {
+    await load();
   }
 }
 
 // 顶层 Provider
-final watchHistoryProvider = StateNotifierProvider<WatchHistoryNotifier,
-    WatchHistoryState>((ref) => WatchHistoryNotifier());
+final watchHistoryProvider =
+    StateNotifierProvider<WatchHistoryNotifier, WatchHistoryState>((ref) {
+  return WatchHistoryNotifier(ref);
+});
