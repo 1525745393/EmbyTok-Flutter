@@ -5,6 +5,35 @@
 
 ---
 
+## [1.2.8] - 2026-06-15
+
+### 新增
+- 结构化日志系统（AppLogger）：支持 INFO/DEBUG/WARN/ERROR 四个日志级别
+- 视频流降级策略：主 URL 失败时自动切换到 Emby 原生 API
+- 敏感信息过滤：日志自动过滤 token、password、secret 等敏感字段
+
+### 功能
+- 认证流程日志：登录/登出/Token 恢复全程可追踪
+- 媒体库日志：视频列表加载状态实时记录
+- 视频播放器日志：播放初始化、状态变化、错误信息完整记录
+- 搜索收藏日志：搜索请求、收藏操作状态记录
+- EmbytokService 日志：HTTP 请求/响应完整记录
+
+---
+
+## [1.2.7] - 2026-06-15
+
+### 修复
+- 视频播放认证问题：Emby API 不返回 playbackUrl，添加 `computePlaybackUrl()` 动态构造播放 URL
+- 图片加载认证问题：所有图片加载组件添加 `api_key` 认证参数
+- UI 缩略图修复：修复搜索/收藏/历史页面的缩略图加载问题
+
+### 新增
+- `VideoPlayerWidget` 支持 `embyServerUrl` 和 `token` 参数
+- `MediaItem` 新增 `authHeaders()` 和 `thumbnailUrlWithAuth()` 方法
+
+---
+
 ## [1.2.5] - 2026-06-15
 
 ### 新增
