@@ -27,8 +27,10 @@ class TopToolBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 监听视图模式
     final viewMode = ref.watch(viewModeProvider);
-    // 监听当前模式（最新/随机/收藏）
-    final feedType = ref.watch(feedTypeProvider);
+    // 监听当前选中的媒体库
+    final selectedLibrary = ref.watch(selectedLibraryProvider);
+    // 监听可见媒体库列表
+    final visibleLibraries = ref.watch(visibleLibraryListProvider);
     // 监听静音状态
     final isMuted = ref.watch(isMutedProvider);
     // 监听方向过滤模式
@@ -53,25 +55,96 @@ class TopToolBar extends ConsumerWidget {
               onPressed: onMenuPressed ?? () => _openDrawer(context),
               tooltip: '菜单',
             ),
-            // 中间：当前模式标签
+            // 中间：当前媒体库名称（点击切换）
             Expanded(
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE91E63).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFE91E63).withOpacity(0.5),
-                      width: 1,
+                child: PopupMenuButton<String>(
+                  color: Colors.grey[900],
+                  onSelected: (libraryId) =>
+                      _selectLibrary(ref, libraryId),
+                  itemBuilder: (context) {
+                    if (visibleLibraries.isEmpty) {
+                      return [
+                        const PopupMenuItem<String>(
+                          enabled: false,
+                          value: '',
+                          child: Text(
+                            '暂无可用媒体库',
+                            style: TextStyle(color: Colors.white60),
+                          ),
+                        ),
+                      ];
+                    }
+                    return visibleLibraries
+                        .map((lib) => PopupMenuItem<String>(
+                              value: lib.id,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    selectedLibrary?.id == lib.id
+                                        ? Icons.check_circle
+                                        : Icons.folder_outlined,
+                                    color: selectedLibrary?.id == lib.id
+                                        ? const Color(0xFFE91E63)
+                                        : Colors.white70,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      lib.name,
+                                      style: TextStyle(
+                                        color: selectedLibrary?.id == lib.id
+                                            ? const Color(0xFFE91E63)
+                                            : Colors.white70,
+                                        fontWeight: selectedLibrary?.id == lib.id
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ))
+                        .toList();
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE91E63).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE91E63).withOpacity(0.5),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    feedType.zhLabel, // 使用 FeedType 的中文标签
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_outlined,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          selectedLibrary?.name ?? '加载中...',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.expand_more,
+                          size: 18,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -117,12 +190,15 @@ class TopToolBar extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     viewMode == ViewMode.feed
-                        ? Icons.grid_view  // 视频流模式 -> 切换到网格
-                        : Icons.phone_android, // 网格模式 -> 切换到视频流
+                        ? Icons.grid_view // 视频流模式 -> 切换到网格
+                        : Icons
+                            .phone_android, // 网格模式 -> 切换到视频流
                     color: Colors.white,
                   ),
                   onPressed: () => _toggleViewMode(ref, viewMode),
-                  tooltip: viewMode == ViewMode.feed ? '切换到网格视图' : '切换到视频流',
+                  tooltip: viewMode == ViewMode.feed
+                      ? '切换到网格视图'
+                      : '切换到视频流',
                 ),
                 // 全屏按钮
                 IconButton(
@@ -209,5 +285,11 @@ class TopToolBar extends ConsumerWidget {
   // 设置方向过滤模式
   void _setOrientationMode(WidgetRef ref, OrientationMode mode) {
     ref.read(orientationModeProvider.notifier).setMode(mode);
+  }
+
+  // 切换当前媒体库
+  void _selectLibrary(WidgetRef ref, String libraryId) {
+    if (libraryId.isEmpty) return;
+    ref.read(selectedLibraryIdProvider.notifier).setLibrary(libraryId);
   }
 }

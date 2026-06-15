@@ -1,4 +1,8 @@
 // 视频列表分页加载：支持按媒体库筛选、下拉刷新与无限滚动
+// 关键特性：
+// 1. 监听 selectedLibraryIdProvider 变化，自动触发视频加载
+// 2. 支持分页（offset/limit）
+// 3. 支持方向过滤（通过 filteredVideoListProvider）
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,14 +52,25 @@ class VideoListState {
   }
 }
 
-// 视频列表 Notifier
+// 视频列表 Notifier：在选中媒体库变化时自动加载
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
 
   VideoListNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
-        super(const VideoListState());
+        super(const VideoListState()) {
+    // 监听 selectedLibraryIdProvider 变化：媒体库切换时自动刷新视频列表
+    _ref.listen<String?>(
+      selectedLibraryIdProvider,
+      (previous, next) {
+        if (next != null && next.isNotEmpty && next != previous) {
+          AppLogger.debug('媒体库变化：$previous -> $next，刷新视频列表');
+          refresh(libraryId: next);
+        }
+      },
+    );
+  }
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
