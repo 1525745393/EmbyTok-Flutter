@@ -73,7 +73,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
     _isLongPressing = true;
-    c.setPlaybackRate(kLongPressPlaybackRate);
+    c.setPlaybackSpeed(kLongPressPlaybackRate);
   }
 
   void _onLongPressEnd() {
@@ -81,7 +81,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isLongPressing = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    c.setPlaybackRate(ref.read(playbackRateProvider));
+    c.setPlaybackSpeed(ref.read(playbackRateProvider));
   }
 
   // ---- 水平拖动（快进/快退） ----
