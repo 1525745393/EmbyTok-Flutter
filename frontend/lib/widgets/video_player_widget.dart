@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../utils/logger.dart';
 
 // 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
 class VideoPlayerWidget extends StatefulWidget {
@@ -16,6 +17,9 @@ class VideoPlayerWidget extends StatefulWidget {
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
   final bool loop;
+  // 降级策略参数
+  final String? fallbackUrl;  // 降级 URL（Emby 原生 API）
+  final VoidCallback? onFallback;  // 降级回调
 
   const VideoPlayerWidget({
     super.key,
@@ -25,6 +29,8 @@ class VideoPlayerWidget extends StatefulWidget {
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
+    this.fallbackUrl,
+    this.onFallback,
   });
 
   @override
@@ -68,6 +74,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Future<void> _initVideo() async {
     final url = _playbackUrl;
     if (url == null) {
+      AppLogger.error('无法获取播放地址', data: {'itemId': widget.item.id});
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -76,6 +83,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
       return;
     }
+
+    // 记录初始化开始
+    AppLogger.info('初始化视频播放器', data: {'itemId': widget.item.id, 'url': url});
 
     try {
       // 获取认证头
@@ -92,14 +102,59 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           _initialized = true;
           _hasError = false;
         });
+        // 记录初始化成功
+        AppLogger.info('视频播放器初始化成功', data: {
+          'itemId': widget.item.id,
+          'duration': _controller!.value.duration.inSeconds,
+        });
         widget.onControllerReady?.call(_controller!);
         if (widget.autoPlay) {
           await _controller!.play();
         }
       }
     } catch (e) {
-      // 初始化失败：降级为缩略图展示
-      debugPrint('VideoPlayer initialization error: $e');
+      // 初始化失败：记录错误并尝试降级
+      AppLogger.error('视频播放器初始化失败', error: e, data: {'itemId': widget.item.id, 'url': url});
+      
+      // 尝试降级策略
+      if (widget.fallbackUrl != null && widget.fallbackUrl!.isNotEmpty) {
+        AppLogger.warn('主播放 URL 失败，尝试降级', data: {
+          'error': e.toString(),
+          'fallbackUrl': widget.fallbackUrl,
+        });
+        widget.onFallback?.call();
+        
+        try {
+          // 尝试使用降级 URL 重新初始化
+          _controller = VideoPlayerController.networkUrl(Uri.parse(widget.fallbackUrl!));
+          _controller!.setLooping(widget.loop);
+          await _controller!.initialize();
+          
+          if (mounted) {
+            setState(() {
+              _initialized = true;
+              _hasError = false;
+            });
+            AppLogger.info('降级 URL 初始化成功', data: {
+              'itemId': widget.item.id,
+              'fallbackUrl': widget.fallbackUrl,
+            });
+            widget.onControllerReady?.call(_controller!);
+            if (widget.autoPlay) {
+              await _controller!.play();
+            }
+          }
+          return; // 降级成功，直接返回
+        } catch (fallbackError) {
+          // 降级 URL 也失败
+          AppLogger.error('降级 URL 也失败', error: fallbackError, data: {
+            'itemId': widget.item.id,
+            'fallbackUrl': widget.fallbackUrl,
+          });
+        }
+      }
+      
+      // 所有尝试都失败，显示错误
       if (mounted) {
         setState(() {
           _initialized = false;
@@ -141,11 +196,23 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   Widget build(BuildContext context) {
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
+      AppLogger.warn('无法播放视频，显示缩略图占位', data: {
+        'itemId': widget.item.id,
+        'hasPlaybackUrl': widget.item.playbackUrl != null,
+        'isWeb': kIsWeb,
+      });
       return _buildThumbnailPlaceholder();
     }
 
     // 场景 2：视频正在初始化，显示加载指示器
     if (_controller == null || !_initialized) {
+      // 如果有错误，记录日志
+      if (_hasError) {
+        AppLogger.error('视频播放器处于错误状态', data: {
+          'itemId': widget.item.id,
+          'errorMessage': _errorMessage,
+        });
+      }
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFE91E63)),
       );

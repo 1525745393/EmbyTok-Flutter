@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 import 'auth_provider.dart';
 
 // 搜索状态
@@ -66,6 +67,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
       return;
     }
 
+    AppLogger.info('开始搜索', data: {'query': query});
+
     state = SearchState(
       results: const <MediaItem>[],
       query: query,
@@ -102,15 +105,19 @@ class SearchNotifier extends StateNotifier<SearchState> {
         offset: resp.items.length,
         limit: state.limit,
       );
+      AppLogger.debug('搜索完成', data: {'results': resp.items.length, 'total': resp.total});
     } catch (e) {
       final message = e is String ? e : '搜索失败：$e';
       state = state.copyWith(isLoading: false, error: message);
+      AppLogger.error('搜索失败', error: e);
     }
   }
 
   // 加载更多搜索结果
   Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore || state.query.isEmpty) return;
+
+    AppLogger.debug('加载更多搜索结果', data: {'offset': state.offset});
 
     state = state.copyWith(isLoading: true, error: null);
 
@@ -141,9 +148,11 @@ class SearchNotifier extends StateNotifier<SearchState> {
         offset: state.offset + resp.items.length,
         limit: state.limit,
       );
+      AppLogger.debug('加载更多成功', data: {'newCount': resp.items.length});
     } catch (e) {
       final message = e is String ? e : '加载更多失败：$e';
       state = state.copyWith(isLoading: false, error: message);
+      AppLogger.error('加载更多搜索结果失败', error: e);
     }
   }
 }

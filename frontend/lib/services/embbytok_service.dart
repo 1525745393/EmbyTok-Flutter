@@ -3,6 +3,7 @@
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
 import '../models/models.dart';
+import '../utils/logger.dart';
 import 'api_client.dart';
 
 class EmbytokService {
@@ -41,32 +42,43 @@ class EmbytokService {
     required String username,
     required String password,
   }) async {
-    _apiClient.setBaseUrl(embyServerUrl);
+    AppLogger.info('发送登录请求', data: {
+      'serverUrl': embyServerUrl,
+      'username': username,
+    });
 
-    final resp = await _apiClient.post<Map<String, dynamic>>(
-      '/Users/AuthenticateByName',
-      data: {
-        'Username': username,
-        'Pw': password,
-      },
-    );
+    try {
+      _apiClient.setBaseUrl(embyServerUrl);
 
-    final data = resp.data as Map<String, dynamic>;
-    final userInfo = data['User'] as Map<String, dynamic>? ?? {};
-    final accessToken = (data['AccessToken'] as String?) ?? '';
+      final resp = await _apiClient.post<Map<String, dynamic>>(
+        '/Users/AuthenticateByName',
+        data: {
+          'Username': username,
+          'Pw': password,
+        },
+      );
 
-    final user = User(
-      id: (userInfo['Id'] as String?) ?? '',
-      name: (userInfo['Name'] as String?) ?? username,
-      accessToken: accessToken,
-    );
+      final data = resp.data as Map<String, dynamic>;
+      final userInfo = data['User'] as Map<String, dynamic>? ?? {};
+      final accessToken = (data['AccessToken'] as String?) ?? '';
 
-    // 保存配置方便后续直接调用
-    _defaultServerUrl = embyServerUrl;
-    _defaultToken = accessToken;
-    _apiClient.setToken(accessToken);
+      final user = User(
+        id: (userInfo['Id'] as String?) ?? '',
+        name: (userInfo['Name'] as String?) ?? username,
+        accessToken: accessToken,
+      );
 
-    return user;
+      // 保存配置方便后续直接调用
+      _defaultServerUrl = embyServerUrl;
+      _defaultToken = accessToken;
+      _apiClient.setToken(accessToken);
+
+      AppLogger.info('登录成功', data: {'userId': user.id});
+      return user;
+    } catch (e) {
+      AppLogger.error('登录请求失败', error: e);
+      rethrow;
+    }
   }
 
   // ============================
@@ -76,6 +88,7 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('请求媒体库列表');
     _ensureConfig(serverUrl, token);
     final resp = await _apiClient.get<dynamic>(
       '/Library/VirtualFolders',
@@ -86,7 +99,7 @@ class EmbytokService {
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
 
-    return items
+    final libraries = items
         .whereType<Map<String, dynamic>>()
         .map((e) => Library(
               id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
@@ -94,6 +107,9 @@ class EmbytokService {
               type: (e['CollectionType'] as String?) ?? 'movies',
             ))
         .toList();
+
+    AppLogger.debug('媒体库列表响应', data: {'count': libraries.length});
+    return libraries;
   }
 
   // ============================
@@ -106,6 +122,11 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('请求视频列表', data: {
+      'libraryId': libraryId,
+      'limit': limit,
+      'offset': offset,
+    });
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'ParentId': libraryId,
@@ -123,7 +144,12 @@ class EmbytokService {
       '/Items',
       queryParameters: params,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    AppLogger.debug('视频列表响应', data: {
+      'count': result.items.length,
+      'total': result.total,
+    });
+    return result;
   }
 
   // ============================
@@ -494,12 +520,17 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('切换收藏状态请求', data: {
+      'itemId': itemId,
+      'isFavorite': isFavorite,
+    });
     _ensureConfig(serverUrl, token);
     if (isFavorite) {
       await _apiClient.post<dynamic>('/UserFavoriteItems/$itemId');
     } else {
       await _apiClient.delete<dynamic>('/UserFavoriteItems/$itemId');
     }
+    AppLogger.debug('收藏状态已更新');
   }
 
   // ============================
@@ -625,6 +656,10 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('上报播放进度', data: {
+      'itemId': itemId,
+      'positionTicks': positionTicks,
+    });
     _ensureConfig(serverUrl, token);
     final body = <String, dynamic>{
       'ItemId': itemId,
@@ -646,6 +681,10 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('上报播放停止', data: {
+      'itemId': itemId,
+      'positionTicks': positionTicks,
+    });
     _ensureConfig(serverUrl, token);
     final body = <String, dynamic>{
       'ItemId': itemId,
@@ -712,6 +751,10 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.info('发送搜索请求', data: {
+      'query': query,
+      'limit': limit,
+    });
     _ensureConfig(serverUrl, token);
     if (query.isEmpty) {
       return PaginatedResponse(
@@ -734,7 +777,12 @@ class EmbytokService {
       '/Items',
       queryParameters: params,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    AppLogger.debug('搜索响应', data: {
+      'results': result.items.length,
+      'total': result.total,
+    });
+    return result;
   }
 
   // ============================
@@ -746,6 +794,7 @@ class EmbytokService {
     final url = serverUrl ?? _defaultServerUrl;
     final tk = token ?? _defaultToken;
     if (url == null || url.isEmpty) {
+      AppLogger.warn('服务器地址未配置');
       throw '请先登录或提供 Emby 服务器地址';
     }
     if (url != _apiClient.optionsBaseUrl) {

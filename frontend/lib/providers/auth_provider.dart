@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 
 // 认证状态类
 class AuthState {
@@ -63,6 +64,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // 从本地存储恢复登录状态
   Future<void> _loadFromStorage() async {
     try {
+      AppLogger.debug('从本地存储恢复登录状态');
       final prefs = await SharedPreferences.getInstance();
       final configStr = prefs.getString(kStorageKeyConfig);
       if (configStr == null || configStr.isEmpty) return;
@@ -88,8 +90,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           embyServerUrl: embyServerUrl,
           token: accessToken,
         );
+        AppLogger.info('登录状态恢复成功', data: {'userId': userId, 'hasToken': true});
       }
     } catch (e) {
+      AppLogger.error('恢复登录状态失败', error: e);
       // 读取失败不中断启动，仅忽略已损坏的缓存
     }
   }
@@ -103,6 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      AppLogger.info('开始登录', data: {'serverUrl': embyServerUrl, 'username': username});
       final user = await _service.login(
         embyServerUrl: embyServerUrl,
         username: username,
@@ -127,7 +132,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         embyServerUrl: embyServerUrl,
         token: user.accessToken,
       );
+      AppLogger.info('登录成功', data: {'userId': user.id, 'userName': user.name});
     } catch (e) {
+      AppLogger.error('登录失败', error: e);
       state = state.copyWith(
         isLoading: false,
         error: e is String ? e : '登录失败：$e',
@@ -138,6 +145,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // 退出登录：清除本地 Token
   Future<void> logout() async {
+    AppLogger.info('用户登出');
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(kStorageKeyConfig);

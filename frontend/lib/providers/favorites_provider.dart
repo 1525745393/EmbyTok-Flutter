@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
+import '../utils/logger.dart';
 import 'auth_provider.dart';
 
 // 收藏状态
@@ -53,6 +54,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   // 加载收藏列表
   Future<void> loadFavorites() async {
+    AppLogger.info('加载收藏列表');
+
     state = state.copyWith(isLoading: true, error: null);
 
     final auth = _auth;
@@ -74,9 +77,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         isLoading: false,
         favoriteIds: ids,
       );
+      AppLogger.info('收藏列表加载成功', data: {'count': items.length});
     } catch (e) {
       final message = e is String ? e : '加载收藏失败：$e';
       state = state.copyWith(isLoading: false, error: message);
+      AppLogger.error('加载收藏失败', error: e);
     }
   }
 
@@ -92,6 +97,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     final currentlyFavorite = isFavorite(item.id);
     final newState = currentlyFavorite ? false : true;
+
+    AppLogger.info('切换收藏状态', data: {'itemId': item.id, 'newState': newState});
 
     // 先乐观更新 UI
     final newIds = Set<String>.from(state.favoriteIds);
@@ -131,6 +138,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         favoriteIds: rollbackIds,
         error: message,
       );
+      AppLogger.error('切换收藏失败', error: e);
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'library_provider.dart';
 
@@ -86,6 +87,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      AppLogger.info('刷新视频列表', data: {'libraryId': targetLibraryId});
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
@@ -103,7 +105,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         offset: resp.items.length,
         limit: state.limit,
       );
+      AppLogger.debug('视频列表刷新成功', data: {'count': resp.items.length, 'total': resp.total});
     } catch (e) {
+      AppLogger.error('刷新视频列表失败', error: e);
       final message = e is String ? e : '加载视频失败：$e';
       state = state.copyWith(isLoading: false, error: message);
     }
@@ -130,6 +134,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         return;
       }
 
+      AppLogger.debug('加载更多视频', data: {'offset': state.offset});
       final resp = await _service.getLibraryItems(
         targetLibraryId,
         limit: state.limit,
@@ -149,7 +154,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         offset: state.offset + resp.items.length,
         limit: state.limit,
       );
+      AppLogger.debug('加载更多成功', data: {'newCount': resp.items.length});
     } catch (e) {
+      AppLogger.error('加载更多失败', error: e);
       final message = e is String ? e : '加载更多失败：$e';
       state = state.copyWith(isLoading: false, error: message);
     }
