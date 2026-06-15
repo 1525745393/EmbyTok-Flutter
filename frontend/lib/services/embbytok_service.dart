@@ -788,6 +788,67 @@ class EmbytokService {
   }
 
   // ============================
+  // 获取子项（孩子节点）
+  // ============================
+  Future<PaginatedResponse<MediaItem>> getChildren(
+    String parentId, {
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('获取子项', data: {'parentId': parentId, 'limit': limit});
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'limit': '$limit',
+      'startIndex': '$offset',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$parentId/Children',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 通用 POST 请求
+  // ============================
+  Future<dynamic> postRaw(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    dynamic data,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('POST 请求', data: {'path': path});
+    _ensureConfig(serverUrl, token);
+    final resp = await _apiClient.post<dynamic>(
+      path,
+      queryParameters: queryParameters,
+      data: data,
+    );
+    return resp.data;
+  }
+
+  // ============================
+  // 通用 DELETE 请求
+  // ============================
+  Future<dynamic> deleteRaw(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('DELETE 请求', data: {'path': path});
+    _ensureConfig(serverUrl, token);
+    final resp = await _apiClient.delete<dynamic>(
+      path,
+      queryParameters: queryParameters,
+    );
+    return resp.data;
+  }
+
+  // ============================
   // 内部辅助方法
   // ============================
 
