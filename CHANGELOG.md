@@ -5,6 +5,21 @@
 
 ---
 
+## [1.3.2] - 2026-06-15
+
+### 修复
+
+- `Color.withValues` 兼容性问题：Flutter 3.22+ 特有 API 在 CI 环境中导致 `undefined_method` 编译错误，已替换为稳定的 `Color.withOpacity()` API
+- `_parsePaginatedResponse` 方法类型安全增强：空列表字面量 `const []` 改为 `const <MediaItem>[]`，明确泛型类型避免类型推断歧义
+- `library_provider.dart` Provider 声明顺序优化：将 `libraryListProvider` 移到文件顶部，`selectedLibraryIdProvider` / `selectedLibraryProvider` 放在底部，使依赖声明顺序更清晰
+
+### 改进
+
+- `top_tool_bar.dart` 移除未使用的 `import 'package:flutter_riverpod/flutter_riverpod.dart'`（如适用）
+- `embbytok_service.dart` 添加显式泛型类型参数，提升强类型一致性
+
+---
+
 ## [1.3.1] - 2026-06-15
 
 ### 修复
