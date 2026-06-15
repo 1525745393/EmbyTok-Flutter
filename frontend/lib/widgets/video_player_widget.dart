@@ -6,9 +6,12 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 
-// 视频播放器：优先播放 item.playbackUrl，如为空则降级为缩略图
+// 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
 class VideoPlayerWidget extends StatefulWidget {
   final MediaItem item;
+  // Emby 服务器认证信息（用于动态构造播放 URL）
+  final String? embyServerUrl;
+  final String? token;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
@@ -17,6 +20,8 @@ class VideoPlayerWidget extends StatefulWidget {
   const VideoPlayerWidget({
     super.key,
     required this.item,
+    this.embyServerUrl,
+    this.token,
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
@@ -29,12 +34,23 @@ class VideoPlayerWidget extends StatefulWidget {
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
+  bool _hasError = false;
+  String? _errorMessage;
+
+  // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
+  String? get _playbackUrl {
+    // 优先使用预置的 playbackUrl
+    if (widget.item.playbackUrl != null && widget.item.playbackUrl!.isNotEmpty) {
+      return widget.item.playbackUrl;
+    }
+    // 尝试动态构造 Emby 视频流 URL
+    return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+  }
 
   // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
   bool get _canPlayVideo {
-    if (widget.item.playbackUrl == null || widget.item.playbackUrl!.isEmpty) {
-      return false;
-    }
+    final url = _playbackUrl;
+    if (url == null || url.isEmpty) return false;
     // web 环境下 video_player 需要额外配置，降级为缩略图展示
     if (kIsWeb) return false;
     return true;
@@ -50,15 +66,31 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   // 初始化 video_player 控制器
   Future<void> _initVideo() async {
+    final url = _playbackUrl;
+    if (url == null) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = '无法获取播放地址';
+        });
+      }
+      return;
+    }
+
     try {
+      // 获取认证头
+      final headers = widget.item.authHeaders(widget.token);
+
       _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.item.playbackUrl!),
+        Uri.parse(url),
+        httpHeaders: headers.isNotEmpty ? headers : null,
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
       if (mounted) {
         setState(() {
           _initialized = true;
+          _hasError = false;
         });
         widget.onControllerReady?.call(_controller!);
         if (widget.autoPlay) {
@@ -67,9 +99,12 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
     } catch (e) {
       // 初始化失败：降级为缩略图展示
+      debugPrint('VideoPlayer initialization error: $e');
       if (mounted) {
         setState(() {
           _initialized = false;
+          _hasError = true;
+          _errorMessage = '视频加载失败';
         });
       }
     }
@@ -131,7 +166,11 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   // 缩略图占位：web 环境或无播放地址时使用
   Widget _buildThumbnailPlaceholder() {
-    final url = widget.item.thumbnailUrl;
+    // 优先使用带认证信息的缩略图 URL
+    final url = widget.item.thumbnailUrlWithAuth(widget.embyServerUrl, widget.token);
+    // 获取认证头用于图片请求
+    final headers = widget.item.authHeaders(widget.token);
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -139,6 +178,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           Image.network(
             url,
             fit: BoxFit.cover,
+            httpHeaders: headers.isNotEmpty ? headers : null,
             errorBuilder: (_, __, ___) => Container(
               color: Colors.grey[900],
               child: const Center(
@@ -155,12 +195,24 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         else
           Container(
             color: Colors.grey[900],
-            child: const Center(
-              child: Icon(Icons.movie_outlined, size: 64, color: Colors.white30),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.movie_outlined, size: 64, color: Colors.white30),
+                  if (_hasError && _errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-        // web 环境下的播放图标占位
-        if (kIsWeb)
+        // web 环境或无法播放时的播放图标占位
+        if (kIsWeb || !_canPlayVideo)
           const Center(
             child: Icon(
               Icons.play_circle_fill,

@@ -127,12 +127,28 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   }
 }
 
-class _HistoryTile extends StatelessWidget {
+class _HistoryTile extends ConsumerWidget {
   final WatchHistoryItem item;
   const _HistoryTile({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 获取认证状态以构造带认证的图片 URL
+    final authState = ref.watch(authProvider);
+
+    // 构造带认证的图片 URL
+    String? thumbnailUrl = item.thumbnailUrl;
+    if (authState.embyServerUrl != null && authState.embyServerUrl!.isNotEmpty) {
+      // 如果有 Emby 服务器地址，构造 Emby 图片 URL
+      final serverUrl = authState.embyServerUrl!;
+      final token = authState.token ?? '';
+      thumbnailUrl = '$serverUrl/Items/${item.itemId}/Images/Primary?MaxWidth=400&api_key=$token';
+    }
+
+    final headers = authState.token != null && authState.token!.isNotEmpty
+        ? {'X-Emby-Token': authState.token!}
+        : <String, String>{};
+
     final progressPct = item.totalSeconds > 0
         ? (item.progressSeconds / item.totalSeconds).clamp(0.0, 1.0)
         : 0.0;
@@ -143,7 +159,7 @@ class _HistoryTile extends StatelessWidget {
           id: item.itemId,
           title: item.itemTitle,
           type: '电影',
-          thumbnailUrl: item.thumbnailUrl,
+          thumbnailUrl: thumbnailUrl,
         );
         Navigator.push<void>(
           context,
@@ -162,12 +178,13 @@ class _HistoryTile extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: item.thumbnailUrl != null && item.thumbnailUrl!.isNotEmpty
+              child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
                   ? Image.network(
-                      item.thumbnailUrl!,
+                      thumbnailUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
+                      httpHeaders: headers.isNotEmpty ? headers : null,
                       errorBuilder: (_, __, ___) => _thumbPlaceholder(),
                     )
                   : _thumbPlaceholder(),

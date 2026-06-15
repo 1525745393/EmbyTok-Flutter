@@ -25,6 +25,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   Widget build(BuildContext context) {
+    // 从认证状态获取 Emby 服务器信息
+    final authState = ref.watch(authProvider);
+    final embyServerUrl = authState.embyServerUrl;
+    final token = authState.token;
+
     final favorited =
         ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
 
@@ -37,6 +42,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           item: widget.item,
           child: VideoPlayerWidget(
             item: widget.item,
+            embyServerUrl: embyServerUrl,
+            token: token,
             onControllerReady: (c) {
               setState(() {
                 _videoController = c;

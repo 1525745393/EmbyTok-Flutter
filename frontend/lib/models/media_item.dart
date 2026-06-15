@@ -281,6 +281,33 @@ class MediaItem {
     return imageUrl('Backdrop', embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
   }
 
+  // 动态构造 Emby 视频流播放 URL
+  // Emby API 不返回 playbackUrl，需要根据服务器地址和 token 动态构造
+  String? computePlaybackUrl(String? embyServerUrl, String? token) {
+    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
+    if (token == null || token.isEmpty) return null;
+    final encodedToken = Uri.encodeQueryComponent(token);
+    return '$embyServerUrl/Videos/$id/stream?api_key=$encodedToken&Static=true';
+  }
+
+  // 获取认证 HTTP 请求头（用于 video_player 插件）
+  Map<String, String> authHeaders(String? token) {
+    if (token == null || token.isEmpty) return {};
+    return {'X-Emby-Token': token};
+  }
+
+  // 获取缩略图 URL（带认证信息）
+  // 优先使用 Emby 图片 URL，fallback 到 thumbnailUrl
+  String? thumbnailUrlWithAuth(String? embyServerUrl, String? apiKey, {int maxWidth = 400}) {
+    // 如果有 Emby 服务器地址和图片标签，构造 Emby 图片 URL
+    if (embyServerUrl != null && embyServerUrl.isNotEmpty) {
+      final embUrl = primaryUrl(embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+      if (embUrl != null) return embUrl;
+    }
+    // Fallback 到直接 URL
+    return thumbnailUrl;
+  }
+
   // 带 Emby URL 的副本（便捷构造）
   MediaItem withEmbyUrls(String embyServerUrl, String apiKey) => this;
 
