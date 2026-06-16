@@ -5,6 +5,37 @@
 
 ---
 
+## [1.6.0] - 2026-06-17
+
+### 新增
+
+- **沉浸式交互设计**：在视频流播放模式下，顶部工具栏和底部导航栏跟随手势平滑折叠/展开，滑动切换视频时 200ms `AnimatedContainer` 动画自动隐藏，下滑或点击画面重新显示；全局 `toolbarVisibilityProvider` 统一管理状态，跨组件动画同步
+- **沉浸式系统 UI 模式**：横屏全屏播放时，系统状态栏和导航栏自动隐藏（`SystemUiMode.immersiveSticky`），应用页面延伸到屏幕边缘，与 `SafeArea` 动态适配 notch 和手势条；退出全屏恢复 `edgeToEdge` 模式
+- **响应式设计（半透明叠加）**：手机竖屏模式下视频内容 `Positioned.fill` 全屏展示，工具栏和导航栏用 `LinearGradient`（`overlayBlack` → 透明）半透明叠加，不再"推挤"视频区；操作按钮和标题 padding 与工具栏可见性联动，隐藏时释放空间，展开时自适应
+- **滑动进度控制**：水平拖动调整视频播放进度时，屏幕中上方显示半透明进度条浮层，包含方向图标（`⏩` 快进 / `⏪` 快退）、偏移量（`+12s` / `-45s`）、当前时间 / 总时长（`HH:MM:SS` / `MM:SS`）、可视化进度条（粉色填充 + 圆形发光指示器）；150ms 淡入，300ms 淡出，填充动画 `easeOut`，实时跟随手指移动
+- **增强触觉反馈**：滑动进度控制起始 `selectionClick`，每跨越 5 秒再次 `selectionClick`，结束 `lightImpact`，形成完整的"操作—反馈"闭环
+- **时间格式化工具**：新增 `_formatDuration(Duration)` 处理 `HH:MM:SS` 和 `MM:SS` 两种格式，< 1 小时自动省略小时位，零时长和负时长有安全处理
+- **动画与尺寸常量**：`constants.dart` 新增 `kToolbarAnimMs` (200)、`kToolbarHeight` (56)、`kBottomNavHeight` (56)、`kProgressBarFadeInMs` (150)、`kProgressBarFadeOutMs` (300)、`kProgressBarAnimMs` (80)，统一动画参数，便于后续调参
+- **颜色与样式常量**：`colors.dart` 新增 `overlayBlack = Color(0xAA000000)`（67% 不透明黑）和 `overlayBlackDeep = Color(0xCC000000)`（80% 不透明黑），用于半透明浮层
+
+### 改进
+
+- `toolbar_visibility_provider.dart`：新增 `StateNotifier<bool>` 全局管理工具栏/导航栏可见性，`show()` / `hide()` / `toggle()` 方法统一接口，避免多处直接操作 `setState`
+- `feed_view.dart`：重构 Stack 布局为视频内容 `Positioned.fill` + 工具栏 `Positioned(top: 0)`，替代原先的列堆叠；新增 `_buildAnimatedToolBar()` 负责工具栏的渐变背景 + 折叠动画；`_onScroll()` 监听驱动工具栏状态切换；grid 视图通过 padding 避开工具栏保持可读性
+- `home_scaffold.dart`：从 `Scaffold(bottomNavigationBar:)` 改为 `body: Stack(IndexedStack + Positioned)`，导航栏改为 `AnimatedContainer` + `AnimatedOpacity` 联动，非 feed 页面的 `Padding` 预留导航栏高度避免内容被遮挡
+- `gesture_overlay.dart`：水平拖动处理完整重写，`_onHorizontalDragStart` 记录起始位置并触发 UI 状态更新，`_onHorizontalDragUpdate` 实时更新进度条，`_onHorizontalDragEnd` 淡出动画 + 延迟状态清理；新增私有 `_ProgressBarOverlay` 组件封装进度条 UI
+- `video_page_item.dart`：底部标题区和右侧操作按钮的 `EdgeInsets` 改为条件式，根据 `toolbarVisibilityProvider` 状态动态调整，工具栏隐藏时释放 56px 竖向空间
+
+### 设计原则
+
+- 统一使用 Riverpod 管理动画状态，`toolbarVisibilityProvider` 单一数据源
+- Flutter 原生动画（`AnimatedContainer` + `AnimatedOpacity` + `AnimatedContainer` 伸缩），无第三方依赖
+- Stack 绝对定位布局让内容自然延伸到屏幕边缘，配合 `MediaQuery.padding` 适配 notch/动态岛/手势条
+- 进度条浮层用 `IgnorePointer` 包裹，不影响手势识别
+- 所有文字和图标样式与 `_SpeedBadge` 保持视觉一致性
+
+---
+
 ## [1.5.0] - 2026-06-17
 
 ### 新增
