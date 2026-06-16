@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -30,8 +31,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   int _currentIndex = 0;
   int _swipeCount = 0;
   bool _guideShown = false;
-  Timer? _progressMonitor;
-  VideoPlayerController? _currentController;
 
   @override
   bool get wantKeepAlive => true;
@@ -48,51 +47,28 @@ class _FeedViewState extends ConsumerState<FeedView>
   @override
   void dispose() {
     _pageController.dispose();
-    _progressMonitor?.cancel();
-    _currentController?.removeListener(_onPositionUpdate);
     ref.read(preloadProvider.notifier).clear();
     super.dispose();
   }
 
-  /// 当前视频位置变化时，检查是否达到预加载阈值
-  void _onPositionUpdate() {
-    final ctrl = _currentController;
-    if (ctrl == null || !ctrl.value.isInitialized) return;
-    final duration = ctrl.value.duration.inMilliseconds;
-    if (duration <= 0) return;
-    final position = ctrl.value.position.inMilliseconds;
-    final progress = position / duration;
-    final threshold = ref.read(preloadThresholdProvider);
-    final items = ref.read(filteredVideoListProvider);
-    if (items.isEmpty) return;
-    ref.read(preloadProvider.notifier).updateProgress(
-      progress,
-      items,
-      _currentIndex,
-      embyServerUrl: ref.read(authProvider).embyServerUrl,
-      token: ref.read(authProvider).token,
-    );
-  }
-
-  /// 切换到新页面时：停止旧页面的进度监听，绑定新页面的 controller
+  /// 切换到新页面时：更新索引、触发下一条预取、更新引导状态
   void _onPageSwitched(int index, List<MediaItem> items) {
     setState(() {
       _currentIndex = index;
       _swipeCount++;
     });
     ref.read(currentPlayingIndexProvider.notifier).state = index;
+    // 触发下一条视频预加载（异步，不需要 await）
+    ref.read(preloadProvider.notifier).preloadNext(
+      items,
+      index,
+      embyServerUrl: ref.read(authProvider).embyServerUrl,
+      token: ref.read(authProvider).token,
+    );
     // 计数达到引导阈值时，淡出引导层
     if (!_guideShown && _swipeCount >= kGuideSwipeThreshold) {
       setState(() => _guideShown = true);
     }
-  }
-
-  /// 当某个页面的 VideoPlayer 初始化完成时，绑定进度监听
-  void _onControllerReady(VideoPlayerController controller, MediaItem item) {
-    // 先停止监听之前的 controller
-    _currentController?.removeListener(_onPositionUpdate);
-    _currentController = controller;
-    _currentController?.addListener(_onPositionUpdate);
   }
 
   @override

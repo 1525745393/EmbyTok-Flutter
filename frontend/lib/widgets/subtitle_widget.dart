@@ -4,7 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/subtitle_settings_provider.dart';
+import '../providers/providers.dart';
+import '../utils/colors.dart';
 import 'subtitle_renderer.dart';
 
 /// 字幕显示组件

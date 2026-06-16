@@ -5,10 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
-import 'video_playback_controller.dart';
 
 /// 预加载缓存记录：item -> controller
 class _PreloadEntry {
@@ -28,7 +26,7 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
   PreloadNotifier() : super([]);
 
   String? _currentItemId;
-  double _currentProgress = 0.0;
+  double _threshold = kDefaultPreloadThreshold;
   bool _thresholdTriggered = false;
   final Map<String, bool> _preloadedIds = {};
 
@@ -36,7 +34,7 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
   /// `items` 是完整播放列表，`currentIndex` 是当前播放位置
   void startWatching(List<MediaItem> items, int currentIndex, double threshold) {
     _currentItemId = items[currentIndex].id;
-    _currentProgress = 0.0;
+    _threshold = threshold;
     _thresholdTriggered = false;
 
     // 标记当前 item 不需要预加载（自身正在播放）
@@ -47,9 +45,8 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
   /// 当 progress > 阈值 时预取下一条
   void updateProgress(double progress, List<MediaItem> items, int currentIndex,
       {String? embyServerUrl, String? token}) {
-    _currentProgress = progress;
     if (_thresholdTriggered) return;
-    if (progress < threshold) return;
+    if (progress < _threshold) return;
 
     // 达到预加载阈值，预取下一条
     _thresholdTriggered = true;
@@ -58,6 +55,14 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
 
     final nextItem = items[nextIndex];
     _preloadOne(nextItem, embyServerUrl: embyServerUrl, token: token);
+  }
+
+  /// 预加载指定索引的下一条（从 feed view 页面切换时调用）
+  void preloadNext(List<MediaItem> items, int currentIndex,
+      {String? embyServerUrl, String? token}) {
+    final nextIndex = currentIndex + 1;
+    if (nextIndex >= items.length) return;
+    _preloadOne(items[nextIndex], embyServerUrl: embyServerUrl, token: token);
   }
 
   /// 预加载单个 item（不 play，仅 initialize）
@@ -111,7 +116,7 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
       state = newList;
       AppLogger.info('预加载成功', data: {'itemId': item.id});
     } catch (e) {
-      AppLogger.warn('预加载失败', error: e, data: {'itemId': item.id});
+      AppLogger.error('预加载失败', error: e, data: {'itemId': item.id});
     }
   }
 
@@ -139,7 +144,7 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
     state = [];
     _preloadedIds.clear();
     _currentItemId = null;
-    _currentProgress = 0.0;
+    _threshold = kDefaultPreloadThreshold;
     _thresholdTriggered = false;
   }
 }

@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../providers/subtitle_settings_provider.dart';
+import '../providers/providers.dart';
+import '../utils/colors.dart';
+import '../utils/constants.dart';
 
 /// 字幕选择器回调
 typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);

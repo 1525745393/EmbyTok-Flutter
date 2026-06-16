@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'utils/colors.dart';
+import '../utils/colors.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
