@@ -7,7 +7,7 @@ import '../services/embbytok_service.dart';
 import 'auth_provider.dart';
 
 // 公共辅助：初始化带认证信息的 service
-EmbytokService _authService(WidgetRef ref, AuthState auth) {
+EmbytokService _authService(Ref ref, AuthState auth) {
   final service = EmbytokService();
   final embyServerUrl = auth.embyServerUrl;
   final userId = auth.user?.id;
@@ -30,7 +30,17 @@ final itemDetailProvider =
     FutureProvider.family<MediaItem, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) throw '尚未登录';
-  final service = _authService(ref, auth);
+  final service = EmbytokService();
+  final embyServerUrl = auth.embyServerUrl;
+  final userId = auth.user?.id;
+  final token = auth.token;
+  if (embyServerUrl != null && userId != null && token != null) {
+    service.setupAuth(
+      embyServerUrl: embyServerUrl,
+      userId: userId,
+      apiKey: token,
+    );
+  }
   return service.getItemDetail(itemId);
 });
 

@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
 import '../providers/providers.dart';
 
 class SettingsView extends ConsumerWidget {
@@ -180,7 +179,7 @@ class SettingsView extends ConsumerWidget {
         ],
         currentValue: current,
         onSelect: (v) {
-          ref.read(defaultPlaybackRateProvider.notifier).set(v as double);
+          ref.read(defaultPlaybackRateProvider.notifier).set(v);
           Navigator.pop(context);
         },
       ),
@@ -204,7 +203,7 @@ class SettingsView extends ConsumerWidget {
         ],
         currentValue: current,
         onSelect: (v) {
-          ref.read(defaultSubtitleLanguageProvider.notifier).set(v as String);
+          ref.read(defaultSubtitleLanguageProvider.notifier).set(v);
           Navigator.pop(context);
         },
       ),

@@ -8,22 +8,25 @@ import 'package:embbytok_flutter/services/embbytok_service.dart';
 /// EmbytokService 的 Mock 实现
 class MockEmbytokService extends Mock implements EmbytokService {
   @override
-  Future<User> login(
-    String embyUrl,
-    String backendUrl,
-    String username,
-    String password,
-  ) =>
+  Future<User> login({
+    required String embyServerUrl,
+    required String username,
+    required String password,
+  }) =>
       super.noSuchMethod(
-        Invocation.method(#login, [embyUrl, backendUrl, username, password]),
+        Invocation.method(#login, [], {
+          #embyServerUrl: embyServerUrl,
+          #username: username,
+          #password: password,
+        }),
         returnValue: Future.value(User(id: '', name: '', accessToken: '')),
         returnValueForMissingStub: Future.value(User(id: '', name: '', accessToken: '')),
       );
 
   @override
   Future<List<Library>> getLibraries({
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraries, [], {
@@ -39,8 +42,8 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String libraryId, {
     int limit = 20,
     int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraryItems, [libraryId], {

@@ -1,4 +1,4 @@
-// 收藏列表 & 切换收藏状态
+// 收藏列表与状态管理（三栏：影片 / 合集 / 人物）
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,28 +6,35 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import 'auth_provider.dart';
 
-// 收藏状态
 class FavoritesState {
-  final List<MediaItem> items;
+  final List<MediaItem> movies;
+  final List<MediaItem> boxSets;
+  final List<MediaItem> people;
   final bool isLoading;
   final String? error;
   final Set<String> favoriteIds;
 
   const FavoritesState({
-    this.items = const <MediaItem>[],
+    this.movies = const <MediaItem>[],
+    this.boxSets = const <MediaItem>[],
+    this.people = const <MediaItem>[],
     this.isLoading = false,
     this.error,
     this.favoriteIds = const <String>{},
   });
 
   FavoritesState copyWith({
-    List<MediaItem>? items,
+    List<MediaItem>? movies,
+    List<MediaItem>? boxSets,
+    List<MediaItem>? people,
     bool? isLoading,
     String? error,
     Set<String>? favoriteIds,
   }) {
     return FavoritesState(
-      items: items ?? this.items,
+      movies: movies ?? this.movies,
+      boxSets: boxSets ?? this.boxSets,
+      people: people ?? this.people,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
       favoriteIds: favoriteIds ?? this.favoriteIds,
@@ -35,7 +42,14 @@ class FavoritesState {
   }
 }
 
-// 收藏 Notifier
+Set<String> _mergeIds(List<MediaItem> a, List<MediaItem> b, List<MediaItem> c) {
+  final ids = <String>{};
+  for (final item in a) ids.add(item.id);
+  for (final item in b) ids.add(item.id);
+  for (final item in c) ids.add(item.id);
+  return ids;
+}
+
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -46,12 +60,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   AuthState get _auth => _ref.read(authProvider);
 
-  // 判断是否已收藏
-  bool isFavorite(String itemId) {
-    return state.favoriteIds.contains(itemId);
-  }
+  bool isFavorite(String itemId) => state.favoriteIds.contains(itemId);
 
-  // 加载收藏列表
   Future<void> loadFavorites() async {
     state = state.copyWith(isLoading: true, error: null);
 
@@ -64,13 +74,23 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     }
 
     try {
-      final items = await _service.getFavorites(
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-      );
-      final ids = items.map((e) => e.id).toSet();
+      final serverUrl = auth.embyServerUrl!;
+      final token = auth.token!;
+      final results = await Future.wait<List<MediaItem>>([
+        _service.getFavoriteMovies(serverUrl: serverUrl, token: token),
+        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token),
+        _service.getFavoritePeople(serverUrl: serverUrl, token: token),
+      ], eagerError: false);
+
+      final movies = results[0];
+      final boxSets = results[1];
+      final people = results[2];
+      final ids = _mergeIds(movies, boxSets, people);
+
       state = FavoritesState(
-        items: items,
+        movies: movies,
+        boxSets: boxSets,
+        people: people,
         isLoading: false,
         favoriteIds: ids,
       );
@@ -80,62 +100,89 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     }
   }
 
-  // 切换收藏状态
   Future<void> toggleFavorite(MediaItem item) async {
     final auth = _auth;
     if (!auth.isAuthenticated ||
         auth.embyServerUrl == null ||
         auth.token == null) {
-      state = state.copyWith(error: '尚未登录');
       return;
     }
 
     final currentlyFavorite = isFavorite(item.id);
-    final newState = currentlyFavorite ? false : true;
+    final newIsFavorite = !currentlyFavorite;
 
-    // 先乐观更新 UI
+    // 乐观更新
+    final newMovies = List<MediaItem>.from(state.movies);
+    final newBoxSets = List<MediaItem>.from(state.boxSets);
+    final newPeople = List<MediaItem>.from(state.people);
     final newIds = Set<String>.from(state.favoriteIds);
-    final newItems = List<MediaItem>.from(state.items);
-    if (newState) {
+
+    if (newIsFavorite) {
       newIds.add(item.id);
-      if (!newItems.any((e) => e.id == item.id)) newItems.insert(0, item);
+      final type = item.type.toLowerCase();
+      if (type == 'boxset') {
+        if (!newBoxSets.any((e) => e.id == item.id)) newBoxSets.insert(0, item);
+      } else if (type == 'person') {
+        if (!newPeople.any((e) => e.id == item.id)) newPeople.insert(0, item);
+      } else {
+        if (!newMovies.any((e) => e.id == item.id)) newMovies.insert(0, item);
+      }
     } else {
       newIds.remove(item.id);
-      newItems.removeWhere((e) => e.id == item.id);
+      newMovies.removeWhere((e) => e.id == item.id);
+      newBoxSets.removeWhere((e) => e.id == item.id);
+      newPeople.removeWhere((e) => e.id == item.id);
     }
-    state = state.copyWith(items: newItems, favoriteIds: newIds, error: null);
+
+    state = state.copyWith(
+      movies: newMovies,
+      boxSets: newBoxSets,
+      people: newPeople,
+      favoriteIds: newIds,
+      error: null,
+    );
 
     try {
       await _service.toggleFavorite(
         item.id,
-        newState,
+        isFavorite: newIsFavorite,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );
     } catch (e) {
       // 回滚
-      final rollbackIds = Set<String>.from(state.favoriteIds);
-      final rollbackItems = List<MediaItem>.from(state.items);
       if (currentlyFavorite) {
-        rollbackIds.add(item.id);
-        if (!rollbackItems.any((el) => el.id == item.id)) {
-          rollbackItems.insert(0, item);
+        final rollbackIds = Set<String>.from(state.favoriteIds)..add(item.id);
+        final type = item.type.toLowerCase();
+        if (type == 'boxset') {
+          state = state.copyWith(
+            boxSets: List.from(state.boxSets)..insert(0, item),
+            favoriteIds: rollbackIds,
+          );
+        } else if (type == 'person') {
+          state = state.copyWith(
+            people: List.from(state.people)..insert(0, item),
+            favoriteIds: rollbackIds,
+          );
+        } else {
+          state = state.copyWith(
+            movies: List.from(state.movies)..insert(0, item),
+            favoriteIds: rollbackIds,
+          );
         }
       } else {
-        rollbackIds.remove(item.id);
-        rollbackItems.removeWhere((el) => el.id == item.id);
+        final rollbackIds = Set<String>.from(state.favoriteIds)..remove(item.id);
+        state = state.copyWith(
+          movies: state.movies.where((e) => e.id != item.id).toList(),
+          boxSets: state.boxSets.where((e) => e.id != item.id).toList(),
+          people: state.people.where((e) => e.id != item.id).toList(),
+          favoriteIds: rollbackIds,
+        );
       }
-      final message = e is String ? e : '切换收藏失败：$e';
-      state = state.copyWith(
-        items: rollbackItems,
-        favoriteIds: rollbackIds,
-        error: message,
-      );
     }
   }
 }
 
-// 顶层 Provider
 final favoritesProvider =
     StateNotifierProvider<FavoritesNotifier, FavoritesState>((ref) {
   return FavoritesNotifier(ref);
