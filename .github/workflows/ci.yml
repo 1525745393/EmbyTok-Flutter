@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: 设置 Flutter
         uses: subosito/flutter-action@v2
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: 设置 Python
         uses: actions/setup-python@v5
@@ -90,7 +90,7 @@ jobs:
     needs: [flutter-test, python-test]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: 构建后端 Docker 镜像
         run: docker build -t embbytok-backend:ci-test backend/
