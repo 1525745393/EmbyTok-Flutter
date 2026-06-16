@@ -143,7 +143,7 @@ class _FavoriteTile extends ConsumerWidget {
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
-                      headers: headers.isNotEmpty ? headers : null,
+                      httpHeaders: headers.isNotEmpty ? headers : null,
                       errorBuilder: (_, __, ___) =>
                           _thumbPlaceholder(),
                     )

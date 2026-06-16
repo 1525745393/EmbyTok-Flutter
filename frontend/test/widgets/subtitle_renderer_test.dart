@@ -7,17 +7,14 @@ import 'package:embbytok_flutter/providers/subtitle_settings_provider.dart';
 
 void main() {
   group('SubtitleRenderer Widget', () {
-    /// 创建测试用的 ProviderContainer，使用默认设置
+    /// 创建测试用的 ProviderContainer
     ProviderContainer createContainer({
-      SubtitleSettings settings = const SubtitleSettings(),
+      SubtitleSettings? settings,
     }) {
       return ProviderContainer(
         overrides: [
           subtitleSettingsProvider.overrideWith(
-            (ref) {
-              final notifier = _TestSubtitleSettingsNotifier(settings);
-              return notifier;
-            },
+            () => _TestSubtitleSettingsNotifier(settings),
           ),
         ],
       );
@@ -452,7 +449,21 @@ void main() {
 }
 
 /// 测试用的字幕设置 Notifier
-class _TestSubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
-  _TestSubtitleSettingsNotifier(SubtitleSettings initialSettings)
-      : super(initialSettings);
+class _TestSubtitleSettingsNotifier extends SubtitleSettingsNotifier {
+  final SubtitleSettings? _initialSettings;
+
+  _TestSubtitleSettingsNotifier(this._initialSettings);
+
+  @override
+  Future<void> _load() async {
+    // 测试时不从 SharedPreferences 加载
+    if (_initialSettings != null) {
+      state = _initialSettings!;
+    }
+  }
+
+  @override
+  Future<void> _persist() async {
+    // 测试时不持久化
+  }
 }
