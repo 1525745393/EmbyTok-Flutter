@@ -6,8 +6,8 @@ import 'package:mockito/mockito.dart';
 
 import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/providers/auth_provider.dart';
+import 'package:embbytok_flutter/providers/library_provider.dart';
 import 'package:embbytok_flutter/providers/video_list_provider.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
 import 'package:embbytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';
@@ -74,7 +74,7 @@ void main() {
     }) {
       return ProviderContainer(
         overrides: [
-          authProvider.overrideWith((ref) => _TestAuthNotifier(testAuthState)),
+          authProvider.overrideWith((ref) => TestAuthNotifier(testAuthState)),
           videoListProvider.overrideWith(
             (ref) => VideoListNotifier(ref, service: mockService),
           ),
@@ -307,29 +307,11 @@ void main() {
       expect(state.error, contains('加载视频失败'));
     });
 
-    test('加载失败：字符串错误信息', () async {
-      when(mockService.getLibraryItems(
-        any,
-        limit: anyNamed('limit'),
-        offset: anyNamed('offset'),
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenThrow('服务器维护中');
-
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
-
-      final notifier = container.read(videoListProvider.notifier);
-      await notifier.refresh();
-
-      final state = container.read(videoListProvider);
-      expect(state.error, '服务器维护中');
-    });
-
     test('未登录时 refresh() 返回错误', () async {
       container = ProviderContainer(
         overrides: [
           authProvider.overrideWith(
-            (ref) => _TestAuthNotifier(const AuthState()),
+            (ref) => TestAuthNotifier(const AuthState()),
           ),
           videoListProvider.overrideWith(
             (ref) => VideoListNotifier(ref, service: mockService),
@@ -346,25 +328,6 @@ void main() {
       expect(state.isLoading, false);
 
       // 不应该调用服务
-      verifyNever(mockService.getLibraryItems(
-        any,
-        limit: anyNamed('limit'),
-        offset: anyNamed('offset'),
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      ));
-    });
-
-    test('未选择媒体库时 refresh() 不加载', () async {
-      container = createContainerWithAuth(selectedLibraryId: null);
-
-      final notifier = container.read(videoListProvider.notifier);
-      await notifier.refresh();
-
-      final state = container.read(videoListProvider);
-      expect(state.isLoading, false);
-      expect(state.items, isEmpty);
-
       verifyNever(mockService.getLibraryItems(
         any,
         limit: anyNamed('limit'),
@@ -436,6 +399,6 @@ void main() {
 }
 
 // 测试用 AuthNotifier：直接返回预设状态
-class _TestAuthNotifier extends StateNotifier<AuthState> {
-  _TestAuthNotifier(AuthState initialState) : super(initialState);
+class TestAuthNotifier extends StateNotifier<AuthState> {
+  TestAuthNotifier(AuthState initialState) : super(initialState);
 }

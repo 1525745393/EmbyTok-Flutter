@@ -46,12 +46,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
   }
 
   Widget _buildBody(FavoritesState state) {
-    if (state.isLoading && state.items.isEmpty) {
+    // 合并三个列表用于展示
+    final allItems = [...state.movies, ...state.boxSets, ...state.people];
+
+    if (state.isLoading && allItems.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFE91E63)),
       );
     }
-    if (state.error != null && state.items.isEmpty) {
+    if (state.error != null && allItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -63,16 +66,16 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
         ),
       );
     }
-    if (state.items.isEmpty) {
+    if (allItems.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.favorite_border, size: 80, color: Colors.white30),
             SizedBox(height: 16),
             Text('还没有收藏', style: TextStyle(color: Colors.white70, fontSize: 18)),
             SizedBox(height: 8),
-            Text('双击视频即可收藏 💖',
+            Text('双击视频即可收藏',
                 style: TextStyle(color: Colors.white54, fontSize: 14)),
           ],
         ),
@@ -81,10 +84,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: state.items.length,
+      itemCount: allItems.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = state.items[index];
+        final item = allItems[index];
         return Dismissible(
           key: Key(item.id),
           direction: DismissDirection.endToStart,
