@@ -42,6 +42,22 @@ const int kDebounceMs = 300;
 const int kDoubleTapMs = 300;
 const int kSeekPerPixelMs = 100;
 
+// 视频切换与引导动画时长（毫秒）
+const int kVideoFadeInMs = 200;
+const int kGuideFadeMs = 500;
+const double kGuideSlideDistance = 40.0;
+const int kGuideSwipeThreshold = 3;
+
+// 预加载参数
+const double kDefaultPreloadThreshold = 0.6;
+const int kMaxPreloadControllers = 2;
+const int kPreloadFirstChunkBytes = 1048576; // 1MB
+
+// 错误重试参数
+const int kMaxRetryAttempts = 3;
+const int kLoadTimeoutSeconds = 8;
+const int kSwipeProgressIntervalSeconds = 5;
+
 const String kSubtitleColorWhite = 'white';
 const String kSubtitleColorYellow = 'yellow';
 const String kSubtitleSizeSmall = 'small';

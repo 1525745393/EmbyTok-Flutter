@@ -1,5 +1,6 @@
 // 视频流单页：全屏视频 + 右侧操作按钮 + 左下角标题信息
 // 采用 GestureOverlay 处理手势交互（单击/双击/长按/水平拖动）
+// 新增：视频切换渐入动画（200ms fade-in）
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,24 +8,44 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/colors.dart';
+import '../utils/constants.dart';
 import 'gesture_overlay.dart';
 import 'video_player_widget.dart';
 
 /// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
+  final VideoPlayerController? preloadedController;
 
-  const VideoPageItem({super.key, required this.item});
+  const VideoPageItem({
+    super.key,
+    required this.item,
+    this.preloadedController,
+  });
 
   @override
   ConsumerState<VideoPageItem> createState() => _VideoPageItemState();
 }
 
-class _VideoPageItemState extends ConsumerState<VideoPageItem> {
+class _VideoPageItemState extends ConsumerState<VideoPageItem>
+    with AutomaticKeepAliveClientMixin {
   VideoPlayerController? _videoController;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    // 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
+    ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
@@ -33,34 +54,62 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     final favorited =
         ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // 底层：视频播放器 + 手势覆盖层
-        GestureOverlay(
-          controller: _videoController,
-          item: widget.item,
-          child: VideoPlayerWidget(
-            item: widget.item,
-            embyServerUrl: embyServerUrl,
-            token: token,
-            onControllerReady: (c) {
-              setState(() {
-                _videoController = c;
-              });
-              ref.read(isPlayingProvider.notifier).state = true;
-              ref.read(currentPlayingItemProvider.notifier).state =
-                  widget.item;
-            },
+    // 读取 ready 状态：当 item.id 在 videoReadyProvider 中，视为 ready
+    final isReady = ref.watch(videoReadyProvider).contains(widget.item.id);
+
+    return Semantics(
+      label: '视频播放区域，双击点赞此视频',
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 骨架占位：视频未 ready 时显示渐变色块
+          AnimatedContainer(
+            duration: const Duration(milliseconds: kVideoFadeInMs),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isReady
+                    ? [Colors.transparent, Colors.transparent]  // 透明是 Flutter 自带常量
+                    : [surfaceColorL2, surfaceColorL3],
+              ),
+            ),
           ),
-        ),
 
-        // 底部渐变 + 标题/简介/类型标签
-        _buildBottomGradient(),
+          // 视频播放区（Gestures + VideoPlayer）：未 ready 时透明，ready 后 200ms 渐显
+          AnimatedOpacity(
+            opacity: isReady ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: kVideoFadeInMs),
+            curve: Curves.easeOut,
+            child: GestureOverlay(
+              controller: _videoController,
+              item: widget.item,
+              child: VideoPlayerWidget(
+                item: widget.item,
+                embyServerUrl: embyServerUrl,
+                token: token,
+                preloadedController: widget.preloadedController,
+                onControllerReady: (c) {
+                  setState(() {
+                    _videoController = c;
+                  });
+                  ref.read(isPlayingProvider.notifier).state = true;
+                  ref.read(currentPlayingItemProvider.notifier).state =
+                      widget.item;
+                  // 标记为 ready：触发 AnimatedOpacity 渐显
+                  ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                },
+              ),
+            ),
+          ),
 
-        // 右侧渐变 + 操作按钮
-        _buildRightActions(favorited),
-      ],
+          // 底部渐变 + 标题/简介/类型标签
+          _buildBottomGradient(),
+
+          // 右侧渐变 + 操作按钮
+          _buildRightActions(favorited),
+        ],
+      ),
     );
   }
 
@@ -147,8 +196,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             begin: Alignment.centerRight,
             end: Alignment.centerLeft,
             colors: [
-              Colors.black54,
-              Colors.transparent,
+              black54,
+              Colors.transparent,  // 透明是 Flutter 自带常量
             ],
           ),
         ),
@@ -176,7 +225,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             _buildActionButton(
               favorited ? Icons.star : Icons.star_border,
               '收藏',
-              color: favorited ? Colors.amber : textPrimary,
+              color: favorited ? amberColor : textPrimary,
               onTap: () =>
                   ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),

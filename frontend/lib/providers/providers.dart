@@ -13,3 +13,4 @@ export 'user_preferences_provider.dart';
 export 'search_history_provider.dart';
 export 'item_detail_provider.dart';
 export 'app_preferences_providers.dart';
+export 'preload_controller.dart';

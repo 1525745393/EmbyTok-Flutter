@@ -43,6 +43,13 @@ const Color progressBackground = Color(0x3DFFFFFF);
 /// 视频时长标签背景
 const Color durationBadgeBackground = Color(0xB3000000);
 
+/// 半透明黑色（用于渐变遮罩、阴影等）
+const Color black54 = Color(0x8A000000); // 54% 不透明
+const Color black87 = Color(0xDE000000); // 87% 不透明
+
+/// 琥珀色（用于收藏、强调）
+const Color amberColor = Color(0xFFFFC107);
+
 /// Material Colors.grey 快捷引用
 const Color grey50 = Color(0xFFFAFAFA);
 const Color grey100 = Color(0xFFF5F5F5);

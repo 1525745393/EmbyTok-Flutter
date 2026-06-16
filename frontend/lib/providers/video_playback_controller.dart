@@ -1,9 +1,10 @@
-// 视频播放控制器：当前播放条目、播放位置、倍速、字幕等
+// 视频播放控制器：当前播放条目、播放位置、倍速、字幕、播放就绪状态
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../utils/app_preferences.dart';
+import '../utils/constants.dart';
 
 // 当前正在播放的媒体条目
 final currentPlayingItemProvider = StateProvider<MediaItem?>((ref) => null);
@@ -25,6 +26,47 @@ final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
 // 当前选中的字幕（字幕语言或轨道 ID，null 表示关闭）
 final selectedSubtitleProvider = StateProvider<String?>((ref) => null);
+
+// ---------------- videoReadyProvider：记录哪些 item 的视频已就绪 ----------------
+// 用于驱动页面切换的渐入动画：controller 初始化完成后标记该 item 为 ready
+class VideoReadyNotifier extends StateNotifier<Set<String>> {
+  VideoReadyNotifier() : super({});
+
+  void markReady(String itemId) {
+    if (!state.contains(itemId)) {
+      state = {...state, itemId};
+    }
+  }
+
+  void clear(String itemId) {
+    if (state.contains(itemId)) {
+      final next = Set<String>.from(state);
+      next.remove(itemId);
+      state = next;
+    }
+  }
+
+  bool isReady(String itemId) => state.contains(itemId);
+}
+
+final videoReadyProvider =
+    StateNotifierProvider<VideoReadyNotifier, Set<String>>(
+  (ref) => VideoReadyNotifier(),
+);
+
+// ---------------- preloadThresholdProvider：预加载阈值 ----------------
+class PreloadThresholdNotifier extends StateNotifier<double> {
+  PreloadThresholdNotifier() : super(kDefaultPreloadThreshold);
+
+  void setThreshold(double value) {
+    if (value >= 0.1 && value <= 0.95) state = value;
+  }
+}
+
+final preloadThresholdProvider =
+    StateNotifierProvider<PreloadThresholdNotifier, double>(
+  (ref) => PreloadThresholdNotifier(),
+);
 
 // ---------------- isMuted（自动播放前是否静音） ----------------
 class IsMutedNotifier extends StateNotifier<bool> {
@@ -72,4 +114,6 @@ class IsAutoPlayNotifier extends StateNotifier<bool> {
 }
 
 final isAutoPlayProvider =
-    StateNotifierProvider<IsAutoPlayNotifier, bool>((ref) => IsAutoPlayNotifier());
+    StateNotifierProvider<IsAutoPlayNotifier, bool>(
+  (ref) => IsAutoPlayNotifier(),
+);

@@ -4,13 +4,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
-import '../utils/colors.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 import '../utils/constants.dart';
 
 /// 连续两次"双击"之间的最小间隔：避免快速连点产生重复 API 请求
@@ -64,6 +64,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     }
     _lastDoubleTapAt = now;
 
+    // 触觉反馈 + 心形动画
+    HapticFeedback.lightImpact();
     setState(() {
       _showHeart = true;
     });
@@ -74,6 +76,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   void _onLongPressStart() {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
+    HapticFeedback.mediumImpact();
     _isLongPressing = true;
     c.setPlaybackSpeed(kLongPressPlaybackRate);
   }
@@ -83,6 +86,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isLongPressing = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
+    HapticFeedback.lightImpact();
     c.setPlaybackSpeed(ref.read(playbackRateProvider));
   }
 
@@ -93,8 +97,10 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isDragging = true;
     _dragStartX = d.globalPosition.dx;
     _dragStartPosition = c.value.position;
+    HapticFeedback.selectionClick();
   }
 
+  int _lastSeenSeconds = -1;
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!_isDragging) return;
     final c = widget.controller;
@@ -108,10 +114,17 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             ? c.value.duration
             : target;
     c.seekTo(clamped);
+    // 每跨越 5 秒边界触发一次 haptic 反馈
+    final secs = clamped.inSeconds ~/ kSwipeProgressIntervalSeconds;
+    if (_lastSeenSeconds != secs) {
+      _lastSeenSeconds = secs;
+      HapticFeedback.selectionClick();
+    }
   }
 
   void _onHorizontalDragEnd() {
     _isDragging = false;
+    _lastSeenSeconds = -1;
   }
 
   // ---- 单击/双击区分：300ms 定时器 ----
@@ -238,7 +251,7 @@ class _FlyingHeartState extends State<_FlyingHeart>
               color: historyPink,
               size: 96,
               shadows: [
-                Shadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 4)),
+                Shadow(color: black54, blurRadius: 16, offset: Offset(0, 4)),
               ],
             ),
           ),
@@ -258,7 +271,7 @@ class _SpeedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: black87,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: primaryPink, width: 1.5),
       ),

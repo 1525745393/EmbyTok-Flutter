@@ -1,4 +1,7 @@
 // 视频流页面：竖向全屏滑动 + 顶部工具栏 + 视图切换 + 分页加载
+// 新增：视频切换渐入动画、智能预加载、首次滑动引导
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +11,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/colors.dart';
+import '../utils/constants.dart';
 import '../widgets/top_tool_bar.dart';
 import '../widgets/video_page_item.dart';
 import 'video_grid_view.dart';
@@ -23,6 +27,11 @@ class FeedView extends ConsumerStatefulWidget {
 class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
+  int _currentIndex = 0;
+  int _swipeCount = 0;
+  bool _guideShown = false;
+  Timer? _progressMonitor;
+  VideoPlayerController? _currentController;
 
   @override
   bool get wantKeepAlive => true;
@@ -39,7 +48,51 @@ class _FeedViewState extends ConsumerState<FeedView>
   @override
   void dispose() {
     _pageController.dispose();
+    _progressMonitor?.cancel();
+    _currentController?.removeListener(_onPositionUpdate);
+    ref.read(preloadProvider.notifier).clear();
     super.dispose();
+  }
+
+  /// 当前视频位置变化时，检查是否达到预加载阈值
+  void _onPositionUpdate() {
+    final ctrl = _currentController;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    final duration = ctrl.value.duration.inMilliseconds;
+    if (duration <= 0) return;
+    final position = ctrl.value.position.inMilliseconds;
+    final progress = position / duration;
+    final threshold = ref.read(preloadThresholdProvider);
+    final items = ref.read(filteredVideoListProvider);
+    if (items.isEmpty) return;
+    ref.read(preloadProvider.notifier).updateProgress(
+      progress,
+      items,
+      _currentIndex,
+      embyServerUrl: ref.read(authProvider).embyServerUrl,
+      token: ref.read(authProvider).token,
+    );
+  }
+
+  /// 切换到新页面时：停止旧页面的进度监听，绑定新页面的 controller
+  void _onPageSwitched(int index, List<MediaItem> items) {
+    setState(() {
+      _currentIndex = index;
+      _swipeCount++;
+    });
+    ref.read(currentPlayingIndexProvider.notifier).state = index;
+    // 计数达到引导阈值时，淡出引导层
+    if (!_guideShown && _swipeCount >= kGuideSwipeThreshold) {
+      setState(() => _guideShown = true);
+    }
+  }
+
+  /// 当某个页面的 VideoPlayer 初始化完成时，绑定进度监听
+  void _onControllerReady(VideoPlayerController controller, MediaItem item) {
+    // 先停止监听之前的 controller
+    _currentController?.removeListener(_onPositionUpdate);
+    _currentController = controller;
+    _currentController?.addListener(_onPositionUpdate);
   }
 
   @override
@@ -115,7 +168,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 构建视频流 PageView
+  // 构建视频流 PageView：接入预加载缓存、滑动引导、切换渐入
   Widget _buildVideoPageView(VideoListState videoState, List<MediaItem> displayItems) {
     // 加载中（首次加载）
     if (displayItems.isEmpty && videoState.isLoading) {
@@ -132,39 +185,95 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 空状态（无过滤结果）
     if (displayItems.isEmpty) {
       return Center(
-        child: Text(
-          videoState.items.isEmpty
-              ? '暂无视频，请选择其他媒体库'
-              : '没有符合筛选条件的视频',
-          style: const TextStyle(color: textSecondary, fontSize: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.movie_outlined, size: 80, color: textPlaceholder),
+            const SizedBox(height: 16),
+            Text(
+              videoState.items.isEmpty ? '暂无视频，请选择其他媒体库' : '没有符合筛选条件的视频',
+              style: const TextStyle(color: textSecondary, fontSize: 16),
+            ),
+            if (videoState.items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ElevatedButton(
+                  onPressed: () {
+                    final libId = ref.read(selectedLibraryIdProvider);
+                    ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryPink,
+                    foregroundColor: textPrimary,
+                  ),
+                  child: const Text('刷新'),
+                ),
+              ),
+          ],
         ),
       );
     }
 
-    // 正常：竖向 PageView
-    return PageView.builder(
-      controller: _pageController,
-      scrollDirection: Axis.vertical,
-      itemCount: displayItems.length + (videoState.hasMore ? 1 : 0),
-      onPageChanged: (index) {
-        // 滚动到倒数第 2 项时触发分页加载
-        // 注意：这里仍使用原始列表长度判断，因为分页加载的是原始列表
-        if (videoState.hasMore &&
-            index >= displayItems.length - 2 &&
-            !videoState.isLoading) {
-          ref.read(videoListProvider.notifier).loadMore();
-        }
-      },
-      itemBuilder: (context, index) {
-        // 末尾加载指示器
-        if (index >= displayItems.length) {
-          return const Center(
-            child: CircularProgressIndicator(color: primaryPink),
-          );
-        }
-        final item = displayItems[index];
-        return VideoPageItem(item: item);
-      },
+    // 正常：竖向 PageView + 滑动引导
+    return Stack(
+      children: [
+        PageView.builder(
+          controller: _pageController,
+          scrollDirection: Axis.vertical,
+          itemCount: displayItems.length + (videoState.hasMore ? 1 : 0),
+          onPageChanged: (index) {
+            if (index < displayItems.length) {
+              _onPageSwitched(index, displayItems);
+            }
+            // 滚动到倒数第 2 项时触发分页加载
+            if (videoState.hasMore &&
+                index >= displayItems.length - 2 &&
+                !videoState.isLoading) {
+              ref.read(videoListProvider.notifier).loadMore();
+            }
+          },
+          itemBuilder: (context, index) {
+            // 末尾加载指示器
+            if (index >= displayItems.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: primaryPink),
+                ),
+              );
+            }
+            final item = displayItems[index];
+            // 尝试从预加载缓存中取出已初始化的 controller
+            final preloaded = ref.read(preloadProvider.notifier).consume(item.id);
+            return VideoPageItem(
+              item: item,
+              preloadedController: preloaded,
+              key: ValueKey('feed-${item.id}'),
+            );
+          },
+        ),
+        // 首次使用引导：向上滑动箭头
+        if (!_guideShown && _swipeCount < kGuideSwipeThreshold)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 80,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: kGuideFadeMs),
+              opacity: _swipeCount == 0 ? 1.0 : 0.4,
+              child: const Column(
+                children: [
+                  Icon(Icons.keyboard_arrow_up, color: textPrimary, size: 40),
+                  SizedBox(height: 4),
+                  Text(
+                    '上滑看下一条',
+                    style: TextStyle(color: textSecondary, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 

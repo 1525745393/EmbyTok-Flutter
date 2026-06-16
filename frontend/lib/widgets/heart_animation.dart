@@ -79,7 +79,7 @@ class _HeartAnimationState extends State<HeartAnimation>
                       size: 96,
                       shadows: [
                         Shadow(
-                          color: Colors.black54,
+                          color: black54,
                           blurRadius: 16,
                           offset: Offset(0, 4),
                         ),
