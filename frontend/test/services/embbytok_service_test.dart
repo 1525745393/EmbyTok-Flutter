@@ -35,11 +35,7 @@ void main() {
         'AccessToken': testToken,
       };
 
-      dioAdapter.onPost(
-        '/Users/AuthenticateByName',
-        (request) => Reply(200, responseData),
-        data: <String, dynamic>{'Username': username, 'Pw': password},
-      );
+      dioAdapter.onPost('/Users/AuthenticateByName').reply(200, responseData);
 
       final user = await service.login(
         embyServerUrl: testEmbyUrl,
@@ -53,11 +49,7 @@ void main() {
     });
 
     test('登录失败抛出异常', () async {
-      dioAdapter.onPost(
-        '/Users/AuthenticateByName',
-        (request) => Reply(401, <String, dynamic>{'message': 'Unauthorized'}),
-        data: <String, dynamic>{'Username': 'wronguser', 'Pw': 'wrongpass'},
-      );
+      dioAdapter.onPost('/Users/AuthenticateByName').reply(401, <String, dynamic>{'message': 'Unauthorized'});
 
       await expectLater(
         service.login(
@@ -81,10 +73,7 @@ void main() {
         'TotalRecordCount': 3,
       };
 
-      dioAdapter.onGet(
-        '/Library/VirtualFolders',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Library/VirtualFolders').reply(200, responseData);
 
       final libraries = await service.getLibraries(
         serverUrl: testEmbyUrl,
@@ -110,10 +99,7 @@ void main() {
         'Limit': 20,
       };
 
-      dioAdapter.onGet(
-        '/Items',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
       final response = await service.getLibraryItems(
         'lib-1',
@@ -138,10 +124,7 @@ void main() {
         'TotalRecordCount': 2,
       };
 
-      dioAdapter.onGet(
-        '/Items/Resume',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items/Resume').reply(200, responseData);
 
       final response = await service.getResumeItems(
         limit: 20,
@@ -161,10 +144,7 @@ void main() {
         'TotalRecordCount': 1,
       };
 
-      dioAdapter.onGet(
-        '/Shows/NextUp',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Shows/NextUp').reply(200, responseData);
 
       final response = await service.getNextUp(
         limit: 20,
@@ -187,10 +167,7 @@ void main() {
         'ProductionYear': 2024,
       };
 
-      dioAdapter.onGet(
-        '/Items/$itemId',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items/$itemId').reply(200, responseData);
 
       final item = await service.getItemDetail(
         itemId,
@@ -210,10 +187,7 @@ void main() {
         <String, dynamic>{'Id': 'similar-2', 'Name': 'Similar 2', 'Type': 'Movie'},
       ];
 
-      dioAdapter.onGet(
-        '/Items/$itemId/Similar',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items/$itemId/Similar').reply(200, responseData);
 
       final items = await service.getSimilarItems(
         itemId,
@@ -236,10 +210,7 @@ void main() {
         'TotalRecordCount': 2,
       };
 
-      dioAdapter.onGet(
-        '/Items',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
       final items = await service.getFavorites(
         limit: 100,
@@ -254,10 +225,7 @@ void main() {
     test('添加收藏', () async {
       const itemId = 'item-to-favorite';
 
-      dioAdapter.onPost(
-        '/UserFavoriteItems/$itemId',
-        (request) => Reply(200, <String, dynamic>{'IsFavorite': true}),
-      );
+      dioAdapter.onPost('/UserFavoriteItems/$itemId').reply(200, <String, dynamic>{'IsFavorite': true});
 
       await service.toggleFavorite(
         itemId,
@@ -270,10 +238,7 @@ void main() {
     test('取消收藏', () async {
       const itemId = 'item-to-unfavorite';
 
-      dioAdapter.onDelete(
-        '/UserFavoriteItems/$itemId',
-        (request) => Reply(200, <String, dynamic>{'IsFavorite': false}),
-      );
+      dioAdapter.onDelete('/UserFavoriteItems/$itemId').reply(200, <String, dynamic>{'IsFavorite': false});
 
       await service.toggleFavorite(
         itemId,
@@ -289,10 +254,7 @@ void main() {
       const itemId = 'item-1';
       const positionTicks = 123456789;
 
-      dioAdapter.onPost(
-        '/Sessions/Playing/Progress',
-        (request) => Reply(204, null),
-      );
+      dioAdapter.onPost('/Sessions/Playing/Progress').reply(204, null);
 
       await service.reportPlaybackPosition(
         itemId: itemId,
@@ -306,10 +268,7 @@ void main() {
       const itemId = 'item-1';
       const positionTicks = 123456789;
 
-      dioAdapter.onPost(
-        '/Sessions/Playing/Stopped',
-        (request) => Reply(204, null),
-      );
+      dioAdapter.onPost('/Sessions/Playing/Stopped').reply(204, null);
 
       await service.reportPlaybackStopped(
         itemId: itemId,
@@ -330,10 +289,7 @@ void main() {
         ],
       };
 
-      dioAdapter.onGet(
-        '/Search/Hints',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Search/Hints').reply(200, responseData);
 
       final hints = await service.searchHints(
         query,
@@ -356,10 +312,7 @@ void main() {
         'TotalRecordCount': 3,
       };
 
-      dioAdapter.onGet(
-        '/Items',
-        (request) => Reply(200, responseData),
-      );
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
       final response = await service.searchItems(
         query,
