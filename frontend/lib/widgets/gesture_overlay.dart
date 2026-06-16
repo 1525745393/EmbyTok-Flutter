@@ -16,6 +16,20 @@ import '../utils/constants.dart';
 /// 连续两次"双击"之间的最小间隔：避免快速连点产生重复 API 请求
 const int _kDoubleTapDebounceMs = 400;
 
+/// 将 Duration 格式化为时间字符串：>=1 小时显示 HH:MM:SS，<1 小时显示 MM:SS
+String _formatDuration(Duration d) {
+  if (d.isNegative) return '00:00'; // 安全处理：避免负时长
+  final h = d.inHours;
+  final m = d.inMinutes.remainder(60);
+  final s = d.inSeconds.remainder(60);
+  if (h >= 1) {
+    return '${h.toString().padLeft(2, '0')}:'
+        '${m.toString().padLeft(2, '0')}:'
+        '${s.toString().padLeft(2, '0')}';
+  }
+  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+}
+
 class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
@@ -39,6 +53,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   bool _isDragging = false;
   double _dragStartX = 0.0;
   Duration _dragStartPosition = Duration.zero;
+  Duration? _currentTargetPosition;      // 拖动中的目标位置（用于显示进度条）
+  Duration _dragOffset = Duration.zero;   // 相对于起始点的偏移量
   bool _showHeart = false;
   DateTime? _lastDoubleTapAt;
 
@@ -94,9 +110,13 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   void _onHorizontalDragStart(DragStartDetails d) {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    _isDragging = true;
-    _dragStartX = d.globalPosition.dx;
-    _dragStartPosition = c.value.position;
+    setState(() {
+      _isDragging = true;
+      _dragStartX = d.globalPosition.dx;
+      _dragStartPosition = c.value.position;
+      _currentTargetPosition = c.value.position;
+      _dragOffset = Duration.zero;
+    });
     HapticFeedback.selectionClick();
   }
 
@@ -120,15 +140,34 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
       _lastSeenSeconds = secs;
       HapticFeedback.selectionClick();
     }
+    // 更新进度条显示（通过 setState 触发 UI 重绘）
+    setState(() {
+      _currentTargetPosition = clamped;
+      _dragOffset = clamped - _dragStartPosition;
+    });
   }
 
   void _onHorizontalDragEnd() {
-    _isDragging = false;
+    HapticFeedback.lightImpact(); // 拖动结束的稍强震动
+    // 先隐藏 _isDragging（让 build 中进度条开始淡出），延迟清除位置数据（让 AnimatedOpacity 有时间完成淡出）
+    setState(() {
+      _isDragging = false;
+    });
+    Future.delayed(
+        Duration(milliseconds: kProgressBarFadeOutMs), () {
+      if (mounted) {
+        setState(() {
+          _currentTargetPosition = null;
+        });
+      }
+    });
     _lastSeenSeconds = -1;
   }
 
   // ---- 单击/双击区分：300ms 定时器 ----
   void _handleTap() {
+    // 防御性：拖动中忽略单击，避免手势竞技场残留事件触发播放/暂停
+    if (_isDragging) return;
     if (_pendingSingleTap) {
       _singleTapTimer?.cancel();
       _pendingSingleTap = false;
@@ -191,6 +230,33 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             child: Positioned(
               top: 48,
               child: _SpeedBadge(speed: kLongPressPlaybackRate),
+            ),
+          ),
+        // 水平拖动进度条浮层
+        // 用 AnimatedOpacity 做淡入淡出动画：
+        //   _isDragging = true  且 _currentTargetPosition != null → opacity=1.0 (淡入/显示)
+        //   _isDragging = false 且 _currentTargetPosition != null → opacity=0.0 (淡出中，300ms 后状态被清除)
+        if (_currentTargetPosition != null)
+          IgnorePointer(
+            child: Positioned(
+              top: 120,
+              left: 0,
+              right: 0,
+              child: AnimatedOpacity(
+                duration: Duration(
+                  milliseconds: _isDragging
+                      ? kProgressBarFadeInMs
+                      : kProgressBarFadeOutMs,
+                ),
+                opacity: _isDragging ? 1.0 : 0.0,
+                curve: Curves.easeOut,
+                child: _ProgressBarOverlay(
+                  currentPosition: _currentTargetPosition!,
+                  totalDuration:
+                      widget.controller?.value.duration ?? Duration.zero,
+                  offsetFromStart: _dragOffset,
+                ),
+              ),
             ),
           ),
       ],
@@ -282,6 +348,140 @@ class _SpeedBadge extends StatelessWidget {
           fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+}
+
+// ---- 内部子组件：水平拖动进度条浮层 ----
+/// 显示当前播放位置、目标位置、方向图标和可视化进度条
+class _ProgressBarOverlay extends StatelessWidget {
+  final Duration currentPosition;
+  final Duration totalDuration;
+  final Duration offsetFromStart;
+
+  const _ProgressBarOverlay({
+    required this.currentPosition,
+    required this.totalDuration,
+    required this.offsetFromStart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 安全检查：总时长为 0 时不显示（避免除零）
+    if (totalDuration.inMilliseconds <= 0) return const SizedBox.shrink();
+
+    final progress = currentPosition.inMilliseconds / totalDuration.inMilliseconds;
+    final clampedProgress = progress.clamp(0.0, 1.0);
+    final isForward = !offsetFromStart.isNegative; // 正向（快进）true / 反向（快退）false
+    final offsetSeconds = (offsetFromStart.inMilliseconds / 1000).truncate().abs();
+
+    return Center(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.85,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: overlayBlack,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: primaryPink.withOpacity(0.6), width: 1.0),
+          boxShadow: const [
+            BoxShadow(
+              color: black54,
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 上排：方向图标 + 偏移量 + 时间信息
+            Row(
+              children: [
+                Icon(
+                  isForward ? Icons.fast_forward : Icons.fast_rewind,
+                  color: primaryPink,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${isForward ? '+' : '-'}$offsetSeconds s',
+                  style: const TextStyle(
+                    color: textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  _formatDuration(currentPosition),
+                  style: const TextStyle(
+                    color: textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  ' / ${_formatDuration(totalDuration)}',
+                  style: const TextStyle(
+                    color: textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // 下排：可视化进度条（灰色底 + 粉色填充）
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth;
+                return Stack(
+                  children: [
+                    Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    // 填充动画：从 0 平滑扩展到目标进度
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: kProgressBarAnimMs),
+                      curve: Curves.easeOut,
+                      height: 6,
+                      width: barWidth * clampedProgress,
+                      decoration: BoxDecoration(
+                        color: primaryPink,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    // 当前位置小指示器
+                    Positioned(
+                      left: barWidth * clampedProgress - 6,
+                      top: -3,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: primaryPink,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryPink.withOpacity(0.6),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

@@ -66,6 +66,11 @@ const int kMaxRetryAttempts = 3;
 const int kLoadTimeoutSeconds = 8;
 const int kSwipeProgressIntervalSeconds = 5;
 
+// 水平拖动进度条动画参数
+const int kProgressBarFadeInMs = 150;   // 进度条淡入时长
+const int kProgressBarFadeOutMs = 300;  // 进度条淡出时长
+const int kProgressBarAnimMs = 80;      // 进度条填充动画（避免过快抖动）
+
 const String kSubtitleColorWhite = 'white';
 const String kSubtitleColorYellow = 'yellow';
 const String kSubtitleSizeSmall = 'small';
