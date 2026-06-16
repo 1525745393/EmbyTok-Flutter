@@ -115,3 +115,9 @@ secrets/
 
 # Docker
 *.dockerignore
+
+# Node.js / Semantic Release（CI 中使用，不提交到仓库）
+node_modules/
+.semantic-release/
+package-lock.json
+package.json

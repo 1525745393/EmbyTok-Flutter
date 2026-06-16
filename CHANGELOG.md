@@ -266,19 +266,36 @@
 
 ## 版本号说明
 
-- **MAJOR** 版本：API 不兼容的变更
-- **MINOR** 版本：向下兼容的功能性新增
-- **PATCH** 版本：向下兼容的问题修正
+- **MAJOR** 版本：API 不兼容的变更（在 commit message 中使用 `!` 标记，如 `feat!: 重构 API`）
+- **MINOR** 版本：向下兼容的功能性新增（commit type 为 `feat`）
+- **PATCH** 版本：向下兼容的问题修正（commit type 为 `fix`）
 
-## 发布流程
+## 自动化发布流程
 
-1. 执行 `./scripts/verify-release.sh` 确认当前版本号一致
-2. 执行 `./scripts/release.sh --dry-run patch|minor|major` 预览发布
-3. 移除 `--dry-run` 正式执行发布
-4. 推送标签：`git push origin vX.Y.Z`，自动触发 GitHub Actions 构建
+自 v1.7.0 起，发布流程完全自动化（GitHub Actions + Semantic Release）：
 
-## 回滚流程
+1. 开发者按 Conventional Commits 规范提交代码并 push 到 main 分支
+2. GitHub Actions 自动触发 `android-release.yml` 工作流
+3. Semantic Release 分析自上次发布以来的所有 commit，决定新版本号
+4. 自动执行：`flutter analyze` → 更新 `pubspec.yaml` → 更新 `CHANGELOG.md` → 构建签名 APK/AAB → 提交版本变更 → 创建 Git Tag → 创建 GitHub Release 并上传 APK/AAB
 
-1. 执行 `./scripts/rollback-release.sh --dry-run` 预览回滚
-2. 移除 `--dry-run` 确认执行
-3. 如需回滚远程提交，执行 `git push -f origin main`（请谨慎使用）
+### 提交规范示例
+
+```
+feat: 增加全屏播放模式        # 触发 minor 版本升级
+fix: 解决滑动时的动画抖动       # 触发 patch 版本升级
+feat!: 重构媒体库 API（破坏性）  # 触发 major 版本升级
+docs: 更新 README               # 不触发版本升级
+```
+
+### 手动触发
+
+如需立即触发一次发布检查：
+- 打开 GitHub 仓库 → Actions → `Android Release` → `Run workflow`
+
+### 发布失败排查
+
+- **静态分析失败**：检查 `flutter analyze lib` 输出，修复后重新 push
+- **无符合规范的 commit**：Semantic Release 找不到 `feat` 或 `fix` 类型的 commit 时不创建新版本（正常现象）
+- **keystore 问题**：检查 GitHub Secrets 中 ANDROID_KEYSTORE 及密码是否配置正确
+- **构建失败**：查看 Actions 的详细日志，定位到具体的 Gradle/Flutter 错误
