@@ -7,11 +7,13 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:embbytok_flutter/services/api_client.dart';
 
 void main() {
+  const testBaseUrl = 'https://api.example.com';
+  
   late Dio dio;
   late DioAdapter dioAdapter;
 
   setUp(() {
-    dio = Dio();
+    dio = Dio(BaseOptions(baseUrl: testBaseUrl));
     dioAdapter = DioAdapter(dio: dio);
     dio.httpClientAdapter = dioAdapter;
   });
@@ -29,7 +31,7 @@ void main() {
       });
 
       test('使用 withDio 构造函数创建实例', () {
-        final testDio = Dio();
+        final testDio = Dio(BaseOptions(baseUrl: testBaseUrl));
         final apiClient = ApiClient.withDio(testDio);
         expect(apiClient, isNotNull);
       });

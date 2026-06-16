@@ -16,10 +16,10 @@ void main() {
   const testToken = 'test-token-123';
 
   setUp(() {
-    dio = Dio();
+    dio = Dio(BaseOptions(baseUrl: testEmbyUrl));
     dioAdapter = DioAdapter(dio: dio);
     dio.httpClientAdapter = dioAdapter;
-    final apiClient = ApiClient.withDio(dio);
+    final apiClient = ApiClient.withDio(dio, baseUrl: testEmbyUrl);
     service = EmbytokService(apiClient: apiClient);
   });
 
