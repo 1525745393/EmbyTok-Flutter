@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.6.0...v1.7.0) (2026-06-16)
+
+
+### Features
+
+* 生成项目仓库Code Wiki文档 ([030fdc8](https://github.com/1525745393/EmbyTok-Flutter/commit/030fdc825bd5699a945f5c81adc452c5bb09cb89))
+* 生成项目仓库Code Wiki文档 ([4bf0ca1](https://github.com/1525745393/EmbyTok-Flutter/commit/4bf0ca144c9441a7c7d69fd0a069202ed9eb0732))
+
 # Changelog
 
 本文件遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，
