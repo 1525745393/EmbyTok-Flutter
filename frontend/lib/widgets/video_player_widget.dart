@@ -8,12 +8,15 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 
-// 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
+// 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
+// 设计：preloadedController 用于快速切换场景，避免每次重新初始化
 class VideoPlayerWidget extends StatefulWidget {
   final MediaItem item;
   // Emby 服务器认证信息（用于动态构造播放 URL）
   final String? embyServerUrl;
   final String? token;
+  // 预加载控制器（如果为 null，则动态创建）
+  final VideoPlayerController? preloadedController;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
@@ -24,6 +27,7 @@ class VideoPlayerWidget extends StatefulWidget {
     required this.item,
     this.embyServerUrl,
     this.token,
+    this.preloadedController,
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
@@ -66,12 +70,59 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
-  // 初始化 video_player 控制器
+  // 初始化视频控制器
+  // 优先级：优先使用 widget.preloadedController（已预加载的），否则动态构造
   // 错误处理策略：
   //   1. 任何异常都降级到缩略图展示（不崩溃）
   //   2. 检查 mounted 避免在已释放的 widget 上 setState
   //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
   Future<void> _initVideo() async {
+    // ---- 路径 1：有预加载控制器 ----
+    if (widget.preloadedController != null) {
+      try {
+        _controller = widget.preloadedController;
+        // addListener 监听错误
+        _controller!.addListener(() {
+          if (!mounted) return;
+          if (_controller!.value.hasError && !_hasError) {
+            setState(() {
+              _hasError = true;
+              _errorMessage = '播放出错';
+            });
+          }
+        });
+        // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
+        if (!_controller!.value.isInitialized) {
+          await _controller!.initialize().timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw TimeoutException('视频初始化超时');
+            },
+          );
+        }
+        _controller!.setLooping(widget.loop);
+        if (mounted) {
+          setState(() {
+            _initialized = true;
+            _hasError = false;
+          });
+          widget.onControllerReady?.call(_controller!);
+          if (widget.autoPlay) {
+            try {
+              await _controller!.play();
+            } catch (e) {
+              debugPrint('autoPlay error: $e');
+            }
+          }
+        }
+        return;
+      } catch (e) {
+        debugPrint('VideoPlayer preloaded init error: $e，回退到动态创建');
+        // 预加载失败，回退到动态创建
+      }
+    }
+
+    // ---- 路径 2：动态创建控制器 ----
     final url = _playbackUrl;
     if (url == null) {
       if (mounted) {
