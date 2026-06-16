@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
-import 'video_page_item.dart';
+import '../widgets/video_page_item.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
   final MediaItem item;
