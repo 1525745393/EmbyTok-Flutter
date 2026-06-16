@@ -114,9 +114,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // 底部半透明黑色渐变 + 标题/简介/类型标签
-  // 动态 padding：适配 notch / 动态岛 / 底部手势条；工具栏隐藏时释放顶部空间
+  // 动态 padding：适配底部导航栏高度 + 底部手势条
+  // 底部导航栏显示时向上偏移 kBottomNavHeight，隐藏时仅保留安全 padding
   Widget _buildBottomGradient() {
-    final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
 
@@ -127,9 +127,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       child: Container(
         padding: EdgeInsets.fromLTRB(
           16,
-          toolbarVisible ? topPadding + 80 : topPadding + 24, // 工具栏隐藏时释放 56px
+          80, // 顶部距离：从视频画面上方开始计算（避开右侧操作按钮的垂直范围
           96,
-          24 + bottomPadding,
+          // 底部距离：导航栏可见时 = kBottomNavHeight + 手势条 + 24px；隐藏时 = 手势条 + 24px
+          toolbarVisible
+              ? kBottomNavHeight + bottomPadding + 24
+              : bottomPadding + 24,
         ),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -191,11 +194,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
-  // 动态 padding：适配顶部 notch / 动态岛与底部手势条
+  // 动态 padding：顶部工具栏可见时向下偏移 kToolbarHeight，避开半透明工具栏
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final toolbarVisible = ref.watch(toolbarVisibilityProvider);
 
     return Positioned(
       right: 0,
@@ -203,7 +207,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       bottom: 0,
       width: 96,
       child: Container(
-        padding: EdgeInsets.fromLTRB(0, topPadding + 40, 8, 24 + bottomPadding),
+        // 顶部距离：工具栏可见时 = 顶部安全区 + 工具栏高度 + 40px；隐藏时 = 安全区 + 40px
+        padding: EdgeInsets.fromLTRB(
+          0,
+          toolbarVisible
+              ? topPadding + kToolbarHeight + 40
+              : topPadding + 40,
+          8,
+          24 + bottomPadding,
+        ),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerRight,

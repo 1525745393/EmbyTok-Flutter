@@ -160,50 +160,70 @@ class _FeedViewState extends ConsumerState<FeedView>
         children: [
           // 根据视图模式切换显示
           if (viewMode == ViewMode.grid)
-            // 网格视图
-            const VideoGridView()
+            // 网格视图：顶部 padding 让内容避开工具栏，工具栏在网格上方显示
+            Padding(
+              padding: EdgeInsets.only(
+                top: kToolbarHeight + MediaQuery.of(context).padding.top,
+              ),
+              child: const VideoGridView(),
+            )
           else
-            // 视频流视图（带画面点击手势监听）
-            GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _onTapScreen,
-              child: _buildVideoPageView(videoState, filteredItems),
+            // 视频流视图（带画面点击手势监听）→ 全屏 fill，不预留工具栏空间
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _onTapScreen,
+                child: _buildVideoPageView(videoState, filteredItems),
+              ),
             ),
 
-          // 顶部工具栏（仅 feed 模式下显示，带跟随手指的展开/折叠动画）
-          if (viewMode == ViewMode.feed)
-            _buildAnimatedToolBar(),
+          // 顶部工具栏：在 feed 模式下带动画折叠，在 grid 模式下固定高度
+          // 使用 Positioned 绝对定位叠加在内容上方
+          _buildAnimatedToolBar(viewMode),
         ],
       ),
     );
   }
 
   // 顶部工具栏动画层：根据 toolbarVisibilityProvider 平滑展开/折叠
-  Widget _buildAnimatedToolBar() {
-    final visible = ref.watch(toolbarVisibilityProvider);
-    return AnimatedContainer(
-      duration: Duration(milliseconds: kToolbarAnimMs),
-      curve: Curves.easeOut,
-      height: visible ? kToolbarHeight + MediaQuery.of(context).padding.top : 0,
-      child: AnimatedOpacity(
-        duration: Duration(milliseconds: kToolbarAnimMs),
-        opacity: visible ? 1.0 : 0.0,
-        child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(),
-          child: Container(
-            height: kToolbarHeight + MediaQuery.of(context).padding.top,
-            decoration: const BoxDecoration(
-              color: backgroundColor,
-              border: Border(
-                bottom: BorderSide(color: dividerColor, width: 0.5),
+  // 半透明渐变叠加在视频画面之上，内容在 SafeArea 内避开刘海/动态岛
+  // grid 模式下保持固定高度（因为网格内容已经通过 padding 避开它）
+  Widget _buildAnimatedToolBar(ViewMode viewMode) {
+    final visible = viewMode == ViewMode.grid
+        ? true // grid 模式下始终显示工具栏（作为导航用）
+        : ref.watch(toolbarVisibilityProvider);
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: kToolbarAnimMs),
+        curve: Curves.easeOut,
+        height: visible ? kToolbarHeight + topPadding : 0,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: kToolbarAnimMs),
+          opacity: visible ? 1.0 : 0.0,
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Container(
+              height: kToolbarHeight + topPadding,
+              // 半透明渐变：自顶向下从 67% 不透明黑色渐变为完全透明
+              // 让工具栏看起来像是"浮在"视频上
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [overlayBlack, Color(0x00000000)],
+                ),
               ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: SizedBox(
-                height: kToolbarHeight,
-                child: TopToolBar(
-                  onFullscreenPressed: (_) => _toggleFullscreen(),
+              child: SafeArea(
+                bottom: false,
+                child: SizedBox(
+                  height: kToolbarHeight,
+                  child: TopToolBar(
+                    onFullscreenPressed: (_) => _toggleFullscreen(),
+                  ),
                 ),
               ),
             ),

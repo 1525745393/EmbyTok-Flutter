@@ -47,6 +47,10 @@ const Color durationBadgeBackground = Color(0xB3000000);
 const Color black54 = Color(0x8A000000); // 54% 不透明
 const Color black87 = Color(0xDE000000); // 87% 不透明
 
+/// 叠加层黑色（用于顶部/底部工具栏的半透明渐变）
+const Color overlayBlack = Color(0xAA000000); // 67% 不透明
+const Color overlayBlackDeep = Color(0xCC000000); // 80% 不透明
+
 /// 琥珀色（用于收藏、强调）
 const Color amberColor = Color(0xFFFFC107);
 
