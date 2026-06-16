@@ -360,9 +360,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   void dispose() {
     _loadTimeoutTimer?.cancel();
+    _loadTimeoutTimer = null;
     _progressTimer?.cancel();
-    _reportStopped();
-    _controller?.dispose();
+    _progressTimer = null;
+    // 先上报停止位置，再暂停，最后 dispose 以保证 MediaCodec 释放缓冲区
+    try {
+      _reportStopped();
+    } catch (_) {}
+    try {
+      if (_controller != null) {
+        _controller!.pause();
+        // 重置视频尺寸信息，帮助底层释放输出缓冲区
+        _controller!.setVolume(0.0);
+      }
+    } catch (_) {}
+    try {
+      _controller?.dispose();
+    } catch (_) {}
     _controller = null;
     super.dispose();
   }

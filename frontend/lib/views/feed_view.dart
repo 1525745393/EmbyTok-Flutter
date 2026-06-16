@@ -76,6 +76,34 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (mounted) setState(() {});
   }
 
+  // 监听应用生命周期变化：切后台释放 MediaCodec 资源，切回前台重新预取
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused) {
+      // 进入后台：立即释放所有预加载 controller，避免 MediaCodec 泄漏
+      ref.read(preloadProvider.notifier).clear();
+    } else if (state == AppLifecycleState.resumed) {
+      // 回到前台：重新预取下一条
+      final items = ref.read(filteredVideoListProvider);
+      final idx = ref.read(currentPlayingIndexProvider);
+      final auth = ref.read(authProvider);
+      if (idx < items.length) {
+        ref.read(preloadProvider.notifier).startWatching(
+          items,
+          idx,
+          kDefaultPreloadThreshold,
+        );
+        ref.read(preloadProvider.notifier).preloadNext(
+          items,
+          idx,
+          embyServerUrl: auth.embyServerUrl,
+          token: auth.token,
+        );
+      }
+    }
+  }
+
   /// PageController 滚动监听：检测滑动方向
   void _onScroll() {
     final offset = _pageController.offset;
@@ -110,12 +138,19 @@ class _FeedViewState extends ConsumerState<FeedView>
         ref.read(toolbarVisibilityProvider.notifier).show();
       }
     }
+    // 切换播放起点：重置当前播放项 + 清理超出窗口的旧预加载 controller，避免内存堆积
+    final auth = ref.read(authProvider);
+    ref.read(preloadProvider.notifier).startWatching(
+      items,
+      index,
+      kDefaultPreloadThreshold,
+    );
     // 触发下一条视频预加载（异步，不需要 await）
     ref.read(preloadProvider.notifier).preloadNext(
       items,
       index,
-      embyServerUrl: ref.read(authProvider).embyServerUrl,
-      token: ref.read(authProvider).token,
+      embyServerUrl: auth.embyServerUrl,
+      token: auth.token,
     );
     // 计数达到引导阈值时，淡出引导层
     if (!_guideShown && _swipeCount >= kGuideSwipeThreshold) {

@@ -28,24 +28,21 @@ class VideoPageItem extends ConsumerStatefulWidget {
   ConsumerState<VideoPageItem> createState() => _VideoPageItemState();
 }
 
-class _VideoPageItemState extends ConsumerState<VideoPageItem>
-    with AutomaticKeepAliveClientMixin {
+class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   VideoPlayerController? _videoController;
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
     // 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+    // 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
+    _videoController?.dispose();
+    _videoController = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;

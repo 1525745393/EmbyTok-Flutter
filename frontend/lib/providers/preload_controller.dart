@@ -39,6 +39,32 @@ class PreloadNotifier extends StateNotifier<List<_PreloadEntry>> {
 
     // 标记当前 item 不需要预加载（自身正在播放）
     _preloadedIds[_currentItemId!] = true;
+
+    // 清理当前播放位置前后窗口之外的旧预加载 controller，避免快速滚动时内存堆积
+    _evictOutsideWindow(items, currentIndex);
+  }
+
+  /// 回收超出 [currentIndex - kWindowSize, currentIndex + kWindowSize] 范围的 controller
+  void _evictOutsideWindow(List<MediaItem> items, int currentIndex) {
+    const kWindowSize = 3;
+    final keepIds = <String>{};
+    for (int i = currentIndex - kWindowSize;
+        i <= currentIndex + kWindowSize;
+        i++) {
+      if (i >= 0 && i < items.length) keepIds.add(items[i].id);
+    }
+    final newList = <_PreloadEntry>[];
+    for (final e in state) {
+      if (keepIds.contains(e.itemId)) {
+        newList.add(e);
+      } else {
+        // 超出窗口，立即 dispose 以释放 MediaCodec
+        try {
+          e.controller.dispose();
+        } catch (_) {}
+      }
+    }
+    state = newList;
   }
 
   /// 更新当前播放进度：由 FeedView 在播放中调用
