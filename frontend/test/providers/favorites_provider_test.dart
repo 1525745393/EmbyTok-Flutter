@@ -7,6 +7,7 @@ import 'package:mockito/mockito.dart';
 import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/providers/auth_provider.dart';
 import 'package:embbytok_flutter/providers/favorites_provider.dart';
+import 'package:embbytok_flutter/services/embbytok_service.dart';
 
 import '../mocks/mock_services.dart';
 
@@ -273,7 +274,27 @@ void main() {
   });
 }
 
-// 测试用 AuthNotifier：直接返回预设状态
-class TestAuthNotifier extends StateNotifier<AuthState> {
-  TestAuthNotifier(AuthState initialState) : super(initialState);
+// 测试用 AuthNotifier：继承 AuthNotifier，直接返回预设状态
+class TestAuthNotifier extends AuthNotifier {
+  final AuthState _testState;
+
+  TestAuthNotifier(this._testState, {EmbytokService? service})
+      : super(service: service);
+
+  @override
+  AuthState get state => _testState;
+
+  @override
+  Future<void> login(
+    String embyServerUrl,
+    String username,
+    String password,
+  ) async {
+    // 测试中不执行实际登录
+  }
+
+  @override
+  Future<void> logout() async {
+    // 测试中不执行实际登出
+  }
 }
