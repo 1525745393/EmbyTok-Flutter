@@ -18,6 +18,30 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// 显式从 pubspec.yaml 解析 version 字段，不依赖 Flutter Gradle 插件的自动注入
+// 格式：version: X.Y.Z+B  →  versionName = "X.Y.Z", versionCode = B（整数）
+def pubspecFile = new File("${rootProject.projectDir}/../pubspec.yaml")
+def pubspecVersion = ""
+if (pubspecFile.exists()) {
+    pubspecFile.eachLine { line ->
+        if (line.trim().startsWith("version:")) {
+            pubspecVersion = line.replace("version:", "").trim()
+        }
+    }
+}
+def parsedVersionName = "1.0.0"
+def parsedVersionCode = 1
+if (pubspecVersion.contains("+")) {
+    def parts = pubspecVersion.split("\\+")
+    parsedVersionName = parts[0].trim()
+    def codePart = parts[1].trim()
+    if (codePart.isInteger()) {
+        parsedVersionCode = codePart.toInteger()
+    }
+} else if (!pubspecVersion.isEmpty()) {
+    parsedVersionName = pubspecVersion
+}
+
 android {
     namespace "com.embbytok.app"
     compileSdk 34
@@ -35,11 +59,10 @@ android {
         applicationId "com.embbytok.app"
         minSdk 21
         targetSdk 34
-        // 版本号由 pubspec.yaml 中 `version: X.Y.Z+BUILD` 注入
-        // flutterVersionName = "X.Y.Z"（主版本名），flutterVersionCode = BUILD 数字
-        // 这样保证 pubspec.yaml 与 APK/AAB 中的 versionName 始终一致
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        // 从 pubspec.yaml 显式解析：version: X.Y.Z+B
+        // versionName = X.Y.Z（展示给用户），versionCode = B（递增整数，用于商店判断）
+        versionCode parsedVersionCode
+        versionName parsedVersionName
     }
 
     signingConfigs {
