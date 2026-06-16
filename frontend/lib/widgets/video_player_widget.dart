@@ -1,5 +1,7 @@
 // 视频播放器 Widget：基于 video_player 插件，支持播放/暂停/跳转/倍速
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -65,6 +67,10 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   // 初始化 video_player 控制器
+  // 错误处理策略：
+  //   1. 任何异常都降级到缩略图展示（不崩溃）
+  //   2. 检查 mounted 避免在已释放的 widget 上 setState
+  //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
   Future<void> _initVideo() async {
     final url = _playbackUrl;
     if (url == null) {
@@ -78,15 +84,31 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
 
     try {
-      // 获取认证头
       final headers = widget.item.authHeaders(widget.token);
 
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(url),
         httpHeaders: headers,
       );
+
+      // 监听播放器错误事件（例如网络中断、解码失败等）
+      _controller!.addListener(() {
+        if (!mounted) return;
+        if (_controller!.value.hasError && !_hasError) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = '播放出错';
+          });
+        }
+      });
+
       _controller!.setLooping(widget.loop);
-      await _controller!.initialize();
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('视频初始化超时');
+        },
+      );
       if (mounted) {
         setState(() {
           _initialized = true;
@@ -94,11 +116,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         });
         widget.onControllerReady?.call(_controller!);
         if (widget.autoPlay) {
-          await _controller!.play();
+          try {
+            await _controller!.play();
+          } catch (e) {
+            debugPrint('autoPlay error: $e');
+          }
         }
       }
     } catch (e) {
-      // 初始化失败：降级为缩略图展示
       debugPrint('VideoPlayer initialization error: $e');
       if (mounted) {
         setState(() {
@@ -112,27 +137,49 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   // 外部控制 API：播放
   void play() {
-    _controller?.play();
+    try {
+      _controller?.play();
+    } catch (e) {
+      debugPrint('play error: $e');
+    }
   }
 
   // 外部控制 API：暂停
   void pause() {
-    _controller?.pause();
+    try {
+      _controller?.pause();
+    } catch (e) {
+      debugPrint('pause error: $e');
+    }
   }
 
-  // 外部控制 API：跳转
+  // 外部控制 API：跳转（内部由手势层调用）
   Future<void> seekTo(Duration position) async {
-    await _controller?.seekTo(position);
+    try {
+      await _controller?.seekTo(position);
+    } catch (e) {
+      debugPrint('seekTo error: $e');
+    }
   }
 
   // 外部控制 API：设置倍速
   Future<void> setRate(double rate) async {
-    await _controller?.setPlaybackSpeed(rate);
+    try {
+      await _controller?.setPlaybackSpeed(rate);
+    } catch (e) {
+      debugPrint('setRate error: $e');
+    }
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    // 先停后释放，给底层 MediaCodec 留出缓冲时间
+    try {
+      _controller?.pause();
+    } catch (_) {}
+    try {
+      _controller?.dispose();
+    } catch (_) {}
     _controller = null;
     super.dispose();
   }

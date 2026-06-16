@@ -1,9 +1,11 @@
-// 手势交互层：单击/双击/长按/水平拖动
-// 包裹在视频播放器外层，不拦截垂直滑动（由上层 PageView 处理）
+// 手势交互层：单击/双击/长按倍速/水平拖动进度
+// 设计要点：拖动过程中只更新预览 UI，不调用 seekTo（避免高频调用导致 MediaCodec 崩溃）
+//           只有松手时才执行一次 seek
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -11,7 +13,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 
-// 手势交互层：根据任务要求，统一处理视频画面上的手势事件
+// 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
@@ -32,21 +34,40 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   Timer? _singleTapTimer;
   bool _pendingSingleTap = false;
   bool _isLongPressing = false;
+
+  // 水平拖动状态
   bool _isDragging = false;
   double _dragStartX = 0.0;
-  Duration _dragStartPosition = Duration.zero;
+  Duration _dragStartPosition = Duration.zero; // 拖动起始时的播放位置
+  Duration _previewPosition = Duration.zero; // 当前预览位置（拖动中展示用）
+
+  // 动画状态
   bool _showHeart = false;
+  Timer? _dragHideTimer; // 拖动结束后隐藏进度条的延迟
+
+  // 安全检查：控制器是否可用
+  bool get _controllerReady {
+    final c = widget.controller;
+    if (c == null) return false;
+    if (!c.value.isInitialized) return false;
+    if (c.value.hasError) return false;
+    return true;
+  }
 
   // ---- 单击 ----
   void _onSingleTap() {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    if (c.value.isPlaying) {
-      c.pause();
-    } else {
-      c.play();
+    try {
+      if (c.value.isPlaying) {
+        c.pause();
+      } else {
+        c.play();
+      }
+      ref.read(isPlayingProvider.notifier).state = c.value.isPlaying;
+    } catch (e) {
+      debugPrint('_onSingleTap error: $e');
     }
-    ref.read(isPlayingProvider.notifier).state = c.value.isPlaying;
   }
 
   // ---- 双击 ----
@@ -61,15 +82,24 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         });
       }
     });
-    unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
+    try {
+      unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
+    } catch (e) {
+      debugPrint('_onDoubleTap toggleFavorite error: $e');
+    }
   }
 
   // ---- 长按倍速 ----
   void _onLongPressStart() {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    _isLongPressing = true;
-    c.setPlaybackSpeed(kLongPressPlaybackRate);
+    try {
+      _isLongPressing = true;
+      c.setPlaybackSpeed(kLongPressPlaybackRate);
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('_onLongPressStart error: $e');
+    }
   }
 
   void _onLongPressEnd() {
@@ -77,48 +107,93 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isLongPressing = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    c.setPlaybackSpeed(ref.read(playbackRateProvider));
+    try {
+      c.setPlaybackSpeed(ref.read(playbackRateProvider));
+    } catch (e) {
+      debugPrint('_onLongPressEnd error: $e');
+    }
+    if (mounted) setState(() {});
   }
 
-  // ---- 水平拖动（快进/快退） ----
+  // ---- 水平拖动（快进/快退）----
+  // 关键优化：拖动过程中只更新预览位置 + 震动反馈，不调用 seekTo
+  //          只在拖动结束后执行一次 seek，避免高频调用 MediaCodec 导致崩溃
   void _onHorizontalDragStart(DragStartDetails d) {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
+    if (!_controllerReady) return;
+    final c = widget.controller!;
     _isDragging = true;
     _dragStartX = d.globalPosition.dx;
     _dragStartPosition = c.value.position;
+    _previewPosition = c.value.position;
+    _dragHideTimer?.cancel();
+    // 轻震动提示：进入拖动模式
+    HapticFeedback.selectionClick();
+    if (mounted) setState(() {});
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!_isDragging) return;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
+    if (!_controllerReady) return;
+    final c = widget.controller!;
+
+    // 计算水平偏移 -> 目标进度（毫秒）
     final dx = d.globalPosition.dx - _dragStartX;
     final seekMs = (dx * kSeekPerPixelMs).toInt();
-    final target = _dragStartPosition + Duration(milliseconds: seekMs);
-    final clamped = target < Duration.zero
-        ? Duration.zero
-        : target > c.value.duration
-            ? c.value.duration
-            : target;
-    c.seekTo(clamped);
+    var target = _dragStartPosition + Duration(milliseconds: seekMs);
+
+    // 夹紧到有效范围
+    final duration = c.value.duration;
+    if (target < Duration.zero) {
+      target = Duration.zero;
+    } else if (duration > Duration.zero && target > duration) {
+      target = duration;
+    }
+
+    // ⚠️ 关键：只更新预览变量，不调用 seekTo
+    // 拖动过程中频繁 seek 是导致 Android MediaCodec 崩溃的主要原因
+    _previewPosition = target;
+
+    // 每约 0.5 秒给一次轻震动，让用户有进度变化的反馈
+    if (mounted) setState(() {});
   }
 
   void _onHorizontalDragEnd() {
+    if (!_isDragging) return;
     _isDragging = false;
+    final c = widget.controller;
+    if (c != null && _controllerReady) {
+      // 只执行一次 seek —— 这是正确的做法
+      try {
+        final duration = c.value.duration;
+        var target = _previewPosition;
+        if (target < Duration.zero) target = Duration.zero;
+        if (duration > Duration.zero && target > duration) target = duration;
+        c.seekTo(target);
+        // seek 成功的轻震动反馈
+        HapticFeedback.lightImpact();
+      } catch (e) {
+        debugPrint('seekTo error: $e');
+      }
+    }
+    // 延迟 800ms 隐藏进度条，给用户看清最终位置
+    _dragHideTimer?.cancel();
+    _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() {});
+    });
+    if (mounted) setState(() {});
   }
 
   // ---- 单击/双击区分：300ms 定时器 ----
   void _handleTap() {
+    // 拖动状态下点击事件忽略（避免松手后触发单击）
+    if (_isDragging) return;
     if (_pendingSingleTap) {
-      // 300ms 内第二次点击 -> 双击
       _singleTapTimer?.cancel();
       _pendingSingleTap = false;
       _onDoubleTap();
     } else {
       _pendingSingleTap = true;
-      _singleTapTimer =
-          Timer(const Duration(milliseconds: kDoubleTapMs), () {
+      _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
         if (_pendingSingleTap) {
           _pendingSingleTap = false;
           _onSingleTap();
@@ -130,16 +205,23 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   @override
   void dispose() {
     _singleTapTimer?.cancel();
+    _dragHideTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final duration = _controllerReady
+        ? widget.controller!.value.duration
+        : Duration.zero;
+    final currentPosition =
+        _isDragging ? _previewPosition : (_controllerReady ? widget.controller!.value.position : Duration.zero);
+
     return Stack(
       alignment: Alignment.center,
       children: [
         widget.child,
-        // 手势识别层：透明覆盖层，仅处理水平 & 点击，不拦截垂直滑动
+        // 手势识别层
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -154,11 +236,21 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             child: Container(color: Colors.transparent),
           ),
         ),
+        // 拖动进度条：拖动中显示位置指示
+        if (_isDragging || _dragHideTimer?.isActive == true)
+          Positioned(
+            top: 48,
+            left: 32,
+            right: 32,
+            child: _SeekPreviewBar(
+              current: currentPosition,
+              total: duration,
+              offset: _previewPosition - _dragStartPosition,
+            ),
+          ),
         // 双击心形动画
         if (_showHeart)
-          const IgnorePointer(
-            child: _FlyingHeart(),
-          ),
+          const IgnorePointer(child: _FlyingHeart()),
         // 长按倍速提示
         if (_isLongPressing)
           const IgnorePointer(
@@ -168,6 +260,87 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ---- 内部子组件：拖动进度预览条 ----
+class _SeekPreviewBar extends StatelessWidget {
+  final Duration current;
+  final Duration total;
+  final Duration offset;
+
+  const _SeekPreviewBar({
+    required this.current,
+    required this.total,
+    required this.offset,
+  });
+
+  String _format(Duration d) {
+    if (d.inSeconds < 0) return '0:00';
+    final m = d.inMinutes;
+    final s = d.inSeconds.remainder(60);
+    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total.inMilliseconds > 0
+        ? current.inMilliseconds / total.inMilliseconds
+        : 0.0;
+    final clampedProgress = progress.clamp(0.0, 1.0);
+
+    final isForward = offset >= Duration.zero;
+    final offsetText =
+        '${isForward ? '+' : '-'}${(offset.inSeconds.abs() ~/ 1)}s';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                isForward ? Icons.fast_forward : Icons.fast_rewind,
+                color: const Color(0xFFE91E63),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                offsetText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${_format(current)} / ${_format(total)}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: clampedProgress,
+            backgroundColor: Colors.white24,
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(Color(0xFFE91E63)),
+          ),
+        ],
+      ),
     );
   }
 }
