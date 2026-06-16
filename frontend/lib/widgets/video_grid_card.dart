@@ -35,7 +35,7 @@ class VideoGridCard extends ConsumerWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[900],
+          color: surfaceColorL2,
           borderRadius: BorderRadius.circular(8),
         ),
         clipBehavior: Clip.antiAlias,
@@ -61,7 +61,7 @@ class VideoGridCard extends ConsumerWidget {
                     Positioned(
                       left: 0,
                       right: 0,
-                      bottom: 0,
+                      bottom: 4,
                       child: _buildProgressBar(progress),
                     ),
                 ],
@@ -75,7 +75,7 @@ class VideoGridCard extends ConsumerWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: textPrimary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -101,14 +101,25 @@ class VideoGridCard extends ConsumerWidget {
     );
   }
 
-  // 占位图（无图片时显示）
+  // 骨架屏占位图（加载中时显示渐变动画）
   Widget _buildPlaceholder() {
     return Container(
-      color: Colors.grey[800],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            surfaceColorL3,
+            surfaceColorL2,
+            surfaceColorL3,
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
+      ),
       child: const Center(
         child: Icon(
           Icons.video_library_outlined,
-          color: Colors.white38,
+          color: textQuaternary,
           size: 40,
         ),
       ),
@@ -121,13 +132,13 @@ class VideoGridCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.7),
+        color: durationBadgeBackground,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         duration,
         style: const TextStyle(
-          color: Colors.white,
+          color: textPrimary,
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
@@ -139,12 +150,12 @@ class VideoGridCard extends ConsumerWidget {
   Widget _buildProgressBar(double progress) {
     return Container(
       height: 3,
-      color: Colors.white24,
+      color: progressBackground,
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress.clamp(0.0, 1.0),
         child: Container(
-          color: const Color(0xFFE91E63),
+          color: primaryPink,
         ),
       ),
     );

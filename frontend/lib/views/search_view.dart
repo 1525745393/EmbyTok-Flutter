@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/video_page_item.dart';
@@ -18,7 +19,8 @@ class SearchView extends ConsumerStatefulWidget {
   ConsumerState<SearchView> createState() => _SearchViewState();
 }
 
-class _SearchViewState extends ConsumerState<SearchView> {
+class _SearchViewState extends ConsumerState<SearchView>
+    with AutomaticKeepAliveClientMixin<SearchView> {
   late final TextEditingController _controller;
   Timer? _debounce;
   final FocusNode _focusNode = FocusNode();
@@ -36,6 +38,9 @@ class _SearchViewState extends ConsumerState<SearchView> {
     _focusNode.dispose();
     super.dispose();
   }
+
+  @override
+  bool get wantKeepAlive => true;
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
@@ -69,14 +74,15 @@ class _SearchViewState extends ConsumerState<SearchView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(searchProvider);
     final history = ref.watch(searchHistoryProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: const Text('搜索'),
       ),
       body: SafeArea(
@@ -88,14 +94,14 @@ class _SearchViewState extends ConsumerState<SearchView> {
               controller: _controller,
               focusNode: _focusNode,
               onChanged: _onQueryChanged,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: const TextStyle(color: textPrimary, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '输入关键词搜索...',
-                hintStyle: const TextStyle(color: Colors.white54),
-                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                hintStyle: const TextStyle(color: textTertiary),
+                prefixIcon: const Icon(Icons.search, color: textTertiary),
                 suffixIcon: _controller.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54),
+                        icon: const Icon(Icons.clear, color: textTertiary),
                         onPressed: () {
                           _controller.clear();
                           _onQueryChanged('');
@@ -103,7 +109,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white10,
+                fillColor: const Color(0x1AFFFFFF),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(28),
                   borderSide: BorderSide.none,
@@ -131,9 +137,9 @@ class _SearchViewState extends ConsumerState<SearchView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: Color(0xFFE91E63)),
+            CircularProgressIndicator(color: primaryPink),
             SizedBox(height: 12),
-            Text('搜索中...', style: TextStyle(color: Colors.white70)),
+            Text('搜索中...', style: TextStyle(color: textSecondary)),
           ],
         ),
       );
@@ -144,9 +150,9 @@ class _SearchViewState extends ConsumerState<SearchView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: errorColor, size: 48),
             const SizedBox(height: 12),
-            Text(state.error!, style: const TextStyle(color: Colors.white70)),
+            Text(state.error!, style: const TextStyle(color: textSecondary)),
           ],
         ),
       );
@@ -156,10 +162,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
       return _Centered(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.search_off, size: 64, color: Colors.white54),
+          children: [
+            Icon(Icons.search_off, size: 64, color: textTertiary),
             SizedBox(height: 12),
-            Text('没有找到相关内容', style: TextStyle(color: Colors.white70)),
+            Text('没有找到相关内容', style: TextStyle(color: textSecondary)),
           ],
         ),
       );
@@ -168,7 +174,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: state.results.length,
-      separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+      separatorBuilder: (_, __) => const Divider(color: dividerColor, height: 1),
       itemBuilder: (context, index) {
         final item = state.results[index];
         return _SearchResultTile(item: item);
@@ -180,7 +186,7 @@ class _SearchViewState extends ConsumerState<SearchView> {
     if (history.isEmpty) {
       return const _Centered(
         child: Text('还没有搜索历史',
-            style: TextStyle(color: Colors.white54, fontSize: 16)),
+            style: TextStyle(color: textTertiary, fontSize: 16)),
       );
     }
     return Padding(
@@ -190,10 +196,10 @@ class _SearchViewState extends ConsumerState<SearchView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('搜索历史', style: TextStyle(color: Colors.white70, fontSize: 14)),
+              const Text('搜索历史', style: TextStyle(color: textSecondary, fontSize: 14)),
               TextButton(
                 onPressed: _clearHistory,
-                child: const Text('清空', style: TextStyle(color: Color(0xFFFF5983))),
+                child: Text('清空', style: TextStyle(color: historyPink)),
               ),
             ],
           ),
@@ -269,7 +275,7 @@ class _SearchResultTile extends ConsumerWidget {
         item.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+        style: const TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
@@ -278,23 +284,23 @@ class _SearchResultTile extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFFE91E63),
+              color: primaryPink,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               item.type,
-              style: const TextStyle(color: Colors.white, fontSize: 11),
+              style: const TextStyle(color: textPrimary, fontSize: 11),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             formatDuration(item.durationSeconds),
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+            style: const TextStyle(color: textTertiary, fontSize: 12),
           ),
         ],
       ),
       ),
-      trailing: const Icon(Icons.play_circle_fill, color: Color(0xFFFF5983), size: 28),
+      trailing: const Icon(Icons.play_circle_fill, color: historyPink, size: 28),
     );
   }
 
@@ -302,7 +308,7 @@ class _SearchResultTile extends ConsumerWidget {
         width: 120,
         height: 72,
         color: Colors.grey[800],
-        child: const Icon(Icons.movie_outlined, color: Colors.white30),
+        child: const Icon(Icons.movie_outlined, color: textPlaceholder),
       );
 }
 
@@ -320,18 +326,18 @@ class _HistoryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white10,
+          color: const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white24),
+          border: Border.all(color: progressBackground),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(label, style: const TextStyle(color: textSecondary, fontSize: 13)),
             const SizedBox(width: 6),
             GestureDetector(
               onTap: onRemove,
-              child: const Icon(Icons.close, size: 14, color: Colors.white54),
+              child: const Icon(Icons.close, size: 14, color: textTertiary),
             ),
           ],
         ),
@@ -350,17 +356,17 @@ class _ConfirmDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.grey[900],
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      content: Text(message, style: const TextStyle(color: Colors.white70)),
+      title: Text(title, style: const TextStyle(color: textPrimary)),
+      content: Text(message, style: const TextStyle(color: textSecondary)),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Colors.white70)),
+          child: const Text('取消', style: TextStyle(color: textSecondary)),
         ),
         ElevatedButton(
           onPressed: onConfirm,
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE91E63)),
-          child: const Text('确定', style: TextStyle(color: Colors.white)),
+          style: ElevatedButton.styleFrom(backgroundColor: primaryPink),
+          child: const Text('确定', style: TextStyle(color: textPrimary)),
         ),
       ],
     );
@@ -375,11 +381,11 @@ class _VideoPlayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(item.title, style: const TextStyle(fontSize: 16)),
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
+        title: Text(item.title, style: const TextStyle(color: textPrimary, fontSize: 16)),
       ),
       body: VideoPageItem(item: item),
     );

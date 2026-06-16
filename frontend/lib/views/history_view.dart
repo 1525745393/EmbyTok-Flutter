@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 import '../widgets/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
@@ -14,7 +15,8 @@ class HistoryView extends ConsumerStatefulWidget {
   ConsumerState<HistoryView> createState() => _HistoryViewState();
 }
 
-class _HistoryViewState extends ConsumerState<HistoryView> {
+class _HistoryViewState extends ConsumerState<HistoryView>
+    with AutomaticKeepAliveClientMixin<HistoryView> {
   @override
   void initState() {
     super.initState();
@@ -24,17 +26,21 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(watchHistoryProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: const Row(
           children: [
-            Icon(Icons.history, color: Color(0xFFFF5983), size: 24),
+            Icon(Icons.history, color: historyPink, size: 24),
             SizedBox(width: 8),
             Text('观看历史'),
           ],
@@ -47,7 +53,7 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
   Widget _buildBody(WatchHistoryState state) {
     if (state.isLoading && state.items.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        child: CircularProgressIndicator(color: primaryPink),
       );
     }
     if (state.error != null && state.items.isEmpty) {
@@ -56,10 +62,10 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.error_outline,
-                color: Colors.redAccent, size: 48),
+                color: errorColor, size: 48),
             const SizedBox(height: 12),
             Text(state.error!,
-                style: const TextStyle(color: Colors.white70)),
+                style: const TextStyle(color: textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
@@ -76,13 +82,13 @@ class _HistoryViewState extends ConsumerState<HistoryView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.movie_outlined, size: 80, color: Colors.white30),
+            Icon(Icons.movie_outlined, size: 80, color: textPlaceholder),
             SizedBox(height: 16),
             Text('暂无观看历史',
-                style: TextStyle(color: Colors.white70, fontSize: 18)),
+                style: TextStyle(color: textSecondary, fontSize: 18)),
             SizedBox(height: 8),
             Text('开始观看后将自动记录',
-                style: TextStyle(color: Colors.white54, fontSize: 14)),
+                style: TextStyle(color: textTertiary, fontSize: 14)),
           ],
         ),
       );
@@ -132,9 +138,9 @@ class _HistoryTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white10,
+          color: const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: dividerColor),
         ),
         child: Row(
           children: [
@@ -161,7 +167,7 @@ class _HistoryTile extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -170,7 +176,7 @@ class _HistoryTile extends ConsumerWidget {
                   Text(
                     item.type,
                     style: const TextStyle(
-                      color: Color(0xFFE91E63),
+                      color: primaryPink,
                       fontSize: 12,
                     ),
                   ),
@@ -184,10 +190,10 @@ class _HistoryTile extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: progressPct,
-                              backgroundColor: Colors.white12,
+                              backgroundColor: dividerColor,
                               valueColor:
                                   const AlwaysStoppedAnimation<Color>(
-                                Color(0xFFE91E63),
+                                primaryPink,
                               ),
                               minHeight: 4,
                             ),
@@ -197,7 +203,7 @@ class _HistoryTile extends ConsumerWidget {
                         Text(
                           '${(progressPct * 100).toInt()}%',
                           style: const TextStyle(
-                              color: Colors.white54, fontSize: 12),
+                              color: textTertiary, fontSize: 12),
                         ),
                       ],
                     ),
@@ -207,7 +213,7 @@ class _HistoryTile extends ConsumerWidget {
                     Text(
                       '上次观看：${item.userData!.lastPlayedDate!.split('T').first}',
                       style: const TextStyle(
-                          color: Colors.white38, fontSize: 11),
+                          color: textQuaternary, fontSize: 11),
                     ),
                 ],
               ),
@@ -221,8 +227,8 @@ class _HistoryTile extends ConsumerWidget {
   Widget _thumbPlaceholder() => Container(
         width: 120,
         height: 72,
-        color: Colors.grey[800],
-        child: const Icon(Icons.movie_outlined, color: Colors.white30),
+        color: surfaceColorL3,
+        child: Icon(Icons.movie_outlined, color: textPlaceholder),
       );
 }
 
@@ -233,10 +239,10 @@ class _HistoryPlayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

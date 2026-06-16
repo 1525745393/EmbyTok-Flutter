@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/colors.dart';
 import '../utils/logger.dart';
 
 // 视频播放器：优先播放 item.playbackUrl，支持动态构造 Emby URL
@@ -291,7 +292,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         });
       }
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        child: CircularProgressIndicator(color: primaryPink),
       );
     }
 
@@ -324,10 +325,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             Image.network(
               thumbnailUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: Colors.black),
+              errorBuilder: (_, __, ___) => Container(color: backgroundColor),
             )
           else
-            Container(color: Colors.black),
+            Container(color: backgroundColor),
           // 视频居中显示（BoxFit.contain）
           Center(
             child: AspectRatio(
@@ -368,13 +369,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             errorBuilder: (_, __, ___) => Container(
               color: Colors.grey[900],
               child: const Center(
-                child: Icon(Icons.broken_image, size: 64, color: Colors.white30),
+                child: const Icon(Icons.broken_image, size: 64, color: textPlaceholder),
               ),
             ),
             loadingBuilder: (_, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+                child: CircularProgressIndicator(color: primaryPink),
               );
             },
           )
@@ -385,12 +386,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.movie_outlined, size: 64, color: Colors.white30),
+                  const Icon(Icons.movie_outlined, size: 64, color: textPlaceholder),
                   if (_hasError && _errorMessage != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(color: textTertiary, fontSize: 12),
                     ),
                   ],
                 ],
@@ -402,7 +403,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: Icon(
               Icons.play_circle_fill,
               size: 96,
-              color: Colors.white70,
+              color: textSecondary,
               shadows: [
                 Shadow(
                   color: Colors.black54,

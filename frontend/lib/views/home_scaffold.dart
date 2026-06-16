@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'utils/colors.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
@@ -30,7 +31,7 @@ class _HomeScaffoldState extends State<HomeScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       body: IndexedStack(
         index: _currentIndex,
         children: const [
@@ -44,9 +45,9 @@ class _HomeScaffoldState extends State<HomeScaffold> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
-        selectedItemColor: const Color(0xFFE91E63),
-        unselectedItemColor: Colors.white60,
+        backgroundColor: backgroundColor,
+        selectedItemColor: primaryPink,
+        unselectedItemColor: textTertiary,
         selectedFontSize: 12,
         unselectedFontSize: 12,
         showSelectedLabels: true,

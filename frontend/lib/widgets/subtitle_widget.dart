@@ -50,8 +50,8 @@ class SubtitleStyle {
 
   const SubtitleStyle({
     this.fontSize = 18.0,
-    this.textColor = Colors.white,
-    this.backgroundColor = Colors.black54,
+    this.textColor = textPrimary,
+    this.backgroundColor = backgroundColor,
     this.fontWeight = FontWeight.w600,
     this.letterSpacing = 0.0,
     this.wordSpacing = 0.0,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -16,13 +17,13 @@ class SettingsView extends ConsumerWidget {
     final auth = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Row(
           children: const [
-            Icon(Icons.settings, color: Color(0xFFFF5983), size: 24),
+            Icon(Icons.settings, color: historyPink, size: 24),
             SizedBox(width: 8),
             Text('设置'),
           ],
@@ -76,7 +77,7 @@ class SettingsView extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
         child: Text(title,
             style: const TextStyle(
-              color: Colors.white54,
+              color: textTertiary,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
@@ -90,14 +91,14 @@ class SettingsView extends ConsumerWidget {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFFFF5983), size: 24),
+      leading: Icon(icon, color: historyPink, size: 24),
       title: Text(title,
-          style: const TextStyle(color: Colors.white, fontSize: 15)),
+          style: const TextStyle(color: textPrimary, fontSize: 15)),
       subtitle: Text(subtitle,
-          style: const TextStyle(color: Colors.white54, fontSize: 13)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+          style: const TextStyle(color: textTertiary, fontSize: 13)),
+      trailing: const Icon(Icons.chevron_right, color: textTertiary),
       onTap: onTap,
-      tileColor: Colors.white10,
+      tileColor: const Color(0x1AFFFFFF),
     );
   }
 
@@ -106,17 +107,17 @@ class SettingsView extends ConsumerWidget {
     return ListTile(
       leading: CircleAvatar(
         radius: 20,
-        backgroundColor: const Color(0xFFE91E63),
+        backgroundColor: primaryPink,
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+          style: const TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
       title: Text(name,
-          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+          style: const TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
       subtitle: Text(auth.backendUrl ?? '未连接服务器',
-          style: const TextStyle(color: Colors.white54, fontSize: 12)),
-      tileColor: Colors.white10,
+          style: const TextStyle(color: textTertiary, fontSize: 12)),
+      tileColor: const Color(0x1AFFFFFF),
     );
   }
 
@@ -126,11 +127,11 @@ class SettingsView extends ConsumerWidget {
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          icon: const Icon(Icons.logout, color: Colors.white),
+          icon: const Icon(Icons.logout, color: textPrimary),
           label: const Text('退出登录',
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+              style: TextStyle(color: textPrimary, fontSize: 16)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
+            backgroundColor: errorColor,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -217,13 +218,13 @@ class SettingsView extends ConsumerWidget {
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
         title: const Text('清除缓存',
-            style: TextStyle(color: Colors.white)),
+            style: TextStyle(color: textPrimary)),
         content: const Text('确定要清除全部缓存吗？这将删除临时下载的缩略图和字幕文件。',
-            style: TextStyle(color: Colors.white70)),
+            style: TextStyle(color: textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Colors.white70)),
+            child: const Text('取消', style: TextStyle(color: textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -234,8 +235,8 @@ class SettingsView extends ConsumerWidget {
                     backgroundColor: Colors.green),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('清除', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: errorColor),
+            child: const Text('清除', style: TextStyle(color: textPrimary)),
           ),
         ],
       ),
@@ -248,21 +249,21 @@ class SettingsView extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('退出登录', style: TextStyle(color: Colors.white)),
+        title: const Text('退出登录', style: TextStyle(color: textPrimary)),
         content: const Text('确定要退出当前账号吗？',
-            style: TextStyle(color: Colors.white70)),
+            style: TextStyle(color: textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Colors.white70)),
+            child: const Text('取消', style: TextStyle(color: textSecondary)),
           ),
           ElevatedButton(
             onPressed: () {
               ref.read(authProvider.notifier).logout();
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('退出', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: errorColor),
+            child: const Text('退出', style: TextStyle(color: textPrimary)),
           ),
         ],
       ),
@@ -307,7 +308,7 @@ class _OptionDialog<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.grey[900],
-      title: Text(title, style: const TextStyle(color: Colors.white)),
+      title: Text(title, style: const TextStyle(color: textPrimary)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: options.map((opt) {
@@ -315,10 +316,10 @@ class _OptionDialog<T> extends StatelessWidget {
           return ListTile(
             title: Text(opt.$1,
                 style: TextStyle(
-                    color: selected ? const Color(0xFFFF5983) : Colors.white,
+                    color: selected ? historyPink : textPrimary,
                     fontSize: 15)),
             trailing: selected
-                ? const Icon(Icons.check, color: Color(0xFFFF5983))
+                ? Icon(Icons.check, color: historyPink)
                 : null,
             onTap: () => onSelect(opt.$2),
           );
@@ -327,7 +328,7 @@ class _OptionDialog<T> extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('关闭', style: TextStyle(color: Colors.white70)),
+          child: const Text('关闭', style: TextStyle(color: textSecondary)),
         ),
       ],
     );

@@ -4,6 +4,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../utils/colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -233,7 +235,7 @@ class _FlyingHeartState extends State<_FlyingHeart>
             scale: _scale.value,
             child: const Icon(
               Icons.favorite,
-              color: Color(0xFFFF5983),
+              color: historyPink,
               size: 96,
               shadows: [
                 Shadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 4)),
@@ -258,12 +260,12 @@ class _SpeedBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black87,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+        border: Border.all(color: primaryPink, width: 1.5),
       ),
       child: Text(
         '${speed.toStringAsFixed(1)}x',
         style: const TextStyle(
-          color: Color(0xFFFF5983),
+          color: historyPink,
           fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,

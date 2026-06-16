@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/subtitle_settings_provider.dart';
 import '../utils/constants.dart';
+import '../utils/colors.dart';
 
 class SubtitleControls extends ConsumerWidget {
   final List<SubtitleTrack> tracks;
@@ -25,13 +26,13 @@ class SubtitleControls extends ConsumerWidget {
     return Container(
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: dividerColor),
       ),
       padding: const EdgeInsets.all(16),
       child: DefaultTextStyle(
-        style: const TextStyle(color: Colors.white, fontSize: 14),
+        style: const TextStyle(color: textPrimary, fontSize: 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,12 +45,12 @@ class SubtitleControls extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFFF5983),
+                    color: historyPink,
                   ),
                 ),
                 if (onClose != null)
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: const Icon(Icons.close, color: textPrimary),
                     onPressed: onClose,
                   ),
               ],
@@ -133,7 +134,7 @@ class SubtitleControls extends ConsumerWidget {
 
   Widget _section(String title) => Text(
         title,
-        style: const TextStyle(color: Colors.white60, fontSize: 12),
+        style: const TextStyle(color: textSecondary, fontSize: 12),
       );
 
   Widget _chip({
@@ -146,17 +147,17 @@ class SubtitleControls extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE91E63) : Colors.white10,
+          color: selected ? primaryPink : const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? const Color(0xFFFF5983) : Colors.white24,
+            color: selected ? historyPink : progressBackground,
             width: 1.2,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : Colors.white70,
+            color: selected ? textPrimary : textSecondary,
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),

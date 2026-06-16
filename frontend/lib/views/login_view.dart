@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 
 // 登录页面：ConsumerWidget 直接读取 authProvider 状态
 class LoginView extends ConsumerStatefulWidget {
@@ -53,7 +54,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e is String ? e : '登录失败：$e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: errorColor,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -68,7 +69,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -85,7 +86,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFFE91E63),
+                      color: primaryPink,
                       letterSpacing: 2,
                     ),
                     textAlign: TextAlign.center,
@@ -93,7 +94,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   const SizedBox(height: 8),
                   const Text(
                     '浏览你的私人媒体库',
-                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(fontSize: 16, color: textSecondary),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -124,7 +125,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.white70,
+                        color: textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -141,8 +142,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE91E63),
-                        foregroundColor: Colors.white,
+                        backgroundColor: primaryPink,
+                        foregroundColor: textPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -158,7 +159,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.4,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(textPrimary),
                               ),
                             )
                           : const Text('登录'),
@@ -185,31 +186,31 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: textPrimary),
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.grey[900],
+        fillColor: surfaceColorL3,
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: const TextStyle(color: textSecondary),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[500]),
-        prefixIcon: Icon(icon, color: const Color(0xFFE91E63)),
+        hintStyle: TextStyle(color: textQuaternary),
+        prefixIcon: Icon(icon, color: primaryPink),
         suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[800]!),
+          borderSide: BorderSide(color: surfaceColorL2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE91E63)),
+          borderSide: const BorderSide(color: primaryPink),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent),
+          borderSide: const BorderSide(color: errorColor),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.redAccent),
+          borderSide: const BorderSide(color: errorColor),
         ),
       ),
       validator: (value) {

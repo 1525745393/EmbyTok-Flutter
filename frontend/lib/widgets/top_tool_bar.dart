@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, OrientationMode;
+import '../utils/colors.dart';
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();
@@ -40,9 +41,9 @@ class TopToolBar extends ConsumerWidget {
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: const BoxDecoration(
-        color: Colors.black87,
+        color: backgroundColor,
         border: Border(
-          bottom: BorderSide(color: Colors.white12, width: 0.5),
+          bottom: BorderSide(color: dividerColor, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -51,7 +52,7 @@ class TopToolBar extends ConsumerWidget {
           children: [
             // 左侧：菜单按钮
             IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
+              icon: const Icon(Icons.menu, color: textPrimary),
               onPressed: onMenuPressed ?? () => _openDrawer(context),
               tooltip: '菜单',
             ),
@@ -70,7 +71,7 @@ class TopToolBar extends ConsumerWidget {
                           value: '',
                           child: Text(
                             '暂无可用媒体库',
-                            style: TextStyle(color: Colors.white60),
+                            style: TextStyle(color: textSecondary),
                           ),
                         ),
                       ];
@@ -85,8 +86,8 @@ class TopToolBar extends ConsumerWidget {
                                         ? Icons.check_circle
                                         : Icons.folder_outlined,
                                     color: selectedLibrary?.id == lib.id
-                                        ? const Color(0xFFE91E63)
-                                        : Colors.white70,
+                                        ? primaryPink
+                                        : textSecondary,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 12),
@@ -95,8 +96,8 @@ class TopToolBar extends ConsumerWidget {
                                       lib.name,
                                       style: TextStyle(
                                         color: selectedLibrary?.id == lib.id
-                                            ? const Color(0xFFE91E63)
-                                            : Colors.white70,
+                                            ? primaryPink
+                                            : textSecondary,
                                         fontWeight: selectedLibrary?.id == lib.id
                                             ? FontWeight.w600
                                             : FontWeight.normal,
@@ -113,10 +114,10 @@ class TopToolBar extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE91E63).withOpacity(0.2),
+                      color: primaryPink.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFFE91E63).withOpacity(0.5),
+                        color: primaryPink.withOpacity(0.5),
                         width: 1,
                       ),
                     ),
@@ -126,13 +127,13 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.folder_outlined,
                           size: 16,
-                          color: Colors.white.withOpacity(0.9),
+                          color: textPrimary.withOpacity(0.9),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           selectedLibrary?.name ?? '加载中...',
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: textPrimary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -142,7 +143,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.expand_more,
                           size: 18,
-                          color: Colors.white.withOpacity(0.7),
+                          color: textPrimary.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -159,8 +160,8 @@ class TopToolBar extends ConsumerWidget {
                   icon: Icon(
                     _getOrientationIcon(orientationMode),
                     color: orientationMode != OrientationMode.both
-                        ? const Color(0xFFE91E63)
-                        : Colors.white,
+                        ? primaryPink
+                        : textPrimary,
                   ),
                   tooltip: '方向过滤',
                   color: Colors.grey[900],
@@ -193,7 +194,7 @@ class TopToolBar extends ConsumerWidget {
                         ? Icons.grid_view // 视频流模式 -> 切换到网格
                         : Icons
                             .phone_android, // 网格模式 -> 切换到视频流
-                    color: Colors.white,
+                    color: textPrimary,
                   ),
                   onPressed: () => _toggleViewMode(ref, viewMode),
                   tooltip: viewMode == ViewMode.feed
@@ -202,7 +203,7 @@ class TopToolBar extends ConsumerWidget {
                 ),
                 // 全屏按钮
                 IconButton(
-                  icon: const Icon(Icons.fullscreen, color: Colors.white),
+                  icon: const Icon(Icons.fullscreen, color: textPrimary),
                   onPressed: () => onFullscreenPressed?.call(true),
                   tooltip: '全屏',
                 ),
@@ -210,7 +211,7 @@ class TopToolBar extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     isMuted ? Icons.volume_off : Icons.volume_up,
-                    color: Colors.white,
+                    color: textPrimary,
                   ),
                   onPressed: () => _toggleMuted(ref, isMuted),
                   tooltip: isMuted ? '取消静音' : '静音',
@@ -262,20 +263,20 @@ class TopToolBar extends ConsumerWidget {
         children: [
           Icon(
             icon,
-            color: isSelected ? const Color(0xFFE91E63) : Colors.white70,
+            color: isSelected ? primaryPink : textSecondary,
             size: 20,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? const Color(0xFFE91E63) : Colors.white70,
+              color: isSelected ? primaryPink : textSecondary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
           if (isSelected) ...[
             const Spacer(),
-            const Icon(Icons.check, color: Color(0xFFE91E63), size: 18),
+            const Icon(Icons.check, color: primaryPink, size: 18),
           ],
         ],
       ),

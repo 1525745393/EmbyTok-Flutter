@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/colors.dart';
 import '../widgets/video_page_item.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
@@ -70,10 +71,10 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
     final headers = widget.item.authHeaders(authState.token);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Text(widget.item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: SingleChildScrollView(
@@ -103,8 +104,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 children: [
                   Text(
                     widget.item.title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: textPrimary,
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                     ),
@@ -112,8 +113,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                   const SizedBox(height: 8),
                   Text(
                     _subtitleText,
-                    style: const TextStyle(
-                      color: Colors.white54,
+                    style: TextStyle(
+                      color: textTertiary,
                       fontSize: 13,
                     ),
                   ),
@@ -122,8 +123,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                     const SizedBox(height: 16),
                     Text(
                       widget.item.overview!,
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: textSecondary,
                         fontSize: 14,
                         height: 1.4,
                       ),
@@ -138,8 +139,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Text(
                 '包含的影片 (${_children.length})',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -150,7 +151,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+                  child: CircularProgressIndicator(color: primaryPink),
                 ),
               )
             else if (_error != null)
@@ -161,7 +162,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 child: Center(
                   child: Text(
                     '暂无影片',
-                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                    style: TextStyle(color: textTertiary, fontSize: 14),
                   ),
                 ),
               )
@@ -197,17 +198,17 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent, size: 36),
+          const Icon(Icons.error_outline, color: errorColor, size: 36),
           const SizedBox(height: 8),
           Text(
             _error ?? '加载失败',
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(color: textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE91E63),
-              foregroundColor: Colors.white,
+              backgroundColor: primaryPink,
+              foregroundColor: textPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -230,7 +231,7 @@ class _CoverPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.grey[900],
-      child: const Icon(Icons.featured_play_list, color: Colors.white30, size: 80),
+      child: Icon(Icons.featured_play_list, color: textPlaceholder, size: 80),
     );
   }
 }
@@ -262,9 +263,9 @@ class _ChildTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white10,
+          color: const Color(0x1AFFFFFF),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: dividerColor),
         ),
         child: Row(
           children: [
@@ -290,8 +291,8 @@ class _ChildTile extends ConsumerWidget {
                     item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -299,13 +300,13 @@ class _ChildTile extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     _yearText,
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(color: textTertiary, fontSize: 12),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.play_circle_fill, color: Color(0xFFFF5983), size: 32),
+            Icon(Icons.play_circle_fill, color: historyPink, size: 32),
           ],
         ),
       ),
@@ -328,7 +329,7 @@ class _ThumbPlaceholder extends StatelessWidget {
       width: 120,
       height: 72,
       color: Colors.grey[800],
-      child: const Icon(Icons.movie_outlined, color: Colors.white30),
+      child: Icon(Icons.movie_outlined, color: textPlaceholder),
     );
   }
 }
@@ -340,10 +341,10 @@ class _PlayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

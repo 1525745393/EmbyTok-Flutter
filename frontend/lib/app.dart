@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../utils/colors.dart';
 import 'providers/providers.dart';
 import 'views/favorites_view.dart';
 import 'views/history_view.dart';
@@ -76,10 +77,10 @@ class EmbyTokApp extends ConsumerWidget {
         brightness: Brightness.dark,
         colorSchemeSeed: Colors.pinkAccent,
         useMaterial3: true,
-        scaffoldBackgroundColor: Colors.black,
+        scaffoldBackgroundColor: backgroundColor,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
+          backgroundColor: backgroundColor,
+          foregroundColor: textPrimary,
         ),
       ),
       routerConfig: router,

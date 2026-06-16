@@ -74,15 +74,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         padding: const EdgeInsets.fromLTRB(16, 80, 96, 24),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black87,
-              Colors.black54,
-              Colors.transparent,
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                backgroundColor,
+                backgroundColor,
+                Colors.transparent,
+              ],
+              stops: [0.0, 0.5, 1.0],
+            ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,13 +91,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFE91E63),
+                color: primaryPink,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 widget.item.type,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -109,7 +109,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
+                color: textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
               ),
@@ -121,7 +121,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: textSecondary,
                   fontSize: 14,
                 ),
               ),
@@ -158,7 +158,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             _buildActionButton(
               isMuted ? Icons.volume_off : Icons.volume_up,
               isMuted ? '静音' : '音量',
-              color: isMuted ? Colors.redAccent : Colors.white,
+              color: isMuted ? errorColor : textPrimary,
               onTap: () {
                 ref.read(isMutedProvider.notifier).toggle();
                 _videoController?.setVolume(isMuted ? 1.0 : 0.0);
@@ -168,7 +168,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             _buildActionButton(
               favorited ? Icons.favorite : Icons.favorite_border,
               '点赞',
-              color: favorited ? const Color(0xFFE91E63) : Colors.white,
+              color: favorited ? primaryPink : textPrimary,
               onTap: () =>
                   ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
@@ -176,7 +176,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             _buildActionButton(
               favorited ? Icons.star : Icons.star_border,
               '收藏',
-              color: favorited ? Colors.amber : Colors.white,
+              color: favorited ? Colors.amber : textPrimary,
               onTap: () =>
                   ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
@@ -200,7 +200,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     return _PressableActionButton(
       icon: icon,
       label: label,
-      color: color ?? Colors.white,
+      color: color ?? textPrimary,
       onTap: onTap,
     );
   }
@@ -264,7 +264,7 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
             Text(
               widget.label,
               style: const TextStyle(
-                color: Colors.white,
+                color: textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/colors.dart';
 import 'boxset_detail_view.dart';
 import 'person_detail_view.dart';
 import '../widgets/video_page_item.dart';
@@ -16,7 +17,11 @@ class FavoritesView extends ConsumerStatefulWidget {
   ConsumerState<FavoritesView> createState() => _FavoritesViewState();
 }
 
-class _FavoritesViewState extends ConsumerState<FavoritesView> {
+class _FavoritesViewState extends ConsumerState<FavoritesView>
+    with AutomaticKeepAliveClientMixin<FavoritesView> {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
@@ -27,32 +32,43 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(favoritesProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Row(
           children: [
-            const Icon(Icons.favorite, color: Color(0xFFE91E63), size: 24),
+            const Icon(Icons.favorite, color: primaryPink, size: 24),
             const SizedBox(width: 8),
             const Text('我的收藏'),
             const SizedBox(width: 12),
             Text(
               '${state.movies.length + state.boxSets.length + state.people.length}',
               style: const TextStyle(
-                color: Colors.white54,
+                color: textTertiary,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
             IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white70, size: 22),
-              onPressed: () =>
-                  ref.read(favoritesProvider.notifier).loadFavorites(),
+              icon: state.isLoading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: textTertiary,
+                      ),
+                    )
+                  : const Icon(Icons.refresh, color: textTertiary, size: 22),
+              onPressed: state.isLoading
+                  ? null
+                  : () => ref.read(favoritesProvider.notifier).loadFavorites(),
               tooltip: '刷新',
             ),
           ],
@@ -69,7 +85,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
         state.boxSets.isEmpty &&
         state.people.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        child: CircularProgressIndicator(color: primaryPink),
       );
     }
 
@@ -86,45 +102,34 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
       return const _EmptyState();
     }
 
-    // 三栏布局
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 收藏影片
-          _SectionHeader(
+    // 三栏布局：使用 CustomScrollView + SliverList 替代 SingleChildScrollView + Column
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _SectionHeader(
             title: '收藏影片',
             count: state.movies.length,
           ),
-          _buildHorizontalCardList(
-            items: state.movies,
-            itemType: _CardType.movie,
-          ),
-          const SizedBox(height: 24),
-
-          // 收藏合集
-          _SectionHeader(
+        ),
+        SliverToBoxAdapter(child: _buildHorizontalCardList(items: state.movies, itemType: _CardType.movie)),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        SliverToBoxAdapter(
+          child: _SectionHeader(
             title: '收藏合集',
             count: state.boxSets.length,
           ),
-          _buildHorizontalCardList(
-            items: state.boxSets,
-            itemType: _CardType.boxSet,
-          ),
-          const SizedBox(height: 24),
-
-          // 收藏人物
-          _SectionHeader(
+        ),
+        SliverToBoxAdapter(child: _buildHorizontalCardList(items: state.boxSets, itemType: _CardType.boxSet)),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        SliverToBoxAdapter(
+          child: _SectionHeader(
             title: '收藏人物',
             count: state.people.length,
           ),
-          _buildHorizontalCardList(
-            items: state.people,
-            itemType: _CardType.person,
-          ),
-        ],
-      ),
+        ),
+        SliverToBoxAdapter(child: _buildHorizontalCardList(items: state.people, itemType: _CardType.person)),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+      ],
     );
   }
 
@@ -137,7 +142,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Text(
           '暂无收藏',
-          style: TextStyle(color: Colors.white54, fontSize: 14),
+          style: TextStyle(color: textTertiary, fontSize: 14),
         ),
       );
     }
@@ -176,18 +181,18 @@ class _FavoritesViewState extends ConsumerState<FavoritesView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: errorColor, size: 48),
             const SizedBox(height: 12),
             Text(
               message,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+              style: TextStyle(color: textSecondary, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
-                foregroundColor: Colors.white,
+                backgroundColor: primaryPink,
+                foregroundColor: textPrimary,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -222,7 +227,7 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title,
             style: const TextStyle(
-              color: Colors.white,
+              color: textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -230,7 +235,7 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '($count)',
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
+            style: const TextStyle(color: textTertiary, fontSize: 14),
           ),
         ],
       ),
@@ -246,17 +251,17 @@ class _EmptyState extends StatelessWidget {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.favorite_border, size: 80, color: Colors.white30),
+        children: [
+          Icon(Icons.favorite_border, size: 80, color: textPlaceholder),
           SizedBox(height: 16),
           Text(
             '还没有收藏',
-            style: TextStyle(color: Colors.white70, fontSize: 18),
+            style: TextStyle(color: textSecondary, fontSize: 18),
           ),
           SizedBox(height: 8),
           Text(
             '双击视频即可收藏 💖',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
+            style: TextStyle(color: textTertiary, fontSize: 14),
           ),
         ],
       ),
@@ -300,8 +305,8 @@ class _FavoriteCard extends ConsumerWidget {
               height: height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[800],
-                border: Border.all(color: Colors.white12),
+                color: surfaceColorL3,
+                border: Border.all(color: dividerColor),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -322,9 +327,7 @@ class _FavoriteCard extends ConsumerWidget {
               item.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
+              style: const TextStyle(color: textPrimary, fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.2,
               ),
@@ -332,7 +335,7 @@ class _FavoriteCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               _subtitleText,
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              style: const TextStyle(color: textTertiary, fontSize: 11),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -400,7 +403,7 @@ class _PlaceholderIcon extends StatelessWidget {
         icon = Icons.movie_outlined;
         break;
     }
-    return Icon(icon, color: Colors.white30, size: 48);
+    return Icon(icon, color: textPlaceholder, size: 48);
   }
 }
 
@@ -411,10 +414,10 @@ class _FavoritePlayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: backgroundColor,
+        foregroundColor: textPrimary,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

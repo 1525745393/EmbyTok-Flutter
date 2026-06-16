@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../utils/colors.dart';
+
 // 简单版视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends StatefulWidget {
   final VideoPlayerController controller;
@@ -89,7 +91,7 @@ class _VideoControlsState extends State<VideoControls> {
             IconButton(
               icon: Icon(
                 isPlaying ? Icons.pause : Icons.play_arrow,
-                color: Colors.white,
+                color: textPrimary,
                 size: 28,
               ),
               onPressed: _togglePlay,
@@ -98,7 +100,7 @@ class _VideoControlsState extends State<VideoControls> {
             // 时间显示
             Text(
               '${_formatDuration(position)} / ${_formatDuration(duration)}',
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: const TextStyle(color: textPrimary, fontSize: 14),
             ),
             const SizedBox(width: 8),
             // 进度条
@@ -111,8 +113,8 @@ class _VideoControlsState extends State<VideoControls> {
                   );
                   widget.controller.seekTo(target);
                 },
-                activeColor: const Color(0xFFE91E63),
-                inactiveColor: Colors.white38,
+                activeColor: primaryPink,
+                inactiveColor: textTertiary,
               ),
             ),
             const SizedBox(width: 8),
@@ -121,7 +123,7 @@ class _VideoControlsState extends State<VideoControls> {
               onPressed: _cycleRate,
               child: Text(
                 '${widget.controller.value.playbackSpeed.toStringAsFixed(1)}x',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: textPrimary, fontSize: 14),
               ),
             ),
           ],

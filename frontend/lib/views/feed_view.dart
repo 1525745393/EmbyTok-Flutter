@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
+import '../utils/colors.dart';
 import '../widgets/top_tool_bar.dart';
 import '../widgets/video_page_item.dart';
 import 'video_grid_view.dart';
@@ -63,7 +64,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     final filteredItems = ref.watch(filteredVideoListProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       body: Stack(
         children: [
           // 根据视图模式切换显示
@@ -119,7 +120,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 加载中（首次加载）
     if (displayItems.isEmpty && videoState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        child: CircularProgressIndicator(color: primaryPink),
       );
     }
 
@@ -135,7 +136,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           videoState.items.isEmpty
               ? '暂无视频，请选择其他媒体库'
               : '没有符合筛选条件的视频',
-          style: const TextStyle(color: Colors.white70, fontSize: 16),
+          style: const TextStyle(color: textSecondary, fontSize: 16),
         ),
       );
     }
@@ -158,7 +159,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         // 末尾加载指示器
         if (index >= displayItems.length) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+            child: CircularProgressIndicator(color: primaryPink),
           );
         }
         final item = displayItems[index];
@@ -175,11 +176,11 @@ class _FeedViewState extends ConsumerState<FeedView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: errorColor, size: 48),
             const SizedBox(height: 12),
             Text(
               error,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: const TextStyle(color: textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -189,8 +190,8 @@ class _FeedViewState extends ConsumerState<FeedView>
                 ref.read(videoListProvider.notifier).refresh(libraryId: libId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
-                foregroundColor: Colors.white,
+                backgroundColor: primaryPink,
+                foregroundColor: textPrimary,
               ),
               child: const Text('重试'),
             ),

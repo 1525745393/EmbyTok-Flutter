@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
+import '../utils/colors.dart';
 import '../widgets/video_grid_card.dart';
 
 // 视频网格视图
@@ -45,14 +46,14 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
     final displayItems = ref.watch(filteredVideoListProvider);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: backgroundColor,
         title: const Text(
           '视频列表',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: textPrimary),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: textPrimary),
       ),
       body: _buildBody(videoState, displayItems),
     );
@@ -63,7 +64,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
     // 加载中（首次加载且无数据）
     if (displayItems.isEmpty && videoState.isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+        child: CircularProgressIndicator(color: primaryPink),
       );
     }
 
@@ -79,7 +80,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
           videoState.items.isEmpty
               ? '暂无视频，请选择其他媒体库'
               : '没有符合筛选条件的视频',
-          style: const TextStyle(color: Colors.white70, fontSize: 16),
+          style: const TextStyle(color: textSecondary, fontSize: 16),
         ),
       );
     }
@@ -123,7 +124,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
               // 末尾加载指示器
               if (index >= displayItems.length) {
                 return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+                  child: CircularProgressIndicator(color: primaryPink),
                 );
               }
 
@@ -147,11 +148,11 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+            const Icon(Icons.error_outline, color: errorColor, size: 48),
             const SizedBox(height: 12),
             Text(
               error,
-              style: const TextStyle(color: Colors.white70, fontSize: 16),
+              style: const TextStyle(color: textSecondary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -161,8 +162,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
                 ref.read(videoListProvider.notifier).refresh(libraryId: libId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
-                foregroundColor: Colors.white,
+                backgroundColor: primaryPink,
+                foregroundColor: textPrimary,
               ),
               child: const Text('重试'),
             ),
