@@ -163,7 +163,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             // 网格视图：顶部 padding 让内容避开工具栏，工具栏在网格上方显示
             Padding(
               padding: EdgeInsets.only(
-                top: kToolbarHeight + MediaQuery.of(context).padding.top,
+                top: kAppToolbarHeight + MediaQuery.of(context).padding.top,
               ),
               child: const VideoGridView(),
             )
@@ -200,14 +200,14 @@ class _FeedViewState extends ConsumerState<FeedView>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: kToolbarAnimMs),
         curve: Curves.easeOut,
-        height: visible ? kToolbarHeight + topPadding : 0,
+        height: visible ? kAppToolbarHeight + topPadding : 0,
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: kToolbarAnimMs),
           opacity: visible ? 1.0 : 0.0,
           child: SingleChildScrollView(
             physics: const NeverScrollableScrollPhysics(),
             child: Container(
-              height: kToolbarHeight + topPadding,
+              height: kAppToolbarHeight + topPadding,
               // 半透明渐变：自顶向下从 67% 不透明黑色渐变为完全透明
               // 让工具栏看起来像是"浮在"视频上
               decoration: const BoxDecoration(
@@ -220,7 +220,7 @@ class _FeedViewState extends ConsumerState<FeedView>
               child: SafeArea(
                 bottom: false,
                 child: SizedBox(
-                  height: kToolbarHeight,
+                  height: kAppToolbarHeight,
                   child: TopToolBar(
                     onFullscreenPressed: (_) => _toggleFullscreen(),
                   ),

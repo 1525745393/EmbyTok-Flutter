@@ -194,7 +194,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
-  // 动态 padding：顶部工具栏可见时向下偏移 kToolbarHeight，避开半透明工具栏
+  // 动态 padding：顶部工具栏可见时向下偏移 kAppToolbarHeight，避开半透明工具栏
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
     final topPadding = MediaQuery.of(context).padding.top;
@@ -211,7 +211,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         padding: EdgeInsets.fromLTRB(
           0,
           toolbarVisible
-              ? topPadding + kToolbarHeight + 40
+              ? topPadding + kAppToolbarHeight + 40
               : topPadding + 40,
           8,
           24 + bottomPadding,
