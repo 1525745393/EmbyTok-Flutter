@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.8.0...v1.8.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* build.gradle 显式从 pubspec.yaml 解析 versionCode/versionName，不依赖 Flutter Gradle 插件的自动注入 ([7076b12](https://github.com/1525745393/EmbyTok-Flutter/commit/7076b12ee53e4bce817e911f99aa044f0ed75b28))
+
 # [1.8.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.7.0...v1.8.0) (2026-06-16)
 
 
