@@ -6,8 +6,8 @@ import 'package:mockito/mockito.dart';
 
 import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/providers/auth_provider.dart';
+import 'package:embbytok_flutter/providers/library_provider.dart';
 import 'package:embbytok_flutter/providers/video_list_provider.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
 import 'package:embbytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';

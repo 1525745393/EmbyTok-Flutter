@@ -217,7 +217,14 @@ final searchHintsProvider =
 Future<void> markItemPlayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
-  final service = _authService(ref, auth);
+  final service = EmbytokService();
+  if (auth.embyServerUrl != null && auth.user?.id != null && auth.token != null) {
+    service.setupAuth(
+      embyServerUrl: auth.embyServerUrl!,
+      userId: auth.user!.id,
+      apiKey: auth.token!,
+    );
+  }
   await service.markAsPlayed(itemId);
   // 刷新相关 Provider
   ref.invalidate(resumeItemsProvider);
@@ -228,7 +235,14 @@ Future<void> markItemPlayed(String itemId, WidgetRef ref) async {
 Future<void> markItemUnplayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
-  final service = _authService(ref, auth);
+  final service = EmbytokService();
+  if (auth.embyServerUrl != null && auth.user?.id != null && auth.token != null) {
+    service.setupAuth(
+      embyServerUrl: auth.embyServerUrl!,
+      userId: auth.user!.id,
+      apiKey: auth.token!,
+    );
+  }
   await service.markAsUnplayed(itemId);
   ref.invalidate(resumeItemsProvider);
   ref.invalidate(nextUpProvider);
