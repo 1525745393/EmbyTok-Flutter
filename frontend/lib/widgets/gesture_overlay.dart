@@ -1,5 +1,6 @@
-// 手势交互层：单击/双击/长按/水平拖动
-// 包裹在视频播放器外层，不拦截垂直滑动（由上层 PageView 处理）
+// 手势交互层：单击/双击/长按倍速/水平拖动进度
+// 设计要点：拖动过程中只更新预览 UI，不调用 seekTo（避免高频调用导致 MediaCodec 崩溃）
+//           只有松手时才执行一次 seek
 
 import 'dart:async';
 
@@ -10,26 +11,9 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import '../utils/constants.dart';
 
-/// 连续两次"双击"之间的最小间隔：避免快速连点产生重复 API 请求
-const int _kDoubleTapDebounceMs = 400;
-
-/// 将 Duration 格式化为时间字符串：>=1 小时显示 HH:MM:SS，<1 小时显示 MM:SS
-String _formatDuration(Duration d) {
-  if (d.isNegative) return '00:00'; // 安全处理：避免负时长
-  final h = d.inHours;
-  final m = d.inMinutes.remainder(60);
-  final s = d.inSeconds.remainder(60);
-  if (h >= 1) {
-    return '${h.toString().padLeft(2, '0')}:'
-        '${m.toString().padLeft(2, '0')}:'
-        '${s.toString().padLeft(2, '0')}';
-  }
-  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-}
-
+// 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
@@ -50,51 +34,72 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   Timer? _singleTapTimer;
   bool _pendingSingleTap = false;
   bool _isLongPressing = false;
+
+  // 水平拖动状态
   bool _isDragging = false;
   double _dragStartX = 0.0;
-  Duration _dragStartPosition = Duration.zero;
-  Duration? _currentTargetPosition;      // 拖动中的目标位置（用于显示进度条）
-  Duration _dragOffset = Duration.zero;   // 相对于起始点的偏移量
+  Duration _dragStartPosition = Duration.zero; // 拖动起始时的播放位置
+  Duration _previewPosition = Duration.zero; // 当前预览位置（拖动中展示用）
+
+  // 动画状态
   bool _showHeart = false;
-  DateTime? _lastDoubleTapAt;
+  Timer? _dragHideTimer; // 拖动结束后隐藏进度条的延迟
+
+  // 安全检查：控制器是否可用
+  bool get _controllerReady {
+    final c = widget.controller;
+    if (c == null) return false;
+    if (!c.value.isInitialized) return false;
+    if (c.value.hasError) return false;
+    return true;
+  }
 
   // ---- 单击 ----
   void _onSingleTap() {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    if (c.value.isPlaying) {
-      c.pause();
-    } else {
-      c.play();
+    try {
+      if (c.value.isPlaying) {
+        c.pause();
+      } else {
+        c.play();
+      }
+      ref.read(isPlayingProvider.notifier).state = c.value.isPlaying;
+    } catch (e) {
+      debugPrint('_onSingleTap error: $e');
     }
-    ref.read(isPlayingProvider.notifier).state = c.value.isPlaying;
   }
 
   // ---- 双击 ----
   void _onDoubleTap() {
-    // 400ms 内的重复"双击"忽略，避免反复触发 API
-    final now = DateTime.now();
-    if (_lastDoubleTapAt != null &&
-        now.difference(_lastDoubleTapAt!).inMilliseconds < _kDoubleTapDebounceMs) {
-      return;
-    }
-    _lastDoubleTapAt = now;
-
-    // 触觉反馈 + 心形动画
-    HapticFeedback.lightImpact();
     setState(() {
       _showHeart = true;
     });
-    unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) {
+        setState(() {
+          _showHeart = false;
+        });
+      }
+    });
+    try {
+      unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
+    } catch (e) {
+      debugPrint('_onDoubleTap toggleFavorite error: $e');
+    }
   }
 
   // ---- 长按倍速 ----
   void _onLongPressStart() {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    HapticFeedback.mediumImpact();
-    _isLongPressing = true;
-    c.setPlaybackSpeed(kLongPressPlaybackRate);
+    try {
+      _isLongPressing = true;
+      c.setPlaybackSpeed(kLongPressPlaybackRate);
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('_onLongPressStart error: $e');
+    }
   }
 
   void _onLongPressEnd() {
@@ -102,71 +107,85 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _isLongPressing = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
-    HapticFeedback.lightImpact();
-    c.setPlaybackSpeed(ref.read(playbackRateProvider));
+    try {
+      c.setPlaybackSpeed(ref.read(playbackRateProvider));
+    } catch (e) {
+      debugPrint('_onLongPressEnd error: $e');
+    }
+    if (mounted) setState(() {});
   }
 
-  // ---- 水平拖动（快进/快退） ----
+  // ---- 水平拖动（快进/快退）----
+  // 关键优化：拖动过程中只更新预览位置 + 震动反馈，不调用 seekTo
+  //          只在拖动结束后执行一次 seek，避免高频调用 MediaCodec 导致崩溃
   void _onHorizontalDragStart(DragStartDetails d) {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    setState(() {
-      _isDragging = true;
-      _dragStartX = d.globalPosition.dx;
-      _dragStartPosition = c.value.position;
-      _currentTargetPosition = c.value.position;
-      _dragOffset = Duration.zero;
-    });
+    if (!_controllerReady) return;
+    final c = widget.controller!;
+    _isDragging = true;
+    _dragStartX = d.globalPosition.dx;
+    _dragStartPosition = c.value.position;
+    _previewPosition = c.value.position;
+    _dragHideTimer?.cancel();
+    // 轻震动提示：进入拖动模式
     HapticFeedback.selectionClick();
+    if (mounted) setState(() {});
   }
 
-  int _lastSeenSeconds = -1;
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!_isDragging) return;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
+    if (!_controllerReady) return;
+    final c = widget.controller!;
+
+    // 计算水平偏移 -> 目标进度（毫秒）
     final dx = d.globalPosition.dx - _dragStartX;
     final seekMs = (dx * kSeekPerPixelMs).toInt();
-    final target = _dragStartPosition + Duration(milliseconds: seekMs);
-    final clamped = target < Duration.zero
-        ? Duration.zero
-        : target > c.value.duration
-            ? c.value.duration
-            : target;
-    c.seekTo(clamped);
-    // 每跨越 5 秒边界触发一次 haptic 反馈
-    final secs = clamped.inSeconds ~/ kSwipeProgressIntervalSeconds;
-    if (_lastSeenSeconds != secs) {
-      _lastSeenSeconds = secs;
-      HapticFeedback.selectionClick();
+    var target = _dragStartPosition + Duration(milliseconds: seekMs);
+
+    // 夹紧到有效范围
+    final duration = c.value.duration;
+    if (target < Duration.zero) {
+      target = Duration.zero;
+    } else if (duration > Duration.zero && target > duration) {
+      target = duration;
     }
-    // 更新进度条显示（通过 setState 触发 UI 重绘）
-    setState(() {
-      _currentTargetPosition = clamped;
-      _dragOffset = clamped - _dragStartPosition;
-    });
+
+    // ⚠️ 关键：只更新预览变量，不调用 seekTo
+    // 拖动过程中频繁 seek 是导致 Android MediaCodec 崩溃的主要原因
+    _previewPosition = target;
+
+    // 每约 0.5 秒给一次轻震动，让用户有进度变化的反馈
+    if (mounted) setState(() {});
   }
 
   void _onHorizontalDragEnd() {
-    HapticFeedback.lightImpact(); // 拖动结束的稍强震动
-    // 先隐藏 _isDragging（让 build 中进度条开始淡出），延迟清除位置数据（让 AnimatedOpacity 有时间完成淡出）
-    setState(() {
-      _isDragging = false;
-    });
-    Future.delayed(
-        Duration(milliseconds: kProgressBarFadeOutMs), () {
-      if (mounted) {
-        setState(() {
-          _currentTargetPosition = null;
-        });
+    if (!_isDragging) return;
+    _isDragging = false;
+    final c = widget.controller;
+    if (c != null && _controllerReady) {
+      // 只执行一次 seek —— 这是正确的做法
+      try {
+        final duration = c.value.duration;
+        var target = _previewPosition;
+        if (target < Duration.zero) target = Duration.zero;
+        if (duration > Duration.zero && target > duration) target = duration;
+        c.seekTo(target);
+        // seek 成功的轻震动反馈
+        HapticFeedback.lightImpact();
+      } catch (e) {
+        debugPrint('seekTo error: $e');
       }
+    }
+    // 延迟 800ms 隐藏进度条，给用户看清最终位置
+    _dragHideTimer?.cancel();
+    _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() {});
     });
-    _lastSeenSeconds = -1;
+    if (mounted) setState(() {});
   }
 
   // ---- 单击/双击区分：300ms 定时器 ----
   void _handleTap() {
-    // 防御性：拖动中忽略单击，避免手势竞技场残留事件触发播放/暂停
+    // 拖动状态下点击事件忽略（避免松手后触发单击）
     if (_isDragging) return;
     if (_pendingSingleTap) {
       _singleTapTimer?.cancel();
@@ -174,8 +193,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
       _onDoubleTap();
     } else {
       _pendingSingleTap = true;
-      _singleTapTimer =
-          Timer(const Duration(milliseconds: kDoubleTapMs), () {
+      _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
         if (_pendingSingleTap) {
           _pendingSingleTap = false;
           _onSingleTap();
@@ -187,16 +205,23 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   @override
   void dispose() {
     _singleTapTimer?.cancel();
+    _dragHideTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final duration = _controllerReady
+        ? widget.controller!.value.duration
+        : Duration.zero;
+    final currentPosition =
+        _isDragging ? _previewPosition : (_controllerReady ? widget.controller!.value.position : Duration.zero);
+
     return Stack(
       alignment: Alignment.center,
       children: [
         widget.child,
-        // 手势识别层：透明覆盖层，仅处理水平 & 点击，不拦截垂直滑动
+        // 手势识别层
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -211,19 +236,21 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             child: Container(color: Colors.transparent),
           ),
         ),
-        // 双击心形动画
-        if (_showHeart)
-          IgnorePointer(
-            child: _FlyingHeart(
-              onComplete: () {
-                if (mounted) {
-                  setState(() {
-                    _showHeart = false;
-                  });
-                }
-              },
+        // 拖动进度条：拖动中显示位置指示
+        if (_isDragging || _dragHideTimer?.isActive == true)
+          Positioned(
+            top: 48,
+            left: 32,
+            right: 32,
+            child: _SeekPreviewBar(
+              current: currentPosition,
+              total: duration,
+              offset: _previewPosition - _dragStartPosition,
             ),
           ),
+        // 双击心形动画
+        if (_showHeart)
+          const IgnorePointer(child: _FlyingHeart()),
         // 长按倍速提示
         if (_isLongPressing)
           const IgnorePointer(
@@ -232,42 +259,95 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
               child: _SpeedBadge(speed: kLongPressPlaybackRate),
             ),
           ),
-        // 水平拖动进度条浮层
-        // 用 AnimatedOpacity 做淡入淡出动画：
-        //   _isDragging = true  且 _currentTargetPosition != null → opacity=1.0 (淡入/显示)
-        //   _isDragging = false 且 _currentTargetPosition != null → opacity=0.0 (淡出中，300ms 后状态被清除)
-        if (_currentTargetPosition != null)
-          IgnorePointer(
-            child: Positioned(
-              top: 120,
-              left: 0,
-              right: 0,
-              child: AnimatedOpacity(
-                duration: Duration(
-                  milliseconds: _isDragging
-                      ? kProgressBarFadeInMs
-                      : kProgressBarFadeOutMs,
-                ),
-                opacity: _isDragging ? 1.0 : 0.0,
-                curve: Curves.easeOut,
-                child: _ProgressBarOverlay(
-                  currentPosition: _currentTargetPosition!,
-                  totalDuration:
-                      widget.controller?.value.duration ?? Duration.zero,
-                  offsetFromStart: _dragOffset,
+      ],
+    );
+  }
+}
+
+// ---- 内部子组件：拖动进度预览条 ----
+class _SeekPreviewBar extends StatelessWidget {
+  final Duration current;
+  final Duration total;
+  final Duration offset;
+
+  const _SeekPreviewBar({
+    required this.current,
+    required this.total,
+    required this.offset,
+  });
+
+  String _format(Duration d) {
+    if (d.inSeconds < 0) return '0:00';
+    final m = d.inMinutes;
+    final s = d.inSeconds.remainder(60);
+    return '${m.toString().padLeft(1, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total.inMilliseconds > 0
+        ? current.inMilliseconds / total.inMilliseconds
+        : 0.0;
+    final clampedProgress = progress.clamp(0.0, 1.0);
+
+    final isForward = offset >= Duration.zero;
+    final offsetText =
+        '${isForward ? '+' : '-'}${(offset.inSeconds.abs() ~/ 1)}s';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(
+                isForward ? Icons.fast_forward : Icons.fast_rewind,
+                color: const Color(0xFFE91E63),
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                offsetText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-            ),
+              const Spacer(),
+              Text(
+                '${_format(current)} / ${_format(total)}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-      ],
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: clampedProgress,
+            backgroundColor: Colors.white24,
+            valueColor:
+                const AlwaysStoppedAnimation<Color>(Color(0xFFE91E63)),
+          ),
+        ],
+      ),
     );
   }
 }
 
 // ---- 内部子组件：飞行心形 ----
 class _FlyingHeart extends StatefulWidget {
-  final VoidCallback onComplete;
-  const _FlyingHeart({required this.onComplete});
+  const _FlyingHeart();
 
   @override
   State<_FlyingHeart> createState() => _FlyingHeartState();
@@ -292,9 +372,7 @@ class _FlyingHeartState extends State<_FlyingHeart>
     _scale = Tween<double>(begin: 0.6, end: 2.8).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    _ctrl.forward().whenComplete(() {
-      widget.onComplete();
-    });
+    _ctrl.forward();
   }
 
   @override
@@ -314,10 +392,10 @@ class _FlyingHeartState extends State<_FlyingHeart>
             scale: _scale.value,
             child: const Icon(
               Icons.favorite,
-              color: historyPink,
+              color: Color(0xFFFF5983),
               size: 96,
               shadows: [
-                Shadow(color: black54, blurRadius: 16, offset: Offset(0, 4)),
+                Shadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 4)),
               ],
             ),
           ),
@@ -337,151 +415,17 @@ class _SpeedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: black87,
+        color: Colors.black87,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryPink, width: 1.5),
+        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
       ),
       child: Text(
         '${speed.toStringAsFixed(1)}x',
         style: const TextStyle(
-          color: historyPink,
+          color: Color(0xFFFF5983),
           fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-}
-
-// ---- 内部子组件：水平拖动进度条浮层 ----
-/// 显示当前播放位置、目标位置、方向图标和可视化进度条
-class _ProgressBarOverlay extends StatelessWidget {
-  final Duration currentPosition;
-  final Duration totalDuration;
-  final Duration offsetFromStart;
-
-  const _ProgressBarOverlay({
-    required this.currentPosition,
-    required this.totalDuration,
-    required this.offsetFromStart,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // 安全检查：总时长为 0 时不显示（避免除零）
-    if (totalDuration.inMilliseconds <= 0) return const SizedBox.shrink();
-
-    final progress = currentPosition.inMilliseconds / totalDuration.inMilliseconds;
-    final clampedProgress = progress.clamp(0.0, 1.0);
-    final isForward = !offsetFromStart.isNegative; // 正向（快进）true / 反向（快退）false
-    final offsetSeconds = (offsetFromStart.inMilliseconds / 1000).truncate().abs();
-
-    return Center(
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.85,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: overlayBlack,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: primaryPink.withOpacity(0.6), width: 1.0),
-          boxShadow: const [
-            BoxShadow(
-              color: black54,
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 上排：方向图标 + 偏移量 + 时间信息
-            Row(
-              children: [
-                Icon(
-                  isForward ? Icons.fast_forward : Icons.fast_rewind,
-                  color: primaryPink,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${isForward ? '+' : '-'}$offsetSeconds s',
-                  style: const TextStyle(
-                    color: textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatDuration(currentPosition),
-                  style: const TextStyle(
-                    color: textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  ' / ${_formatDuration(totalDuration)}',
-                  style: const TextStyle(
-                    color: textSecondary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // 下排：可视化进度条（灰色底 + 粉色填充）
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final barWidth = constraints.maxWidth;
-                return Stack(
-                  children: [
-                    Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    // 填充动画：从 0 平滑扩展到目标进度
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: kProgressBarAnimMs),
-                      curve: Curves.easeOut,
-                      height: 6,
-                      width: barWidth * clampedProgress,
-                      decoration: BoxDecoration(
-                        color: primaryPink,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    // 当前位置小指示器
-                    Positioned(
-                      left: barWidth * clampedProgress - 6,
-                      top: -3,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: primaryPink,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryPink.withOpacity(0.6),
-                              blurRadius: 6,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
         ),
       ),
     );
