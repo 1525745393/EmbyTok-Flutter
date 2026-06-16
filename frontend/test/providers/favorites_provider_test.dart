@@ -7,7 +7,6 @@ import 'package:mockito/mockito.dart';
 import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/providers/auth_provider.dart';
 import 'package:embbytok_flutter/providers/favorites_provider.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
 
 import '../mocks/mock_services.dart';
 

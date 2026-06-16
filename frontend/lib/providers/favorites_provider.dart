@@ -23,6 +23,9 @@ class FavoritesState {
     this.favoriteIds = const <String>{},
   });
 
+  // 合并所有收藏项（用于兼容旧的单列表视图）
+  List<MediaItem> get items => [...movies, ...boxSets, ...people];
+
   FavoritesState copyWith({
     List<MediaItem>? movies,
     List<MediaItem>? boxSets,
