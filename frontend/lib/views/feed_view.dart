@@ -1,6 +1,8 @@
 // 视频流页面：竖向全屏滑动 + 顶部工具栏 + 视图切换 + 分页加载
 // 新增：视频切换渐入动画、智能预加载、首次滑动引导
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,10 +25,13 @@ class FeedView extends ConsumerStatefulWidget {
 }
 
 class _FeedViewState extends ConsumerState<FeedView>
-    with AutomaticKeepAliveClientMixin<FeedView> {
+    with AutomaticKeepAliveClientMixin<FeedView>, WidgetsBindingObserver {
   late PageController _pageController;
   int _swipeCount = 0;
   bool _guideShown = false;
+  double _lastPageOffset = 0.0;
+  int _currentIndex = 0;
+  Timer? _tapRestoreTimer;
 
   @override
   bool get wantKeepAlive => true;
@@ -38,21 +43,73 @@ class _FeedViewState extends ConsumerState<FeedView>
       initialPage: 0,
       viewportFraction: 1.0,
     );
+    _pageController.addListener(_onScroll);
+    WidgetsBinding.instance.addObserver(this);
+    // 初始化时确保状态栏透明（文字亮色）
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _pageController.removeListener(_onScroll);
     _pageController.dispose();
+    _tapRestoreTimer?.cancel();
+    // 离开页面时恢复工具栏可见状态（确保其他页面正常）
+    ref.read(toolbarVisibilityProvider.notifier).show();
+    // 退出页面时恢复系统 UI
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    WidgetsBinding.instance.removeObserver(this);
     ref.read(preloadProvider.notifier).clear();
     super.dispose();
   }
 
+  // 监听系统尺寸变化（旋转时重新布局）
+  @override
+  void didChangeMetrics() {
+    if (mounted) setState(() {});
+  }
+
+  /// PageController 滚动监听：检测滑动方向
+  void _onScroll() {
+    final offset = _pageController.offset;
+    final delta = offset - _lastPageOffset;
+    if (delta.abs() > kMinSwipeDistancePx) {
+      // 垂直方向 PageView：向上滑 = offset 增大 = 切换到下一条
+      if (delta > 0) {
+        // 工具栏隐藏（由 onPageChanged 统一处理，避免抖动）
+      }
+      _lastPageOffset = offset;
+    }
+  }
+
   /// 切换到新页面时：更新索引、触发下一条预取、更新引导状态
+  /// 并根据滑动方向控制工具栏可见性
   void _onPageSwitched(int index, List<MediaItem> items) {
+    final isForward = index > _currentIndex;
+    _currentIndex = index;
     setState(() {
       _swipeCount++;
     });
     ref.read(currentPlayingIndexProvider.notifier).state = index;
+    // 横屏模式下工具栏始终隐藏
+    final isFullscreen = ref.read(isFullscreenProvider);
+    if (isFullscreen) {
+      ref.read(toolbarVisibilityProvider.notifier).hide();
+    } else {
+      // 向前滑动隐藏工具栏，向后滑动显示工具栏
+      if (isForward) {
+        ref.read(toolbarVisibilityProvider.notifier).hide();
+      } else {
+        ref.read(toolbarVisibilityProvider.notifier).show();
+      }
+    }
     // 触发下一条视频预加载（异步，不需要 await）
     ref.read(preloadProvider.notifier).preloadNext(
       items,
@@ -64,6 +121,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (!_guideShown && _swipeCount >= kGuideSwipeThreshold) {
       setState(() => _guideShown = true);
     }
+  }
+
+  /// 点击画面时短暂显示工具栏，3 秒后自动隐藏
+  void _onTapScreen() {
+    final notifier = ref.read(toolbarVisibilityProvider.notifier);
+    notifier.show();
+    _tapRestoreTimer?.cancel();
+    _tapRestoreTimer = Timer(Duration(seconds: kToolbarAutoHideS), () {
+      notifier.hide();
+    });
   }
 
   @override
@@ -96,27 +163,57 @@ class _FeedViewState extends ConsumerState<FeedView>
             // 网格视图
             const VideoGridView()
           else
-            // 视频流视图
-            _buildVideoPageView(videoState, filteredItems),
-
-          // 顶部工具栏
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: SafeArea(
-              bottom: false,
-              child: TopToolBar(
-                onFullscreenPressed: (_) => _toggleFullscreen(),
-              ),
+            // 视频流视图（带画面点击手势监听）
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _onTapScreen,
+              child: _buildVideoPageView(videoState, filteredItems),
             ),
-          ),
+
+          // 顶部工具栏（仅 feed 模式下显示，带跟随手指的展开/折叠动画）
+          if (viewMode == ViewMode.feed)
+            _buildAnimatedToolBar(),
         ],
       ),
     );
   }
 
-  // 全屏切换
+  // 顶部工具栏动画层：根据 toolbarVisibilityProvider 平滑展开/折叠
+  Widget _buildAnimatedToolBar() {
+    final visible = ref.watch(toolbarVisibilityProvider);
+    return AnimatedContainer(
+      duration: Duration(milliseconds: kToolbarAnimMs),
+      curve: Curves.easeOut,
+      height: visible ? kToolbarHeight + MediaQuery.of(context).padding.top : 0,
+      child: AnimatedOpacity(
+        duration: Duration(milliseconds: kToolbarAnimMs),
+        opacity: visible ? 1.0 : 0.0,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Container(
+            height: kToolbarHeight + MediaQuery.of(context).padding.top,
+            decoration: const BoxDecoration(
+              color: backgroundColor,
+              border: Border(
+                bottom: BorderSide(color: dividerColor, width: 0.5),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: kToolbarHeight,
+                child: TopToolBar(
+                  onFullscreenPressed: (_) => _toggleFullscreen(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 全屏切换：进入横屏时隐藏系统 UI，退出时恢复
   void _toggleFullscreen() {
     // 获取当前全屏状态
     final isFullscreen = ref.read(isFullscreenProvider);
@@ -128,6 +225,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       ref.read(isFullscreenProvider.notifier).state = false;
+      // 竖屏下恢复工具栏（短暂显示后由用户交互决定是否再隐藏）
+      ref.read(toolbarVisibilityProvider.notifier).show();
     } else {
       // 进入全屏
       SystemChrome.setPreferredOrientations([
@@ -136,6 +235,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       ref.read(isFullscreenProvider.notifier).state = true;
+      // 横屏模式下隐藏工具栏
+      ref.read(toolbarVisibilityProvider.notifier).hide();
     }
   }
 

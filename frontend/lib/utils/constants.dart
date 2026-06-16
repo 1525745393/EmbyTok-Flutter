@@ -48,6 +48,14 @@ const int kGuideFadeMs = 500;
 const double kGuideSlideDistance = 40.0;
 const int kGuideSwipeThreshold = 3;
 
+// 沉浸式交互：工具栏可见性与动画参数
+const int kToolbarAnimMs = 200;        // 工具栏动画时长
+const double kToolbarHeight = 56.0;    // 顶部工具栏高度
+const double kBottomNavHeight = 64.0;  // 底部导航栏高度
+const int kToolbarHideDelayMs = 200;   // 状态防抖延迟
+const int kToolbarAutoHideS = 3;       // 点击唤醒后的自动隐藏秒数
+const double kMinSwipeDistancePx = 24.0; // 触发消隐的最小滑动距离
+
 // 预加载参数
 const double kDefaultPreloadThreshold = 0.6;
 const int kMaxPreloadControllers = 2;

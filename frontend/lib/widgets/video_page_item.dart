@@ -114,13 +114,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // 底部半透明黑色渐变 + 标题/简介/类型标签
+  // 动态 padding：适配 notch / 动态岛 / 底部手势条；工具栏隐藏时释放顶部空间
   Widget _buildBottomGradient() {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final toolbarVisible = ref.watch(toolbarVisibilityProvider);
+
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 80, 96, 24),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          toolbarVisible ? topPadding + 80 : topPadding + 24, // 工具栏隐藏时释放 56px
+          96,
+          24 + bottomPadding,
+        ),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
               begin: Alignment.bottomCenter,
@@ -181,8 +191,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
+  // 动态 padding：适配顶部 notch / 动态岛与底部手势条
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
+    final topPadding = MediaQuery.of(context).padding.top;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Positioned(
       right: 0,
@@ -190,7 +203,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       bottom: 0,
       width: 96,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(0, 40, 8, 24),
+        padding: EdgeInsets.fromLTRB(0, topPadding + 40, 8, 24 + bottomPadding),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerRight,
