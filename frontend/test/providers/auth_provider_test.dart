@@ -172,18 +172,15 @@ void main() {
 
       final notifier = container.read(authProvider.notifier);
 
-      // 调用 login 并捕获异常
-      expect(
-        () => notifier.login(
+      // 调用 login 并等待 Future 完成（Future 内部会抛出异常，被 catch 后 rethrow）
+      await expectLater(
+        notifier.login(
           'http://emby.example.com',
           'testuser',
           'wrong-password',
         ),
         throwsA(isA<Exception>()),
       );
-
-      // 等待状态更新
-      await Future.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(authProvider);
       expect(state.isAuthenticated, false);
