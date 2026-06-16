@@ -107,12 +107,11 @@ void main() {
         accessToken: 'test-token',
       );
 
-      // 配置 mock service 返回成功
+      // 配置 mock service 返回成功（使用具体值而非 anyNamed）
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'password',
       )).thenAnswer((_) async => testUser);
 
       container = ProviderContainer(
@@ -129,9 +128,9 @@ void main() {
       final notifier = container.read(authProvider.notifier);
       await notifier.login(
         'http://emby.example.com',
-        'http://backend.example.com',
         'testuser',
         'password',
+        backendUrl: 'http://backend.example.com',
       );
 
       final state = container.read(authProvider);
@@ -149,20 +148,18 @@ void main() {
 
       // 验证 service 被正确调用
       verify(mockService.login(
-        'http://emby.example.com',
-        'http://backend.example.com',
-        'testuser',
-        'password',
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'password',
       )).called(1);
     });
 
     test('login() 失败：error 包含错误信息', () async {
-      // 配置 mock service 抛出异常
+      // 配置 mock service 抛出异常（使用具体值）
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'wrong-password',
       )).thenThrow(Exception('网络错误'));
 
       container = ProviderContainer(
@@ -177,19 +174,16 @@ void main() {
 
       final notifier = container.read(authProvider.notifier);
 
-      // 调用 login 并捕获异常
-      expect(
-        () => notifier.login(
+      // 调用 login（AsyncValueGuard 内部会 throw）
+      await expectLater(
+        notifier.login(
           'http://emby.example.com',
-          'http://backend.example.com',
           'testuser',
           'wrong-password',
+          backendUrl: 'http://backend.example.com',
         ),
         throwsA(isA<Exception>()),
       );
-
-      // 等待状态更新
-      await Future.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(authProvider);
       expect(state.isAuthenticated, false);
@@ -201,10 +195,9 @@ void main() {
     test('login() 失败：字符串错误信息', () async {
       // 配置 mock service 抛出字符串异常
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'wrong-password',
       )).thenThrow('用户名或密码错误');
 
       container = ProviderContainer(
@@ -219,17 +212,15 @@ void main() {
 
       final notifier = container.read(authProvider.notifier);
 
-      expect(
-        () => notifier.login(
+      await expectLater(
+        notifier.login(
           'http://emby.example.com',
-          'http://backend.example.com',
           'testuser',
           'wrong-password',
+          backendUrl: 'http://backend.example.com',
         ),
         throwsA('用户名或密码错误'),
       );
-
-      await Future.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(authProvider);
       expect(state.isAuthenticated, false);
@@ -245,10 +236,9 @@ void main() {
       );
 
       when(mockService.login(
-        any,
-        any,
-        any,
-        any,
+        embyServerUrl: 'http://emby.example.com',
+        username: 'testuser',
+        password: 'password',
       )).thenAnswer((_) async => testUser);
 
       container = ProviderContainer(
@@ -266,9 +256,9 @@ void main() {
       // 先登录
       await notifier.login(
         'http://emby.example.com',
-        'http://backend.example.com',
         'testuser',
         'password',
+        backendUrl: 'http://backend.example.com',
       );
 
       // 验证已登录

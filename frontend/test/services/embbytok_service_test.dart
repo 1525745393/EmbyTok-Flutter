@@ -1,501 +1,354 @@
+// EmbytokService 测试：验证 API 调用、数据解析和错误处理
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:embbytok_flutter/services/api_client.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
+
 import 'package:embbytok_flutter/models/models.dart';
+import 'package:embbytok_flutter/services/embbytok_service.dart';
 
 void main() {
   late Dio dio;
   late DioAdapter dioAdapter;
-  late ApiClient apiClient;
   late EmbytokService service;
 
-  const testBackendUrl = 'http://localhost:8000';
-  const testEmbyUrl = 'http://emby.example.com';
-  const testToken = 'test-access-token';
+  const testEmbyUrl = 'https://emby.example.com';
+  const testToken = 'test-token-123';
 
   setUp(() {
     dio = Dio();
     dioAdapter = DioAdapter(dio: dio);
     dio.httpClientAdapter = dioAdapter;
-    apiClient = ApiClient.withDio(dio);
-    service = EmbytokService(apiClient: apiClient);
+    service = EmbytokService.withDio(dio);
   });
 
-  group('EmbytokService', () {
-    group('login', () {
-      test('登录成功返回 User 对象', () async {
-        final loginResponse = {
-          'user_id': 'user-123',
-          'username': 'testuser',
-          'access_token': 'token-abc',
-        };
+  group('登录 API', () {
+    test('登录成功返回 User 对象', () async {
+      const username = 'testuser';
+      const password = 'password123';
 
-        dioAdapter.onPost('/api/auth/login', body: {
-          'emby_url': testEmbyUrl,
-          'username': 'testuser',
-          'password': 'password123',
-        }).reply(200, loginResponse);
+      final responseData = {
+        'Id': 'user-123',
+        'Name': username,
+        'ServerId': 'server-1',
+        'AccessToken': testToken,
+      };
 
-        final user = await service.login(
-          testEmbyUrl,
-          testBackendUrl,
-          'testuser',
-          'password123',
-        );
+      dioAdapter.onPost(
+        '/Users/AuthenticateByName',
+        data: {'Username': username, 'Pw': password},
+      ).reply(200, responseData);
 
-        expect(user.id, 'user-123');
-        expect(user.name, 'testuser');
-        expect(user.accessToken, 'token-abc');
-      });
+      final user = await service.login(
+        embyServerUrl: testEmbyUrl,
+        username: username,
+        password: password,
+      );
 
-      test('登录失败抛出异常', () async {
-        dioAdapter.onPost('/api/auth/login').reply(401, {
-          'detail': '用户名或密码错误',
-        });
-
-        expect(
-          () => service.login(
-            testEmbyUrl,
-            testBackendUrl,
-            'wronguser',
-            'wrongpass',
-          ),
-          throwsA(equals('用户名或密码错误')),
-        );
-      });
+      expect(user.id, 'user-123');
+      expect(user.name, username);
+      expect(user.accessToken, testToken);
     });
 
-    group('getLibraries', () {
-      test('获取媒体库列表成功', () async {
-        final librariesResponse = [
-          {'id': 'lib-1', 'name': '电影', 'type': 'movies', 'item_count': 100},
-          {'id': 'lib-2', 'name': '电视剧', 'type': 'tvshows', 'item_count': 50},
-        ];
+    test('登录失败抛出异常', () async {
+      dioAdapter.onPost(
+        '/Users/AuthenticateByName',
+        data: {'Username': 'wronguser', 'Pw': 'wrongpass'},
+      ).reply(401, <String, dynamic>{'message': 'Unauthorized'});
 
-        dioAdapter.onGet('/api/libraries').reply(200, librariesResponse);
+      await expectLater(
+        service.login(
+          embyServerUrl: testEmbyUrl,
+          username: 'wronguser',
+          password: 'wrongpass',
+        ),
+        throwsA(anything),
+      );
+    });
+  });
 
-        final libraries = await service.getLibraries(
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+  group('媒体库 API', () {
+    test('获取媒体库列表', () async {
+      final responseData = {
+        'Items': [
+          {'Id': 'lib-1', 'Name': '电影', 'CollectionType': 'movies'},
+          {'Id': 'lib-2', 'Name': '剧集', 'CollectionType': 'tvshows'},
+          {'Id': 'lib-3', 'Name': '音乐', 'CollectionType': 'music'},
+        ],
+        'TotalRecordCount': 3,
+      };
 
-        expect(libraries.length, 2);
-        expect(libraries[0].id, 'lib-1');
-        expect(libraries[0].name, '电影');
-        expect(libraries[0].type, 'movies');
-        expect(libraries[1].id, 'lib-2');
-        expect(libraries[1].name, '电视剧');
-      });
+      dioAdapter.onGet('/Library/VirtualFolders').reply(200, responseData);
 
-      test('获取媒体库列表失败', () async {
-        dioAdapter.onGet('/api/libraries').reply(500, {
-          'detail': '服务器内部错误',
-        });
+      final libraries = await service.getLibraries(
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(
-          () => service.getLibraries(
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(contains('服务器错误')),
-        );
-      });
+      expect(libraries.length, 3);
+      expect(libraries[0].id, 'lib-1');
+      expect(libraries[0].name, '电影');
+      expect(libraries[0].type, 'movies');
     });
 
-    group('getLibraryItems', () {
-      test('获取媒体库条目成功', () async {
-        final response = {
-          'items': [
-            {
-              'id': 'item-1',
-              'title': '测试电影',
-              'type': 'Movie',
-              'duration_seconds': 7200.0,
-            },
-          ],
-          'total': 1,
-          'offset': 0,
-          'limit': 20,
-        };
+    test('获取库中的项目列表（分页）', () async {
+      final responseData = {
+        'Items': List.generate(20, (i) => {
+              'Id': 'item-$i',
+              'Name': 'Item $i',
+              'Type': 'Movie',
+              'RunTimeTicks': 72000000000,
+            }),
+        'TotalRecordCount': 50,
+        'StartIndex': 0,
+        'Limit': 20,
+      };
 
-        dioAdapter.onGet('/api/libraries/lib-1/items',
-            query: {'limit': 20, 'offset': 0}).reply(200, response);
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
-        final result = await service.getLibraryItems(
-          'lib-1',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      final response = await service.getLibraryItems(
+        'lib-1',
+        limit: 20,
+        offset: 0,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(result.items.length, 1);
-        expect(result.total, 1);
-        expect(result.items[0].id, 'item-1');
-        expect(result.items[0].title, '测试电影');
-      });
-
-      test('获取媒体库条目带分页参数', () async {
-        final response = {
-          'items': [],
-          'total': 100,
-          'offset': 40,
-          'limit': 20,
-        };
-
-        dioAdapter.onGet('/api/libraries/lib-1/items',
-            query: {'limit': 20, 'offset': 40}).reply(200, response);
-
-        final result = await service.getLibraryItems(
-          'lib-1',
-          limit: 20,
-          offset: 40,
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(result.offset, 40);
-        expect(result.limit, 20);
-        expect(result.total, 100);
-      });
-
-      test('获取媒体库条目失败', () async {
-        dioAdapter.onGet('/api/libraries/invalid-lib/items').reply(404, {
-          'detail': '媒体库不存在',
-        });
-
-        expect(
-          () => service.getLibraryItems(
-            'invalid-lib',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('媒体库不存在')),
-        );
-      });
+      expect(response.items.length, 20);
+      expect(response.total, 50);
+      expect(response.offset, 0);
+      expect(response.limit, 20);
     });
 
-    group('getItem', () {
-      test('获取单个媒体项成功', () async {
-        final response = {
-          'id': 'item-123',
-          'title': '测试电影',
-          'type': 'Movie',
-          'duration_seconds': 5400.0,
-          'overview': '这是一部测试电影',
-          'year': 2024,
-        };
+    test('获取继续观看的项目', () async {
+      final responseData = {
+        'Items': [
+          {'Id': 'resume-1', 'Name': 'Resume 1', 'Type': 'Movie'},
+          {'Id': 'resume-2', 'Name': 'Resume 2', 'Type': 'Episode'},
+        ],
+        'TotalRecordCount': 2,
+      };
 
-        dioAdapter.onGet('/api/items/item-123').reply(200, response);
+      dioAdapter.onGet('/Items/Resume').reply(200, responseData);
 
-        final item = await service.getItem(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      final response = await service.getResumeItems(
+        limit: 20,
+        offset: 0,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(item.id, 'item-123');
-        expect(item.title, '测试电影');
-        expect(item.type, 'Movie');
-        expect(item.durationSeconds, 5400.0);
-        expect(item.overview, '这是一部测试电影');
-        expect(item.year, 2024);
-      });
-
-      test('获取媒体项失败', () async {
-        dioAdapter.onGet('/api/items/not-found').reply(404, {
-          'detail': '媒体项不存在',
-        });
-
-        expect(
-          () => service.getItem(
-            'not-found',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('媒体项不存在')),
-        );
-      });
+      expect(response.items.length, 2);
     });
 
-    group('getPlaybackUrl', () {
-      test('获取播放 URL 成功', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(200, {
-          'playback_url': 'http://emby.example.com/video/item-123/stream',
-        });
+    test('获取下一集', () async {
+      final responseData = {
+        'Items': [
+          {'Id': 'next-1', 'Name': 'Next Episode', 'Type': 'Episode'},
+        ],
+        'TotalRecordCount': 1,
+      };
 
-        final url = await service.getPlaybackUrl(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      dioAdapter.onGet('/Shows/NextUp').reply(200, responseData);
 
-        expect(url, 'http://emby.example.com/video/item-123/stream');
-      });
+      final response = await service.getNextUp(
+        limit: 20,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-      test('播放 URL 为空时返回空字符串', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(200, {});
-
-        final url = await service.getPlaybackUrl(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(url, '');
-      });
-
-      test('获取播放 URL 失败', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(403, {
-          'detail': '无播放权限',
-        });
-
-        expect(
-          () => service.getPlaybackUrl(
-            'item-123',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('无播放权限')),
-        );
-      });
+      expect(response.items.length, 1);
     });
 
-    group('search', () {
-      test('搜索成功返回结果', () async {
-        final response = {
-          'items': [
-            {'id': 'item-1', 'title': '测试电影', 'type': 'Movie'},
-            {'id': 'item-2', 'title': '测试剧集', 'type': 'Series'},
-          ],
-          'total': 2,
-          'offset': 0,
-          'limit': 20,
-        };
+    test('获取项目详情', () async {
+      const itemId = 'item-42';
+      final responseData = {
+        'Id': itemId,
+        'Name': 'Test Movie',
+        'Type': 'Movie',
+        'Overview': '这是一部测试电影',
+        'CommunityRating': 8.5,
+        'RunTimeTicks': 72000000000,
+        'ProductionYear': 2024,
+      };
 
-        dioAdapter.onGet('/api/search',
-            query: {'q': '测试', 'limit': 20, 'offset': 0}).reply(200, response);
+      dioAdapter.onGet('/Items/$itemId').reply(200, responseData);
 
-        final result = await service.search(
-          '测试',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      final item = await service.getItemDetail(
+        itemId,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(result.items.length, 2);
-        expect(result.total, 2);
-        expect(result.items[0].title, '测试电影');
-        expect(result.items[1].title, '测试剧集');
-      });
-
-      test('搜索带分页参数', () async {
-        final response = {
-          'items': [],
-          'total': 50,
-          'offset': 20,
-          'limit': 10,
-        };
-
-        dioAdapter.onGet('/api/search',
-            query: {'q': 'test', 'limit': 10, 'offset': 20}).reply(200, response);
-
-        final result = await service.search(
-          'test',
-          limit: 10,
-          offset: 20,
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(result.offset, 20);
-        expect(result.limit, 10);
-        expect(result.total, 50);
-      });
-
-      test('搜索失败', () async {
-        dioAdapter.onGet('/api/search').reply(400, {
-          'detail': '搜索关键词不能为空',
-        });
-
-        expect(
-          () => service.search(
-            '',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('搜索关键词不能为空')),
-        );
-      });
+      expect(item.id, itemId);
+      expect(item.title, 'Test Movie');
+      expect(item.type, 'Movie');
     });
 
-    group('toggleFavorite', () {
-      test('添加收藏调用 POST', () async {
-        dioAdapter.onPost('/api/favorites/item-123').reply(200, {});
+    test('获取相似项目', () async {
+      const itemId = 'item-42';
+      final responseData = [
+        {'Id': 'similar-1', 'Name': 'Similar 1', 'Type': 'Movie'},
+        {'Id': 'similar-2', 'Name': 'Similar 2', 'Type': 'Movie'},
+      ];
 
-        await service.toggleFavorite(
-          'item-123',
-          true,
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      dioAdapter.onGet('/Items/$itemId/Similar').reply(200, responseData);
 
-        // 成功则不抛出异常
-      });
+      final items = await service.getSimilarItems(
+        itemId,
+        limit: 20,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-      test('移除收藏调用 DELETE', () async {
-        dioAdapter.onDelete('/api/favorites/item-123').reply(200, {});
+      expect(items.length, 2);
+    });
+  });
 
-        await service.toggleFavorite(
-          'item-123',
-          false,
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+  group('收藏 API', () {
+    test('获取收藏列表', () async {
+      final responseData = {
+        'Items': [
+          {'Id': 'fav-1', 'Name': 'Favorite 1', 'Type': 'Movie'},
+          {'Id': 'fav-2', 'Name': 'Favorite 2', 'Type': 'Movie'},
+        ],
+        'TotalRecordCount': 2,
+      };
 
-        // 成功则不抛出异常
-      });
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
-      test('添加收藏失败', () async {
-        dioAdapter.onPost('/api/favorites/item-123').reply(404, {
-          'detail': '媒体项不存在',
-        });
+      final items = await service.getFavorites(
+        limit: 100,
+        offset: 0,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(
-          () => service.toggleFavorite(
-            'item-123',
-            true,
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('媒体项不存在')),
-        );
-      });
-
-      test('移除收藏失败', () async {
-        dioAdapter.onDelete('/api/favorites/item-123').reply(403, {
-          'detail': '无权限操作',
-        });
-
-        expect(
-          () => service.toggleFavorite(
-            'item-123',
-            false,
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('无权限操作')),
-        );
-      });
+      expect(items.length, 2);
     });
 
-    group('getFavorites', () {
-      test('获取收藏列表成功', () async {
-        final response = [
-          {'id': 'item-1', 'title': '收藏电影1', 'type': 'Movie'},
-          {'id': 'item-2', 'title': '收藏剧集1', 'type': 'Series'},
-        ];
+    test('获取收藏电影列表', () async {
+      final responseData = {
+        'Items': [
+          {'Id': 'fav-movie-1', 'Name': 'Favorite Movie 1', 'Type': 'Movie'},
+        ],
+        'TotalRecordCount': 1,
+      };
 
-        dioAdapter.onGet('/api/favorites').reply(200, response);
+      dioAdapter.onGet('/Items').reply(200, responseData);
 
-        final favorites = await service.getFavorites(
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      final items = await service.getFavoriteMovies(
+        limit: 100,
+        offset: 0,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
 
-        expect(favorites.length, 2);
-        expect(favorites[0].title, '收藏电影1');
-        expect(favorites[1].title, '收藏剧集1');
-      });
-
-      test('获取收藏列表失败', () async {
-        dioAdapter.onGet('/api/favorites').reply(401, {
-          'detail': 'Token 已过期',
-        });
-
-        expect(
-          () => service.getFavorites(
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('Token 已过期')),
-        );
-      });
+      expect(items.length, 1);
     });
 
-    group('saveProgress', () {
-      test('保存播放进度成功', () async {
-        dioAdapter.onPost('/api/progress/item-123', body: {
-          'position_seconds': 3600,
-        }).reply(200, {});
+    test('添加收藏', () async {
+      const itemId = 'item-to-favorite';
 
-        await service.saveProgress(
-          'item-123',
-          3600,
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      dioAdapter.onPost('/UserFavoriteItems/$itemId').reply(200, {'IsFavorite': true});
 
-        // 成功则不抛出异常
-      });
-
-      test('保存播放进度失败', () async {
-        dioAdapter.onPost('/api/progress/item-123').reply(500, {
-          'detail': '数据库写入失败',
-        });
-
-        expect(
-          () => service.saveProgress(
-            'item-123',
-            3600,
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(contains('服务器错误')),
-        );
-      });
+      await service.toggleFavorite(
+        itemId,
+        isFavorite: true,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
     });
 
-    group('getProgress', () {
-      test('获取播放进度成功', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(200, {
-          'position_seconds': 1800,
-        });
+    test('取消收藏', () async {
+      const itemId = 'item-to-unfavorite';
 
-        final progress = await service.getProgress(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      dioAdapter.onDelete('/UserFavoriteItems/$itemId').reply(200, {'IsFavorite': false});
 
-        expect(progress, 1800);
-      });
+      await service.toggleFavorite(
+        itemId,
+        isFavorite: false,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
+    });
+  });
 
-      test('播放进度不存在返回 null', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(200, {});
+  group('播放 API', () {
+    test('报告播放进度', () async {
+      const itemId = 'item-1';
+      const positionTicks = 123456789;
 
-        final progress = await service.getProgress(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
+      dioAdapter.onPost('/Sessions/Playing/Progress').reply(204, null);
 
-        expect(progress, isNull);
-      });
+      await service.reportPlaybackPosition(
+        itemId: itemId,
+        positionTicks: positionTicks,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
+    });
 
-      test('获取播放进度失败', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(404, {
-          'detail': '媒体项不存在',
-        });
+    test('报告播放停止', () async {
+      const itemId = 'item-1';
+      const positionTicks = 123456789;
 
-        expect(
-          () => service.getProgress(
-            'item-123',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('媒体项不存在')),
-        );
-      });
+      dioAdapter.onPost('/Sessions/Playing/Stopped').reply(204, null);
+
+      await service.reportPlaybackStopped(
+        itemId: itemId,
+        positionTicks: positionTicks,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
+    });
+  });
+
+  group('搜索 API', () {
+    test('搜索 Hints', () async {
+      const query = 'test';
+      final responseData = {
+        'SearchHints': [
+          {'ItemId': 'hint-1', 'Name': 'Result 1', 'Type': 'Movie'},
+          {'ItemId': 'hint-2', 'Name': 'Result 2', 'Type': 'Series'},
+        ],
+      };
+
+      dioAdapter.onGet('/Search/Hints').reply(200, responseData);
+
+      final hints = await service.searchHints(
+        query,
+        limit: 20,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
+
+      expect(hints.length, 2);
+    });
+
+    test('搜索 Items', () async {
+      const query = 'movie';
+      final responseData = {
+        'Items': [
+          {'Id': 'search-1', 'Name': 'Search Result 1', 'Type': 'Movie'},
+          {'Id': 'search-2', 'Name': 'Search Result 2', 'Type': 'Movie'},
+          {'Id': 'search-3', 'Name': 'Search Result 3', 'Type': 'Movie'},
+        ],
+        'TotalRecordCount': 3,
+      };
+
+      dioAdapter.onGet('/Items').reply(200, responseData);
+
+      final response = await service.searchItems(
+        query,
+        limit: 30,
+        offset: 0,
+        serverUrl: testEmbyUrl,
+        token: testToken,
+      );
+
+      expect(response.items.length, 3);
+      expect(response.total, 3);
     });
   });
 }

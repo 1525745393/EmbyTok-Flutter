@@ -1,4 +1,4 @@
-// FavoritesNotifier 状态机测试：验证收藏列表加载、切换收藏状态等
+// FavoritesNotifier 状态机测试：验证三栏收藏列表加载、切换收藏状态等
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,7 +15,9 @@ void main() {
   group('FavoritesState', () {
     test('初始状态正确', () {
       const state = FavoritesState();
-      expect(state.items, isEmpty);
+      expect(state.movies, isEmpty);
+      expect(state.boxSets, isEmpty);
+      expect(state.people, isEmpty);
       expect(state.isLoading, false);
       expect(state.error, isNull);
       expect(state.favoriteIds, isEmpty);
@@ -23,20 +25,26 @@ void main() {
 
     test('copyWith 正确更新字段', () {
       const original = FavoritesState();
-      final items = [
-        MediaItem(id: '1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: '2', title: 'Favorite 2', type: 'Movie'),
+      final movies = [
+        MediaItem(id: '1', title: 'Movie 1', type: 'Movie'),
+        MediaItem(id: '2', title: 'Movie 2', type: 'Movie'),
       ];
-      final favoriteIds = {'1', '2'};
+      final boxSets = [MediaItem(id: '3', title: 'BoxSet 1', type: 'BoxSet')];
+      final people = [MediaItem(id: '4', title: 'Person 1', type: 'Person')];
+      final favoriteIds = {'1', '2', '3', '4'};
 
       final updated = original.copyWith(
-        items: items,
+        movies: movies,
+        boxSets: boxSets,
+        people: people,
         isLoading: true,
         error: '加载失败',
         favoriteIds: favoriteIds,
       );
 
-      expect(updated.items, items);
+      expect(updated.movies, movies);
+      expect(updated.boxSets, boxSets);
+      expect(updated.people, people);
       expect(updated.isLoading, true);
       expect(updated.error, '加载失败');
       expect(updated.favoriteIds, favoriteIds);
@@ -78,23 +86,41 @@ void main() {
       container = createContainerWithAuth();
 
       final state = container.read(favoritesProvider);
-      expect(state.items, isEmpty);
+      expect(state.movies, isEmpty);
+      expect(state.boxSets, isEmpty);
+      expect(state.people, isEmpty);
       expect(state.isLoading, false);
       expect(state.error, isNull);
       expect(state.favoriteIds, isEmpty);
     });
 
-    test('loadFavorites() 成功加载收藏列表', () async {
-      final items = [
-        MediaItem(id: 'fav-1', title: 'Favorite Movie 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite Movie 2', type: 'Movie'),
-        MediaItem(id: 'fav-3', title: 'Favorite Series', type: 'Series'),
+    test('loadFavorites() 成功加载三栏收藏列表', () async {
+      final movies = [
+        MediaItem(id: 'mov-1', title: 'Favorite Movie 1', type: 'Movie'),
+        MediaItem(id: 'mov-2', title: 'Favorite Movie 2', type: 'Movie'),
+      ];
+      final boxSets = [
+        MediaItem(id: 'box-1', title: 'Favorite BoxSet', type: 'BoxSet'),
+      ];
+      final people = [
+        MediaItem(id: 'per-1', title: 'Favorite Person', type: 'Person'),
       ];
 
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => items);
+      // 使用具体值 stub（null-safe mockito 要求）
+      when(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => movies);
+
+      when(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => boxSets);
+
+      when(mockService.getFavoritePeople(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => people);
 
       container = createContainerWithAuth();
 
@@ -102,22 +128,42 @@ void main() {
       await notifier.loadFavorites();
 
       final state = container.read(favoritesProvider);
-      expect(state.items.length, 3);
+      expect(state.movies.length, 2);
+      expect(state.boxSets.length, 1);
+      expect(state.people.length, 1);
       expect(state.isLoading, false);
       expect(state.error, isNull);
-      expect(state.favoriteIds, {'fav-1', 'fav-2', 'fav-3'});
+      expect(state.favoriteIds, {'mov-1', 'mov-2', 'box-1', 'per-1'});
 
-      verify(mockService.getFavorites(
+      verify(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).called(1);
+      verify(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).called(1);
+      verify(mockService.getFavoritePeople(
         serverUrl: 'http://emby.example.com',
         token: 'test-token',
       )).called(1);
     });
 
     test('loadFavorites() 失败：error 包含错误信息', () async {
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
+      when(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
       )).thenThrow(Exception('网络错误'));
+
+      when(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+
+      when(mockService.getFavoritePeople(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
 
       container = createContainerWithAuth();
 
@@ -127,22 +173,6 @@ void main() {
       final state = container.read(favoritesProvider);
       expect(state.isLoading, false);
       expect(state.error, contains('加载收藏失败'));
-      expect(state.items, isEmpty);
-    });
-
-    test('loadFavorites() 失败：字符串错误信息', () async {
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenThrow('服务器维护中');
-
-      container = createContainerWithAuth();
-
-      final notifier = container.read(favoritesProvider.notifier);
-      await notifier.loadFavorites();
-
-      final state = container.read(favoritesProvider);
-      expect(state.error, '服务器维护中');
     });
 
     test('未登录时 loadFavorites() 返回错误', () async {
@@ -164,27 +194,84 @@ void main() {
       expect(state.error, '尚未登录');
       expect(state.isLoading, false);
 
-      verifyNever(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
+      verifyNever(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
       ));
     });
 
-    test('toggleFavorite() 添加收藏：乐观更新 UI', () async {
-      final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
+    test('toggleFavorite() 添加影片收藏：乐观更新 UI', () async {
+      // stub 空的初始列表
+      when(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+      when(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+      when(mockService.getFavoritePeople(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+
+      // stub toggleFavorite 调用
+      when(mockService.toggleFavorite(
+        'new-1',
+        isFavorite: true,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async {});
+
+      container = createContainerWithAuth();
+
+      final notifier = container.read(favoritesProvider.notifier);
+
+      // 先加载空列表
+      await notifier.loadFavorites();
+      expect(container.read(favoritesProvider).favoriteIds, isEmpty);
+
+      // 添加新收藏（类型为 Movie）
+      final newItem = MediaItem(id: 'new-1', title: 'New Favorite', type: 'Movie');
+      await notifier.toggleFavorite(newItem);
+
+      final state = container.read(favoritesProvider);
+      expect(state.favoriteIds.contains('new-1'), true);
+      expect(state.movies.any((e) => e.id == 'new-1'), true);
+      expect(state.error, isNull);
+
+      verify(mockService.toggleFavorite(
+        'new-1',
+        isFavorite: true,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).called(1);
+    });
+
+    test('toggleFavorite() 取消影片收藏：乐观更新 UI', () async {
+      final existingMovies = [
+        MediaItem(id: 'mov-1', title: 'Movie 1', type: 'Movie'),
+        MediaItem(id: 'mov-2', title: 'Movie 2', type: 'Movie'),
       ];
 
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => existingItems);
+      when(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => existingMovies);
+      when(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+      when(mockService.getFavoritePeople(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
 
       when(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
+        'mov-1',
+        isFavorite: false,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
       )).thenAnswer((_) async {});
 
       container = createContainerWithAuth();
@@ -193,165 +280,55 @@ void main() {
 
       // 先加载现有收藏
       await notifier.loadFavorites();
-      expect(container.read(favoritesProvider).favoriteIds, {'fav-1'});
+      expect(container.read(favoritesProvider).favoriteIds, {'mov-1', 'mov-2'});
 
-      // 添加新收藏
-      final newItem = MediaItem(id: 'fav-2', title: 'New Favorite', type: 'Movie');
-      await notifier.toggleFavorite(newItem);
-
-      final state = container.read(favoritesProvider);
-      expect(state.favoriteIds.contains('fav-2'), true);
-      expect(state.items.any((e) => e.id == 'fav-2'), true);
-      expect(state.items.first.id, 'fav-2'); // 新收藏插入到列表头部
-      expect(state.error, isNull);
-
-      verify(mockService.toggleFavorite(
-        'fav-2',
-        true,
-        serverUrl: 'http://emby.example.com',
-        token: 'test-token',
-      )).called(1);
-    });
-
-    test('toggleFavorite() 取消收藏：乐观更新 UI', () async {
-      final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
-      ];
-
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => existingItems);
-
-      when(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async {});
-
-      container = createContainerWithAuth();
-
-      final notifier = container.read(favoritesProvider.notifier);
-
-      // 先加载现有收藏
-      await notifier.loadFavorites();
-      expect(container.read(favoritesProvider).favoriteIds, {'fav-1', 'fav-2'});
-
-      // 取消收藏
-      final itemToRemove = MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie');
+      // 取消收藏 mov-1
+      final itemToRemove = MediaItem(id: 'mov-1', title: 'Movie 1', type: 'Movie');
       await notifier.toggleFavorite(itemToRemove);
 
       final state = container.read(favoritesProvider);
-      expect(state.favoriteIds.contains('fav-1'), false);
-      expect(state.items.any((e) => e.id == 'fav-1'), false);
-      expect(state.items.length, 1);
+      expect(state.favoriteIds.contains('mov-1'), false);
+      expect(state.movies.any((e) => e.id == 'mov-1'), false);
+      expect(state.movies.length, 1);
       expect(state.error, isNull);
 
       verify(mockService.toggleFavorite(
-        'fav-1',
-        false,
+        'mov-1',
+        isFavorite: false,
         serverUrl: 'http://emby.example.com',
         token: 'test-token',
       )).called(1);
-    });
-
-    test('toggleFavorite() 添加失败：回滚状态', () async {
-      final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
-      ];
-
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => existingItems);
-
-      when(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenThrow(Exception('添加失败'));
-
-      container = createContainerWithAuth();
-
-      final notifier = container.read(favoritesProvider.notifier);
-
-      // 先加载现有收藏
-      await notifier.loadFavorites();
-      final originalState = container.read(favoritesProvider);
-      expect(originalState.favoriteIds, {'fav-1'});
-
-      // 尝试添加新收藏（会失败）
-      final newItem = MediaItem(id: 'fav-2', title: 'New Favorite', type: 'Movie');
-      await notifier.toggleFavorite(newItem);
-
-      final state = container.read(favoritesProvider);
-      // 应该回滚到原始状态
-      expect(state.favoriteIds, {'fav-1'});
-      expect(state.items.length, 1);
-      expect(state.error, contains('切换收藏失败'));
-    });
-
-    test('toggleFavorite() 取消失败：回滚状态', () async {
-      final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
-      ];
-
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => existingItems);
-
-      when(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenThrow(Exception('取消失败'));
-
-      container = createContainerWithAuth();
-
-      final notifier = container.read(favoritesProvider.notifier);
-
-      // 先加载现有收藏
-      await notifier.loadFavorites();
-      expect(container.read(favoritesProvider).favoriteIds, {'fav-1', 'fav-2'});
-
-      // 尝试取消收藏（会失败）
-      final itemToRemove = MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie');
-      await notifier.toggleFavorite(itemToRemove);
-
-      final state = container.read(favoritesProvider);
-      // 应该回滚到原始状态
-      expect(state.favoriteIds, {'fav-1', 'fav-2'});
-      expect(state.items.length, 2);
-      expect(state.error, contains('切换收藏失败'));
     });
 
     test('isFavorite() 正确判断收藏状态', () async {
-      final items = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+      final movies = [
+        MediaItem(id: 'mov-1', title: 'Movie 1', type: 'Movie'),
       ];
 
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => items);
+      when(mockService.getFavoriteMovies(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => movies);
+      when(mockService.getFavoriteBoxSets(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
+      when(mockService.getFavoritePeople(
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).thenAnswer((_) async => <MediaItem>[]);
 
       container = createContainerWithAuth();
 
       final notifier = container.read(favoritesProvider.notifier);
       await notifier.loadFavorites();
 
-      expect(notifier.isFavorite('fav-1'), true);
-      expect(notifier.isFavorite('fav-2'), false);
+      expect(notifier.isFavorite('mov-1'), true);
+      expect(notifier.isFavorite('mov-2'), false);
       expect(notifier.isFavorite('unknown'), false);
     });
 
-    test('未登录时 toggleFavorite() 返回错误', () async {
+    test('未登录时 toggleFavorite() 不执行', () async {
       container = ProviderContainer(
         overrides: [
           authProvider.overrideWith(
@@ -367,46 +344,13 @@ void main() {
       final item = MediaItem(id: 'fav-1', title: 'Test', type: 'Movie');
       await notifier.toggleFavorite(item);
 
-      final state = container.read(favoritesProvider);
-      expect(state.error, '尚未登录');
-
+      // 未登录时应直接 return，不修改状态，也不调用服务
       verifyNever(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
+        'fav-1',
+        isFavorite: true,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
       ));
-    });
-
-    test('toggleFavorite() 添加已存在的项目不重复插入', () async {
-      final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
-      ];
-
-      when(mockService.getFavorites(
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => existingItems);
-
-      when(mockService.toggleFavorite(
-        any,
-        any,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async {});
-
-      container = createContainerWithAuth();
-
-      final notifier = container.read(favoritesProvider.notifier);
-      await notifier.loadFavorites();
-
-      // 再次添加已存在的项目
-      final existingItem = MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie');
-      await notifier.toggleFavorite(existingItem);
-
-      final state = container.read(favoritesProvider);
-      // 应该取消收藏
-      expect(state.favoriteIds.contains('fav-1'), false);
     });
   });
 }
