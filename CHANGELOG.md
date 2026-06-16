@@ -1,3 +1,11 @@
+## [1.8.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.8.1...v1.8.2) (2026-06-16)
+
+
+### Bug Fixes
+
+* VideoPlayerWidget 添加 preloadedController 参数支持，修复 CI 静态分析错误 ([1f94a13](https://github.com/1525745393/EmbyTok-Flutter/commit/1f94a136ed31e499e7856154e84f8347de760545))
+* 拖动进度条闪退修复 - 仅在松手后调用 seekTo，避免高频调用 MediaCodec 崩溃 ([3678a9f](https://github.com/1525745393/EmbyTok-Flutter/commit/3678a9fdc3cb0c8c2e9899e5291f3b406c1fbc5c))
+
 ## [1.8.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.8.0...v1.8.1) (2026-06-16)
 
 
