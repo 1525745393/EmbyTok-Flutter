@@ -18,12 +18,20 @@ class PaginatedResponse<T> {
     Map<String, dynamic> json,
     T Function(dynamic) itemFromJson,
   ) {
-    final rawItems = json['items'] as List<dynamic>? ?? <dynamic>[];
+    // 同时支持 Emby 原生字段（Items/TotalRecordCount/StartIndex/Limit）
+    // 和简化字段（items/total/offset/limit）
+    final rawItems = (json['Items'] as List<dynamic>?) ??
+        (json['items'] as List<dynamic>?) ??
+        <dynamic>[];
     return PaginatedResponse<T>(
       items: rawItems.map((e) => itemFromJson(e)).toList(),
-      total: json['total'] as int? ?? 0,
-      offset: json['offset'] as int? ?? 0,
-      limit: json['limit'] as int? ?? 20,
+      total: (json['TotalRecordCount'] as int?) ??
+          (json['total'] as int?) ??
+          0,
+      offset: (json['StartIndex'] as int?) ??
+          (json['offset'] as int?) ??
+          0,
+      limit: (json['Limit'] as int?) ?? (json['limit'] as int?) ?? 20,
     );
   }
 

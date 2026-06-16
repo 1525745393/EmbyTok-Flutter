@@ -356,6 +356,8 @@ void main() {
 }
 
 // 测试用 AuthNotifier：直接返回预设状态
-class _TestAuthNotifier extends StateNotifier<AuthState> {
-  _TestAuthNotifier(AuthState initialState) : super(initialState);
+class _TestAuthNotifier extends AuthNotifier {
+  _TestAuthNotifier(AuthState initialState) : super() {
+    state = initialState;
+  }
 }

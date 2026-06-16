@@ -16,11 +16,17 @@ class Library {
   });
 
   factory Library.fromJson(Map<String, dynamic> json) => Library(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        type: json['type'] as String? ?? '',
-        itemCount: json['item_count'] as int?,
-        coverImageUrl: json['cover_image_url'] as String?,
+        id: (json['Id'] as String?) ??
+            (json['ItemId'] as String?) ??
+            (json['id'] as String?) ??
+            '',
+        name: (json['Name'] as String?) ?? (json['name'] as String?) ?? '',
+        type: (json['CollectionType'] as String?) ??
+            (json['type'] as String?) ??
+            'movies',
+        itemCount: (json['ItemCount'] as int?) ?? (json['item_count'] as int?),
+        coverImageUrl: (json['ImageUrl'] as String?) ??
+            (json['cover_image_url'] as String?),
       );
 
   Map<String, dynamic> toJson() => {
