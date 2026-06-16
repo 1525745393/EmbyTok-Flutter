@@ -9,12 +9,12 @@ void main() {
   group('SubtitleRenderer Widget', () {
     /// 创建测试用的 ProviderContainer
     ProviderContainer createContainer({
-      SubtitleSettings? settings,
+      SubtitleSettings settings = const SubtitleSettings(),
     }) {
       return ProviderContainer(
         overrides: [
           subtitleSettingsProvider.overrideWith(
-            () => _TestSubtitleSettingsNotifier(settings),
+            (ref) => TestSubtitleSettingsNotifier(settings),
           ),
         ],
       );
@@ -448,22 +448,9 @@ void main() {
   });
 }
 
-/// 测试用的字幕设置 Notifier
-class _TestSubtitleSettingsNotifier extends SubtitleSettingsNotifier {
-  final SubtitleSettings? _initialSettings;
-
-  _TestSubtitleSettingsNotifier(this._initialSettings);
-
-  @override
-  Future<void> _load() async {
-    // 测试时不从 SharedPreferences 加载
-    if (_initialSettings != null) {
-      state = _initialSettings!;
-    }
-  }
-
-  @override
-  Future<void> _persist() async {
-    // 测试时不持久化
+/// 测试用的字幕设置 Notifier（扩展自 SubtitleSettingsNotifier）
+class TestSubtitleSettingsNotifier extends SubtitleSettingsNotifier {
+  TestSubtitleSettingsNotifier(SubtitleSettings initialSettings) {
+    state = initialSettings;
   }
 }

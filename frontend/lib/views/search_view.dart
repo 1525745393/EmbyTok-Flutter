@@ -259,7 +259,7 @@ class _SearchResultTile extends ConsumerWidget {
                 width: 120,
                 height: 72,
                 fit: BoxFit.cover,
-                httpHeaders: headers.isNotEmpty ? headers : null,
+                headers: headers.isNotEmpty ? headers : null,
                 errorBuilder: (_, __, ___) => _thumbPlaceholder(),
                 loadingBuilder: (_, child, ___) => child,
               )
