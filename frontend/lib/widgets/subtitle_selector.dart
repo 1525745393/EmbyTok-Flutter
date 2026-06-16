@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/colors.dart';
-import '../utils/constants.dart';
 
 /// 字幕选择器回调
 typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);
@@ -290,6 +289,7 @@ class SubtitleSelector extends ConsumerWidget {
                     color: isSelected ? textPrimary : textSecondary,
                     fontSize: 16,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
                   ),
                   if (track.language.isNotEmpty) ...[
                     const SizedBox(height: 2),

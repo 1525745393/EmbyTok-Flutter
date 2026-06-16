@@ -52,7 +52,7 @@ class SubtitleStyle {
   const SubtitleStyle({
     this.fontSize = 18.0,
     this.textColor = textPrimary,
-    this.backgroundColor = backgroundColor,
+    this.backgroundColor = const Color(0xFF000000),
     this.fontWeight = FontWeight.w600,
     this.letterSpacing = 0.0,
     this.wordSpacing = 0.0,

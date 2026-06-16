@@ -1,12 +1,9 @@
 // 视频流页面：竖向全屏滑动 + 顶部工具栏 + 视图切换 + 分页加载
 // 新增：视频切换渐入动画、智能预加载、首次滑动引导
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -28,7 +25,6 @@ class FeedView extends ConsumerStatefulWidget {
 class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
-  int _currentIndex = 0;
   int _swipeCount = 0;
   bool _guideShown = false;
 
@@ -54,7 +50,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   /// 切换到新页面时：更新索引、触发下一条预取、更新引导状态
   void _onPageSwitched(int index, List<MediaItem> items) {
     setState(() {
-      _currentIndex = index;
       _swipeCount++;
     });
     ref.read(currentPlayingIndexProvider.notifier).state = index;
