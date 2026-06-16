@@ -1,3 +1,15 @@
+# [1.8.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.7.0...v1.8.0) (2026-06-16)
+
+
+### Bug Fixes
+
+* lodash 模板解析错误，$BUILD_NUM 改为不带大括号避免与 ${...} 模板冲突 ([ce0ce71](https://github.com/1525745393/EmbyTok-Flutter/commit/ce0ce713689eb1550832c44e5a2f8c5355c4185e))
+
+
+### Features
+
+* 生成项目仓库Code Wiki文档 ([73ed4b7](https://github.com/1525745393/EmbyTok-Flutter/commit/73ed4b7b9ff334b331b95c95f1f02d5943cacf01))
+
 # [1.7.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.6.0...v1.7.0) (2026-06-16)
 
 
