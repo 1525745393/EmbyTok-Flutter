@@ -15,7 +15,7 @@ void main() {
   group('FavoritesState', () {
     test('初始状态正确', () {
       const state = FavoritesState();
-      expect(state.items, isEmpty);
+      expect(state.movies, isEmpty);
       expect(state.isLoading, false);
       expect(state.error, isNull);
       expect(state.favoriteIds, isEmpty);
@@ -78,7 +78,7 @@ void main() {
       container = createContainerWithAuth();
 
       final state = container.read(favoritesProvider);
-      expect(state.items, isEmpty);
+      expect(state.movies, isEmpty);
       expect(state.isLoading, false);
       expect(state.error, isNull);
       expect(state.favoriteIds, isEmpty);
@@ -102,7 +102,7 @@ void main() {
       await notifier.loadFavorites();
 
       final state = container.read(favoritesProvider);
-      expect(state.items.length, 3);
+      expect(state.movies.length, 3);
       expect(state.isLoading, false);
       expect(state.error, isNull);
       expect(state.favoriteIds, {'fav-1', 'fav-2', 'fav-3'});
@@ -127,7 +127,7 @@ void main() {
       final state = container.read(favoritesProvider);
       expect(state.isLoading, false);
       expect(state.error, contains('加载收藏失败'));
-      expect(state.items, isEmpty);
+      expect(state.movies, isEmpty);
     });
 
     test('loadFavorites() 失败：字符串错误信息', () async {
@@ -201,8 +201,8 @@ void main() {
 
       final state = container.read(favoritesProvider);
       expect(state.favoriteIds.contains('fav-2'), true);
-      expect(state.items.any((e) => e.id == 'fav-2'), true);
-      expect(state.items.first.id, 'fav-2'); // 新收藏插入到列表头部
+      expect(state.movies.any((e) => e.id == 'fav-2'), true);
+      expect(state.movies.first.id, 'fav-2'); // 新收藏插入到列表头部
       expect(state.error, isNull);
 
       verify(mockService.toggleFavorite(
@@ -245,8 +245,8 @@ void main() {
 
       final state = container.read(favoritesProvider);
       expect(state.favoriteIds.contains('fav-1'), false);
-      expect(state.items.any((e) => e.id == 'fav-1'), false);
-      expect(state.items.length, 1);
+      expect(state.movies.any((e) => e.id == 'fav-1'), false);
+      expect(state.movies.length, 1);
       expect(state.error, isNull);
 
       verify(mockService.toggleFavorite(
@@ -290,7 +290,7 @@ void main() {
       final state = container.read(favoritesProvider);
       // 应该回滚到原始状态
       expect(state.favoriteIds, {'fav-1'});
-      expect(state.items.length, 1);
+      expect(state.movies.length, 1);
       expect(state.error, contains('切换收藏失败'));
     });
 
@@ -327,7 +327,7 @@ void main() {
       final state = container.read(favoritesProvider);
       // 应该回滚到原始状态
       expect(state.favoriteIds, {'fav-1', 'fav-2'});
-      expect(state.items.length, 2);
+      expect(state.movies.length, 2);
       expect(state.error, contains('切换收藏失败'));
     });
 
