@@ -40,10 +40,10 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v6
+      - name: 检出代码（完整历史，供 Semantic Release 分析）
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # Semantic Release 需要完整的 git 历史
+          fetch-depth: 0
           persist-credentials: true
 
       - name: 设置 JDK 17（Gradle 构建需要）
@@ -62,7 +62,7 @@ jobs:
       - name: 设置 Node.js（运行 semantic-release）
         uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: "20"
 
       - name: 安装 Flutter 依赖
         run: flutter pub get
