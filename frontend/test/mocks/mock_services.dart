@@ -393,24 +393,6 @@ class MockEmbytokService extends Mock implements EmbytokService {
       );
 
   @override
-  Future<List<MediaItem>> getFavorites({
-    int limit = 100,
-    int offset = 0,
-    String? serverUrl,
-    String? token,
-  }) =>
-      super.noSuchMethod(
-        Invocation.method(#getFavorites, [], {
-          #limit: limit,
-          #offset: offset,
-          #serverUrl: serverUrl,
-          #token: token,
-        }),
-        returnValue: Future.value(<MediaItem>[]),
-        returnValueForMissingStub: Future.value(<MediaItem>[]),
-      );
-
-  @override
   Future<void> toggleFavorite(
     String itemId, {
     required bool isFavorite,
