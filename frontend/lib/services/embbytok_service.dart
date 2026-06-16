@@ -146,7 +146,7 @@ class EmbytokService {
       '/Items/$itemId',
       queryParameters: params,
     );
-    final data = resp.data is Map ? resp.data as Map<String, dynamic> : {};
+    final data = resp.data is Map<String, dynamic> ? resp.data as Map<String, dynamic> : <String, dynamic>{};
     return MediaItem.fromJson(data);
   }
 

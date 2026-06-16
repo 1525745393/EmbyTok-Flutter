@@ -83,7 +83,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(url),
-        httpHeaders: headers.isNotEmpty ? headers : null,
+        httpHeaders: headers,
       );
       _controller!.setLooping(widget.loop);
       await _controller!.initialize();
@@ -178,7 +178,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           Image.network(
             url,
             fit: BoxFit.cover,
-            httpHeaders: headers.isNotEmpty ? headers : null,
+            headers: headers.isNotEmpty ? headers : null,
             errorBuilder: (_, __, ___) => Container(
               color: Colors.grey[900],
               child: const Center(

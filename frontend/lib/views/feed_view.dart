@@ -18,7 +18,6 @@ class FeedView extends ConsumerStatefulWidget {
 class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
-  int _currentPage = 0;
 
   @override
   bool get wantKeepAlive => true;
