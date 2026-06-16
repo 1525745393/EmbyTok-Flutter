@@ -137,6 +137,78 @@ class MockEmbytokService extends Mock implements EmbytokService {
       );
 
   @override
+  Future<List<MediaItem>> getFavorites({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavorites, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      );
+
+  @override
+  Future<List<MediaItem>> getFavoriteMovies({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoriteMovies, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      );
+
+  @override
+  Future<List<MediaItem>> getFavoriteBoxSets({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoriteBoxSets, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      );
+
+  @override
+  Future<List<MediaItem>> getFavoritePeople({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoritePeople, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      );
+
+  @override
   Future<PaginatedResponse<MediaItem>> getRecentlyAdded({
     int limit = 20,
     int offset = 0,
