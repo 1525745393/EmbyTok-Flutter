@@ -76,18 +76,15 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     try {
       final serverUrl = auth.embyServerUrl!;
       final token = auth.token!;
-      // 获取全部收藏，然后按类型分组
-      final allFavorites = await _service.getFavorites(
-        serverUrl: serverUrl,
-        token: token,
-      );
+      final results = await Future.wait<List<MediaItem>>([
+        _service.getFavoriteMovies(serverUrl: serverUrl, token: token),
+        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token),
+        _service.getFavoritePeople(serverUrl: serverUrl, token: token),
+      ], eagerError: false);
 
-      final movies = allFavorites.where((item) {
-        final type = item.type.toLowerCase();
-        return type == 'movie' || type == 'series' || type == 'episode' || type == 'musicvideo';
-      }).toList();
-      final boxSets = allFavorites.where((item) => item.type.toLowerCase() == 'boxset').toList();
-      final people = allFavorites.where((item) => item.type.toLowerCase() == 'person').toList();
+      final movies = results[0];
+      final boxSets = results[1];
+      final people = results[2];
       final ids = _mergeIds(movies, boxSets, people);
 
       state = FavoritesState(

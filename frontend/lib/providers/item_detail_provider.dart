@@ -214,7 +214,7 @@ final searchHintsProvider =
 // 标记已看 / 未看
 // ============================
 
-Future<void> markItemPlayed(String itemId, Ref ref) async {
+Future<void> markItemPlayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);
@@ -225,7 +225,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
   ref.invalidate(itemDetailProvider(itemId));
 }
 
-Future<void> markItemUnplayed(String itemId, Ref ref) async {
+Future<void> markItemUnplayed(String itemId, WidgetRef ref) async {
   final auth = ref.read(authProvider);
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);

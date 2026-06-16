@@ -1,40 +1,30 @@
-// SubtitleRenderer 测试：验证字幕渲染和 SRT 解析
-// 注意：不重写私有方法 _load / _persist，改为在 setUp 中设置 SharedPreferences mock
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embbytok_flutter/widgets/subtitle_renderer.dart';
 import 'package:embbytok_flutter/providers/subtitle_settings_provider.dart';
-import 'package:embbytok_flutter/utils/constants.dart';
 
 void main() {
-  setUp(() {
-    // 清空 SharedPreferences mock，每个测试从干净状态开始
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-  });
-
   group('SubtitleRenderer Widget', () {
-    /// 创建测试用 ProviderContainer（使用真实的 SubtitleSettingsNotifier）
-    /// 通过 SharedPreferences mock 控制初始化状态
-    Future<ProviderContainer> createContainer({
-      required bool enabled,
-      String language = 'zh',
-    }) async {
-      if (enabled) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-          kStorageKeySubtitle,
-          '{"language":"$language","size":"medium","color":"white","position":"bottom"}',
-        );
-      }
-      return ProviderContainer();
+    /// 创建测试用的 ProviderContainer
+    ProviderContainer createContainer({
+      SubtitleSettings? settings,
+    }) {
+      return ProviderContainer(
+        overrides: [
+          subtitleSettingsProvider.overrideWith(
+            () => _TestSubtitleSettingsNotifier(settings),
+          ),
+        ],
+      );
     }
 
-    testWidgets('空字幕列表时不显示任何文本', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
+    /// 测试空字幕时不显示
+    testWidgets('空字幕列表时不显示任何内容', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -43,23 +33,32 @@ void main() {
             home: Scaffold(
               body: SubtitleRenderer(
                 position: Duration.zero,
-                cues: <SubtitleCue>[],
+                cues: [],
               ),
             ),
           ),
         ),
       );
 
-      expect(find.byType(SizedBox), findsAtLeastNWidgets(1));
+      // 应该返回 SizedBox.shrink
+      expect(find.byType(SizedBox), findsOneWidget);
       expect(find.byType(Text), findsNothing);
 
       container.dispose();
     });
 
+    /// 测试 enabled=false 时不显示
     testWidgets('enabled=false 时不显示字幕', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '测试字幕'),
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
+
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '测试字幕',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -77,18 +76,25 @@ void main() {
         ),
       );
 
-      expect(find.byType(SizedBox), findsAtLeastNWidgets(1));
+      // 应该返回 SizedBox.shrink
+      expect(find.byType(SizedBox), findsOneWidget);
       expect(find.text('测试字幕'), findsNothing);
 
       container.dispose();
     });
 
-    testWidgets('字幕设置禁用（language 为空）时不显示', (WidgetTester tester) async {
-      // language 为空 => SubtitleSettings.enabled 返回 false
-      final container = ProviderContainer();
+    /// 测试字幕设置禁用时不显示
+    testWidgets('字幕设置禁用（language为空）时不显示', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(language: ''), // 空语言表示禁用
+      );
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '测试字幕'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '测试字幕',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -105,18 +111,30 @@ void main() {
         ),
       );
 
-      expect(find.byType(SizedBox), findsAtLeastNWidgets(1));
+      // 应该返回 SizedBox.shrink
+      expect(find.byType(SizedBox), findsOneWidget);
       expect(find.text('测试字幕'), findsNothing);
 
       container.dispose();
     });
 
+    /// 测试字幕文本正确显示
     testWidgets('当前时间的字幕正确显示', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '这是第一句字幕'),
-        const SubtitleCue(Duration(seconds: 5), Duration(seconds: 10), '这是第二句字幕'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '这是第一句字幕',
+        ),
+        const SubtitleCue(
+          Duration(seconds: 5),
+          Duration(seconds: 10),
+          '这是第二句字幕',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -133,22 +151,38 @@ void main() {
         ),
       );
 
+      // 应该显示第一句字幕
       expect(find.text('这是第一句字幕'), findsOneWidget);
       expect(find.text('这是第二句字幕'), findsNothing);
 
       container.dispose();
     });
 
+    /// 测试不同时间点显示不同字幕
     testWidgets('不同时间点显示对应字幕', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '字幕A'),
-        const SubtitleCue(Duration(seconds: 5), Duration(seconds: 10), '字幕B'),
-        const SubtitleCue(Duration(seconds: 10), Duration(seconds: 15), '字幕C'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '字幕A',
+        ),
+        const SubtitleCue(
+          Duration(seconds: 5),
+          Duration(seconds: 10),
+          '字幕B',
+        ),
+        const SubtitleCue(
+          Duration(seconds: 10),
+          Duration(seconds: 15),
+          '字幕C',
+        ),
       ];
 
-      // 时间点 1：显示字幕A
+      // 测试时间点 1：应该显示字幕A
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -164,7 +198,7 @@ void main() {
       );
       expect(find.text('字幕A'), findsOneWidget);
 
-      // 时间点 2：显示字幕B
+      // 测试时间点 2：应该显示字幕B
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -180,7 +214,7 @@ void main() {
       );
       expect(find.text('字幕B'), findsOneWidget);
 
-      // 时间点 3：显示字幕C
+      // 测试时间点 3：应该显示字幕C
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -199,15 +233,26 @@ void main() {
       container.dispose();
     });
 
-    testWidgets('当前时间没有匹配字幕时不显示任何文本', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
+    /// 测试没有匹配的字幕时不显示
+    testWidgets('当前时间没有匹配字幕时不显示', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '早期字幕'),
-        const SubtitleCue(Duration(seconds: 20), Duration(seconds: 25), '后期字幕'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '早期字幕',
+        ),
+        const SubtitleCue(
+          Duration(seconds: 20),
+          Duration(seconds: 25),
+          '后期字幕',
+        ),
       ];
 
-      // 时间点在两段字幕之间的空白期
+      // 时间点在两个字幕之间的空白期
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -222,18 +267,26 @@ void main() {
         ),
       );
 
-      expect(find.byType(SizedBox), findsAtLeastNWidgets(1));
+      // 应该返回 SizedBox.shrink
+      expect(find.byType(SizedBox), findsOneWidget);
       expect(find.text('早期字幕'), findsNothing);
       expect(find.text('后期字幕'), findsNothing);
 
       container.dispose();
     });
 
-    testWidgets('字幕有正确的容器样式（Container + IgnorePointer）', (WidgetTester tester) async {
-      final container = await createContainer(enabled: true);
+    /// 测试字幕容器样式
+    testWidgets('字幕有正确的容器样式', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(language: 'zh'),
+      );
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '样式测试'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '样式测试',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -250,24 +303,30 @@ void main() {
         ),
       );
 
+      // 验证 Container 存在
       expect(find.byType(Container), findsWidgets);
+
+      // 验证 IgnorePointer 存在（字幕不应拦截触摸）
       expect(find.byType(IgnorePointer), findsOneWidget);
 
       container.dispose();
     });
 
-    testWidgets('字幕使用设置的颜色（黄色）', (WidgetTester tester) async {
-      // 通过 SharedPreferences 设置黄色字幕
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        kStorageKeySubtitle,
-        '{"language":"zh","size":"medium","color":"yellow","position":"bottom"}',
+    /// 测试字幕设置颜色
+    testWidgets('字幕使用设置的颜色', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(
+          language: 'zh',
+          color: 'yellow',
+        ),
       );
 
-      final container = ProviderContainer();
-
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '颜色测试'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '颜色测试',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -290,16 +349,21 @@ void main() {
       container.dispose();
     });
 
-    testWidgets('字幕使用设置的字号（large）', (WidgetTester tester) async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        kStorageKeySubtitle,
-        '{"language":"zh","size":"large","color":"white","position":"bottom"}',
+    /// 测试字幕设置字号
+    testWidgets('字幕使用设置的字号', (WidgetTester tester) async {
+      final container = createContainer(
+        settings: const SubtitleSettings(
+          language: 'zh',
+          size: 'large',
+        ),
       );
-      final container = ProviderContainer();
 
-      final cues = <SubtitleCue>[
-        const SubtitleCue(Duration.zero, Duration(seconds: 5), '字号测试'),
+      final cues = [
+        const SubtitleCue(
+          Duration(seconds: 0),
+          Duration(seconds: 5),
+          '字号测试',
+        ),
       ];
 
       await tester.pumpWidget(
@@ -323,12 +387,11 @@ void main() {
     });
   });
 
-  // ============================
-  // parseSrt 函数测试
-  // ============================
   group('parseSrt 函数', () {
+    /// 测试 SRT 解析
     test('正确解析 SRT 格式字幕', () {
-      const srtContent = '''1
+      const srtContent = '''
+1
 00:00:01,000 --> 00:00:04,000
 第一句字幕
 
@@ -348,12 +411,15 @@ void main() {
       expect(cues[1].text, '第二句字幕');
     });
 
+    /// 测试空内容
     test('空内容返回空列表', () {
       expect(parseSrt(''), isEmpty);
     });
 
+    /// 测试多行字幕
     test('正确解析多行字幕文本', () {
-      const srtContent = '''1
+      const srtContent = '''
+1
 00:00:01,000 --> 00:00:04,000
 第一行
 第二行
@@ -365,8 +431,10 @@ void main() {
       expect(cues[0].text, '第一行\n第二行');
     });
 
+    /// 测试时间格式解析（毫秒）
     test('正确解析毫秒级时间', () {
-      const srtContent = '''1
+      const srtContent = '''
+1
 00:01:23,456 --> 00:01:26,789
 测试字幕
 ''';
@@ -378,4 +446,24 @@ void main() {
       expect(cues[0].end, const Duration(minutes: 1, seconds: 26, milliseconds: 789));
     });
   });
+}
+
+/// 测试用的字幕设置 Notifier
+class _TestSubtitleSettingsNotifier extends SubtitleSettingsNotifier {
+  final SubtitleSettings? _initialSettings;
+
+  _TestSubtitleSettingsNotifier(this._initialSettings);
+
+  @override
+  Future<void> _load() async {
+    // 测试时不从 SharedPreferences 加载
+    if (_initialSettings != null) {
+      state = _initialSettings!;
+    }
+  }
+
+  @override
+  Future<void> _persist() async {
+    // 测试时不持久化
+  }
 }

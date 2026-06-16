@@ -1,4 +1,4 @@
-// 媒体库模型：对应后端 Library（同时支持 Emby 原生 PascalCase 与 snake_case）
+// 媒体库模型：对应后端 Library
 
 class Library {
   final String id;
@@ -15,16 +15,12 @@ class Library {
     this.coverImageUrl,
   });
 
-  /// 同时支持 Emby 原生 PascalCase（Id/Name/CollectionType）
-  /// 和简化 snake_case（id/name/type/item_count/cover_image_url）
   factory Library.fromJson(Map<String, dynamic> json) => Library(
         id: (json['Id'] as String?) ??
             (json['ItemId'] as String?) ??
             (json['id'] as String?) ??
             '',
-        name: (json['Name'] as String?) ??
-            (json['name'] as String?) ??
-            '',
+        name: (json['Name'] as String?) ?? (json['name'] as String?) ?? '',
         type: (json['CollectionType'] as String?) ??
             (json['type'] as String?) ??
             'movies',
