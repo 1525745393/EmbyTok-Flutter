@@ -1,0 +1,47 @@
+# Tasks
+
+- [ ] Task 1: 横屏视频全屏沉浸播放
+  - [ ] 在 `video_page_item.dart` 添加 `_isFullscreen` 状态（State 局部状态）
+  - [ ] 右侧操作列新增"全屏"按钮（Icons.fullscreen），点击切换横屏/竖屏
+  - [ ] 横屏模式调用 `SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft])`
+  - [ ] 竖屏模式恢复 `SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])`
+  - [ ] 横屏模式隐藏顶部工具栏（`toolbarVisibilityProvider` 设为 false）和底部导航栏
+  - [ ] 横屏模式视频容器改为 16:9 居中布局，上下黑色填充
+- [ ] Task 2: 视频画面填充策略动态调整
+  - [ ] 在 `video_player_widget.dart` 根据 `widget.item.isLandscape` 选择 BoxFit
+  - [ ] 竖屏视频：`BoxFit.cover`（填满）
+  - [ ] 横屏视频（竖屏模式）：`BoxFit.contain`（完整显示，上下黑边）
+  - [ ] 横屏视频（横屏沉浸模式）：`BoxFit.contain`（居中）
+  - [ ] 通过回调或 Provider 将全屏状态传递给 VideoPlayerWidget
+- [ ] Task 3: 接入 VideoControls 播放控制层
+  - [ ] 在 `video_page_item.dart` 的 Stack 中叠加 `VideoControls`
+  - [ ] 位置：底部渐变信息面板上方，距底部约 80px
+  - [ ] 样式调整：半透明黑色背景，TikTok 风格圆角
+  - [ ] 显示内容：当前时间 / 总时长 / 进度条 / 倍速按钮
+  - [ ] 进度条支持点击跳转（已有 VideoControls 内部实现）
+- [ ] Task 4: TikTok 风格底部细线进度条
+  - [ ] 在 `video_page_item.dart` 的 Stack 最底层（视频画面之上）添加细线进度条
+  - [ ] 高度 2px，宽度 = 视频画面宽度
+  - [ ] 颜色：`primaryPink`（#E91E63），背景半透明黑色
+  - [ ] 始终可见（不受控制层隐藏影响）
+  - [ ] 监听 VideoPlayerController 的 position 变化更新进度
+- [ ] Task 5: 中央播放/暂停按钮
+  - [ ] 在 `video_page_item.dart` 的 Stack 中添加中央按钮层
+  - [ ] 暂停时显示：半透明圆形播放图标（直径 72dp，alpha 0.6）
+  - [ ] 播放时隐藏
+  - [ ] 点击中央按钮调用 `controller.play()`
+  - [ ] 显示/隐藏带 200ms 淡入淡出动画
+- [ ] Task 6: 控制层自动隐藏逻辑
+  - [ ] 在 `video_page_item.dart` 添加 `_controlsVisible` 状态和 `_hideTimer`
+  - [ ] 控制层显示时启动 3 秒计时器，到期淡出隐藏（300ms）
+  - [ ] 单击画面切换控制层显示/隐藏（修改 `gesture_overlay.dart` 的 `_onSingleTap`）
+  - [ ] 控制层隐藏时，底部细线进度条和右侧操作按钮仍保留
+  - [ ] 任何操作（拖动、双击、长按）重置计时器
+
+# Task Dependencies
+- [Task 2] 依赖 [Task 1]（需要全屏状态判断）
+- [Task 3] 独立，可并行
+- [Task 4] 独立，可并行
+- [Task 5] 独立，可并行
+- [Task 6] 依赖 [Task 3]（控制层存在才能隐藏）
+- [Task 1] 独立，最先实施

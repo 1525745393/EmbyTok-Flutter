@@ -1,12 +1,15 @@
 // 视频控制条：播放/暂停按钮 + 进度条 + 时间 + 倍速
+// TikTok 风格半透明控制层，接入 isPlayingProvider 同步播放状态
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import '../providers/providers.dart';
 import '../utils/colors.dart';
 
-// 简单版视频控制条：半透明黑色背景，底部悬浮
-class VideoControls extends StatefulWidget {
+// 视频控制条：半透明黑色背景，底部悬浮
+class VideoControls extends ConsumerStatefulWidget {
   final VideoPlayerController controller;
   final List<double> playbackRates;
 
@@ -17,10 +20,10 @@ class VideoControls extends StatefulWidget {
   });
 
   @override
-  State<VideoControls> createState() => _VideoControlsState();
+  ConsumerState<VideoControls> createState() => _VideoControlsState();
 }
 
-class _VideoControlsState extends State<VideoControls> {
+class _VideoControlsState extends ConsumerState<VideoControls> {
   @override
   void initState() {
     super.initState();
@@ -34,7 +37,12 @@ class _VideoControlsState extends State<VideoControls> {
   }
 
   void _onControllerChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      // 同步播放状态到 Provider（供中央播放按钮显示/隐藏使用）
+      ref.read(isPlayingProvider.notifier).state =
+          widget.controller.value.isPlaying;
+    }
   }
 
   // 格式化 Duration 为 "mm:ss"
@@ -51,6 +59,8 @@ class _VideoControlsState extends State<VideoControls> {
     } else {
       widget.controller.play();
     }
+    ref.read(isPlayingProvider.notifier).state =
+        widget.controller.value.isPlaying;
   }
 
   // 切换倍速

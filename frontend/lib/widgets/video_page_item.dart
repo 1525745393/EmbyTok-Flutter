@@ -1,8 +1,12 @@
 // 视频流单页：全屏视频 + 右侧操作按钮 + 左下角标题信息
 // 采用 GestureOverlay 处理手势交互（单击/双击/长按/水平拖动）
 // 新增：视频切换渐入动画（200ms fade-in）
+// 新增：TikTok 风格播放体验（横屏全屏、控制层、细线进度条、中央播放按钮）
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -11,6 +15,7 @@ import '../providers/providers.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import 'gesture_overlay.dart';
+import 'video_controls.dart';
 import 'video_player_widget.dart';
 
 /// 单个视频页：TikTok 卡片样式
@@ -31,14 +36,80 @@ class VideoPageItem extends ConsumerStatefulWidget {
 class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   VideoPlayerController? _videoController;
 
+  // 横屏全屏沉浸模式状态
+  bool _isFullscreen = false;
+
+  // 控制层（VideoControls）显示状态
+  bool _controlsVisible = false;
+  Timer? _controlsHideTimer;
+
+  // 控制层自动隐藏时长
+  static const int _controlsAutoHideSeconds = 3;
+
   @override
   void dispose() {
+    // 清理计时器
+    _controlsHideTimer?.cancel();
+    // 退出时恢复竖屏方向（避免横屏状态残留）
+    if (_isFullscreen) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    }
     // 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
     // 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
     _videoController?.dispose();
     _videoController = null;
     super.dispose();
+  }
+
+  // 切换横屏全屏沉浸模式
+  void _toggleFullscreen() {
+    setState(() {
+      _isFullscreen = !_isFullscreen;
+    });
+    if (_isFullscreen) {
+      // 进入横屏沉浸：强制横屏 + 隐藏工具栏
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      ref.read(toolbarVisibilityProvider.notifier).hide();
+    } else {
+      // 退出横屏沉浸：恢复竖屏
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      ref.read(toolbarVisibilityProvider.notifier).show();
+    }
+  }
+
+  // 切换控制层显示/隐藏（由 GestureOverlay 单击触发）
+  void _toggleControls() {
+    if (_controlsVisible) {
+      _hideControls();
+    } else {
+      _showControls();
+    }
+  }
+
+  // 显示控制层并启动自动隐藏计时器
+  void _showControls() {
+    _controlsHideTimer?.cancel();
+    setState(() {
+      _controlsVisible = true;
+    });
+    _controlsHideTimer = Timer(
+      const Duration(seconds: _controlsAutoHideSeconds),
+      _hideControls,
+    );
+  }
+
+  // 隐藏控制层
+  void _hideControls() {
+    _controlsHideTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        _controlsVisible = false;
+      });
+    }
   }
 
   @override
@@ -54,58 +125,154 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     // 读取 ready 状态：当 item.id 在 videoReadyProvider 中，视为 ready
     final isReady = ref.watch(videoReadyProvider).contains(widget.item.id);
 
+    // 读取播放状态（用于中央播放按钮显示）
+    final isPlaying = ref.watch(isPlayingProvider);
+
+    // 横屏全屏模式下使用黑色背景 + 居中布局
+    final content = Stack(
+      fit: StackFit.expand,
+      children: [
+        // 骨架占位：视频未 ready 时显示渐变色块
+        AnimatedContainer(
+          duration: const Duration(milliseconds: kVideoFadeInMs),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isReady
+                  ? [Colors.transparent, Colors.transparent]
+                  : [surfaceColorL2, surfaceColorL3],
+            ),
+          ),
+        ),
+
+        // 视频播放区（Gestures + VideoPlayer）：未 ready 时透明，ready 后 200ms 渐显
+        AnimatedOpacity(
+          opacity: isReady ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: kVideoFadeInMs),
+          curve: Curves.easeOut,
+          child: GestureOverlay(
+            controller: _videoController,
+            item: widget.item,
+            onSingleTap: _toggleControls,
+            child: VideoPlayerWidget(
+              item: widget.item,
+              embyServerUrl: embyServerUrl,
+              token: token,
+              preloadedController: widget.preloadedController,
+              onControllerReady: (c) {
+                setState(() {
+                  _videoController = c;
+                });
+                ref.read(isPlayingProvider.notifier).state = true;
+                ref.read(currentPlayingItemProvider.notifier).state =
+                    widget.item;
+                // 标记为 ready：触发 AnimatedOpacity 渐显
+                ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+              },
+            ),
+          ),
+        ),
+
+        // TikTok 风格底部细线进度条（始终可见）
+        if (_videoController != null && _videoController!.value.isInitialized)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _ThinProgressBar(controller: _videoController!),
+          ),
+
+        // 中央播放/暂停按钮（暂停时显示）
+        if (_videoController != null && _videoController!.value.isInitialized && !isPlaying)
+          _buildCenterPlayButton(),
+
+        // 控制层（VideoControls）：可隐藏，3 秒无操作自动淡出
+        if (_videoController != null && _videoController!.value.isInitialized)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: _isFullscreen ? 0 : kBottomNavHeight,
+            child: AnimatedOpacity(
+              opacity: _controlsVisible ? 1.0 : 0.0,
+              duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
+              child: IgnorePointer(
+                ignoring: !_controlsVisible,
+                child: VideoControls(controller: _videoController!),
+              ),
+            ),
+          ),
+
+        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式下隐藏）
+        if (!_isFullscreen) _buildBottomGradient(),
+
+        // 右侧渐变 + 操作按钮（横屏全屏模式下隐藏）
+        if (!_isFullscreen) _buildRightActions(favorited),
+
+        // 横屏全屏模式下显示退出按钮（右上角）
+        if (_isFullscreen) _buildExitFullscreenButton(),
+      ],
+    );
+
+    // 横屏全屏模式：黑色背景 + 居中
+    if (_isFullscreen) {
+      return Semantics(
+        label: '横屏全屏视频播放',
+        child: Container(
+          color: backgroundColor,
+          child: content,
+        ),
+      );
+    }
+
     return Semantics(
       label: '视频播放区域，双击点赞此视频',
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 骨架占位：视频未 ready 时显示渐变色块
-          AnimatedContainer(
-            duration: const Duration(milliseconds: kVideoFadeInMs),
+      child: content,
+    );
+  }
+
+  // 中央播放按钮：暂停时显示半透明播放图标
+  Widget _buildCenterPlayButton() {
+    return Positioned.fill(
+      child: Center(
+        child: GestureDetector(
+          onTap: () {
+            try {
+              _videoController?.play();
+              ref.read(isPlayingProvider.notifier).state = true;
+              // 显示控制层并重置计时器
+              _showControls();
+            } catch (e) {
+              debugPrint('center play button error: $e');
+            }
+          },
+          child: Container(
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isReady
-                    ? [Colors.transparent, Colors.transparent]  // 透明是 Flutter 自带常量
-                    : [surfaceColorL2, surfaceColorL3],
-              ),
+              color: const Color(0x99000000), // 60% 不透明黑色
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.play_arrow,
+              color: textPrimary,
+              size: 48,
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-          // 视频播放区（Gestures + VideoPlayer）：未 ready 时透明，ready 后 200ms 渐显
-          AnimatedOpacity(
-            opacity: isReady ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: kVideoFadeInMs),
-            curve: Curves.easeOut,
-            child: GestureOverlay(
-              controller: _videoController,
-              item: widget.item,
-              child: VideoPlayerWidget(
-                item: widget.item,
-                embyServerUrl: embyServerUrl,
-                token: token,
-                preloadedController: widget.preloadedController,
-                onControllerReady: (c) {
-                  setState(() {
-                    _videoController = c;
-                  });
-                  ref.read(isPlayingProvider.notifier).state = true;
-                  ref.read(currentPlayingItemProvider.notifier).state =
-                      widget.item;
-                  // 标记为 ready：触发 AnimatedOpacity 渐显
-                  ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-                },
-              ),
-            ),
-          ),
-
-          // 底部渐变 + 标题/简介/类型标签
-          _buildBottomGradient(),
-
-          // 右侧渐变 + 操作按钮
-          _buildRightActions(favorited),
-        ],
+  // 横屏全屏模式下的退出按钮（右上角）
+  Widget _buildExitFullscreenButton() {
+    final topPadding = MediaQuery.of(context).padding.top;
+    return Positioned(
+      top: topPadding + 8,
+      right: 16,
+      child: IconButton(
+        icon: const Icon(Icons.fullscreen_exit, color: textPrimary, size: 28),
+        onPressed: _toggleFullscreen,
       ),
     );
   }
@@ -227,6 +394,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             _buildActionButton(
+              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+              _isFullscreen ? '退出' : '全屏',
+              color: textPrimary,
+              onTap: _toggleFullscreen,
+            ),
+            const SizedBox(height: 20),
+            _buildActionButton(
               isMuted ? Icons.volume_off : Icons.volume_up,
               isMuted ? '静音' : '音量',
               color: isMuted ? errorColor : textPrimary,
@@ -342,6 +516,55 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// TikTok 风格底部细线进度条
+/// 高度 2px，始终可见，颜色为品牌粉色，背景半透明黑色
+class _ThinProgressBar extends StatefulWidget {
+  final VideoPlayerController controller;
+
+  const _ThinProgressBar({required this.controller});
+
+  @override
+  State<_ThinProgressBar> createState() => _ThinProgressBarState();
+}
+
+class _ThinProgressBarState extends State<_ThinProgressBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = widget.controller.value.duration;
+    final position = widget.controller.value.position;
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+
+    return Container(
+      height: 2,
+      width: double.infinity,
+      color: const Color(0x4D000000), // 30% 不透明黑色背景
+      child: FractionallySizedBox(
+        alignment: Alignment.centerLeft,
+        widthFactor: progress,
+        child: Container(color: primaryPink),
       ),
     );
   }

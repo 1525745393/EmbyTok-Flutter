@@ -284,10 +284,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：正常播放视频，用 FittedBox 填满容器
+    // 场景 3：正常播放视频
+    // BoxFit 策略：
+    //   - 竖屏视频：cover（填满容器，TikTok 风格）
+    //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
+    final isLandscape = widget.item.isLandscape;
     return SizedBox.expand(
       child: FittedBox(
-        fit: BoxFit.cover,
+        fit: isLandscape ? BoxFit.contain : BoxFit.cover,
         child: SizedBox(
           width: _controller!.value.size.width,
           height: _controller!.value.size.height,

@@ -1,6 +1,7 @@
 // 手势交互层：单击/双击/长按倍速/水平拖动进度
 // 设计要点：拖动过程中只更新预览 UI，不调用 seekTo（避免高频调用导致 MediaCodec 崩溃）
 //           只有松手时才执行一次 seek
+// 单击行为变更：原为切换播放/暂停，现改为切换控制层显示/隐藏（TikTok 风格）
 
 import 'dart:async';
 
@@ -18,12 +19,15 @@ class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
   final VideoPlayerController? controller;
+  // 单击回调：用于切换控制层显示/隐藏（由父组件 VideoPageItem 提供）
+  final VoidCallback? onSingleTap;
 
   const GestureOverlay({
     super.key,
     required this.child,
     required this.item,
     required this.controller,
+    this.onSingleTap,
   });
 
   @override
@@ -55,19 +59,9 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   }
 
   // ---- 单击 ----
+  // 新行为：切换控制层显示/隐藏（TikTok 风格），不再直接控制播放/暂停
   void _onSingleTap() {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    try {
-      if (c.value.isPlaying) {
-        c.pause();
-      } else {
-        c.play();
-      }
-      ref.read(isPlayingProvider.notifier).state = c.value.isPlaying;
-    } catch (e) {
-      debugPrint('_onSingleTap error: $e');
-    }
+    widget.onSingleTap?.call();
   }
 
   // ---- 双击 ----

@@ -1,0 +1,15 @@
+- [ ] video_page_item.dart 右侧操作列有"全屏"按钮，点击切换横屏/竖屏
+- [ ] 横屏模式下设备方向切换为 landscape，竖屏模式恢复 portrait
+- [ ] 横屏模式下顶部工具栏和底部导航栏隐藏
+- [ ] 横屏模式下视频以 16:9 居中显示，上下黑色填充
+- [ ] video_player_widget.dart 根据视频方向动态选择 BoxFit（cover/contain）
+- [ ] 竖屏视频使用 BoxFit.cover 填满
+- [ ] 横屏视频使用 BoxFit.contain 完整显示
+- [ ] video_page_item.dart 接入 VideoControls 显示进度条/时间/倍速
+- [ ] video_page_item.dart 底部有 2px 细线进度条，颜色为 primaryPink
+- [ ] 细线进度条始终可见（不受控制层隐藏影响）
+- [ ] 暂停时画面中央显示半透明播放图标（72dp，alpha 0.6）
+- [ ] 点击中央播放按钮恢复播放
+- [ ] 控制层 3 秒无操作自动淡出隐藏
+- [ ] 单击画面切换控制层显示/隐藏
+- [ ] 控制层隐藏时细线进度条和右侧按钮仍保留
