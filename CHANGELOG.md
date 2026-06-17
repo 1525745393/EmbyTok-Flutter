@@ -1,3 +1,16 @@
+# [1.12.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.11.0...v1.12.0) (2026-06-17)
+
+
+### Bug Fixes
+
+* 修复 AppLogger.debug 调用使用未定义的 error 参数 ([e6b243f](https://github.com/1525745393/EmbyTok-Flutter/commit/e6b243fa092ef5b1abc6f3de28dd5c31d3317778))
+
+
+### Features
+
+* 生成项目仓库Code Wiki文档 ([17e877a](https://github.com/1525745393/EmbyTok-Flutter/commit/17e877aa0c371aa691763d106987d74b4772fbad))
+* 生成项目仓库Code Wiki文档 ([1b3dbb4](https://github.com/1525745393/EmbyTok-Flutter/commit/1b3dbb479b0a12cd132b8eaef95f13963f1a637b))
+
 # [1.11.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.10.0...v1.11.0) (2026-06-17)
 
 
