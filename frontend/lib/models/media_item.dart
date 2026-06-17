@@ -315,6 +315,36 @@ class MediaItem {
     return '$embyServerUrl/Videos/$id/stream?api_key=$encodedToken&Static=true';
   }
 
+  // 构造 Direct Stream URL（Remux 不重编码）
+  // 用于 Direct Play 失败后的第一级降级
+  String? computeDirectStreamUrl(String? embyServerUrl, String? token) {
+    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
+    if (token == null || token.isEmpty) return null;
+    final encodedToken = Uri.encodeQueryComponent(token);
+    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
+    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
+    return '$embyServerUrl/Videos/$id/stream.mp4?api_key=$encodedToken'
+        '&VideoCodec=h264,hevc,av1&AudioCodec=aac,mp3,ac3'
+        '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true$msIdParam';
+  }
+
+  // 构造 HLS 转码 URL（最后一级降级）
+  String? computeHlsUrl(String? embyServerUrl, String? token, {String? playSessionId}) {
+    if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
+    if (token == null || token.isEmpty) return null;
+    final encodedToken = Uri.encodeQueryComponent(token);
+    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
+    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
+    final sessionParam = playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
+    return '$embyServerUrl/Videos/$id/master.m3u8?api_key=$encodedToken'
+        '&VideoCodec=h264&AudioCodec=aac,mp3,ac3'
+        '&VideoBitrate=20000000&AudioBitrate=320000'
+        '&TranscodingMaxAudioChannels=2'
+        '&SegmentContainer=ts&MinSegments=1&BreakOnNonKeyFrames=True'
+        '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true'
+        '$msIdParam$sessionParam';
+  }
+
   // 获取认证 HTTP 请求头（用于 video_player 插件）
   Map<String, String> authHeaders(String? token) {
     if (token == null || token.isEmpty) return {};

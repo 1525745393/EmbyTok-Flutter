@@ -82,16 +82,21 @@ class EmbytokService {
   }
 
   // ============================
-  // 媒体库列表：/Library/VirtualFolders
+  // 媒体库列表：默认使用 /Users/{userId}/Views（用户视角），向后兼容 /Library/VirtualFolders
   // ============================
   Future<List<Library>> getLibraries({
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
     AppLogger.debug('请求媒体库列表');
     _ensureConfig(serverUrl, token);
+    // 使用用户视图端点（更准确，反映用户权限）
+    final path = userId != null && userId.isNotEmpty
+        ? '/Users/$userId/Views'
+        : '/Library/VirtualFolders';
     final resp = await _apiClient.get<dynamic>(
-      '/Library/VirtualFolders',
+      path,
       queryParameters: {},
     );
 
@@ -136,7 +141,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
     };
 
@@ -752,11 +757,65 @@ class EmbytokService {
   // ============================
   // 上报播放进度 / 停止位置
   // ============================
+
+  // 上报播放能力（播放开始前调用）
+  Future<void> reportCapabilities({
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.post<dynamic>(
+      '/Sessions/Capabilities/Full',
+      data: {
+        'PlayableMediaTypes': ['Video'],
+        'SupportsMediaControl': true,
+        'SupportsPersistentConnections': false,
+      },
+    );
+  }
+
+  // 上报播放开始
+  Future<void> reportPlaybackStart({
+    required String itemId,
+    String? mediaSourceId,
+    String? playSessionId,
+    bool isPaused = false,
+    bool isMuted = false,
+    int? volumeLevel,
+    String playMethod = 'DirectPlay',
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final body = <String, dynamic>{
+      'ItemId': itemId,
+      'PositionTicks': 0,
+      'IsPaused': isPaused,
+      'IsMuted': isMuted,
+      'PlayMethod': playMethod,
+      'EventName': 'TimeUpdate',
+      'CanSeek': true,
+      'QueueableMediaTypes': ['Video'],
+      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+      if (playSessionId != null) 'PlaySessionId': playSessionId,
+      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
+    };
+    await _apiClient.post<dynamic>(
+      '/Sessions/Playing',
+      data: body,
+    );
+  }
+
   Future<void> reportPlaybackPosition({
     required String itemId,
     required int positionTicks,
     String? mediaSourceId,
     String? playSessionId,
+    bool isPaused = false,
+    bool isMuted = false,
+    int? volumeLevel,
+    String playMethod = 'DirectPlay',
+    String eventName = 'TimeUpdate',
     String? serverUrl,
     String? token,
   }) async {
@@ -768,8 +827,15 @@ class EmbytokService {
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': positionTicks,
+      'IsPaused': isPaused,
+      'IsMuted': isMuted,
+      'PlayMethod': playMethod,
+      'EventName': eventName,
+      'CanSeek': true,
+      'QueueableMediaTypes': ['Video'],
       if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
       if (playSessionId != null) 'PlaySessionId': playSessionId,
+      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
     };
     await _apiClient.post<dynamic>(
       '/Sessions/Playing/Progress',
@@ -942,6 +1008,57 @@ class EmbytokService {
     );
     final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
     return result.items;
+  }
+
+  // ============================
+  // 续播云同步：使用 DisplayPreferences 实现跨设备续播同步
+  // ============================
+
+  // 保存续播位置到云端（DisplayPreferences）
+  Future<void> saveCloudSync({
+    required String userId,
+    required String itemId,
+    String? libraryId,
+    String? libraryType,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final body = <String, dynamic>{
+      'Id': 'EmbyTok-Resume',
+      'CustomPrefs': {
+        'lastId': itemId,
+        if (libraryId != null) 'libId': libraryId,
+        if (libraryType != null) 'libType': libraryType,
+        'date': DateTime.now().millisecondsSinceEpoch.toString(),
+      },
+    };
+    await _apiClient.post<dynamic>(
+      '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
+      data: body,
+    );
+  }
+
+  // 从云端获取续播位置
+  Future<Map<String, dynamic>?> checkCloudSync({
+    required String userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
+      );
+      if (resp.data is Map<String, dynamic>) {
+        final data = resp.data as Map<String, dynamic>;
+        final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
+        return customPrefs;
+      }
+    } catch (e) {
+      AppLogger.error('获取云端续播失败', error: e);
+    }
+    return null;
   }
 
   // ============================

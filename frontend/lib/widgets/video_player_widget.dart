@@ -42,6 +42,9 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   bool _initialized = false;
   bool _hasError = false;
   String? _errorMessage;
+  // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
+  // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
+  int _fallbackLevel = 0;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -51,6 +54,22 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
     // 尝试动态构造 Emby 视频流 URL
     return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+  }
+
+  // 根据降级等级获取对应的播放 URL
+  // level 0: Direct Play（computePlaybackUrl）
+  // level 1: Direct Stream（computeDirectStreamUrl，Remux 不重编码）
+  // level 2: HLS 转码（computeHlsUrl）
+  String? _getUrlForFallbackLevel(int level) {
+    switch (level) {
+      case 1:
+        return widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token);
+      case 2:
+        return widget.item.computeHlsUrl(widget.embyServerUrl, widget.token);
+      case 0:
+      default:
+        return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+    }
   }
 
   // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
@@ -123,7 +142,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
 
     // ---- 路径 2：动态创建控制器 ----
-    final url = _playbackUrl;
+    final url = _getUrlForFallbackLevel(_fallbackLevel);
     if (url == null) {
       if (mounted) {
         setState(() {
@@ -176,6 +195,22 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
     } catch (e) {
       debugPrint('VideoPlayer initialization error: $e');
+      // 降级链：Direct Play(0) → Direct Stream(1) → HLS(2)
+      // 仅在未达到最高降级等级时重试
+      if (_fallbackLevel < 2) {
+        _fallbackLevel++;
+        debugPrint('降级到 level $_fallbackLevel 重试播放');
+        // 释放当前失败的控制器，避免资源泄漏
+        try {
+          await _controller?.dispose();
+        } catch (_) {}
+        _controller = null;
+        // 递归调用自身以使用新的降级等级
+        if (mounted) {
+          await _initVideo();
+        }
+        return;
+      }
       if (mounted) {
         setState(() {
           _initialized = false;
