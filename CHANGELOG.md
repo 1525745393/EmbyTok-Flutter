@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.10.0...v1.11.0) (2026-06-17)
+
+
+### Features
+
+* 生成项目仓库Code Wiki文档 ([2edd4b1](https://github.com/1525745393/EmbyTok-Flutter/commit/2edd4b184ddabe70cee2684ec003d9ca3d859b01))
+
 # [1.10.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.9.0...v1.10.0) (2026-06-17)
 
 
