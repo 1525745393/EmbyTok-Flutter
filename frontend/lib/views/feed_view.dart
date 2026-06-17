@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/keyboard_shortcuts.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
@@ -49,9 +50,9 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 视图模式切换（E）
     final viewMode = ref.read(viewModeProvider);
     if (viewMode != ViewMode.feed) {
-      // 海报墙模式下仅处理 E 键切换回视频流
+      // 网格模式下仅处理 E 键切换回视频流
       if (key == LogicalKeyboardKey.keyE) {
-        ref.read(viewModeProvider.notifier).toggle();
+        ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
         return true;
       }
       return false;
@@ -71,21 +72,20 @@ class _FeedViewState extends ConsumerState<FeedView>
         return true;
       case LogicalKeyboardKey.keyA:
       case LogicalKeyboardKey.arrowLeft:
-        _seekBy(Duration(seconds: -15));
+        // 快退 15 秒（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
         return true;
       case LogicalKeyboardKey.keyD:
       case LogicalKeyboardKey.arrowRight:
-        _seekBy(Duration(seconds: 15));
+        // 快进 15 秒（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
         return true;
       case LogicalKeyboardKey.keyU:
         _toggleFavorite();
         return true;
       case LogicalKeyboardKey.keyE:
-        ref.read(viewModeProvider.notifier).toggle();
+        ref.read(viewModeProvider.notifier).setMode(ViewMode.grid);
         return true;
       case LogicalKeyboardKey.keyR:
-        ref.read(playbackModeProvider.notifier).toggle();
-        _showModeToast();
+        _toggleFeedType();
         return true;
       case LogicalKeyboardKey.keyG:
         LibrarySelector.show(context);
@@ -97,7 +97,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         _toggleMute();
         return true;
       case LogicalKeyboardKey.slash:
-        // 按 / 或 ? 显示帮助面板（Shift+/ 在多数键盘上仍映射为 slash）
+        // 按 / 显示帮助面板
         setState(() => _showHelp = !_showHelp);
         return true;
       default:
@@ -133,11 +133,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     ref.read(isPlayingProvider.notifier).state = !isPlaying;
   }
 
-  // 快进/快退（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
-  void _seekBy(Duration offset) {
-    // TODO: 通过 VideoPlayerController 实现 seek 操作
-  }
-
   // 收藏切换
   void _toggleFavorite() {
     final item = ref.read(currentPlayingItemProvider);
@@ -146,32 +141,38 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
+  // 切换浏览模式（最新/随机/收藏）
+  void _toggleFeedType() {
+    final current = ref.read(feedTypeProvider);
+    final next = switch (current) {
+      FeedType.latest => FeedType.random,
+      FeedType.random => FeedType.favorites,
+      FeedType.favorites => FeedType.latest,
+    };
+    ref.read(feedTypeProvider.notifier).setType(next);
+    _showModeToast(next);
+  }
+
   // 全屏切换
   void _toggleFullscreen() {
-    // Web 环境下通过 JS 退出全屏
     if (MediaQuery.of(context).size.aspectRatio < 1) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-      ]);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
     } else {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
   }
 
   // 静音切换
   void _toggleMute() {
-    // 简单实现：通过设置音量为 0 或恢复
-    // 实际实现需要访问 VideoPlayerController
+    final isMuted = ref.read(isMutedProvider);
+    ref.read(isMutedProvider.notifier).setMuted(!isMuted);
   }
 
-  // 显示播放模式提示
-  void _showModeToast() {
-    final mode = ref.read(playbackModeProvider);
+  // 显示浏览模式提示
+  void _showModeToast(FeedType type) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(mode == PlaybackMode.random ? '随机播放' : '顺序播放'),
+        content: Text('切换到：${type.zhLabel}'),
         duration: const Duration(seconds: 1),
         backgroundColor: Colors.black87,
       ),
@@ -180,7 +181,7 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 选择媒体库
   Future<void> _selectLibrary(Library lib) async {
-    ref.read(selectedLibraryIdProvider.notifier).state = lib.id;
+    ref.read(selectedLibraryIdProvider.notifier).setLibrary(lib.id);
     await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
   }
 
@@ -229,7 +230,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   Widget _buildTopBar(AsyncValue<List<Library>> librariesAsync, ViewMode viewMode) {
     return Container(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -245,11 +246,15 @@ class _FeedViewState extends ConsumerState<FeedView>
             // 视图切换按钮
             IconButton(
               icon: Icon(
-                viewMode == ViewMode.feed ? Icons.grid_view : Icons.view_agenda,
+                viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
                 color: Colors.white70,
                 size: 22,
               ),
-              onPressed: () => ref.read(viewModeProvider.notifier).toggle(),
+              onPressed: () {
+                ref.read(viewModeProvider.notifier).setMode(
+                  viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
+                );
+              },
             ),
             // 媒体库选择器按钮（快捷键 G）
             IconButton(

@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/colors.dart';
 import '../widgets/video_grid_card.dart';
 

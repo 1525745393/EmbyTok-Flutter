@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
 import '../providers/providers.dart';
 
 /// 媒体库选择器：底部弹窗，支持搜索和过滤
@@ -109,7 +108,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       )),
                       onTap: () {
-                        ref.read(selectedLibraryIdProvider.notifier).state = lib.id;
+                        ref.read(selectedLibraryIdProvider.notifier).setLibrary(lib.id);
                         ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
                         Navigator.of(context).pop();
                       },
