@@ -1089,7 +1089,7 @@ class EmbytokService {
       final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
       return customPrefs;
     } catch (e) {
-      AppLogger.debug('云同步数据不存在或获取失败', error: e);
+      AppLogger.debug('云同步数据不存在或获取失败', data: {'error': e.toString()});
       return null;
     }
   }
