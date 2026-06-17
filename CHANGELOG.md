@@ -1,3 +1,16 @@
+# [1.9.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.8.2...v1.9.0) (2026-06-17)
+
+
+### Bug Fixes
+
+* 修复 ViewMode 命名冲突和缺失 provider 导出问题 ([c794a37](https://github.com/1525745393/EmbyTok-Flutter/commit/c794a376166cf94a0f8314481d6dcd8ab8d103ea))
+* 恢复 video_grid_view 和 top_tool_bar 的 ViewMode 显式 import ([901b701](https://github.com/1525745393/EmbyTok-Flutter/commit/901b701ced972a90f496f2d1168e1cf8e8e7b74e))
+
+
+### Features
+
+* 添加键盘快捷键系统、视图切换、媒体库选择器和 PWA 优化 ([81f2c61](https://github.com/1525745393/EmbyTok-Flutter/commit/81f2c610082f838c3f069f48fcb29aa59d5f15da))
+
 ## [1.8.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.8.1...v1.8.2) (2026-06-16)
 
 
