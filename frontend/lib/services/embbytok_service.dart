@@ -10,6 +10,8 @@ class EmbytokService {
   final ApiClient _apiClient;
   String? _defaultServerUrl;
   String? _defaultToken;
+  // 保存当前登录用户的 userId，用于 Views 端点和云同步等需要用户身份的接口
+  String? _defaultUserId;
 
   EmbytokService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
@@ -24,6 +26,8 @@ class EmbytokService {
   }) {
     _defaultServerUrl = embyServerUrl;
     _defaultToken = apiKey;
+    // 保存 userId 供后续 Views 端点和云同步使用
+    _defaultUserId = userId;
     _apiClient.setBaseUrl(embyServerUrl);
     _apiClient.setToken(apiKey);
   }
@@ -32,6 +36,7 @@ class EmbytokService {
   void clearAuth() {
     _defaultServerUrl = null;
     _defaultToken = null;
+    _defaultUserId = null;
   }
 
   // ============================
@@ -71,6 +76,8 @@ class EmbytokService {
       // 保存配置方便后续直接调用
       _defaultServerUrl = embyServerUrl;
       _defaultToken = accessToken;
+      // 保存登录用户的 userId，供 Views 端点和云同步使用
+      _defaultUserId = user.id;
       _apiClient.setToken(accessToken);
 
       AppLogger.info('登录成功', data: {'userId': user.id});
@@ -91,9 +98,11 @@ class EmbytokService {
   }) async {
     AppLogger.debug('请求媒体库列表');
     _ensureConfig(serverUrl, token);
-    // 使用用户视图端点（更准确，反映用户权限）
-    final path = userId != null && userId.isNotEmpty
-        ? '/Users/$userId/Views'
+    // 优先使用传入的 userId，其次使用登录后保存的 _defaultUserId
+    // 都没有时回退到管理员视角的 /Library/VirtualFolders
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = effectiveUserId != null && effectiveUserId.isNotEmpty
+        ? '/Users/$effectiveUserId/Views'
         : '/Library/VirtualFolders';
     final resp = await _apiClient.get<dynamic>(
       path,
@@ -115,6 +124,21 @@ class EmbytokService {
 
     AppLogger.debug('媒体库列表响应', data: {'count': libraries.length});
     return libraries;
+  }
+
+  // ============================
+  // 用户视图：GET /Users/{userId}/Views（getLibraries 的别名，语义更明确）
+  // ============================
+  Future<List<Library>> getUserViews({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return getLibraries(
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -1016,20 +1040,26 @@ class EmbytokService {
 
   // 保存续播位置到云端（DisplayPreferences）
   Future<void> saveCloudSync({
-    required String userId,
     required String itemId,
-    String? libraryId,
+    required String libraryId,
     String? libraryType,
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('保存续播云同步', data: {'itemId': itemId});
     _ensureConfig(serverUrl, token);
+    // 使用登录后保存的 userId，未配置则跳过云同步
+    final userId = _defaultUserId;
+    if (userId == null || userId.isEmpty) {
+      AppLogger.warn('未配置 userId，跳过云同步');
+      return;
+    }
     final body = <String, dynamic>{
       'Id': 'EmbyTok-Resume',
       'CustomPrefs': {
         'lastId': itemId,
-        if (libraryId != null) 'libId': libraryId,
-        if (libraryType != null) 'libType': libraryType,
+        'libId': libraryId,
+        'libType': libraryType ?? '',
         'date': DateTime.now().millisecondsSinceEpoch.toString(),
       },
     };
@@ -1041,24 +1071,27 @@ class EmbytokService {
 
   // 从云端获取续播位置
   Future<Map<String, dynamic>?> checkCloudSync({
-    required String userId,
     String? serverUrl,
     String? token,
   }) async {
+    AppLogger.debug('检查续播云同步');
     _ensureConfig(serverUrl, token);
+    // 使用登录后保存的 userId，未配置则返回 null
+    final userId = _defaultUserId;
+    if (userId == null || userId.isEmpty) return null;
     try {
       final resp = await _apiClient.get<dynamic>(
         '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
       );
-      if (resp.data is Map<String, dynamic>) {
-        final data = resp.data as Map<String, dynamic>;
-        final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
-        return customPrefs;
-      }
+      final data = resp.data is Map
+          ? Map<String, dynamic>.from(resp.data as Map)
+          : <String, dynamic>{};
+      final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
+      return customPrefs;
     } catch (e) {
-      AppLogger.error('获取云端续播失败', error: e);
+      AppLogger.debug('云同步数据不存在或获取失败', error: e);
+      return null;
     }
-    return null;
   }
 
   // ============================
