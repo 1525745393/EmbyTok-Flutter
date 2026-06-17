@@ -1,7 +1,4 @@
-// 视频流页面：竖向全屏滑动 + 顶部工具栏 + 视图切换 + 分页加载
-// 新增：视频切换渐入动画、智能预加载、首次滑动引导
-
-import 'dart:async';
+// 视频流页面：竖向全屏滑动 + 顶部媒体库切换 + 分页加载 + 键盘快捷键 + 视图切换
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,14 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show ViewMode;
-import '../utils/colors.dart';
-import '../utils/constants.dart';
-import '../widgets/top_tool_bar.dart';
+import '../utils/keyboard_shortcuts.dart';
+import '../widgets/library_selector.dart';
+import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
-import 'video_grid_view.dart';
 
-// 视频流页面：ConsumerStatefulWidget 用于分页加载 & 状态保持
 class FeedView extends ConsumerStatefulWidget {
   const FeedView({super.key});
 
@@ -25,13 +19,9 @@ class FeedView extends ConsumerStatefulWidget {
 }
 
 class _FeedViewState extends ConsumerState<FeedView>
-    with AutomaticKeepAliveClientMixin<FeedView>, WidgetsBindingObserver {
+    with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
-  int _swipeCount = 0;
-  bool _guideShown = false;
-  double _lastPageOffset = 0.0;
-  int _currentIndex = 0;
-  Timer? _tapRestoreTimer;
+  bool _showHelp = false; // 快捷键帮助面板显示状态
 
   @override
   bool get wantKeepAlive => true;
@@ -39,368 +29,270 @@ class _FeedViewState extends ConsumerState<FeedView>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(
-      initialPage: 0,
-      viewportFraction: 1.0,
-    );
-    _pageController.addListener(_onScroll);
-    WidgetsBinding.instance.addObserver(this);
-    // 初始化时确保状态栏透明（文字亮色）
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-    );
+    _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
+    // 注册全局键盘监听
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
   }
 
   @override
   void dispose() {
-    _pageController.removeListener(_onScroll);
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
-    _tapRestoreTimer?.cancel();
-    // 离开页面时恢复工具栏可见状态（确保其他页面正常）
-    ref.read(toolbarVisibilityProvider.notifier).show();
-    // 退出页面时恢复系统 UI
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    WidgetsBinding.instance.removeObserver(this);
-    ref.read(preloadProvider.notifier).clear();
     super.dispose();
   }
 
-  // 监听系统尺寸变化（旋转时重新布局）
-  @override
-  void didChangeMetrics() {
-    if (mounted) setState(() {});
-  }
+  // 键盘快捷键处理
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    final key = event.logicalKey;
 
-  // 监听应用生命周期变化：切后台释放 MediaCodec 资源，切回前台重新预取
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused) {
-      // 进入后台：立即释放所有预加载 controller，避免 MediaCodec 泄漏
-      ref.read(preloadProvider.notifier).clear();
-    } else if (state == AppLifecycleState.resumed) {
-      // 回到前台：重新预取下一条
-      final items = ref.read(filteredVideoListProvider);
-      final idx = ref.read(currentPlayingIndexProvider);
-      final auth = ref.read(authProvider);
-      if (idx < items.length) {
-        ref.read(preloadProvider.notifier).startWatching(
-          items,
-          idx,
-          kDefaultPreloadThreshold,
-        );
-        ref.read(preloadProvider.notifier).preloadNext(
-          items,
-          idx,
-          embyServerUrl: auth.embyServerUrl,
-          token: auth.token,
-        );
+    // 视图模式切换（E）
+    final viewMode = ref.read(viewModeProvider);
+    if (viewMode != ViewMode.feed) {
+      // 海报墙模式下仅处理 E 键切换回视频流
+      if (key == LogicalKeyboardKey.keyE) {
+        ref.read(viewModeProvider.notifier).toggle();
+        return true;
       }
+      return false;
+    }
+
+    switch (key) {
+      case LogicalKeyboardKey.keyW:
+      case LogicalKeyboardKey.arrowUp:
+        _goToPreviousVideo();
+        return true;
+      case LogicalKeyboardKey.keyS:
+      case LogicalKeyboardKey.arrowDown:
+        _goToNextVideo();
+        return true;
+      case LogicalKeyboardKey.space:
+        _togglePlayPause();
+        return true;
+      case LogicalKeyboardKey.keyA:
+      case LogicalKeyboardKey.arrowLeft:
+        _seekBy(Duration(seconds: -15));
+        return true;
+      case LogicalKeyboardKey.keyD:
+      case LogicalKeyboardKey.arrowRight:
+        _seekBy(Duration(seconds: 15));
+        return true;
+      case LogicalKeyboardKey.keyU:
+        _toggleFavorite();
+        return true;
+      case LogicalKeyboardKey.keyE:
+        ref.read(viewModeProvider.notifier).toggle();
+        return true;
+      case LogicalKeyboardKey.keyR:
+        ref.read(playbackModeProvider.notifier).toggle();
+        _showModeToast();
+        return true;
+      case LogicalKeyboardKey.keyG:
+        LibrarySelector.show(context);
+        return true;
+      case LogicalKeyboardKey.keyF:
+        _toggleFullscreen();
+        return true;
+      case LogicalKeyboardKey.keyM:
+        _toggleMute();
+        return true;
+      case LogicalKeyboardKey.slash:
+        // 按 / 或 ? 显示帮助面板（Shift+/ 在多数键盘上仍映射为 slash）
+        setState(() => _showHelp = !_showHelp);
+        return true;
+      default:
+        return false;
     }
   }
 
-  /// PageController 滚动监听：检测滑动方向
-  void _onScroll() {
-    final offset = _pageController.offset;
-    final delta = offset - _lastPageOffset;
-    if (delta.abs() > kMinSwipeDistancePx) {
-      // 垂直方向 PageView：向上滑 = offset 增大 = 切换到下一条
-      if (delta > 0) {
-        // 工具栏隐藏（由 onPageChanged 统一处理，避免抖动）
-      }
-      _lastPageOffset = offset;
+  // 切换到上一个视频
+  void _goToPreviousVideo() {
+    if (_pageController.hasClients && _pageController.page! > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
-  /// 切换到新页面时：更新索引、触发下一条预取、更新引导状态
-  /// 并根据滑动方向控制工具栏可见性
-  void _onPageSwitched(int index, List<MediaItem> items) {
-    final isForward = index > _currentIndex;
-    _currentIndex = index;
-    setState(() {
-      _swipeCount++;
-    });
-    ref.read(currentPlayingIndexProvider.notifier).state = index;
-    // 横屏模式下工具栏始终隐藏
-    final isFullscreen = ref.read(isFullscreenProvider);
-    if (isFullscreen) {
-      ref.read(toolbarVisibilityProvider.notifier).hide();
+  // 切换到下一个视频
+  void _goToNextVideo() {
+    final videoState = ref.read(videoListProvider);
+    if (_pageController.hasClients &&
+        _pageController.page! < videoState.items.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  // 暂停/播放切换
+  void _togglePlayPause() {
+    final isPlaying = ref.read(isPlayingProvider);
+    ref.read(isPlayingProvider.notifier).state = !isPlaying;
+  }
+
+  // 快进/快退（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
+  void _seekBy(Duration offset) {
+    // TODO: 通过 VideoPlayerController 实现 seek 操作
+  }
+
+  // 收藏切换
+  void _toggleFavorite() {
+    final item = ref.read(currentPlayingItemProvider);
+    if (item != null) {
+      ref.read(favoritesProvider.notifier).toggleFavorite(item);
+    }
+  }
+
+  // 全屏切换
+  void _toggleFullscreen() {
+    // Web 环境下通过 JS 退出全屏
+    if (MediaQuery.of(context).size.aspectRatio < 1) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+      ]);
     } else {
-      // 向前滑动隐藏工具栏，向后滑动显示工具栏
-      if (isForward) {
-        ref.read(toolbarVisibilityProvider.notifier).hide();
-      } else {
-        ref.read(toolbarVisibilityProvider.notifier).show();
-      }
-    }
-    // 切换播放起点：重置当前播放项 + 清理超出窗口的旧预加载 controller，避免内存堆积
-    final auth = ref.read(authProvider);
-    ref.read(preloadProvider.notifier).startWatching(
-      items,
-      index,
-      kDefaultPreloadThreshold,
-    );
-    // 触发下一条视频预加载（异步，不需要 await）
-    ref.read(preloadProvider.notifier).preloadNext(
-      items,
-      index,
-      embyServerUrl: auth.embyServerUrl,
-      token: auth.token,
-    );
-    // 计数达到引导阈值时，淡出引导层
-    if (!_guideShown && _swipeCount >= kGuideSwipeThreshold) {
-      setState(() => _guideShown = true);
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
     }
   }
 
-  /// 点击画面时短暂显示工具栏，3 秒后自动隐藏
-  void _onTapScreen() {
-    final notifier = ref.read(toolbarVisibilityProvider.notifier);
-    notifier.show();
-    _tapRestoreTimer?.cancel();
-    _tapRestoreTimer = Timer(Duration(seconds: kToolbarAutoHideS), () {
-      notifier.hide();
-    });
+  // 静音切换
+  void _toggleMute() {
+    // 简单实现：通过设置音量为 0 或恢复
+    // 实际实现需要访问 VideoPlayerController
+  }
+
+  // 显示播放模式提示
+  void _showModeToast() {
+    final mode = ref.read(playbackModeProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mode == PlaybackMode.random ? '随机播放' : '顺序播放'),
+        duration: const Duration(seconds: 1),
+        backgroundColor: Colors.black87,
+      ),
+    );
+  }
+
+  // 选择媒体库
+  Future<void> _selectLibrary(Library lib) async {
+    ref.read(selectedLibraryIdProvider.notifier).state = lib.id;
+    await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
-    // 监听视图模式
+    final librariesAsync = ref.watch(libraryListProvider);
+    final videoState = ref.watch(videoListProvider);
     final viewMode = ref.watch(viewModeProvider);
 
-    // 监听 currentIndexProvider 变化（从网格视图跳转时触发）
-    ref.listen<int>(currentIndexProvider, (previous, next) {
-      // 只有在视频流模式下才滚动
-      if (viewMode == ViewMode.feed && _pageController.hasClients) {
-        _pageController.jumpToPage(next);
-      }
-    });
-
-    // 视频列表状态（原始列表，用于分页和加载状态）
-    final videoState = ref.watch(videoListProvider);
-
-    // 过滤后的视频列表（用于显示）
-    final filteredItems = ref.watch(filteredVideoListProvider);
-
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 根据视图模式切换显示
-          if (viewMode == ViewMode.grid)
-            // 网格视图：顶部 padding 让内容避开工具栏，工具栏在网格上方显示
-            Padding(
-              padding: EdgeInsets.only(
-                top: kAppToolbarHeight + MediaQuery.of(context).padding.top,
-              ),
-              child: const VideoGridView(),
-            )
+          // 主体内容：根据视图模式切换
+          if (viewMode == ViewMode.feed)
+            _buildVideoPageView(videoState)
           else
-            // 视频流视图（带画面点击手势监听）→ 全屏 fill，不预留工具栏空间
+            const PosterGridView(),
+
+          // 顶部：媒体库切换器 + 视图切换按钮
+          Positioned(
+            left: 0, right: 0, top: 0,
+            child: _buildTopBar(librariesAsync, viewMode),
+          ),
+
+          // 快捷键帮助面板
+          if (_showHelp)
             Positioned.fill(
               child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _onTapScreen,
-                child: _buildVideoPageView(videoState, filteredItems),
+                onTap: () => setState(() => _showHelp = false),
+                child: Container(
+                  color: Colors.black54,
+                  alignment: Alignment.center,
+                  child: const KeyboardHelpPanel(),
+                ),
               ),
             ),
-
-          // 顶部工具栏：在 feed 模式下带动画折叠，在 grid 模式下固定高度
-          // 使用 Positioned 绝对定位叠加在内容上方
-          _buildAnimatedToolBar(viewMode),
         ],
       ),
     );
   }
 
-  // 顶部工具栏动画层：根据 toolbarVisibilityProvider 平滑展开/折叠
-  // 半透明渐变叠加在视频画面之上，内容在 SafeArea 内避开刘海/动态岛
-  // grid 模式下保持固定高度（因为网格内容已经通过 padding 避开它）
-  Widget _buildAnimatedToolBar(ViewMode viewMode) {
-    final visible = viewMode == ViewMode.grid
-        ? true // grid 模式下始终显示工具栏（作为导航用）
-        : ref.watch(toolbarVisibilityProvider);
-    final topPadding = MediaQuery.of(context).padding.top;
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: kToolbarAnimMs),
-        curve: Curves.easeOut,
-        height: visible ? kAppToolbarHeight + topPadding : 0,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: kToolbarAnimMs),
-          opacity: visible ? 1.0 : 0.0,
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: Container(
-              height: kAppToolbarHeight + topPadding,
-              // 半透明渐变：自顶向下从 67% 不透明黑色渐变为完全透明
-              // 让工具栏看起来像是"浮在"视频上
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [overlayBlack, Color(0x00000000)],
-                ),
+  // 顶部栏：媒体库切换 + 视图切换按钮
+  Widget _buildTopBar(AsyncValue<List<Library>> librariesAsync, ViewMode viewMode) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.black87, Colors.black45, Colors.transparent],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            // 媒体库切换器（横向滚动）
+            Expanded(child: _buildLibraryChips(librariesAsync)),
+            // 视图切换按钮
+            IconButton(
+              icon: Icon(
+                viewMode == ViewMode.feed ? Icons.grid_view : Icons.view_agenda,
+                color: Colors.white70,
+                size: 22,
               ),
-              child: SafeArea(
-                bottom: false,
-                child: SizedBox(
-                  height: kAppToolbarHeight,
-                  child: TopToolBar(
-                    onFullscreenPressed: (_) => _toggleFullscreen(),
-                  ),
-                ),
-              ),
+              onPressed: () => ref.read(viewModeProvider.notifier).toggle(),
             ),
-          ),
+            // 媒体库选择器按钮（快捷键 G）
+            IconButton(
+              icon: const Icon(Icons.library_books, color: Colors.white70, size: 22),
+              onPressed: () => LibrarySelector.show(context),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // 全屏切换：进入横屏时隐藏系统 UI，退出时恢复
-  void _toggleFullscreen() {
-    // 获取当前全屏状态
-    final isFullscreen = ref.read(isFullscreenProvider);
-    if (isFullscreen) {
-      // 退出全屏
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      ref.read(isFullscreenProvider.notifier).state = false;
-      // 竖屏下恢复工具栏（短暂显示后由用户交互决定是否再隐藏）
-      ref.read(toolbarVisibilityProvider.notifier).show();
-    } else {
-      // 进入全屏
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      ref.read(isFullscreenProvider.notifier).state = true;
-      // 横屏模式下隐藏工具栏
-      ref.read(toolbarVisibilityProvider.notifier).hide();
+  // 构建视频流 PageView
+  Widget _buildVideoPageView(VideoListState videoState) {
+    if (videoState.items.isEmpty && videoState.isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
     }
-  }
-
-  // 构建视频流 PageView：接入预加载缓存、滑动引导、切换渐入
-  Widget _buildVideoPageView(VideoListState videoState, List<MediaItem> displayItems) {
-    // 加载中（首次加载）
-    if (displayItems.isEmpty && videoState.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: primaryPink),
-      );
-    }
-
-    // 错误状态
-    if (displayItems.isEmpty && videoState.error != null) {
+    if (videoState.items.isEmpty && videoState.error != null) {
       return _buildErrorState(videoState.error!);
     }
-
-    // 空状态（无过滤结果）
-    if (displayItems.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.movie_outlined, size: 80, color: textPlaceholder),
-            const SizedBox(height: 16),
-            Text(
-              videoState.items.isEmpty ? '暂无视频，请选择其他媒体库' : '没有符合筛选条件的视频',
-              style: const TextStyle(color: textSecondary, fontSize: 16),
-            ),
-            if (videoState.items.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: ElevatedButton(
-                  onPressed: () {
-                    final libId = ref.read(selectedLibraryIdProvider);
-                    ref.read(videoListProvider.notifier).refresh(libraryId: libId);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPink,
-                    foregroundColor: textPrimary,
-                  ),
-                  child: const Text('刷新'),
-                ),
-              ),
-          ],
-        ),
+    if (videoState.items.isEmpty) {
+      return const Center(
+        child: Text('暂无视频，请选择其他媒体库',
+          style: TextStyle(color: Colors.white70, fontSize: 16)),
       );
     }
 
-    // 正常：竖向 PageView + 滑动引导
-    return Stack(
-      children: [
-        PageView.builder(
-          controller: _pageController,
-          scrollDirection: Axis.vertical,
-          itemCount: displayItems.length + (videoState.hasMore ? 1 : 0),
-          onPageChanged: (index) {
-            if (index < displayItems.length) {
-              _onPageSwitched(index, displayItems);
-            }
-            // 滚动到倒数第 2 项时触发分页加载
-            if (videoState.hasMore &&
-                index >= displayItems.length - 2 &&
-                !videoState.isLoading) {
-              ref.read(videoListProvider.notifier).loadMore();
-            }
-          },
-          itemBuilder: (context, index) {
-            // 末尾加载指示器
-            if (index >= displayItems.length) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: primaryPink),
-                ),
-              );
-            }
-            final item = displayItems[index];
-            // 尝试从预加载缓存中取出已初始化的 controller
-            final preloaded = ref.read(preloadProvider.notifier).consume(item.id);
-            return VideoPageItem(
-              item: item,
-              preloadedController: preloaded,
-              key: ValueKey('feed-${item.id}'),
-            );
-          },
-        ),
-        // 首次使用引导：向上滑动箭头
-        if (!_guideShown && _swipeCount < kGuideSwipeThreshold)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 80,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: kGuideFadeMs),
-              opacity: _swipeCount == 0 ? 1.0 : 0.4,
-              child: const Column(
-                children: [
-                  Icon(Icons.keyboard_arrow_up, color: textPrimary, size: 40),
-                  SizedBox(height: 4),
-                  Text(
-                    '上滑看下一条',
-                    style: TextStyle(color: textSecondary, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
+    return PageView.builder(
+      controller: _pageController,
+      scrollDirection: Axis.vertical,
+      itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
+      onPageChanged: (index) {
+        if (videoState.hasMore && index >= videoState.items.length - 2 && !videoState.isLoading) {
+          ref.read(videoListProvider.notifier).loadMore();
+        }
+      },
+      itemBuilder: (context, index) {
+        if (index >= videoState.items.length) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
+        }
+        final item = videoState.items[index];
+        return VideoPageItem(item: item);
+      },
     );
   }
 
@@ -412,13 +304,9 @@ class _FeedViewState extends ConsumerState<FeedView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 48),
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
             const SizedBox(height: 12),
-            Text(
-              error,
-              style: const TextStyle(color: textSecondary, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
+            Text(error, style: const TextStyle(color: Colors.white70, fontSize: 16), textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
@@ -426,8 +314,8 @@ class _FeedViewState extends ConsumerState<FeedView>
                 ref.read(videoListProvider.notifier).refresh(libraryId: libId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPink,
-                foregroundColor: textPrimary,
+                backgroundColor: const Color(0xFFE91E63),
+                foregroundColor: Colors.white,
               ),
               child: const Text('重试'),
             ),
@@ -437,4 +325,46 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
+  // 顶部媒体库横向切换器
+  Widget _buildLibraryChips(AsyncValue<List<Library>> librariesAsync) {
+    return librariesAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (libraries) {
+        if (libraries.isEmpty) return const SizedBox.shrink();
+        final selectedId = ref.watch(selectedLibraryIdProvider);
+        return SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: libraries.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final lib = libraries[index];
+              final isSelected = lib.id == selectedId;
+              return GestureDetector(
+                onTap: () => _selectLibrary(lib),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFFE91E63) : Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isSelected ? const Color(0xFFE91E63) : Colors.white24),
+                  ),
+                  child: Text(lib.name,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }

@@ -1,23 +1,30 @@
 {
-  "name": "EmbyTok",
+  "name": "EmbyTok - Emby 短视频客户端",
   "short_name": "EmbyTok",
   "start_url": ".",
+  "scope": ".",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "background_color": "#000000",
   "theme_color": "#000000",
-  "description": "EmbyTok Flutter - 为 Emby 媒体服务器设计的竖屏视频浏览客户端",
-  "orientation": "portrait",
+  "description": "为 Emby 媒体服务器设计的竖屏视频浏览客户端，类似 TikTok 的沉浸式体验",
+  "orientation": "portrait-primary",
   "prefer_related_applications": false,
+  "categories": ["entertainment", "video", "media"],
+  "lang": "zh-CN",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icons/Icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icons/Icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icons/Icon-maskable-192.png",
@@ -30,6 +37,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "首页",
+      "short_name": "首页",
+      "description": "打开视频流首页",
+      "url": "/#/",
+      "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "搜索",
+      "short_name": "搜索",
+      "description": "搜索媒体内容",
+      "url": "/#/search",
+      "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "收藏",
+      "short_name": "收藏",
+      "description": "查看收藏列表",
+      "url": "/#/favorites",
+      "icons": [{ "src": "icons/Icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
