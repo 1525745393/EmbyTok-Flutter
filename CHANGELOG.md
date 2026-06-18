@@ -6,6 +6,14 @@
 * 生成项目仓库Code Wiki文档 ([69bf86a](https://github.com/1525745393/EmbyTok-Flutter/commit/69bf86aea1564ee3d3de2a08b0da2eb896ee1c37))
 * 生成项目仓库Code Wiki文档 ([bcb1fe9](https://github.com/1525745393/EmbyTok-Flutter/commit/bcb1fe9fc8975d8050b611690e2096e7237acb40))
 
+# [1.13.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.12.0...v1.13.0) (2026-06-18)
+
+
+### Features
+
+* 生成项目仓库Code Wiki文档 ([69bf86a](https://github.com/1525745393/EmbyTok-Flutter/commit/69bf86aea1564ee3d3de2a08b0da2eb896ee1c37))
+* 生成项目仓库Code Wiki文档 ([bcb1fe9](https://github.com/1525745393/EmbyTok-Flutter/commit/bcb1fe9fc8975d8050b611690e2096e7237acb40))
+
 # [1.12.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.11.0...v1.12.0) (2026-06-17)
 
 
