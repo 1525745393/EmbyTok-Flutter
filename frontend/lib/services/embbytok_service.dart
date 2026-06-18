@@ -9,6 +9,8 @@ class EmbytokService {
   final ApiClient _apiClient;
   String? _defaultServerUrl;
   String? _defaultToken;
+  String? _defaultUserId;
+  String? _defaultDeviceId;
 
   EmbytokService({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
@@ -23,6 +25,7 @@ class EmbytokService {
   }) {
     _defaultServerUrl = embyServerUrl;
     _defaultToken = apiKey;
+    _defaultUserId = userId;
     _apiClient.setBaseUrl(embyServerUrl);
     _apiClient.setToken(apiKey);
   }
@@ -31,6 +34,12 @@ class EmbytokService {
   void clearAuth() {
     _defaultServerUrl = null;
     _defaultToken = null;
+    _defaultUserId = null;
+  }
+
+  // 设置设备ID
+  void setDeviceId(String deviceId) {
+    _defaultDeviceId = deviceId;
   }
 
   // ============================
@@ -64,21 +73,25 @@ class EmbytokService {
     // 保存配置方便后续直接调用
     _defaultServerUrl = embyServerUrl;
     _defaultToken = accessToken;
+    _defaultUserId = user.id;
     _apiClient.setToken(accessToken);
 
     return user;
   }
 
   // ============================
-  // 媒体库列表：/Library/VirtualFolders
+  // 媒体库列表：/Users/{userId}/Views
   // ============================
   Future<List<Library>> getLibraries({
     String? serverUrl,
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final userId = _defaultUserId;
+    if (userId == null) throw '需要用户ID';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Library/VirtualFolders',
+      '/Users/$userId/Views',
       queryParameters: {},
     );
 
@@ -89,7 +102,7 @@ class EmbytokService {
     return items
         .whereType<Map<String, dynamic>>()
         .map((e) => Library(
-              id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
+              id: (e['Id'] as String?) ?? '',
               name: (e['Name'] as String?) ?? '',
               type: (e['CollectionType'] as String?) ?? 'movies',
             ))
@@ -758,6 +771,105 @@ class EmbytokService {
       '/Sessions/Playing/Stopped',
       data: body,
     );
+  }
+
+  // ============================
+  // 上报客户端播放能力，提升 Direct Play 兼容性
+  // ============================
+  Future<void> reportCapabilities({
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.post<dynamic>(
+      '/Sessions/Capabilities/Full',
+      data: {
+        'PlayableMediaTypes': ['Video', 'Audio'],
+        'SupportedCommands': [
+          'Play',
+          'Pause',
+          'Seek',
+          'SetVolume',
+          'Mute',
+          'Unmute',
+          'ToggleMute',
+          'SetAudioStreamIndex',
+          'SetSubtitleStreamIndex',
+          'SetMaxStreamingBitrate',
+          'DisplayContent',
+          'SetRepeatMode'
+        ],
+        'SupportsMediaControl': true,
+      },
+    );
+  }
+
+  // ============================
+  // 构建视频流 URL（支持 Direct Play）
+  // ============================
+  String buildStreamUrl(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+    String? deviceId,
+    String? mediaSourceId,
+  }) {
+    final server = serverUrl ?? _defaultServerUrl;
+    final tk = token ?? _defaultToken;
+    final device = deviceId ?? 'EmbyTok-Flutter';
+
+    if (server == null || server.isEmpty || tk == null || tk.isEmpty) {
+      throw '请先登录或提供服务器地址和令牌';
+    }
+
+    final params = <String, String>{
+      'api_key': tk,
+      'DeviceId': device,
+      // 支持主流编码格式
+      'VideoCodec': 'h264,hevc,av1',
+      'AudioCodec': 'aac,mp3,ac3,eac3,flac',
+      // 允许直接复制流，避免不必要的转码
+      'AllowVideoStreamCopy': 'true',
+      'AllowAudioStreamCopy': 'true',
+      // 传输比特率限制（0 表示不限制）
+      'MaxStreamingBitrate': '0',
+    };
+
+    if (mediaSourceId != null && mediaSourceId.isNotEmpty) {
+      params['MediaSourceId'] = mediaSourceId;
+    }
+
+    // 优先使用直接流（.mp4），不支持时回退到 HLS
+    return '$server/emby/Videos/$itemId/stream.mp4?${Uri(queryParameters: params).query}';
+  }
+
+  // ============================
+  // 构建 HLS 流 URL（备选）
+  // ============================
+  String buildHlsStreamUrl(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+    String? deviceId,
+  }) {
+    final server = serverUrl ?? _defaultServerUrl;
+    final tk = token ?? _defaultToken;
+    final device = deviceId ?? 'EmbyTok-Flutter';
+
+    if (server == null || server.isEmpty || tk == null || tk.isEmpty) {
+      throw '请先登录或提供服务器地址和令牌';
+    }
+
+    final params = <String, String>{
+      'api_key': tk,
+      'DeviceId': device,
+      'VideoCodec': 'h264,hevc,av1',
+      'AudioCodec': 'aac,mp3,ac3,eac3',
+      'AllowVideoStreamCopy': 'true',
+      'AllowAudioStreamCopy': 'true',
+    };
+
+    return '$server/emby/Videos/$itemId/master.m3u8?${Uri(queryParameters: params).query}';
   }
 
   // ============================
