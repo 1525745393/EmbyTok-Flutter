@@ -142,7 +142,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 获取某媒体库下的视频列表
+  // 获取某媒体库下的视频列表（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
     String libraryId, {
@@ -166,11 +166,18 @@ class EmbytokService {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      // 补充 Video 类型以显示 Home Video 媒体库中的普通视频（与 EmbyX 对齐）
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
     };
 
+    // 使用用户视图路径：/Users/{userId}/Items，确保用户视图权限被正确应用
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
@@ -182,7 +189,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 获取项详情
+  // 获取项详情（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<MediaItem> getItemDetail(
     String itemId, {
@@ -197,8 +204,14 @@ class EmbytokService {
               'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
               'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/$itemId'
+        : '/Items/$itemId';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items/$itemId',
+      path,
       queryParameters: params,
     );
     final data = resp.data is Map
@@ -253,7 +266,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 最近添加
+  // 最近添加（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getRecentlyAdded({
     int limit = 20,
@@ -272,10 +285,18 @@ class EmbytokService {
       'SortOrder': 'Descending',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo',
+      // 补充 Video 类型，Home Video 的普通视频也出现在最近添加中
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
     };
+
+    // 使用用户视图路径：/Users/{userId}/Items/Latest，与 EmbyX 一致
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/Latest'
+        : '/Items/Latest';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items/Latest',
+      path,
       queryParameters: params,
     );
 
@@ -324,7 +345,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 人员（演员/导演）列表
+  // 人员（演员/导演）列表（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<Person>> getPeople({
     int limit = 50,
@@ -338,10 +359,19 @@ class EmbytokService {
       'Recursive': 'true',
       if (personTypes != null && personTypes.isNotEmpty)
         'PersonTypes': personTypes.join(','),
+      'IncludeItemTypes': 'Person',
       'Fields': 'PrimaryImageTag,Overview',
     };
+
+    // 使用用户视图路径：/Users/{userId}/Items（/Persons 全局端点也有效，
+    // 但统一用户路径以确保权限视图一致）
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Persons';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Persons',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -372,7 +402,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 某演员出演的作品
+  // 某演员出演的作品（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getPersonItems(
     String personId, {
@@ -390,8 +420,14 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
@@ -428,7 +464,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 某类型下的影片
+  // 某类型下的影片（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
@@ -446,8 +482,14 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
@@ -484,7 +526,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 某工作室下的影片
+  // 某工作室下的影片（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getItemsByStudio(
     String studio, {
@@ -502,15 +544,21 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
-  // 收藏列表（从 Emby 获取）
+  // 收藏列表（从 Emby 获取，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavorites({
     int limit = 100,
@@ -526,11 +574,19 @@ class EmbytokService {
       'Filters': 'IsFavorite',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      // 补充 Video 类型，Home Video 的收藏项也应显示
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -543,7 +599,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏影片（按类型：电影/剧集/音乐视频/单集）
+  // 收藏影片（按类型：电影/剧集/音乐视频/单集，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoriteMovies({
     int limit = 100,
@@ -559,12 +615,19 @@ class EmbytokService {
       'Filters': 'IsFavorite',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      // 补充 Video 类型，Home Video 的收藏项也应显示
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -577,7 +640,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏合集（BoxSet）
+  // 收藏合集（BoxSet，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoriteBoxSets({
     int limit = 100,
@@ -597,8 +660,14 @@ class EmbytokService {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -611,7 +680,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏人物（Person）
+  // 收藏人物（Person，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoritePeople({
     int limit = 100,
@@ -631,8 +700,14 @@ class EmbytokService {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -749,7 +824,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 预告片
+  // 预告片（使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> getTrailers({
     int limit = 30,
@@ -766,8 +841,14 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
@@ -920,7 +1001,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 观看历史（从 Emby 获取最近观看的条目）
+  // 观看历史（从 Emby 获取最近观看的条目，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
@@ -937,8 +1018,14 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -993,7 +1080,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 通用搜索（获取完整 MediaItem 对象）
+  // 通用搜索（获取完整 MediaItem 对象，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> searchItems(
     String query, {
@@ -1025,8 +1112,14 @@ class EmbytokService {
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
     };
+
+    final effectiveUserId = _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
