@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
-import '../utils/app_preferences.dart' show OrientationMode;
+import '../utils/app_preferences.dart' show OrientationMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
@@ -70,12 +70,20 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
+    // 监听 feedTypeProvider 变化：浏览模式切换时刷新
+    _ref.listen<FeedType>(
+      feedTypeProvider,
+      (previous, next) {
+        AppLogger.debug('浏览模式变化：$previous -> $next，刷新视频列表');
+        refresh();
+      },
+    );
   }
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
 
-  // 刷新：重置偏移并加载第一页
+  // 刷新：重置偏移并加载第一页。根据 feedType 使用不同查询
   Future<void> refresh({String? libraryId}) async {
     state = VideoListState(
       items: const <MediaItem>[],
@@ -99,31 +107,73 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
     try {
       final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
+      final feedType = _ref.read(feedTypeProvider);
       if (targetLibraryId == null || targetLibraryId.isEmpty) {
         state = state.copyWith(isLoading: false);
         return;
       }
 
-      AppLogger.info('刷新视频列表', data: {'libraryId': targetLibraryId});
-      final resp = await _service.getLibraryItems(
-        targetLibraryId,
-        limit: state.limit,
-        offset: 0,
-        userId: auth.user?.id,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-      );
+      AppLogger.info('刷新视频列表', data: {'libraryId': targetLibraryId, 'feedType': feedType.name});
 
-      final hasMore = resp.offset + resp.items.length < resp.total;
+      List<MediaItem> items;
+      int total;
+      int effectiveLimit;
+
+      switch (feedType) {
+        case FeedType.favorites:
+          // 收藏：查询所有收藏
+          final favResp = await _service.getFavoriteMovies(
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+          );
+          items = favResp.items;
+          total = favResp.total;
+          effectiveLimit = state.limit;
+          break;
+        case FeedType.random:
+          // 随机：先拉取足够多的视频（kRandomListSize），然后在客户端 shuffle
+          final randomResp = await _service.getLibraryItems(
+            targetLibraryId,
+            limit: kRandomListSize,
+            offset: 0,
+            userId: auth.user?.id,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+          );
+          // 客户端 shuffle（不重复
+          final shuffled = List<MediaItem>.from(randomResp.items);
+          shuffled.shuffle();
+          items = shuffled;
+          total = randomResp.total;
+          effectiveLimit = kRandomListSize;
+          break;
+        case FeedType.latest:
+        default:
+          // 最新：按默认排序分页
+          final latestResp = await _service.getLibraryItems(
+            targetLibraryId,
+            limit: state.limit,
+            offset: 0,
+            userId: auth.user?.id,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+          );
+          items = latestResp.items;
+          total = latestResp.total;
+          effectiveLimit = state.limit;
+      }
+
+      final hasMore = items.length < total;
       state = VideoListState(
-        items: resp.items,
+        items: items,
         isLoading: false,
         hasMore: hasMore,
         error: null,
-        offset: resp.items.length,
-        limit: state.limit,
+        offset: items.length,
+        limit: effectiveLimit,
       );
-      AppLogger.debug('视频列表刷新成功', data: {'count': resp.items.length, 'total': resp.total});
+      AppLogger.debug('视频列表刷新成功', data: {'count': items.length, 'total': total});
     } catch (e) {
       AppLogger.error('刷新视频列表失败', error: e);
       final message = e is String ? e : '加载视频失败：$e';
@@ -131,9 +181,16 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 加载更多：在当前列表末尾追加
+  // 加载更多：在当前列表末尾追加（仅最新模式分页）
   Future<void> loadMore({String? libraryId}) async {
     if (state.isLoading || !state.hasMore) return;
+
+    // 收藏/随机模式在 refresh 时已拉取足够内容，此处禁用分页
+    final feedType = _ref.read(feedTypeProvider);
+    if (feedType != FeedType.latest) {
+      state = state.copyWith(isLoading: false, hasMore: false);
+      return;
+    }
 
     state = state.copyWith(isLoading: true, error: null);
 

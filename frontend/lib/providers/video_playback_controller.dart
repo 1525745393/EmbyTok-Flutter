@@ -157,7 +157,7 @@ final isAutoPlayProvider =
   (ref) => IsAutoPlayNotifier(),
 );
 
-// ---------------- isPureMode（纯净模式 - 隐藏所有覆盖层 UI） ----------------
+// ---------------- isPureMode（纯净模式 - 隐藏所有覆盖层 UI）----------------
 class IsPureModeNotifier extends StateNotifier<bool> {
   IsPureModeNotifier() : super(false) {
     _load();
@@ -181,4 +181,30 @@ class IsPureModeNotifier extends StateNotifier<bool> {
 final isPureModeProvider =
     StateNotifierProvider<IsPureModeNotifier, bool>(
   (ref) => IsPureModeNotifier(),
+);
+
+// ---------------- seekDeltaProvider：遥控/键盘快退快进（秒）----------------
+// 监听者（video_page_item.dart）在值变化时对当前播放 controller 执行 seek
+class SeekDeltaNotifier extends StateNotifier<int> {
+  SeekDeltaNotifier() : super(0);
+
+  // 触发快进 N 秒（正数）
+  void forward(int seconds) {
+    state = seconds;
+  }
+
+  // 触发快退 N 秒（转化为负数由监听方处理，避免歧义）
+  void rewind(int seconds) {
+    state = -seconds;
+  }
+
+  // 重置（由监听方在应用后调用）
+  void reset() {
+    state = 0;
+  }
+}
+
+final seekDeltaProvider =
+    StateNotifierProvider<SeekDeltaNotifier, int>(
+  (ref) => SeekDeltaNotifier(),
 );

@@ -127,6 +127,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           );
         }
         _controller!.setLooping(widget.loop);
+        // 应用用户选择的播放速度（从持久化状态恢复）
+        final rate = ref.read(playbackRateProvider);
+        if (rate != 1.0) {
+          try {
+            await _controller!.setPlaybackSpeed(rate);
+          } catch (e) {
+            debugPrint('setPlaybackSpeed error: $e');
+          }
+        }
         if (mounted) {
           setState(() {
             _initialized = true;
@@ -187,6 +196,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       });
 
       _controller!.setLooping(widget.loop);
+      // 应用用户选择的播放速度（从持久化状态恢复）
+      final rate2 = ref.read(playbackRateProvider);
+      if (rate2 != 1.0) {
+        try {
+          await _controller!.setPlaybackSpeed(rate2);
+        } catch (e) {
+          debugPrint('dynamic init setPlaybackSpeed error: $e');
+        }
+      }
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -297,6 +315,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       });
 
       _controller!.setLooping(widget.loop);
+      // 应用用户选择的播放速度（从持久化状态恢复）
+      final rate3 = ref.read(playbackRateProvider);
+      if (rate3 != 1.0) {
+        try {
+          await _controller!.setPlaybackSpeed(rate3);
+        } catch (e) {
+          debugPrint('fallback init setPlaybackSpeed error: $e');
+        }
+      }
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () => throw TimeoutException('视频降级初始化超时'),

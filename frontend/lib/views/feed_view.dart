@@ -180,15 +180,19 @@ class _FeedViewState extends ConsumerState<FeedView>
         _goToNextVideo();
         return true;
       case LogicalKeyboardKey.space:
+      case LogicalKeyboardKey.enter: // TV 遥控器 OK 键
+      case LogicalKeyboardKey.select: // 部分 TV 遥控器 select 键
         _togglePlayPause();
         return true;
       case LogicalKeyboardKey.keyA:
       case LogicalKeyboardKey.arrowLeft:
-        // 快退 15 秒（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
+        // 快退 15 秒
+        ref.read(seekDeltaProvider.notifier).rewind(15);
         return true;
       case LogicalKeyboardKey.keyD:
       case LogicalKeyboardKey.arrowRight:
-        // 快进 15 秒（占位：实际 seek 由 VideoPlayerWidget 通过 controller 执行）
+        // 快进 15 秒
+        ref.read(seekDeltaProvider.notifier).forward(15);
         return true;
       case LogicalKeyboardKey.keyU:
         _toggleFavorite();
@@ -211,6 +215,16 @@ class _FeedViewState extends ConsumerState<FeedView>
       case LogicalKeyboardKey.slash:
         // 按 / 显示帮助面板
         setState(() => _showHelp = !_showHelp);
+        return true;
+      case LogicalKeyboardKey.escape:
+      case LogicalKeyboardKey.goBack:
+        // TV 遥控器返回键或 Esc：如果当前在全屏，则退出
+        if (ref.read(isFullscreenProvider)) {
+          _toggleFullscreen();
+        } else {
+          // 不在全屏时不做特殊处理，交由系统决定（如返回键退出应用）
+          return false;
+        }
         return true;
       default:
         return false;

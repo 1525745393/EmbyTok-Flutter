@@ -74,6 +74,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
       if (!mounted) return;
       ref.read(favoritesProvider.notifier).ensureLoaded();
     });
+
+    // 监听遥控/键盘的快进快退指令：仅对当前正在播放的 video_page_item 执行
+    ref.listenManual<int>(seekDeltaProvider, (previous, next) {
+      if (next == 0) return;
+      final c = _videoController;
+      if (c == null || !c.value.isInitialized) return;
+      // 仅当前视频正在播放时才响应：通过 currentPlayingItem 判断
+      final currentPlaying = ref.read(currentPlayingItemProvider);
+      if (currentPlaying == null || currentPlaying.id != widget.item.id) {
+        return;
+      }
+      final posMs = c.value.position.inMilliseconds +
+          next * 1000;
+      final durMs = c.value.duration.inMilliseconds;
+      final clampedMs = posMs.clamp(0, durMs);
+      c.seekTo(Duration(milliseconds: clampedMs));
+      // 重置 delta，避免重复触发
+      ref.read(seekDeltaProvider.notifier).reset();
+    });
   }
 
   @override
