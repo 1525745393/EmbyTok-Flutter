@@ -1,0 +1,22 @@
+# Emby 媒体库显示兼容修复 - 验收检查清单 (Checklist)
+
+- [ ] **Checkpoint 1**: `getLibraries()` 方法始终使用 `/Users/{userId}/Views` 端点，不再回退到 `/Library/VirtualFolders`
+- [ ] **Checkpoint 2**: `getLibraryItems()` 方法使用 `/Users/{userId}/Items` 端点，且 `IncludeItemTypes` 包含 `Video`
+- [ ] **Checkpoint 3**: `getFavorites()` / `getFavoriteMovies()` 使用 `/Users/{userId}/Items` 端点
+- [ ] **Checkpoint 4**: `getFavoriteBoxSets()` / `getFavoritePeople()` 使用 `/Users/{userId}/Items` 端点
+- [ ] **Checkpoint 5**: `getRecentlyAdded()` 使用 `/Users/{userId}/Items/Latest`（或验证原路径无问题后保持）
+- [ ] **Checkpoint 6**: `getPeople()` 使用 `/Users/{userId}/Items` 并指定 `IncludeItemTypes=Person`（或保持 `/Persons` 验证无问题）
+- [ ] **Checkpoint 7**: `getItemsByGenre()` 和 `getItemsByStudio()` 使用 `/Users/{userId}/Items` 端点
+- [ ] **Checkpoint 8**: `getItemDetail()` 使用 `/Users/{userId}/Items/{itemId}` 端点
+- [ ] **Checkpoint 9**: `searchItems()` 使用 `/Users/{userId}/Items` 端点
+- [ ] **Checkpoint 10**: 所有修改后的方法在无 userId 时有安全的降级回退逻辑并记录警告，不崩溃
+- [ ] **Checkpoint 11**: `getResumeItems()` 和 `getNextUp()` 保持不变（它们的端点已正确）
+- [ ] **Checkpoint 12**: 所有修改后的 `IncludeItemTypes` 参数中都包含 `Video` 类型（针对视频列表获取的方法）
+- [ ] **Checkpoint 13**: 在实际 Emby 服务器上验证：媒体库数量与 EmbyX 一致
+- [ ] **Checkpoint 14**: 在实际 Emby 服务器上验证：Home Video 类型的库能显示视频
+- [ ] **Checkpoint 15**: 在实际 Emby 服务器上验证：收藏列表、最近添加、续播列表内容正确
+- [ ] **Checkpoint 16**: 在实际 Emby 服务器上验证：视频播放、进度上报、云同步功能正常
+- [ ] **Checkpoint 17**: `flutter analyze` 无错误，`flutter build` 可成功编译
+- [ ] **Checkpoint 18**: 代码注释完整，说明路径变更的原因（对齐 EmbyX 的实现方式）
+- [ ] **Checkpoint 19**: `Library` 模型能正确解析 `CollectionType` 字段，不同类型的媒体库在 UI 中正常显示
+- [ ] **Checkpoint 20**: 无 userId（如测试环境）时所有方法能降级回原路径并记录警告，不抛异常
