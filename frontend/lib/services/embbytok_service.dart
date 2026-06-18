@@ -85,13 +85,14 @@ class EmbytokService {
   Future<List<Library>> getLibraries({
     String? serverUrl,
     String? token,
+    String? userId,
   }) async {
     _ensureConfig(serverUrl, token);
-    final userId = _defaultUserId;
-    if (userId == null) throw '需要用户ID';
+    final uid = userId ?? _defaultUserId;
+    if (uid == null) throw '需要用户ID';
 
     final resp = await _apiClient.get<dynamic>(
-      '/Users/$userId/Views',
+      '/Users/$uid/Views',
       queryParameters: {},
     );
 

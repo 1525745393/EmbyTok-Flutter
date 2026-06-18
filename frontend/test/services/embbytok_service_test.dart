@@ -64,6 +64,7 @@ void main() {
 
   group('媒体库 API', () {
     test('获取媒体库列表', () async {
+      const userId = 'user-123';
       final responseData = <String, dynamic>{
         'Items': [
           <String, dynamic>{'Id': 'lib-1', 'Name': '电影', 'CollectionType': 'movies'},
@@ -73,11 +74,12 @@ void main() {
         'TotalRecordCount': 3,
       };
 
-      dioAdapter.onGet('/Library/VirtualFolders', (request) => request.reply(200, responseData));
+      dioAdapter.onGet('/Users/$userId/Views', (request) => request.reply(200, responseData));
 
       final libraries = await service.getLibraries(
         serverUrl: testEmbyUrl,
         token: testToken,
+        userId: userId,
       );
 
       expect(libraries.length, 3);
