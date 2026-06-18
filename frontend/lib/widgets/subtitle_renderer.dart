@@ -79,9 +79,13 @@ class SubtitleRenderer extends ConsumerWidget {
 // SRT 简易解析器：把 SRT 字符串解析为 SubtitleCue 列表
 List<SubtitleCue> parseSrt(String content) {
   final result = <SubtitleCue>[];
-  final blocks = content.replaceAll('\r\n', '\n').split('\n\n');
+  // 清理内容：去除首尾空白，处理行结束符
+  final cleaned = content.trim().replaceAll('\r\n', '\n');
+  if (cleaned.isEmpty) return result;
+  
+  final blocks = cleaned.split('\n\n');
   for (final block in blocks) {
-    final lines = block.split('\n');
+    final lines = block.split('\n').where((l) => l.isNotEmpty).toList();
     if (lines.length < 2) continue;
     final timing = lines.firstWhere(
       (l) => l.contains('-->'),
@@ -93,8 +97,9 @@ List<SubtitleCue> parseSrt(String content) {
     final start = _parseSrtTime(parts.first.trim());
     final end = _parseSrtTime(parts[1].trim());
     if (start == null || end == null) continue;
-    final text = lines
-        .skipWhile((l) => l.contains('-->')).where((l) => l.isNotEmpty).join('\n');
+    // 找到时间码行之后的行作为文本
+    final timingIndex = lines.indexOf(timing);
+    final text = lines.skip(timingIndex + 1).join('\n');
     if (text.isEmpty) continue;
     result.add(SubtitleCue(start, end, text));
   }

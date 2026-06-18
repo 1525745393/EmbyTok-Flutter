@@ -77,7 +77,7 @@ void main() {
           title: '测试',
           type: 'Movie',
           durationSeconds: 3600.0,
-          year: 2024,
+          productionYear: 2024,
         );
         final json = item.toJson();
         expect(json['id'], 'item-1');

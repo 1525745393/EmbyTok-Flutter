@@ -50,10 +50,14 @@ void main() {
         final apiClient = ApiClient.withDio(dio);
         apiClient.setToken('test-token-123');
 
-        dioAdapter.onGet('/test', (request) => request.reply(200, {'success': true}));
+        String? capturedToken;
+        dioAdapter.onGet('/test', (request) {
+          capturedToken = request.headers['X-Emby-Token']?.firstOrNull;
+          return request.reply(200, {'success': true});
+        });
 
         await apiClient.get<dynamic>('/test');
-        expect(dio.options.headers['X-Emby-Token'], 'test-token-123');
+        expect(capturedToken, 'test-token-123');
       });
 
       test('clearToken 后请求头不包含 Token', () async {
@@ -61,10 +65,14 @@ void main() {
         apiClient.setToken('test-token-123');
         apiClient.clearToken();
 
-        dioAdapter.onGet('/test', (request) => request.reply(200, {'success': true}));
+        String? capturedToken;
+        dioAdapter.onGet('/test', (request) {
+          capturedToken = request.headers['X-Emby-Token']?.firstOrNull;
+          return request.reply(200, {'success': true});
+        });
 
         await apiClient.get<dynamic>('/test');
-        expect(dio.options.headers.containsKey('X-Emby-Token'), false);
+        expect(capturedToken, isNull);
       });
     });
 

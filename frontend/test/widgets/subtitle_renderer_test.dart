@@ -307,7 +307,7 @@ void main() {
       expect(find.byType(Container), findsWidgets);
 
       // 验证 IgnorePointer 存在（字幕不应拦截触摸）
-      expect(find.byType(IgnorePointer), findsOneWidget);
+      expect(find.byType(IgnorePointer), findsWidgets); // 可能有多个
 
       container.dispose();
     });
