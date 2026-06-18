@@ -121,14 +121,14 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       switch (feedType) {
         case FeedType.favorites:
-          // 收藏：查询所有收藏
-          final favResp = await _service.getFavoriteMovies(
+          // 收藏：查询所有收藏（getFavoriteMovies 返回 List<MediaItem>）
+          final favList = await _service.getFavoriteMovies(
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
             userId: auth.user?.id,
           );
-          items = favResp.items;
-          total = favResp.total;
+          items = favList;
+          total = favList.length;
           effectiveLimit = state.limit;
           break;
         case FeedType.random:

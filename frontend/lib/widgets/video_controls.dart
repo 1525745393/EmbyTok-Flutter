@@ -221,7 +221,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
             // 自动连播开关：播放下一条视频
             IconButton(
               icon: Icon(
-                isAutoPlay ? Icons.autoplay : Icons.autoplay_off,
+                isAutoPlay ? Icons.fast_forward : Icons.pause_circle_outline,
                 color: isAutoPlay ? primaryPink : textPrimary,
                 size: 22,
               ),
