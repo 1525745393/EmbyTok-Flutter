@@ -3,6 +3,17 @@
 
 ### Features
 
+* 检查 EmbyX 对接 Emby 服务器 ([90016e5](https://github.com/1525745393/EmbyTok-Flutter/commit/90016e579c938d758e01d0b8ad7e3b89112a56fa))
+* 检查 EmbyX 对接 Emby 服务器 ([65004ca](https://github.com/1525745393/EmbyTok-Flutter/commit/65004cadb8b19948af5130f5bd85ab1a37dfa5cb))
+* 检查 EmbyX 对接 Emby 服务器 ([5e3cecc](https://github.com/1525745393/EmbyTok-Flutter/commit/5e3ceccd5818ebf0c3e4ee46a32eea492bab66b2))
+* 生成项目仓库Code Wiki文档 ([69bf86a](https://github.com/1525745393/EmbyTok-Flutter/commit/69bf86aea1564ee3d3de2a08b0da2eb896ee1c37))
+* 生成项目仓库Code Wiki文档 ([bcb1fe9](https://github.com/1525745393/EmbyTok-Flutter/commit/bcb1fe9fc8975d8050b611690e2096e7237acb40))
+
+# [1.13.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.12.0...v1.13.0) (2026-06-18)
+
+
+### Features
+
 * 生成项目仓库Code Wiki文档 ([69bf86a](https://github.com/1525745393/EmbyTok-Flutter/commit/69bf86aea1564ee3d3de2a08b0da2eb896ee1c37))
 * 生成项目仓库Code Wiki文档 ([bcb1fe9](https://github.com/1525745393/EmbyTok-Flutter/commit/bcb1fe9fc8975d8050b611690e2096e7237acb40))
 
