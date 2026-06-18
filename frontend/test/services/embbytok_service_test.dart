@@ -38,7 +38,6 @@ void main() {
       dioAdapter.onPost(
         '/Users/AuthenticateByName',
         (request) => request.reply(200, responseData),
-        data: {'Username': username, 'Pw': password},
       );
 
       final user = await service.login(
@@ -56,7 +55,6 @@ void main() {
       dioAdapter.onPost(
         '/Users/AuthenticateByName',
         (request) => request.reply(401, <String, dynamic>{'message': 'Unauthorized'}),
-        data: {'Username': 'wronguser', 'Pw': 'wrongpass'},
       );
 
       await expectLater(
