@@ -15,7 +15,6 @@ import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
-import '../utils/logger.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';

@@ -32,7 +32,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
-  bool _cloudSyncChecked = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -79,7 +78,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (data == null || data.isEmpty) return;
       final lastId = data['lastId'] as String?;
       final deviceName = (data['deviceName'] as String?) ?? '其他设备';
-      _cloudSyncChecked = true;
       if (lastId == null || lastId.isEmpty) return;
       // 是否与当前条目相同
       final current = ref.read(currentPlayingItemProvider);
@@ -131,9 +129,11 @@ class _FeedViewState extends ConsumerState<FeedView>
     try {
       final libs = ref.read(libraryListProvider);
       if (!libs.hasValue || libs.value!.isEmpty) return '';
-      // 拿第一个 libraryId（简化版；若有多个可以通过 selectedLibraryIdProvider 获取）
-      final selected = ref.watch(selectedLibraryIdProvider);
-      return selected?.id ?? libs.value!.first.id;
+      // selectedLibraryIdProvider 返回 String（选中的库 id），非空则直接用
+      final selectedId = ref.watch(selectedLibraryIdProvider);
+      return (selectedId != null && selectedId.isNotEmpty)
+          ? selectedId
+          : libs.value!.first.id;
     } catch (_) {
       return '';
     }
