@@ -816,7 +816,7 @@ class EmbytokService {
   }) {
     final server = serverUrl ?? _defaultServerUrl;
     final tk = token ?? _defaultToken;
-    final device = deviceId ?? 'EmbyTok-Flutter';
+    final device = deviceId ?? _defaultDeviceId ?? 'EmbyTok-Flutter';
 
     if (server == null || server.isEmpty || tk == null || tk.isEmpty) {
       throw '请先登录或提供服务器地址和令牌';
@@ -854,7 +854,7 @@ class EmbytokService {
   }) {
     final server = serverUrl ?? _defaultServerUrl;
     final tk = token ?? _defaultToken;
-    final device = deviceId ?? 'EmbyTok-Flutter';
+    final device = deviceId ?? _defaultDeviceId ?? 'EmbyTok-Flutter';
 
     if (server == null || server.isEmpty || tk == null || tk.isEmpty) {
       throw '请先登录或提供服务器地址和令牌';
