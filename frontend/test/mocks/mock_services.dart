@@ -28,11 +28,13 @@ class MockEmbytokService extends Mock implements EmbytokService {
   Future<List<Library>> getLibraries({
     String? serverUrl,
     String? token,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraries, [], {
           #serverUrl: serverUrl,
           #token: token,
+          #userId: userId,
         }),
         returnValue: Future.value(<Library>[]),
         returnValueForMissingStub: Future.value(<Library>[]),
