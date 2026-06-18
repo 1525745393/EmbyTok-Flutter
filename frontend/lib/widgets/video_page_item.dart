@@ -23,11 +23,19 @@ import 'video_player_widget.dart';
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
   final VideoPlayerController? preloadedController;
+  final VoidCallback? onSkipNext; // 切到下一个视频
+  final VoidCallback? onSkipPrevious; // 切到上一个视频
+  final int currentIndex;
+  final int totalCount;
 
   const VideoPageItem({
     super.key,
     required this.item,
     this.preloadedController,
+    this.onSkipNext,
+    this.onSkipPrevious,
+    this.currentIndex = 0,
+    this.totalCount = 1,
   });
 
   @override
@@ -224,8 +232,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   }
 
   // 切换控制层显示/隐藏（由 GestureOverlay 单击触发）
+  // 纯净模式下：单击先退出纯净模式；非纯净模式下：切换控制条显示
   void _toggleControls() {
-    if (_controlsVisible) {
+    final isPure = ref.read(isPureModeProvider);
+    if (isPure) {
+      ref.read(isPureModeProvider.notifier).setEnabled(false);
+      _showControls();
+    } else if (_controlsVisible) {
       _hideControls();
     } else {
       _showControls();
@@ -269,6 +282,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
     // 读取播放状态（用于中央播放按钮显示）
     final isPlaying = ref.watch(isPlayingProvider);
+
+    // 纯净模式：开启时隐藏所有覆盖 UI，提供纯粹观看体验
+    final isPureMode = ref.watch(isPureModeProvider);
 
     // 横屏全屏模式下使用黑色背景 + 居中布局
     final content = Stack(
@@ -319,10 +335,26 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                 // 3. 启动周期进度上报（5 秒一次）
                 _startProgressTimer();
                 // 4. 监听播放状态：暂停时额外触发一次暂停事件上报
+                //    播放完成时触发自动连播
                 c.addListener(() {
                   if (!mounted) return;
                   if (!c.value.isPlaying) {
                     _reportPlaybackProgress(isPauseEvent: true);
+                  }
+                  // 5. 检测播放完成：position >= duration 时，如开启自动连播则切换下一条
+                  final pos = c.value.position;
+                  final dur = c.value.duration;
+                  if (pos >= dur &&
+                      dur > Duration.zero &&
+                      widget.onSkipNext != null) {
+                    final autoPlay = ref.read(isAutoPlayProvider);
+                    if (autoPlay) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          widget.onSkipNext!();
+                        }
+                      });
+                    }
                   }
                 });
               },
@@ -330,8 +362,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           ),
         ),
 
-        // TikTok 风格底部细线进度条（始终可见）
-        if (_videoController != null && _videoController!.value.isInitialized)
+        // TikTok 风格底部细线进度条（仅对较长视频显示，纯净模式下隐藏）
+        if (!isPureMode &&
+            _videoController != null &&
+            _videoController!.value.isInitialized &&
+            _videoController!.value.duration.inSeconds >
+                kMinDurationSecondsForProgressBar)
           Positioned(
             left: 0,
             right: 0,
@@ -339,12 +375,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             child: _ThinProgressBar(controller: _videoController!),
           ),
 
-        // 中央播放/暂停按钮（暂停时显示）
+        // 中央播放/暂停按钮（暂停时显示）- 纯净模式下仍保持
         if (_videoController != null && _videoController!.value.isInitialized && !isPlaying)
           _buildCenterPlayButton(),
 
-        // 控制层（VideoControls）：可隐藏，3 秒无操作自动淡出
-        if (_videoController != null && _videoController!.value.isInitialized)
+        // 控制层（VideoControls）：可隐藏 + 纯净模式下整体隐藏
+        if (!isPureMode && _videoController != null && _videoController!.value.isInitialized)
           Positioned(
             left: 0,
             right: 0,
@@ -354,19 +390,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
               child: IgnorePointer(
                 ignoring: !_controlsVisible,
-                child: VideoControls(controller: _videoController!),
+                child: VideoControls(
+                  controller: _videoController!,
+                  onSkipNext: widget.onSkipNext,
+                  onSkipPrevious: widget.onSkipPrevious,
+                  currentIndex: widget.currentIndex,
+                  totalCount: widget.totalCount,
+                ),
               ),
             ),
           ),
 
-        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式下隐藏）
-        if (!_isFullscreen) _buildBottomGradient(),
+        // 底部渐变 + 标题/简介/类型标签（横屏全屏/纯净模式下隐藏）
+        if (!_isFullscreen && !isPureMode) _buildBottomGradient(),
 
-        // 右侧渐变 + 操作按钮（横屏全屏模式下隐藏）
-        if (!_isFullscreen) _buildRightActions(favorited),
+        // 右侧渐变 + 操作按钮（横屏全屏/纯净模式下隐藏）
+        if (!_isFullscreen && !isPureMode) _buildRightActions(favorited),
 
-        // 横屏全屏模式下显示退出按钮（右上角）
-        if (_isFullscreen) _buildExitFullscreenButton(),
+        // 横屏全屏模式下显示退出按钮（右上角）- 纯净模式下隐藏
+        if (_isFullscreen && !isPureMode) _buildExitFullscreenButton(),
       ],
     );
 
@@ -421,14 +463,31 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   }
 
   // 横屏全屏模式下的退出按钮（右上角）
+  // 横屏全屏模式下显示右上角按钮：退出全屏 + 纯净模式切换
   Widget _buildExitFullscreenButton() {
     final topPadding = MediaQuery.of(context).padding.top;
+    final isPureMode = ref.watch(isPureModeProvider);
     return Positioned(
       top: topPadding + 8,
       right: 16,
-      child: IconButton(
-        icon: const Icon(Icons.fullscreen_exit, color: textPrimary, size: 28),
-        onPressed: _toggleFullscreen,
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(
+              isPureMode ? Icons.visibility : Icons.visibility_off,
+              color: textPrimary,
+              size: 24,
+            ),
+            onPressed: () {
+              ref.read(isPureModeProvider.notifier).toggle();
+            },
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.fullscreen_exit, color: textPrimary, size: 28),
+            onPressed: _toggleFullscreen,
+          ),
+        ],
       ),
     );
   }

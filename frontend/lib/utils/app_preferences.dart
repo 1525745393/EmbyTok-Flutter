@@ -123,6 +123,8 @@ class AppPreferences {
   final OrientationMode orientationMode;
   final bool isMuted;
   final bool isAutoPlay;
+  final bool isPureMode;
+  final double playbackRate;
   final Set<String> hiddenLibraryIds;
 
   const AppPreferences({
@@ -132,6 +134,8 @@ class AppPreferences {
     this.orientationMode = OrientationMode.both,
     this.isMuted = true,
     this.isAutoPlay = false,
+    this.isPureMode = false,
+    this.playbackRate = kDefaultPlaybackRate,
     this.hiddenLibraryIds = const <String>{},
   });
 
@@ -142,6 +146,8 @@ class AppPreferences {
     OrientationMode? orientationMode,
     bool? isMuted,
     bool? isAutoPlay,
+    bool? isPureMode,
+    double? playbackRate,
     Set<String>? hiddenLibraryIds,
   }) {
     return AppPreferences(
@@ -151,6 +157,8 @@ class AppPreferences {
       orientationMode: orientationMode ?? this.orientationMode,
       isMuted: isMuted ?? this.isMuted,
       isAutoPlay: isAutoPlay ?? this.isAutoPlay,
+      isPureMode: isPureMode ?? this.isPureMode,
+      playbackRate: playbackRate ?? this.playbackRate,
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
     );
   }
@@ -182,6 +190,8 @@ class AppPreferencesService {
     );
     final isMuted = prefs.getBool(kStorageKeyIsMuted) ?? true;
     final isAutoPlay = prefs.getBool(kStorageKeyIsAutoPlay) ?? false;
+    final isPureMode = prefs.getBool(kStorageKeyIsPureMode) ?? false;
+    final playbackRate = prefs.getDouble(kStorageKeyPlaybackRate) ?? kDefaultPlaybackRate;
 
     // 隐藏媒体库 ID 列表以 JSON 数组字符串存储
     final rawHiddenIds = prefs.getString(kStorageKeyHiddenLibraryIds);
@@ -204,6 +214,8 @@ class AppPreferencesService {
       orientationMode: orientationMode,
       isMuted: isMuted,
       isAutoPlay: isAutoPlay,
+      isPureMode: isPureMode,
+      playbackRate: playbackRate,
       hiddenLibraryIds: hiddenLibraryIds,
     );
   }
@@ -218,6 +230,8 @@ class AppPreferencesService {
       prefs.setString(kStorageKeyOrientationMode, preferences.orientationMode.toStorageString()),
       prefs.setBool(kStorageKeyIsMuted, preferences.isMuted),
       prefs.setBool(kStorageKeyIsAutoPlay, preferences.isAutoPlay),
+      prefs.setBool(kStorageKeyIsPureMode, preferences.isPureMode),
+      prefs.setDouble(kStorageKeyPlaybackRate, preferences.playbackRate),
       prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
     ]);
   }
@@ -256,6 +270,18 @@ class AppPreferencesService {
   Future<void> setIsAutoPlay(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(kStorageKeyIsAutoPlay, value);
+  }
+
+  // 单独更新纯净模式（沉浸观看）
+  Future<void> setIsPureMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kStorageKeyIsPureMode, value);
+  }
+
+  // 单独更新播放速度
+  Future<void> setPlaybackRate(double rate) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(kStorageKeyPlaybackRate, rate);
   }
 
   // 更新隐藏的媒体库 ID 集合

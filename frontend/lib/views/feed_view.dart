@@ -408,7 +408,29 @@ class _FeedViewState extends ConsumerState<FeedView>
           return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
         }
         final item = videoState.items[index];
-        return VideoPageItem(item: item);
+        return VideoPageItem(
+          item: item,
+          onSkipNext: () {
+            if (index < videoState.items.length - 1) {
+              _pageController.animateToPage(
+                index + 1,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          },
+          onSkipPrevious: () {
+            if (index > 0) {
+              _pageController.animateToPage(
+                index - 1,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          },
+          currentIndex: index,
+          totalCount: videoState.items.length,
+        );
       },
     );
   }

@@ -33,6 +33,7 @@ const String kStorageKeyViewMode = 'embbytok_view_mode';
 const String kStorageKeyOrientationMode = 'embbytok_orientation_mode';
 const String kStorageKeyIsMuted = 'embbytok_is_muted';
 const String kStorageKeyIsAutoPlay = 'embbytok_is_autoplay';
+const String kStorageKeyIsPureMode = 'embbytok_is_pure_mode';
 const String kStorageKeyHiddenLibraryIds = 'embbytok_hidden_library_ids';
 
 const int kMaxSearchHistory = 10;
@@ -65,6 +66,11 @@ const int kPreloadFirstChunkBytes = 1048576; // 1MB
 const int kMaxRetryAttempts = 3;
 const int kLoadTimeoutSeconds = 8;
 const int kSwipeProgressIntervalSeconds = 5;
+
+// 智能进度条：仅对长于该时长的视频显示底部细进度条（秒）
+const int kMinDurationSecondsForProgressBar = 180; // 3 分钟
+const int kRandomListSize = 80; // 随机浏览模式的拉取数量
+const int kPureModeHideMs = 300; // 纯净模式 UI 渐隐/渐显动画时长
 
 // 水平拖动进度条动画参数
 const int kProgressBarFadeInMs = 150;   // 进度条淡入时长

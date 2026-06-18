@@ -40,8 +40,28 @@ final playbackLevelProvider =
   (ref) => PlaybackLevelNotifier(),
 );
 
-// 当前播放倍速：1.0 / 1.25 / 1.5 / 2.0
-final playbackRateProvider = StateProvider<double>((ref) => 1.0);
+// 当前播放倍速（0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x）
+// 支持持久化存储，启动时自动加载用户上次的选择
+class PlaybackRateNotifier extends StateNotifier<double> {
+  PlaybackRateNotifier() : super(kDefaultPlaybackRate) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.playbackRate;
+  }
+
+  Future<void> setRate(double rate) async {
+    state = rate;
+    await const AppPreferencesService().setPlaybackRate(rate);
+  }
+}
+
+final playbackRateProvider =
+    StateNotifierProvider<PlaybackRateNotifier, double>(
+  (ref) => PlaybackRateNotifier(),
+);
 
 // 当前选中的字幕（字幕语言或轨道 ID，null 表示关闭）
 final selectedSubtitleProvider = StateProvider<String?>((ref) => null);
@@ -135,4 +155,30 @@ class IsAutoPlayNotifier extends StateNotifier<bool> {
 final isAutoPlayProvider =
     StateNotifierProvider<IsAutoPlayNotifier, bool>(
   (ref) => IsAutoPlayNotifier(),
+);
+
+// ---------------- isPureMode（纯净模式 - 隐藏所有覆盖层 UI） ----------------
+class IsPureModeNotifier extends StateNotifier<bool> {
+  IsPureModeNotifier() : super(false) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.isPureMode;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    await const AppPreferencesService().setIsPureMode(value);
+  }
+
+  Future<void> toggle() async {
+    await setEnabled(!state);
+  }
+}
+
+final isPureModeProvider =
+    StateNotifierProvider<IsPureModeNotifier, bool>(
+  (ref) => IsPureModeNotifier(),
 );
