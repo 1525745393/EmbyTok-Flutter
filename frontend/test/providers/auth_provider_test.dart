@@ -297,8 +297,8 @@ void main() {
         ],
       );
 
-      // 等待 _loadFromStorage 完成
-      await Future.delayed(const Duration(milliseconds: 100));
+      // 等待 _loadFromStorage 完成（增加等待时间确保异步操作完成）
+      await Future.delayed(const Duration(milliseconds: 500));
 
       final state = container.read(authProvider);
       expect(state.isAuthenticated, true);

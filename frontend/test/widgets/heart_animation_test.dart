@@ -152,14 +152,15 @@ void main() {
 
       // 初始状态：scale 应该是 1.0
       final transformFinder = find.byType(Transform);
-      Transform transformWidget = tester.widget<Transform>(transformFinder);
+      expect(transformFinder, findsWidgets); // 可能有多个 Transform（MaterialApp/Scaffold 也会生成）
+      Transform transformWidget = tester.widget<Transform>(transformFinder.first);
       expect(transformWidget.transform.getMaxScaleOnAxis(), 1.0);
 
       // 完成动画
       await tester.pump(const Duration(milliseconds: 700));
 
       // 最终状态：scale 应该是目标值
-      transformWidget = tester.widget<Transform>(transformFinder);
+      transformWidget = tester.widget<Transform>(transformFinder.first);
       expect(transformWidget.transform.getMaxScaleOnAxis(), closeTo(targetScale, 0.01));
     });
 
