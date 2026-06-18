@@ -35,7 +35,11 @@ void main() {
         'AccessToken': testToken,
       };
 
-      dioAdapter.onPost('/Users/AuthenticateByName', (request) => request.reply(200, responseData));
+      dioAdapter.onPost(
+        '/Users/AuthenticateByName',
+        (request) => request.reply(200, responseData),
+        data: {'Username': username, 'Pw': password},
+      );
 
       final user = await service.login(
         embyServerUrl: testEmbyUrl,
@@ -49,7 +53,11 @@ void main() {
     });
 
     test('登录失败抛出异常', () async {
-      dioAdapter.onPost('/Users/AuthenticateByName', (request) => request.reply(401, <String, dynamic>{'message': 'Unauthorized'}));
+      dioAdapter.onPost(
+        '/Users/AuthenticateByName',
+        (request) => request.reply(401, <String, dynamic>{'message': 'Unauthorized'}),
+        data: {'Username': 'wronguser', 'Pw': 'wrongpass'},
+      );
 
       await expectLater(
         service.login(
@@ -256,7 +264,11 @@ void main() {
       const itemId = 'item-1';
       const positionTicks = 123456789;
 
-      dioAdapter.onPost('/Sessions/Playing/Progress', (request) => request.reply(204, null));
+      dioAdapter.onPost(
+        '/Sessions/Playing/Progress',
+        (request) => request.reply(204, null),
+        data: {'ItemId': itemId, 'PositionTicks': positionTicks},
+      );
 
       await service.reportPlaybackPosition(
         itemId: itemId,
@@ -270,7 +282,11 @@ void main() {
       const itemId = 'item-1';
       const positionTicks = 123456789;
 
-      dioAdapter.onPost('/Sessions/Playing/Stopped', (request) => request.reply(204, null));
+      dioAdapter.onPost(
+        '/Sessions/Playing/Stopped',
+        (request) => request.reply(204, null),
+        data: {'ItemId': itemId, 'PositionTicks': positionTicks},
+      );
 
       await service.reportPlaybackStopped(
         itemId: itemId,

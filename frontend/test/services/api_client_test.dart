@@ -93,7 +93,11 @@ void main() {
         final requestData = <String, dynamic>{'name': 'test'};
         final responseData = <String, dynamic>{'id': 1, 'name': 'test'};
 
-        dioAdapter.onPost('/users', (request) => request.reply(201, responseData));
+        dioAdapter.onPost(
+          '/users',
+          (request) => request.reply(201, responseData),
+          data: requestData,
+        );
 
         final resp = await apiClient.post<dynamic>('/users', data: requestData);
         expect(resp.statusCode, 201);
@@ -104,7 +108,11 @@ void main() {
         final requestData = <String, dynamic>{'name': 'updated'};
         final responseData = <String, dynamic>{'id': 1, 'name': 'updated'};
 
-        dioAdapter.onPut('/users/1', (request) => request.reply(200, responseData));
+        dioAdapter.onPut(
+          '/users/1',
+          (request) => request.reply(200, responseData),
+          data: requestData,
+        );
 
         final resp = await apiClient.put<dynamic>('/users/1', data: requestData);
         expect(resp.statusCode, 200);
