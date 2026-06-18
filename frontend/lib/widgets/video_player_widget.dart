@@ -1,16 +1,21 @@
-// 视频播放器 Widget：基于 video_player 插件，支持播放/暂停/跳转/倍速
+// 视频播放器 Widget：支持三级播放降级链 + 运行时 error 自动降级
 
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../providers/providers.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
-class VideoPlayerWidget extends StatefulWidget {
+// 三级播放降级链：Direct Play(0) → Direct Stream(1) → HLS(2)
+// - 初始化失败时自动尝试下一级
+// - 运行时发生 error（如解码失败/网络中断）时也尝试降级
+class VideoPlayerWidget extends ConsumerStatefulWidget {
   final MediaItem item;
   // Emby 服务器认证信息（用于动态构造播放 URL）
   final String? embyServerUrl;
@@ -34,10 +39,10 @@ class VideoPlayerWidget extends StatefulWidget {
   });
 
   @override
-  State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+  ConsumerState<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
@@ -45,6 +50,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
   // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
   int _fallbackLevel = 0;
+  // 标记当前正在执行降级（避免 listener 与 initVideo 递归调用导致的重复降级）
+  bool _isFallbackInProgress = false;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -161,9 +168,16 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         httpHeaders: headers,
       );
 
-      // 监听播放器错误事件（例如网络中断、解码失败等）
+      // 监听器：运行时 error 触发降级链，否则仅标记错误状态
       _controller!.addListener(() {
         if (!mounted) return;
+        if (_controller!.value.hasError &&
+            !_hasError &&
+            !_isFallbackInProgress &&
+            _fallbackLevel < 2) {
+          _triggerRuntimeFallback();
+          return;
+        }
         if (_controller!.value.hasError && !_hasError) {
           setState(() {
             _hasError = true;
@@ -179,6 +193,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
           throw TimeoutException('视频初始化超时');
         },
       );
+      // 初始化成功：同步降级等级到 provider（供播放上报判断 PlayMethod）
+      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       if (mounted) {
         setState(() {
           _initialized = true;
@@ -195,28 +211,134 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
     } catch (e) {
       debugPrint('VideoPlayer initialization error: $e');
-      // 降级链：Direct Play(0) → Direct Stream(1) → HLS(2)
-      // 仅在未达到最高降级等级时重试
       if (_fallbackLevel < 2) {
         _fallbackLevel++;
         debugPrint('降级到 level $_fallbackLevel 重试播放');
-        // 释放当前失败的控制器，避免资源泄漏
         try {
           await _controller?.dispose();
         } catch (_) {}
         _controller = null;
-        // 递归调用自身以使用新的降级等级
         if (mounted) {
           await _initVideo();
         }
         return;
       }
+      // 三级降级都失败：标记最终错误状态
+      ref.read(playbackLevelProvider.notifier).setLevel(2);
       if (mounted) {
         setState(() {
           _initialized = false;
           _hasError = true;
           _errorMessage = '视频加载失败';
         });
+      }
+    }
+  }
+
+  // 运行时降级：初始化成功但播放过程中发生 error（解码失败、网络抖动等）
+  Future<void> _triggerRuntimeFallback() async {
+    if (_isFallbackInProgress) return;
+    if (_fallbackLevel >= 2) return;
+    _isFallbackInProgress = true;
+
+    // 记录当前播放进度，降级成功后 seek 回相同位置
+    int positionSeconds = 0;
+    try {
+      if (_controller != null && _controller!.value.isInitialized) {
+        positionSeconds = _controller!.value.position.inSeconds;
+      }
+    } catch (_) {}
+
+    final nextLevel = _fallbackLevel + 1;
+    debugPrint('运行时降级 $_fallbackLevel → $nextLevel (item=${widget.item.id})');
+
+    // 释放当前失败的 controller
+    try {
+      await _controller?.dispose();
+    } catch (_) {}
+    _controller = null;
+    _fallbackLevel = nextLevel;
+
+    final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
+    if (newUrl == null || newUrl.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = '无法获取播放地址';
+          _isFallbackInProgress = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final headers = widget.item.authHeaders(widget.token);
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(newUrl),
+        httpHeaders: headers,
+      );
+      // 新 controller 也注册降级监听器（再失败则继续降级）
+      _controller!.addListener(() {
+        if (!mounted) return;
+        if (_controller!.value.hasError &&
+            !_hasError &&
+            !_isFallbackInProgress &&
+            _fallbackLevel < 2) {
+          _triggerRuntimeFallback();
+          return;
+        }
+        if (_controller!.value.hasError && !_hasError) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = '播放出错';
+            _isFallbackInProgress = false;
+          });
+        }
+      });
+
+      _controller!.setLooping(widget.loop);
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw TimeoutException('视频降级初始化超时'),
+      );
+      // 降级成功：同步新的降级等级
+      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
+      // seek 回到失败前的播放位置，减少用户感知
+      if (positionSeconds > 0) {
+        try {
+          await _controller!.seekTo(Duration(seconds: positionSeconds));
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+          _hasError = false;
+          _isFallbackInProgress = false;
+        });
+        widget.onControllerReady?.call(_controller!);
+        if (widget.autoPlay) {
+          try {
+            await _controller!.play();
+          } catch (e) {
+            debugPrint('fallback autoPlay error: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('运行时降级失败: $e');
+      if (_fallbackLevel < 2) {
+        _isFallbackInProgress = false;
+        _triggerRuntimeFallback();
+      } else {
+        ref.read(playbackLevelProvider.notifier).setLevel(2);
+        if (mounted) {
+          setState(() {
+            _initialized = false;
+            _hasError = true;
+            _errorMessage = '视频播放失败';
+            _isFallbackInProgress = false;
+          });
+        }
       }
     }
   }

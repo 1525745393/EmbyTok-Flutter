@@ -134,11 +134,15 @@ class EmbyClient:
         offset: int = 0,
         sort: str = "SortName",
     ) -> dict:
-        """获取媒体项列表 GET /Items"""
+        """获取媒体项列表 GET /Items（与前端字段集保持一致：MediaSources,Path）"""
         params: Dict[str, Any] = {
             "Recursive": "true",
             "IncludeItemTypes": "Movie,Episode,Video",
-            "Fields": "Overview,Genres,CommunityRating,ProductionYear,RuntimeTicks",
+            "Fields": (
+                "Overview,Genres,People,CommunityRating,"
+                "ProductionYear,ImageTags,UserData,RuntimeTicks,"
+                "MediaSources,Path"
+            ),
             "SortBy": sort,
             "StartIndex": offset,
             "Limit": limit,
@@ -150,9 +154,13 @@ class EmbyClient:
         return await self._request("GET", "/Items", params=params)
 
     async def get_item(self, item_id: str) -> dict:
-        """获取单个媒体项详情 GET /Items/{item_id}"""
+        """获取单个媒体项详情 GET /Items/{item_id}（与前端字段集保持一致）"""
         params: Dict[str, Any] = {
-            "Fields": "Overview,Genres,CommunityRating,ProductionYear,RuntimeTicks,MediaStreams",
+            "Fields": (
+                "Overview,Genres,People,CommunityRating,"
+                "ProductionYear,ImageTags,UserData,RuntimeTicks,"
+                "MediaSources,Path,MediaStreams"
+            ),
         }
         if self.user_id:
             params["UserId"] = self.user_id
@@ -171,12 +179,15 @@ class EmbyClient:
         limit: int = 20,
         offset: int = 0,
     ) -> dict:
-        """搜索媒体项"""
+        """搜索媒体项（与前端字段集保持一致）"""
         params: Dict[str, Any] = {
             "SearchTerm": query,
             "IncludeItemTypes": "Movie,Episode,Video",
             "Recursive": "true",
-            "Fields": "Overview,Genres,CommunityRating,ProductionYear,RuntimeTicks",
+            "Fields": (
+                "Overview,Genres,People,CommunityRating,ProductionYear,"
+                "RuntimeTicks,MediaSources,Path"
+            ),
             "StartIndex": offset,
             "Limit": limit,
         }
@@ -212,22 +223,25 @@ class EmbyClient:
     # 收藏
     # ------------------------------------------------------------------
     async def get_favorites(self) -> dict:
-        """获取收藏列表"""
+        """获取收藏列表（与前端字段集保持一致）"""
         params: Dict[str, Any] = {
             "Recursive": "true",
             "Filters": "IsFavorite",
             "IncludeItemTypes": "Movie,Episode,Video",
-            "Fields": "Overview,Genres,CommunityRating,ProductionYear,RuntimeTicks",
+            "Fields": (
+                "Overview,Genres,People,CommunityRating,ProductionYear,"
+                "RuntimeTicks,MediaSources,Path,ImageTags,UserData"
+            ),
         }
         if self.user_id:
             params["UserId"] = self.user_id
         return await self._request("GET", "/Items", params=params)
 
     async def toggle_favorite(self, item_id: str, is_favorite: bool) -> dict:
-        """切换收藏状态"""
+        """切换收藏状态（与前端对齐：使用带 userId 的 /Users/{uid}/FavoriteItems/{id}）"""
         if not self.user_id:
             raise APIError(400, "需要先完成登录后才能操作收藏")
-        path = f"/UserItems/{self.user_id}/FavoriteItems/{item_id}"
+        path = f"/Users/{self.user_id}/FavoriteItems/{item_id}"
         method = "POST" if is_favorite else "DELETE"
         return await self._request(method, path)
 

@@ -1,4 +1,7 @@
 // 视频流页面：竖向全屏滑动 + 顶部媒体库切换 + 分页加载 + 键盘快捷键 + 视图切换
+// 新增：跨设备续播（通过 Emby DisplayPreferences 接口与其它设备/EmbyX 共享续播书签）
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/embbytok_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/keyboard_shortcuts.dart';
+import '../utils/logger.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
@@ -24,6 +29,11 @@ class _FeedViewState extends ConsumerState<FeedView>
   late PageController _pageController;
   bool _showHelp = false; // 快捷键帮助面板显示状态
 
+  // 云同步（跨设备续播）相关
+  final EmbytokService _cloudService = EmbytokService();
+  MediaItem? _lastReportedItem;
+  bool _cloudSyncChecked = false;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -33,6 +43,15 @@ class _FeedViewState extends ConsumerState<FeedView>
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
     // 注册全局键盘监听
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+    // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
+        _saveCloudSyncIfNeeded(next);
+      });
+    });
+    // 跨设备续播：进入页面时检查其它设备是否存在续播信息
+    _checkCloudSyncOnStartup();
   }
 
   @override
@@ -40,6 +59,99 @@ class _FeedViewState extends ConsumerState<FeedView>
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
     super.dispose();
+  }
+
+  // ========== 跨设备续播云同步 ==========
+
+  // 启动时尝试拉取 DisplayPreferences 中的 "EmbyTok-Resume" 信息
+  Future<void> _checkCloudSyncOnStartup() async {
+    try {
+      final auth = ref.read(authProvider);
+      if (!auth.isAuthenticated ||
+          auth.embyServerUrl == null ||
+          auth.token == null) {
+        return;
+      }
+      final data = await _cloudService.checkCloudSync(
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
+      );
+      if (data == null || data.isEmpty) return;
+      final lastId = data['lastId'] as String?;
+      final deviceName = (data['deviceName'] as String?) ?? '其他设备';
+      _cloudSyncChecked = true;
+      if (lastId == null || lastId.isEmpty) return;
+      // 是否与当前条目相同
+      final current = ref.read(currentPlayingItemProvider);
+      if (current != null && current.id == lastId) return;
+      // 在 UI 上展示：SnackBar 提示
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 6),
+          content: Text('从$deviceName 续播：继续播放此视频？'),
+          action: SnackBarAction(
+            label: '跳转',
+            onPressed: () {
+              _seekToItem(lastId);
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      AppLogger.debug('云同步检查失败', data: {'error': e.toString()});
+    }
+  }
+
+  // 切换条目时：保存旧条目到云端，作为续播书签
+  void _saveCloudSyncIfNeeded(MediaItem? newItem) {
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) return;
+    final oldItem = _lastReportedItem;
+    _lastReportedItem = newItem;
+    if (oldItem == null) return;
+    if (newItem != null && oldItem.id == newItem.id) return;
+    // 异步 save，避免阻塞 UI
+    unawaited(
+      _cloudService.saveCloudSync(
+        itemId: oldItem.id,
+        libraryId: _currentLibraryId(),
+        libraryType: '',
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
+      ),
+    );
+  }
+
+  // 工具：当前媒体库 ID（未选则为空字符串）
+  String _currentLibraryId() {
+    try {
+      final libs = ref.read(libraryListProvider);
+      if (!libs.hasValue || libs.value!.isEmpty) return '';
+      // 拿第一个 libraryId（简化版；若有多个可以通过 selectedLibraryIdProvider 获取）
+      final selected = ref.watch(selectedLibraryIdProvider);
+      return selected?.id ?? libs.value!.first.id;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  // 根据 itemId 跳到对应视频（简单版：在 items 线性查找）
+  void _seekToItem(String itemId) {
+    final items = ref.read(videoListProvider).items;
+    if (items.isEmpty) return;
+    final idx = items.indexWhere((item) => item.id == itemId);
+    if (idx < 0) return;
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        idx,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   // 键盘快捷键处理

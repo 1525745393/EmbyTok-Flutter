@@ -19,7 +19,6 @@ class MediaItem {
   final double? communityRating;        // 社区评分（1-10）
   final double? rating;                 // 兼容字段，与 communityRating 同义
   final int? year;                      // 兼容字段，与 productionYear 同义
-
   // 类型/演员/工作室
   final List<String>? genres;
   final List<String>? genreNames;
@@ -38,6 +37,7 @@ class MediaItem {
   // 播放
   final List<MediaSource>? mediaSources;
   final String? playbackUrl;            // 兼容字段
+  final int playbackLevel;              // 当前播放降级等级：0=DirectPlay,1=DirectStream,2=HLS（瞬时字段，不参与序列化）
 
   // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
   final Map<String, dynamic>? rawJson;
@@ -67,6 +67,7 @@ class MediaItem {
     this.isFavorite,
     this.mediaSources,
     this.playbackUrl,
+    this.playbackLevel = 0,
     this.rawJson,
   });
 
@@ -390,6 +391,7 @@ class MediaItem {
     bool? isFavorite,
     List<MediaSource>? mediaSources,
     String? playbackUrl,
+    int? playbackLevel,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -416,6 +418,7 @@ class MediaItem {
       isFavorite: isFavorite ?? this.isFavorite,
       mediaSources: mediaSources ?? this.mediaSources,
       playbackUrl: playbackUrl ?? this.playbackUrl,
+      playbackLevel: playbackLevel ?? this.playbackLevel,
     );
   }
 }

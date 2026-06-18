@@ -21,7 +21,26 @@ final currentIndexProvider = StateProvider<int>((ref) => 0);
 // 是否全屏播放
 final isFullscreenProvider = StateProvider<bool>((ref) => false);
 
-// 播放倍速：1.0 / 1.25 / 1.5 / 2.0
+// 当前播放的降级等级：0=DirectPlay，1=DirectStream，2=HLS
+// 在 VideoPlayerWidget 内成功切换播放 URL 时更新
+class PlaybackLevelNotifier extends StateNotifier<int> {
+  PlaybackLevelNotifier() : super(0);
+
+  void setLevel(int level) {
+    if (level >= 0 && level <= 2) state = level;
+  }
+
+  void reset() {
+    state = 0;
+  }
+}
+
+final playbackLevelProvider =
+    StateNotifierProvider<PlaybackLevelNotifier, int>(
+  (ref) => PlaybackLevelNotifier(),
+);
+
+// 当前播放倍速：1.0 / 1.25 / 1.5 / 2.0
 final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
 // 当前选中的字幕（字幕语言或轨道 ID，null 表示关闭）

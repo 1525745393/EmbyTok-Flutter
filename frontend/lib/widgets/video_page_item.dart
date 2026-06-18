@@ -1,7 +1,7 @@
 // 视频流单页：全屏视频 + 右侧操作按钮 + 左下角标题信息
-// 采用 GestureOverlay 处理手势交互（单击/双击/长按/水平拖动）
-// 新增：视频切换渐入动画（200ms fade-in）
-// 新增：TikTok 风格播放体验（横屏全屏、控制层、细线进度条、中央播放按钮）
+// 新增：完整 Emby 播放上报链（reportCapabilities / reportPlaybackStart /
+//       reportPlaybackPosition / reportPlaybackStopped），保持与 EmbyX 的
+//       服务端统计对齐。
 
 import 'dart:async';
 
@@ -12,8 +12,10 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/embbytok_service.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
@@ -36,6 +38,16 @@ class VideoPageItem extends ConsumerStatefulWidget {
 class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   VideoPlayerController? _videoController;
 
+  // --- 播放上报相关 ---
+  final EmbytokService _service = EmbytokService();
+  Timer? _progressTimer;
+  String? _playSessionId;
+  bool _hasStartedReported = false;
+  bool _capabilitiesReported = false;
+  DateTime _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
+  // 节流距离：至少 5 秒 / 3 秒内不同时上报（避免网络波动下的冗余请求）
+  static const _progressReportMinSeconds = 4;
+
   // 横屏全屏沉浸模式状态
   bool _isFullscreen = false;
 
@@ -48,18 +60,138 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   void dispose() {
-    // 清理计时器
+    // 1. 停止并清理播放进度上报定时器
+    _progressTimer?.cancel();
+    _progressTimer = null;
+    // 2. 上报播放停止（带上当前播放位置
+    if (_hasStartedReported) {
+      _reportPlaybackStopped();
+    }
+    // 3. 清理计时器
     _controlsHideTimer?.cancel();
-    // 退出时恢复竖屏方向（避免横屏状态残留）
+    // 4. 退出时恢复竖屏方向（避免横屏状态残留）
     if (_isFullscreen) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
-    // 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
+    // 5. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-    // 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
+    // 6. 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
     _videoController?.dispose();
     _videoController = null;
+    // 7. 重置会话状态（用于下次进入重新生成新的播放会话）
+    _capabilitiesReported = false;
+    _hasStartedReported = false;
+    _playSessionId = null;
     super.dispose();
+  }
+
+  // ========== 播放上报链方法 ==========
+
+  // 生成播放会话 ID：时间戳 + 随机数（不依赖 uuid 包）
+  String _newPlaySessionId() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    return 'emb-flutter-$now';
+  }
+
+  // 根据当前降级等级判断 PlayMethod（0/1 → DirectPlay，2 → Transcode）
+  String _playMethodFromLevel(int level) {
+    return level >= 2 ? 'Transcode' : 'DirectPlay';
+  }
+
+  // 首次进入播放前上报设备能力（整个 app 生命周期内只需要一次，但按 item 维度也可）
+  void _ensureCapabilitiesReported() {
+    if (_capabilitiesReported) return;
+    _capabilitiesReported = true;
+    unawaited(_service.reportCapabilities(
+      serverUrl: _authServerUrl(),
+      token: _authToken(),
+    ));
+  }
+
+  // 播放开始：记录播放 URL 和 itemId / session
+  void _reportPlaybackStart() {
+    if (_hasStartedReported) return;
+    _hasStartedReported = true;
+    _playSessionId = _newPlaySessionId();
+    final level = ref.read(playbackLevelProvider);
+    final method = _playMethodFromLevel(level);
+    unawaited(_service.reportPlaybackStart(
+      itemId: widget.item.id,
+      mediaSourceId: widget.item.id,
+      playSessionId: _playSessionId!,
+      playMethod: method,
+      serverUrl: _authServerUrl(),
+      token: _authToken(),
+    ));
+  }
+
+  // 定时进度上报（节流版）
+  void _reportPlaybackProgress({bool isPauseEvent = false}) {
+    final now = DateTime.now();
+    if (!isPauseEvent) {
+      final delta = now.difference(_lastProgressReport);
+      if (delta.inSeconds < _progressReportMinSeconds) return;
+    }
+    _lastProgressReport = now;
+    final controller = _videoController;
+    final position = controller?.value.position;
+    final positionSeconds = position?.inSeconds ?? 0;
+    final positionTicks = positionSeconds * 10000000;
+    final isPaused = controller != null && !controller.value.isPlaying;
+    final volume = controller?.value.volume;
+    final volumeLevel = volume != null ? (volume * 100).round() : null;
+    final level = ref.read(playbackLevelProvider);
+    final method = _playMethodFromLevel(level);
+    unawaited(_service.reportPlaybackPosition(
+      itemId: widget.item.id,
+      positionTicks: positionTicks,
+      mediaSourceId: widget.item.id,
+      playSessionId: _playSessionId,
+      isPaused: isPaused,
+      volumeLevel: volumeLevel,
+      playMethod: method,
+      eventName: isPauseEvent ? 'Pause' : 'TimeUpdate',
+      serverUrl: _authServerUrl(),
+      token: _authToken(),
+    ));
+  }
+
+  // 播放停止
+  void _reportPlaybackStopped() {
+    final controller = _videoController;
+    final position = controller?.value.position;
+    final positionTicks = position != null
+        ? (position.inSeconds * 10000000)
+        : 0;
+    unawaited(_service.reportPlaybackStopped(
+      itemId: widget.item.id,
+      positionTicks: positionTicks,
+      mediaSourceId: widget.item.id,
+      playSessionId: _playSessionId,
+      serverUrl: _authServerUrl(),
+      token: _authToken(),
+    ));
+    _hasStartedReported = false;
+  }
+
+  // 启动进度上报定时器（周期 5 秒，内部再做 _reportPlaybackProgress(）
+  void _startProgressTimer() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted) return;
+      _reportPlaybackProgress();
+    });
+  }
+
+  // ========== 认证辅助 ==========
+  String? _authServerUrl() {
+    final auth = ref.watch(authProvider);
+    return auth.embyServerUrl;
+  }
+
+  String? _authToken() {
+    final auth = ref.watch(authProvider);
+    return auth.token;
   }
 
   // 切换横屏全屏沉浸模式
@@ -169,6 +301,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                     widget.item;
                 // 标记为 ready：触发 AnimatedOpacity 渐显
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                // ===== 播放上报链 =====
+                // 1. 上报能力（仅一次）
+                _ensureCapabilitiesReported();
+                // 2. 上报播放开始
+                _reportPlaybackStart();
+                // 3. 启动周期进度上报（5 秒一次）
+                _startProgressTimer();
+                // 4. 监听播放状态：暂停时额外触发一次暂停事件上报
+                c.addListener(() {
+                  if (!mounted) return;
+                  if (!c.value.isPlaying) {
+                    _reportPlaybackProgress(isPauseEvent: true);
+                  }
+                });
               },
             ),
           ),

@@ -645,7 +645,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 切换收藏状态
+  // 切换收藏状态（带 userId 端点，与 EmbyX 对齐）
   // ============================
   Future<void> toggleFavorite({
     required String itemId,
@@ -658,10 +658,16 @@ class EmbytokService {
       'isFavorite': isFavorite,
     });
     _ensureConfig(serverUrl, token);
+    // 使用带 userId 端点：/Users/{userId}/FavoriteItems/{itemId}
+    // 无 userId 时回退到无 userId 的短路径
+    final uid = _defaultUserId ?? '';
+    final path = uid.isNotEmpty
+        ? '/Users/$uid/FavoriteItems/$itemId'
+        : '/UserFavoriteItems/$itemId';
     if (isFavorite) {
-      await _apiClient.post<dynamic>('/UserFavoriteItems/$itemId');
+      await _apiClient.post<dynamic>(path);
     } else {
-      await _apiClient.delete<dynamic>('/UserFavoriteItems/$itemId');
+      await _apiClient.delete<dynamic>(path);
     }
     AppLogger.debug('收藏状态已更新');
   }
@@ -788,14 +794,19 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    await _apiClient.post<dynamic>(
-      '/Sessions/Capabilities/Full',
-      data: {
-        'PlayableMediaTypes': ['Video'],
-        'SupportsMediaControl': true,
-        'SupportsPersistentConnections': false,
-      },
-    );
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Capabilities/Full',
+        data: {
+          'PlayableMediaTypes': ['Video'],
+          'SupportsMediaControl': true,
+          'SupportsPersistentConnections': false,
+        },
+      );
+    } catch (e) {
+      // 上报失败不中断播放：仅记录日志，不抛到 UI 层
+      AppLogger.debug('上报播放能力失败', data: {'error': e.toString()});
+    }
   }
 
   // 上报播放开始
@@ -811,6 +822,8 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    // 未传 playSessionId 时自动生成（时间戳 + 短随机数，不依赖 uuid 包）
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': 0,
@@ -820,14 +833,18 @@ class EmbytokService {
       'EventName': 'TimeUpdate',
       'CanSeek': true,
       'QueueableMediaTypes': ['Video'],
-      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-      if (playSessionId != null) 'PlaySessionId': playSessionId,
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
       if (volumeLevel != null) 'VolumeLevel': volumeLevel,
     };
-    await _apiClient.post<dynamic>(
-      '/Sessions/Playing',
-      data: body,
-    );
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Playing',
+        data: body,
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放开始失败', data: {'error': e.toString()});
+    }
   }
 
   Future<void> reportPlaybackPosition({
@@ -848,6 +865,7 @@ class EmbytokService {
       'positionTicks': positionTicks,
     });
     _ensureConfig(serverUrl, token);
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': positionTicks,
@@ -857,14 +875,18 @@ class EmbytokService {
       'EventName': eventName,
       'CanSeek': true,
       'QueueableMediaTypes': ['Video'],
-      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-      if (playSessionId != null) 'PlaySessionId': playSessionId,
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
       if (volumeLevel != null) 'VolumeLevel': volumeLevel,
     };
-    await _apiClient.post<dynamic>(
-      '/Sessions/Playing/Progress',
-      data: body,
-    );
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Playing/Progress',
+        data: body,
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放进度失败', data: {'error': e.toString()});
+    }
   }
 
   Future<void> reportPlaybackStopped({
@@ -880,16 +902,21 @@ class EmbytokService {
       'positionTicks': positionTicks,
     });
     _ensureConfig(serverUrl, token);
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
     final body = <String, dynamic>{
       'ItemId': itemId,
       'PositionTicks': positionTicks,
-      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-      if (playSessionId != null) 'PlaySessionId': playSessionId,
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
     };
-    await _apiClient.post<dynamic>(
-      '/Sessions/Playing/Stopped',
-      data: body,
-    );
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Playing/Stopped',
+        data: body,
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放停止失败', data: {'error': e.toString()});
+    }
   }
 
   // ============================
@@ -1135,6 +1162,13 @@ class EmbytokService {
   // ============================
   // 内部辅助方法
   // ============================
+
+  // 生成播放会话 ID：时间戳 + 短随机数，不依赖 uuid 包
+  String _generatePlaySessionId() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    final rand = (now & 0xFFFF).toRadixString(16);
+    return 'emb-$now-$rand';
+  }
 
   // 确保 API client 已配置 serverUrl 和 token
   void _ensureConfig(String? serverUrl, String? token) {
