@@ -1,3 +1,17 @@
+# [1.18.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.17.0...v1.18.0) (2026-06-18)
+
+
+### Bug Fixes
+
+* 修复 CI 中 flutter analyze 的 4 个错误（favResp.items/total getter、Icons.autoplay 图标不存在） ([5b6b216](https://github.com/1525745393/EmbyTok-Flutter/commit/5b6b216c6283d483383f6535f1c14ac8fc1098ab))
+
+
+### Features
+
+* 检查 EmbyX 对接 Emby 服务器 ([033adfd](https://github.com/1525745393/EmbyTok-Flutter/commit/033adfdb8f1540cf7f3f02e557a5aa94dd0f7e91))
+* 检查 EmbyX 对接 Emby 服务器 ([05a17d7](https://github.com/1525745393/EmbyTok-Flutter/commit/05a17d798abf5041a983d885b83a6ff5498b7d99))
+* 检查 EmbyX 对接 Emby 服务器 ([64388af](https://github.com/1525745393/EmbyTok-Flutter/commit/64388af51e495de6ad501a57ae5de94caf72b06e))
+
 # [1.17.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.16.0...v1.17.0) (2026-06-18)
 
 
