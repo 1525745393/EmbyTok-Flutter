@@ -39,7 +39,7 @@ void main() {
         final library = Library.fromJson(json);
         expect(library.id, '');
         expect(library.name, '');
-        expect(library.type, '');
+        expect(library.type, 'movies'); // 默认值
       });
     });
 

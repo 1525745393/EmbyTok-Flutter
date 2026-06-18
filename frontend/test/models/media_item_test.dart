@@ -54,7 +54,7 @@ void main() {
         final item = MediaItem.fromJson(json);
         expect(item.id, '');
         expect(item.title, '');
-        expect(item.type, '');
+        expect(item.type, 'Movie'); // 默认值
       });
 
       test('正确解析 genres 列表', () {

@@ -37,6 +37,10 @@ class _HeartAnimationState extends State<HeartAnimation>
     _scale = Tween<double>(begin: 1.0, end: widget.scale).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
+    // 如果初始 visible 为 true，立即启动动画
+    if (widget.visible) {
+      _controller.forward();
+    }
   }
 
   @override
