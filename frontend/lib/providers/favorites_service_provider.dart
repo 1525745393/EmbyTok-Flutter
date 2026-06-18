@@ -29,6 +29,7 @@ class FavoritesService {
     final results = await _service.searchItems(
       playlist,
       includeTypes: ['Playlist'],
+      userId: _auth.user?.id,
       serverUrl: _auth.embyServerUrl!,
       token: _auth.token!,
       limit: 10,
@@ -119,6 +120,7 @@ class FavoritesService {
     final results = await _service.searchItems(
       _playlistName(libraryName),
       includeTypes: ['Playlist'],
+      userId: _auth.user?.id,
       serverUrl: _auth.embyServerUrl!,
       token: _auth.token!,
       limit: 5,

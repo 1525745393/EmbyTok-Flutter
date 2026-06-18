@@ -109,6 +109,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         targetLibraryId,
         limit: state.limit,
         offset: 0,
+        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );
@@ -156,6 +157,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         targetLibraryId,
         limit: state.limit,
         offset: state.offset,
+        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );

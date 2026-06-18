@@ -58,6 +58,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   static const int _controlsAutoHideSeconds = 3;
 
   @override
+  void initState() {
+    super.initState();
+    // 预加载收藏状态：确保即便用户从未打开 FavoritesView 页面，
+    // 心形/星形图标也能反映服务器的收藏状态
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(favoritesProvider.notifier).ensureLoaded();
+    });
+  }
+
+  @override
   void dispose() {
     // 1. 停止并清理播放进度上报定时器
     _progressTimer?.cancel();

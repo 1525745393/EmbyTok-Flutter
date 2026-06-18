@@ -148,6 +148,7 @@ class EmbytokService {
     String libraryId, {
     int limit = 20,
     int offset = 0,
+    String? userId,       // 显式传参：优先使用外部传入的 userId
     String? serverUrl,
     String? token,
   }) async {
@@ -170,8 +171,8 @@ class EmbytokService {
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
     };
 
-    // 使用用户视图路径：/Users/{userId}/Items，确保用户视图权限被正确应用
-    final effectiveUserId = _defaultUserId;
+    // 优先使用显式传入的 userId，回退到登录时保存的
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -193,6 +194,7 @@ class EmbytokService {
   // ============================
   Future<MediaItem> getItemDetail(
     String itemId, {
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -205,7 +207,7 @@ class EmbytokService {
               'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items/$itemId'
         : '/Items/$itemId';
@@ -272,6 +274,7 @@ class EmbytokService {
     int limit = 20,
     int offset = 0,
     String? libraryId,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -289,8 +292,8 @@ class EmbytokService {
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo',
     };
 
-    // 使用用户视图路径：/Users/{userId}/Items/Latest，与 EmbyX 一致
-    final effectiveUserId = _defaultUserId;
+    // 优先使用显式传入的 userId
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items/Latest'
         : '/Items/Latest';
@@ -350,6 +353,7 @@ class EmbytokService {
   Future<List<Person>> getPeople({
     int limit = 50,
     List<String>? personTypes,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -363,9 +367,8 @@ class EmbytokService {
       'Fields': 'PrimaryImageTag,Overview',
     };
 
-    // 使用用户视图路径：/Users/{userId}/Items（/Persons 全局端点也有效，
-    // 但统一用户路径以确保权限视图一致）
-    final effectiveUserId = _defaultUserId;
+    // 优先使用显式传入的 userId
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Persons';
@@ -408,6 +411,7 @@ class EmbytokService {
     String personId, {
     int limit = 30,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -421,7 +425,7 @@ class EmbytokService {
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -470,6 +474,7 @@ class EmbytokService {
     String genre, {
     int limit = 30,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -483,7 +488,7 @@ class EmbytokService {
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -532,6 +537,7 @@ class EmbytokService {
     String studio, {
     int limit = 30,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -545,7 +551,7 @@ class EmbytokService {
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -563,6 +569,7 @@ class EmbytokService {
   Future<List<MediaItem>> getFavorites({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -580,7 +587,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -604,6 +611,7 @@ class EmbytokService {
   Future<List<MediaItem>> getFavoriteMovies({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -621,7 +629,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -645,6 +653,7 @@ class EmbytokService {
   Future<List<MediaItem>> getFavoriteBoxSets({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -661,7 +670,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -685,6 +694,7 @@ class EmbytokService {
   Future<List<MediaItem>> getFavoritePeople({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -701,7 +711,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -725,20 +735,23 @@ class EmbytokService {
   Future<void> toggleFavorite({
     required String itemId,
     required bool isFavorite,
+    String? userId,          // 显式传参：优先使用外部传入的 userId
     String? serverUrl,
     String? token,
   }) async {
     AppLogger.debug('切换收藏状态请求', data: {
       'itemId': itemId,
       'isFavorite': isFavorite,
+      'userId': userId ?? _defaultUserId,
     });
     _ensureConfig(serverUrl, token);
-    // 使用带 userId 端点：/Users/{userId}/FavoriteItems/{itemId}
-    // 无 userId 时回退到无 userId 的短路径
-    final uid = _defaultUserId ?? '';
-    final path = uid.isNotEmpty
-        ? '/Users/$uid/FavoriteItems/$itemId'
-        : '/UserFavoriteItems/$itemId';
+    // 优先使用显式传入的 userId；回退到登录时保存的 _defaultUserId
+    // 若两者都为空则抛出错误，而不是静默使用可能失效的短路径
+    final uid = userId ?? _defaultUserId;
+    if (uid == null || uid.isEmpty) {
+      throw '无法切换收藏：userId 为空。请确保已登录。';
+    }
+    final path = '/Users/$uid/FavoriteItems/$itemId';
     if (isFavorite) {
       await _apiClient.post<dynamic>(path);
     } else {
@@ -829,6 +842,7 @@ class EmbytokService {
   Future<PaginatedResponse<MediaItem>> getTrailers({
     int limit = 30,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -842,7 +856,7 @@ class EmbytokService {
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -1005,6 +1019,7 @@ class EmbytokService {
   // ============================
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -1019,7 +1034,7 @@ class EmbytokService {
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -1087,6 +1102,7 @@ class EmbytokService {
     int limit = 30,
     int offset = 0,
     List<String>? includeTypes,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -1113,7 +1129,7 @@ class EmbytokService {
       if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
     };
 
-    final effectiveUserId = _defaultUserId;
+    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
