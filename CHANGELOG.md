@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.26.0...v1.27.0) (2026-06-19)
+
+
+### Features
+
+* 演员头像按钮（TikTok 风格） ([a23e14f](https://github.com/1525745393/EmbyTok-Flutter/commit/a23e14fce72df43d8ab0b9f5c0a07d8144387c83))
+
 # [1.26.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.25.1...v1.26.0) (2026-06-19)
 
 
