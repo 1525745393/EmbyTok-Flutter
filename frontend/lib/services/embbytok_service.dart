@@ -708,7 +708,7 @@ class EmbytokService {
     // 使用带 userId 端点：/Users/{userId}/FavoriteItems/{itemId}
     // 无 userId 时回退到无 userId 的短路径
     final effectiveUserId = userId ?? _defaultUserId;
-    final path = effectiveUserId.isNotEmpty
+    final path = (effectiveUserId ?? '').isNotEmpty
         ? '/Users/$effectiveUserId/FavoriteItems/$itemId'
         : '/UserFavoriteItems/$itemId';
     if (isFavorite) {
