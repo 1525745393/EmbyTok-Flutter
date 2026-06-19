@@ -539,6 +539,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         // 右侧渐变 + 操作按钮（横屏全屏模式或纯净模式下隐藏）
         if (!_isFullscreen && !isAutoPlay) _buildRightActions(favorited),
 
+        // 纯净模式下显示简化的右侧按钮区（仅连播开关 + 倍速按钮）
+        if (!_isFullscreen && isAutoPlay) _buildCleanModeRightActions(),
+
         // 横屏全屏模式下显示退出按钮（右上角）
         if (_isFullscreen) _buildExitFullscreenButton(),
 
@@ -918,6 +921,27 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             _buildActionButton(Icons.mode_comment_outlined, '评论', onTap: () {}),
             const SizedBox(height: 20),
             _buildActionButton(Icons.share, '分享', onTap: () {}),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 纯净模式下的右侧按钮区：仅保留连播开关和倍速调节
+  Widget _buildCleanModeRightActions() {
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      child: Container(
+        width: 96,
+        padding: const EdgeInsets.only(right: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildAutoPlayButton(),
+            const SizedBox(height: 20),
+            _buildSpeedControlButton(),
           ],
         ),
       ),
