@@ -266,6 +266,14 @@ class _FeedViewState extends ConsumerState<FeedView>
       case LogicalKeyboardKey.keyM:
         _toggleMute();
         return true;
+      case LogicalKeyboardKey.keyN:
+        // 下一集（剧集类内容）
+        _jumpToNextEpisodeFromCurrent();
+        return true;
+      case LogicalKeyboardKey.keyP:
+        // 上一集（剧集类内容）—— 回退到上一条视频
+        _goToPreviousVideo();
+        return true;
       case LogicalKeyboardKey.slash:
         // 按 / 显示帮助面板
         setState(() => _showHelp = !_showHelp);
@@ -524,6 +532,13 @@ class _FeedViewState extends ConsumerState<FeedView>
         );
       },
     );
+  }
+
+  // 从当前播放位置触发下一集跳转（键盘 N 键调用）
+  void _jumpToNextEpisodeFromCurrent() {
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isEmpty) return;
+    _jumpToNextEpisode(videoState.items, _currentIndex);
   }
 
   // 在 videoState.items 中查找当前 item 的下一集（同 series 的更大 indexNumber）

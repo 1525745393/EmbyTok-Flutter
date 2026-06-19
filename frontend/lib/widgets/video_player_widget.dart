@@ -145,6 +145,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _hasError = false;
           });
           widget.onControllerReady?.call(_controller!);
+          _autoLoadDefaultSubtitle();
           if (widget.autoPlay) {
             try {
               await _controller!.play();
@@ -217,6 +218,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
         });
         widget.onControllerReady?.call(_controller!);
+        _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
             await _controller!.play();
@@ -336,6 +338,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _isFallbackInProgress = false;
         });
         widget.onControllerReady?.call(_controller!);
+        _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
             await _controller!.play();
@@ -515,11 +518,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final embService = ref.read(embbytokServiceProvider);
     // 注入当前认证信息（确保字幕请求头包含 Token）
     final authState = ref.read(authProvider);
-    if (authState.serverUrl != null && authState.token != null) {
+    if (authState.embyServerUrl != null && authState.token != null) {
       embService.setupAuth(
-        serverUrl: authState.serverUrl!,
-        token: authState.token!,
-        userId: authState.userId,
+        embyServerUrl: authState.embyServerUrl!,
+        apiKey: authState.token!,
+        userId: authState.user?.id,
       );
     }
     final cues = await embService.getSubtitleCues(
@@ -533,6 +536,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _isLoadingSubtitle = false;
       });
     }
+  }
+
+  // 自动加载默认字幕轨道（controller 就绪后调用）
+  // 策略：用户未手动选择时，自动选中 isDefault 或第一个字幕轨道
+  void _autoLoadDefaultSubtitle() {
+    final currentSelected = ref.read(selectedSubtitleProvider);
+    // 用户已手动选择过，不自动覆盖
+    if (currentSelected != null) return;
+    final tracks = widget.item.subtitleTracks;
+    if (tracks.isEmpty) return;
+    // 优先选择 isDefault 的轨道，否则选第一个
+    final defaultTrack = tracks.firstWhere(
+      (t) => t.isDefault,
+      orElse: () => tracks.first,
+    );
+    ref.read(selectedSubtitleProvider.notifier).state = defaultTrack.id;
+    // _loadSubtitle 会通过 ref.listen 自动触发
   }
 
   // 缩略图占位：web 环境或无播放地址时使用

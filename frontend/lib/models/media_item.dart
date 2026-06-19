@@ -290,9 +290,11 @@ class MediaItem {
       for (final stream in source.subtitleStreams) {
         tracks.add(SubtitleTrack(
           id: stream.index.toString(),
-          name: stream.displayTitle,
-          language: stream.language,
-          format: stream.codec,
+          name: stream.displayTitle ?? '',
+          language: stream.language ?? '',
+          format: stream.codec ?? '',
+          isDefault: stream.isDefault,
+          isForced: stream.isForced,
         ));
       }
     }
