@@ -17,6 +17,7 @@ import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
+import '../widgets/tv_focusable.dart';
 import '../widgets/video_page_item.dart';
 
 class FeedView extends ConsumerStatefulWidget {
@@ -615,8 +616,11 @@ class _FeedViewState extends ConsumerState<FeedView>
             itemBuilder: (context, index) {
               final lib = libraries[index];
               final isSelected = lib.id == selectedId;
-              return GestureDetector(
+              return TvFocusable(
                 onTap: () => _selectLibrary(lib),
+                borderRadius: 20,
+                borderWidth: 2,
+                autofocus: index == 0 && selectedId == null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(

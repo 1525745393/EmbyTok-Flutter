@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import 'tv_focusable.dart';
 import 'video_page_item.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
@@ -63,7 +64,7 @@ class _PosterCard extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
-    return GestureDetector(
+    return TvFocusable(
       onTap: () {
         // 点击海报进入视频播放
         Navigator.of(context).push(MaterialPageRoute(
@@ -73,6 +74,8 @@ class _PosterCard extends ConsumerWidget {
           ),
         ));
       },
+      borderRadius: 8,
+      borderWidth: 2,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Stack(

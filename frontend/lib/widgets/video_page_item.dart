@@ -900,6 +900,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 }
 
 /// 带按下缩放动画的按钮（内部 Stateful 管理自己的按下状态）
+/// 支持 TV 遥控器焦点高亮：获得焦点时显示粉色圆角边框 + 缩放 1.05
 class _PressableActionButton extends StatefulWidget {
   final IconData icon;
   final String label;
@@ -919,43 +920,97 @@ class _PressableActionButton extends StatefulWidget {
 
 class _PressableActionButtonState extends State<_PressableActionButton> {
   bool _pressed = false;
+  late final FocusNode _focusNode;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode(debugLabel: 'ActionButton_${widget.label}');
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    final focused = _focusNode.hasFocus;
+    if (_isFocused != focused) {
+      setState(() {
+        _isFocused = focused;
+      });
+    }
+  }
+
+  // D-pad 确认键处理
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      widget.onTap?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 120);
-    return GestureDetector(
-      onTapDown: (_) {
-        if (mounted) setState(() => _pressed = true);
-      },
-      onTapUp: (_) {
-        if (mounted) setState(() => _pressed = false);
-        widget.onTap?.call();
-      },
-      onTapCancel: () {
-        if (mounted) setState(() => _pressed = false);
-      },
-      child: AnimatedScale(
-        scale: _pressed ? 0.8 : 1.0,
-        duration: duration,
-        curve: Curves.easeOut,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              widget.icon,
-              color: widget.color,
-              size: 32,
+    // 焦点缩放优先级高于按下缩放
+    final scale = _isFocused ? 1.05 : (_pressed ? 0.8 : 1.0);
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: _onKeyEvent,
+      child: GestureDetector(
+        onTapDown: (_) {
+          if (mounted) setState(() => _pressed = true);
+        },
+        onTapUp: (_) {
+          if (mounted) setState(() => _pressed = false);
+          widget.onTap?.call();
+        },
+        onTapCancel: () {
+          if (mounted) setState(() => _pressed = false);
+        },
+        child: AnimatedScale(
+          scale: scale,
+          duration: duration,
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: duration,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: _isFocused
+                  ? Border.all(color: primaryPink, width: 2)
+                  : Border.all(color: Colors.transparent, width: 2),
             ),
-            const SizedBox(height: 4),
-            Text(
-              widget.label,
-              style: const TextStyle(
-                color: textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  widget.icon,
+                  color: widget.color,
+                  size: 32,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
