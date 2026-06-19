@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.25.0...v1.25.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* 播放模式切换和唱片按钮功能修复 ([bb73485](https://github.com/1525745393/EmbyTok-Flutter/commit/bb73485f624b7624ef087608fc256ecabfdd3671))
+
 # [1.25.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.24.0...v1.25.0) (2026-06-19)
 
 
