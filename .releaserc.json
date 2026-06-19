@@ -12,7 +12,7 @@
     [
       "@semantic-release/exec",
       {
-        "verifyConditionsCmd": "cd frontend && flutter pub get && flutter analyze --no-pub lib | (grep '^   error' && exit 1 || true)",
+        "verifyConditionsCmd": "cd frontend && flutter pub get && flutter analyze --no-pub",
         "prepareCmd": "BUILD_NUM=$(echo ${nextRelease.version} | tr -d '.' | sed 's/^0*//') && echo \"BUILD_NUM=$BUILD_NUM\" && sed -i \"s/^version: .*/version: ${nextRelease.version}+$BUILD_NUM/\" frontend/pubspec.yaml && cat frontend/pubspec.yaml | grep '^version:'",
         "publishCmd": "mkdir -p frontend/android/app && echo \"$ANDROID_KEYSTORE\" | base64 -d > frontend/android/app/embbytok-keystore.jks && printf 'storePassword=%s\\nkeyPassword=%s\\nkeyAlias=%s\\nstoreFile=%s\\n' \"$ANDROID_KEYSTORE_PWD\" \"$ANDROID_KEY_PWD\" \"$ANDROID_KEY_ALIAS\" \"$(pwd)/frontend/android/app/embbytok-keystore.jks\" > frontend/android/key.properties && cd frontend && flutter build apk --release --split-per-abi && flutter build appbundle --release"
       }

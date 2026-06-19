@@ -39,7 +39,7 @@ jobs:
         working-directory: frontend
 
       - name: 代码分析
-        run: flutter analyze --no-pub lib | (grep '^   error' && exit 1 || true)
+        run: flutter analyze --no-pub
         working-directory: frontend
 
       - name: 运行测试
