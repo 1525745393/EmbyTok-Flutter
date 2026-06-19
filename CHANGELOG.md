@@ -1,3 +1,10 @@
+## [1.28.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.2...v1.28.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 修复 video_page_item.dart 第 1248 行 imageUrl 调用语法错误，将位置参数改为命名参数 primaryUrl ([b34d7f1](https://github.com/1525745393/EmbyTok-Flutter/commit/b34d7f1f8039c8da1a908a68fcb78034a10e2e38))
+
 ## [1.28.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.1...v1.28.2) (2026-06-19)
 
 
