@@ -1272,7 +1272,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: primaryPink.withValues(alpha: 0.18),
+          color: primaryPink.withOpacity(0.18),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
@@ -2058,7 +2058,7 @@ class _InfoChip extends StatelessWidget {
         color: Colors.white10,
         borderRadius: BorderRadius.circular(10),
         border: highlight
-            ? Border.all(color: primaryPink.withValues(alpha: 0.45))
+            ? Border.all(color: primaryPink.withOpacity(0.45))
             : null,
       ),
       constraints: const BoxConstraints(minWidth: 80),
