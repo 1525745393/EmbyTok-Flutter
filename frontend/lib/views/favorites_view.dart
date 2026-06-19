@@ -1,5 +1,6 @@
 // 收藏管理页面：三栏（影片 / 合集 / 人物）横向滚动布局
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -311,11 +312,18 @@ class _FavoriteCard extends ConsumerWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        headers: headers.isNotEmpty ? headers : null,
-                        errorBuilder: (_, __, ___) => _PlaceholderIcon(
+                        httpHeaders: headers.isNotEmpty ? headers : null,
+                        memCacheWidth: 400,
+                        placeholder: (_, __) => Container(
+                          color: surfaceColorL3,
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => _PlaceholderIcon(
                           itemType: itemType,
                         ),
                       )

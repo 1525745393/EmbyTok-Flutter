@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import 'subtitle_renderer.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
@@ -47,6 +49,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _initialized = false;
   bool _hasError = false;
   String? _errorMessage;
+  // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
+  final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
   // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
   // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
   int _fallbackLevel = 0;
@@ -107,7 +111,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (widget.preloadedController != null) {
       try {
         _controller = widget.preloadedController;
-        // addListener 监听错误
+        // addListener 监听错误和位置（跨秒时更新字幕）
         _controller!.addListener(() {
           if (!mounted) return;
           if (_controller!.value.hasError && !_hasError) {
@@ -115,6 +119,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               _hasError = true;
               _errorMessage = '播放出错';
             });
+          }
+          final sec = _controller!.value.position.inSeconds;
+          if (sec != _positionSeconds.value) {
+            _positionSeconds.value = sec;
           }
         });
         // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
@@ -183,6 +191,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _hasError = true;
             _errorMessage = '播放出错';
           });
+        }
+        final sec = _controller!.value.position.inSeconds;
+        if (sec != _positionSeconds.value) {
+          _positionSeconds.value = sec;
         }
       });
 
@@ -294,6 +306,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _isFallbackInProgress = false;
           });
         }
+        final sec = _controller!.value.position.inSeconds;
+        if (sec != _positionSeconds.value) {
+          _positionSeconds.value = sec;
+        }
       });
 
       _controller!.setLooping(widget.loop);
@@ -381,6 +397,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _positionSeconds.dispose();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     try {
       _controller?.pause();
@@ -406,19 +423,36 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：正常播放视频
+    // 场景 3：正常播放视频（带字幕叠加）
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
+    final subtitles = widget.item.subtitleCues ?? const <SubtitleCue>[];
     return SizedBox.expand(
-      child: FittedBox(
-        fit: isLandscape ? BoxFit.contain : BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
-        ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FittedBox(
+            fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+            child: SizedBox(
+              width: _controller!.value.size.width,
+              height: _controller!.value.size.height,
+              child: VideoPlayer(_controller!),
+            ),
+          ),
+          if (subtitles.isNotEmpty)
+            ValueListenableBuilder<int>(
+              valueListenable: _positionSeconds,
+              builder: (_, seconds, __) {
+                return SubtitleRenderer(
+                  position: Duration(seconds: seconds),
+                  cues: subtitles,
+                  enabled: true,
+                );
+              },
+            ),
+        ],
       ),
     );
   }
@@ -434,22 +468,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       fit: StackFit.expand,
       children: [
         if (url != null && url.isNotEmpty)
-          Image.network(
-            url,
+          CachedNetworkImage(
+            imageUrl: url,
             fit: BoxFit.cover,
-            headers: headers.isNotEmpty ? headers : null,
-            errorBuilder: (_, __, ___) => Container(
+            httpHeaders: headers.isNotEmpty ? headers : null,
+            memCacheWidth: 800,
+            placeholder: (_, __) => Container(
+              color: Colors.grey[900],
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+              ),
+            ),
+            errorWidget: (_, __, ___) => Container(
               color: Colors.grey[900],
               child: const Center(
                 child: Icon(Icons.broken_image, size: 64, color: Colors.white30),
               ),
             ),
-            loadingBuilder: (_, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFE91E63)),
-              );
-            },
           )
         else
           Container(

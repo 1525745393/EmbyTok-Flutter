@@ -280,6 +280,41 @@ class MediaItem {
     return false;
   }
 
+  // 获取所有字幕轨道（从 mediaSources 的 subtitleStreams 提取）
+  List<SubtitleTrack> get subtitleTracks {
+    if (mediaSources == null || mediaSources!.isEmpty) {
+      return const <SubtitleTrack>[];
+    }
+    final tracks = <SubtitleTrack>[];
+    for (final source in mediaSources!) {
+      for (final stream in source.subtitleStreams) {
+        tracks.add(SubtitleTrack(
+          id: stream.index.toString(),
+          name: stream.displayTitle,
+          language: stream.language,
+          format: stream.codec,
+        ));
+      }
+    }
+    return tracks;
+  }
+
+  // 字幕 cues（从 subtitleCues 字段，或从 mediaSources 的 subtitleCues ）
+  List<SubtitleCue>? get subtitleCues {
+    // 优先从 rawJson 读取（如果已缓存的话）
+    final cuesJson = rawJson?['subtitleCues'] as List<dynamic>?;
+    if (cuesJson != null && cuesJson.isNotEmpty) {
+      return cuesJson
+          .map((c) => SubtitleCue(
+                Duration(milliseconds: c['start_ms'] as int? ?? 0),
+                Duration(milliseconds: c['end_ms'] as int? ?? 0),
+                c['text'] as String? ?? '',
+              ))
+          .toList();
+    }
+    return null;
+  }
+
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
   // type: Primary/Backdrop/Thumb/Art/Logo/Box/BoxRear
   String? imageUrl(

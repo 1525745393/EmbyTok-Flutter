@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,11 +79,18 @@ class _PosterCard extends ConsumerWidget {
           fit: StackFit.expand,
           children: [
             if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
-              Image.network(
-                thumbnailUrl,
+              CachedNetworkImage(
+                imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
-                headers: item.authHeaders(authState.token),
-                errorBuilder: (_, __, ___) => Container(
+                httpHeaders: item.authHeaders(authState.token),
+                memCacheWidth: 400,
+                placeholder: (_, __) => Container(
+                  color: Colors.grey[900],
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Container(
                   color: Colors.grey[900],
                   child: const Icon(Icons.broken_image, color: Colors.white30),
                 ),

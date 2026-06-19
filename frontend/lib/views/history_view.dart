@@ -1,5 +1,6 @@
 // 观看历史页面：从 Emby 服务器获取最近观看的条目
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -147,13 +148,15 @@ class _HistoryTile extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
-                  ? Image.network(
-                      thumbnailUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: thumbnailUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
-                      headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) => _thumbPlaceholder(),
+                      httpHeaders: headers.isNotEmpty ? headers : null,
+                      memCacheWidth: 240,
+                      placeholder: (_, __) => _thumbPlaceholder(),
+                      errorWidget: (_, __, ___) => _thumbPlaceholder(),
                     )
                   : _thumbPlaceholder(),
             ),
