@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
 import '../utils/colors.dart';
 import 'subtitle_renderer.dart';
