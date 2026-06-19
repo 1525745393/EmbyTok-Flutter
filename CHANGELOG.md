@@ -1,3 +1,10 @@
+## [1.20.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.2...v1.20.3) (2026-06-19)
+
+
+### Bug Fixes
+
+* **embyx:** 修复媒体库和点赞功能的多用户数据隔离问题 ([85bf33b](https://github.com/1525745393/EmbyTok-Flutter/commit/85bf33bea1ebd6708b92fc5ca775fa24ca8dafde))
+
 ## [1.20.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.1...v1.20.2) (2026-06-19)
 
 
