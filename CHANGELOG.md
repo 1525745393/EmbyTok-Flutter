@@ -1,3 +1,29 @@
+# [1.19.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.18.0...v1.19.0) (2026-06-19)
+
+
+### Bug Fixes
+
+* **flutter:** 修复 CI 构建错误 ([515bff6](https://github.com/1525745393/EmbyTok-Flutter/commit/515bff62a9676732d6dd7e159409027a72717c79))
+* **flutter:** 添加 subtitle_widget.dart 的 SubtitleCue 导入 ([94c250a](https://github.com/1525745393/EmbyTok-Flutter/commit/94c250a157877151a19971fd628b59160f039105))
+* **release:** 修复 semantic-release verifyConditions 对 flutter analyze warning 的误判 ([6e186a3](https://github.com/1525745393/EmbyTok-Flutter/commit/6e186a327eeac2da8cd05a821458a757b5565624))
+
+
+### Features
+
+* 检查 EmbyX 对接 Emby 服务器 ([1bc2421](https://github.com/1525745393/EmbyTok-Flutter/commit/1bc24210569a22f2a0d2195cdc1cd9e976388dd1))
+* 检查 EmbyX 对接 Emby 服务器 ([c365187](https://github.com/1525745393/EmbyTok-Flutter/commit/c365187823a551f2a06c120897d29b63171f935e))
+* 检查 EmbyX 对接 Emby 服务器 ([7f34da7](https://github.com/1525745393/EmbyTok-Flutter/commit/7f34da735c0d5bed2ec5c4f52518ebeb80ba862c))
+* 检查 EmbyX 对接 Emby 服务器 ([b03e86a](https://github.com/1525745393/EmbyTok-Flutter/commit/b03e86a2648b40f3cbb1ecf06ab6c594524d4a0e))
+* 检查 EmbyX 对接 Emby 服务器 ([c68c0d2](https://github.com/1525745393/EmbyTok-Flutter/commit/c68c0d2268791813b9ad7c18241b8b45896269af))
+* 检查 EmbyX 对接 Emby 服务器 ([7793016](https://github.com/1525745393/EmbyTok-Flutter/commit/7793016be791327dfb383ae9f4cfb67b492db3fc))
+* 检查 EmbyX 对接 Emby 服务器 ([b89b4b2](https://github.com/1525745393/EmbyTok-Flutter/commit/b89b4b24fb4d098cb6f719e14944ba1e6b20384b))
+* 检查 EmbyX 对接 Emby 服务器 ([fde2a33](https://github.com/1525745393/EmbyTok-Flutter/commit/fde2a3397d319b88379f1f5351a77fa16621fee2))
+* 检查 EmbyX 对接 Emby 服务器 ([b95d706](https://github.com/1525745393/EmbyTok-Flutter/commit/b95d70650229fb986ccad3cf862343dd5ee4d5c0))
+* 检查 EmbyX 对接 Emby 服务器 ([6aaadfd](https://github.com/1525745393/EmbyTok-Flutter/commit/6aaadfd7f377360fddfb999fe9dbc61332e3d70c))
+* 检查 EmbyX 对接 Emby 服务器 ([d0ac681](https://github.com/1525745393/EmbyTok-Flutter/commit/d0ac681c7f78e58fdd99fcf7c010eef1d35ce42b))
+* 检查 EmbyX 对接 Emby 服务器 ([d582cd1](https://github.com/1525745393/EmbyTok-Flutter/commit/d582cd14a273e231366659d51679bcce7f9dc22a))
+* 检查 EmbyX 对接 Emby 服务器 ([c84bac2](https://github.com/1525745393/EmbyTok-Flutter/commit/c84bac20a3e4e0b05e5ad2325cdf83fd8ce2f9ef))
+
 # [1.13.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.12.0...v1.13.0) (2026-06-18)
 
 
