@@ -1,3 +1,10 @@
+## [1.27.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.27.0...v1.27.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 修复 Android 自动发布缺少通用 APK 的问题 ([bffc827](https://github.com/1525745393/EmbyTok-Flutter/commit/bffc827c1273281b821d4d737d66add8165e5472))
+
 # [1.27.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.26.0...v1.27.0) (2026-06-19)
 
 
