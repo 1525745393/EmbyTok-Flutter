@@ -74,7 +74,6 @@ final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
   final embyServerUrl = auth.embyServerUrl;
   final token = auth.token;
   final result = await service.getNextUp(
-    userId: userId,
     serverUrl: embyServerUrl,
     token: token,
   );
