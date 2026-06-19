@@ -1,3 +1,12 @@
+## [1.28.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.3...v1.28.4) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** flutter analyze 只要有 info/warning 就会返回 exit code 1，改用 grep 检查 error • 级别问题来判断是否阻断发布 ([03af6d7](https://github.com/1525745393/EmbyTok-Flutter/commit/03af6d74c4abb034601b4b838e276037153fcb71))
+* **ci:** verifyConditionsCmd 仅检查 lib/ 目录，测试文件错误不影响 Android 发布 ([fde1800](https://github.com/1525745393/EmbyTok-Flutter/commit/fde1800ec4be7512dcbef8e44293e55fdf0c5d6a))
+* **ci:** 修复 flutter analyze 错误检测失效，移除无效的 grep 过滤，直接依赖 flutter analyze 退出码 ([0dde09b](https://github.com/1525745393/EmbyTok-Flutter/commit/0dde09b78435da8febe14ab664cfbfc6dfd94d80))
+
 ## [1.28.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.2...v1.28.3) (2026-06-19)
 
 
