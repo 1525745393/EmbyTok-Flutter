@@ -9,7 +9,7 @@
 - **大屏幕用户**：电视/盒子上使用（TV Mode）
 
 ## 目标
-1. **Feed Type 全功能**：latest / random / favorites 三种浏览模式完全可用，切换后列表立即刷新
+1. **Feed Type 全功能**：latest / random / favorites / resume 四种浏览模式完全可用，切换后列表立即刷新
 2. **无缝切换体验**：PageView 上下滑动秒开，不出现黑屏、转圈、加载指示器
 3. **播放体验完整**：倍速、自动下一集、子标题、手势快进快退、暂停恢复位置均正常工作
 4. **TV Mode 可用**：遥控器方向键能正常导航，焦点清晰可辨
@@ -43,12 +43,15 @@
 
 ## 功能需求（Functional Requirements）
 
-### FR-1: 三种浏览模式的实际可用（Latest / Random / Favorites）
+### FR-1: 四种浏览模式的实际可用（Latest / Random / Favorites / Resume）
 `video_list_provider.dart` 的 `refresh()` / `loadMore()` 必须读取 `feedTypeProvider` 并选择对应的加载逻辑：
 - **latest**：沿用 `getLibraryItems`（当前逻辑），分页 offset/limit
 - **random**：一次拉取 80 条（`kRandomListSize`），打乱 shuffle，不分页
 - **favorites**：从 `getFavoriteMovies` 拉取纯列表，显示类型 tag，按 DateCreated 降序
-- 切换 feedType 后 `videoListProvider` 自动刷新
+- **resume**：从 `getResumeItems()` 拉取"继续观看"列表，每个条目显示已播放进度条，点击从上次位置继续播放
+- `FeedType` 枚举新增 `resume` 值，`fromString`/`toStorageString`/`zhLabel` 同步支持
+- `constants.dart` 新增 `kFeedTypeResume = 'resume'`
+- 切换 feedType 后 `videoListProvider` 自动刷新；快捷键 R 循环顺序：latest → random → favorites → resume → latest
 
 ### FR-2: 视频预加载（PageView 相邻项预加载）
 - 当前页面初始化时，预加载下一个视频（+1）的控制器
@@ -170,14 +173,15 @@
 
 ## 验收标准（Acceptance Criteria）
 
-### AC-1: 三种浏览模式切换正确
+### AC-1: 四种浏览模式切换正确
 - **Given** 用户已登录并进入 feed 页
-- **When** 用户点击 "R" 快捷键或通过其他方式切换 feedType（latest → random → favorites → latest）
+- **When** 用户点击 "R" 快捷键或通过其他方式切换 feedType（latest → random → favorites → resume → latest）
 - **Then**
   1. 视频列表立即刷新显示对应模式的内容
   2. latest 模式下按 DateCreated 降序、分页加载
   3. random 模式下显示 80 条随机视频，每次刷新顺序不同
   4. favorites 模式下显示用户已收藏的所有影片/合集/人物（若为空则显示空状态提示）
+  5. resume 模式下显示"继续观看"列表，每个条目有播放进度条，点击从上次位置继续
 - **Verification**: programmatic（`flutter analyze`）+ human judgment（手动切换验证）
 - **Notes**: 切换后 2 秒内应有结果展示；不出现"点击无反应"的情况
 

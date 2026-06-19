@@ -1,6 +1,7 @@
 // 视频播放控制器：当前播放条目、播放位置、倍速、字幕、播放就绪状态
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../utils/app_preferences.dart';
@@ -20,6 +21,10 @@ final currentIndexProvider = StateProvider<int>((ref) => 0);
 
 // 是否全屏播放
 final isFullscreenProvider = StateProvider<bool>((ref) => false);
+
+// 当前播放的 VideoPlayerController（用于全局 seek 操作，播放结束时的连播跳转等）
+// 当 VideoPageItem 播放初始化成功后写入，dispose 时清空
+final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((ref) => null);
 
 // 当前播放的降级等级：0=DirectPlay，1=DirectStream，2=HLS
 // 在 VideoPlayerWidget 内成功切换播放 URL 时更新

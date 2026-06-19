@@ -10,9 +10,13 @@
 - [ ] latest 模式正常拉取视频列表
 - [ ] random 模式显示 80 条随机视频，每次刷新顺序不同
 - [ ] favorites 模式显示用户收藏条目（影片/合集/人物混合）
-- [ ] 快捷键 R 能在三种模式间循环切换
+- [ ] resume 模式调用 `getResumeItems()` 拉取"继续观看"列表
+- [ ] `FeedType` 枚举包含 `resume` 值，`fromString`/`toStorageString`/`zhLabel` 全部支持
+- [ ] `constants.dart` 新增 `kFeedTypeResume = 'resume'`
+- [ ] 快捷键 R 在四种模式间循环切换（latest → random → favorites → resume → latest）
 - [ ] 切换后 2 秒内列表刷新完成
-- [ ] 空状态友好（favorites 为空时展示提示）
+- [ ] 空状态友好（favorites / resume 为空时展示提示）
+- [ ] resume 列表项底部有细进度条（粉色 2px），显示播放进度
 - [ ] video_list_provider 不再有 `favResp.items` 这类错误（需为 `List<MediaItem>`）
 
 ## 功能验证：视频预加载（Task 2）

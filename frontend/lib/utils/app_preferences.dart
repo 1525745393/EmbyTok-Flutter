@@ -30,17 +30,19 @@ enum DeviceMode {
   }
 }
 
-// 浏览模式（最新/随机/收藏）
+// 浏览模式（最新/随机/收藏/继续观看）
 enum FeedType {
   latest,
   random,
-  favorites;
+  favorites,
+  resume;
 
   static FeedType fromString(String? s, {FeedType fallback = FeedType.latest}) {
     if (s == null || s.isEmpty) return fallback;
     return switch (s.trim().toLowerCase()) {
       kFeedTypeRandom => FeedType.random,
       kFeedTypeFavorites => FeedType.favorites,
+      kFeedTypeResume => FeedType.resume,
       _ => FeedType.latest,
     };
   }
@@ -50,6 +52,7 @@ enum FeedType {
       FeedType.latest => kFeedTypeLatest,
       FeedType.random => kFeedTypeRandom,
       FeedType.favorites => kFeedTypeFavorites,
+      FeedType.resume => kFeedTypeResume,
     };
   }
 
@@ -58,6 +61,7 @@ enum FeedType {
       FeedType.latest => '最新',
       FeedType.random => '随机',
       FeedType.favorites => '收藏',
+      FeedType.resume => '继续观看',
     };
   }
 }

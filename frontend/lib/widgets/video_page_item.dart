@@ -23,11 +23,17 @@ import 'video_player_widget.dart';
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
   final VideoPlayerController? preloadedController;
+  // 播放结束时的回调（用于自动连播下一条）
+  final VoidCallback? onVideoEnded;
+  // 是否为 resume 模式（需要从 userData.playbackPositionTicks 开始）
+  final bool startFromResumePosition;
 
   const VideoPageItem({
     super.key,
     required this.item,
     this.preloadedController,
+    this.onVideoEnded,
+    this.startFromResumePosition = false,
   });
 
   @override
@@ -36,6 +42,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
 
 class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   VideoPlayerController? _videoController;
+  bool _hasNotifiedEnded = false;  // 防止重复触发 onVideoEnded
+  // 预加载控制器缓存：保持对下一条视频的 controller，当 widget 切换时复用
 
   // --- 播放上报相关 ---
   final EmbytokService _service = EmbytokService();
@@ -59,10 +67,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   void dispose() {
+    // 0. 清理 controller 的 ended 监听器
+    _videoController?.removeListener(_onVideoChanged);
     // 1. 停止并清理播放进度上报定时器
     _progressTimer?.cancel();
     _progressTimer = null;
-    // 2. 上报播放停止（带上当前播放位置
+    // 2. 上报播放停止（带上当前播放位置）
     if (_hasStartedReported) {
       _reportPlaybackStopped();
     }
@@ -74,6 +84,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     }
     // 5. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+    // 5b. 清空 currentVideoControllerProvider
+    final ctrl = ref.read(currentVideoControllerProvider);
+    if (ctrl != null && identical(ctrl, _videoController)) {
+      ref.read(currentVideoControllerProvider.notifier).state = null;
+    }
     // 6. 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
     _videoController?.dispose();
     _videoController = null;
@@ -81,7 +96,28 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     _capabilitiesReported = false;
     _hasStartedReported = false;
     _playSessionId = null;
+    _hasNotifiedEnded = false;
     super.dispose();
+  }
+
+  // 视频状态变化监听（用于检测播放结束）
+  void _onVideoChanged() {
+    if (!mounted || _videoController == null) return;
+    // 播放结束检测（接近末尾 1 秒内就算播放完）
+    if (!_hasNotifiedEnded) {
+      final pos = _videoController!.value.position;
+      final dur = _videoController!.value.duration;
+      if (dur.inMilliseconds > 0 &&
+          (dur - pos).inMilliseconds < 1000) {
+        _hasNotifiedEnded = true;
+        // 若开启了自动连播：上报停止 + 通知外部跳转到下一条
+        final autoPlay = ref.read(isAutoPlayProvider);
+        if (autoPlay) {
+          _reportPlaybackStopped();
+          widget.onVideoEnded?.call();
+        }
+      }
+    }
   }
 
   // ========== 播放上报链方法 ==========
@@ -295,11 +331,27 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                 setState(() {
                   _videoController = c;
                 });
+                // 暴露到全局 Provider（用于快捷键 seek、播放结束时切换）
+                ref.read(currentVideoControllerProvider.notifier).state = c;
                 ref.read(isPlayingProvider.notifier).state = true;
                 ref.read(currentPlayingItemProvider.notifier).state =
                     widget.item;
                 // 标记为 ready：触发 AnimatedOpacity 渐显
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                // 续播位置 seek：resume 模式下从上次播放位置开始
+                if (widget.startFromResumePosition) {
+                  final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
+                  if (posTicks > 0.0) {
+                    final posMs = (posTicks / 10000.0).round(); // 1 tick = 100ns → ms
+                    if (posMs > 0) {
+                      Future.microtask(() async {
+                        try {
+                          await c.seekTo(Duration(milliseconds: posMs));
+                        } catch (_) {}
+                      });
+                    }
+                  }
+                }
                 // ===== 播放上报链 =====
                 // 1. 上报能力（仅一次）
                 _ensureCapabilitiesReported();
@@ -307,7 +359,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                 _reportPlaybackStart();
                 // 3. 启动周期进度上报（5 秒一次）
                 _startProgressTimer();
-                // 4. 监听播放状态：暂停时额外触发一次暂停事件上报
+                // 4. 监听播放状态：暂停上报 + 播放结束连播检测
+                c.addListener(_onVideoChanged);
                 c.addListener(() {
                   if (!mounted) return;
                   if (!c.value.isPlaying) {

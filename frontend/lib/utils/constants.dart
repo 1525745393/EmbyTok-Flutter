@@ -16,6 +16,7 @@ const String kDeviceModeStandard = 'standard';
 const String kFeedTypeLatest = 'latest';
 const String kFeedTypeRandom = 'random';
 const String kFeedTypeFavorites = 'favorites';
+const String kFeedTypeResume = 'resume';
 
 // 视图模式
 const String kViewModeFeed = 'feed';

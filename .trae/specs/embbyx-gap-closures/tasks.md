@@ -1,20 +1,25 @@
 # EmbyTok Flutter - 实现计划（按优先级排序任务）
 
-## Task 1: Feed Type 驱动列表刷新（打通 latest / random / favorites） — P0
+## Task 1: Feed Type 驱动列表刷新（打通 latest / random / favorites / resume） — P0
 - **Priority**: P0
 - **Depends On**: None（最基础）
 - **Description**:
+  - `app_preferences.dart` 的 `FeedType` 枚举新增 `resume` 值
+  - `FeedType.fromString`/`toStorageString`/`zhLabel` 同步支持 `resume`
+  - `constants.dart` 新增 `kFeedTypeResume = 'resume'` 常量
   - 修改 `video_list_provider.dart` 的 `VideoListNotifier`：
     - 在构造函数中增加 `_ref.listen<FeedType>(feedTypeProvider, ...)` 监听，feedType 变化时自动调用 `refresh()`
-    - `refresh()` 内增加 switch：根据 `_ref.read(feedTypeProvider)` 选择 `getLibraryItems` / `getLibraryItems + shuffle` / `getFavoriteMovies`
-    - `loadMore()` 也需要根据 feedType 判断是否可分页（random/favorites 不分页）
-  - 修改 `feed_view.dart`：`_toggleFeedType()` 调用 `setType()` + `refresh()`（即使不依赖自动监听，也需手动触发一次以保证及时刷新）
-  - 测试要求：在 latest / random / favorites 之间来回切换都能立即展示对应数据
-- **Acceptance Criteria Addressed**: FR-1, AC-1
+    - `refresh()` 内增加 switch：根据 `_ref.read(feedTypeProvider)` 选择 `getLibraryItems` / `getLibraryItems + shuffle` / `getFavoriteMovies` / `getResumeItems`
+    - `loadMore()` 也需要根据 feedType 判断是否可分页（random/favorites/resume 不分页）
+  - 修改 `feed_view.dart`：`_toggleFeedType()` 循环顺序为 latest → random → favorites → resume → latest
+  - resume 模式下，每个条目在缩略图底部叠加一条细进度条，显示播放进度
+  - resume 模式下，播放从上次位置开始（通过 `MediaItem.userData.playbackPositionTicks`）
+  - 测试要求：在 latest / random / favorites / resume 之间来回切换都能立即展示对应数据
+- **Acceptance Criteria Addressed**: FR-1, FR-6, AC-1, AC-6
 - **Test Requirements**:
-  - `programmatic`: `flutter analyze` 通过；在 `feedTypeProvider` 切换后 `videoListProvider.items` 变化
-  - `human-judgment`: 手动快捷键 R 切换三次，每次列表正确更新
-- **Notes**: 需在 `feed_view.dart` 中的 `buildVideoPageView` 使用 `videoListProvider.items` 作为数据源
+  - `programmatic`: `flutter analyze` 通过；在 `feedTypeProvider` 切换后 `videoListProvider.items` 变化；`FeedType.resume` 正常序列化反序列化
+  - `human-judgment`: 手动快捷键 R 切换四次，每次列表正确更新，resume 模式显示续播进度条
+- **Notes**: 需在 `feed_view.dart` 中的 `buildVideoPageView` 使用 `videoListProvider.items` 作为数据源；resume 模式下 start position 通过 `MediaItem.userData.playbackPositionTicks` 传递给 `VideoPlayerWidget`
 
 ## Task 2: 视频预加载（PageView Preload Controller 接入） — P0
 - **Priority**: P0
@@ -95,19 +100,19 @@
   - `programmatic`: VTT 解析逻辑在单元测试中可验证
   - `human-judgment`: 选择不同语言后字幕正确切换
 
-## Task 7: Continue Watching（继续观看/Resume） — P2
+## Task 7: 续播位置上报与服务器同步 — P2
 - **Priority**: P2
-- **Depends On**: Task 1, Task 2
+- **Depends On**: Task 1（resume feedType 基础）, Task 3（自动连播）
 - **Description**:
-  - 在 `feed_view.dart` 顶部增加一个可滚动的横向"继续观看"列表（或新增 feedType=resume）
-  - 调用 `EmbytokService.getResumeItems()` 拉取数据
-  - 每个条目：缩略图 + 标题 + 进度条（`playbackPositionTicks / runTimeTicks`）
-  - 点击后：播放从上次位置开始
-  - 已播放完毕的条目自动从列表中移除
+  - 在 `VideoPageItem.dispose()` / 视频切换时自动向服务器上报当前播放位置（reportPlaybackStopped 已存在）
+  - 播放完毕（position ≥ duration - 1s 且 isAutoPlay 为 false）时从 resume 列表移除当前条目
+  - resume 列表项底部叠加一条细进度条（粉色 2px），显示 `playbackPositionTicks / runTimeTicks`
+  - 点击 resume 条目时，从 `userData.playbackPositionTicks` 位置开始播放（不是 0）
+  - 处理 `userData == null` 的情况：视为未开始，从 0 播放
 - **Acceptance Criteria Addressed**: FR-6, AC-6
 - **Test Requirements**:
-  - `programmatic`: `getResumeItems()` 返回的条目与 UI 一致
-  - `human-judgment`: 从上次位置继续播放
+  - `programmatic`: `getResumeItems()` 返回的条目与 UI 一致；从 resume 条目播放时初始 position 与 userData.playbackPositionTicks 一致
+  - `human-judgment`: 手动中途退出视频，再回到 feed 页，resume 模式下能看到进度条；点击续播从上次位置开始
 
 ## Task 8: NextUp（下一集） — P2
 - **Priority**: P2
