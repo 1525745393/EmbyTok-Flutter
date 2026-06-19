@@ -4,7 +4,7 @@
 # 简化版本，用于 GitHub Actions 自动化发布
 # ============================================================
 
-set -euo pipefail
+set -eo pipefail
 
 # 颜色定义
 RED='\033[0;31m'
@@ -17,66 +17,84 @@ log_info() { echo -e "${YELLOW}! $1${NC}"; }
 log_err()  { echo -e "${RED}✗ $1${NC}" >&2; }
 log_step() { echo -e "\n=== $1 ==="; }
 
-# 检查必需的环境变量
-REQUIRED_ENVS=(
-    "ANDROID_KEYSTORE"
-    "ANDROID_KEYSTORE_PWD"
-    "ANDROID_KEY_ALIAS"
-    "ANDROID_KEY_PWD"
-)
-
 log_step "检查环境变量"
-for env_var in "${REQUIRED_ENVS[@]}"; do
-    if [ -z "${!env_var:-}" ]; then
-        log_err "缺少必需的环境变量: $env_var"
-        exit 1
-    fi
-done
+if [ -z "${ANDROID_KEYSTORE:-}" ]; then
+    log_err "缺少环境变量: ANDROID_KEYSTORE"
+    exit 1
+fi
+if [ -z "${ANDROID_KEYSTORE_PWD:-}" ]; then
+    log_err "缺少环境变量: ANDROID_KEYSTORE_PWD"
+    exit 1
+fi
+if [ -z "${ANDROID_KEY_ALIAS:-}" ]; then
+    log_err "缺少环境变量: ANDROID_KEY_ALIAS"
+    exit 1
+fi
+if [ -z "${ANDROID_KEY_PWD:-}" ]; then
+    log_err "缺少环境变量: ANDROID_KEY_PWD"
+    exit 1
+fi
 log_ok "所有必需环境变量已配置"
 
-# 创建 keystore 文件
 log_step "配置签名密钥"
 KEYSTORE_PATH="$PWD/frontend/android/app/embbytok-keystore.jks"
 KEY_PROPERTIES_PATH="$PWD/frontend/android/key.properties"
 
+log_info "创建 keystore 文件: $KEYSTORE_PATH"
 echo "$ANDROID_KEYSTORE" | base64 -d > "$KEYSTORE_PATH"
 if [ ! -f "$KEYSTORE_PATH" ]; then
     log_err "无法创建 keystore 文件"
     exit 1
 fi
-log_ok "Keystore 文件已创建: $KEYSTORE_PATH"
+KEYSTORE_SIZE=$(stat -c%s "$KEYSTORE_PATH" 2>/dev/null || stat -f%z "$KEYSTORE_PATH" 2>/dev/null)
+log_ok "Keystore 文件已创建 ($KEYSTORE_SIZE 字节)"
 
-# 生成 key.properties
+log_info "生成 key.properties: $KEY_PROPERTIES_PATH"
 cat > "$KEY_PROPERTIES_PATH" <<EOF
 storePassword=$ANDROID_KEYSTORE_PWD
 keyPassword=$ANDROID_KEY_PWD
 keyAlias=$ANDROID_KEY_ALIAS
 storeFile=$KEYSTORE_PATH
 EOF
-log_ok "key.properties 已生成: $KEY_PROPERTIES_PATH"
+if [ ! -f "$KEY_PROPERTIES_PATH" ]; then
+    log_err "无法创建 key.properties"
+    exit 1
+fi
+log_ok "key.properties 已生成"
 
-# 进入 frontend 目录
+log_step "进入 frontend 目录"
 cd frontend || { log_err "无法进入 frontend 目录"; exit 1; }
+log_ok "当前目录: $(pwd)"
 
-# 创建构建输出目录
 mkdir -p build/app/outputs/flutter-apk
 
-# Build 1: 构建 split-per-abi APKs（arm64-v8a, armeabi-v7a, x86_64）
 log_step "构建 Split APKs (ABI 分离)"
-flutter build apk --release --split-per-abi
-log_ok "Split APKs 构建成功"
+log_info "执行: flutter build apk --release --split-per-abi"
+if flutter build apk --release --split-per-abi; then
+    log_ok "Split APKs 构建成功"
+else
+    log_err "Split APKs 构建失败"
+    exit 1
+fi
 
-# Build 2: 构建 universal APK
 log_step "构建 Universal APK"
-flutter build apk --release
-log_ok "Universal APK 构建成功"
+log_info "执行: flutter build apk --release"
+if flutter build apk --release; then
+    log_ok "Universal APK 构建成功"
+else
+    log_err "Universal APK 构建失败"
+    exit 1
+fi
 
-# Build 3: 构建 App Bundle
 log_step "构建 App Bundle"
-flutter build appbundle --release
-log_ok "App Bundle 构建成功"
+log_info "执行: flutter build appbundle --release"
+if flutter build appbundle --release; then
+    log_ok "App Bundle 构建成功"
+else
+    log_err "App Bundle 构建失败"
+    exit 1
+fi
 
-# 验证构建产物
 log_step "验证构建产物"
 
 REQUIRED_FILES=(
@@ -97,6 +115,10 @@ for file in "${REQUIRED_FILES[@]}"; do
         ALL_OK=false
     fi
 done
+
+log_info "列出构建目录内容:"
+ls -la build/app/outputs/flutter-apk/ 2>/dev/null || log_err "flutter-apk 目录不存在"
+ls -la build/app/outputs/bundle/release/ 2>/dev/null || log_err "bundle/release 目录不存在"
 
 if [ "$ALL_OK" = false ]; then
     log_err "部分构建产物缺失"
