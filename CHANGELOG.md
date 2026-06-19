@@ -1,3 +1,10 @@
+# [1.37.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.36.0...v1.37.0) (2026-06-19)
+
+
+### Features
+
+* **ui:** 底部信息条添加可拖拽进度条，支持点击和滑动跳转 ([f0b66e7](https://github.com/1525745393/EmbyTok-Flutter/commit/f0b66e76c1b77efb2af4926cd98745388c43e096))
+
 # [1.36.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.35.0...v1.36.0) (2026-06-19)
 
 
