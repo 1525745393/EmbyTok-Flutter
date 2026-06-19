@@ -13,8 +13,8 @@
       "@semantic-release/exec",
       {
         "verifyConditionsCmd": "cd frontend && flutter pub get && flutter analyze --no-pub lib | (grep '^   error' && exit 1 || true)",
-        "prepareCmd": "BUILD_NUM=$(echo ${nextRelease.version} | tr -d '.' | sed 's/^0*//') && echo \"BUILD_NUM=$BUILD_NUM\" && sed -i \"s/^version: .*/version: ${nextRelease.version}+$BUILD_NUM/\" frontend/pubspec.yaml && cat frontend/pubspec.yaml | grep '^version:'",
-        "publishCmd": "mkdir -p frontend/android/app && echo \"$ANDROID_KEYSTORE\" | base64 -d > frontend/android/app/embbytok-keystore.jks && printf 'storePassword=%s\\nkeyPassword=%s\\nkeyAlias=%s\\nstoreFile=%s\\n' \"$ANDROID_KEYSTORE_PWD\" \"$ANDROID_KEY_PWD\" \"$ANDROID_KEY_ALIAS\" \"$(pwd)/frontend/android/app/embbytok-keystore.jks\" > frontend/android/key.properties && cd frontend && mkdir -p /tmp/abi && echo '[Build 1/3] split-per-abi APKs' && flutter build apk --release --split-per-abi && cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk build/app/outputs/flutter-apk/app-x86_64-release.apk /tmp/abi/ && echo '[Build 2/3] universal APK' && flutter build apk --release && cp /tmp/abi/*.apk build/app/outputs/flutter-apk/ && echo '[Build 3/3] App Bundle' && flutter build appbundle --release && echo '[Build output]' && ls -lh build/app/outputs/flutter-apk/ && ls -lh build/app/outputs/bundle/release/ && test -f build/app/outputs/flutter-apk/app-release.apk && test -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk && test -f build/app/outputs/bundle/release/app-release.aab && echo '[Build verified OK]'"
+        "prepareCmd": "BUILD_NUM=$(echo ${nextRelease.version} | tr -d '.' | sed 's/^0*//') && sed -i \"s/^version: .*/version: ${nextRelease.version}+$BUILD_NUM/\" frontend/pubspec.yaml && cat frontend/pubspec.yaml | grep '^version:'",
+        "publishCmd": "chmod +x scripts/android-ci-release.sh && scripts/android-ci-release.sh"
       }
     ],
     [
