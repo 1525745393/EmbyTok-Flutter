@@ -1,3 +1,11 @@
+# [1.20.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.19.0...v1.20.0) (2026-06-19)
+
+
+### Features
+
+* 检查 EmbyX 对接 Emby 服务器 ([5e6cee7](https://github.com/1525745393/EmbyTok-Flutter/commit/5e6cee724f423d6d3d9ed77d478c57e3fa4ae280))
+* 检查 EmbyX 对接 Emby 服务器 ([cfe8143](https://github.com/1525745393/EmbyTok-Flutter/commit/cfe8143ac6ddadd32d2f1766f3bb5aa1e28eced0))
+
 # [1.19.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.18.0...v1.19.0) (2026-06-19)
 
 
