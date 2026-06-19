@@ -1,3 +1,10 @@
+## [1.28.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.0...v1.28.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 修复 Android 发布脚本，移除 -u 选项避免未定义变量报错 ([f3a6e1d](https://github.com/1525745393/EmbyTok-Flutter/commit/f3a6e1dc3b33e1d7a97975895fd5a38393adab06))
+
 # [1.28.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.27.2...v1.28.0) (2026-06-19)
 
 
