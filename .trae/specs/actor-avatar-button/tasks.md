@@ -88,7 +88,7 @@
   - `human-judgement` TR-4.3: 收藏状态在应用重启后保持
 - **File**: `frontend/lib/widgets/video_page_item.dart`
 
-## [ ] Task 5: 验证并提交
+## [x] Task 5: 验证并提交
 - **Priority**: P1
 - **Depends On**: Tasks 1-4
 - **Description**: 
