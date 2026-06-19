@@ -1,3 +1,10 @@
+## [1.20.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.1...v1.20.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 统一 flutter analyze 过滤规则与 semantic-release 保持一致 ([2cd172f](https://github.com/1525745393/EmbyTok-Flutter/commit/2cd172fd1ae95569a2a1b61b8844d5ef8265d268))
+
 ## [1.20.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.0...v1.20.1) (2026-06-19)
 
 
