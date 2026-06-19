@@ -1,3 +1,10 @@
+## [1.28.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.4...v1.28.5) (2026-06-19)
+
+
+### Bug Fixes
+
+* **memory:** 修复 OOM 内存溢出问题 - 优化图片缓存限制、controller 生命周期管理和预加载策略 ([793c2e7](https://github.com/1525745393/EmbyTok-Flutter/commit/793c2e7e1161f8b718ae6f81d30436b17be97771))
+
 ## [1.28.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.3...v1.28.4) (2026-06-19)
 
 
