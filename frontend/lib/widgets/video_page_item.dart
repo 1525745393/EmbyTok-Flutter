@@ -70,6 +70,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   // 控制层自动隐藏时长
   static const int _controlsAutoHideSeconds = 3;
 
+  // --- NextUp（下一集提示）状态 ---
+  // 播放结束时查询到的下一集条目（null 表示无下一集或未查询）
+  MediaItem? _nextUpItem;
+  // NextUp 提示条是否可见
+  bool _showNextUpBanner = false;
+  // NextUp 倒计时剩余秒数
+  int _nextUpCountdown = 5;
+  // NextUp 倒计时定时器
+  Timer? _nextUpTimer;
+  // NextUp 倒计时总时长
+  static const int _nextUpCountdownSeconds = 5;
+
   @override
   void dispose() {
     // 0. 清理 controller 的 ended 监听器
@@ -83,6 +95,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     }
     // 3. 清理计时器
     _controlsHideTimer?.cancel();
+    // 3b. 清理 NextUp 倒计时定时器
+    _nextUpTimer?.cancel();
+    _nextUpTimer = null;
     // 4. 退出时恢复竖屏方向（避免横屏状态残留）
     if (_isFullscreen) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -125,12 +140,100 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           token: _authToken(),
         ));
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
-        // 若开启了自动连播：通知外部跳转到下一条
-        final autoPlay = ref.read(isAutoPlayProvider);
-        if (autoPlay) {
-          widget.onVideoEnded?.call();
-        }
+        // 查询 NextUp：剧集类内容尝试获取下一集并显示提示条
+        _queryNextUp();
       }
+    }
+  }
+
+  // 查询 NextUp 下一集：剧集类内容调用 Emby /Shows/NextUp?SeriesId=xxx
+  // 查询成功则显示提示条并启动倒计时；失败则回退到默认自动连播逻辑
+  Future<void> _queryNextUp() async {
+    // 仅剧集类内容（有 seriesId 或 seriesName）才查询 NextUp
+    final seriesId = widget.item.seriesId;
+    final isEpisode = widget.item.type == 'Episode' ||
+        (widget.item.seriesName != null && widget.item.seriesName!.isNotEmpty);
+    if (!isEpisode) {
+      // 非剧集：直接走默认自动连播
+      _fallbackAutoPlay();
+      return;
+    }
+    try {
+      final resp = await _service.getNextUp(
+        seriesId: seriesId,
+        limit: 1,
+        serverUrl: _authServerUrl(),
+        token: _authToken(),
+      );
+      // 过滤掉当前正在播放的条目，取第一个作为下一集
+      final candidates = resp.items
+          .where((it) => it.id != widget.item.id)
+          .toList();
+      if (mounted && candidates.isNotEmpty) {
+        setState(() {
+          _nextUpItem = candidates.first;
+          _showNextUpBanner = true;
+          _nextUpCountdown = _nextUpCountdownSeconds;
+        });
+        _startNextUpCountdown();
+      } else if (mounted) {
+        // 无下一集：回退默认逻辑
+        _fallbackAutoPlay();
+      }
+    } catch (_) {
+      // 查询失败：回退默认逻辑
+      if (mounted) _fallbackAutoPlay();
+    }
+  }
+
+  // 启动 NextUp 倒计时：每秒递减，归零时自动播放下一集
+  void _startNextUpCountdown() {
+    _nextUpTimer?.cancel();
+    _nextUpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _nextUpCountdown--;
+      });
+      if (_nextUpCountdown <= 0) {
+        timer.cancel();
+        _playNextUp();
+      }
+    });
+  }
+
+  // 立即播放 NextUp 下一集（用户点击或倒计时结束触发）
+  void _playNextUp() {
+    _nextUpTimer?.cancel();
+    if (!mounted) return;
+    // 优先使用本地 onNextEpisode 回调（feed_view 中查找同 series 下一集）
+    // 其次回退到 onVideoEnded（翻到 feed 下一条）
+    if (widget.onNextEpisode != null) {
+      setState(() {
+        _showNextUpBanner = false;
+      });
+      widget.onNextEpisode!.call();
+    } else {
+      _fallbackAutoPlay();
+    }
+  }
+
+  // 取消 NextUp 提示条（用户点击取消）
+  void _cancelNextUp() {
+    _nextUpTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _showNextUpBanner = false;
+    });
+  }
+
+  // 回退到默认自动连播逻辑（无 NextUp 时）
+  void _fallbackAutoPlay() {
+    final autoPlay = ref.read(isAutoPlayProvider);
+    if (autoPlay) {
+      widget.onVideoEnded?.call();
     }
   }
 
@@ -428,6 +531,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
         // 横屏全屏模式下显示退出按钮（右上角）
         if (_isFullscreen) _buildExitFullscreenButton(),
+
+        // NextUp 下一集提示条：播放结束时显示，5 秒倒计时后自动播放
+        if (_showNextUpBanner && _nextUpItem != null)
+          _buildNextUpBanner(),
       ],
     );
 
@@ -490,6 +597,113 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
       child: IconButton(
         icon: const Icon(Icons.fullscreen_exit, color: textPrimary, size: 28),
         onPressed: _toggleFullscreen,
+      ),
+    );
+  }
+
+  // NextUp 下一集提示条：底部卡片，显示下一集标题 + 倒计时 + 立即播放/取消按钮
+  Widget _buildNextUpBanner() {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final nextItem = _nextUpItem!;
+    // 拼接下一集标题：SxEy + 标题（如果有）
+    final seasonEp = (nextItem.parentIndexNumber != null && nextItem.indexNumber != null)
+        ? 'S${nextItem.parentIndexNumber}E${nextItem.indexNumber}'
+        : null;
+    final nextTitle = seasonEp != null
+        ? '$seasonEp ${nextItem.title}'
+        : nextItem.title;
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: bottomPadding + kBottomNavHeight + 16,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xE6000000), // 90% 不透明黑色
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: primaryPink, width: 1),
+          ),
+          child: Row(
+            children: [
+              // 左侧：下一集图标 + 标题信息
+              const Icon(Icons.skip_next, color: primaryPink, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '即将播放下一集',
+                      style: TextStyle(
+                        color: textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      nextTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 中间：倒计时秒数
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: primaryPink,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_nextUpCountdown}s',
+                  style: const TextStyle(
+                    color: textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              // 右侧：立即播放按钮
+              GestureDetector(
+                onTap: _playNextUp,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: primaryPink,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '立即播放',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              // 取消按钮
+              IconButton(
+                icon: const Icon(Icons.close, color: textSecondary, size: 20),
+                onPressed: _cancelNextUp,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

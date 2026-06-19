@@ -234,9 +234,11 @@ class EmbytokService {
 
   // ============================
   // Next Up（下一步看什么）—— 剧集的下一集
+  // 可选 seriesId：传入则只返回指定剧集的下一集
   // ============================
   Future<PaginatedResponse<MediaItem>> getNextUp({
     int limit = 20,
+    String? seriesId,
     String? serverUrl,
     String? token,
   }) async {
@@ -246,6 +248,10 @@ class EmbytokService {
       'Fields':
           'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber',
     };
+    // 指定 seriesId 时只查询该剧集的下一集
+    if (seriesId != null && seriesId.isNotEmpty) {
+      params['SeriesId'] = seriesId;
+    }
     final resp = await _apiClient.get<dynamic>(
       '/Shows/NextUp',
       queryParameters: params,

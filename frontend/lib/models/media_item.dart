@@ -10,6 +10,7 @@ class MediaItem {
   final String title;
   final String type;                    // Movie/Series/Episode/MusicVideo/...
   final String? seriesName;             // 剧集名（集数项的归属剧集）
+  final String? seriesId;              // 剧集 ID（用于 NextUp 查询）
   final int? indexNumber;              // 集序号（集数）
   final int? parentIndexNumber;        // 季序号
   final int? productionYear;            // 制作年份
@@ -47,6 +48,7 @@ class MediaItem {
     required this.title,
     required this.type,
     this.seriesName,
+    this.seriesId,
     this.indexNumber,
     this.parentIndexNumber,
     this.productionYear,
@@ -84,6 +86,9 @@ class MediaItem {
     final seriesName = (json['SeriesName'] as String?) ??
         (json['series_name'] as String?) ??
         (json['seriesName'] as String?);
+    final seriesId = (json['SeriesId'] as String?) ??
+        (json['series_id'] as String?) ??
+        (json['seriesId'] as String?);
     final indexNumber = (json['IndexNumber'] as int?) ??
         (json['index_number'] as int?) ??
         (json['indexNumber'] as int?);
@@ -198,6 +203,7 @@ class MediaItem {
       title: title,
       type: type,
       seriesName: seriesName,
+      seriesId: seriesId,
       indexNumber: indexNumber,
       parentIndexNumber: parentIndexNumber,
       productionYear: productionYear,
@@ -227,6 +233,7 @@ class MediaItem {
         'title': title,
         'type': type,
         'series_name': seriesName,
+        'series_id': seriesId,
         'index_number': indexNumber,
         'parent_index_number': parentIndexNumber,
         'production_year': productionYear,
@@ -410,6 +417,7 @@ class MediaItem {
     String? title,
     String? type,
     String? seriesName,
+    String? seriesId,
     int? indexNumber,
     int? parentIndexNumber,
     int? productionYear,
@@ -435,6 +443,7 @@ class MediaItem {
       title: title ?? this.title,
       type: type ?? this.type,
       seriesName: seriesName ?? this.seriesName,
+      seriesId: seriesId ?? this.seriesId,
       indexNumber: indexNumber ?? this.indexNumber,
       parentIndexNumber: parentIndexNumber ?? this.parentIndexNumber,
       productionYear: productionYear ?? this.productionYear,
