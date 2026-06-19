@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.30.0...v1.31.0) (2026-06-19)
+
+
+### Features
+
+* **video:** 底部信息条显示评分 ([023d429](https://github.com/1525745393/EmbyTok-Flutter/commit/023d42920cc5688b338f5160eccff091acf96964))
+
 # [1.30.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.29.0...v1.30.0) (2026-06-19)
 
 
