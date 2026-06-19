@@ -1031,71 +1031,89 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         imageTags: {'Primary': firstActor.imageUrl ?? 'primary'},
       );
 
-      return SizedBox(
-        width: responsiveSize(48),
-        height: responsiveSize(48),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // 演员头像
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PersonDetailView(person: actorMediaItem),
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 圆形头像 + 收藏按钮
+          SizedBox(
+            width: responsiveSize(48),
+            height: responsiveSize(48),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // 演员头像
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PersonDetailView(person: actorMediaItem),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: responsiveSize(48),
+                      height: responsiveSize(48),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0x66FFFFFF), width: 2),
+                        color: Colors.black26,
+                      ),
+                      child: ClipOval(
+                        child: actorImageUrl != null && actorImageUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: actorImageUrl,
+                                fit: BoxFit.cover,
+                                httpHeaders: headers.isNotEmpty ? headers : null,
+                                placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                                errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                              )
+                            : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                      ),
                     ),
-                  );
-                },
-                child: Container(
-                  width: responsiveSize(48),
-                  height: responsiveSize(48),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0x66FFFFFF), width: 2),
-                    color: Colors.black26,
-                  ),
-                  child: ClipOval(
-                    child: actorImageUrl != null && actorImageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: actorImageUrl,
-                            fit: BoxFit.cover,
-                            httpHeaders: headers.isNotEmpty ? headers : null,
-                            placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                            errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                          )
-                        : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
                   ),
                 ),
-              ),
-            ),
-            // 收藏 "+"按钮（右下角悬浮）
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: GestureDetector(
-                onTap: () {
-                  ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
-                },
-                child: Container(
-                  width: responsiveSize(20),
-                  height: responsiveSize(20),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF00D9FF),
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                  child: Icon(
-                    isFavorited ? Icons.check : Icons.add,
-                    color: Colors.white,
-                    size: responsiveSize(12),
+                // 收藏 "+"按钮（右下角悬浮）
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    onTap: () {
+                      ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
+                    },
+                    child: Container(
+                      width: responsiveSize(20),
+                      height: responsiveSize(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF00D9FF),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        isFavorited ? Icons.check : Icons.add,
+                        color: Colors.white,
+                        size: responsiveSize(12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // 演员名字（短名）
+          SizedBox(height: responsiveSize(4)),
+          Text(
+            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: responsiveSize(9, 1.3),
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       );
     }
 
