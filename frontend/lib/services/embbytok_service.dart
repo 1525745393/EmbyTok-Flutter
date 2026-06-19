@@ -1255,6 +1255,21 @@ class EmbytokService {
   }
 
   // ============================
+  // 删除媒体项
+  // ============================
+  /// 删除指定的媒体项（调用 Emby DELETE /Items/{itemId}）
+  Future<void> deleteItem({
+    required String itemId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    AppLogger.debug('删除媒体项', data: {'itemId': itemId});
+    _ensureConfig(serverUrl, token);
+    await _apiClient.delete<dynamic>('/Items/$itemId');
+    AppLogger.info('媒体项已删除', data: {'itemId': itemId});
+  }
+
+  // ============================
   // 内部辅助方法
   // ============================
 

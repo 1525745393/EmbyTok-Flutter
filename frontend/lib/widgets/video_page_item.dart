@@ -502,6 +502,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         if (_videoController != null && _videoController!.value.isInitialized && !isPlaying)
           _buildCenterPlayButton(),
 
+        // 倍速状态徽章：播放速度 > 1x 时显示（与 EmbyTok 原版一致）
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
+            _videoController!.value.playbackSpeed > 1.0)
+          _buildSpeedBadge(_videoController!.value.playbackSpeed),
+
         // 控制层（VideoControls）：可隐藏，3 秒无操作自动淡出
         if (_videoController != null && _videoController!.value.isInitialized)
           Positioned(
@@ -582,6 +588,43 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               color: textPrimary,
               size: 48,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 倍速状态徽章：当播放速度 > 1x 时显示在右上角（与 EmbyTok 原版一致）
+  Widget _buildSpeedBadge(double speed) {
+    return Positioned(
+      top: 48, // 位于顶部安全区下方
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black87,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.flash_on, // Zap 图标
+                color: Color(0xFFFFD700), // 黄色
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${speed.toStringAsFixed(1)}x',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -824,6 +867,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            // 自动播放开关（与 EmbyTok 原版一致）
+            _buildAutoPlayButton(),
+            const SizedBox(height: 20),
             // 上一集 / 下一集 按钮（仅对有 seriesName 的剧集启用）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
@@ -859,13 +905,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
                   ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
             const SizedBox(height: 20),
-            _buildActionButton(
-              favorited ? Icons.star : Icons.star_border,
-              '收藏',
-              color: favorited ? amberColor : textPrimary,
-              onTap: () =>
-                  ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
-            ),
+            // 删除按钮（与 EmbyTok 原版一致）
+            _buildDeleteButton(),
             const SizedBox(height: 20),
             _buildActionButton(Icons.mode_comment_outlined, '评论', onTap: () {}),
             const SizedBox(height: 20),
@@ -874,6 +915,107 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         ),
       ),
     );
+  }
+
+  /// 自动播放开关按钮（Infinity 图标，与 EmbyTok 原版一致）
+  Widget _buildAutoPlayButton() {
+    final isAutoPlay = ref.watch(isAutoPlayProvider);
+    // 自动播放开启时绿色高亮，关闭时灰色半透明
+    final isEnabled = isAutoPlay;
+    return GestureDetector(
+      onTap: () {
+        ref.read(isAutoPlayProvider.notifier).toggle();
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isEnabled
+              ? const Color(0xCC4CAF50) // 80% 绿色
+              : const Color(0x4D000000), // 30% 黑色
+        ),
+        child: const Icon(
+          Icons.all_inclusive, // Infinity 图标
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  /// 删除按钮（Trash2 图标，与 EmbyTok 原版一致）
+  Widget _buildDeleteButton() {
+    return _PressableActionButton(
+      icon: Icons.delete_outline,
+      label: '删除',
+      color: Colors.red,
+      onTap: _showDeleteConfirmDialog,
+    );
+  }
+
+  /// 显示删除确认对话框
+  Future<void> _showDeleteConfirmDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xE6000000),
+        title: const Text(
+          '确认删除',
+          style: TextStyle(color: textPrimary),
+        ),
+        content: Text(
+          '确定要从媒体库中删除 "${widget.item.title}" 吗？',
+          style: const TextStyle(color: textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消', style: TextStyle(color: textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteItem();
+    }
+  }
+
+  /// 执行删除操作
+  Future<void> _deleteItem() async {
+    try {
+      final serverUrl = _authServerUrl();
+      final token = _authToken();
+      if (serverUrl == null || token == null) return;
+
+      final service = EmbytokService();
+      await service.deleteItem(
+        itemId: widget.item.id,
+        serverUrl: serverUrl,
+        token: token,
+      );
+
+      // 删除成功后通知父组件刷新列表
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已删除'), duration: Duration(seconds: 2)),
+        );
+        // 通知播放下一条（相当于刷新列表）
+        widget.onVideoEnded?.call();
+      }
+    } catch (e) {
+      debugPrint('_deleteItem error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), duration: const Duration(seconds: 2)),
+        );
+      }
+    }
   }
 
   /// 通用操作按钮：图标 + 标签，带按下缩放动画
