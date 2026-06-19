@@ -1,3 +1,11 @@
+# [1.38.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.37.0...v1.38.0) (2026-06-19)
+
+
+### Features
+
+* **player:** 完善播放控制与底部信息条 + 右侧操作区整理 ([d440a10](https://github.com/1525745393/EmbyTok-Flutter/commit/d440a106987bd353b205f088a02e3b52eaaf916a))
+* sync latest updates ([567a81b](https://github.com/1525745393/EmbyTok-Flutter/commit/567a81beb0b4a1b836215bf1097ca8de3ed44037))
+
 # [1.37.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.36.0...v1.37.0) (2026-06-19)
 
 
