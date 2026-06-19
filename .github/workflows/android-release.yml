@@ -65,11 +65,16 @@ jobs:
           node-version: "20"
 
       - name: 安装 Flutter 依赖
-        run: flutter pub get
+        run: |
+          echo "📦 安装 Flutter 项目依赖..."
+          flutter pub get
+          echo "✅ 依赖安装完成"
         working-directory: frontend
 
       - name: 安装 Semantic Release 及其插件
         run: |
+          echo "🔧 安装自动化发布工具 semantic-release..."
+          echo "ℹ️  这个工具会分析 git 提交信息，自动决定版本号"
           npm install -g \
             semantic-release \
             @semantic-release/commit-analyzer \
@@ -78,6 +83,7 @@ jobs:
             @semantic-release/exec \
             @semantic-release/git \
             @semantic-release/github
+          echo "✅ 发布工具安装完成"
 
       - name: 执行 Semantic Release（自动化发布流程）
         env:
@@ -86,4 +92,9 @@ jobs:
           ANDROID_KEYSTORE_PWD: ${{ secrets.ANDROID_KEYSTORE_PWD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PWD: ${{ secrets.ANDROID_KEY_PWD }}
-        run: npx semantic-release
+        run: |
+          echo "🚀 开始自动发布流程..."
+          echo "📋 执行步骤：分析提交 → 决定版本号 → 更新版本 → 分析代码 → 构建 APK → 创建 Release"
+          echo "🔑 使用 GitHub Secrets 中的签名密钥构建 APK"
+          npx semantic-release
+          echo "🎉 发布完成！请查看 Releases 页面下载 APK"

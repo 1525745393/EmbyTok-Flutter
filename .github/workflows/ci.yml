@@ -39,15 +39,35 @@ jobs:
         working-directory: frontend
 
       - name: 代码分析（lib/ 发布代码）
-        run: flutter analyze --no-pub lib
+        run: |
+          echo "🔍 正在检查发布代码（lib/ 目录）..."
+          echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
+          echo "🚦 检查标准：发现 error 就会失败，info 和 warning 不影响发布"
+          echo "::group::flutter analyze --no-pub lib"
+          flutter analyze --no-pub lib
+          echo "::endgroup::"
+          echo "✅ 发布代码检查通过！lib/ 目录没有编译错误，可以正常构建 APK"
         working-directory: frontend
 
       - name: 代码分析（test/ 测试代码）
-        run: flutter analyze --no-pub test || echo "⚠️  测试代码存在分析问题，不影响发布但需要修复"
+        run: |
+          echo "🔍 正在检查测试代码（test/ 目录）..."
+          echo "ℹ️  说明：这里的问题不会影响发布 APK，但测试代码需要保持最新"
+          echo "⚠️  如果这一步失败，只表示测试文件可能过时了，不会阻止发布"
+          echo "::group::flutter analyze --no-pub test"
+          flutter analyze --no-pub test || true
+          echo "::endgroup::"
+          echo "✅ 测试代码检查完成（如有问题需要后续修复，不影响发布）"
         working-directory: frontend
 
       - name: 运行测试
-        run: flutter test --coverage || echo "⚠️  测试文件存在编译问题，已跳过（不影响发布构建）"
+        run: |
+          echo "🧪 正在运行 Flutter 单元测试..."
+          echo "ℹ️  如果测试失败或无法编译，会显示警告但不影响发布"
+          echo "::group::flutter test --coverage"
+          flutter test --coverage || echo "⚠️  测试运行存在问题（不影响发布构建）"
+          echo "::endgroup::"
+          echo "✅ 测试步骤完成"
         working-directory: frontend
 
       - name: 上传测试覆盖率报告
