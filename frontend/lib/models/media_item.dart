@@ -257,6 +257,36 @@ class MediaItem {
   // ============================
   // 便捷属性
   // ============================
+
+  // 统一的时长读取（秒）：优先 runtimeTicks，其次 durationSeconds
+  double get durationSec {
+    if (runtimeTicks != null) return runtimeTicks! / 10000000.0;
+    return durationSeconds ?? 0.0;
+  }
+
+  // 格式化的时长显示（如 "1h 30m" 或 "45 分钟"）
+  String get formattedDuration {
+    final sec = durationSec;
+    if (sec <= 0) return '';
+    final totalMinutes = sec ~/ 60;
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+    if (hours > 0) {
+      return minutes > 0 ? '${hours}h ${minutes}m' : '${hours}h';
+    }
+    return '${minutes} 分钟';
+  }
+
+  // 最终展示用的年份（productionYear / year 都兼容）
+  int? get displayYear => productionYear ?? year;
+
+  // 合并的类型名称列表（取第一个非空）
+  List<String> get displayGenres =>
+      genreNames ?? genres ?? const <String>[];
+
+  // 有效评分：取 communityRating / rating 第一个有效值
+  double? get displayRating => communityRating ?? rating;
+
   bool get hasImage =>
       imageTags != null && imageTags!.isNotEmpty;
 

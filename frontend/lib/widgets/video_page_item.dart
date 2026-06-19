@@ -1108,31 +1108,312 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 
-  /// 信息按钮：展开/收起底部详情面板
+  /// 信息按钮：点击弹出底部详情面板，展示视频元信息
   Widget _buildInfoButton() {
-    return GestureDetector(
+    return _PressableActionButton(
+      icon: Icons.info_outline,
+      label: '信息',
+      color: textPrimary,
       onTap: () {
+        // 保留对底部小面积信息条的切换（便于纯净模式下仍能看到信息）
         setState(() {
           _isInfoExpanded = !_isInfoExpanded;
         });
+        _showVideoInfoSheet();
       },
-      child: Container(
-        width: 48,
-        height: 48,
+    );
+  }
+
+  /// 弹出底部信息面板：展示标题、年份、类型、时长、评分、简介、演员/导演等
+  void _showVideoInfoSheet() {
+    final item = widget.item;
+    final type = item.type;
+    final year = item.displayYear;
+    final duration = item.formattedDuration;
+    final rating = item.displayRating;
+    final genres = item.displayGenres;
+    final studios = item.studioNames;
+    final overview = item.overview;
+    final people = item.people;
+
+    // 剧集信息
+    final isEpisode = type == 'Episode' ||
+        (item.seriesName != null && item.seriesName!.isNotEmpty);
+
+    // 分类显示人员：前 5 位演员 + 导演/编剧
+    List<Person>? actors;
+    List<Person>? directors;
+    if (people != null && people.isNotEmpty) {
+      actors = people
+          .where((p) => p.type.toLowerCase() == 'actor')
+          .take(5)
+          .toList();
+      directors = people
+          .where((p) => p.type.toLowerCase().contains('director'))
+          .take(3)
+          .toList();
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xE6000000),
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  // 顶部小把手（指示可下滑关闭）
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 标题
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      color: textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // 副标题：类型 + 年份 + 剧集信息
+                  _buildInfoSubtitle(
+                    type: type,
+                    year: year,
+                    isEpisode: isEpisode,
+                    seriesName: item.seriesName,
+                    season: item.parentIndexNumber,
+                    episode: item.indexNumber,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 基本信息行（时长、评分、类型、工作室）
+                  _buildInfoRowItems(
+                    duration: duration,
+                    rating: rating,
+                    genres: genres,
+                    studios: studios,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 简介
+                  if (overview != null && overview.isNotEmpty) ...[
+                    const _SectionLabel('简介'),
+                    const SizedBox(height: 8),
+                    Text(
+                      overview,
+                      style: const TextStyle(
+                        color: textSecondary,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // 主要演员
+                  if (actors != null && actors.isNotEmpty) ...[
+                    const _SectionLabel('主演'),
+                    const SizedBox(height: 8),
+                    _buildPeopleChips(actors),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // 导演
+                  if (directors != null && directors.isNotEmpty) ...[
+                    const _SectionLabel('导演'),
+                    const SizedBox(height: 8),
+                    _buildPeopleChips(directors),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // 底部占位（避免紧贴导航栏）
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 副标题行：类型标签 + 年份 + 剧集信息
+  Widget _buildInfoSubtitle({
+    required String type,
+    required int? year,
+    required bool isEpisode,
+    required String? seriesName,
+    required int? season,
+    required int? episode,
+  }) {
+    final children = <Widget>[];
+
+    // 类型标签
+    children.add(
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _isInfoExpanded
-              ? const Color(0xCC4F46E5) // 靛蓝色
-              : const Color(0x4D000000), // 30% 黑色
+          color: primaryPink.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(6),
         ),
-        child: const Icon(
-          Icons.info_outline,
-          color: Colors.white,
-          size: 24,
+        child: Text(
+          type,
+          style: const TextStyle(
+            color: primaryPink,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
+
+    // 年份
+    if (year != null) {
+      children.addAll([
+        const SizedBox(width: 8),
+        Text(
+          year.toString(),
+          style: const TextStyle(
+            color: textSecondary,
+            fontSize: 13,
+          ),
+        ),
+      ]);
+    }
+
+    // 剧集信息
+    if (isEpisode) {
+      if (seriesName != null && seriesName.isNotEmpty) {
+        children.addAll([
+          const SizedBox(width: 8),
+          const Text(
+            '·',
+            style: TextStyle(color: textSecondary, fontSize: 13),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              seriesName,
+              style: const TextStyle(
+                color: textSecondary,
+                fontSize: 13,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ]);
+      }
+      if (season != null || episode != null) {
+        final s = season != null ? 'S$season' : '';
+        final e = episode != null ? 'E$episode' : '';
+        children.addAll([
+          if (children.length > 1) const SizedBox(width: 8),
+          Text(
+            '$s$e',
+            style: const TextStyle(
+              color: textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ]);
+      }
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: children,
+    );
   }
+
+  // 基本信息卡片行：时长 / 评分 / 类型 / 工作室
+  Widget _buildInfoRowItems({
+    required String duration,
+    required double? rating,
+    required List<String> genres,
+    required List<String>? studios,
+  }) {
+    final widgets = <Widget>[];
+
+    if (duration.isNotEmpty) {
+      widgets.add(_InfoChip(label: '时长', value: duration));
+    }
+    if (rating != null && rating > 0) {
+      widgets.add(_InfoChip(
+        label: '评分',
+        value: '★ ${rating.toStringAsFixed(1)}',
+        highlight: true,
+      ));
+    }
+    if (genres.isNotEmpty) {
+      widgets.add(_InfoChip(
+        label: '类型',
+        value: genres.take(3).join(' / '),
+      ));
+    }
+    if (studios != null && studios.isNotEmpty) {
+      widgets.add(_InfoChip(
+        label: '出品',
+        value: studios.first,
+      ));
+    }
+
+    if (widgets.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 10,
+      children: widgets,
+    );
+  }
+
+  // 人员 chips（如演员、导演）
+  Widget _buildPeopleChips(List<Person> people) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: people.map((p) {
+        final display =
+            p.role != null && p.role!.isNotEmpty && p.role != p.name
+                ? '${p.name} (${p.role})'
+                : p.name;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            display,
+            style: const TextStyle(
+              color: textPrimary,
+              fontSize: 13,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
 
   /// 播放模式按钮：DirectPlay / Transcode / Fallback 循环切换
   Widget _buildPlayModeButton() {
@@ -1733,6 +2014,76 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// 信息面板中的分节标题（如"简介"、"主演"、"导演"）
+class _SectionLabel extends StatelessWidget {
+  final String text;
+
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: textPrimary,
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+/// 信息面板中的小卡片（时长、评分、类型、出品等）
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool highlight;
+
+  const _InfoChip({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(10),
+        border: highlight
+            ? Border.all(color: primaryPink.withValues(alpha: 0.45))
+            : null,
+      ),
+      constraints: const BoxConstraints(minWidth: 80),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: highlight ? primaryPink : textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
