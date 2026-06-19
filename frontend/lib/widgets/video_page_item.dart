@@ -903,6 +903,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   fontSize: 14,
                 ),
               ),
+            // 可拖拽进度条 + 时间显示
+            if (_videoController != null && _videoController!.value.isInitialized)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _SeekableProgressBar(
+                  controller: _videoController!,
+                  formatDuration: _formatDuration,
+                ),
+              ),
           ],
         ),
       ),
@@ -1932,6 +1941,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 
+  /// Duration 格式化为 mm:ss 或 h:mm:ss
+  String _formatDuration(Duration duration) {
+    if (duration.inSeconds <= 0) return '0:00';
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours >= 1) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
   String _titleText() {
     if (widget.item.year != null) {
       return '${widget.item.title} (${widget.item.year})';
@@ -2174,6 +2195,172 @@ class _ThinProgressBarState extends State<_ThinProgressBar> {
         widthFactor: progress,
         child: Container(color: primaryPink),
       ),
+    );
+  }
+}
+
+/// 可点击/可拖拽的进度条，用于底部信息条
+/// 支持点击跳转和水平拖拽 seek
+class _SeekableProgressBar extends StatefulWidget {
+  final VideoPlayerController controller;
+  final String Function(Duration) formatDuration;
+
+  const _SeekableProgressBar({
+    required this.controller,
+    required this.formatDuration,
+  });
+
+  @override
+  State<_SeekableProgressBar> createState() => _SeekableProgressBarState();
+}
+
+class _SeekableProgressBarState extends State<_SeekableProgressBar> {
+  double _dragProgress = 0.0;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
+  void _seekToPosition(double localDx, double totalWidth) {
+    final duration = widget.controller.value.duration;
+    if (duration.inMilliseconds <= 0) return;
+
+    double progress = (localDx / totalWidth).clamp(0.0, 1.0);
+    final targetMs = (progress * duration.inMilliseconds).toInt();
+    widget.controller.seekTo(Duration(milliseconds: targetMs));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = widget.controller.value.duration;
+    final position = widget.controller.value.position;
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    final displayProgress = _isDragging ? _dragProgress : progress;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        final barHeight = 12.0; // 更大的点击/拖拽区域
+        final indicatorRadius = 6.0;
+        final currentTime = widget.formatDuration(position);
+        final totalTime = widget.formatDuration(duration);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 进度条区域（可点击/拖拽）
+            GestureDetector(
+              onTapDown: (details) {
+                // 点击跳转
+                final localDx = details.localPosition.dx;
+                _seekToPosition(localDx, totalWidth);
+              },
+              onHorizontalDragStart: (details) {
+                setState(() {
+                  _isDragging = true;
+                });
+                _seekToPosition(details.localPosition.dx, totalWidth);
+              },
+              onHorizontalDragUpdate: (details) {
+                final localDx = details.localPosition.dx;
+                final newProgress = (localDx / totalWidth).clamp(0.0, 1.0);
+                setState(() {
+                  _dragProgress = newProgress;
+                });
+                _seekToPosition(localDx, totalWidth);
+              },
+              onHorizontalDragEnd: (details) {
+                setState(() {
+                  _isDragging = false;
+                });
+              },
+              child: Container(
+                height: barHeight,
+                width: totalWidth,
+                color: Colors.transparent, // 透明背景，使手势可检测
+                alignment: Alignment.center,
+                child: Container(
+                  height: 4,
+                  width: totalWidth,
+                  decoration: BoxDecoration(
+                    color: const Color(0x33FFFFFF),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Stack(
+                    children: [
+                      // 已播放部分（粉色）
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: displayProgress,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: primaryPink,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      // 拖拽小圆点指示器
+                      Positioned(
+                        left: (displayProgress * totalWidth)
+                            .clamp(0.0, totalWidth - indicatorRadius * 2) - indicatorRadius,
+                        top: barHeight / 2 - indicatorRadius,
+                        child: Container(
+                          width: indicatorRadius * 2,
+                          height: indicatorRadius * 2,
+                          decoration: BoxDecoration(
+                            color: _isDragging ? primaryPink : textPrimary,
+                            shape: BoxShape.circle,
+                            boxShadow: _isDragging
+                                ? [
+                                    BoxShadow(
+                                      color: primaryPink.withOpacity(0.5),
+                                      blurRadius: 6,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // 时间显示（当前时间 / 总时长）
+            SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                '$currentTime / $totalTime',
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.left,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
