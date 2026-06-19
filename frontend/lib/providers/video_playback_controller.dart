@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../services/embbytok_service.dart';
 import '../utils/app_preferences.dart';
 import '../utils/constants.dart';
+
+// 统一的 EmbytokService Provider（用于加载字幕、上报播放等）
+final embbytokServiceProvider = Provider<EmbytokService>((ref) => EmbytokService());
 
 // 当前正在播放的媒体条目
 final currentPlayingItemProvider = StateProvider<MediaItem?>((ref) => null);

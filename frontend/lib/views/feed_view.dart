@@ -515,9 +515,60 @@ class _FeedViewState extends ConsumerState<FeedView>
           preloadedController: preloadedController,
           onVideoEnded: _goToNextVideo,
           startFromResumePosition: isResumeMode,
+          // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
+          onNextEpisode: item.seriesName != null
+              ? () {
+                  _jumpToNextEpisode(videoState.items, index);
+                }
+              : null,
         );
       },
     );
+  }
+
+  // 在 videoState.items 中查找当前 item 的下一集（同 series 的更大 indexNumber）
+  void _jumpToNextEpisode(List<MediaItem> items, int currentIndex) {
+    final current = items[currentIndex];
+    final series = current.seriesName;
+    if (series == null || series.isEmpty) {
+      _goToNextVideo();
+      return;
+    }
+    // 策略1：当前条目是 Episode，则寻找同 series 的下一个 Episode
+    int? nextIndex;
+    if (current.indexNumber != null && current.parentIndexNumber != null) {
+      // 在 items 中找同一季的下一集（indexNumber = current.indexNumber + 1）
+      for (int i = 0; i < items.length; i++) {
+        final it = items[i];
+        if (it.seriesName == series &&
+            it.parentIndexNumber == current.parentIndexNumber &&
+            it.indexNumber == current.indexNumber! + 1) {
+          nextIndex = i;
+          break;
+        }
+      }
+      // 若当前季没找到，尝试直接跳到同 series 的后续条目（下一个季的第1集）
+      nextIndex ??= items.indexWhere(
+        (it) => it.seriesName == series && it.indexNumber == 1 &&
+                 it.parentIndexNumber == current.parentIndexNumber! + 1,
+      );
+      if (nextIndex == -1) nextIndex = null;
+    }
+    // 策略2：简单匹配 —— 找到下一个 seriesName 相同的条目（按顺序）
+    nextIndex ??= items.indexWhere(
+      (it) => it.seriesName == series,
+      currentIndex + 1,
+    );
+    if (nextIndex != null && nextIndex >= 0 && nextIndex < items.length) {
+      _pageController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    } else {
+      // 找不到：回到默认的下一条
+      _goToNextVideo();
+    }
   }
 
   // 错误提示 UI

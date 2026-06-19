@@ -1,22 +1,33 @@
-// 视频控制条：播放/暂停按钮 + 进度条 + 时间 + 倍速
+// 视频控制条：播放/暂停按钮 + 上一集/下一集 + 进度条 + 时间 + 倍速 + 字幕
 // TikTok 风格半透明控制层，接入 isPlayingProvider 同步播放状态
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/colors.dart';
+import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
   final VideoPlayerController controller;
+  // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
+  final List<SubtitleTrack> subtitleTracks;
+  // 上一集/下一集回调（剧集类内容）
+  final VoidCallback? onPrevEpisode;
+  final VoidCallback? onNextEpisode;
+  // 倍速档位（支持常见的 0.5x ～ 2.0x 六档）
   final List<double> playbackRates;
 
   const VideoControls({
     super.key,
     required this.controller,
-    this.playbackRates = const <double>[1.0, 1.5, 2.0],
+    this.subtitleTracks = const <SubtitleTrack>[],
+    this.onPrevEpisode,
+    this.onNextEpisode,
+    this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
   });
 
   @override
@@ -63,12 +74,44 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         widget.controller.value.isPlaying;
   }
 
-  // 切换倍速
-  void _cycleRate() {
-    final current = widget.controller.value.playbackSpeed;
-    final rates = widget.playbackRates;
-    final nextIndex = (rates.indexOf(current) + 1) % rates.length;
-    widget.controller.setPlaybackSpeed(rates[nextIndex]);
+  // 弹出倍速选择菜单（替代原先循环切换）
+  Future<void> _showRateMenu() async {
+    final rate = await showDialog<double>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        backgroundColor: const Color(0xE6000000),
+        title: const Text('播放速度',
+            style: TextStyle(color: textPrimary, fontSize: 16)),
+        children: widget.playbackRates
+            .map((r) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, r),
+                  child: Text('${r.toStringAsFixed(1)}x',
+                      style: const TextStyle(color: textPrimary, fontSize: 15)),
+                ))
+            .toList(),
+      ),
+    );
+    if (rate != null) {
+      widget.controller.setPlaybackSpeed(rate);
+    }
+  }
+
+  // 弹出字幕选择菜单（从 subtitleTracks 中挑选）
+  Future<void> _showSubtitleMenu() async {
+    if (widget.subtitleTracks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('未检测到可用字幕'), duration: Duration(seconds: 1)),
+      );
+      return;
+    }
+    await showSubtitleSelector(
+      context: context,
+      tracks: widget.subtitleTracks,
+      selectedTrackId: ref.read(selectedSubtitleProvider),
+      onSelected: (track) {
+        ref.read(selectedSubtitleProvider.notifier).state = track?.id;
+      },
+    );
   }
 
   @override
@@ -97,6 +140,11 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         top: false,
         child: Row(
           children: [
+            // 上一集
+            IconButton(
+              icon: const Icon(Icons.skip_previous, color: textPrimary),
+              onPressed: widget.onPrevEpisode,
+            ),
             // 播放/暂停按钮
             IconButton(
               icon: Icon(
@@ -105,6 +153,11 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                 size: 28,
               ),
               onPressed: _togglePlay,
+            ),
+            // 下一集
+            IconButton(
+              icon: const Icon(Icons.skip_next, color: textPrimary),
+              onPressed: widget.onNextEpisode,
             ),
             const SizedBox(width: 8),
             // 时间显示
@@ -128,9 +181,14 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
               ),
             ),
             const SizedBox(width: 8),
-            // 倍速按钮
+            // 字幕按钮
+            IconButton(
+              icon: const Icon(Icons.subtitles, color: textPrimary),
+              onPressed: _showSubtitleMenu,
+            ),
+            // 倍速按钮（点击弹出选择菜单）
             TextButton(
-              onPressed: _cycleRate,
+              onPressed: _showRateMenu,
               child: Text(
                 '${widget.controller.value.playbackSpeed.toStringAsFixed(1)}x',
                 style: const TextStyle(color: textPrimary, fontSize: 14),

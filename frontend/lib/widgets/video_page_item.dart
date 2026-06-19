@@ -27,6 +27,9 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final VoidCallback? onVideoEnded;
   // 是否为 resume 模式（需要从 userData.playbackPositionTicks 开始）
   final bool startFromResumePosition;
+  // 上一集 / 下一集 回调（剧集类内容）
+  final VoidCallback? onNextEpisode;
+  final VoidCallback? onPrevEpisode;
 
   const VideoPageItem({
     super.key,
@@ -34,6 +37,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.preloadedController,
     this.onVideoEnded,
     this.startFromResumePosition = false,
+    this.onNextEpisode,
+    this.onPrevEpisode,
   });
 
   @override
@@ -396,7 +401,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
               child: IgnorePointer(
                 ignoring: !_controlsVisible,
-                child: VideoControls(controller: _videoController!),
+                child: VideoControls(
+                  controller: _videoController!,
+                  subtitleTracks: widget.item.subtitleTracks,
+                  onPrevEpisode: widget.onPrevEpisode,
+                  onNextEpisode: widget.onNextEpisode,
+                ),
               ),
             ),
           ),
@@ -591,6 +601,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
+            // 上一集 / 下一集 按钮（仅对有 seriesName 的剧集启用）
+            if (widget.onNextEpisode != null) ...[
+              _buildActionButton(
+                Icons.chevron_right,
+                '下一集',
+                color: textPrimary,
+                onTap: widget.onNextEpisode,
+              ),
+              const SizedBox(height: 20),
+            ],
             _buildActionButton(
               _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
               _isFullscreen ? '退出' : '全屏',

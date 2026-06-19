@@ -4,6 +4,7 @@
 
 import '../models/models.dart';
 import '../utils/logger.dart';
+import '../widgets/subtitle_renderer.dart';
 import 'api_client.dart';
 
 class EmbytokService {
@@ -782,6 +783,47 @@ class EmbytokService {
     String? token,
   }) async {
     return getItemDetail(itemId, serverUrl: serverUrl, token: token);
+  }
+
+  // ============================
+  // 字幕 Cues 加载（从 Emby 获取并解析 SRT/VTT）
+  // - index: 字幕轨道 index（与 MediaStream.index）
+  // - mediaSourceId: 媒体源 ID
+  //
+  // 字幕 URL 格式：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
+  // 返回：按 start / end / text
+  // ============================
+  Future<List<SubtitleCue>> getSubtitleCues({
+    required String itemId,
+    required String mediaSourceId,
+    required int index,
+    String format = 'srt',
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    try {
+      // URL: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
+      // 36000000000 = 1小时（1 tick = 100ns）
+      final url =
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/36000000000.$format';
+      // 需要非 JSON 请求（SRT 文本）
+      final resp = await _apiClient.dio.get<String>(
+        url,
+        options: Options(
+          headers: {
+            'Accept': 'text/plain',
+          },
+        ),
+      );
+      final text = resp.data;
+      if (text == null || text.isEmpty) return const <SubtitleCue>[];
+      // 调用 parseSrt 解析
+      return parseSrt(text);
+    } catch (e) {
+      // 字幕加载失败不中断播放，返回空列表
+      return const <SubtitleCue>[];
+    }
   }
 
   // ============================

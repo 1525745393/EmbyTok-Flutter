@@ -51,6 +51,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   String? _errorMessage;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
+  // 异步加载的字幕 Cues（从 Emby 服务器获取）
+  List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
+  // 是否正在加载字幕
+  bool _isLoadingSubtitle = false;
   // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
   // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
   int _fallbackLevel = 0;
@@ -411,6 +415,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听字幕选择：用户选择新字幕轨道时异步加载
+    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
+      if (next != previous) {
+        _loadSubtitle(next);
+      }
+    });
+
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
       return _buildThumbnailPlaceholder();
@@ -428,7 +439,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
-    final subtitles = widget.item.subtitleCues ?? const <SubtitleCue>[];
+    // 监听选中的字幕轨道 ID，变化时异步加载
+    final selectedSubId = ref.watch(selectedSubtitleProvider);
+    // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
+    final displayCues = _subtitleCues.isNotEmpty
+        ? _subtitleCues
+        : (widget.item.subtitleCues ?? const <SubtitleCue>[]);
     return SizedBox.expand(
       child: Stack(
         fit: StackFit.expand,
@@ -441,13 +457,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               child: VideoPlayer(_controller!),
             ),
           ),
-          if (subtitles.isNotEmpty)
+          if (displayCues.isNotEmpty && selectedSubId != null)
             ValueListenableBuilder<int>(
               valueListenable: _positionSeconds,
               builder: (_, seconds, __) {
                 return SubtitleRenderer(
                   position: Duration(seconds: seconds),
-                  cues: subtitles,
+                  cues: displayCues,
                   enabled: true,
                 );
               },
@@ -455,6 +471,68 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         ],
       ),
     );
+  }
+
+  // 根据 selectedSubtitleProvider 的最新值异步加载字幕
+  Future<void> _loadSubtitle(String? selectedTrackId) async {
+    if (!mounted) return;
+    if (selectedTrackId == null) {
+      setState(() {
+        _subtitleCues = const <SubtitleCue>[];
+        _isLoadingSubtitle = false;
+      });
+      return;
+    }
+    final mediaSourceId =
+        widget.item.mediaSources?.isNotEmpty == true
+            ? widget.item.mediaSources!.first.id
+            : null;
+    if (mediaSourceId == null || mediaSourceId.isEmpty) {
+      return;
+    }
+    // 从 item 的 subtitleTracks 中找到对应 track 的 index
+    final tracks = widget.item.subtitleTracks;
+    int? trackIndex;
+    for (int i = 0; i < tracks.length; i++) {
+      if (tracks[i].id == selectedTrackId) {
+        // track.id 本身就是 "N" 形式（例如 "0"/"1"），直接解析
+        final maybeIndex = int.tryParse(tracks[i].id);
+        if (maybeIndex != null) {
+          trackIndex = maybeIndex;
+          break;
+        }
+        // 否则退而求其次：用 i 作为轨道索引
+        trackIndex = i;
+        break;
+      }
+    }
+    trackIndex ??= int.tryParse(selectedTrackId);
+    if (trackIndex == null) return;
+
+    setState(() {
+      _isLoadingSubtitle = true;
+    });
+    final embService = ref.read(embbytokServiceProvider);
+    // 注入当前认证信息（确保字幕请求头包含 Token）
+    final authState = ref.read(authProvider);
+    if (authState.serverUrl != null && authState.token != null) {
+      embService.setupAuth(
+        serverUrl: authState.serverUrl!,
+        token: authState.token!,
+        userId: authState.userId,
+      );
+    }
+    final cues = await embService.getSubtitleCues(
+      itemId: widget.item.id,
+      mediaSourceId: mediaSourceId,
+      index: trackIndex!,
+    );
+    if (mounted) {
+      setState(() {
+        _subtitleCues = cues;
+        _isLoadingSubtitle = false;
+      });
+    }
   }
 
   // 缩略图占位：web 环境或无播放地址时使用
