@@ -64,6 +64,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   // 横屏全屏沉浸模式状态
   bool _isFullscreen = false;
 
+  // 底部信息面板展开/收起状态
+  bool _isInfoExpanded = false;
+
   // 控制层（VideoControls）显示状态
   bool _controlsVisible = false;
   Timer? _controlsHideTimer;
@@ -534,8 +537,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             ),
           ),
 
-        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式或纯净模式下隐藏）
-        if (!_isFullscreen && !isAutoPlay) _buildBottomGradient(),
+        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式下隐藏；
+        // 纯净模式下由信息按钮控制：信息面板的显示/隐藏）
+        if (!_isFullscreen && (_isInfoExpanded || !isAutoPlay)) _buildBottomGradient(),
 
         // 右侧渐变 + 操作按钮（横屏全屏模式或纯净模式下隐藏）
         if (!_isFullscreen && !isAutoPlay) _buildRightActions(favorited),
@@ -839,13 +843,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     );
   }
 
-  // 右侧操作按钮列：静音 / 点赞 / 收藏 / 评论 / 分享
-  // 动态 padding：顶部工具栏可见时向下偏移 kAppToolbarHeight，避开半透明工具栏
+  // 右侧操作按钮列：与 React 版 EmbyTok 对齐
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
+    final subtitleSelected = ref.watch(selectedSubtitleProvider);
+    final playMode = ref.watch(playbackLevelProvider);
 
     return Positioned(
       right: 0,
@@ -853,12 +858,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
       bottom: 0,
       width: 96,
       child: Container(
-        // 顶部距离：工具栏可见时 = 顶部安全区 + 工具栏高度 + 40px；隐藏时 = 安全区 + 40px
         padding: EdgeInsets.fromLTRB(
           0,
           toolbarVisible
-              ? topPadding + kAppToolbarHeight + 40
-              : topPadding + 40,
+              ? topPadding + 56.0 + 40.0
+              : topPadding + 40.0,
           8,
           24 + bottomPadding,
         ),
@@ -867,21 +871,52 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             begin: Alignment.centerRight,
             end: Alignment.centerLeft,
             colors: [
-              black54,
-              Colors.transparent,  // 透明是 Flutter 自带常量
+              Color(0x8A000000),
+              Colors.transparent,
             ],
           ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // 自动播放开关（与 EmbyTok 原版一致）
-            _buildAutoPlayButton(),
+            // 1. 海报/头像展示区（顶部 TikTok 风格）
+            _buildPosterAvatar(),
             const SizedBox(height: 20),
-            // 倍速调节按钮（点击弹出调节面板）
+            // 2. 点赞
+            _buildActionButton(
+              favorited ? Icons.favorite : Icons.favorite_border,
+              '点赞',
+              color: favorited ? const Color(0xFFFF2D55) : textPrimary,
+              onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
+            ),
+            const SizedBox(height: 20),
+            // 3. 信息按钮
+            _buildInfoButton(),
+            const SizedBox(height: 20),
+            // 4. 删除按钮
+            _buildDeleteButton(),
+            const SizedBox(height: 20),
+            // 5. 倍速按钮
             _buildSpeedControlButton(),
             const SizedBox(height: 20),
-            // 上一集 / 下一集 按钮（仅对有 seriesName 的剧集启用）
+            // 6. 播放模式按钮
+            _buildPlayModeButton(),
+            const SizedBox(height: 20),
+            // 7. 字幕按钮
+            _buildSubtitleButton(),
+            const SizedBox(height: 20),
+            // 8. 唱片式静音按钮
+            _buildDiscMuteButton(),
+            const SizedBox(height: 20),
+            // 9. 全屏按钮
+            _buildActionButton(
+              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+              _isFullscreen ? '退出' : '全屏',
+              color: textPrimary,
+              onTap: _toggleFullscreen,
+            ),
+            const SizedBox(height: 20),
+            // 10. 下一集（仅剧集类）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
                 Icons.chevron_right,
@@ -891,41 +926,217 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
               ),
               const SizedBox(height: 20),
             ],
-            _buildActionButton(
-              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-              _isFullscreen ? '退出' : '全屏',
-              color: textPrimary,
-              onTap: _toggleFullscreen,
-            ),
-            const SizedBox(height: 20),
-            _buildActionButton(
-              isMuted ? Icons.volume_off : Icons.volume_up,
-              isMuted ? '静音' : '音量',
-              color: isMuted ? errorColor : textPrimary,
-              onTap: () {
-                ref.read(isMutedProvider.notifier).toggle();
-                _videoController?.setVolume(isMuted ? 1.0 : 0.0);
-              },
-            ),
-            const SizedBox(height: 20),
-            _buildActionButton(
-              favorited ? Icons.favorite : Icons.favorite_border,
-              '点赞',
-              color: favorited ? primaryPink : textPrimary,
-              onTap: () =>
-                  ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
-            ),
-            const SizedBox(height: 20),
-            // 删除按钮（与 EmbyTok 原版一致）
-            _buildDeleteButton(),
-            const SizedBox(height: 20),
-            _buildActionButton(Icons.mode_comment_outlined, '评论', onTap: () {}),
-            const SizedBox(height: 20),
-            _buildActionButton(Icons.share, '分享', onTap: () {}),
+            // 11. 连播开关（Infinity，最底部）
+            _buildAutoPlayButton(),
           ],
         ),
       ),
     );
+  }
+
+  /// 海报/头像展示区（TikTok 风格）
+  Widget _buildPosterAvatar() {
+    final authState = ref.watch(authProvider);
+    final embyServerUrl = authState.embyServerUrl;
+    final token = authState.token;
+    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl: embyServerUrl, apiKey: token, maxWidth: 200);
+    return GestureDetector(
+      onTap: _togglePlay,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0x66FFFFFF), width: 2),
+          color: Colors.black26,
+        ),
+        child: ClipOval(
+          child: posterUrl != null && posterUrl.isNotEmpty
+              ? Image.network(
+                  posterUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
+                )
+              : const Icon(Icons.music_video, color: Colors.white54, size: 24),
+        ),
+      ),
+    );
+  }
+
+  /// 信息按钮：展开/收起底部详情面板
+  Widget _buildInfoButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _isInfoExpanded = !_isInfoExpanded;
+        });
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _isInfoExpanded
+              ? const Color(0xCC4F46E5) // 靛蓝色
+              : const Color(0x4D000000), // 30% 黑色
+        ),
+        child: const Icon(
+          Icons.info_outline,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+    );
+  }
+
+  /// 播放模式按钮：DirectPlay / Transcode / Fallback 循环切换
+  Widget _buildPlayModeButton() {
+    final currentLevel = ref.watch(playbackLevelProvider);
+    // 0=Direct, 1=Transcode, 2=Fallback
+    final String label = currentLevel == 0 ? 'Direct' : (currentLevel == 1 ? 'Transcode' : 'Fbk');
+    final bool isHighlight = currentLevel != 0;
+    return GestureDetector(
+      onTap: () {
+        final newLevel = (currentLevel + 1) % 3;
+        ref.read(playbackLevelProvider.notifier).state = newLevel;
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isHighlight
+              ? const Color(0xCC4F46E5) // 靛蓝色
+              : const Color(0x4D000000),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 字幕控制按钮：弹出字幕选择菜单
+  Widget _buildSubtitleButton() {
+    final subtitleSelected = ref.watch(selectedSubtitleProvider);
+    final bool hasSubtitles = widget.item.subtitleTracks.isNotEmpty;
+    final bool isEnabled = subtitleSelected != null;
+    return GestureDetector(
+      onTap: hasSubtitles
+          ? () => _showSubtitleSelector()
+          : null,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isEnabled
+              ? const Color(0xCC4F46E5)
+              : (hasSubtitles ? const Color(0x4D000000) : const Color(0x1A000000)),
+        ),
+        child: const Icon(
+          Icons.subtitles,
+          color: Colors.white,
+          size: 22,
+        ),
+      ),
+    );
+  }
+
+  /// 弹出字幕选择器
+  void _showSubtitleSelector() {
+    final tracks = widget.item.subtitleTracks;
+    if (tracks.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xE6000000),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('字幕选择', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ListTile(
+                title: const Text('关闭字幕', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  ref.read(selectedSubtitleProvider.notifier).state = null;
+                  Navigator.of(context).pop();
+                },
+              ),
+              ...tracks.asMap().entries.map((entry) {
+                final track = entry.value;
+                return ListTile(
+                  title: Text(track.displayName ?? '字幕 ${entry.key + 1}', style: const TextStyle(color: Colors.white)),
+                  onTap: () {
+                    ref.read(selectedSubtitleProvider.notifier).state = track.id;
+                    Navigator.of(context).pop();
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 唱片式静音按钮：播放时旋转，静音时红色边框
+  Widget _buildDiscMuteButton() {
+    final isMuted = ref.watch(isMutedProvider);
+    final isPlaying = _videoController?.value.isPlaying ?? false;
+    return GestureDetector(
+      onTap: () {
+        ref.read(isMutedProvider.notifier).toggle();
+        _videoController?.setVolume(isMuted ? 1.0 : 0.0);
+      },
+      child: AnimatedRotation(
+        turns: isPlaying ? 1.0 : 0.0,
+        duration: const Duration(seconds: 4),
+        curve: Curves.linear,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0x4D000000),
+            border: Border.all(
+              color: isMuted ? const Color(0xFFFF2D55) : const Color(0x66FFFFFF),
+              width: 2,
+            ),
+          ),
+          child: Center(
+            child: Icon(
+              isMuted ? Icons.volume_off : Icons.music_note,
+              color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 切换播放/暂停（海报头像点击触发）
+  void _togglePlay() {
+    if (_videoController == null) return;
+    if (_videoController!.value.isPlaying) {
+      _videoController!.pause();
+      ref.read(isPlayingProvider.notifier).state = false;
+    } else {
+      _videoController!.play();
+      ref.read(isPlayingProvider.notifier).state = true;
+    }
   }
 
   /// 纯净模式下的右侧按钮区：可拖动，仅保留连播开关和倍速调节
