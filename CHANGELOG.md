@@ -1,3 +1,10 @@
+## [1.27.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.27.1...v1.27.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 简化 Android 发布脚本，修复 Release [#124](https://github.com/1525745393/EmbyTok-Flutter/issues/124) 失败 ([c4c9d20](https://github.com/1525745393/EmbyTok-Flutter/commit/c4c9d2075c62afb156016233218009f9457eabd8))
+
 ## [1.27.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.27.0...v1.27.1) (2026-06-19)
 
 
