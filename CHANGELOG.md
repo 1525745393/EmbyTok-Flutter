@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.23.1...v1.24.0) (2026-06-19)
+
+
+### Features
+
+* 纯净模式下连播开关和倍速按钮支持拖动调整位置 ([bf935a4](https://github.com/1525745393/EmbyTok-Flutter/commit/bf935a4be616f4254a6ceff842bb60a8a313a560))
+
 ## [1.23.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.23.0...v1.23.1) (2026-06-19)
 
 
