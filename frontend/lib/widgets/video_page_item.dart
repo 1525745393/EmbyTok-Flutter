@@ -412,6 +412,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     // 读取播放状态（用于中央播放按钮显示）
     final isPlaying = ref.watch(isPlayingProvider);
 
+    // 读取自动连播状态（用于纯净模式）
+    final isAutoPlay = ref.watch(isAutoPlayProvider);
+
     // 横屏全屏模式下使用黑色背景 + 居中布局
     final content = Stack(
       fit: StackFit.expand,
@@ -509,6 +512,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           _buildSpeedBadge(_videoController!.value.playbackSpeed),
 
         // 控制层（VideoControls）：可隐藏，3 秒无操作自动淡出
+        // 始终创建（不管 isAutoPlay），点击屏幕时通过 _toggleControls 触发动画显示
         if (_videoController != null && _videoController!.value.isInitialized)
           Positioned(
             left: 0,
@@ -529,11 +533,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             ),
           ),
 
-        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式下隐藏）
-        if (!_isFullscreen) _buildBottomGradient(),
+        // 底部渐变 + 标题/简介/类型标签（横屏全屏模式或纯净模式下隐藏）
+        if (!_isFullscreen && !isAutoPlay) _buildBottomGradient(),
 
-        // 右侧渐变 + 操作按钮（横屏全屏模式下隐藏）
-        if (!_isFullscreen) _buildRightActions(favorited),
+        // 右侧渐变 + 操作按钮（横屏全屏模式或纯净模式下隐藏）
+        if (!_isFullscreen && !isAutoPlay) _buildRightActions(favorited),
 
         // 横屏全屏模式下显示退出按钮（右上角）
         if (_isFullscreen) _buildExitFullscreenButton(),
@@ -870,6 +874,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
             // 自动播放开关（与 EmbyTok 原版一致）
             _buildAutoPlayButton(),
             const SizedBox(height: 20),
+            // 倍速调节按钮（点击弹出调节面板）
+            _buildSpeedControlButton(),
+            const SizedBox(height: 20),
             // 上一集 / 下一集 按钮（仅对有 seriesName 的剧集启用）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
@@ -924,7 +931,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     final isEnabled = isAutoPlay;
     return GestureDetector(
       onTap: () {
+        final newState = !isAutoPlay;
         ref.read(isAutoPlayProvider.notifier).toggle();
+        // 显示连播模式切换提示
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                newState ? '连播模式已开启' : '连播模式已关闭',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: newState
+                  ? const Color(0xCC4CAF50) // 绿色
+                  : const Color(0xCC666666), // 灰色
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+            ),
+          );
+        }
       },
       child: Container(
         width: 48,
@@ -941,6 +966,157 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
           size: 28,
         ),
       ),
+    );
+  }
+
+  /// 倍速调节按钮：显示当前倍速，点击弹出调节面板（1x-10x）
+  Widget _buildSpeedControlButton() {
+    final currentSpeed = _videoController?.value.playbackSpeed ?? 1.0;
+    return GestureDetector(
+      onTap: _showSpeedControlPanel,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: currentSpeed > 1.0
+              ? const Color(0xCCFF9800) // 橙色高亮
+              : const Color(0x4D000000), // 30% 黑色
+        ),
+        child: Center(
+          child: Text(
+            '${currentSpeed.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 显示倍速调节面板（BottomSheet + 滑块）
+  void _showSpeedControlPanel() {
+    final currentSpeed = _videoController?.value.playbackSpeed ?? 1.0;
+    double selectedSpeed = currentSpeed;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xE6000000),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 标题
+                  const Text(
+                    '播放速度',
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 当前速度显示
+                  Text(
+                    '${selectedSpeed.toStringAsFixed(1)}x',
+                    style: const TextStyle(
+                      color: Color(0xFFFF9800),
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 速度滑块 1x - 10x
+                  Slider(
+                    value: selectedSpeed,
+                    min: 1.0,
+                    max: 10.0,
+                    divisions: 18, // 0.5 步进
+                    activeColor: const Color(0xFFFF9800),
+                    inactiveColor: Colors.white24,
+                    onChanged: (value) {
+                      setSheetState(() {
+                        selectedSpeed = double.parse(value.toStringAsFixed(1));
+                      });
+                    },
+                  ),
+                  // 速度刻度标签
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('1x', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('10x', style: TextStyle(color: textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  // 快捷速度按钮
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [1.0, 1.5, 2.0, 3.0].map((speed) {
+                      final isSelected = selectedSpeed == speed;
+                      return GestureDetector(
+                        onTap: () {
+                          setSheetState(() {
+                            selectedSpeed = speed;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFFF9800)
+                                : Colors.white12,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${speed}x',
+                            style: TextStyle(
+                              color: isSelected ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  // 确认按钮
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // 应用选定的倍速
+                        _videoController?.setPlaybackSpeed(selectedSpeed);
+                        ref.read(playbackRateProvider.notifier).state = selectedSpeed;
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF9800),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      child: const Text(
+                        '确定',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

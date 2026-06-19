@@ -93,6 +93,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
     if (rate != null) {
       widget.controller.setPlaybackSpeed(rate);
+      // 同步更新 playbackRateProvider，保持三种倍速方式状态一致
+      ref.read(playbackRateProvider.notifier).state = rate;
     }
   }
 

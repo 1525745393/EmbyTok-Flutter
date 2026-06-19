@@ -143,6 +143,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     try {
       _isLongPressing = true;
       c.setPlaybackSpeed(kLongPressPlaybackRate);
+      // 同步更新 playbackRateProvider，保持状态一致
+      ref.read(playbackRateProvider.notifier).state = kLongPressPlaybackRate;
       if (mounted) setState(() {});
     } catch (e) {
       debugPrint('_onLongPressStart error: $e');
