@@ -1,3 +1,11 @@
+# [1.26.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.25.1...v1.26.0) (2026-06-19)
+
+
+### Features
+
+* 唱片静音按钮添加视频封面图 ([fb0159b](https://github.com/1525745393/EmbyTok-Flutter/commit/fb0159ba4bfbeecdbc136058c2989490a99db014))
+* 检查 EmbyX 对接 Emby 服务器 ([4a579a9](https://github.com/1525745393/EmbyTok-Flutter/commit/4a579a90f8aff7ebec6c9dcfbaa4a6fbcce6a2b9))
+
 ## [1.25.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.25.0...v1.25.1) (2026-06-19)
 
 
