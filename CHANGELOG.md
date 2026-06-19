@@ -1,3 +1,11 @@
+# [1.34.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.33.0...v1.34.0) (2026-06-19)
+
+
+### Features
+
+* sync latest updates ([d2905bb](https://github.com/1525745393/EmbyTok-Flutter/commit/d2905bbf3d6d4835e30e30ab26a33a3cda51dee3))
+* **ui:** 右侧操作区按钮图标化，移除文字标签 ([ff46c2e](https://github.com/1525745393/EmbyTok-Flutter/commit/ff46c2ec83b3f6d27c41b09a7183bd36b0c0507c))
+
 # [1.33.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.32.0...v1.33.0) (2026-06-19)
 
 
