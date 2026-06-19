@@ -1,4 +1,4 @@
-// 搜索历史 Provider：本地持久化最近 10 条搜索关键词
+/// 搜索历史 Provider：本地持久化最近 10 条搜索关键词
 
 import 'dart:convert';
 
@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/constants.dart';
 
+/// 搜索历史 Notifier：自动持久化到 SharedPreferences
 class SearchHistoryNotifier extends StateNotifier<List<String>> {
   SearchHistoryNotifier() : super(const []) {
     _load();
@@ -34,6 +35,7 @@ class SearchHistoryNotifier extends StateNotifier<List<String>> {
     } catch (_) {}
   }
 
+  /// 添加一条搜索关键词（若已存在则移到最前）
   void add(String keyword) {
     final clean = keyword.trim();
     if (clean.isEmpty) return;
@@ -45,18 +47,21 @@ class SearchHistoryNotifier extends StateNotifier<List<String>> {
     _persist();
   }
 
+  /// 删除一条搜索关键词
   void remove(String keyword) {
     final list = List<String>.from(state)..remove(keyword);
     state = list;
     _persist();
   }
 
+  /// 清空所有搜索历史
   void clear() {
     state = const [];
     _persist();
   }
 }
 
+/// 顶层搜索历史 Provider
 final searchHistoryProvider =
     StateNotifierProvider<SearchHistoryNotifier, List<String>>(
         (ref) => SearchHistoryNotifier());

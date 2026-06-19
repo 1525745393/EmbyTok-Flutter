@@ -1,4 +1,4 @@
-// 字幕设置 Provider：语言、字号、颜色、位置，持久化到本地
+/// 字幕设置 Provider：语言、字号、颜色、位置，持久化到本地
 
 import 'dart:convert';
 
@@ -6,15 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../utils/constants.dart';
 import '../utils/colors.dart';
+import '../utils/constants.dart';
 
-// 字幕设置状态
+/// 字幕设置状态：语言、字号、颜色、位置
 class SubtitleSettings {
-  final String language; // 空字符串表示关闭
-  final String size; // small / medium / large
-  final String color; // white / yellow
-  final String position; // bottom / lower / center
+  /// 选中的字幕语言代码；空字符串表示关闭字幕
+  final String language;
+  /// 字号：'small' / 'medium' / 'large'
+  final String size;
+  /// 颜色：'white' / 'yellow'
+  final String color;
+  /// 位置：'bottom' / 'lower' / 'center'
+  final String position;
 
   const SubtitleSettings({
     this.language = '',
@@ -52,8 +56,10 @@ class SubtitleSettings {
         position: json['position'] as String? ?? kSubtitlePosBottom,
       );
 
+  /// 是否已开启字幕（即选择了某种语言）
   bool get enabled => language.isNotEmpty;
 
+  /// 根据字号返回实际的文字大小
   double get fontSize {
     switch (size) {
       case kSubtitleSizeSmall:
@@ -66,11 +72,13 @@ class SubtitleSettings {
     }
   }
 
+  /// 根据颜色名返回实际的文字颜色
   Color get textColor {
     if (color == kSubtitleColorYellow) return const Color(0xFFFFFF00);
     return textPrimary;
   }
 
+  /// 根据位置名返回实际的对齐方式
   Alignment get alignment {
     switch (position) {
       case kSubtitlePosCenter:
@@ -84,6 +92,7 @@ class SubtitleSettings {
   }
 }
 
+/// 字幕设置 Notifier：所有设置变化均自动持久化到 SharedPreferences
 class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
   SubtitleSettingsNotifier() : super(const SubtitleSettings()) {
     _load();
@@ -106,6 +115,7 @@ class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
     } catch (_) {}
   }
 
+  /// 批量更新设置
   void update({
     String? language,
     String? size,
@@ -121,11 +131,16 @@ class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
     _persist();
   }
 
+  /// 设置字幕语言
   void setLanguage(String language) => update(language: language);
+  /// 设置字号
   void setSize(String size) => update(size: size);
+  /// 设置颜色
   void setColor(String color) => update(color: color);
+  /// 设置位置
   void setPosition(String position) => update(position: position);
 }
 
+/// 顶层字幕设置 Provider
 final subtitleSettingsProvider = StateNotifierProvider<SubtitleSettingsNotifier,
     SubtitleSettings>((ref) => SubtitleSettingsNotifier());
