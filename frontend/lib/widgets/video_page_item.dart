@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1118,10 +1119,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 
-  /// 唱片式静音按钮：播放时持续旋转，静音时红色边框
+  /// 唱片式静音按钮：播放时持续旋转，显示视频封面图，静音时红色边框
   Widget _buildDiscMuteButton() {
     final isMuted = ref.watch(isMutedProvider);
     final isPlaying = ref.watch(isPlayingProvider);
+    // 获取认证信息用于构造带认证的封面图 URL
+    final authState = ref.watch(authProvider);
+    final embyServerUrl = authState.embyServerUrl;
+    final token = authState.token;
+    // 构造视频封面图 URL
+    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl, token);
+    // 获取认证头
+    final headers = widget.item.authHeaders(token);
+
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
@@ -1139,14 +1149,27 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               color: isMuted ? const Color(0xFFFF2D55) : const Color(0x66FFFFFF),
               width: 2,
             ),
+            // 如果有封面图 URL，设置背景图片
+            image: posterUrl != null && posterUrl.isNotEmpty
+                ? DecorationImage(
+                    image: CachedNetworkImageProvider(
+                      posterUrl,
+                      headers: headers.isNotEmpty ? headers : null,
+                    ),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
-          child: Center(
-            child: Icon(
-              isMuted ? Icons.volume_off : Icons.music_note,
-              color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
-              size: 24,
-            ),
-          ),
+          // 如果没有封面图，显示默认图标
+          child: posterUrl == null || posterUrl.isEmpty
+              ? Center(
+                  child: Icon(
+                    isMuted ? Icons.volume_off : Icons.music_note,
+                    color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
+                    size: 24,
+                  ),
+                )
+              : null,
         ),
       ),
     );
