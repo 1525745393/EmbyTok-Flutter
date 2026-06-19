@@ -13,6 +13,8 @@ import '../services/embbytok_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/keyboard_shortcuts.dart';
 import '../utils/logger.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
@@ -480,13 +482,22 @@ class _FeedViewState extends ConsumerState<FeedView>
       return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
     }
     if (videoState.items.isEmpty && videoState.error != null) {
-      return _buildErrorState(videoState.error!);
+      final err = videoState.error!;
+      // 未登录场景特殊处理
+      if (err.contains('登录') || err.contains('认证')) {
+        return ErrorStateCard.notLoggedIn();
+      }
+      return ErrorStateCard(
+        title: err,
+        actionLabel: '重试',
+        onAction: () {
+          final libId = ref.read(selectedLibraryIdProvider);
+          ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+        },
+      );
     }
     if (videoState.items.isEmpty) {
-      return const Center(
-        child: Text('暂无视频，请选择其他媒体库',
-          style: TextStyle(color: Colors.white70, fontSize: 16)),
-      );
+      return EmptyStateCard.noVideos();
     }
 
     final isResumeMode = videoState.feedType == FeedType.resume;
@@ -584,35 +595,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       // 找不到：回到默认的下一条
       _goToNextVideo();
     }
-  }
-
-  // 错误提示 UI
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-            const SizedBox(height: 12),
-            Text(error, style: const TextStyle(color: Colors.white70, fontSize: 16), textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                final libId = ref.read(selectedLibraryIdProvider);
-                ref.read(videoListProvider.notifier).refresh(libraryId: libId);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // 顶部媒体库横向切换器

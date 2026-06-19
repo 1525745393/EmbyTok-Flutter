@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/colors.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
@@ -58,41 +60,16 @@ class _HistoryViewState extends ConsumerState<HistoryView>
       );
     }
     if (state.error != null && state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline,
-                color: errorColor, size: 48),
-            const SizedBox(height: 12),
-            Text(state.error!,
-                style: const TextStyle(color: textSecondary)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                ref.read(watchHistoryProvider.notifier).load();
-              },
-              child: const Text('重试'),
-            ),
-          ],
-        ),
+      return ErrorStateCard(
+        title: state.error!,
+        actionLabel: '重试',
+        onAction: () {
+          ref.read(watchHistoryProvider.notifier).load();
+        },
       );
     }
     if (state.items.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.movie_outlined, size: 80, color: textPlaceholder),
-            SizedBox(height: 16),
-            Text('暂无观看历史',
-                style: TextStyle(color: textSecondary, fontSize: 18)),
-            SizedBox(height: 8),
-            Text('开始观看后将自动记录',
-                style: TextStyle(color: textTertiary, fontSize: 14)),
-          ],
-        ),
-      );
+      return EmptyStateCard.noHistory();
     }
 
     return ListView.separated(
