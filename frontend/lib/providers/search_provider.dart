@@ -94,6 +94,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
         offset: 0,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
+        userId: auth.user?.id,
       );
       final hasMore = resp.offset + resp.items.length < resp.total;
       state = SearchState(
@@ -136,6 +137,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
         offset: state.offset,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
+        userId: auth.user?.id,
       );
       final newItems = <MediaItem>[...state.results, ...resp.items];
       final hasMore = state.offset + resp.items.length < resp.total;

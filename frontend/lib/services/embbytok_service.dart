@@ -150,6 +150,7 @@ class EmbytokService {
     String libraryId, {
     int limit = 20,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -168,11 +169,16 @@ class EmbytokService {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
     };
 
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
@@ -188,6 +194,7 @@ class EmbytokService {
   // ============================
   Future<MediaItem> getItemDetail(
     String itemId, {
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -199,8 +206,12 @@ class EmbytokService {
               'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
               'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
     };
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/$itemId'
+        : '/Items/$itemId';
     final resp = await _apiClient.get<dynamic>(
-      '/Items/$itemId',
+      path,
       queryParameters: params,
     );
     final data = resp.data is Map
@@ -267,6 +278,7 @@ class EmbytokService {
     int limit = 20,
     int offset = 0,
     String? libraryId,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -280,14 +292,19 @@ class EmbytokService {
       'SortOrder': 'Descending',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
     };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/Latest'
+        : '/Items/Latest';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items/Latest',
+      path,
       queryParameters: params,
     );
 
-    // Latest 接口有些返回 flat array 而不是 { Items, TotalRecordCount }
     if (resp.data is List) {
       final items = resp.data as List<dynamic>;
       return PaginatedResponse(
@@ -551,11 +568,12 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏影片（按类型：电影/剧集/音乐视频/单集）
+  // 收藏影片（按类型：电影/剧集/音乐视频/单集，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoriteMovies({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -567,12 +585,18 @@ class EmbytokService {
       'Filters': 'IsFavorite',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Series,MusicVideo,Episode',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -585,11 +609,12 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏合集（BoxSet）
+  // 收藏合集（BoxSet，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoriteBoxSets({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -605,8 +630,14 @@ class EmbytokService {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -619,11 +650,12 @@ class EmbytokService {
   }
 
   // ============================
-  // 收藏人物（Person）
+  // 收藏人物（Person，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<List<MediaItem>> getFavoritePeople({
     int limit = 100,
     int offset = 0,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -639,8 +671,14 @@ class EmbytokService {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List
@@ -1042,13 +1080,14 @@ class EmbytokService {
   }
 
   // ============================
-  // 通用搜索（获取完整 MediaItem 对象）
+  // 通用搜索（获取完整 MediaItem 对象，使用用户视图路径，与 EmbyX 对齐）
   // ============================
   Future<PaginatedResponse<MediaItem>> searchItems(
     String query, {
     int limit = 30,
     int offset = 0,
     List<String>? includeTypes,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -1074,8 +1113,14 @@ class EmbytokService {
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
     };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);

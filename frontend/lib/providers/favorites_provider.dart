@@ -139,10 +139,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 并行请求三栏数据
       final serverUrl = auth.embyServerUrl!;
       final token = auth.token!;
+      final userId = auth.user?.id;
       final results = await Future.wait<List<MediaItem>>([
-        _service.getFavoriteMovies(serverUrl: serverUrl, token: token),
-        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token),
-        _service.getFavoritePeople(serverUrl: serverUrl, token: token),
+        _service.getFavoriteMovies(serverUrl: serverUrl, token: token, userId: userId),
+        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token, userId: userId),
+        _service.getFavoritePeople(serverUrl: serverUrl, token: token, userId: userId),
       ], eagerError: false);
 
       final movies = results[0];

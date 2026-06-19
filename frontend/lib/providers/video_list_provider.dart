@@ -151,6 +151,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             offset: 0,
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
+            userId: auth.user?.id,
           );
           loadedItems = resp.items;
           totalCount = resp.total;
@@ -168,6 +169,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             offset: 0,
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
+            userId: auth.user?.id,
           );
           final shuffled = List<MediaItem>.from(resp.items);
           shuffled.shuffle();
@@ -179,6 +181,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           final favList = await _service.getFavoriteMovies(
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
+            userId: auth.user?.id,
           );
           loadedItems = favList;
           totalCount = favList.length;
@@ -254,6 +257,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         offset: state.offset,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
+        userId: auth.user?.id,
       );
 
       final newItems = <MediaItem>[...state.items, ...resp.items];

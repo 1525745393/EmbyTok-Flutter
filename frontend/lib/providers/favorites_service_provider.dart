@@ -34,6 +34,7 @@ class FavoritesService {
       includeTypes: ['Playlist'],
       serverUrl: _auth.embyServerUrl!,
       token: _auth.token!,
+      userId: _auth.user?.id,
       limit: 10,
     );
     if (results.items.isEmpty) return <String>{};
@@ -117,6 +118,7 @@ class FavoritesService {
       includeTypes: ['Playlist'],
       serverUrl: _auth.embyServerUrl!,
       token: _auth.token!,
+      userId: _auth.user?.id,
       limit: 5,
     );
     if (results.items.isNotEmpty) {

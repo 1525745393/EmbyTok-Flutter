@@ -31,8 +31,11 @@ final itemDetailProvider =
     FutureProvider.family<MediaItem, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) throw '尚未登录';
-  final service = _authService(ref, auth);
-  return service.getItemDetail(itemId);
+  final service = EmbytokService();
+  final userId = auth.user?.id;
+  final embyServerUrl = auth.embyServerUrl;
+  final token = auth.token;
+  return service.getItemDetail(itemId, userId: userId, serverUrl: embyServerUrl, token: token);
 });
 
 // ============================
@@ -66,8 +69,15 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
 final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getNextUp();
+  final service = EmbytokService();
+  final userId = auth.user?.id;
+  final embyServerUrl = auth.embyServerUrl;
+  final token = auth.token;
+  final result = await service.getNextUp(
+    userId: userId,
+    serverUrl: embyServerUrl,
+    token: token,
+  );
   return result.items;
 });
 

@@ -63,6 +63,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           widget.itemId,
           serverUrl: auth.embyServerUrl,
           token: auth.token,
+          userId: auth.user?.id,
         );
       }
       if (!mounted) return;
