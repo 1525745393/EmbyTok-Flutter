@@ -4,6 +4,7 @@
 //       服务端统计对齐。
 
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -927,23 +928,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     );
   }
 
-  /// 纯净模式下的右侧按钮区：仅保留连播开关和倍速调节
+  /// 纯净模式下的右侧按钮区：可拖动，仅保留连播开关和倍速调节
   Widget _buildCleanModeRightActions() {
-    return Positioned(
-      right: 0,
-      top: 0,
-      bottom: 0,
-      child: Container(
-        width: 96,
-        padding: const EdgeInsets.only(right: 16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildAutoPlayButton(),
-            const SizedBox(height: 20),
-            _buildSpeedControlButton(),
-          ],
-        ),
+    const double buttonWidth = 96.0;
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return _DraggableCleanActions(
+            containerSize: Size(constraints.maxWidth, constraints.maxHeight),
+            buttonWidth: buttonWidth,
+            buttons: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAutoPlayButton(),
+                const SizedBox(height: 20),
+                _buildSpeedControlButton(),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -1404,6 +1407,131 @@ class _ThinProgressBarState extends State<_ThinProgressBar> {
         widthFactor: progress,
         child: Container(color: primaryPink),
       ),
+    );
+  }
+}
+
+/// 可拖动的纯净模式按钮区组件
+class _DraggableCleanActions extends StatefulWidget {
+  final Size containerSize;
+  final double buttonWidth;
+  final Widget buttons;
+
+  const _DraggableCleanActions({
+    required this.containerSize,
+    required this.buttonWidth,
+    required this.buttons,
+  });
+
+  @override
+  _DraggableCleanActionsState createState() => _DraggableCleanActionsState();
+}
+
+class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
+  late Offset _offset;
+  Offset? _startPointer;
+  Offset? _startOffset;
+  bool _isDragging = false;
+  double _dragDistance = 0.0;
+
+  static const double _kDragThreshold = 10.0;
+  static const double _kScaleFactor = 1.1;
+  static const int _kHeightApprox = 140;
+
+  @override
+  void initState() {
+    super.initState();
+    _offset = Offset(
+      widget.containerSize.width - widget.buttonWidth,
+      widget.containerSize.height / 2 - _kHeightApprox / 2,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _DraggableCleanActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.containerSize != widget.containerSize) {
+      setState(() {
+        _offset = Offset(
+          _offset.dx.clamp(0.0, widget.containerSize.width - widget.buttonWidth),
+          _offset.dy.clamp(0.0, widget.containerSize.height - _kHeightApprox),
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: _offset.dx,
+          top: _offset.dy,
+          child: Listener(
+            onPointerDown: (event) {
+              _startPointer = event.localPosition;
+              _startOffset = _offset;
+              _dragDistance = 0.0;
+            },
+            onPointerMove: (event) {
+              if (_startPointer == null || _startOffset == null) return;
+              final delta = event.localPosition - _startPointer!;
+              _dragDistance = delta.distance;
+
+              if (!_isDragging && _dragDistance > _kDragThreshold) {
+                setState(() {
+                  _isDragging = true;
+                });
+              }
+
+              if (_isDragging) {
+                setState(() {
+                  double newX = _startOffset!.dx + delta.dx;
+                  double newY = _startOffset!.dy + delta.dy;
+                  newX = newX.clamp(0.0, widget.containerSize.width - widget.buttonWidth);
+                  newY = newY.clamp(0.0, widget.containerSize.height - _kHeightApprox);
+                  _offset = Offset(newX, newY);
+                });
+              }
+            },
+            onPointerUp: (event) {
+              _startPointer = null;
+              _startOffset = null;
+              if (_isDragging) {
+                setState(() {
+                  _isDragging = false;
+                });
+              }
+              _dragDistance = 0.0;
+            },
+            child: IgnorePointer(
+              ignoring: _isDragging,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                transform: Matrix4.identity()..scale(_isDragging ? _kScaleFactor : 1.0),
+                child: Container(
+                  width: widget.buttonWidth,
+                  height: _kHeightApprox.toDouble(),
+                  padding: const EdgeInsets.only(right: 16),
+                  alignment: Alignment.centerRight,
+                  decoration: _isDragging
+                      ? const BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x40000000),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        )
+                      : null,
+                  child: widget.buttons,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
