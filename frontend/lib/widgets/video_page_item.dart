@@ -1686,22 +1686,36 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
   }
 
-  /// 纯净模式下的右侧按钮区：可拖动，仅保留连播开关和倍速调节
+  /// 纯净模式下的浮层按钮区：可拖动，初始位置在右下角
+  /// 包含连播开关（∞）和倍速调节
   Widget _buildCleanModeRightActions() {
     final double buttonWidth = responsiveSize(80, 2.0);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
           return _DraggableCleanActions(
             containerSize: Size(constraints.maxWidth, constraints.maxHeight),
             buttonWidth: buttonWidth,
-            buttons: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildAutoPlayButton(),
-                SizedBox(height: responsiveSize(16, 1.5)),
-                _buildSpeedControlButton(),
-              ],
+            // 底部安全区：底部导航栏高度 + 系统手势条高度 + 16px 边距
+            bottomSafeArea: bottomPadding + kBottomNavHeight + 16,
+            // 右侧安全区：16px 边距
+            rightSafeArea: 16,
+            // 按钮包裹在半透明黑色卡片中
+            buttons: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0x66000000),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildAutoPlayButton(),
+                  SizedBox(height: responsiveSize(16, 1.5)),
+                  _buildSpeedControlButton(),
+                ],
+              ),
             ),
           );
         },
@@ -2414,15 +2428,20 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
 }
 
 /// 可拖动的纯净模式按钮区组件
+/// 初始位置：屏幕右下角（受 bottomSafeArea 和 rightSafeArea 约束）
 class _DraggableCleanActions extends StatefulWidget {
   final Size containerSize;
   final double buttonWidth;
   final Widget buttons;
+  final double bottomSafeArea; // 底部安全区（导航栏 + 手势条 + 边距）
+  final double rightSafeArea;  // 右侧安全区（边距）
 
   const _DraggableCleanActions({
     required this.containerSize,
     required this.buttonWidth,
     required this.buttons,
+    this.bottomSafeArea = 100,  // 默认底部 100px 安全区
+    this.rightSafeArea = 16,    // 默认右侧 16px 边距
   });
 
   @override
@@ -2435,6 +2454,7 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
   Offset? _startOffset;
   bool _isDragging = false;
   double _dragDistance = 0.0;
+  double _opacity = 0.0; // 渐入动画的不透明度初始值
 
   static const double _kDragThreshold = 10.0;
   static const double _kScaleFactor = 1.1;
@@ -2443,10 +2463,17 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
   @override
   void initState() {
     super.initState();
+    // 初始位置：屏幕右下角，距离底部 = bottomSafeArea，距离右侧 = rightSafeArea
     _offset = Offset(
-      widget.containerSize.width - widget.buttonWidth,
-      widget.containerSize.height / 2 - _kHeightApprox / 2,
+      widget.containerSize.width - widget.buttonWidth - widget.rightSafeArea,
+      widget.containerSize.height - _kHeightApprox - widget.bottomSafeArea,
     );
+    // 首帧绘制完成后触发渐入动画（200ms）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _opacity = 1.0);
+      }
+    });
   }
 
   @override
@@ -2466,68 +2493,77 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Positioned(
+        // AnimatedPositioned: 位置变化有平滑过渡（如屏幕旋转时）
+        // AnimatedOpacity: 出现时渐入动画（200ms，由 _opacity 控制）
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
           left: _offset.dx,
           top: _offset.dy,
-          child: Listener(
-            onPointerDown: (event) {
-              _startPointer = event.localPosition;
-              _startOffset = _offset;
-              _dragDistance = 0.0;
-            },
-            onPointerMove: (event) {
-              if (_startPointer == null || _startOffset == null) return;
-              final delta = event.localPosition - _startPointer!;
-              _dragDistance = delta.distance;
+          child: AnimatedOpacity(
+            opacity: _opacity,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: Listener(
+              onPointerDown: (event) {
+                _startPointer = event.localPosition;
+                _startOffset = _offset;
+                _dragDistance = 0.0;
+              },
+              onPointerMove: (event) {
+                if (_startPointer == null || _startOffset == null) return;
+                final delta = event.localPosition - _startPointer!;
+                _dragDistance = delta.distance;
 
-              if (!_isDragging && _dragDistance > _kDragThreshold) {
-                setState(() {
-                  _isDragging = true;
-                });
-              }
+                if (!_isDragging && _dragDistance > _kDragThreshold) {
+                  setState(() {
+                    _isDragging = true;
+                  });
+                }
 
-              if (_isDragging) {
-                setState(() {
-                  double newX = _startOffset!.dx + delta.dx;
-                  double newY = _startOffset!.dy + delta.dy;
-                  newX = newX.clamp(0.0, widget.containerSize.width - widget.buttonWidth);
-                  newY = newY.clamp(0.0, widget.containerSize.height - _kHeightApprox);
-                  _offset = Offset(newX, newY);
-                });
-              }
-            },
-            onPointerUp: (event) {
-              _startPointer = null;
-              _startOffset = null;
-              if (_isDragging) {
-                setState(() {
-                  _isDragging = false;
-                });
-              }
-              _dragDistance = 0.0;
-            },
-            child: IgnorePointer(
-              ignoring: _isDragging,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                transform: Matrix4.identity()..scale(_isDragging ? _kScaleFactor : 1.0),
-                child: Container(
-                  width: widget.buttonWidth,
-                  height: _kHeightApprox.toDouble(),
-                  padding: const EdgeInsets.only(right: 16),
-                  alignment: Alignment.centerRight,
-                  decoration: _isDragging
-                      ? const BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x40000000),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        )
-                      : null,
-                  child: widget.buttons,
+                if (_isDragging) {
+                  setState(() {
+                    double newX = _startOffset!.dx + delta.dx;
+                    double newY = _startOffset!.dy + delta.dy;
+                    newX = newX.clamp(0.0, widget.containerSize.width - widget.buttonWidth);
+                    newY = newY.clamp(0.0, widget.containerSize.height - _kHeightApprox);
+                    _offset = Offset(newX, newY);
+                  });
+                }
+              },
+              onPointerUp: (event) {
+                _startPointer = null;
+                _startOffset = null;
+                if (_isDragging) {
+                  setState(() {
+                    _isDragging = false;
+                  });
+                }
+                _dragDistance = 0.0;
+              },
+              child: IgnorePointer(
+                ignoring: _isDragging,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  transform: Matrix4.identity()..scale(_isDragging ? _kScaleFactor : 1.0),
+                  child: Container(
+                    width: widget.buttonWidth,
+                    height: _kHeightApprox.toDouble(),
+                    padding: const EdgeInsets.only(right: 16),
+                    alignment: Alignment.centerRight,
+                    decoration: _isDragging
+                        ? const BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x40000000),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          )
+                        : null,
+                    child: widget.buttons,
+                  ),
                 ),
               ),
             ),
