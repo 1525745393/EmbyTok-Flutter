@@ -42,10 +42,20 @@ jobs:
         run: |
           echo "🔍 正在检查发布代码（lib/ 目录）..."
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
-          echo "🚦 检查标准：发现 error 就会失败，info 和 warning 不影响发布"
+          echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
           echo "::group::flutter analyze --no-pub lib"
-          flutter analyze --no-pub lib
+          flutter analyze --no-pub lib || true
           echo "::endgroup::"
+          # ☝️ flutter analyze 只要发现任何问题（包括 info）就会返回非零退出码
+          # 我们需要自己用 grep 来判断是否存在真正的 error
+          echo "🤖 正在检查是否存在 error 级别的问题..."
+          if flutter analyze --no-pub lib 2>&1 | grep -q "error •"; then
+            echo ""
+            echo "❌ 发现 error 级别的编译错误！请修复后再提交"
+            echo "ℹ️ info（风格建议）和 warning（注意事项）可以稍后修复"
+            exit 1
+          fi
+          echo ""
           echo "✅ 发布代码检查通过！lib/ 目录没有编译错误，可以正常构建 APK"
         working-directory: frontend
 
