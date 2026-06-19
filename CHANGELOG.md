@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.23.0...v1.23.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* 纯净模式下保留连播开关和倍速按钮，确保用户可关闭连播模式 ([a2b6499](https://github.com/1525745393/EmbyTok-Flutter/commit/a2b64991528bf469300583f670777e72059756a9))
+
 # [1.23.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.22.0...v1.23.0) (2026-06-19)
 
 
