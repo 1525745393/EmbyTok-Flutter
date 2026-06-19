@@ -1,3 +1,10 @@
+## [1.21.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.21.0...v1.21.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* 修复 embbytok_service.dart 空安全错误 ([854738a](https://github.com/1525745393/EmbyTok-Flutter/commit/854738a380f9ea807fe05397eb37e16dcae92e9a))
+
 # [1.21.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.3...v1.21.0) (2026-06-19)
 
 
