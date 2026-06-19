@@ -1244,8 +1244,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    // 构造视频封面图 URL
-    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl, token);
+    // 构造视频封面图 URL（使用命名参数，避免语法错误）
+    final posterUrl = widget.item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token);
     // 获取认证头
     final headers = widget.item.authHeaders(token);
 
