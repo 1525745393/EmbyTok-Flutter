@@ -172,7 +172,7 @@ class _SearchViewState extends ConsumerState<SearchView>
       separatorBuilder: (_, __) => const Divider(color: dividerColor, height: 1),
       itemBuilder: (context, index) {
         final item = state.results[index];
-        return _SearchResultTile(item: item);
+        return _SearchResultTile(key: Key(item.id), item: item);
       },
     );
   }
@@ -231,7 +231,7 @@ class _Centered extends StatelessWidget {
 
 class _SearchResultTile extends ConsumerWidget {
   final MediaItem item;
-  const _SearchResultTile({required this.item});
+  const _SearchResultTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

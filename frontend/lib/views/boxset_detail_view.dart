@@ -180,7 +180,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final child = _children[index];
-                  return _ChildTile(item: child);
+                  return _ChildTile(key: Key(child.id), item: child);
                 },
               ),
             const SizedBox(height: 32),
@@ -243,7 +243,7 @@ class _CoverPlaceholder extends StatelessWidget {
 
 class _ChildTile extends ConsumerWidget {
   final MediaItem item;
-  const _ChildTile({required this.item});
+  const _ChildTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -617,6 +617,7 @@ class _FeedViewState extends ConsumerState<FeedView>
               final lib = libraries[index];
               final isSelected = lib.id == selectedId;
               return TvFocusable(
+                key: Key('lib_${lib.id}'),
                 onTap: () => _selectLibrary(lib),
                 borderRadius: 20,
                 borderWidth: 2,

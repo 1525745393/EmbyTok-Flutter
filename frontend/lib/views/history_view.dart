@@ -78,7 +78,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _HistoryTile(item: item);
+        return _HistoryTile(key: Key(item.id), item: item);
       },
     );
   }
@@ -86,7 +86,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
 
 class _HistoryTile extends ConsumerWidget {
   final MediaItem item;
-  const _HistoryTile({required this.item});
+  const _HistoryTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

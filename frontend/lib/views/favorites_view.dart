@@ -172,6 +172,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
               right: index < items.length - 1 ? 12 : 0,
             ),
             child: _FavoriteCard(
+              key: Key(item.id),
               item: item,
               itemType: itemType,
               width: cardWidth,
@@ -223,6 +224,7 @@ class _FavoriteCard extends ConsumerWidget {
   final double height;
 
   const _FavoriteCard({
+    super.key,
     required this.item,
     required this.itemType,
     required this.width,

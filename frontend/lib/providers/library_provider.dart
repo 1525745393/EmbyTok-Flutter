@@ -15,7 +15,9 @@ import 'auth_provider.dart';
 
 // ==================== 基础数据 Provider ====================
 
-// 媒体库列表：FutureProvider，登录后自动获取
+/// 媒体库列表：从 Emby 服务器获取全部媒体库（电影 / 剧集 / 音乐等）
+///
+/// 登录后自动加载，未登录返回空列表。
 final libraryListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   final serverUrl = auth.embyServerUrl;
@@ -41,7 +43,7 @@ final libraryListProvider = FutureProvider<List<Library>>((ref) async {
   }
 });
 
-// 过滤后的可见媒体库列表（排除隐藏的）
+/// 过滤后的可见媒体库列表（排除用户在设置中隐藏的媒体库）
 final visibleLibraryListProvider = Provider<List<Library>>((ref) {
   final librariesAsync = ref.watch(libraryListProvider);
   final hiddenIds = ref.watch(hiddenLibraryIdsProvider);
@@ -55,7 +57,9 @@ final visibleLibraryListProvider = Provider<List<Library>>((ref) {
 
 // ==================== 选择状态 Provider ====================
 
-// 当前选中的媒体库 ID（StateNotifier：媒体库列表加载后自动选择第一个）
+/// 当前选中的媒体库 ID（媒体库列表加载后自动选择第一个可见的）
+///
+/// 在 [VideoListNotifier] 中监听此 Provider 的变化来触发对应库的视频加载。
 final selectedLibraryIdProvider =
     StateNotifierProvider<SelectedLibraryNotifier, String?>(
   (ref) => SelectedLibraryNotifier(ref),

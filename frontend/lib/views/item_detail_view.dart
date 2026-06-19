@@ -482,7 +482,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final person = people[index];
-                return _CastCard(person: person);
+                return _CastCard(key: Key(person.id ?? person.name), person: person);
               },
             ),
           ),
@@ -579,10 +579,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               itemCount: _episodes.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
+                final ep = _episodes[index];
                 return _EpisodeTile(
-                  episode: _episodes[index],
+                  key: Key(ep.id),
+                  episode: ep,
                   authState: authState,
-                  onTap: () => _playItem(_episodes[index]),
+                  onTap: () => _playItem(ep),
                 );
               },
             ),
@@ -654,7 +656,7 @@ class _BackdropPlaceholder extends StatelessWidget {
 // 演员卡片：圆形头像 + 名称 + 角色
 class _CastCard extends StatelessWidget {
   final Person person;
-  const _CastCard({required this.person});
+  const _CastCard({super.key, required this.person});
 
   @override
   Widget build(BuildContext context) {
@@ -733,6 +735,7 @@ class _EpisodeTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _EpisodeTile({
+    super.key,
     required this.episode,
     required this.authState,
     required this.onTap,

@@ -48,7 +48,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
           return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
         }
         final item = videoState.items[index];
-        return _PosterCard(item: item);
+        return _PosterCard(key: Key(item.id), item: item);
       },
     );
   }
@@ -57,7 +57,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
   final MediaItem item;
-  const _PosterCard({required this.item});
+  const _PosterCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

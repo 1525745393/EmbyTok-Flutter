@@ -185,7 +185,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = _works[index];
-                  return _WorkTile(item: item);
+                  return _WorkTile(key: Key(item.id), item: item);
                 },
               ),
             const SizedBox(height: 32),
@@ -240,7 +240,7 @@ class _AvatarPlaceholder extends StatelessWidget {
 
 class _WorkTile extends ConsumerWidget {
   final MediaItem item;
-  const _WorkTile({required this.item});
+  const _WorkTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

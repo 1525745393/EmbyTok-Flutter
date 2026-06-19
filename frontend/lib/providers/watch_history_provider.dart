@@ -7,7 +7,7 @@ import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 
-// 观看历史状态
+/// 观看历史状态：从 Emby 获取最近播放（Resume）的视频列表
 class WatchHistoryState {
   final List<MediaItem> items;
   final bool isLoading;
@@ -76,7 +76,10 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
   }
 }
 
-// 顶层 Provider
+/// 顶层观看历史 Provider：从 Emby 获取最近播放的视频列表
+///
+/// UI 通过 `ref.watch(watchHistoryProvider)` 读取列表，
+/// 通过 `ref.read(watchHistoryProvider.notifier).load()` 触发重新加载。
 final watchHistoryProvider =
     StateNotifierProvider<WatchHistoryNotifier, WatchHistoryState>((ref) {
   return WatchHistoryNotifier(ref);

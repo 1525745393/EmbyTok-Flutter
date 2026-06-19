@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const String _kStorageKeyTheme = 'embbytok_theme_mode';
 
-// 主题模式 Provider：字符串 'dark' / 'light' / 'system'
+/// 主题模式 Provider：控制应用的亮/暗/跟随系统主题
+///
+/// 取值：`'dark'` | `'light'` | `'system'`
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, String>((ref) {
   return ThemeModeNotifier();

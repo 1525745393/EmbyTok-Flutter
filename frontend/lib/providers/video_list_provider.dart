@@ -15,7 +15,13 @@ import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'library_provider.dart';
 
-// 视频列表状态
+/// 视频列表状态：包含分页数据、加载状态和浏览模式
+///
+/// 核心字段：
+/// - [items] 当前加载的媒体项列表
+/// - [isLoading] 是否正在加载中
+/// - [hasMore] 是否还有更多数据可加载
+/// - [feedType] 当前浏览模式（latest/random/favorites/resume）
 class VideoListState {
   final List<MediaItem> items;
   final bool isLoading;
@@ -56,7 +62,11 @@ class VideoListState {
   }
 }
 
-// 视频列表 Notifier：在选中媒体库变化或 feedType 变化时自动加载
+/// 视频列表 Notifier：响应媒体库切换和浏览模式变化自动加载视频
+///
+/// 内部监听：
+/// - [selectedLibraryIdProvider] 媒体库选择变化
+/// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -280,7 +290,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   }
 }
 
-// 顶层 Provider
+/// 顶层视频列表 Provider：暴露 [VideoListState] 给 UI 使用
+///
+/// UI 通过 `ref.watch(videoListProvider)` 读取当前视频列表，
+/// 通过 `ref.read(videoListProvider.notifier).refresh()` 触发重新加载。
 final videoListProvider =
     StateNotifierProvider<VideoListNotifier, VideoListState>((ref) {
   return VideoListNotifier(ref);
@@ -288,7 +301,11 @@ final videoListProvider =
 
 // ==================== 方向过滤的派生 Provider ====================
 
-// 过滤后的视频列表（根据方向模式）
+/// 根据屏幕方向模式过滤后的视频列表
+///
+/// - [OrientationMode.vertical] 仅保留竖屏视频
+/// - [OrientationMode.horizontal] 仅保留横屏视频
+/// - [OrientationMode.both] 返回全部视频
 final filteredVideoListProvider = Provider<List<MediaItem>>((ref) {
   final videoState = ref.watch(videoListProvider);
   final orientationMode = ref.watch(orientationModeProvider);
