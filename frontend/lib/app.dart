@@ -9,6 +9,7 @@ import 'providers/providers.dart';
 import 'views/favorites_view.dart';
 import 'views/history_view.dart';
 import 'views/home_scaffold.dart';
+import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
@@ -66,6 +67,21 @@ class EmbyTokApp extends ConsumerWidget {
         GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsView(),
+        ),
+        // 媒体项详情页：/item/:itemId
+        GoRoute(
+          path: '/item/:itemId',
+          builder: (context, state) {
+            final itemId = state.pathParameters['itemId'] ?? '';
+            // 支持通过 extra 传入已加载的 MediaItem，避免重复请求
+            final initialItem = state.extra is MediaItem
+                ? state.extra as MediaItem
+                : null;
+            return ItemDetailView(
+              itemId: itemId,
+              initialItem: initialItem,
+            );
+          },
         ),
       ],
     );
