@@ -60,6 +60,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   int _fallbackLevel = 0;
   // 标记当前正在执行降级（避免 listener 与 initVideo 递归调用导致的重复降级）
   bool _isFallbackInProgress = false;
+  // 标记是否正在执行用户发起的播放模式切换（区别于自动降级）
+  bool _isUserSwitchInProgress = false;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -366,6 +368,101 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
   }
 
+  // 用户手动切换播放模式（Direct/Transcode/Fbk）：用新的播放 URL 重新初始化播放器
+  Future<void> _userInitiatedReinit(int newLevel) async {
+    if (_isUserSwitchInProgress) return;
+    _isUserSwitchInProgress = true;
+    // 记录当前播放进度，切换成功后 seek 回相同位置
+    int positionSeconds = 0;
+    try {
+      if (_controller != null && _controller!.value.isInitialized) {
+        positionSeconds = _controller!.value.position.inSeconds;
+      }
+    } catch (_) {}
+
+    // 释放当前失败的 controller
+    try {
+      await _controller?.dispose();
+    } catch (_) {}
+    _controller = null;
+    _fallbackLevel = newLevel;
+
+    final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
+    if (newUrl == null || newUrl.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = '无法获取播放地址';
+          _isUserSwitchInProgress = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final headers = widget.item.authHeaders(widget.token);
+
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(newUrl),
+        httpHeaders: headers,
+      );
+      _controller!.addListener(() {
+        if (!mounted) return;
+        if (_controller!.value.hasError && !_hasError) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = '播放出错';
+          });
+        }
+        final sec = _controller!.value.position.inSeconds;
+        if (sec != _positionSeconds.value) {
+          _positionSeconds.value = sec;
+        }
+      });
+
+      _controller!.setLooping(widget.loop);
+      await _controller!.initialize().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw TimeoutException('播放模式切换初始化超时');
+        },
+      );
+      // 切换成功：同步新的降级等级
+      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
+      // seek 回到切换前的播放位置，减少用户感知
+      if (positionSeconds > 0) {
+        try {
+          await _controller!.seekTo(Duration(seconds: positionSeconds));
+        } catch (_) {}
+      }
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+          _hasError = false;
+          _isUserSwitchInProgress = false;
+        });
+        widget.onControllerReady?.call(_controller!);
+        _autoLoadDefaultSubtitle();
+        if (widget.autoPlay) {
+          try {
+            await _controller!.play();
+          } catch (e) {
+            debugPrint('playMode switch play error: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('播放模式切换失败: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = '切换失败';
+          _isUserSwitchInProgress = false;
+        });
+      }
+    }
+  }
+
   // 外部控制 API：播放
   void play() {
     try {
@@ -418,6 +515,16 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听播放模式切换（用户手动点击按钮触发）
+    ref.listen<int>(playbackLevelProvider, (previous, next) {
+      // 只有当外部设置等级变化后才响应；且非自己内部 setLevel 设置的不响应
+      // 内部会在初始化/降级成功后调用 setLevel，那时 _fallbackLevel == next，所以相等，不触发
+      // 用户点击按钮时，_fallbackLevel != next，触发重新初始化
+      if (next != _fallbackLevel && _initialized && !_isFallbackInProgress) {
+        _userInitiatedReinit(next);
+      }
+    });
+
     // 监听字幕选择：用户选择新字幕轨道时异步加载
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {

@@ -46,10 +46,14 @@ class VideoPageItem extends ConsumerStatefulWidget {
   ConsumerState<VideoPageItem> createState() => _VideoPageItemState();
 }
 
-class _VideoPageItemState extends ConsumerState<VideoPageItem> {
+class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
   bool _hasNotifiedEnded = false;  // 防止重复触发 onVideoEnded
   // 预加载控制器缓存：保持对下一条视频的 controller，当 widget 切换时复用
+
+  // --- 唱片式静音按钮动画控制器 ---
+  late final AnimationController _discRotationCtrl;
+  late final Animation<double> _discRotation;
 
   // --- 播放上报相关 ---
   final EmbytokService _service = EmbytokService();
@@ -87,7 +91,21 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
   static const int _nextUpCountdownSeconds = 5;
 
   @override
+  void initState() {
+    super.initState();
+    _discRotationCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(); // 持续旋转
+    _discRotation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
+  }
+
+  @override
   void dispose() {
+    _discRotationCtrl.dispose();
     // 0. 清理 controller 的 ended 监听器
     _videoController?.removeListener(_onVideoChanged);
     // 1. 停止并清理播放进度上报定时器
@@ -402,6 +420,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听播放状态变化：播放时让唱片持续旋转，暂停时停止旋转
+    ref.listen<bool>(isPlayingProvider, (previous, next) {
+      if (next) {
+        if (!_discRotationCtrl.isAnimating) _discRotationCtrl.repeat();
+      } else {
+        if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
+      }
+    });
+
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
@@ -1091,19 +1118,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
     );
   }
 
-  /// 唱片式静音按钮：播放时旋转，静音时红色边框
+  /// 唱片式静音按钮：播放时持续旋转，静音时红色边框
   Widget _buildDiscMuteButton() {
     final isMuted = ref.watch(isMutedProvider);
-    final isPlaying = _videoController?.value.isPlaying ?? false;
+    final isPlaying = ref.watch(isPlayingProvider);
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
         _videoController?.setVolume(isMuted ? 1.0 : 0.0);
       },
-      child: AnimatedRotation(
-        turns: isPlaying ? 1.0 : 0.0,
-        duration: const Duration(seconds: 4),
-        curve: Curves.linear,
+      child: RotationTransition(
+        turns: _discRotation,
         child: Container(
           width: 48,
           height: 48,
