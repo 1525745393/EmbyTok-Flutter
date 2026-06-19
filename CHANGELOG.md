@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.20.0...v1.20.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **flutter:** 移除 item_detail_provider.dart 中 getNextUp 的错误 userId 参数 ([a753d40](https://github.com/1525745393/EmbyTok-Flutter/commit/a753d40104a98393c65c6fbcc83b5b063670b5fa))
+
 # [1.20.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.19.0...v1.20.0) (2026-06-19)
 
 
