@@ -1,3 +1,10 @@
+# [1.39.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.38.0...v1.39.0) (2026-06-19)
+
+
+### Features
+
+* **clean-mode:** 连播模式浮层按钮移至屏幕右下角 ([4f3a9b5](https://github.com/1525745393/EmbyTok-Flutter/commit/4f3a9b53283b244712d6aacd56583dbf39637138))
+
 # [1.38.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.37.0...v1.38.0) (2026-06-19)
 
 
