@@ -1,3 +1,10 @@
+# [1.40.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.39.0...v1.40.0) (2026-06-19)
+
+
+### Features
+
+* **top-actions:** 全屏按钮移至顶部操作区，统一横屏/竖屏切换入口 ([80648fa](https://github.com/1525745393/EmbyTok-Flutter/commit/80648fab5c75e06d6a82fe91730e13d379c8c5e3))
+
 # [1.39.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.38.0...v1.39.0) (2026-06-19)
 
 
