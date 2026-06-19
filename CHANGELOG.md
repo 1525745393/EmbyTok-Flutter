@@ -1,3 +1,11 @@
+# [1.32.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.31.0...v1.32.0) (2026-06-19)
+
+
+### Features
+
+* update workspace ([7edfc09](https://github.com/1525745393/EmbyTok-Flutter/commit/7edfc09a1e5496f031221a17fd2e96d534ccd579))
+* 右侧操作区响应式布局，适配移动端和桌面端 ([fcd97b2](https://github.com/1525745393/EmbyTok-Flutter/commit/fcd97b22a27b7af811a06bb7b8da8e07240f857a))
+
 # [1.31.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.30.0...v1.31.0) (2026-06-19)
 
 
