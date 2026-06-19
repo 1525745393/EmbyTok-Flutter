@@ -636,8 +636,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         // 纯净模式下显示简化的右侧按钮区（仅连播开关 + 倍速按钮）
         if (!_isFullscreen && isAutoPlay) _buildCleanModeRightActions(),
 
-        // 横屏全屏模式下显示退出按钮（右上角）
-        if (_isFullscreen) _buildExitFullscreenButton(),
+        // 顶部操作区：右上角全屏按钮（所有模式下都显示）
+        _buildTopActions(),
 
         // NextUp 下一集提示条：播放结束时显示，5 秒倒计时后自动播放
         if (_showNextUpBanner && _nextUpItem != null)
@@ -728,19 +728,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  // 横屏全屏模式下的退出按钮（右上角）
-  Widget _buildExitFullscreenButton() {
-    final topPadding = MediaQuery.of(context).padding.top;
-    return Positioned(
-      top: topPadding + 8,
-      right: 16,
-      child: IconButton(
-        icon: const Icon(Icons.fullscreen_exit, color: textPrimary, size: 28),
-        onPressed: _toggleFullscreen,
       ),
     );
   }
@@ -1034,15 +1021,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             // 9. 唱片式静音按钮（播放中旋转动画）
             _buildDiscMuteButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 10. 全屏按钮
-            _buildActionButton(
-              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-              _isFullscreen ? '退出' : '全屏',
-              color: textPrimary,
-              onTap: _toggleFullscreen,
-            ),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 11. 下一集（仅剧集类）
+            // 10. 下一集（仅剧集类）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
                 Icons.chevron_right,
@@ -1684,6 +1663,46 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       _videoController!.play();
       ref.read(isPlayingProvider.notifier).state = true;
     }
+  }
+
+  /// 顶部操作区：悬浮在视频容器右上角，包含全屏/退出全屏按钮
+  /// 统一横屏和竖屏模式下的全屏切换入口
+  Widget _buildTopActions() {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final buttonSize = responsiveSize(40);
+    final padding = responsiveSize(8);
+
+    return Positioned(
+      top: topPadding + 8,
+      right: 16,
+      child: AnimatedOpacity(
+        opacity: 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: GestureDetector(
+          onTap: _toggleFullscreen,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: EdgeInsets.all(padding),
+            decoration: BoxDecoration(
+              color: const Color(0x66000000), // 半透明黑色
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x40000000),
+                  blurRadius: 8,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Icon(
+              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+              color: textPrimary,
+              size: buttonSize,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// 纯净模式下的浮层按钮区：可拖动，初始位置在右下角
