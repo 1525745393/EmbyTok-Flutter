@@ -161,7 +161,7 @@ class _SearchViewState extends ConsumerState<SearchView>
     }
     // 空结果
     if (state.results.isEmpty) {
-      return const _Centered(
+      return _Centered(
         child: EmptyStateCard.noSearchResults(),
       );
     }
@@ -179,7 +179,7 @@ class _SearchViewState extends ConsumerState<SearchView>
 
   Widget _buildHistory(List<String> history) {
     if (history.isEmpty) {
-      return const _Centered(
+      return _Centered(
         child: EmptyStateCard.noSearchHistory(),
       );
     }

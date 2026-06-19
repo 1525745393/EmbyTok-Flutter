@@ -2,6 +2,7 @@
 
 import 'media_source.dart';
 import 'person.dart';
+import 'subtitle_track.dart';
 import 'user_data.dart';
 
 class MediaItem {

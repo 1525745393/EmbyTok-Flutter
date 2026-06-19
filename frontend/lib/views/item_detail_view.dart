@@ -10,7 +10,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/colors.dart';
-import 'video_page_item.dart';
+import '../widgets/video_page_item.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {
   final String itemId;
@@ -641,7 +641,7 @@ class _BackdropPlaceholder extends StatelessWidget {
         icon = Icons.music_video;
         break;
       case 'BoxSet':
-        icon = Icons.collection;
+        icon = Icons.collections;
         break;
       default:
         icon = Icons.movie;

@@ -2,9 +2,10 @@
 // 设计思路：每个方法都接受可选的 serverUrl / token 参数，调用方可以显式传入，
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
+import 'package:dio/dio.dart';
+
 import '../models/models.dart';
 import '../utils/logger.dart';
-import '../widgets/subtitle_renderer.dart';
 import 'api_client.dart';
 
 class EmbytokService {

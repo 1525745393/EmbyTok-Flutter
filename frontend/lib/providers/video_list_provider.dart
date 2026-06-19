@@ -179,7 +179,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           final favList = await _service.getFavoriteMovies(
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
-            userId: auth.user?.id,
           );
           loadedItems = favList;
           totalCount = favList.length;
