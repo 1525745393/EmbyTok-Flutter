@@ -1031,89 +1031,71 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         imageTags: {'Primary': firstActor.imageUrl ?? 'primary'},
       );
 
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 圆形头像 + 收藏按钮
-          SizedBox(
-            width: responsiveSize(48),
-            height: responsiveSize(48),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // 演员头像
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PersonDetailView(person: actorMediaItem),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: responsiveSize(48),
-                      height: responsiveSize(48),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x66FFFFFF), width: 2),
-                        color: Colors.black26,
-                      ),
-                      child: ClipOval(
-                        child: actorImageUrl != null && actorImageUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: actorImageUrl,
-                                fit: BoxFit.cover,
-                                httpHeaders: headers.isNotEmpty ? headers : null,
-                                placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                                errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                              )
-                            : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                      ),
+      return SizedBox(
+        width: responsiveSize(48),
+        height: responsiveSize(48),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 演员头像
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PersonDetailView(person: actorMediaItem),
                     ),
+                  );
+                },
+                child: Container(
+                  width: responsiveSize(48),
+                  height: responsiveSize(48),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0x66FFFFFF), width: 2),
+                    color: Colors.black26,
+                  ),
+                  child: ClipOval(
+                    child: actorImageUrl != null && actorImageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: actorImageUrl,
+                            fit: BoxFit.cover,
+                            httpHeaders: headers.isNotEmpty ? headers : null,
+                            placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                            errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                          )
+                        : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
                   ),
                 ),
-                // 收藏 "+"按钮（右下角悬浮）
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: GestureDetector(
-                    onTap: () {
-                      ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
-                    },
-                    child: Container(
-                      width: responsiveSize(20),
-                      height: responsiveSize(20),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF00D9FF),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      child: Icon(
-                        isFavorited ? Icons.check : Icons.add,
-                        color: Colors.white,
-                        size: responsiveSize(12),
-                      ),
-                    ),
+              ),
+            ),
+            // 收藏 "+"按钮（右下角悬浮）
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: GestureDetector(
+                onTap: () {
+                  ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
+                },
+                child: Container(
+                  width: responsiveSize(20),
+                  height: responsiveSize(20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF00D9FF),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Icon(
+                    isFavorited ? Icons.check : Icons.add,
+                    color: Colors.white,
+                    size: responsiveSize(12),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
-          // 演员名字（短名）
-          SizedBox(height: responsiveSize(4)),
-          Text(
-            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: responsiveSize(9, 1.3),
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -1456,8 +1438,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Widget _buildPlayModeButton() {
     final currentLevel = ref.watch(playbackLevelProvider);
     // 0=Direct, 1=Transcode, 2=Fallback
-    final String label = currentLevel == 0 ? 'Direct' : (currentLevel == 1 ? 'Transcode' : 'Fbk');
-    final bool isHighlight = currentLevel != 0;
+    final IconData icon;
+    final Color bgColor;
+    switch (currentLevel) {
+      case 0:
+        icon = Icons.play_circle_outline;
+        bgColor = const Color(0x4D000000);
+        break;
+      case 1:
+        icon = Icons.swap_horiz;
+        bgColor = const Color(0xCC4F46E5);
+        break;
+      case 2:
+      default:
+        icon = Icons.warning;
+        bgColor = const Color(0xCCFFA000);
+        break;
+    }
     return GestureDetector(
       onTap: () {
         final newLevel = (currentLevel + 1) % 3;
@@ -1468,19 +1465,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         height: responsiveSize(40),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isHighlight
-              ? const Color(0xCC4F46E5)
-              : const Color(0x4D000000),
+          color: bgColor,
         ),
         child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: responsiveSize(9, 1.3),
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: responsiveSize(20),
           ),
         ),
       ),
@@ -1702,15 +1693,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ? const Color(0xCCFF9800)
               : const Color(0x4D000000),
         ),
-        child: Center(
-          child: Text(
-            '${currentSpeed.toStringAsFixed(1)}x',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: responsiveSize(10, 1.3),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        child: Icon(
+          Icons.speed,
+          color: Colors.white,
+          size: responsiveSize(20),
         ),
       ),
     );
@@ -2036,31 +2022,17 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: duration,
-            padding: EdgeInsets.symmetric(horizontal: rs(6), vertical: rs(3)),
+            padding: EdgeInsets.all(rs(4)),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(rs(6)),
               border: _isFocused
                   ? Border.all(color: primaryPink, width: 2)
                   : Border.all(color: Colors.transparent, width: 2),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  widget.icon,
-                  color: widget.color,
-                  size: rs(26),
-                ),
-                SizedBox(height: rs(3)),
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: textPrimary,
-                    fontSize: rs(10, 1.3),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Icon(
+              widget.icon,
+              color: widget.color,
+              size: rs(26),
             ),
           ),
         ),
