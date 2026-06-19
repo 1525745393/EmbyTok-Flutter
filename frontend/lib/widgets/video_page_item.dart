@@ -58,6 +58,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
 
+  // --- 底部信息条 3秒自动隐藏 ---
+  Timer? _infoHideTimer;
+  bool _isInfoVisible = true;
+  bool _wasPlayingWhenHidden = false;
+
   // --- 播放上报相关 ---
   final EmbytokService _service = EmbytokService();
   Timer? _progressTimer;
@@ -106,8 +111,40 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     ).animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
   }
 
+  // --- 底部信息条显示/隐藏控制 ---
+  // 播放中 3 秒后自动隐藏，暂停时保持显示
+  void _resetInfoHideTimer() {
+    _infoHideTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _isInfoVisible = true);
+    final c = _videoController;
+    final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
+    if (isPlaying) {
+      _infoHideTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _isInfoVisible = false);
+      });
+    }
+  }
+
+  // 切换信息条显示（用于点击画面手动触发）
+  void _toggleInfoBar() {
+    _infoHideTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _isInfoVisible = !_isInfoVisible);
+    if (_isInfoVisible) {
+      final c = _videoController;
+      final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
+      if (isPlaying) {
+        _infoHideTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _isInfoVisible = false);
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
     // 1. 清理 controller 的 ended 监听器
     _videoController?.removeListener(_onVideoChanged);
@@ -510,6 +547,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     widget.item;
                 // 标记为 ready：触发 AnimatedOpacity 渐显
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                // 启动底部信息条 3秒自动隐藏逻辑
+                _resetInfoHideTimer();
                 // 续播位置 seek：resume 模式下从上次播放位置开始
                 if (widget.startFromResumePosition) {
                   final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
@@ -531,13 +570,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 _reportPlaybackStart();
                 // 3. 启动周期进度上报（5 秒一次）
                 _startProgressTimer();
-                // 4. 监听播放状态：暂停上报 + 播放结束连播检测
+                // 4. 监听播放状态：暂停上报 + 播放结束连播检测 + 信息条显示
                 c.addListener(_onVideoChanged);
                 c.addListener(() {
                   if (!mounted) return;
                   if (!c.value.isPlaying) {
                     _reportPlaybackProgress(isPauseEvent: true);
                   }
+                  // 根据播放状态更新信息条显示
+                  _resetInfoHideTimer();
                 });
               },
             ),
@@ -813,7 +854,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // 底部半透明黑色渐变 + 标题/简介/类型标签
   // 动态 padding：适配底部导航栏高度 + 底部手势条
-  // 底部导航栏显示时向上偏移 kBottomNavHeight，隐藏时仅保留安全 padding
+  // 新增：播放中 3 秒后自动隐藏，暂停时保持显示（通过 AnimatedOpacity）
   Widget _buildBottomGradient() {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
@@ -822,28 +863,32 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       left: 0,
       right: 0,
       bottom: 0,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          80, // 顶部距离：从视频画面上方开始计算（避开右侧操作按钮的垂直范围
-          96,
-          // 底部距离：导航栏可见时 = kBottomNavHeight + 手势条 + 24px；隐藏时 = 手势条 + 24px
-          toolbarVisible
-              ? kBottomNavHeight + bottomPadding + 24
-              : bottomPadding + 24,
-        ),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [
-                backgroundColor,
-                backgroundColor,
-                Colors.transparent,
-              ],
-              stops: [0.0, 0.5, 1.0],
-            ),
-        ),
+      child: AnimatedOpacity(
+        opacity: _isInfoVisible ? 1.0 : 0.0,
+        duration: Duration(milliseconds: _isInfoVisible ? 300 : 500),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            80, // 顶部距离：从视频画面上方开始计算（避开右侧操作按钮的垂直范围
+            96,
+            // 底部距离：导航栏可见时 = kBottomNavHeight + 手势条 + 24px；隐藏时 = 手势条 + 24px
+            toolbarVisible
+                ? kBottomNavHeight + bottomPadding + 24
+                : bottomPadding + 24,
+          ),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Color(0xCC000000),
+                  Color(0x80000000),
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.45, 1.0],
+              ),
+          ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -914,11 +959,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ),
           ],
         ),
+        ),
       ),
     );
   }
 
   // 右侧操作按钮列：与 React 版 EmbyTok 对齐
+  // 顺序（从上至下）：连播 ∞ → 演员头像/海报 → 点赞 ❤️ → 信息 ℹ️ → 删除 🗑️ → 倍速 → 播放模式 → 字幕 → 唱片/静音 💿 → 全屏 → 下一集
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
     final topPadding = MediaQuery.of(context).padding.top;
@@ -955,10 +1002,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // 1. 海报/头像展示区（顶部 TikTok 风格）
+            // 1. 连播开关（最顶部）
+            _buildAutoPlayButton(),
+            SizedBox(height: responsiveSize(16, 1.5)),
+            // 2. 海报/演员头像（TikTok 风格）
             _buildPosterAvatar(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 2. 点赞
+            // 3. 点赞
             _buildActionButton(
               favorited ? Icons.favorite : Icons.favorite_border,
               '点赞',
@@ -966,25 +1016,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 3. 信息按钮
+            // 4. 信息按钮
             _buildInfoButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 4. 删除按钮
+            // 5. 删除按钮
             _buildDeleteButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 5. 倍速按钮
+            // 6. 倍速按钮
             _buildSpeedControlButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 6. 播放模式按钮
+            // 7. 播放模式按钮
             _buildPlayModeButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 7. 字幕按钮
+            // 8. 字幕按钮
             _buildSubtitleButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 8. 唱片式静音按钮
+            // 9. 唱片式静音按钮（播放中旋转动画）
             _buildDiscMuteButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 9. 全屏按钮
+            // 10. 全屏按钮
             _buildActionButton(
               _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
               _isFullscreen ? '退出' : '全屏',
@@ -992,7 +1042,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               onTap: _toggleFullscreen,
             ),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 10. 下一集（仅剧集类）
+            // 11. 下一集（仅剧集类）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
                 Icons.chevron_right,
@@ -1002,8 +1052,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ),
               SizedBox(height: responsiveSize(16, 1.5)),
             ],
-            // 11. 连播开关（Infinity，最底部）
-            _buildAutoPlayButton(),
           ],
         ),
       ),
