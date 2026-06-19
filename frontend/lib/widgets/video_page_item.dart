@@ -846,15 +846,33 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              _titleText(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: Text(
+                    _titleText(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (widget.item.displayRating != null && widget.item.displayRating! > 0)
+                  Text(
+                    '★ ${widget.item.displayRating!.toStringAsFixed(1)}',
+                    style: const TextStyle(
+                      color: primaryPink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 6),
             if (widget.item.overview != null && widget.item.overview!.isNotEmpty)
