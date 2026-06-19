@@ -1,3 +1,10 @@
+## [1.28.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.1...v1.28.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 简化 Android 构建命令，移除 universal APK 构建和多余的文件验证步骤，恢复到 v1.25.1 的稳定工作流程 ([172466e](https://github.com/1525745393/EmbyTok-Flutter/commit/172466e0b82c3714c41be6f782b3bf29850f1762))
+
 ## [1.28.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.0...v1.28.1) (2026-06-19)
 
 
