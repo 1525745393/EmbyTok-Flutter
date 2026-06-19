@@ -1,3 +1,15 @@
+# [1.29.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.5...v1.29.0) (2026-06-19)
+
+
+### Bug Fixes
+
+* **ci:** 替换 withValues() 为 withOpacity() 以兼容 Flutter 3.10+ ([22348bc](https://github.com/1525745393/EmbyTok-Flutter/commit/22348bc64a214b8aafc0cd1bb8c49ec4112eccf1))
+
+
+### Features
+
+* sync latest updates ([2e0b9e5](https://github.com/1525745393/EmbyTok-Flutter/commit/2e0b9e54f70e97bb577ace0a44de184b93ecfeb3))
+
 ## [1.28.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.28.4...v1.28.5) (2026-06-19)
 
 
