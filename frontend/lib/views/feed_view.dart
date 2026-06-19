@@ -81,9 +81,14 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 对指定 index 的 MediaItem 构建 VideoPlayerController 并 initialize()，
   // 不调用 play()，只做初始化，以便滑动过来时立即播放。
+  // 设计原则：_preloadCache 只持有"尚未显示的"预加载项，一旦页面构建时从
+  // cache 取出一个 controller，就把它从 cache 中移除，交给 VideoPageItem
+  // 作为唯一的管理者，避免双重 dispose。
   void _preloadNextVideo(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
     if (index + 1 >= items.length) return;
     final nextIndex = index + 1;
+    // 限制最多同时预加载 1 个（当前 + 下一条），避免内存占用过高
+    if (_preloadCache.length >= 1) return;
     if (_preloadCache.containsKey(nextIndex)) return;
     final nextItem = items[nextIndex];
     final url = nextItem.computePlaybackUrl(embyServerUrl, token);
@@ -95,24 +100,26 @@ class _FeedViewState extends ConsumerState<FeedView>
         httpHeaders: headers,
       );
       controller.initialize().then((_) {
-        // 初始化完成后存入缓存。如果此时 page 已经离开 nextIndex，
-        // 则不必保留，由下面的清理流程释放。
-        if (_preloadCache[nextIndex] == null) {
-          _preloadCache[nextIndex] = controller;
+        // 初始化完成后，如果 cache 仍持有该 index，则保留
+        // 否则立即释放，避免泄漏
+        if (_preloadCache[nextIndex] != controller) {
+          try { controller.dispose(); } catch (_) {}
         }
       }).catchError((_) {
         try { controller.dispose(); } catch (_) {}
+        _preloadCache.remove(nextIndex);
       });
-      // 预占位，避免重复初始化
       _preloadCache[nextIndex] = controller;
     } catch (_) {}
   }
 
-  // 清理距离当前 index 超过 ±2 位置的预加载控制器，避免内存持续增长
+  // 清理所有预加载控制器（在翻页时调用）
+  // 设计原则：除了当前 index 的下一条，其余全部释放
   void _evictFarPreloads(int currentIndex) {
+    final keepIndex = currentIndex + 1;
     final toRemove = <int>[];
     for (final idx in _preloadCache.keys) {
-      if ((idx - currentIndex).abs() > 2) toRemove.add(idx);
+      if (idx != keepIndex) toRemove.add(idx);
     }
     for (final idx in toRemove) {
       try {
@@ -120,6 +127,17 @@ class _FeedViewState extends ConsumerState<FeedView>
       } catch (_) {}
       _preloadCache.remove(idx);
     }
+  }
+
+  // 从 cache 取出某个 index 的预加载 controller，并从 cache 移除
+  // 取出后，controller 的生命周期交给调用方（VideoPageItem）管理
+  VideoPlayerController? _takePreloadedController(int index) {
+    final controller = _preloadCache[index];
+    if (controller != null) {
+      _preloadCache.remove(index);
+      return controller;
+    }
+    return null;
   }
 
   // ========== 跨设备续播云同步 ==========
@@ -526,9 +544,11 @@ class _FeedViewState extends ConsumerState<FeedView>
           return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
         }
         final item = videoState.items[index];
-        final preloadedController = _preloadCache[index];
+        // 从 cache 取出预加载 controller，取出后就从 cache 移除，
+        // controller 的生命周期交给 VideoPageItem 管理
+        final preloadedController = _takePreloadedController(index);
         // 首次构建时对当前条目 + 1 预加载
-        if (index == 0 && !_preloadCache.containsKey(1)) {
+        if (index == 0 && !_preloadCache.containsKey(1) && _preloadCache.isEmpty) {
           _preloadNextVideo(0, videoState.items, embyServerUrl, token);
         }
         return VideoPageItem(

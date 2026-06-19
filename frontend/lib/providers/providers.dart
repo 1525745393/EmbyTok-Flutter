@@ -12,7 +12,6 @@ export 'library_provider.dart';
 // ---- 列表与播放控制 ----
 export 'video_list_provider.dart';
 export 'video_playback_controller.dart';
-export 'preload_controller.dart';
 export 'item_detail_provider.dart';
 
 // ---- 收藏与历史 ----

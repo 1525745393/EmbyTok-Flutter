@@ -109,35 +109,35 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   @override
   void dispose() {
     _discRotationCtrl.dispose();
-    // 0. 清理 controller 的 ended 监听器
+    // 1. 清理 controller 的 ended 监听器
     _videoController?.removeListener(_onVideoChanged);
-    // 1. 停止并清理播放进度上报定时器
+    // 2. 停止并清理播放进度上报定时器
     _progressTimer?.cancel();
     _progressTimer = null;
-    // 2. 上报播放停止（带上当前播放位置）
+    // 3. 上报播放停止（带上当前播放位置）
     if (_hasStartedReported) {
       _reportPlaybackStopped();
     }
-    // 3. 清理计时器
+    // 4. 清理计时器
     _controlsHideTimer?.cancel();
-    // 3b. 清理 NextUp 倒计时定时器
+    // 4b. 清理 NextUp 倒计时定时器
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
-    // 4. 退出时恢复竖屏方向（避免横屏状态残留）
+    // 5. 退出时恢复竖屏方向（避免横屏状态残留）
     if (_isFullscreen) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
-    // 5. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
+    // 6. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-    // 5b. 清空 currentVideoControllerProvider
+    // 7. 清空 currentVideoControllerProvider
     final ctrl = ref.read(currentVideoControllerProvider);
     if (ctrl != null && identical(ctrl, _videoController)) {
       ref.read(currentVideoControllerProvider.notifier).state = null;
     }
-    // 6. 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
-    _videoController?.dispose();
+    // 8. ⚠️ 注意：_videoController 由内部 VideoPlayerWidget 负责 dispose，
+    //    这里只清空引用，避免双重 dispose 导致 MediaCodec 泄漏
     _videoController = null;
-    // 7. 重置会话状态（用于下次进入重新生成新的播放会话）
+    // 9. 重置会话状态（用于下次进入重新生成新的播放会话）
     _capabilitiesReported = false;
     _hasStartedReported = false;
     _playSessionId = null;
