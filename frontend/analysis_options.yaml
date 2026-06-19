@@ -1,0 +1,61 @@
+include: package:flutter_lints/flutter.yaml
+
+# EmbyTok Flutter 静态分析配置
+# 参考：https://dart.dev/tools/linter-rules
+#      https://dart.dev/tools/analysis
+
+analyzer:
+  # 严格的类型检查，避免隐式类型转换带来的运行时错误
+  language:
+    strict-inference: true
+    strict-raw-types: true
+
+  # 排除自动生成的代码，避免大量分析报错
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+    - 'android/**'
+    - 'build/**'
+
+  errors:
+    # 将常见类型问题视为错误
+    invalid_annotation_target: ignore
+    missing_required_param: error
+    missing_return: error
+    todo: info
+
+linter:
+  rules:
+    # ---- 风格类 ----
+    prefer_const_constructors: true
+    prefer_const_literals_to_create_immutables: true
+    prefer_const_declarations: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    prefer_relative_imports: true
+    sort_constructors_first: true
+    sort_unnamed_constructors_first: true
+
+    # ---- 正确性类 ----
+    avoid_empty_else: true
+    avoid_init_to_null: true
+    avoid_null_checks_in_equality_operators: true
+    avoid_relative_lib_imports: true
+    avoid_returning_null: true
+    avoid_types_as_parameter_names: true
+    no_duplicate_case_values: true
+    type_annotate_public_apis: true
+
+    # ---- pub 相关 ----
+    depend_on_referenced_packages: true
+    library_private_types_in_public_api: true
+
+    # ---- 性能相关 ----
+    avoid_unnecessary_containers: true
+    sized_box_for_whitespace: true
+
+    # ---- 文档与可读性 ----
+    slash_for_doc_comments: true
+    prefer_single_quotes: true
+    unnecessary_to_list_in_spreads: true
+    unnecessary_const: false  # flutter_lints 默认开启，但在某些场景会误报

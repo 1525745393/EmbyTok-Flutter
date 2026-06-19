@@ -130,6 +130,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
 
               final item = displayItems[index];
               return VideoGridCard(
+                key: Key(item.id),
                 item: item,
                 onTap: () => _navigateToVideo(item, index),
               );

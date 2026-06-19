@@ -13,8 +13,11 @@ import '../services/embbytok_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/keyboard_shortcuts.dart';
 import '../utils/logger.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
+import '../widgets/tv_focusable.dart';
 import '../widgets/video_page_item.dart';
 
 class FeedView extends ConsumerStatefulWidget {
@@ -28,6 +31,12 @@ class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
   bool _showHelp = false; // 快捷键帮助面板显示状态
+  // 预加载控制器缓存：key = index，value = VideoPlayerController
+  // 在 onPageChanged 时构建下一条的 controller，在 VideoPageItem 中复用
+  final Map<int, VideoPlayerController> _preloadCache =
+      <int, VideoPlayerController>{};
+  // 当前正在播放的索引（与 _pageController 同步）
+  int _currentIndex = 0;
 
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
@@ -57,7 +66,59 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
+    // 清理所有预加载控制器
+    for (final controller in _preloadCache.values) {
+      try {
+        controller.dispose();
+      } catch (_) {}
+    }
+    _preloadCache.clear();
     super.dispose();
+  }
+
+  // ========== 预加载与清理 ==========
+
+  // 对指定 index 的 MediaItem 构建 VideoPlayerController 并 initialize()，
+  // 不调用 play()，只做初始化，以便滑动过来时立即播放。
+  void _preloadNextVideo(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
+    if (index + 1 >= items.length) return;
+    final nextIndex = index + 1;
+    if (_preloadCache.containsKey(nextIndex)) return;
+    final nextItem = items[nextIndex];
+    final url = nextItem.computePlaybackUrl(embyServerUrl, token);
+    if (url == null || url.isEmpty) return;
+    try {
+      final headers = nextItem.authHeaders(token);
+      final controller = VideoPlayerController.networkUrl(
+        Uri.parse(url),
+        httpHeaders: headers,
+      );
+      controller.initialize().then((_) {
+        // 初始化完成后存入缓存。如果此时 page 已经离开 nextIndex，
+        // 则不必保留，由下面的清理流程释放。
+        if (_preloadCache[nextIndex] == null) {
+          _preloadCache[nextIndex] = controller;
+        }
+      }).catchError((_) {
+        try { controller.dispose(); } catch (_) {}
+      });
+      // 预占位，避免重复初始化
+      _preloadCache[nextIndex] = controller;
+    } catch (_) {}
+  }
+
+  // 清理距离当前 index 超过 ±2 位置的预加载控制器，避免内存持续增长
+  void _evictFarPreloads(int currentIndex) {
+    final toRemove = <int>[];
+    for (final idx in _preloadCache.keys) {
+      if ((idx - currentIndex).abs() > 2) toRemove.add(idx);
+    }
+    for (final idx in toRemove) {
+      try {
+        _preloadCache[idx]?.dispose();
+      } catch (_) {}
+      _preloadCache.remove(idx);
+    }
   }
 
   // ========== 跨设备续播云同步 ==========
@@ -180,19 +241,15 @@ class _FeedViewState extends ConsumerState<FeedView>
         _goToNextVideo();
         return true;
       case LogicalKeyboardKey.space:
-      case LogicalKeyboardKey.enter: // TV 遥控器 OK 键
-      case LogicalKeyboardKey.select: // 部分 TV 遥控器 select 键
         _togglePlayPause();
         return true;
       case LogicalKeyboardKey.keyA:
       case LogicalKeyboardKey.arrowLeft:
-        // 快退 15 秒
-        ref.read(seekDeltaProvider.notifier).rewind(15);
+        _seekBySeconds(-15); // 快退 15 秒
         return true;
       case LogicalKeyboardKey.keyD:
       case LogicalKeyboardKey.arrowRight:
-        // 快进 15 秒
-        ref.read(seekDeltaProvider.notifier).forward(15);
+        _seekBySeconds(15); // 快进 15 秒
         return true;
       case LogicalKeyboardKey.keyU:
         _toggleFavorite();
@@ -212,19 +269,17 @@ class _FeedViewState extends ConsumerState<FeedView>
       case LogicalKeyboardKey.keyM:
         _toggleMute();
         return true;
+      case LogicalKeyboardKey.keyN:
+        // 下一集（剧集类内容）
+        _jumpToNextEpisodeFromCurrent();
+        return true;
+      case LogicalKeyboardKey.keyP:
+        // 上一集（剧集类内容）—— 回退到上一条视频
+        _goToPreviousVideo();
+        return true;
       case LogicalKeyboardKey.slash:
         // 按 / 显示帮助面板
         setState(() => _showHelp = !_showHelp);
-        return true;
-      case LogicalKeyboardKey.escape:
-      case LogicalKeyboardKey.goBack:
-        // TV 遥控器返回键或 Esc：如果当前在全屏，则退出
-        if (ref.read(isFullscreenProvider)) {
-          _toggleFullscreen();
-        } else {
-          // 不在全屏时不做特殊处理，交由系统决定（如返回键退出应用）
-          return false;
-        }
         return true;
       default:
         return false;
@@ -253,9 +308,32 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
+  // 当前播放位置相对跳转（支持正数=向前，负数=向后）
+  // 从 currentVideoControllerProvider 取到当前播放控制器
+  void _seekBySeconds(int seconds) {
+    final controller = ref.read(currentVideoControllerProvider);
+    if (controller == null) return;
+    if (!controller.value.isInitialized) return;
+    final current = controller.value.position;
+    final duration = controller.value.duration;
+    final deltaMs = seconds * 1000;
+    var newMs = current.inMilliseconds + deltaMs;
+    newMs = newMs.clamp(0, duration.inMilliseconds);
+    controller.seekTo(Duration(milliseconds: newMs));
+  }
+
   // 暂停/播放切换
   void _togglePlayPause() {
     final isPlaying = ref.read(isPlayingProvider);
+    final controller = ref.read(currentVideoControllerProvider);
+    // 同步到实际控制器（isPlayingProvider 可能与真实状态不同步）
+    if (controller != null && controller.value.isInitialized) {
+      if (isPlaying) {
+        controller.pause();
+      } else {
+        controller.play();
+      }
+    }
     ref.read(isPlayingProvider.notifier).state = !isPlaying;
   }
 
@@ -267,14 +345,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 切换浏览模式（最新/随机/收藏）
+  // 切换浏览模式（最新/随机/收藏/继续观看）——清理缓存后刷新
   void _toggleFeedType() {
     final current = ref.read(feedTypeProvider);
     final next = switch (current) {
       FeedType.latest => FeedType.random,
       FeedType.random => FeedType.favorites,
-      FeedType.favorites => FeedType.latest,
+      FeedType.favorites => FeedType.resume,
+      FeedType.resume => FeedType.latest,
     };
+    // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
+    for (final c in _preloadCache.values) {
+      try { c.dispose(); } catch (_) {}
+    }
+    _preloadCache.clear();
     ref.read(feedTypeProvider.notifier).setType(next);
     _showModeToast(next);
   }
@@ -393,89 +477,125 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 构建视频流 PageView
+  // 构建视频流 PageView：支持相邻条目预加载、自动连播、resume 模式
   Widget _buildVideoPageView(VideoListState videoState) {
     if (videoState.items.isEmpty && videoState.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
     }
     if (videoState.items.isEmpty && videoState.error != null) {
-      return _buildErrorState(videoState.error!);
-    }
-    if (videoState.items.isEmpty) {
-      return const Center(
-        child: Text('暂无视频，请选择其他媒体库',
-          style: TextStyle(color: Colors.white70, fontSize: 16)),
+      final err = videoState.error!;
+      // 未登录场景特殊处理
+      if (err.contains('登录') || err.contains('认证')) {
+        return ErrorStateCard.notLoggedIn();
+      }
+      return ErrorStateCard(
+        title: err,
+        actionLabel: '重试',
+        onAction: () {
+          final libId = ref.read(selectedLibraryIdProvider);
+          ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+        },
       );
     }
+    if (videoState.items.isEmpty) {
+      return EmptyStateCard.noVideos();
+    }
+
+    final isResumeMode = videoState.feedType == FeedType.resume;
+    final auth = ref.read(authProvider);
+    final embyServerUrl = auth.embyServerUrl;
+    final token = auth.token;
 
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
+        _currentIndex = index;
         if (videoState.hasMore && index >= videoState.items.length - 2 && !videoState.isLoading) {
           ref.read(videoListProvider.notifier).loadMore();
         }
+        // 预加载下一条视频
+        _preloadNextVideo(index, videoState.items, embyServerUrl, token);
+        // 清理距离较远的预加载缓存（>±2）
+        _evictFarPreloads(index);
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
         }
         final item = videoState.items[index];
+        final preloadedController = _preloadCache[index];
+        // 首次构建时对当前条目 + 1 预加载
+        if (index == 0 && !_preloadCache.containsKey(1)) {
+          _preloadNextVideo(0, videoState.items, embyServerUrl, token);
+        }
         return VideoPageItem(
           item: item,
-          onSkipNext: () {
-            if (index < videoState.items.length - 1) {
-              _pageController.animateToPage(
-                index + 1,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
-          },
-          onSkipPrevious: () {
-            if (index > 0) {
-              _pageController.animateToPage(
-                index - 1,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
-          },
-          currentIndex: index,
-          totalCount: videoState.items.length,
+          preloadedController: preloadedController,
+          onVideoEnded: _goToNextVideo,
+          startFromResumePosition: isResumeMode,
+          // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
+          onNextEpisode: item.seriesName != null
+              ? () {
+                  _jumpToNextEpisode(videoState.items, index);
+                }
+              : null,
         );
       },
     );
   }
 
-  // 错误提示 UI
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-            const SizedBox(height: 12),
-            Text(error, style: const TextStyle(color: Colors.white70, fontSize: 16), textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                final libId = ref.read(selectedLibraryIdProvider);
-                ref.read(videoListProvider.notifier).refresh(libraryId: libId);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE91E63),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('重试'),
-            ),
-          ],
-        ),
-      ),
+  // 从当前播放位置触发下一集跳转（键盘 N 键调用）
+  void _jumpToNextEpisodeFromCurrent() {
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isEmpty) return;
+    _jumpToNextEpisode(videoState.items, _currentIndex);
+  }
+
+  // 在 videoState.items 中查找当前 item 的下一集（同 series 的更大 indexNumber）
+  void _jumpToNextEpisode(List<MediaItem> items, int currentIndex) {
+    final current = items[currentIndex];
+    final series = current.seriesName;
+    if (series == null || series.isEmpty) {
+      _goToNextVideo();
+      return;
+    }
+    // 策略1：当前条目是 Episode，则寻找同 series 的下一个 Episode
+    int? nextIndex;
+    if (current.indexNumber != null && current.parentIndexNumber != null) {
+      // 在 items 中找同一季的下一集（indexNumber = current.indexNumber + 1）
+      for (int i = 0; i < items.length; i++) {
+        final it = items[i];
+        if (it.seriesName == series &&
+            it.parentIndexNumber == current.parentIndexNumber &&
+            it.indexNumber == current.indexNumber! + 1) {
+          nextIndex = i;
+          break;
+        }
+      }
+      // 若当前季没找到，尝试直接跳到同 series 的后续条目（下一个季的第1集）
+      nextIndex ??= items.indexWhere(
+        (it) => it.seriesName == series && it.indexNumber == 1 &&
+                 it.parentIndexNumber == current.parentIndexNumber! + 1,
+      );
+      if (nextIndex == -1) nextIndex = null;
+    }
+    // 策略2：简单匹配 —— 找到下一个 seriesName 相同的条目（按顺序）
+    nextIndex ??= items.indexWhere(
+      (it) => it.seriesName == series,
+      currentIndex + 1,
     );
+    if (nextIndex != null && nextIndex >= 0 && nextIndex < items.length) {
+      _pageController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    } else {
+      // 找不到：回到默认的下一条
+      _goToNextVideo();
+    }
   }
 
   // 顶部媒体库横向切换器
@@ -496,8 +616,12 @@ class _FeedViewState extends ConsumerState<FeedView>
             itemBuilder: (context, index) {
               final lib = libraries[index];
               final isSelected = lib.id == selectedId;
-              return GestureDetector(
+              return TvFocusable(
+                key: Key('lib_${lib.id}'),
                 onTap: () => _selectLibrary(lib),
+                borderRadius: 20,
+                borderWidth: 2,
+                autofocus: index == 0 && selectedId == null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(

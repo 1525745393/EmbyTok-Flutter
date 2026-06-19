@@ -8,7 +8,7 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 
-// 搜索状态
+/// 搜索状态：关键字、结果列表、加载状态
 class SearchState {
   final List<MediaItem> results;
   final String query;
@@ -92,7 +92,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
         query,
         limit: state.limit,
         offset: 0,
-        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );
@@ -135,7 +134,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
         state.query,
         limit: state.limit,
         offset: state.offset,
-        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );
@@ -159,7 +157,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 }
 
-// 顶层 Provider
+/// 顶层搜索 Provider：提供搜索结果、分页加载、错误提示
+///
+/// UI 通过 `ref.watch(searchProvider)` 读取搜索状态，
+/// 通过 `ref.read(searchProvider.notifier).search('keyword')` 触发搜索。
 final searchProvider =
     StateNotifierProvider<SearchNotifier, SearchState>((ref) {
   return SearchNotifier(ref);

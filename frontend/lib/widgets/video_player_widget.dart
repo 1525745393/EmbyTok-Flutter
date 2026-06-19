@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import 'subtitle_renderer.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
@@ -47,6 +49,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _initialized = false;
   bool _hasError = false;
   String? _errorMessage;
+  // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
+  final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
+  // 异步加载的字幕 Cues（从 Emby 服务器获取）
+  List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
+  // 是否正在加载字幕
+  bool _isLoadingSubtitle = false;
   // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
   // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
   int _fallbackLevel = 0;
@@ -107,7 +115,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (widget.preloadedController != null) {
       try {
         _controller = widget.preloadedController;
-        // addListener 监听错误
+        // addListener 监听错误和位置（跨秒时更新字幕）
         _controller!.addListener(() {
           if (!mounted) return;
           if (_controller!.value.hasError && !_hasError) {
@@ -115,6 +123,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               _hasError = true;
               _errorMessage = '播放出错';
             });
+          }
+          final sec = _controller!.value.position.inSeconds;
+          if (sec != _positionSeconds.value) {
+            _positionSeconds.value = sec;
           }
         });
         // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
@@ -127,21 +139,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           );
         }
         _controller!.setLooping(widget.loop);
-        // 应用用户选择的播放速度（从持久化状态恢复）
-        final rate = ref.read(playbackRateProvider);
-        if (rate != 1.0) {
-          try {
-            await _controller!.setPlaybackSpeed(rate);
-          } catch (e) {
-            debugPrint('setPlaybackSpeed error: $e');
-          }
-        }
         if (mounted) {
           setState(() {
             _initialized = true;
             _hasError = false;
           });
           widget.onControllerReady?.call(_controller!);
+          _autoLoadDefaultSubtitle();
           if (widget.autoPlay) {
             try {
               await _controller!.play();
@@ -193,18 +197,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _errorMessage = '播放出错';
           });
         }
+        final sec = _controller!.value.position.inSeconds;
+        if (sec != _positionSeconds.value) {
+          _positionSeconds.value = sec;
+        }
       });
 
       _controller!.setLooping(widget.loop);
-      // 应用用户选择的播放速度（从持久化状态恢复）
-      final rate2 = ref.read(playbackRateProvider);
-      if (rate2 != 1.0) {
-        try {
-          await _controller!.setPlaybackSpeed(rate2);
-        } catch (e) {
-          debugPrint('dynamic init setPlaybackSpeed error: $e');
-        }
-      }
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
@@ -219,6 +218,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
         });
         widget.onControllerReady?.call(_controller!);
+        _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
             await _controller!.play();
@@ -312,18 +312,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _isFallbackInProgress = false;
           });
         }
+        final sec = _controller!.value.position.inSeconds;
+        if (sec != _positionSeconds.value) {
+          _positionSeconds.value = sec;
+        }
       });
 
       _controller!.setLooping(widget.loop);
-      // 应用用户选择的播放速度（从持久化状态恢复）
-      final rate3 = ref.read(playbackRateProvider);
-      if (rate3 != 1.0) {
-        try {
-          await _controller!.setPlaybackSpeed(rate3);
-        } catch (e) {
-          debugPrint('fallback init setPlaybackSpeed error: $e');
-        }
-      }
       await _controller!.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () => throw TimeoutException('视频降级初始化超时'),
@@ -343,6 +338,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _isFallbackInProgress = false;
         });
         widget.onControllerReady?.call(_controller!);
+        _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
             await _controller!.play();
@@ -408,6 +404,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _positionSeconds.dispose();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     try {
       _controller?.pause();
@@ -421,6 +418,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听字幕选择：用户选择新字幕轨道时异步加载
+    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
+      if (next != previous) {
+        _loadSubtitle(next);
+      }
+    });
+
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
       return _buildThumbnailPlaceholder();
@@ -433,21 +437,122 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：正常播放视频
+    // 场景 3：正常播放视频（带字幕叠加）
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
+    // 监听选中的字幕轨道 ID，变化时异步加载
+    final selectedSubId = ref.watch(selectedSubtitleProvider);
+    // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
+    final displayCues = _subtitleCues.isNotEmpty
+        ? _subtitleCues
+        : (widget.item.subtitleCues ?? const <SubtitleCue>[]);
     return SizedBox.expand(
-      child: FittedBox(
-        fit: isLandscape ? BoxFit.contain : BoxFit.cover,
-        child: SizedBox(
-          width: _controller!.value.size.width,
-          height: _controller!.value.size.height,
-          child: VideoPlayer(_controller!),
-        ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FittedBox(
+            fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+            child: SizedBox(
+              width: _controller!.value.size.width,
+              height: _controller!.value.size.height,
+              child: VideoPlayer(_controller!),
+            ),
+          ),
+          if (displayCues.isNotEmpty && selectedSubId != null)
+            ValueListenableBuilder<int>(
+              valueListenable: _positionSeconds,
+              builder: (_, seconds, __) {
+                return SubtitleRenderer(
+                  position: Duration(seconds: seconds),
+                  cues: displayCues,
+                  enabled: true,
+                );
+              },
+            ),
+        ],
       ),
     );
+  }
+
+  // 根据 selectedSubtitleProvider 的最新值异步加载字幕
+  Future<void> _loadSubtitle(String? selectedTrackId) async {
+    if (!mounted) return;
+    if (selectedTrackId == null) {
+      setState(() {
+        _subtitleCues = const <SubtitleCue>[];
+        _isLoadingSubtitle = false;
+      });
+      return;
+    }
+    final mediaSourceId =
+        widget.item.mediaSources?.isNotEmpty == true
+            ? widget.item.mediaSources!.first.id
+            : null;
+    if (mediaSourceId == null || mediaSourceId.isEmpty) {
+      return;
+    }
+    // 从 item 的 subtitleTracks 中找到对应 track 的 index
+    final tracks = widget.item.subtitleTracks;
+    int? trackIndex;
+    for (int i = 0; i < tracks.length; i++) {
+      if (tracks[i].id == selectedTrackId) {
+        // track.id 本身就是 "N" 形式（例如 "0"/"1"），直接解析
+        final maybeIndex = int.tryParse(tracks[i].id);
+        if (maybeIndex != null) {
+          trackIndex = maybeIndex;
+          break;
+        }
+        // 否则退而求其次：用 i 作为轨道索引
+        trackIndex = i;
+        break;
+      }
+    }
+    trackIndex ??= int.tryParse(selectedTrackId);
+    if (trackIndex == null) return;
+
+    setState(() {
+      _isLoadingSubtitle = true;
+    });
+    final embService = ref.read(embbytokServiceProvider);
+    // 注入当前认证信息（确保字幕请求头包含 Token）
+    final authState = ref.read(authProvider);
+    if (authState.embyServerUrl != null && authState.token != null) {
+      embService.setupAuth(
+        embyServerUrl: authState.embyServerUrl!,
+        apiKey: authState.token!,
+        userId: authState.user?.id,
+      );
+    }
+    final cues = await embService.getSubtitleCues(
+      itemId: widget.item.id,
+      mediaSourceId: mediaSourceId,
+      index: trackIndex!,
+    );
+    if (mounted) {
+      setState(() {
+        _subtitleCues = cues;
+        _isLoadingSubtitle = false;
+      });
+    }
+  }
+
+  // 自动加载默认字幕轨道（controller 就绪后调用）
+  // 策略：用户未手动选择时，自动选中 isDefault 或第一个字幕轨道
+  void _autoLoadDefaultSubtitle() {
+    final currentSelected = ref.read(selectedSubtitleProvider);
+    // 用户已手动选择过，不自动覆盖
+    if (currentSelected != null) return;
+    final tracks = widget.item.subtitleTracks;
+    if (tracks.isEmpty) return;
+    // 优先选择 isDefault 的轨道，否则选第一个
+    final defaultTrack = tracks.firstWhere(
+      (t) => t.isDefault,
+      orElse: () => tracks.first,
+    );
+    ref.read(selectedSubtitleProvider.notifier).state = defaultTrack.id;
+    // _loadSubtitle 会通过 ref.listen 自动触发
   }
 
   // 缩略图占位：web 环境或无播放地址时使用
@@ -461,22 +566,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       fit: StackFit.expand,
       children: [
         if (url != null && url.isNotEmpty)
-          Image.network(
-            url,
+          CachedNetworkImage(
+            imageUrl: url,
             fit: BoxFit.cover,
-            headers: headers.isNotEmpty ? headers : null,
-            errorBuilder: (_, __, ___) => Container(
+            httpHeaders: headers.isNotEmpty ? headers : null,
+            memCacheWidth: 800,
+            placeholder: (_, __) => Container(
+              color: Colors.grey[900],
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+              ),
+            ),
+            errorWidget: (_, __, ___) => Container(
               color: Colors.grey[900],
               child: const Center(
                 child: Icon(Icons.broken_image, size: 64, color: Colors.white30),
               ),
             ),
-            loadingBuilder: (_, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFFE91E63)),
-              );
-            },
           )
         else
           Container(

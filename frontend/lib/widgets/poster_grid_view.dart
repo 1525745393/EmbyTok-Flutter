@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import 'tv_focusable.dart';
 import 'video_page_item.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
@@ -46,7 +48,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
           return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
         }
         final item = videoState.items[index];
-        return _PosterCard(item: item);
+        return _PosterCard(key: Key(item.id), item: item);
       },
     );
   }
@@ -55,14 +57,14 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
   final MediaItem item;
-  const _PosterCard({required this.item});
+  const _PosterCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
-    return GestureDetector(
+    return TvFocusable(
       onTap: () {
         // 点击海报进入视频播放
         Navigator.of(context).push(MaterialPageRoute(
@@ -72,17 +74,26 @@ class _PosterCard extends ConsumerWidget {
           ),
         ));
       },
+      borderRadius: 8,
+      borderWidth: 2,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Stack(
           fit: StackFit.expand,
           children: [
             if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
-              Image.network(
-                thumbnailUrl,
+              CachedNetworkImage(
+                imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
-                headers: item.authHeaders(authState.token),
-                errorBuilder: (_, __, ___) => Container(
+                httpHeaders: item.authHeaders(authState.token),
+                memCacheWidth: 400,
+                placeholder: (_, __) => Container(
+                  color: Colors.grey[900],
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                  ),
+                ),
+                errorWidget: (_, __, ___) => Container(
                   color: Colors.grey[900],
                   child: const Icon(Icons.broken_image, color: Colors.white30),
                 ),
@@ -109,6 +120,17 @@ class _PosterCard extends ConsumerWidget {
                 ),
               ),
             ),
+            // 继续观看进度条：当有播放位置时在底部显示细粉色条
+            if (item.userData != null && item.userData!.playbackPositionTicks > 0 && item.runtimeTicks != null && item.runtimeTicks! > 0)
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: LinearProgressIndicator(
+                  value: (item.userData!.playbackPositionTicks / item.runtimeTicks!).clamp(0.0, 1.0),
+                  minHeight: 3,
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE91E63)),
+                ),
+              ),
           ],
         ),
       ),

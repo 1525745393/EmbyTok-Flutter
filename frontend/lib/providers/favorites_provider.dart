@@ -11,7 +11,13 @@ import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 
-/// 收藏状态：三组独立列表 + 合并的 favoriteIds 提供 O(1) 快速查询
+/// 收藏状态：影片 / 合集 / 人物 三栏独立列表 + O(1) 快速查询的 favoriteIds
+///
+/// 核心字段：
+/// - [movies] 收藏的影片列表
+/// - [boxsets] 收藏的合集（BoxSet）列表
+/// - [people] 收藏的人物（导演 / 演员）列表
+/// - [favoriteIds] 所有已收藏条目的 ID 集合（用于快速判定收藏状态）
 class FavoritesState {
   final List<MediaItem> movies;
   final List<MediaItem> boxSets;
@@ -67,7 +73,13 @@ Set<String> _mergeIds(
   return ids;
 }
 
-/// 收藏 Notifier：管理整个 app 的三栏收藏状态
+/// 收藏 Notifier：管理整个应用的三栏收藏状态（乐观更新 + 并发去重）
+///
+/// 核心功能：
+/// - 登录后自动从 Emby 服务器拉取三栏收藏数据
+/// - 登出后自动清空本地缓存
+/// - toggleFavorite 采用乐观更新 + 失败回滚
+/// - 同一 itemId 的并发 toggleFavorite 调用会自动合并（去重）
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -127,23 +139,10 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 并行请求三栏数据
       final serverUrl = auth.embyServerUrl!;
       final token = auth.token!;
-      final userId = auth.user?.id;
       final results = await Future.wait<List<MediaItem>>([
-        _service.getFavoriteMovies(
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-        ),
-        _service.getFavoriteBoxSets(
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-        ),
-        _service.getFavoritePeople(
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-        ),
+        _service.getFavoriteMovies(serverUrl: serverUrl, token: token),
+        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token),
+        _service.getFavoritePeople(serverUrl: serverUrl, token: token),
       ], eagerError: false);
 
       final movies = results[0];
@@ -243,7 +242,6 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       await _service.toggleFavorite(
         itemId: item.id,
         isFavorite: newIsFavorite,
-        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
       );

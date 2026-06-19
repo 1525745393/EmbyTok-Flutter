@@ -154,6 +154,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-// 顶层 Provider
+/// 顶层认证 Provider：管理整个应用的登录状态、用户信息和访问令牌
+///
+/// 提供的功能：
+/// - [AuthState.isAuthenticated] 是否已登录
+/// - [AuthState.embyServerUrl] Emby 服务器地址
+/// - [AuthState.token] 访问令牌
+/// - [AuthState.user] 当前登录用户信息
 final authProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());

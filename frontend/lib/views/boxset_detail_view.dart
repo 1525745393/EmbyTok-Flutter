@@ -1,5 +1,6 @@
 // 合集（BoxSet）详情页：展示合集海报 + 简介 + 包含的影片列表
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -85,12 +86,16 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
             AspectRatio(
               aspectRatio: 16 / 9,
               child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
-                      headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) =>
+                      httpHeaders: headers.isNotEmpty ? headers : null,
+                      memCacheWidth: 1000,
+                      placeholder: (_, __) => Container(
+                        color: Colors.grey[900],
+                      ),
+                      errorWidget: (_, __, ___) =>
                           const _CoverPlaceholder(),
                     )
                   : const _CoverPlaceholder(),
@@ -175,7 +180,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final child = _children[index];
-                  return _ChildTile(item: child);
+                  return _ChildTile(key: Key(child.id), item: child);
                 },
               ),
             const SizedBox(height: 32),
@@ -238,7 +243,7 @@ class _CoverPlaceholder extends StatelessWidget {
 
 class _ChildTile extends ConsumerWidget {
   final MediaItem item;
-  const _ChildTile({required this.item});
+  const _ChildTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -272,13 +277,15 @@ class _ChildTile extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
-                      headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) => const _ThumbPlaceholder(),
+                      httpHeaders: headers.isNotEmpty ? headers : null,
+                      memCacheWidth: 240,
+                      placeholder: (_, __) => const _ThumbPlaceholder(),
+                      errorWidget: (_, __, ___) => const _ThumbPlaceholder(),
                     )
                   : const _ThumbPlaceholder(),
             ),

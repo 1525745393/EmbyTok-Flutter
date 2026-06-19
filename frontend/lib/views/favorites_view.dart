@@ -1,11 +1,14 @@
 // 收藏管理页面：三栏（影片 / 合集 / 人物）横向滚动布局
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/colors.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
 import 'boxset_detail_view.dart';
 import 'person_detail_view.dart';
 import '../widgets/video_page_item.dart';
@@ -94,12 +97,18 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         state.movies.isEmpty &&
         state.boxSets.isEmpty &&
         state.people.isEmpty) {
-      return _buildError(state.error!);
+      return ErrorStateCard(
+        title: state.error!,
+        actionLabel: '重试',
+        onAction: () {
+          ref.read(favoritesProvider.notifier).loadFavorites();
+        },
+      );
     }
 
     // 空状态
     if (state.movies.isEmpty && state.boxSets.isEmpty && state.people.isEmpty) {
-      return const _EmptyState();
+      return EmptyStateCard.noFavorites();
     }
 
     // 三栏布局：使用 CustomScrollView + SliverList 替代 SingleChildScrollView + Column
@@ -163,6 +172,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
               right: index < items.length - 1 ? 12 : 0,
             ),
             child: _FavoriteCard(
+              key: Key(item.id),
               item: item,
               itemType: itemType,
               width: cardWidth,
@@ -170,42 +180,6 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildError(String message) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: TextStyle(color: textSecondary, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPink,
-                foregroundColor: textPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('重试'),
-              onPressed: () {
-                ref.read(favoritesProvider.notifier).loadFavorites();
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -243,32 +217,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite_border, size: 80, color: textPlaceholder),
-          SizedBox(height: 16),
-          Text(
-            '还没有收藏',
-            style: TextStyle(color: textSecondary, fontSize: 18),
-          ),
-          SizedBox(height: 8),
-          Text(
-            '双击视频即可收藏 💖',
-            style: TextStyle(color: textTertiary, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _FavoriteCard extends ConsumerWidget {
   final MediaItem item;
   final _CardType itemType;
@@ -276,6 +224,7 @@ class _FavoriteCard extends ConsumerWidget {
   final double height;
 
   const _FavoriteCard({
+    super.key,
     required this.item,
     required this.itemType,
     required this.width,
@@ -311,11 +260,18 @@ class _FavoriteCard extends ConsumerWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: imageUrl != null && imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        headers: headers.isNotEmpty ? headers : null,
-                        errorBuilder: (_, __, ___) => _PlaceholderIcon(
+                        httpHeaders: headers.isNotEmpty ? headers : null,
+                        memCacheWidth: 400,
+                        placeholder: (_, __) => Container(
+                          color: surfaceColorL3,
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => _PlaceholderIcon(
                           itemType: itemType,
                         ),
                       )

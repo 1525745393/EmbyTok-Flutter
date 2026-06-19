@@ -1,28 +1,39 @@
 // 视频播放控制器：当前播放条目、播放位置、倍速、字幕、播放就绪状态
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../services/embbytok_service.dart';
 import '../utils/app_preferences.dart';
 import '../utils/constants.dart';
 
-// 当前正在播放的媒体条目
+/// 全局 EmbytokService 实例（用于加载字幕、上报播放状态等）
+final embbytokServiceProvider = Provider<EmbytokService>((ref) => EmbytokService());
+
+/// 当前正在播放的媒体条目（供详情页/控制层引用）
 final currentPlayingItemProvider = StateProvider<MediaItem?>((ref) => null);
 
-// 当前播放位置（秒）
+/// 当前播放位置（用于跳转后记忆续播进度）
 final currentPositionProvider = StateProvider<Duration>((ref) => Duration.zero);
 
-// 是否正在播放
+/// 是否正在播放（用于中央播放按钮显示）
 final isPlayingProvider = StateProvider<bool>((ref) => false);
 
-// 当前视频索引（用于网格视图跳转）
+/// 当前视频在列表中的索引（用于网格视图点击后进入详情页）
 final currentIndexProvider = StateProvider<int>((ref) => 0);
 
-// 是否全屏播放
+/// 是否全屏播放（控制横屏沉浸模式切换）
 final isFullscreenProvider = StateProvider<bool>((ref) => false);
 
-// 当前播放的降级等级：0=DirectPlay，1=DirectStream，2=HLS
-// 在 VideoPlayerWidget 内成功切换播放 URL 时更新
+/// 当前播放的 [VideoPlayerController]：用于全局 seek、快捷键操作、播放结束连播
+///
+/// 在 [VideoPageItem] 初始化成功后写入，组件 dispose 时清空。
+final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((ref) => null);
+
+/// 播放降级等级 Notifier：0=DirectPlay，1=DirectStream，2=HLS 转码
+///
+/// 等级越高代表越保守的播放策略，用于不同网速下的自适应降级。
 class PlaybackLevelNotifier extends StateNotifier<int> {
   PlaybackLevelNotifier() : super(0);
 
@@ -40,34 +51,16 @@ final playbackLevelProvider =
   (ref) => PlaybackLevelNotifier(),
 );
 
-// 当前播放倍速（0.5x / 0.75x / 1.0x / 1.25x / 1.5x / 2.0x）
-// 支持持久化存储，启动时自动加载用户上次的选择
-class PlaybackRateNotifier extends StateNotifier<double> {
-  PlaybackRateNotifier() : super(kDefaultPlaybackRate) {
-    _load();
-  }
+/// 当前播放倍速：1.0 / 1.25 / 1.5 / 2.0
+final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 
-  Future<void> _load() async {
-    final prefs = await const AppPreferencesService().load();
-    state = prefs.playbackRate;
-  }
-
-  Future<void> setRate(double rate) async {
-    state = rate;
-    await const AppPreferencesService().setPlaybackRate(rate);
-  }
-}
-
-final playbackRateProvider =
-    StateNotifierProvider<PlaybackRateNotifier, double>(
-  (ref) => PlaybackRateNotifier(),
-);
-
-// 当前选中的字幕（字幕语言或轨道 ID，null 表示关闭）
+/// 当前选中的字幕轨道（语言或轨道 ID，null 表示关闭字幕）
 final selectedSubtitleProvider = StateProvider<String?>((ref) => null);
 
-// ---------------- videoReadyProvider：记录哪些 item 的视频已就绪 ----------------
-// 用于驱动页面切换的渐入动画：controller 初始化完成后标记该 item 为 ready
+/// videoReadyProvider：记录哪些 item 的视频已就绪
+///
+/// 用于驱动页面切换的渐入动画：
+/// controller 初始化完成后标记该 item 为 ready，实现从骨架屏到视频的平滑过渡。
 class VideoReadyNotifier extends StateNotifier<Set<String>> {
   VideoReadyNotifier() : super({});
 
@@ -93,7 +86,9 @@ final videoReadyProvider =
   (ref) => VideoReadyNotifier(),
 );
 
-// ---------------- preloadThresholdProvider：预加载阈值 ----------------
+/// preloadThresholdProvider：预加载阈值（0.1 - 0.95）
+///
+/// 控制当当前视频播放进度达到多少后触发下一条视频的预加载。
 class PreloadThresholdNotifier extends StateNotifier<double> {
   PreloadThresholdNotifier() : super(kDefaultPreloadThreshold);
 
@@ -107,7 +102,9 @@ final preloadThresholdProvider =
   (ref) => PreloadThresholdNotifier(),
 );
 
-// ---------------- isMuted（自动播放前是否静音） ----------------
+/// isMutedProvider：是否静音自动播放
+///
+/// 从本地持久化存储读取，切换后自动保存。用于控制视频自动播放时是否静音。
 class IsMutedNotifier extends StateNotifier<bool> {
   IsMutedNotifier() : super(false) {
     _load();
@@ -131,7 +128,9 @@ class IsMutedNotifier extends StateNotifier<bool> {
 final isMutedProvider =
     StateNotifierProvider<IsMutedNotifier, bool>((ref) => IsMutedNotifier());
 
-// ---------------- isAutoPlay（自动播放下一集） ----------------
+/// isAutoPlayProvider：是否自动播放下一集 / 下一条
+///
+/// 从本地持久化存储读取，切换后自动保存。
 class IsAutoPlayNotifier extends StateNotifier<bool> {
   IsAutoPlayNotifier() : super(true) {
     _load();
@@ -155,56 +154,4 @@ class IsAutoPlayNotifier extends StateNotifier<bool> {
 final isAutoPlayProvider =
     StateNotifierProvider<IsAutoPlayNotifier, bool>(
   (ref) => IsAutoPlayNotifier(),
-);
-
-// ---------------- isPureMode（纯净模式 - 隐藏所有覆盖层 UI）----------------
-class IsPureModeNotifier extends StateNotifier<bool> {
-  IsPureModeNotifier() : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = await const AppPreferencesService().load();
-    state = prefs.isPureMode;
-  }
-
-  Future<void> setEnabled(bool value) async {
-    state = value;
-    await const AppPreferencesService().setIsPureMode(value);
-  }
-
-  Future<void> toggle() async {
-    await setEnabled(!state);
-  }
-}
-
-final isPureModeProvider =
-    StateNotifierProvider<IsPureModeNotifier, bool>(
-  (ref) => IsPureModeNotifier(),
-);
-
-// ---------------- seekDeltaProvider：遥控/键盘快退快进（秒）----------------
-// 监听者（video_page_item.dart）在值变化时对当前播放 controller 执行 seek
-class SeekDeltaNotifier extends StateNotifier<int> {
-  SeekDeltaNotifier() : super(0);
-
-  // 触发快进 N 秒（正数）
-  void forward(int seconds) {
-    state = seconds;
-  }
-
-  // 触发快退 N 秒（转化为负数由监听方处理，避免歧义）
-  void rewind(int seconds) {
-    state = -seconds;
-  }
-
-  // 重置（由监听方在应用后调用）
-  void reset() {
-    state = 0;
-  }
-}
-
-final seekDeltaProvider =
-    StateNotifierProvider<SeekDeltaNotifier, int>(
-  (ref) => SeekDeltaNotifier(),
 );

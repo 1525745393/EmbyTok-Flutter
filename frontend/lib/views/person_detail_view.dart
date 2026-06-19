@@ -1,5 +1,6 @@
 // 人员（Person）详情页：展示人员头像 + 姓名 + 出演的作品列表
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -91,11 +92,13 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                       width: 120,
                       height: 160,
                       child: imageUrl != null && imageUrl.isNotEmpty
-                          ? Image.network(
-                              imageUrl,
+                          ? CachedNetworkImage(
+                              imageUrl: imageUrl,
                               fit: BoxFit.cover,
-                              headers: headers.isNotEmpty ? headers : null,
-                              errorBuilder: (_, __, ___) =>
+                              httpHeaders: headers.isNotEmpty ? headers : null,
+                              memCacheWidth: 240,
+                              placeholder: (_, __) => const _AvatarPlaceholder(),
+                              errorWidget: (_, __, ___) =>
                                   const _AvatarPlaceholder(),
                             )
                           : const _AvatarPlaceholder(),
@@ -182,7 +185,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = _works[index];
-                  return _WorkTile(item: item);
+                  return _WorkTile(key: Key(item.id), item: item);
                 },
               ),
             const SizedBox(height: 32),
@@ -237,7 +240,7 @@ class _AvatarPlaceholder extends StatelessWidget {
 
 class _WorkTile extends ConsumerWidget {
   final MediaItem item;
-  const _WorkTile({required this.item});
+  const _WorkTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -271,13 +274,15 @@ class _WorkTile extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,
-                      headers: headers.isNotEmpty ? headers : null,
-                      errorBuilder: (_, __, ___) => const _ThumbPlaceholder(),
+                      httpHeaders: headers.isNotEmpty ? headers : null,
+                      memCacheWidth: 240,
+                      placeholder: (_, __) => const _ThumbPlaceholder(),
+                      errorWidget: (_, __, ___) => const _ThumbPlaceholder(),
                     )
                   : const _ThumbPlaceholder(),
             ),

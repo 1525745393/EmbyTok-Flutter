@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,6 +11,8 @@ import '../providers/providers.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../widgets/empty_state_card.dart';
+import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
 class SearchView extends ConsumerStatefulWidget {
@@ -147,27 +150,19 @@ class _SearchViewState extends ConsumerState<SearchView>
     // 错误
     if (state.error != null && state.results.isEmpty) {
       return _Centered(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 48),
-            const SizedBox(height: 12),
-            Text(state.error!, style: const TextStyle(color: textSecondary)),
-          ],
+        child: ErrorStateCard(
+          title: state.error!,
+          actionLabel: '重试',
+          onAction: () {
+            ref.read(searchProvider.notifier).search(state.query);
+          },
         ),
       );
     }
     // 空结果
     if (state.results.isEmpty) {
-      return _Centered(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, size: 64, color: textTertiary),
-            SizedBox(height: 12),
-            Text('没有找到相关内容', style: TextStyle(color: textSecondary)),
-          ],
-        ),
+      return const _Centered(
+        child: EmptyStateCard.noSearchResults(),
       );
     }
     // 正常结果列表
@@ -177,7 +172,7 @@ class _SearchViewState extends ConsumerState<SearchView>
       separatorBuilder: (_, __) => const Divider(color: dividerColor, height: 1),
       itemBuilder: (context, index) {
         final item = state.results[index];
-        return _SearchResultTile(item: item);
+        return _SearchResultTile(key: Key(item.id), item: item);
       },
     );
   }
@@ -185,8 +180,7 @@ class _SearchViewState extends ConsumerState<SearchView>
   Widget _buildHistory(List<String> history) {
     if (history.isEmpty) {
       return const _Centered(
-        child: Text('还没有搜索历史',
-            style: TextStyle(color: textTertiary, fontSize: 16)),
+        child: EmptyStateCard.noSearchHistory(),
       );
     }
     return Padding(
@@ -237,7 +231,7 @@ class _Centered extends StatelessWidget {
 
 class _SearchResultTile extends ConsumerWidget {
   final MediaItem item;
-  const _SearchResultTile({required this.item});
+  const _SearchResultTile({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -260,14 +254,15 @@ class _SearchResultTile extends ConsumerWidget {
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
-            ? Image.network(
-                thumbnailUrl,
+            ? CachedNetworkImage(
+                imageUrl: thumbnailUrl,
                 width: 120,
                 height: 72,
                 fit: BoxFit.cover,
-                headers: headers.isNotEmpty ? headers : null,
-                errorBuilder: (_, __, ___) => _thumbPlaceholder(),
-                loadingBuilder: (_, child, ___) => child,
+                httpHeaders: headers.isNotEmpty ? headers : null,
+                memCacheWidth: 240,
+                placeholder: (_, __) => _thumbPlaceholder(),
+                errorWidget: (_, __, ___) => _thumbPlaceholder(),
               )
             : _thumbPlaceholder(),
       ),

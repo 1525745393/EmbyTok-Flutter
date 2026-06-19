@@ -49,6 +49,11 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   bool _showHeart = false;
   Timer? _dragHideTimer; // 拖动结束后隐藏进度条的延迟
 
+  // 双击快进/快退：记录最后一次 tap 位置 + 视觉反馈
+  Offset? _lastTapPosition;
+  bool _showSeekFeedback = false;
+  bool _isSeekForward = false;
+
   // 安全检查：控制器是否可用
   bool get _controllerReady {
     final c = widget.controller;
@@ -65,7 +70,26 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   }
 
   // ---- 双击 ----
+  // YouTube 风格：双击左 1/3 快退 10s，双击右 1/3 快进 10s，双击中间点赞
   void _onDoubleTap() {
+    final pos = _lastTapPosition;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 判断 tap 位置在哪个区域
+    if (pos != null && _controllerReady) {
+      final relativeX = pos.dx / screenWidth;
+      if (relativeX < 0.33) {
+        // 左 1/3：快退 10 秒
+        _seekBySeconds(-10);
+        return;
+      } else if (relativeX > 0.67) {
+        // 右 1/3：快进 10 秒
+        _seekBySeconds(10);
+        return;
+      }
+    }
+
+    // 中间区域：保留双击点赞
     setState(() {
       _showHeart = true;
     });
@@ -81,6 +105,35 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     } catch (e) {
       debugPrint('_onDoubleTap toggleFavorite error: $e');
     }
+  }
+
+  // 双击快进/快退：seek 指定秒数并显示视觉反馈
+  void _seekBySeconds(int seconds) {
+    final c = widget.controller;
+    if (c == null || !c.value.isInitialized) return;
+    try {
+      final current = c.value.position;
+      final duration = c.value.duration;
+      var target = current + Duration(seconds: seconds);
+      if (target < Duration.zero) target = Duration.zero;
+      if (duration > Duration.zero && target > duration) target = duration;
+      c.seekTo(target);
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      debugPrint('doubleTap seek error: $e');
+    }
+    // 显示快进/快退视觉反馈
+    setState(() {
+      _isSeekForward = seconds > 0;
+      _showSeekFeedback = true;
+    });
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _showSeekFeedback = false;
+        });
+      }
+    });
   }
 
   // ---- 长按倍速 ----
@@ -219,6 +272,9 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
+            onTapDown: (details) {
+              _lastTapPosition = details.globalPosition;
+            },
             onTap: _handleTap,
             onLongPressStart: (_) => _onLongPressStart(),
             onLongPressEnd: (_) => _onLongPressEnd(),
@@ -245,6 +301,58 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         // 双击心形动画
         if (_showHeart)
           const IgnorePointer(child: _FlyingHeart()),
+        // 双击快进/快退视觉反馈
+        if (_showSeekFeedback)
+          IgnorePointer(
+            child: Positioned(
+              top: 0,
+              bottom: 0,
+              left: _isSeekForward ? null : 0,
+              right: _isSeekForward ? 0 : null,
+              width: MediaQuery.of(context).size.width / 3,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: _isSeekForward
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    end: _isSeekForward
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    colors: [Colors.black38, Colors.transparent],
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isSeekForward
+                          ? Icons.fast_forward
+                          : Icons.fast_rewind,
+                      color: Colors.white,
+                      size: 48,
+                      shadows: const [
+                        Shadow(color: Colors.black54, blurRadius: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _isSeekForward ? '+10s' : '-10s',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        shadows: [
+                          Shadow(color: Colors.black54, blurRadius: 4),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         // 长按倍速提示
         if (_isLongPressing)
           const IgnorePointer(
