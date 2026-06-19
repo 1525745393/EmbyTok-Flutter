@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.24.0...v1.25.0) (2026-06-19)
+
+
+### Features
+
+* 右侧操作栏与 React 版 EmbyTok 对齐 ([28d5601](https://github.com/1525745393/EmbyTok-Flutter/commit/28d5601fc29d81a0cac5242422d874bfa3ce8c22))
+
 # [1.24.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.23.1...v1.24.0) (2026-06-19)
 
 
