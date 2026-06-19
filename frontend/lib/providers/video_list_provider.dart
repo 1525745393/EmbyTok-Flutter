@@ -266,6 +266,18 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       state = state.copyWith(isLoading: false, error: message);
     }
   }
+
+  // 从当前列表移除已播放完毕的条目（仅 resume 模式下需要）
+  // 播放完毕后 Emby 服务端会从 resume 列表移除，本地同步移除避免显示过期条目
+  void removePlayedItem(String itemId) {
+    if (state.feedType != FeedType.resume) return;
+    final items = state.items;
+    final idx = items.indexWhere((item) => item.id == itemId);
+    if (idx < 0) return;
+    final newItems = List<MediaItem>.from(items)..removeAt(idx);
+    state = state.copyWith(items: newItems);
+    AppLogger.debug('已从 resume 列表移除播放完毕条目', data: {'itemId': itemId});
+  }
 }
 
 // 顶层 Provider

@@ -115,10 +115,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> {
       if (dur.inMilliseconds > 0 &&
           (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
-        // 若开启了自动连播：上报停止 + 通知外部跳转到下一条
+        // 上报播放停止（带上结束位置）
+        _reportPlaybackStopped();
+        // 标记为已播放：Emby 服务端会从 resume 列表移除该条目
+        // 同时通知本地 videoListProvider 移除（仅 resume 模式生效）
+        unawaited(_service.markAsPlayed(
+          widget.item.id,
+          serverUrl: _authServerUrl(),
+          token: _authToken(),
+        ));
+        ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
+        // 若开启了自动连播：通知外部跳转到下一条
         final autoPlay = ref.read(isAutoPlayProvider);
         if (autoPlay) {
-          _reportPlaybackStopped();
           widget.onVideoEnded?.call();
         }
       }
