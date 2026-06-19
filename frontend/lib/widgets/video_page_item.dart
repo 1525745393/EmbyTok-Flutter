@@ -18,8 +18,10 @@ import '../services/embbytok_service.dart';
 import '../utils/colors.dart';
 import '../utils/constants.dart';
 import 'gesture_overlay.dart';
+import 'subtitle_renderer.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
+import '../views/person_detail_view.dart';
 
 /// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
@@ -962,12 +964,125 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 
-  /// 海报/头像展示区（TikTok 风格）
+  /// 演员头像按钮（TikTok 风格）- 显示演员头像 + 收藏 + 按钮
   Widget _buildPosterAvatar() {
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
+
+    // 从 people 列表中查找第一个 Actor
+    final people = widget.item.people;
+    final Person? firstActor = people != null && people.isNotEmpty
+        ? people.firstWhere((p) => p.type.toLowerCase() == 'actor', orElse: () => people.first)
+        : null;
+
+    // 有演员信息：显示演员头像 + 收藏按钮
+    if (firstActor != null && firstActor.id != null && firstActor.id!.isNotEmpty) {
+      // 构造演员头像 URL
+      final actorImageUrl = embyServerUrl != null && token != null
+          ? '$embyServerUrl/Items/${firstActor.id}/Images/Primary?MaxWidth=200&api_key=$token'
+          : (firstActor.imageUrl);
+
+      final headers = widget.item.authHeaders(token);
+      final isFavorited = ref.watch(favoritesProvider).favoriteIds.contains(firstActor.id!);
+
+      // 构造 MediaItem（用于收藏和跳转到详情页）
+      final actorMediaItem = MediaItem(
+        id: firstActor.id!,
+        title: firstActor.name,
+        type: 'Person',
+        imageTags: {'Primary': firstActor.imageUrl ?? 'primary'},
+      );
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 圆形头像 + 收藏按钮
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // 演员头像
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PersonDetailView(person: actorMediaItem),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0x66FFFFFF), width: 2),
+                        color: Colors.black26,
+                      ),
+                      child: ClipOval(
+                        child: actorImageUrl != null && actorImageUrl.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: actorImageUrl,
+                                fit: BoxFit.cover,
+                                httpHeaders: headers.isNotEmpty ? headers : null,
+                                placeholder: (_, __) => const Icon(Icons.person, color: Colors.white54, size: 28),
+                                errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white54, size: 28),
+                              )
+                            : const Icon(Icons.person, color: Colors.white54, size: 28),
+                      ),
+                    ),
+                  ),
+                ),
+                // 收藏 "+"按钮（右下角悬浮）
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    onTap: () {
+                      ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
+                    },
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF00D9FF), // TikTok 青色
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(
+                        isFavorited ? Icons.check : Icons.add,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // 演员名字（短名）
+          const SizedBox(height: 4),
+          Text(
+            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
+
+    // 回退：无演员信息时显示视频封面，点击播放/暂停
     final posterUrl = widget.item.imageUrl('Primary', embyServerUrl: embyServerUrl, apiKey: token, maxWidth: 200);
+    final posterHeaders = widget.item.authHeaders(token);
     return GestureDetector(
       onTap: _togglePlay,
       child: Container(
@@ -980,10 +1095,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         ),
         child: ClipOval(
           child: posterUrl != null && posterUrl.isNotEmpty
-              ? Image.network(
-                  posterUrl,
+              ? CachedNetworkImage(
+                  imageUrl: posterUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
+                  httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
+                  placeholder: (_, __) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
+                  errorWidget: (_, __, ___) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
                 )
               : const Icon(Icons.music_video, color: Colors.white54, size: 24),
         ),
