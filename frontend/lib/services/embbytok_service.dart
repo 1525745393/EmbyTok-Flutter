@@ -696,6 +696,7 @@ class EmbytokService {
   Future<void> toggleFavorite({
     required String itemId,
     required bool isFavorite,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
@@ -706,9 +707,9 @@ class EmbytokService {
     _ensureConfig(serverUrl, token);
     // 使用带 userId 端点：/Users/{userId}/FavoriteItems/{itemId}
     // 无 userId 时回退到无 userId 的短路径
-    final uid = _defaultUserId ?? '';
-    final path = uid.isNotEmpty
-        ? '/Users/$uid/FavoriteItems/$itemId'
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = effectiveUserId.isNotEmpty
+        ? '/Users/$effectiveUserId/FavoriteItems/$itemId'
         : '/UserFavoriteItems/$itemId';
     if (isFavorite) {
       await _apiClient.post<dynamic>(path);

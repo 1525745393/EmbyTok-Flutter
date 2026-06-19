@@ -33,6 +33,7 @@ final libraryListProvider = FutureProvider<List<Library>>((ref) async {
     final libraries = await service.getLibraries(
       serverUrl: serverUrl,
       token: token,
+      userId: auth.user?.id,
     );
     AppLogger.info('媒体库列表加载成功', data: {'count': libraries.length});
     return libraries;

@@ -245,6 +245,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         isFavorite: newIsFavorite,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
+        userId: auth.user?.id,
       );
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态
