@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.32.0...v1.33.0) (2026-06-19)
+
+
+### Features
+
+* update workspace ([a29caff](https://github.com/1525745393/EmbyTok-Flutter/commit/a29caffd12f13bef1ee4cca5aea81624ad5038d0))
+
 # [1.32.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.31.0...v1.32.0) (2026-06-19)
 
 
