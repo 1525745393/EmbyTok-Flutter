@@ -603,6 +603,33 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 横屏视频：居中显示「全屏观看」按钮
+                    if (_videoController != null &&
+                        _videoController!.value.isInitialized &&
+                        _videoController!.value.size.width > _videoController!.value.size.height)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: GestureDetector(
+                            onTap: _toggleFullscreen,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: scheme.surface.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.fullscreen, color: scheme.onSurface, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text('全屏观看', style: TextStyle(color: scheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -682,13 +709,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // 顶部全屏按钮（在右侧操作栏顶部，不与顶部栏重叠）
-                  PressableActionButton(
-                    icon: Icons.fullscreen,
-                    label: '全屏',
-                    color: scheme.onSurface,
-                    onTap: _toggleFullscreen,
-                  ),
+                  // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
+                  if (_videoController == null ||
+                      !_videoController!.value.isInitialized ||
+                      _videoController!.value.size.width <= _videoController!.value.size.height)
+                    PressableActionButton(
+                      icon: Icons.fullscreen,
+                      label: '全屏',
+                      color: scheme.onSurface,
+                      onTap: _toggleFullscreen,
+                    ),
                   SizedBox(height: rs(16, 1.5)),
                   const AutoPlayButton(),
                   SizedBox(height: rs(16, 1.5)),
