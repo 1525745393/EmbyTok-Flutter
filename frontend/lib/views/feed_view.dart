@@ -415,36 +415,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     final viewMode = ref.watch(viewModeProvider);
     final scheme = Theme.of(context).colorScheme;
 
-    return WillPopScope(
-      onWillPop: () async {
-        final result = await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            backgroundColor: scheme.surface,
-            title: const Text('退出应用？'),
-            content: const Text('确定要退出吗？'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                style: TextButton.styleFrom(
-                  foregroundColor: scheme.primary,
-                ),
-                child: Text('取消', style: TextStyle(color: scheme.onSurface)),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
-                ),
-                child: const Text('退出'),
-              ),
-            ],
-          ),
-        );
-        return result ?? false;
-      },
-      child: Scaffold(
+    // 注意：返回键处理由 HomeScaffold 中的 PopScope 统一管理（应用退出确认）
+    return Scaffold(
         backgroundColor: scheme.surface,
         body: Stack(
           children: [
@@ -474,7 +446,6 @@ class _FeedViewState extends ConsumerState<FeedView>
               ),
           ],
         ),
-      ),
     );
   }
 

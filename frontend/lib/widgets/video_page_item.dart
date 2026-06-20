@@ -826,14 +826,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       ],
     );
 
-    // 使用 WillPopScope 处理返回键：全屏模式下先退出全屏
-    return WillPopScope(
-      onWillPop: () async {
+    // 使用 PopScope 处理返回键：全屏模式下先退出全屏
+    return PopScope(
+      canPop: !_isFullscreen,
+      onPopInvoked: (bool didPop) {
+        // didPop == true 表示已经完成 pop，不需要额外处理
+        if (didPop) return;
+        // didPop == false 且在全屏模式：手动退出全屏
         if (_isFullscreen) {
           _toggleFullscreen();
-          return false;
         }
-        return true;
       },
       child: _isFullscreen
           ? Semantics(
