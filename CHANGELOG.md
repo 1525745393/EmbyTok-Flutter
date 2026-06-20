@@ -1,3 +1,17 @@
+# [1.44.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.43.1...v1.44.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* remove undefined 'name' parameter from MediaItem constructor in app.dart ([03fbaa8](https://github.com/1525745393/EmbyTok-Flutter/commit/03fbaa871258ab83aa210bd112d9e6657db8ad01))
+* remove vc. prefix for responsiveSize in video_page_item.dart ([2024cce](https://github.com/1525745393/EmbyTok-Flutter/commit/2024cce61955e16a8327a1e1cf26bd2caeda3f8c))
+* resolve widget import aliases and null safety in video_page_item.dart ([75ac966](https://github.com/1525745393/EmbyTok-Flutter/commit/75ac966512574eed69c30dfa66d7f50536be2184))
+
+
+### Features
+
+* apply changes ([72dbf64](https://github.com/1525745393/EmbyTok-Flutter/commit/72dbf641e59901ef605ab8ef86675273cfd94ca5))
+
 ## [1.43.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.43.0...v1.43.1) (2026-06-20)
 
 
