@@ -1703,7 +1703,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             ),
             child: Icon(
               _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-              color: textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
               size: buttonSize,
             ),
           ),
@@ -2028,7 +2028,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     return _PressableActionButton(
       icon: icon,
       label: label,
-      color: color ?? textPrimary,
+      color: color ?? Theme.of(context).colorScheme.onSurface,
       onTap: onTap,
     );
   }
@@ -2157,7 +2157,9 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(rs(6)),
               border: _isFocused
-                  ? Border.all(color: primaryPink, width: 2)
+                  ? Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2)
                   : Border.all(color: Colors.transparent, width: 2),
             ),
             child: Icon(
@@ -2206,13 +2208,14 @@ class _InfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white10,
+        color: scheme.onSurface.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
         border: highlight
-            ? Border.all(color: primaryPink.withOpacity(0.45))
+            ? Border.all(color: scheme.primary.withOpacity(0.45))
             : null,
       ),
       constraints: const BoxConstraints(minWidth: 80),
@@ -2222,8 +2225,8 @@ class _InfoChip extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: textSecondary,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -2232,7 +2235,7 @@ class _InfoChip extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: highlight ? primaryPink : textPrimary,
+              color: highlight ? scheme.primary : scheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),

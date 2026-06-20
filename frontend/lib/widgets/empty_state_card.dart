@@ -19,7 +19,7 @@ class EmptyStateCard extends StatelessWidget {
   /// 副标题（引导文案）
   final String? subtitle;
 
-  /// 图标颜色，默认 [textPlaceholder]
+  /// 图标颜色，默认使用主题 onSurfaceVariant
   final Color? iconColor;
 
   const EmptyStateCard({
@@ -77,7 +77,8 @@ class EmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
@@ -86,14 +87,14 @@ class EmptyStateCard extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: iconColor ?? textPlaceholder,
+              color: iconColor ?? scheme.onSurfaceVariant,
               size: 72,
             ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
-                color: textSecondary,
+              style: TextStyle(
+                color: scheme.onSurface,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
@@ -103,8 +104,8 @@ class EmptyStateCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                  color: textTertiary,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
                   fontSize: 14,
                   height: 1.4,
                 ),

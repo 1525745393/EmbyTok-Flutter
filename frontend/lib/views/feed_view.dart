@@ -399,11 +399,12 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 显示浏览模式提示
   void _showModeToast(FeedType type) {
+    final scheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('切换到：${type.zhLabel}'),
         duration: const Duration(seconds: 1),
-        backgroundColor: Colors.black87,
+        backgroundColor: scheme.surface.withOpacity(0.9),
       ),
     );
   }
@@ -421,9 +422,10 @@ class _FeedViewState extends ConsumerState<FeedView>
     final librariesAsync = ref.watch(libraryListProvider);
     final videoState = ref.watch(videoListProvider);
     final viewMode = ref.watch(viewModeProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: scheme.surface,
       body: Stack(
         children: [
           // 主体内容：根据视图模式切换
@@ -499,7 +501,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 构建视频流 PageView：支持相邻条目预加载、自动连播、resume 模式
   Widget _buildVideoPageView(VideoListState videoState) {
     if (videoState.items.isEmpty && videoState.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
+      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
     }
     if (videoState.items.isEmpty && videoState.error != null) {
       final err = videoState.error!;
@@ -541,7 +543,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
+          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
         }
         final item = videoState.items[index];
         // 从 cache 取出预加载 controller，取出后就从 cache 移除，
@@ -627,6 +629,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       data: (libraries) {
         if (libraries.isEmpty) return const SizedBox.shrink();
         final selectedId = ref.watch(selectedLibraryIdProvider);
+        final scheme = Theme.of(context).colorScheme;
         return SizedBox(
           height: 40,
           child: ListView.separated(
@@ -646,13 +649,15 @@ class _FeedViewState extends ConsumerState<FeedView>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFFE91E63) : Colors.white.withOpacity(0.12),
+                    color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isSelected ? const Color(0xFFE91E63) : Colors.white24),
+                    border: Border.all(
+                      color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.24),
+                    ),
                   ),
                   child: Text(lib.name,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.white70,
+                      color: isSelected ? scheme.onPrimary : scheme.onSurface,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       fontSize: 14,
                     ),

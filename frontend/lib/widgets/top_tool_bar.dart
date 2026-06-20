@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, OrientationMode;
-import '../utils/colors.dart';
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();
@@ -26,6 +25,8 @@ class TopToolBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 获取主题色彩方案
+    final scheme = Theme.of(context).colorScheme;
     // 监听视图模式
     final viewMode = ref.watch(viewModeProvider);
     // 监听当前选中的媒体库
@@ -40,10 +41,10 @@ class TopToolBar extends ConsumerWidget {
     return Container(
       height: 56,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: const BoxDecoration(
-        color: backgroundColor,
+      decoration: BoxDecoration(
+        color: scheme.surface,
         border: Border(
-          bottom: BorderSide(color: dividerColor, width: 0.5),
+          bottom: BorderSide(color: scheme.outlineVariant, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -52,7 +53,7 @@ class TopToolBar extends ConsumerWidget {
           children: [
             // 左侧：菜单按钮
             IconButton(
-              icon: const Icon(Icons.menu, color: textPrimary),
+              icon: Icon(Icons.menu, color: scheme.onSurface),
               onPressed: onMenuPressed ?? () => _openDrawer(context),
               tooltip: '菜单',
             ),
@@ -60,18 +61,18 @@ class TopToolBar extends ConsumerWidget {
             Expanded(
               child: Center(
                 child: PopupMenuButton<String>(
-                  color: Colors.grey[900],
+                  color: scheme.surface.withOpacity(0.95),
                   onSelected: (libraryId) =>
                       _selectLibrary(ref, libraryId),
                   itemBuilder: (context) {
                     if (visibleLibraries.isEmpty) {
                       return [
-                        const PopupMenuItem<String>(
+                        PopupMenuItem<String>(
                           enabled: false,
                           value: '',
                           child: Text(
                             '暂无可用媒体库',
-                            style: TextStyle(color: textSecondary),
+                            style: TextStyle(color: scheme.onSurfaceVariant),
                           ),
                         ),
                       ];
@@ -86,8 +87,8 @@ class TopToolBar extends ConsumerWidget {
                                         ? Icons.check_circle
                                         : Icons.folder_outlined,
                                     color: selectedLibrary?.id == lib.id
-                                        ? primaryPink
-                                        : textSecondary,
+                                        ? scheme.primary
+                                        : scheme.onSurfaceVariant,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 12),
@@ -96,8 +97,8 @@ class TopToolBar extends ConsumerWidget {
                                       lib.name,
                                       style: TextStyle(
                                         color: selectedLibrary?.id == lib.id
-                                            ? primaryPink
-                                            : textSecondary,
+                                            ? scheme.primary
+                                            : scheme.onSurfaceVariant,
                                         fontWeight: selectedLibrary?.id == lib.id
                                             ? FontWeight.w600
                                             : FontWeight.normal,
@@ -114,10 +115,10 @@ class TopToolBar extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: primaryPink.withOpacity(0.2),
+                      color: scheme.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: primaryPink.withOpacity(0.5),
+                        color: scheme.primary.withOpacity(0.4),
                         width: 1,
                       ),
                     ),
@@ -127,13 +128,13 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.folder_outlined,
                           size: 16,
-                          color: textPrimary.withOpacity(0.9),
+                          color: scheme.onSurface.withOpacity(0.9),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           selectedLibrary?.name ?? '加载中...',
-                          style: const TextStyle(
-                            color: textPrimary,
+                          style: TextStyle(
+                            color: scheme.onSurface,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -143,7 +144,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.expand_more,
                           size: 18,
-                          color: textPrimary.withOpacity(0.7),
+                          color: scheme.onSurface.withOpacity(0.7),
                         ),
                       ],
                     ),
@@ -160,11 +161,11 @@ class TopToolBar extends ConsumerWidget {
                   icon: Icon(
                     _getOrientationIcon(orientationMode),
                     color: orientationMode != OrientationMode.both
-                        ? primaryPink
-                        : textPrimary,
+                        ? scheme.primary
+                        : scheme.onSurface,
                   ),
                   tooltip: '方向过滤',
-                  color: Colors.grey[900],
+                  color: scheme.surface.withOpacity(0.95),
                   onSelected: (mode) => _setOrientationMode(ref, mode),
                   itemBuilder: (context) => [
                     _buildOrientationMenuItem(
@@ -172,18 +173,21 @@ class TopToolBar extends ConsumerWidget {
                       '只看竖屏',
                       Icons.stay_current_portrait,
                       orientationMode,
+                      scheme,
                     ),
                     _buildOrientationMenuItem(
                       OrientationMode.horizontal,
                       '只看横屏',
                       Icons.stay_current_landscape,
                       orientationMode,
+                      scheme,
                     ),
                     _buildOrientationMenuItem(
                       OrientationMode.both,
                       '全部',
                       Icons.all_inclusive,
                       orientationMode,
+                      scheme,
                     ),
                   ],
                 ),
@@ -194,7 +198,7 @@ class TopToolBar extends ConsumerWidget {
                         ? Icons.grid_view // 视频流模式 -> 切换到网格
                         : Icons
                             .phone_android, // 网格模式 -> 切换到视频流
-                    color: textPrimary,
+                    color: scheme.onSurface,
                   ),
                   onPressed: () => _toggleViewMode(ref, viewMode),
                   tooltip: viewMode == ViewMode.feed
@@ -203,7 +207,7 @@ class TopToolBar extends ConsumerWidget {
                 ),
                 // 全屏按钮
                 IconButton(
-                  icon: const Icon(Icons.fullscreen, color: textPrimary),
+                  icon: Icon(Icons.fullscreen, color: scheme.onSurface),
                   onPressed: () => onFullscreenPressed?.call(true),
                   tooltip: '全屏',
                 ),
@@ -211,7 +215,7 @@ class TopToolBar extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     isMuted ? Icons.volume_off : Icons.volume_up,
-                    color: textPrimary,
+                    color: scheme.onSurface,
                   ),
                   onPressed: () => _toggleMuted(ref, isMuted),
                   tooltip: isMuted ? '取消静音' : '静音',
@@ -255,6 +259,7 @@ class TopToolBar extends ConsumerWidget {
     String label,
     IconData icon,
     OrientationMode currentMode,
+    ColorScheme scheme,
   ) {
     final isSelected = mode == currentMode;
     return PopupMenuItem<OrientationMode>(
@@ -263,20 +268,20 @@ class TopToolBar extends ConsumerWidget {
         children: [
           Icon(
             icon,
-            color: isSelected ? primaryPink : textSecondary,
+            color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
             size: 20,
           ),
           const SizedBox(width: 12),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? primaryPink : textSecondary,
+              color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
           if (isSelected) ...[
             const Spacer(),
-            const Icon(Icons.check, color: primaryPink, size: 18),
+            Icon(Icons.check, color: scheme.primary, size: 18),
           ],
         ],
       ),

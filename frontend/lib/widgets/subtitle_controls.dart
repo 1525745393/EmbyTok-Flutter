@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/subtitle_settings_provider.dart';
 import '../utils/constants.dart';
-import '../utils/colors.dart';
 
 class SubtitleControls extends ConsumerWidget {
   final List<SubtitleTrack> tracks;
@@ -20,19 +19,20 @@ class SubtitleControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final settings = ref.watch(subtitleSettingsProvider);
     final notifier = ref.read(subtitleSettingsProvider.notifier);
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: dividerColor),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       padding: const EdgeInsets.all(16),
       child: DefaultTextStyle(
-        style: const TextStyle(color: textPrimary, fontSize: 14),
+        style: TextStyle(color: scheme.onSurface, fontSize: 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,17 +40,17 @@ class SubtitleControls extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   '字幕设置',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: historyPink,
+                    color: scheme.primary,
                   ),
                 ),
                 if (onClose != null)
                   IconButton(
-                    icon: const Icon(Icons.close, color: textPrimary),
+                    icon: Icon(Icons.close, color: scheme.onSurface),
                     onPressed: onClose,
                   ),
               ],
@@ -58,7 +58,7 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 12),
 
             // 语言/轨道
-            _section('语言'),
+            _section('语言', scheme),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -68,12 +68,14 @@ class SubtitleControls extends ConsumerWidget {
                   label: '关闭',
                   selected: settings.language.isEmpty,
                   onTap: () => notifier.setLanguage(''),
+                  scheme: scheme,
                 ),
                 ...tracks.map(
                   (t) => _chip(
                     label: t.name.isNotEmpty ? t.name : t.language,
                     selected: settings.language == t.id,
                     onTap: () => notifier.setLanguage(t.id),
+                    scheme: scheme,
                   ),
                 ),
               ],
@@ -81,49 +83,57 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // 字号
-            _section('字号'),
+            _section('字号', scheme),
             const SizedBox(height: 8),
             Row(
               children: [
                 _chip(label: '小', selected: settings.size == kSubtitleSizeSmall,
-                    onTap: () => notifier.setSize(kSubtitleSizeSmall)),
+                    onTap: () => notifier.setSize(kSubtitleSizeSmall),
+                    scheme: scheme),
                 const SizedBox(width: 8),
                 _chip(label: '中', selected: settings.size == kSubtitleSizeMedium,
-                    onTap: () => notifier.setSize(kSubtitleSizeMedium)),
+                    onTap: () => notifier.setSize(kSubtitleSizeMedium),
+                    scheme: scheme),
                 const SizedBox(width: 8),
                 _chip(label: '大', selected: settings.size == kSubtitleSizeLarge,
-                    onTap: () => notifier.setSize(kSubtitleSizeLarge)),
+                    onTap: () => notifier.setSize(kSubtitleSizeLarge),
+                    scheme: scheme),
               ],
             ),
             const SizedBox(height: 16),
 
             // 颜色
-            _section('颜色'),
+            _section('颜色', scheme),
             const SizedBox(height: 8),
             Row(
               children: [
                 _chip(label: '白', selected: settings.color == kSubtitleColorWhite,
-                    onTap: () => notifier.setColor(kSubtitleColorWhite)),
+                    onTap: () => notifier.setColor(kSubtitleColorWhite),
+                    scheme: scheme),
                 const SizedBox(width: 8),
                 _chip(label: '黄', selected: settings.color == kSubtitleColorYellow,
-                    onTap: () => notifier.setColor(kSubtitleColorYellow)),
+                    onTap: () => notifier.setColor(kSubtitleColorYellow),
+                    scheme: scheme),
               ],
             ),
             const SizedBox(height: 16),
 
             // 位置
-            _section('位置'),
+            _section('位置', scheme),
             const SizedBox(height: 8),
             Row(
               children: [
                 _chip(label: '底部', selected: settings.position == kSubtitlePosBottom,
-                    onTap: () => notifier.setPosition(kSubtitlePosBottom)),
+                    onTap: () => notifier.setPosition(kSubtitlePosBottom),
+                    scheme: scheme),
                 const SizedBox(width: 8),
                 _chip(label: '偏下', selected: settings.position == kSubtitlePosLower,
-                    onTap: () => notifier.setPosition(kSubtitlePosLower)),
+                    onTap: () => notifier.setPosition(kSubtitlePosLower),
+                    scheme: scheme),
                 const SizedBox(width: 8),
                 _chip(label: '居中', selected: settings.position == kSubtitlePosCenter,
-                    onTap: () => notifier.setPosition(kSubtitlePosCenter)),
+                    onTap: () => notifier.setPosition(kSubtitlePosCenter),
+                    scheme: scheme),
               ],
             ),
           ],
@@ -132,32 +142,35 @@ class SubtitleControls extends ConsumerWidget {
     );
   }
 
-  Widget _section(String title) => Text(
+  Widget _section(String title, ColorScheme scheme) => Text(
         title,
-        style: const TextStyle(color: textSecondary, fontSize: 12),
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
       );
 
   Widget _chip({
     required String label,
     required bool selected,
     required VoidCallback onTap,
+    required ColorScheme scheme,
   }) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? primaryPink : const Color(0x1AFFFFFF),
+          color: selected
+              ? scheme.primary
+              : scheme.onSurface.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? historyPink : progressBackground,
+            color: selected ? scheme.primary : scheme.outlineVariant,
             width: 1.2,
           ),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? textPrimary : textSecondary,
+            color: selected ? scheme.onPrimary : scheme.onSurface,
             fontSize: 13,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           ),

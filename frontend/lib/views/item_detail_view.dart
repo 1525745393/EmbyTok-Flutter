@@ -168,41 +168,42 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final favorited = _item != null &&
         ref.watch(favoritesProvider).favoriteIds.contains(_item!.id);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(
           _item?.title ?? '详情',
           style: const TextStyle(fontSize: 16),
         ),
       ),
-      body: _buildBody(authState, favorited),
+      body: _buildBody(authState, favorited, scheme),
     );
   }
 
-  Widget _buildBody(AuthState authState, bool favorited) {
+  Widget _buildBody(AuthState authState, bool favorited, ColorScheme scheme) {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: primaryPink),
+      return Center(
+        child: CircularProgressIndicator(color: scheme.primary),
       );
     }
     if (_error != null) {
-      return _buildErrorView();
+      return _buildErrorView(scheme);
     }
     if (_item == null) {
-      return const Center(
-        child: Text('未找到内容', style: TextStyle(color: textSecondary)),
+      return Center(
+        child: Text('未找到内容', style: TextStyle(color: scheme.onSurfaceVariant)),
       );
     }
     final item = _item!;
     return RefreshIndicator(
-      color: primaryPink,
+      color: scheme.primary,
       onRefresh: _loadDetail,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -247,7 +248,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               width: double.infinity,
               httpHeaders: headers.isNotEmpty ? headers : null,
               memCacheWidth: 1000,
-              placeholder: (_, __) => Container(color: grey900),
+              placeholder: (_, __) => Container(color: Theme.of(context).colorScheme.surface),
               errorWidget: (_, __, ___) => _BackdropPlaceholder(type: item.type),
             )
           : _BackdropPlaceholder(type: item.type),
@@ -256,6 +257,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 主信息区：标题、类型标签、年份、评分 + 操作按钮
   Widget _buildMainInfo(MediaItem item, bool favorited) {
+    final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
     final rating = item.communityRating ?? item.rating;
     return Padding(
@@ -266,8 +268,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           // 标题
           Text(
             item.title,
-            style: const TextStyle(
-              color: textPrimary,
+            style: TextStyle(
+              color: scheme.onSurface,
               fontSize: 22,
               fontWeight: FontWeight.w700,
             ),
@@ -293,8 +295,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPink,
-                    foregroundColor: textPrimary,
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -309,7 +311,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 ),
               ),
               const SizedBox(width: 12),
-              _buildFavoriteButton(favorited),
+              _buildFavoriteButton(favorited, scheme),
             ],
           ),
         ],
@@ -318,17 +320,17 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 
   // 收藏按钮
-  Widget _buildFavoriteButton(bool favorited) {
+  Widget _buildFavoriteButton(bool favorited, ColorScheme scheme) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0x1AFFFFFF),
+        color: scheme.onSurface.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: dividerColor),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: IconButton(
         icon: Icon(
           favorited ? Icons.favorite : Icons.favorite_border,
-          color: favorited ? primaryPink : textPrimary,
+          color: favorited ? scheme.primary : scheme.onSurface,
           size: 22,
         ),
         onPressed: _toggleFavorite,
@@ -339,16 +341,17 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 类型标签
   Widget _buildTypeChip(String type) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: primaryPink,
+        color: scheme.primary,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         type,
-        style: const TextStyle(
-          color: textPrimary,
+        style: TextStyle(
+          color: scheme.onPrimary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -358,36 +361,38 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 普通信息标签
   Widget _buildInfoChip(String text) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0x1AFFFFFF),
+        color: scheme.onSurface.withOpacity(0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
-        style: const TextStyle(color: textSecondary, fontSize: 12),
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
       ),
     );
   }
 
   // 评分标签（星标 + 数字）
   Widget _buildRatingChip(double rating) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0x33FFC107),
+        color: scheme.tertiary.withOpacity(0.2),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star, color: amberColor, size: 14),
+          Icon(Icons.star, color: scheme.tertiary, size: 14),
           const SizedBox(width: 4),
           Text(
             rating.toStringAsFixed(1),
-            style: const TextStyle(
-              color: amberColor,
+            style: TextStyle(
+              color: scheme.tertiary,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -399,15 +404,16 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 简介区（可展开折叠）
   Widget _buildOverview(String overview) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '简介',
             style: TextStyle(
-              color: textPrimary,
+              color: scheme.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -425,8 +431,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               overflow: _overviewExpanded
                   ? TextOverflow.visible
                   : TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: textSecondary,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -442,8 +448,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 _overviewExpanded ? '收起' : '展开',
-                style: const TextStyle(
-                  color: primaryPink,
+                style: TextStyle(
+                  color: scheme.primary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -457,17 +463,18 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 演员区：横向滚动头像 + 名称
   Widget _buildCast(List<Person> people, AuthState authState) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               '演员',
               style: TextStyle(
-                color: textPrimary,
+                color: scheme.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
@@ -494,6 +501,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 季列表 + 集数列表
   Widget _buildSeasonsAndEpisodes(AuthState authState) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -501,12 +509,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         children: [
           // 季选择器（横向滚动）
           if (_seasons.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 '分集',
                 style: TextStyle(
-                  color: textPrimary,
+                  color: scheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -532,17 +540,17 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? primaryPink
-                            : const Color(0x1AFFFFFF),
+                            ? scheme.primary
+                            : scheme.onSurface.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? primaryPink : dividerColor,
+                          color: isSelected ? scheme.primary : scheme.outlineVariant,
                         ),
                       ),
                       child: Text(
                         season.title,
                         style: TextStyle(
-                          color: isSelected ? textPrimary : textSecondary,
+                          color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -556,19 +564,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           ],
           // 集数列表
           if (_loadingEpisodes)
-            const Padding(
-              padding: EdgeInsets.all(32),
+            Padding(
+              padding: const EdgeInsets.all(32),
               child: Center(
-                child: CircularProgressIndicator(color: primaryPink),
+                child: CircularProgressIndicator(color: scheme.primary),
               ),
             )
           else if (_episodes.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
+            Padding(
+              padding: const EdgeInsets.all(32),
               child: Center(
                 child: Text(
                   '暂无集数',
-                  style: TextStyle(color: textTertiary, fontSize: 14),
+                  style: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7), fontSize: 14),
                 ),
               ),
             )
@@ -595,25 +603,25 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 
   // 错误视图
-  Widget _buildErrorView() {
+  Widget _buildErrorView(ColorScheme scheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 48),
+            Icon(Icons.error_outline, color: scheme.error, size: 48),
             const SizedBox(height: 12),
             Text(
               _error ?? '加载失败',
-              style: const TextStyle(color: textSecondary, fontSize: 14),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPink,
-                foregroundColor: textPrimary,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
               ),
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('重试'),
@@ -633,6 +641,7 @@ class _BackdropPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     IconData icon;
     switch (type) {
       case 'Series':
@@ -648,8 +657,8 @@ class _BackdropPlaceholder extends StatelessWidget {
         icon = Icons.movie;
     }
     return Container(
-      color: grey900,
-      child: Center(child: Icon(icon, color: textPlaceholder, size: 80)),
+      color: scheme.surface,
+      child: Center(child: Icon(icon, color: scheme.onSurface.withOpacity(0.5), size: 80)),
     );
   }
 }
@@ -661,6 +670,7 @@ class _CastCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 80,
       child: Column(
@@ -671,7 +681,7 @@ class _CastCard extends StatelessWidget {
             height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: grey800,
+              color: scheme.surface,
             ),
             child: ClipOval(
               child: person.imageUrl != null && person.imageUrl!.isNotEmpty
@@ -679,11 +689,10 @@ class _CastCard extends StatelessWidget {
                       imageUrl: person.imageUrl!,
                       fit: BoxFit.cover,
                       memCacheWidth: 144,
-                      placeholder: (_, __) => const _AvatarPlaceholder(),
-                      errorWidget: (_, __, ___) =>
-                          const _AvatarPlaceholder(),
+                      placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
+                      errorWidget: (_, __, ___) => _AvatarPlaceholder(scheme: scheme),
                     )
-                  : const _AvatarPlaceholder(),
+                  : _AvatarPlaceholder(scheme: scheme),
             ),
           ),
           const SizedBox(height: 6),
@@ -692,8 +701,8 @@ class _CastCard extends StatelessWidget {
             person.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: textPrimary,
+            style: TextStyle(
+              color: scheme.onSurface,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -707,7 +716,10 @@ class _CastCard extends StatelessWidget {
                 person.role!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: textTertiary, fontSize: 11),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withOpacity(0.7),
+                  fontSize: 11,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -718,13 +730,14 @@ class _CastCard extends StatelessWidget {
 }
 
 class _AvatarPlaceholder extends StatelessWidget {
-  const _AvatarPlaceholder();
+  final ColorScheme scheme;
+  const _AvatarPlaceholder({required this.scheme});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: grey800,
-      child: const Icon(Icons.person, color: textPlaceholder, size: 32),
+      color: scheme.surface,
+      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 32),
     );
   }
 }
@@ -744,6 +757,7 @@ class _EpisodeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final imageUrl = episode.thumbnailUrlWithAuth(
       authState.embyServerUrl,
       authState.token,
@@ -761,9 +775,9 @@ class _EpisodeTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0x1AFFFFFF),
+          color: scheme.onSurface.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: dividerColor),
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: Row(
           children: [
@@ -778,10 +792,10 @@ class _EpisodeTile extends StatelessWidget {
                       fit: BoxFit.cover,
                       httpHeaders: headers.isNotEmpty ? headers : null,
                       memCacheWidth: 240,
-                      placeholder: (_, __) => const _ThumbPlaceholder(),
-                      errorWidget: (_, __, ___) => const _ThumbPlaceholder(),
+                      placeholder: (_, __) => _ThumbPlaceholder(scheme: scheme),
+                      errorWidget: (_, __, ___) => _ThumbPlaceholder(scheme: scheme),
                     )
-                  : const _ThumbPlaceholder(),
+                  : _ThumbPlaceholder(scheme: scheme),
             ),
             const SizedBox(width: 12),
             // 标题 + 简介
@@ -792,8 +806,8 @@ class _EpisodeTile extends StatelessWidget {
                   if (seasonEp != null)
                     Text(
                       seasonEp,
-                      style: const TextStyle(
-                        color: primaryPink,
+                      style: TextStyle(
+                        color: scheme.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -802,8 +816,8 @@ class _EpisodeTile extends StatelessWidget {
                     episode.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textPrimary,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -816,8 +830,8 @@ class _EpisodeTile extends StatelessWidget {
                         episode.overview!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: textTertiary,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant.withOpacity(0.7),
                           fontSize: 12,
                         ),
                       ),
@@ -826,7 +840,7 @@ class _EpisodeTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.play_circle_fill, color: primaryPink, size: 32),
+            Icon(Icons.play_circle_fill, color: scheme.primary, size: 32),
           ],
         ),
       ),
@@ -835,15 +849,16 @@ class _EpisodeTile extends StatelessWidget {
 }
 
 class _ThumbPlaceholder extends StatelessWidget {
-  const _ThumbPlaceholder();
+  final ColorScheme scheme;
+  const _ThumbPlaceholder({required this.scheme});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 120,
       height: 72,
-      color: grey800,
-      child: const Icon(Icons.movie_outlined, color: textPlaceholder),
+      color: scheme.surface,
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
     );
   }
 }
@@ -855,11 +870,12 @@ class _DetailPlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

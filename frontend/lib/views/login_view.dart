@@ -54,7 +54,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e is String ? e : '登录失败：$e'),
-            backgroundColor: errorColor,
+            backgroundColor: Theme.of(context).colorScheme.error,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -65,11 +65,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
   @override
   Widget build(BuildContext context) {
     // 监听 authProvider 的 loading 与 error 状态
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -81,26 +82,27 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // 顶部大标题
-                  const Text(
+                  Text(
                     'EmbyTok',
                     style: TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.w900,
-                      color: primaryPink,
+                      color: scheme.primary,
                       letterSpacing: 2,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     '浏览你的私人媒体库',
-                    style: TextStyle(fontSize: 16, color: textSecondary),
+                    style: TextStyle(fontSize: 16, color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
 
                   // Emby 服务器地址
                   _buildTextField(
+                    scheme: scheme,
                     controller: _embyController,
                     label: 'Emby 服务器地址',
                     icon: Icons.dns_outlined,
@@ -110,6 +112,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                   // 用户名
                   _buildTextField(
+                    scheme: scheme,
                     controller: _usernameController,
                     label: '用户名',
                     icon: Icons.person_outline,
@@ -118,6 +121,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                   // 密码
                   _buildTextField(
+                    scheme: scheme,
                     controller: _passwordController,
                     label: '密码',
                     icon: Icons.lock_outline,
@@ -125,7 +129,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: textSecondary,
+                        color: scheme.onSurfaceVariant,
                       ),
                       onPressed: () {
                         setState(() {
@@ -142,8 +146,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryPink,
-                        foregroundColor: textPrimary,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -154,12 +158,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         ),
                       ),
                       child: isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.4,
-                                valueColor: AlwaysStoppedAnimation<Color>(textPrimary),
+                                valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
                               ),
                             )
                           : const Text('登录'),
@@ -176,6 +180,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   // 通用表单项：圆角灰色背景 + 前缀图标
   Widget _buildTextField({
+    required ColorScheme scheme,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -186,31 +191,31 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(color: textPrimary),
+      style: TextStyle(color: scheme.onSurface),
       decoration: InputDecoration(
         filled: true,
-        fillColor: surfaceColorL3,
+        fillColor: scheme.surface,
         labelText: label,
-        labelStyle: const TextStyle(color: textSecondary),
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         hintText: hint,
-        hintStyle: TextStyle(color: textQuaternary),
-        prefixIcon: Icon(icon, color: primaryPink),
+        hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+        prefixIcon: Icon(icon, color: scheme.primary),
         suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: surfaceColorL2),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryPink),
+          borderSide: BorderSide(color: scheme.primary),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: errorColor),
+          borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: errorColor),
+          borderSide: BorderSide(color: scheme.error),
         ),
       ),
       validator: (value) {

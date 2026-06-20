@@ -76,17 +76,18 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
   // 弹出倍速选择菜单（替代原先循环切换）
   Future<void> _showRateMenu() async {
+    final scheme = Theme.of(context).colorScheme;
     final rate = await showDialog<double>(
       context: context,
       builder: (context) => SimpleDialog(
-        backgroundColor: const Color(0xE6000000),
-        title: const Text('播放速度',
-            style: TextStyle(color: textPrimary, fontSize: 16)),
+        backgroundColor: scheme.surface.withOpacity(0.9),
+        title: Text('播放速度',
+            style: TextStyle(color: scheme.onSurface, fontSize: 16)),
         children: widget.playbackRates
             .map((r) => SimpleDialogOption(
                   onPressed: () => Navigator.pop(context, r),
                   child: Text('${r.toStringAsFixed(1)}x',
-                      style: const TextStyle(color: textPrimary, fontSize: 15)),
+                      style: TextStyle(color: scheme.onSurface, fontSize: 15)),
                 ))
             .toList(),
       ),
@@ -118,6 +119,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final position = widget.controller.value.position;
     final duration = widget.controller.value.duration;
     final isPlaying = widget.controller.value.isPlaying;
@@ -133,8 +135,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            Colors.black54,
-            Colors.black87,
+            scheme.surface.withOpacity(0.54),
+            scheme.surface.withOpacity(0.87),
           ],
         ),
       ),
@@ -144,28 +146,28 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           children: [
             // 上一集
             IconButton(
-              icon: const Icon(Icons.skip_previous, color: textPrimary),
+              icon: Icon(Icons.skip_previous, color: scheme.onSurface),
               onPressed: widget.onPrevEpisode,
             ),
             // 播放/暂停按钮
             IconButton(
               icon: Icon(
                 isPlaying ? Icons.pause : Icons.play_arrow,
-                color: textPrimary,
+                color: scheme.onSurface,
                 size: 28,
               ),
               onPressed: _togglePlay,
             ),
             // 下一集
             IconButton(
-              icon: const Icon(Icons.skip_next, color: textPrimary),
+              icon: Icon(Icons.skip_next, color: scheme.onSurface),
               onPressed: widget.onNextEpisode,
             ),
             const SizedBox(width: 8),
             // 时间显示
             Text(
               '${_formatDuration(position)} / ${_formatDuration(duration)}',
-              style: const TextStyle(color: textPrimary, fontSize: 14),
+              style: TextStyle(color: scheme.onSurface, fontSize: 14),
             ),
             const SizedBox(width: 8),
             // 进度条
@@ -178,14 +180,14 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                   );
                   widget.controller.seekTo(target);
                 },
-                activeColor: primaryPink,
-                inactiveColor: textTertiary,
+                activeColor: scheme.primary,
+                inactiveColor: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 8),
             // 字幕按钮
             IconButton(
-              icon: const Icon(Icons.subtitles, color: textPrimary),
+              icon: Icon(Icons.subtitles, color: scheme.onSurface),
               onPressed: _showSubtitleMenu,
             ),
             // 倍速按钮（点击弹出选择菜单）
@@ -193,7 +195,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
               onPressed: _showRateMenu,
               child: Text(
                 '${widget.controller.value.playbackSpeed.toStringAsFixed(1)}x',
-                style: const TextStyle(color: textPrimary, fontSize: 14),
+                style: TextStyle(color: scheme.onSurface, fontSize: 14),
               ),
             ),
           ],

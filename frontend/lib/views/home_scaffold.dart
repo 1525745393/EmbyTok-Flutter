@@ -37,9 +37,10 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
     // 监听工具栏可见性：用于驱动底部导航栏的折叠动画
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       // 架构调整：使用 Stack 让内容 fill 全屏，底部导航栏用 Positioned 叠加
       body: Stack(
         children: [
@@ -87,11 +88,11 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                     child: Container(
                       height: kBottomNavHeight + bottomPadding,
                       // 半透明渐变：自底向上从黑色渐变为透明
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
-                          colors: [overlayBlack, const Color(0x00000000)],
+                          colors: [scheme.surface, scheme.surface.withOpacity(0.0)],
                         ),
                       ),
                       child: Padding(
@@ -101,8 +102,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                           type: BottomNavigationBarType.fixed,
                           backgroundColor: Colors.transparent, // 使用外层渐变
                           elevation: 0, // 去除自带阴影
-                          selectedItemColor: primaryPink,
-                          unselectedItemColor: textTertiary,
+                          selectedItemColor: scheme.primary,
+                          unselectedItemColor: scheme.onSurfaceVariant,
                           selectedFontSize: 12,
                           unselectedFontSize: 12,
                           showSelectedLabels: true,

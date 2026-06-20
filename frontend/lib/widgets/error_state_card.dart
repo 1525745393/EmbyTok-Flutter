@@ -74,7 +74,8 @@ class ErrorStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
@@ -83,14 +84,14 @@ class ErrorStateCard extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: iconColor ?? errorColor,
+              color: iconColor ?? scheme.error,
               size: 56,
             ),
             const SizedBox(height: 16),
             Text(
               title,
-              style: const TextStyle(
-                color: textPrimary,
+              style: TextStyle(
+                color: scheme.onSurface,
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
               ),
@@ -100,8 +101,8 @@ class ErrorStateCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: const TextStyle(
-                  color: textSecondary,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
                   fontSize: 14,
                   height: 1.4,
                 ),
@@ -112,8 +113,8 @@ class ErrorStateCard extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryPink,
-                  foregroundColor: textPrimary,
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 10,
