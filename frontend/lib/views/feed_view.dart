@@ -472,6 +472,16 @@ class _FeedViewState extends ConsumerState<FeedView>
           children: [
             // 媒体库切换器（横向滚动，支持多选）
             Expanded(child: _buildLibraryChips(librariesAsync)),
+            // 媒体库管理按钮（打开多选弹窗）
+            IconButton(
+              icon: Icon(
+                Icons.library_books,
+                color: scheme.onSurface.withOpacity(0.7),
+                size: 22,
+              ),
+              onPressed: () => LibrarySelector.show(context),
+              tooltip: '媒体库',
+            ),
             // 视图切换按钮
             IconButton(
               icon: Icon(

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
+import '../widgets/library_selector.dart';
 import '../widgets/video_grid_card.dart';
 
 // 视频网格视图
@@ -54,6 +55,13 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
           style: TextStyle(color: scheme.onSurface),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.library_books, color: scheme.onSurface),
+            onPressed: () => LibrarySelector.show(context),
+            tooltip: '媒体库',
+          ),
+        ],
       ),
       body: _buildBody(videoState, displayItems),
     );
