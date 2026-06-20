@@ -706,14 +706,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           ),
         // web 环境或无法播放时的播放图标占位
         if (kIsWeb || !_canPlayVideo)
-          const Center(
+          Center(
             child: Icon(
               Icons.play_circle_fill,
               size: 96,
-              color: Colors.white70,
+              color: scheme.onSurface.withOpacity(0.7),
               shadows: [
                 Shadow(
-                  color: Colors.black54,
+                  color: scheme.surface.withOpacity(0.54),
                   blurRadius: 12,
                 ),
               ],

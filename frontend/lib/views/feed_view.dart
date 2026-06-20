@@ -446,7 +446,7 @@ class _FeedViewState extends ConsumerState<FeedView>
               child: GestureDetector(
                 onTap: () => setState(() => _showHelp = false),
                 child: Container(
-                  color: Colors.black54,
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
                   alignment: Alignment.center,
                   child: const KeyboardHelpPanel(),
                 ),
@@ -459,13 +459,18 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 顶部栏：媒体库切换 + 视图切换按钮
   Widget _buildTopBar(AsyncValue<List<Library>> librariesAsync, ViewMode viewMode) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.black87, Colors.black45, Colors.transparent],
+          colors: [
+            scheme.surface.withOpacity(0.87),
+            scheme.surface.withOpacity(0.45),
+            Colors.transparent,
+          ],
         ),
       ),
       child: SafeArea(
@@ -478,7 +483,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             IconButton(
               icon: Icon(
                 viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-                color: Colors.white70,
+                color: scheme.onSurface.withOpacity(0.7),
                 size: 22,
               ),
               onPressed: () {
@@ -489,7 +494,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             ),
             // 媒体库选择器按钮（快捷键 G）
             IconButton(
-              icon: const Icon(Icons.library_books, color: Colors.white70, size: 22),
+              icon: Icon(Icons.library_books, color: scheme.onSurface.withOpacity(0.7), size: 22),
               onPressed: () => LibrarySelector.show(context),
             ),
           ],

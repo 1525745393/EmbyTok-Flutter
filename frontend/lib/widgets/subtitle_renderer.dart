@@ -35,6 +35,8 @@ class SubtitleRenderer extends ConsumerWidget {
 
     if (current.text.isEmpty) return const SizedBox.shrink();
 
+    final scheme = Theme.of(context).colorScheme;
+
     return IgnorePointer(
       child: Align(
         alignment: settings.alignment,
@@ -42,7 +44,7 @@ class SubtitleRenderer extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.black54,
+            color: scheme.surface.withOpacity(0.54),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -53,11 +55,11 @@ class SubtitleRenderer extends ConsumerWidget {
               fontSize: settings.fontSize,
               fontWeight: FontWeight.w600,
               height: 1.3,
-              shadows: const [
+              shadows: [
                 Shadow(
-                  color: Colors.black87,
+                  color: scheme.surface.withOpacity(0.87),
                   blurRadius: 4,
-                  offset: Offset(0, 1),
+                  offset: const Offset(0, 1),
                 ),
               ],
             ),

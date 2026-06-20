@@ -115,7 +115,7 @@ class _PosterCard extends ConsumerWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.75),
+                      scheme.surface.withOpacity(0.75),
                       Colors.transparent,
                     ],
                   ),
@@ -124,8 +124,8 @@ class _PosterCard extends ConsumerWidget {
                   item.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: scheme.onSurface, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ),

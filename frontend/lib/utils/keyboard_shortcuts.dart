@@ -19,22 +19,23 @@ class KeyboardHelpPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: scheme.surface.withOpacity(0.87),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+        border: Border.all(color: scheme.primary, width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '键盘快捷键',
             style: TextStyle(
-              color: Color(0xFFE91E63),
+              color: scheme.primary,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -45,8 +46,8 @@ class KeyboardHelpPanel extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(s.$1, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                Text(s.$2, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                Text(s.$1, style: TextStyle(color: scheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(s.$2, style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
               ],
             ),
           )),

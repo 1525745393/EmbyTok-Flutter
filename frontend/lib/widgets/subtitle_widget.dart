@@ -83,11 +83,11 @@ class SubtitleStyle {
   }
 
   /// 从 SubtitleSettings 创建样式
-  factory SubtitleStyle.fromSettings(SubtitleSettings settings) {
+  factory SubtitleStyle.fromSettings(SubtitleSettings settings, ColorScheme scheme) {
     return SubtitleStyle(
       fontSize: settings.fontSize,
       textColor: settings.textColor,
-      backgroundColor: Colors.black.withOpacity(0.54),
+      backgroundColor: scheme.surface.withOpacity(0.54),
       fontWeight: FontWeight.w600,
       lineHeight: 1.3,
       showBackground: true,

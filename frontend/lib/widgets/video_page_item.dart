@@ -688,7 +688,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   PressableActionButton(
                     icon: Icons.delete_outline,
                     label: '删除',
-                    color: Colors.red,
+                    color: scheme.error,
                     onTap: _showDeleteConfirmDialog,
                   ),
                   SizedBox(height: rs(16, 1.5)),
