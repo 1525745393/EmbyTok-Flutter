@@ -1,11 +1,13 @@
 // 应用入口：GoRouter 路由配置 + 登录守卫 + 主题
+// 阶段 1：接入 Material Design 3 动态色彩系统（seed 粉色 0xFFE91E63）
+// 阶段 2/3：后续逐步替换组件内硬编码颜色和尺寸 → colorScheme / theme tokens
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
-import '../utils/colors.dart';
+import 'theme/app_theme.dart';
 import 'providers/providers.dart';
 import 'views/favorites_view.dart';
 import 'views/history_view.dart';
@@ -24,6 +26,8 @@ class EmbyTokApp extends ConsumerWidget {
     final isLoggedIn = ref.watch(
       authProvider.select((s) => s.isAuthenticated),
     );
+    // 读取主题模式（'dark' | 'light' | 'system'）
+    final themeMode = ref.watch(themeModeProvider);
 
     // GoRouter 路由配置
     final router = GoRouter(
@@ -90,16 +94,12 @@ class EmbyTokApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'EmbyTok',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        colorSchemeSeed: Colors.pinkAccent,
-        useMaterial3: true,
-        scaffoldBackgroundColor: backgroundColor,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: backgroundColor,
-          foregroundColor: textPrimary,
-        ),
-      ),
+      // 亮色主题（用户在设置中选择 light 时生效）
+      theme: buildLightTheme(),
+      // 暗色主题（默认 dark / system 下的暗色外观）
+      darkTheme: buildDarkTheme(),
+      // 根据用户选择自动切换（默认跟随系统）
+      themeMode: parseThemeMode(themeMode),
       routerConfig: router,
     );
   }

@@ -80,3 +80,30 @@ const String kSubtitleSizeLarge = 'large';
 const String kSubtitlePosBottom = 'bottom';
 const String kSubtitlePosLower = 'lower';
 const String kSubtitlePosCenter = 'center';
+
+// ===== Design Tokens：间距 / 圆角 =====
+// 与 theme/theme_extensions.dart 同步，为组件提供语义化间距/圆角常量
+// 导入方式：import 'package:embbytok_flutter/utils/constants.dart';
+
+// 间距（8px 基准，适用于 EdgeInsets.all / symmetric / only）
+const double kSpacingXs = 4.0;
+const double kSpacingSm = 8.0;
+const double kSpacingMd = 12.0;
+const double kSpacingLg = 16.0;
+const double kSpacingXl = 24.0;
+const double kSpacingXxl = 32.0;
+
+// 圆角（适用于 BorderRadius.circular）
+const double kRadiusSm = 4.0;
+const double kRadiusMd = 8.0;
+const double kRadiusLg = 12.0;
+const double kRadiusXl = 16.0;
+const double kRadiusPill = 9999.0;
+
+// 字号（与 Flutter TextTheme.bodyMedium 等对齐）
+const double kFontSizeBodySmall = 12.0;
+const double kFontSizeBodyMedium = 14.0;
+const double kFontSizeBodyLarge = 16.0;
+const double kFontSizeTitleSmall = 14.0; // 粗体
+const double kFontSizeTitleMedium = 16.0;
+const double kFontSizeTitleLarge = 22.0;
