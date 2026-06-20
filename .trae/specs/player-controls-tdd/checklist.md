@@ -1,0 +1,34 @@
+- [ ] Checkpoint 1：代码审查完成 — 5 个核心文件已阅读，确认各功能的实现位置和潜在问题
+- [ ] Checkpoint 2：中央播放按钮点击有效 — 暂停时可见，点击后视频开始播放，按钮消失
+- [ ] Checkpoint 3：中央播放按钮状态与 isPlayingProvider 同步 — 播放/暂停状态在中央按钮和控制条之间保持一致
+- [ ] Checkpoint 4：控制条播放/暂停按钮切换图标正确 — 播放时显示 pause，暂停时显示 play_arrow
+- [ ] Checkpoint 5：控制条按钮点击有效 — 点击后播放状态正确切换，无卡顿或延迟
+- [ ] Checkpoint 6：双击左区域快退 10 秒 — 在屏幕左侧 1/3 区域快速双击两次，播放位置后退 10 秒
+- [ ] Checkpoint 7：双击右区域快进 10 秒 — 在屏幕右侧 1/3 区域快速双击两次，播放位置前进 10 秒
+- [ ] Checkpoint 8：双击视觉反馈 — 快进/快退时屏幕对应区域显示半透明渐变遮罩和图标动画
+- [ ] Checkpoint 9：双击触觉反馈 — 触发快进/快退时设备产生轻震动（HapticFeedback.lightImpact）
+- [ ] Checkpoint 10：中间区域双击触发点赞 — 双击屏幕中间 1/3 区域触发心形动画和收藏状态切换
+- [ ] Checkpoint 11：长按屏幕加速至 2.0x — 长按播放区域 300ms 后播放速度变为 2.0 倍
+- [ ] Checkpoint 12：长按加速速度徽章显示 — 长按期间屏幕顶部中央显示 "2.0x" 文本徽章
+- [ ] Checkpoint 13：松手恢复原始速度 — 松手后播放速度回到长按之前的倍速值（如 1.0x）
+- [ ] Checkpoint 14：水平拖动预览条显示 — 在屏幕上水平拖动时，顶部显示 _SeekPreviewBar 预览进度
+- [ ] Checkpoint 15：拖动中不执行 seek — 拖动过程中视频播放位置不发生变化（仅预览）
+- [ ] Checkpoint 16：松手执行单次 seek — 松手后视频跳转到预览位置，仅调用一次 seekTo
+- [ ] Checkpoint 17：松手震动提示 — seek 完成时触发轻震动反馈
+- [ ] Checkpoint 18：预览条 800ms 后自动隐藏 — 松手后预览条在 800 毫秒内平滑消失
+- [ ] Checkpoint 19：单击画面切换控制条 — 单击屏幕任意位置，底部 VideoControls 控制条滑入显示
+- [ ] Checkpoint 20：单击不触发播放/暂停 — 单击仅切换控制条可见性，不改变视频播放状态
+- [ ] Checkpoint 21：控制条 3 秒自动隐藏 — 控制条显示后 3 秒内无操作则自动滑出隐藏
+- [ ] Checkpoint 22：单击/双击 300ms 区分正确 — 快速双击被识别为双击手势，单次点击 300ms 后被识别为单击
+- [ ] Checkpoint 23：底部细线进度条渲染可见 — 视频播放期间屏幕底部始终有 2px 高的彩色进度条
+- [ ] Checkpoint 24：底部细线进度条实时更新 — 进度条随视频播放推进实时更新，无延迟或卡顿
+- [ ] Checkpoint 25：底部细线进度条不被遮挡 — 进度条位于视频画面最底层，不被其他 UI 组件遮挡
+- [ ] Checkpoint 26：空指针安全 — 控制器未初始化时所有操作被静默忽略，不抛出 Null check operator used on a null value
+- [ ] Checkpoint 27：dispose 时资源清理 — 组件销毁时所有 Timer 被 cancel，所有 Listener 被 remove
+- [ ] Checkpoint 28：播放状态一致性 — 中央按钮、控制条按钮、isPlayingProvider 三者状态永远同步
+- [ ] Checkpoint 29：倍速状态一致性 — 长按加速、倍速按钮、playbackRateProvider 三者状态永远同步
+- [ ] Checkpoint 30：主题颜色一致性 — 所有控制组件使用 ColorScheme 语义化颜色，亮/暗主题下均有良好对比度
+- [ ] Checkpoint 31：无硬编码颜色值 — 播放控制相关代码中不直接使用 Colors.white / Colors.black / 十六进制颜色等
+- [ ] Checkpoint 32：代码无编译错误 — flutter analyze 静态检查通过，无未定义标识符、类型不匹配等错误
+- [ ] Checkpoint 33：手势事件不冲突 — 单击/双击/长按/水平拖动四种手势可共存，不会互相干扰或丢失
+- [ ] Checkpoint 34：整体体验流畅 — 从用户视角评估播放控制的整体交互体验：响应即时、动画流畅、状态明确
