@@ -1,3 +1,10 @@
+# [1.43.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.42.0...v1.43.0) (2026-06-20)
+
+
+### Features
+
+* subtitle_selector / video_player_widget / poster_grid_view 主题化迁移 ([9c3c02e](https://github.com/1525745393/EmbyTok-Flutter/commit/9c3c02ec1d54d23c0974442b3026c0b31fc461c3))
+
 # [1.42.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.41.0...v1.42.0) (2026-06-20)
 
 
