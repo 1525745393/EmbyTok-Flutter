@@ -479,7 +479,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           child: GestureOverlay(
             controller: _videoController,
             item: widget.item,
-            onSingleTap: _toggleControls,
+            onSingleTap: () {
+              if (_isFullscreen || isAutoPlay) {
+                _toggleControls();
+              } else {
+                _togglePlay();
+              }
+            },
             child: VideoPlayerWidget(
               item: widget.item,
               embyServerUrl: embyServerUrl,
@@ -519,10 +525,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           ),
         ),
 
-        // TikTok 风格底部细线进度条
-        if (_videoController != null && _videoController!.value.isInitialized)
-          ThinProgressBar(controller: _videoController!),
-
         // 中央播放/暂停按钮（暂停时显示）
         if (_videoController != null && _videoController!.value.isInitialized && !isPlaying)
           CenterPlayButton(onPlay: _togglePlay),
@@ -533,12 +535,21 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             _videoController!.value.playbackSpeed > 1.0)
           SpeedBadge(speed: _videoController!.value.playbackSpeed),
 
-        // 控制层（VideoControls）
-        if (_videoController != null && _videoController!.value.isInitialized)
+        // 底部细线进度条：仅在无信息栏时显示（全屏 / 纯净模式）
+        if (_videoController != null && _videoController!.value.isInitialized && (_isFullscreen || isAutoPlay))
           Positioned(
             left: 0,
             right: 0,
-            bottom: _isFullscreen ? 0 : 80,
+            bottom: 0,
+            child: ThinProgressBar(controller: _videoController!),
+          ),
+
+        // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
+        if (_videoController != null && _videoController!.value.isInitialized && (_isFullscreen || isAutoPlay))
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: AnimatedOpacity(
               opacity: _controlsVisible ? 1.0 : 0.0,
               duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
