@@ -331,10 +331,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       FeedType.resume => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
-    for (final c in _preloadCache.values) {
-      try { c.dispose(); } catch (_) {}
-    }
-    _preloadCache.clear();
+    ref.read(videoPoolProvider).disposeAll();
     ref.read(feedTypeProvider.notifier).setType(next);
     _showModeToast(next);
   }

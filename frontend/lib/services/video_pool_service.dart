@@ -10,10 +10,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
-import '../utils/constants.dart';
 
 /// 单个播放会话：绑定 VideoPlayerController + PlaySessionId + 降级等级
 class PlaybackSession {
