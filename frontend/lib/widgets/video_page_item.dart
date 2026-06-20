@@ -58,11 +58,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
 
-  // --- 底部信息条 3秒自动隐藏 ---
-  Timer? _infoHideTimer;
-  bool _isInfoVisible = true;
-  bool _wasPlayingWhenHidden = false;
-
   // --- 播放上报相关 ---
   final EmbytokService _service = EmbytokService();
   Timer? _progressTimer;
@@ -111,70 +106,38 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     ).animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
   }
 
-  // --- 底部信息条显示/隐藏控制 ---
-  // 播放中 3 秒后自动隐藏，暂停时保持显示
-  void _resetInfoHideTimer() {
-    _infoHideTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _isInfoVisible = true);
-    final c = _videoController;
-    final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
-    if (isPlaying) {
-      _infoHideTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _isInfoVisible = false);
-      });
-    }
-  }
-
-  // 切换信息条显示（用于点击画面手动触发）
-  void _toggleInfoBar() {
-    _infoHideTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _isInfoVisible = !_isInfoVisible);
-    if (_isInfoVisible) {
-      final c = _videoController;
-      final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
-      if (isPlaying) {
-        _infoHideTimer = Timer(const Duration(seconds: 3), () {
-          if (mounted) setState(() => _isInfoVisible = false);
-        });
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
-    // 1. 清理 controller 的 ended 监听器
+    // 0. 清理 controller 的 ended 监听器
     _videoController?.removeListener(_onVideoChanged);
-    // 2. 停止并清理播放进度上报定时器
+    // 1. 停止并清理播放进度上报定时器
     _progressTimer?.cancel();
     _progressTimer = null;
-    // 3. 上报播放停止（带上当前播放位置）
+    // 2. 上报播放停止（带上当前播放位置）
     if (_hasStartedReported) {
       _reportPlaybackStopped();
     }
-    // 4. 清理计时器
+    // 3. 清理计时器
     _controlsHideTimer?.cancel();
-    // 4b. 清理 NextUp 倒计时定时器
+    // 3b. 清理 NextUp 倒计时定时器
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
-    // 5. 退出时恢复竖屏方向（避免横屏状态残留）
+    // 4. 退出时恢复竖屏方向（避免横屏状态残留）
     if (_isFullscreen) {
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     }
-    // 6. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
+    // 5. 清理当前 item 的 ready 标记（用于下次再滑回来重新淡入）
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-    // 7. 清空 currentVideoControllerProvider
+    // 5b. 清空 currentVideoControllerProvider
     final ctrl = ref.read(currentVideoControllerProvider);
     if (ctrl != null && identical(ctrl, _videoController)) {
       ref.read(currentVideoControllerProvider.notifier).state = null;
     }
-    // 8. ⚠️ 注意：_videoController 由内部 VideoPlayerWidget 负责 dispose，
-    //    这里只清空引用，避免双重 dispose 导致 MediaCodec 泄漏
+    // 6. 显式释放视频控制器，避免 MediaCodec 泄漏导致 OOM
+    _videoController?.dispose();
     _videoController = null;
-    // 9. 重置会话状态（用于下次进入重新生成新的播放会话）
+    // 7. 重置会话状态（用于下次进入重新生成新的播放会话）
     _capabilitiesReported = false;
     _hasStartedReported = false;
     _playSessionId = null;
@@ -436,24 +399,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
   }
 
-  // 响应式尺寸计算：根据屏幕宽度返回缩放后的尺寸。
-  // 手机端（<=480px）保持 1.0x，大屏手机/小平板（~800px）~1.3x，
-  // 平板/桌面（~1200px）~1.6x，更大屏幕上限 1.7x。
-  double responsiveSize(double base, [double maxScale = 1.7]) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final double scale;
-    if (screenWidth <= 480.0) {
-      scale = 1.0;
-    } else if (screenWidth <= 800.0) {
-      scale = 1.0 + ((screenWidth - 480.0) / 320.0) * 0.3;
-    } else if (screenWidth <= 1200.0) {
-      scale = 1.3 + ((screenWidth - 800.0) / 400.0) * 0.3;
-    } else {
-      scale = 1.6 + ((screenWidth - 1200.0) / 720.0) * 0.1;
-    }
-    return base * (scale > maxScale ? maxScale : scale);
-  }
-
   // 显示控制层并启动自动隐藏计时器
   void _showControls() {
     _controlsHideTimer?.cancel();
@@ -501,7 +446,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     // 读取播放状态（用于中央播放按钮显示）
     final isPlaying = ref.watch(isPlayingProvider);
 
-    // 读取自动播放状态（用于纯净模式）
+    // 读取自动连播状态（用于纯净模式）
     final isAutoPlay = ref.watch(isAutoPlayProvider);
 
     // 横屏全屏模式下使用黑色背景 + 居中布局
@@ -547,8 +492,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     widget.item;
                 // 标记为 ready：触发 AnimatedOpacity 渐显
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-                // 启动底部信息条 3秒自动隐藏逻辑
-                _resetInfoHideTimer();
                 // 续播位置 seek：resume 模式下从上次播放位置开始
                 if (widget.startFromResumePosition) {
                   final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
@@ -570,15 +513,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 _reportPlaybackStart();
                 // 3. 启动周期进度上报（5 秒一次）
                 _startProgressTimer();
-                // 4. 监听播放状态：暂停上报 + 播放结束连播检测 + 信息条显示
+                // 4. 监听播放状态：暂停上报 + 播放结束连播检测
                 c.addListener(_onVideoChanged);
                 c.addListener(() {
                   if (!mounted) return;
                   if (!c.value.isPlaying) {
                     _reportPlaybackProgress(isPauseEvent: true);
                   }
-                  // 根据播放状态更新信息条显示
-                  _resetInfoHideTimer();
                 });
               },
             ),
@@ -636,8 +577,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         // 纯净模式下显示简化的右侧按钮区（仅连播开关 + 倍速按钮）
         if (!_isFullscreen && isAutoPlay) _buildCleanModeRightActions(),
 
-        // 顶部操作区：右上角全屏按钮（所有模式下都显示）
-        _buildTopActions(),
+        // 右上角全屏切换按钮（所有模式下均可见）
+        _buildExitFullscreenButton(),
 
         // NextUp 下一集提示条：播放结束时显示，5 秒倒计时后自动播放
         if (_showNextUpBanner && _nextUpItem != null)
@@ -678,16 +619,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             }
           },
           child: Container(
-            width: responsiveSize(60),
-            height: responsiveSize(60),
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0x99000000),
+              color: const Color(0x99000000), // 60% 不透明黑色
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.play_arrow,
               color: textPrimary,
-              size: responsiveSize(40),
+              size: 48,
             ),
           ),
         ),
@@ -698,34 +639,71 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   // 倍速状态徽章：当播放速度 > 1x 时显示在右上角（与 EmbyTok 原版一致）
   Widget _buildSpeedBadge(double speed) {
     return Positioned(
-      top: responsiveSize(40),
+      top: 48, // 位于顶部安全区下方
       left: 0,
       right: 0,
       child: Center(
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: responsiveSize(12), vertical: responsiveSize(6)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.black87,
-            borderRadius: BorderRadius.circular(responsiveSize(16)),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.flash_on,
-                color: const Color(0xFFFFD700),
-                size: responsiveSize(14),
+              const Icon(
+                Icons.flash_on, // Zap 图标
+                color: Color(0xFFFFD700), // 黄色
+                size: 18,
               ),
-              SizedBox(width: responsiveSize(4)),
+              const SizedBox(width: 6),
               Text(
                 '${speed.toStringAsFixed(1)}x',
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: responsiveSize(12, 1.3),
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 顶部操作区：右上角全屏切换按钮（所有模式下均可见）
+  Widget _buildExitFullscreenButton() {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final animationDuration =
+        disableAnimations ? Duration.zero : const Duration(milliseconds: 200);
+    return Positioned(
+      top: topPadding + 8,
+      right: 16,
+      child: Tooltip(
+        message: _isFullscreen ? '退出全屏' : '切换全屏',
+        preferBelow: false,
+        child: Semantics(
+          label: _isFullscreen ? '退出全屏' : '切换全屏',
+          button: true,
+          child: AnimatedOpacity(
+            opacity: 1.0,
+            duration: animationDuration,
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: animationDuration,
+              curve: Curves.easeOut,
+              child: IconButton(
+                icon: Icon(
+                  _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: textPrimary,
+                  size: 28,
+                ),
+                onPressed: _toggleFullscreen,
+              ),
+            ),
           ),
         ),
       ),
@@ -841,18 +819,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // 底部半透明黑色渐变 + 标题/简介/类型标签
   // 动态 padding：适配底部导航栏高度 + 底部手势条
-  // 新增：播放中 3 秒后自动隐藏，暂停时保持显示（通过 AnimatedOpacity）
+  // 底部导航栏显示时向上偏移 kBottomNavHeight，隐藏时仅保留安全 padding
   Widget _buildBottomGradient() {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final animationDuration = disableAnimations ? Duration.zero : const Duration(milliseconds: 300);
 
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
       child: AnimatedOpacity(
-        opacity: _isInfoVisible ? 1.0 : 0.0,
-        duration: Duration(milliseconds: _isInfoVisible ? 300 : 500),
+        opacity: 1.0,
+        duration: animationDuration,
         curve: Curves.easeOut,
         child: Container(
           padding: EdgeInsets.fromLTRB(
@@ -873,7 +853,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   Color(0x80000000),
                   Colors.transparent,
                 ],
-                stops: [0.0, 0.45, 1.0],
+                stops: [0.0, 0.5, 1.0],
               ),
           ),
         child: Column(
@@ -896,36 +876,26 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Expanded(
-                  child: Text(
-                    _titleText(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                if (widget.item.displayRating != null && widget.item.displayRating! > 0)
-                  Text(
-                    '★ ${widget.item.displayRating!.toStringAsFixed(1)}',
-                    style: const TextStyle(
-                      color: primaryPink,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-              ],
+            Text(
+              _titleText(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 6),
-            if (widget.item.overview != null && widget.item.overview!.isNotEmpty)
+            if (widget.item.overview == null || widget.item.overview!.isEmpty)
+              const Text(
+                '暂无简介',
+                style: TextStyle(
+                  color: textSecondary,
+                  fontSize: 14,
+                ),
+              )
+            else
               Text(
                 widget.item.overview!,
                 maxLines: 1,
@@ -933,15 +903,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 style: const TextStyle(
                   color: textSecondary,
                   fontSize: 14,
-                ),
-              ),
-            // 可拖拽进度条 + 时间显示
-            if (_videoController != null && _videoController!.value.isInitialized)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _SeekableProgressBar(
-                  controller: _videoController!,
-                  formatDuration: _formatDuration,
                 ),
               ),
           ],
@@ -952,7 +913,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   }
 
   // 右侧操作按钮列：与 React 版 EmbyTok 对齐
-  // 顺序（从上至下）：连播 ∞ → 演员头像/海报 → 点赞 ❤️ → 信息 ℹ️ → 删除 🗑️ → 倍速 → 播放模式 → 字幕 → 唱片/静音 💿 → 全屏 → 下一集
   Widget _buildRightActions(bool favorited) {
     final isMuted = ref.watch(isMutedProvider);
     final topPadding = MediaQuery.of(context).padding.top;
@@ -960,21 +920,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final playMode = ref.watch(playbackLevelProvider);
-    final actionButtonSize = responsiveSize(40);
 
     return Positioned(
       right: 0,
       top: 0,
       bottom: 0,
-      width: responsiveSize(80, 2.0),
+      width: 96,
       child: Container(
         padding: EdgeInsets.fromLTRB(
           0,
           toolbarVisible
-              ? topPadding + responsiveSize(48) + responsiveSize(32)
-              : topPadding + responsiveSize(32),
-          responsiveSize(6),
-          responsiveSize(20, 1.3) + bottomPadding,
+              ? topPadding + 56.0 + 40.0
+              : topPadding + 40.0,
+          8,
+          24 + bottomPadding,
         ),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -989,39 +948,34 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // 1. 连播开关（最顶部）
-            _buildAutoPlayButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 2. 海报/演员头像（TikTok 风格）
+            // === 组 1：内容组 ===
             _buildPosterAvatar(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 3. 点赞
+            // 组间间距增大，形成视觉分组
+            const SizedBox(height: 32),
+
+            // === 组 2：互动组（点赞、信息、删除）===
             _buildActionButton(
               favorited ? Icons.favorite : Icons.favorite_border,
               '点赞',
               color: favorited ? const Color(0xFFFF2D55) : textPrimary,
               onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 4. 信息按钮
+            const SizedBox(height: 20),
             _buildInfoButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 5. 删除按钮
+            const SizedBox(height: 20),
             _buildDeleteButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 6. 倍速按钮
+            // 组间间距增大
+            const SizedBox(height: 32),
+
+            // === 组 3：控制组（倍速、播放模式、字幕、唱片/静音、下一集、连播）===
             _buildSpeedControlButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 7. 播放模式按钮
+            const SizedBox(height: 20),
             _buildPlayModeButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 8. 字幕按钮
+            const SizedBox(height: 20),
             _buildSubtitleButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 9. 唱片式静音按钮（播放中旋转动画）
+            const SizedBox(height: 20),
             _buildDiscMuteButton(),
-            SizedBox(height: responsiveSize(16, 1.5)),
-            // 10. 下一集（仅剧集类）
+            const SizedBox(height: 20),
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
                 Icons.chevron_right,
@@ -1029,8 +983,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 color: textPrimary,
                 onTap: widget.onNextEpisode,
               ),
-              SizedBox(height: responsiveSize(16, 1.5)),
+              const SizedBox(height: 20),
             ],
+            _buildAutoPlayButton(),
           ],
         ),
       ),
@@ -1072,8 +1027,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         children: [
           // 圆形头像 + 收藏按钮
           SizedBox(
-            width: responsiveSize(48),
-            height: responsiveSize(48),
+            width: 56,
+            height: 56,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -1089,8 +1044,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       );
                     },
                     child: Container(
-                      width: responsiveSize(48),
-                      height: responsiveSize(48),
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0x66FFFFFF), width: 2),
@@ -1102,10 +1057,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                                 imageUrl: actorImageUrl,
                                 fit: BoxFit.cover,
                                 httpHeaders: headers.isNotEmpty ? headers : null,
-                                placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                                errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                                placeholder: (_, __) => const Icon(Icons.person, color: Colors.white54, size: 28),
+                                errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white54, size: 28),
                               )
-                            : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                            : const Icon(Icons.person, color: Colors.white54, size: 28),
                       ),
                     ),
                   ),
@@ -1119,17 +1074,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
                     },
                     child: Container(
-                      width: responsiveSize(20),
-                      height: responsiveSize(20),
+                      width: 22,
+                      height: 22,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF00D9FF),
+                        color: const Color(0xFF00D9FF), // TikTok 青色
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
                       child: Icon(
                         isFavorited ? Icons.check : Icons.add,
                         color: Colors.white,
-                        size: responsiveSize(12),
+                        size: 14,
                       ),
                     ),
                   ),
@@ -1138,12 +1093,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             ),
           ),
           // 演员名字（短名）
-          SizedBox(height: responsiveSize(4)),
+          const SizedBox(height: 4),
           Text(
-            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
-            style: TextStyle(
+            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}…' : firstActor.name,
+            style: const TextStyle(
               color: Colors.white70,
-              fontSize: responsiveSize(9, 1.3),
+              fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
             maxLines: 1,
@@ -1159,8 +1114,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     return GestureDetector(
       onTap: _togglePlay,
       child: Container(
-        width: responsiveSize(40),
-        height: responsiveSize(40),
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: const Color(0x66FFFFFF), width: 2),
@@ -1172,360 +1127,88 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   imageUrl: posterUrl,
                   fit: BoxFit.cover,
                   httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
-                  placeholder: (_, __) => Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
-                  errorWidget: (_, __, ___) => Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
+                  placeholder: (_, __) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
+                  errorWidget: (_, __, ___) => const Icon(Icons.music_video, color: Colors.white54, size: 24),
                 )
-              : Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
+              : const Icon(Icons.music_video, color: Colors.white54, size: 24),
         ),
       ),
     );
   }
 
-  /// 信息按钮：点击弹出底部详情面板，展示视频元信息
+  /// 信息按钮：展开/收起底部详情面板
   Widget _buildInfoButton() {
-    return _PressableActionButton(
-      icon: Icons.info_outline,
-      label: '信息',
-      color: textPrimary,
-      onTap: () {
-        // 保留对底部小面积信息条的切换（便于纯净模式下仍能看到信息）
-        setState(() {
-          _isInfoExpanded = !_isInfoExpanded;
-        });
-        _showVideoInfoSheet();
-      },
-    );
-  }
-
-  /// 弹出底部信息面板：展示标题、年份、类型、时长、评分、简介、演员/导演等
-  void _showVideoInfoSheet() {
-    final item = widget.item;
-    final type = item.type;
-    final year = item.displayYear;
-    final duration = item.formattedDuration;
-    final rating = item.displayRating;
-    final genres = item.displayGenres;
-    final studios = item.studioNames;
-    final overview = item.overview;
-    final people = item.people;
-
-    // 剧集信息
-    final isEpisode = type == 'Episode' ||
-        (item.seriesName != null && item.seriesName!.isNotEmpty);
-
-    // 分类显示人员：前 5 位演员 + 导演/编剧
-    List<Person>? actors;
-    List<Person>? directors;
-    if (people != null && people.isNotEmpty) {
-      actors = people
-          .where((p) => p.type.toLowerCase() == 'actor')
-          .take(5)
-          .toList();
-      directors = people
-          .where((p) => p.type.toLowerCase().contains('director'))
-          .take(3)
-          .toList();
-    }
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xE6000000),
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.3,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-              child: ListView(
-                controller: scrollController,
-                children: [
-                  // 顶部小把手（指示可下滑关闭）
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 标题
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      color: textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // 副标题：类型 + 年份 + 剧集信息
-                  _buildInfoSubtitle(
-                    type: type,
-                    year: year,
-                    isEpisode: isEpisode,
-                    seriesName: item.seriesName,
-                    season: item.parentIndexNumber,
-                    episode: item.indexNumber,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 基本信息行（时长、评分、类型、工作室）
-                  _buildInfoRowItems(
-                    duration: duration,
-                    rating: rating,
-                    genres: genres,
-                    studios: studios,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 简介
-                  if (overview != null && overview.isNotEmpty) ...[
-                    const _SectionLabel('简介'),
-                    const SizedBox(height: 8),
-                    Text(
-                      overview,
-                      style: const TextStyle(
-                        color: textSecondary,
-                        fontSize: 14,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // 主要演员
-                  if (actors != null && actors.isNotEmpty) ...[
-                    const _SectionLabel('主演'),
-                    const SizedBox(height: 8),
-                    _buildPeopleChips(actors),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // 导演
-                  if (directors != null && directors.isNotEmpty) ...[
-                    const _SectionLabel('导演'),
-                    const SizedBox(height: 8),
-                    _buildPeopleChips(directors),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // 底部占位（避免紧贴导航栏）
-                  const SizedBox(height: 16),
-                ],
-              ),
-            );
+    return Tooltip(
+      message: _isInfoExpanded ? '收起详情' : '查看详情',
+      preferBelow: false,
+      child: Semantics(
+        label: _isInfoExpanded ? '收起详情' : '查看详情',
+        button: true,
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _isInfoExpanded = !_isInfoExpanded;
+            });
           },
-        );
-      },
-    );
-  }
-
-  // 副标题行：类型标签 + 年份 + 剧集信息
-  Widget _buildInfoSubtitle({
-    required String type,
-    required int? year,
-    required bool isEpisode,
-    required String? seriesName,
-    required int? season,
-    required int? episode,
-  }) {
-    final children = <Widget>[];
-
-    // 类型标签
-    children.add(
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: primaryPink.withOpacity(0.18),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          type,
-          style: const TextStyle(
-            color: primaryPink,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _isInfoExpanded
+                  ? const Color(0xCC4F46E5) // 靛蓝色
+                  : const Color(0x4D000000), // 30% 黑色
+            ),
+            child: const Icon(
+              Icons.info_outline,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ),
       ),
     );
-
-    // 年份
-    if (year != null) {
-      children.addAll([
-        const SizedBox(width: 8),
-        Text(
-          year.toString(),
-          style: const TextStyle(
-            color: textSecondary,
-            fontSize: 13,
-          ),
-        ),
-      ]);
-    }
-
-    // 剧集信息
-    if (isEpisode) {
-      if (seriesName != null && seriesName.isNotEmpty) {
-        children.addAll([
-          const SizedBox(width: 8),
-          const Text(
-            '·',
-            style: TextStyle(color: textSecondary, fontSize: 13),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              seriesName,
-              style: const TextStyle(
-                color: textSecondary,
-                fontSize: 13,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ]);
-      }
-      if (season != null || episode != null) {
-        final s = season != null ? 'S$season' : '';
-        final e = episode != null ? 'E$episode' : '';
-        children.addAll([
-          if (children.length > 1) const SizedBox(width: 8),
-          Text(
-            '$s$e',
-            style: const TextStyle(
-              color: textSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ]);
-      }
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: children,
-    );
   }
-
-  // 基本信息卡片行：时长 / 评分 / 类型 / 工作室
-  Widget _buildInfoRowItems({
-    required String duration,
-    required double? rating,
-    required List<String> genres,
-    required List<String>? studios,
-  }) {
-    final widgets = <Widget>[];
-
-    if (duration.isNotEmpty) {
-      widgets.add(_InfoChip(label: '时长', value: duration));
-    }
-    if (rating != null && rating > 0) {
-      widgets.add(_InfoChip(
-        label: '评分',
-        value: '★ ${rating.toStringAsFixed(1)}',
-        highlight: true,
-      ));
-    }
-    if (genres.isNotEmpty) {
-      widgets.add(_InfoChip(
-        label: '类型',
-        value: genres.take(3).join(' / '),
-      ));
-    }
-    if (studios != null && studios.isNotEmpty) {
-      widgets.add(_InfoChip(
-        label: '出品',
-        value: studios.first,
-      ));
-    }
-
-    if (widgets.isEmpty) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 12,
-      runSpacing: 10,
-      children: widgets,
-    );
-  }
-
-  // 人员 chips（如演员、导演）
-  Widget _buildPeopleChips(List<Person> people) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: people.map((p) {
-        final display =
-            p.role != null && p.role!.isNotEmpty && p.role != p.name
-                ? '${p.name} (${p.role})'
-                : p.name;
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white10,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            display,
-            style: const TextStyle(
-              color: textPrimary,
-              fontSize: 13,
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
 
   /// 播放模式按钮：DirectPlay / Transcode / Fallback 循环切换
   Widget _buildPlayModeButton() {
     final currentLevel = ref.watch(playbackLevelProvider);
     // 0=Direct, 1=Transcode, 2=Fallback
-    final IconData icon;
-    final Color bgColor;
-    switch (currentLevel) {
-      case 0:
-        icon = Icons.play_circle_outline;
-        bgColor = const Color(0x4D000000);
-        break;
-      case 1:
-        icon = Icons.swap_horiz;
-        bgColor = const Color(0xCC4F46E5);
-        break;
-      case 2:
-      default:
-        icon = Icons.warning;
-        bgColor = const Color(0xCCFFA000);
-        break;
-    }
-    return GestureDetector(
-      onTap: () {
-        final newLevel = (currentLevel + 1) % 3;
-        ref.read(playbackLevelProvider.notifier).state = newLevel;
-      },
-      child: Container(
-        width: responsiveSize(40),
-        height: responsiveSize(40),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: bgColor,
-        ),
-        child: Center(
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: responsiveSize(20),
+    final String label = currentLevel == 0 ? 'Direct' : (currentLevel == 1 ? 'Transcode' : 'Fbk');
+    final String tooltipLabel =
+        currentLevel == 0 ? 'Direct' : (currentLevel == 1 ? 'Transcode' : 'Fallback');
+    final bool isHighlight = currentLevel != 0;
+    return Tooltip(
+      message: '播放模式：$tooltipLabel',
+      preferBelow: false,
+      child: Semantics(
+        label: '播放模式：$tooltipLabel',
+        button: true,
+        child: GestureDetector(
+          onTap: () {
+            final newLevel = (currentLevel + 1) % 3;
+            ref.read(playbackLevelProvider.notifier).state = newLevel;
+          },
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isHighlight
+                  ? const Color(0xCC4F46E5) // 靛蓝色
+                  : const Color(0x4D000000),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ),
       ),
@@ -1537,23 +1220,31 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final bool hasSubtitles = widget.item.subtitleTracks.isNotEmpty;
     final bool isEnabled = subtitleSelected != null;
-    return GestureDetector(
-      onTap: hasSubtitles
-          ? () => _showSubtitleSelector()
-          : null,
-      child: Container(
-        width: responsiveSize(40),
-        height: responsiveSize(40),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isEnabled
-              ? const Color(0xCC4F46E5)
-              : (hasSubtitles ? const Color(0x4D000000) : const Color(0x1A000000)),
-        ),
-        child: Icon(
-          Icons.subtitles,
-          color: Colors.white,
-          size: responsiveSize(20),
+    return Tooltip(
+      message: '切换字幕',
+      preferBelow: false,
+      child: Semantics(
+        label: '切换字幕',
+        button: true,
+        child: GestureDetector(
+          onTap: hasSubtitles
+              ? () => _showSubtitleSelector()
+              : null,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isEnabled
+                  ? const Color(0xCC4F46E5)
+                  : (hasSubtitles ? const Color(0x4D000000) : const Color(0x1A000000)),
+            ),
+            child: const Icon(
+              Icons.subtitles,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
         ),
       ),
     );
@@ -1607,47 +1298,58 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    // 构造视频封面图 URL（使用命名参数，避免语法错误）
-    final posterUrl = widget.item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token);
+    // 构造视频封面图 URL
+    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl, token);
     // 获取认证头
     final headers = widget.item.authHeaders(token);
+    final String tooltipMsg = isMuted ? '取消静音' : '静音';
 
-    return GestureDetector(
-      onTap: () {
-        ref.read(isMutedProvider.notifier).toggle();
-        _videoController?.setVolume(isMuted ? 1.0 : 0.0);
-      },
-      child: RotationTransition(
-        turns: _discRotation,
-        child: Container(
-          width: responsiveSize(40),
-          height: responsiveSize(40),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0x4D000000),
-            border: Border.all(
-              color: isMuted ? const Color(0xFFFF2D55) : const Color(0x66FFFFFF),
-              width: 2,
+    return Tooltip(
+      message: tooltipMsg,
+      preferBelow: false,
+      child: Semantics(
+        label: tooltipMsg,
+        button: true,
+        child: GestureDetector(
+          onTap: () {
+            ref.read(isMutedProvider.notifier).toggle();
+            _videoController?.setVolume(isMuted ? 1.0 : 0.0);
+          },
+          child: RotationTransition(
+            turns: _discRotation,
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0x4D000000),
+                border: Border.all(
+                  color: isMuted ? const Color(0xFFFF2D55) : const Color(0x66FFFFFF),
+                  width: 2,
+                ),
+                // 如果有封面图 URL，设置背景图片
+                image: posterUrl != null && posterUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: CachedNetworkImageProvider(
+                          posterUrl,
+                          headers: headers.isNotEmpty ? headers : null,
+                        ),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              // 如果没有封面图，显示默认图标
+              child: posterUrl == null || posterUrl.isEmpty
+                  ? Center(
+                      child: Icon(
+                        isMuted ? Icons.volume_off : Icons.music_note,
+                        color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
+                        size: 24,
+                      ),
+                    )
+                  : null,
             ),
-            image: posterUrl != null && posterUrl.isNotEmpty
-                ? DecorationImage(
-                    image: CachedNetworkImageProvider(
-                      posterUrl,
-                      headers: headers.isNotEmpty ? headers : null,
-                    ),
-                    fit: BoxFit.cover,
-                  )
-                : null,
           ),
-          child: posterUrl == null || posterUrl.isEmpty
-              ? Center(
-                  child: Icon(
-                    isMuted ? Icons.volume_off : Icons.music_note,
-                    color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
-                    size: responsiveSize(20),
-                  ),
-                )
-              : null,
         ),
       ),
     );
@@ -1665,76 +1367,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
   }
 
-  /// 顶部操作区：悬浮在视频容器右上角，包含全屏/退出全屏按钮
-  /// 统一横屏和竖屏模式下的全屏切换入口
-  Widget _buildTopActions() {
-    final topPadding = MediaQuery.of(context).padding.top;
-    final buttonSize = responsiveSize(40);
-    final padding = responsiveSize(8);
-
-    return Positioned(
-      top: topPadding + 8,
-      right: 16,
-      child: AnimatedOpacity(
-        opacity: 1.0,
-        duration: const Duration(milliseconds: 200),
-        child: GestureDetector(
-          onTap: _toggleFullscreen,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: EdgeInsets.all(padding),
-            decoration: BoxDecoration(
-              color: const Color(0x66000000), // 半透明黑色
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x40000000),
-                  blurRadius: 8,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Icon(
-              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-              color: textPrimary,
-              size: buttonSize,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 纯净模式下的浮层按钮区：可拖动，初始位置在右下角
-  /// 包含连播开关（∞）和倍速调节
+  /// 纯净模式下的右侧按钮区：可拖动，仅保留连播开关和倍速调节
   Widget _buildCleanModeRightActions() {
-    final double buttonWidth = responsiveSize(80, 2.0);
+    const double buttonWidth = 96.0;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
           return _DraggableCleanActions(
             containerSize: Size(constraints.maxWidth, constraints.maxHeight),
             buttonWidth: buttonWidth,
-            // 底部安全区：底部导航栏高度 + 系统手势条高度 + 16px 边距
-            bottomSafeArea: bottomPadding + kBottomNavHeight + 16,
-            // 右侧安全区：16px 边距
-            rightSafeArea: 16,
-            // 按钮包裹在半透明黑色卡片中
-            buttons: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0x66000000),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildAutoPlayButton(),
-                  SizedBox(height: responsiveSize(16, 1.5)),
-                  _buildSpeedControlButton(),
-                ],
-              ),
+            buttons: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAutoPlayButton(),
+                const SizedBox(height: 20),
+                _buildSpeedControlButton(),
+              ],
             ),
           );
         },
@@ -1747,41 +1397,50 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     // 自动播放开启时绿色高亮，关闭时灰色半透明
     final isEnabled = isAutoPlay;
-    return GestureDetector(
-      onTap: () {
-        final newState = !isAutoPlay;
-        ref.read(isAutoPlayProvider.notifier).toggle();
-        // 显示连播模式切换提示
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                newState ? '连播模式已开启' : '连播模式已关闭',
-                style: const TextStyle(color: Colors.white),
-              ),
-              backgroundColor: newState
-                  ? const Color(0xCC4CAF50) // 绿色
-                  : const Color(0xCC666666), // 灰色
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+    final String tooltipMsg = isAutoPlay ? '关闭连播' : '开启连播';
+    return Tooltip(
+      message: tooltipMsg,
+      preferBelow: false,
+      child: Semantics(
+        label: tooltipMsg,
+        button: true,
+        child: GestureDetector(
+          onTap: () {
+            final newState = !isAutoPlay;
+            ref.read(isAutoPlayProvider.notifier).toggle();
+            // 显示连播模式切换提示
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    newState ? '连播模式已开启' : '连播模式已关闭',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: newState
+                      ? const Color(0xCC4CAF50) // 绿色
+                      : const Color(0xCC666666), // 灰色
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                  margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+                ),
+              );
+            }
+          },
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isEnabled
+                  ? const Color(0xCC4CAF50) // 80% 绿色
+                  : const Color(0x80000000), // 50% 黑色（提升对比度）
             ),
-          );
-        }
-      },
-      child: Container(
-        width: responsiveSize(40),
-        height: responsiveSize(40),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isEnabled
-              ? const Color(0xCC4CAF50)
-              : const Color(0x4D000000),
-        ),
-        child: Icon(
-          Icons.all_inclusive,
-          color: Colors.white,
-          size: responsiveSize(24),
+            child: const Icon(
+              Icons.all_inclusive, // Infinity 图标
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
         ),
       ),
     );
@@ -1793,18 +1452,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     return GestureDetector(
       onTap: _showSpeedControlPanel,
       child: Container(
-        width: responsiveSize(40),
-        height: responsiveSize(40),
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: currentSpeed > 1.0
-              ? const Color(0xCCFF9800)
-              : const Color(0x4D000000),
+              ? const Color(0xCCFF9800) // 橙色高亮
+              : const Color(0x80000000), // 50% 黑色（提升对比度）
         ),
-        child: Icon(
-          Icons.speed,
-          color: Colors.white,
-          size: responsiveSize(20),
+        child: Center(
+          child: Text(
+            '${currentSpeed.toStringAsFixed(1)}x',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ),
     );
@@ -1935,11 +1599,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   /// 删除按钮（Trash2 图标，与 EmbyTok 原版一致）
   Widget _buildDeleteButton() {
-    return _PressableActionButton(
-      icon: Icons.delete_outline,
-      label: '删除',
-      color: Colors.red,
-      onTap: _showDeleteConfirmDialog,
+    return Tooltip(
+      message: '删除',
+      preferBelow: false,
+      child: Semantics(
+        label: '删除',
+        button: true,
+        child: _PressableActionButton(
+          icon: Icons.delete_outline,
+          label: '删除',
+          color: Colors.red,
+          onTap: _showDeleteConfirmDialog,
+        ),
+      ),
     );
   }
 
@@ -2022,18 +1694,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 
-  /// Duration 格式化为 mm:ss 或 h:mm:ss
-  String _formatDuration(Duration duration) {
-    if (duration.inSeconds <= 0) return '0:00';
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-    if (hours >= 1) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
   String _titleText() {
     if (widget.item.year != null) {
       return '${widget.item.title} (${widget.item.year})';
@@ -2063,6 +1723,7 @@ class _PressableActionButton extends StatefulWidget {
 
 class _PressableActionButtonState extends State<_PressableActionButton> {
   bool _pressed = false;
+  bool _isHovered = false; // Task 3: 桌面端 hover 状态
   late final FocusNode _focusNode;
   bool _isFocused = false;
 
@@ -2104,128 +1765,131 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
 
   @override
   Widget build(BuildContext context) {
-    const duration = Duration(milliseconds: 120);
-    // 响应式尺寸计算（与 _VideoPageItemState.responsiveSize 相同逻辑）
-    final screenWidth = MediaQuery.of(context).size.width;
-    final double sizeScale;
-    if (screenWidth <= 480.0) {
-      sizeScale = 1.0;
-    } else if (screenWidth <= 800.0) {
-      sizeScale = 1.0 + ((screenWidth - 480.0) / 320.0) * 0.3;
-    } else if (screenWidth <= 1200.0) {
-      sizeScale = 1.3 + ((screenWidth - 800.0) / 400.0) * 0.3;
-    } else {
-      sizeScale = 1.6 + ((screenWidth - 1200.0) / 720.0) * 0.1;
-    }
-    double rs(double base, [double maxScale = 1.7]) =>
-        base * (sizeScale > maxScale ? maxScale : sizeScale);
+    // Task 4: 遵循系统"减少动画"设置
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final animationDuration = disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 120);
 
-    // 焦点缩放优先级高于按下缩放
-    final scale = _isFocused ? 1.05 : (_pressed ? 0.8 : 1.0);
-    return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: _onKeyEvent,
-      child: GestureDetector(
-        onTapDown: (_) {
-          if (mounted) setState(() => _pressed = true);
-        },
-        onTapUp: (_) {
-          if (mounted) setState(() => _pressed = false);
-          widget.onTap?.call();
-        },
-        onTapCancel: () {
-          if (mounted) setState(() => _pressed = false);
-        },
-        child: AnimatedScale(
-          scale: scale,
-          duration: duration,
-          curve: Curves.easeOut,
-          child: AnimatedContainer(
-            duration: duration,
-            padding: EdgeInsets.all(rs(4)),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(rs(6)),
-              border: _isFocused
-                  ? Border.all(color: primaryPink, width: 2)
-                  : Border.all(color: Colors.transparent, width: 2),
-            ),
-            child: Icon(
-              widget.icon,
-              color: widget.color,
-              size: rs(26),
+    // 状态优先级：focus > pressed > hover > normal
+    // Task 2: 增大垂直 padding（4 → 8），确保触摸目标 ≥ 48x48dp
+    // Task 3: hover 时轻微放大 (1.02)，按下时缩小 (0.92)，焦点时放大 (1.05)
+    final double scale;
+    final Color iconColor;
+    final Color borderColor;
+    final Color bgColor;
+    final List<BoxShadow>? boxShadow;
+
+    if (_isFocused) {
+      // 焦点状态：最明显
+      scale = 1.05;
+      iconColor = widget.color;
+      borderColor = primaryPink;
+      bgColor = const Color(0x40FF2D55); // 粉色半透明背景
+      boxShadow = const [
+        BoxShadow(
+          color: Color(0x40FF2D55),
+          blurRadius: 12,
+          spreadRadius: 2,
+        ),
+      ];
+    } else if (_pressed) {
+      // 按下状态
+      scale = 0.92;
+      iconColor = widget.color.withOpacity(0.85);
+      borderColor = Colors.transparent;
+      bgColor = Colors.transparent;
+      boxShadow = null;
+    } else if (_isHovered) {
+      // Task 3: hover 状态（桌面端）
+      scale = 1.02;
+      iconColor = widget.color.withOpacity(1.0);
+      borderColor = Colors.white30;
+      bgColor = const Color(0x20FFFFFF);
+      boxShadow = null;
+    } else {
+      // 正常状态
+      scale = 1.0;
+      iconColor = widget.color;
+      borderColor = Colors.transparent;
+      bgColor = Colors.transparent;
+      boxShadow = null;
+    }
+
+    // Task 1: 外层包裹 Tooltip（同时提供语义标签）
+    return Tooltip(
+      message: widget.label,
+      triggerMode: TooltipTriggerMode.longPress,
+      preferBelow: false,
+      child: Semantics(
+        label: widget.label,
+        button: true,
+        enabled: widget.onTap != null,
+        child: Focus(
+          focusNode: _focusNode,
+          onKeyEvent: _onKeyEvent,
+          // Task 3: MouseRegion 提供 hover 状态检测
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            onEnter: (_) {
+              if (mounted && !_isHovered) {
+                setState(() => _isHovered = true);
+              }
+            },
+            onExit: (_) {
+              if (mounted && _isHovered) {
+                setState(() => _isHovered = false);
+              }
+            },
+            child: GestureDetector(
+              onTapDown: (_) {
+                if (mounted) setState(() => _pressed = true);
+              },
+              onTapUp: (_) {
+                if (mounted) setState(() => _pressed = false);
+                widget.onTap?.call();
+              },
+              onTapCancel: () {
+                if (mounted) setState(() => _pressed = false);
+              },
+              child: AnimatedScale(
+                scale: scale,
+                duration: animationDuration,
+                curve: Curves.easeOut,
+                child: AnimatedContainer(
+                  duration: animationDuration,
+                  // Task 2: 增大垂直 padding 以满足 48x48dp 触摸目标
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: bgColor,
+                    border: Border.all(color: borderColor, width: 2),
+                    boxShadow: boxShadow,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        widget.icon,
+                        color: iconColor,
+                        size: 32,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.label,
+                        style: const TextStyle(
+                          color: textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 信息面板中的分节标题（如"简介"、"主演"、"导演"）
-class _SectionLabel extends StatelessWidget {
-  final String text;
-
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: textPrimary,
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-}
-
-/// 信息面板中的小卡片（时长、评分、类型、出品等）
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool highlight;
-
-  const _InfoChip({
-    required this.label,
-    required this.value,
-    this.highlight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white10,
-        borderRadius: BorderRadius.circular(10),
-        border: highlight
-            ? Border.all(color: primaryPink.withOpacity(0.45))
-            : null,
-      ),
-      constraints: const BoxConstraints(minWidth: 80),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              color: highlight ? primaryPink : textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -2280,187 +1944,16 @@ class _ThinProgressBarState extends State<_ThinProgressBar> {
   }
 }
 
-/// 可点击/可拖拽的进度条，用于底部信息条
-/// 支持点击跳转和水平拖拽 seek
-class _SeekableProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
-  final String Function(Duration) formatDuration;
-
-  const _SeekableProgressBar({
-    required this.controller,
-    required this.formatDuration,
-  });
-
-  @override
-  State<_SeekableProgressBar> createState() => _SeekableProgressBarState();
-}
-
-class _SeekableProgressBarState extends State<_SeekableProgressBar> {
-  double _dragProgress = 0.0;
-  bool _isDragging = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onChanged);
-    super.dispose();
-  }
-
-  void _onChanged() {
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
-  void _seekToPosition(double localDx, double totalWidth) {
-    final duration = widget.controller.value.duration;
-    if (duration.inMilliseconds <= 0) return;
-
-    double progress = (localDx / totalWidth).clamp(0.0, 1.0);
-    final targetMs = (progress * duration.inMilliseconds).toInt();
-    widget.controller.seekTo(Duration(milliseconds: targetMs));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final duration = widget.controller.value.duration;
-    final position = widget.controller.value.position;
-    final progress = duration.inMilliseconds > 0
-        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
-    final displayProgress = _isDragging ? _dragProgress : progress;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final barHeight = 12.0; // 更大的点击/拖拽区域
-        final indicatorRadius = 6.0;
-        final currentTime = widget.formatDuration(position);
-        final totalTime = widget.formatDuration(duration);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 进度条区域（可点击/拖拽）
-            GestureDetector(
-              onTapDown: (details) {
-                // 点击跳转
-                final localDx = details.localPosition.dx;
-                _seekToPosition(localDx, totalWidth);
-              },
-              onHorizontalDragStart: (details) {
-                setState(() {
-                  _isDragging = true;
-                });
-                _seekToPosition(details.localPosition.dx, totalWidth);
-              },
-              onHorizontalDragUpdate: (details) {
-                final localDx = details.localPosition.dx;
-                final newProgress = (localDx / totalWidth).clamp(0.0, 1.0);
-                setState(() {
-                  _dragProgress = newProgress;
-                });
-                _seekToPosition(localDx, totalWidth);
-              },
-              onHorizontalDragEnd: (details) {
-                setState(() {
-                  _isDragging = false;
-                });
-              },
-              child: Container(
-                height: barHeight,
-                width: totalWidth,
-                color: Colors.transparent, // 透明背景，使手势可检测
-                alignment: Alignment.center,
-                child: Container(
-                  height: 4,
-                  width: totalWidth,
-                  decoration: BoxDecoration(
-                    color: const Color(0x33FFFFFF),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: Stack(
-                    children: [
-                      // 已播放部分（粉色）
-                      FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: displayProgress,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: primaryPink,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      // 拖拽小圆点指示器
-                      Positioned(
-                        left: (displayProgress * totalWidth)
-                            .clamp(0.0, totalWidth - indicatorRadius * 2) - indicatorRadius,
-                        top: barHeight / 2 - indicatorRadius,
-                        child: Container(
-                          width: indicatorRadius * 2,
-                          height: indicatorRadius * 2,
-                          decoration: BoxDecoration(
-                            color: _isDragging ? primaryPink : textPrimary,
-                            shape: BoxShape.circle,
-                            boxShadow: _isDragging
-                                ? [
-                                    BoxShadow(
-                                      color: primaryPink.withOpacity(0.5),
-                                      blurRadius: 6,
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // 时间显示（当前时间 / 总时长）
-            SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Text(
-                '$currentTime / $totalTime',
-                style: TextStyle(
-                  color: textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.left,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
 /// 可拖动的纯净模式按钮区组件
-/// 初始位置：屏幕右下角（受 bottomSafeArea 和 rightSafeArea 约束）
 class _DraggableCleanActions extends StatefulWidget {
   final Size containerSize;
   final double buttonWidth;
   final Widget buttons;
-  final double bottomSafeArea; // 底部安全区（导航栏 + 手势条 + 边距）
-  final double rightSafeArea;  // 右侧安全区（边距）
 
   const _DraggableCleanActions({
     required this.containerSize,
     required this.buttonWidth,
     required this.buttons,
-    this.bottomSafeArea = 100,  // 默认底部 100px 安全区
-    this.rightSafeArea = 16,    // 默认右侧 16px 边距
   });
 
   @override
@@ -2473,7 +1966,6 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
   Offset? _startOffset;
   bool _isDragging = false;
   double _dragDistance = 0.0;
-  double _opacity = 0.0; // 渐入动画的不透明度初始值
 
   static const double _kDragThreshold = 10.0;
   static const double _kScaleFactor = 1.1;
@@ -2482,17 +1974,10 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
   @override
   void initState() {
     super.initState();
-    // 初始位置：屏幕右下角，距离底部 = bottomSafeArea，距离右侧 = rightSafeArea
     _offset = Offset(
-      widget.containerSize.width - widget.buttonWidth - widget.rightSafeArea,
-      widget.containerSize.height - _kHeightApprox - widget.bottomSafeArea,
+      widget.containerSize.width - widget.buttonWidth,
+      widget.containerSize.height / 2 - _kHeightApprox / 2,
     );
-    // 首帧绘制完成后触发渐入动画（200ms）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() => _opacity = 1.0);
-      }
-    });
   }
 
   @override
@@ -2510,78 +1995,81 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
 
   @override
   Widget build(BuildContext context) {
+    final disableAnimations = MediaQuery.of(context).disableAnimations;
+    final animationDuration = disableAnimations ? Duration.zero : const Duration(milliseconds: 200);
     return Stack(
       children: [
-        // AnimatedPositioned: 位置变化有平滑过渡（如屏幕旋转时）
-        // AnimatedOpacity: 出现时渐入动画（200ms，由 _opacity 控制）
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
+        Positioned(
           left: _offset.dx,
           top: _offset.dy,
-          child: AnimatedOpacity(
-            opacity: _opacity,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            child: Listener(
-              onPointerDown: (event) {
-                _startPointer = event.localPosition;
-                _startOffset = _offset;
-                _dragDistance = 0.0;
-              },
-              onPointerMove: (event) {
-                if (_startPointer == null || _startOffset == null) return;
-                final delta = event.localPosition - _startPointer!;
-                _dragDistance = delta.distance;
+          child: Tooltip(
+            message: '连播模式控制',
+            preferBelow: false,
+            child: AnimatedOpacity(
+              opacity: 1.0,
+              duration: animationDuration,
+              curve: Curves.easeOut,
+              child: Listener(
+                onPointerDown: (event) {
+                  _startPointer = event.localPosition;
+                  _startOffset = _offset;
+                  _dragDistance = 0.0;
+                },
+                onPointerMove: (event) {
+                  if (_startPointer == null || _startOffset == null) return;
+                  final delta = event.localPosition - _startPointer!;
+                  _dragDistance = delta.distance;
 
-                if (!_isDragging && _dragDistance > _kDragThreshold) {
-                  setState(() {
-                    _isDragging = true;
-                  });
-                }
+                  if (!_isDragging && _dragDistance > _kDragThreshold) {
+                    setState(() {
+                      _isDragging = true;
+                    });
+                  }
 
-                if (_isDragging) {
-                  setState(() {
-                    double newX = _startOffset!.dx + delta.dx;
-                    double newY = _startOffset!.dy + delta.dy;
-                    newX = newX.clamp(0.0, widget.containerSize.width - widget.buttonWidth);
-                    newY = newY.clamp(0.0, widget.containerSize.height - _kHeightApprox);
-                    _offset = Offset(newX, newY);
-                  });
-                }
-              },
-              onPointerUp: (event) {
-                _startPointer = null;
-                _startOffset = null;
-                if (_isDragging) {
-                  setState(() {
-                    _isDragging = false;
-                  });
-                }
-                _dragDistance = 0.0;
-              },
-              child: IgnorePointer(
-                ignoring: _isDragging,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  transform: Matrix4.identity()..scale(_isDragging ? _kScaleFactor : 1.0),
-                  child: Container(
-                    width: widget.buttonWidth,
-                    height: _kHeightApprox.toDouble(),
-                    padding: const EdgeInsets.only(right: 16),
-                    alignment: Alignment.centerRight,
-                    decoration: _isDragging
-                        ? const BoxDecoration(
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x40000000),
-                                blurRadius: 12,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          )
-                        : null,
-                    child: widget.buttons,
+                  if (_isDragging) {
+                    setState(() {
+                      double newX = _startOffset!.dx + delta.dx;
+                      double newY = _startOffset!.dy + delta.dy;
+                      newX = newX.clamp(0.0, widget.containerSize.width - widget.buttonWidth);
+                      newY = newY.clamp(0.0, widget.containerSize.height - _kHeightApprox);
+                      _offset = Offset(newX, newY);
+                    });
+                  }
+                },
+                onPointerUp: (event) {
+                  _startPointer = null;
+                  _startOffset = null;
+                  if (_isDragging) {
+                    setState(() {
+                      _isDragging = false;
+                    });
+                  }
+                  _dragDistance = 0.0;
+                },
+                child: IgnorePointer(
+                  ignoring: _isDragging,
+                  child: AnimatedContainer(
+                    duration: animationDuration,
+                    curve: Curves.easeOut,
+                    transform: Matrix4.identity()..scale(_isDragging ? _kScaleFactor : 1.0),
+                    child: Container(
+                      width: widget.buttonWidth,
+                      height: _kHeightApprox.toDouble(),
+                      padding: const EdgeInsets.only(right: 16),
+                      alignment: Alignment.centerRight,
+                      decoration: _isDragging
+                          ? const BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0x40000000),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            )
+                          : null,
+                      child: widget.buttons,
+                    ),
                   ),
                 ),
               ),
