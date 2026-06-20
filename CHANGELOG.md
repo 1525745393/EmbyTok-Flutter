@@ -1,3 +1,16 @@
+# [1.42.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.41.0...v1.42.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* _SectionLabel 添加 color 命名参数，修复编译错误 ([651c328](https://github.com/1525745393/EmbyTok-Flutter/commit/651c32874b011887b11dda6e426cc34fc4eb5f20))
+
+
+### Features
+
+* save progress ([0885f73](https://github.com/1525745393/EmbyTok-Flutter/commit/0885f73673bc353463485f3e89c3461e56109439))
+* update workspace ([4bdb031](https://github.com/1525745393/EmbyTok-Flutter/commit/4bdb031a7b3e46ad101cb26ffa2bdb6d872ba5f5))
+
 # [1.41.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.40.2...v1.41.0) (2026-06-20)
 
 
