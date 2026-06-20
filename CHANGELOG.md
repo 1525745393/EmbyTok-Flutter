@@ -1,3 +1,15 @@
+# [1.55.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.54.0...v1.55.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* add missing selectedLibraryProvider and clean up unused variable ([c3db9fd](https://github.com/1525745393/EmbyTok-Flutter/commit/c3db9fdf63eba36588a704389f247d930063442f))
+
+
+### Features
+
+* save progress ([366a90b](https://github.com/1525745393/EmbyTok-Flutter/commit/366a90b62d9a09d7829feeee3716460c7bca566d))
+
 # [1.54.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.53.0...v1.54.0) (2026-06-20)
 
 
