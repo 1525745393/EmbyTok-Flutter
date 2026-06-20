@@ -1,0 +1,12 @@
+- [ ] Checkpoint 1（颜色引用全面替换）：`grep -rn "colors.dart" lib/` 在 `lib/views`、`lib/widgets`、`lib/providers`、`lib/services`、`lib/utils`（除 `colors.dart` 自身外）目录下无匹配结果
+- [ ] Checkpoint 2（Material 颜色替换）：`grep -rn "Colors\.\(white\|white70\|white30\|black\|black54\|black87\|black45\|grey\|red\|amber\)" lib/views lib/widgets lib/utils` 无匹配（或者仅剩合理的 `Colors.transparent` 使用）
+- [ ] Checkpoint 3（硬编码十六进制色值）：`grep -rn "Color(0x" lib/views lib/widgets lib/utils` 无匹配
+- [ ] Checkpoint 4（编译通过）：`flutter analyze` 返回 0 errors / 0 warnings / 0 info（或 info 仅为样式建议，不影响构建）
+- [ ] Checkpoint 5（构建验证）：`flutter build web --release` 或 `flutter build apk --debug` 成功完成
+- [ ] Checkpoint 6（亮色主题视觉检查）：在设置中切换为「亮色」主题，依次浏览所有页面——登录页、首页、搜索页、视频流、视频列表、详情页（3 种）、历史、收藏、设置、视频播放（含控件、倍速面板、字幕面板、纯净模式）——确保文字与背景对比度足够、无不可见文字
+- [ ] Checkpoint 7（暗色主题视觉检查）：在设置中切换为「暗色」主题，重复 Checkpoint 6 的浏览，确保暗色主题视觉效果与之前一致（无意外的颜色变化）
+- [ ] Checkpoint 8（响应式字体检查）：在不同屏幕尺寸的设备上（小屏手机、平板、TV 大屏）浏览，检查字体大小自适应合理，无过大或过小的文本
+- [ ] Checkpoint 9（文本溢出处理检查）：使用超长视频标题、超长电影简介测试列表视图和详情视图，确认文本显示 `...` 截断，不出现布局越界或崩溃
+- [ ] Checkpoint 10（焦点/可访问性检查）：在桌面端用键盘切换焦点，确保按钮、列表项等的焦点高亮正确显示（亮色/暗色下均清晰）
+- [ ] Checkpoint 11（CI 工作流验证）：推送到 GitHub main 分支后，GitHub Actions 的 CI workflow （Test, Lint & Build）显示 ✅ 通过
+- [ ] Checkpoint 12（发布验证）：Android Release workflow 同样 ✅ 通过，成功生成新版本 release
