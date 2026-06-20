@@ -1299,7 +1299,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     // 构造视频封面图 URL
-    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl, token);
+    final posterUrl = widget.item.imageUrl('Primary', embyServerUrl: embyServerUrl, apiKey: token);
     // 获取认证头
     final headers = widget.item.authHeaders(token);
     final String tooltipMsg = isMuted ? '取消静音' : '静音';
