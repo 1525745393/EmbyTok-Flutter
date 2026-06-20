@@ -1,3 +1,10 @@
+## [1.55.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.0...v1.55.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* restore library selector button in feed view and grid view top bar ([6a3fa38](https://github.com/1525745393/EmbyTok-Flutter/commit/6a3fa38a1d93a0fb1f2d2ff1816777d59812ab1d))
+
 # [1.55.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.54.0...v1.55.0) (2026-06-20)
 
 
