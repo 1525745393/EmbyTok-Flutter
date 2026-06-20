@@ -380,3 +380,4 @@ services:
 MIT License © 2024 EmbyTok-Flutter Contributors
 
 See [LICENSE](LICENSE) for details.
+ 
