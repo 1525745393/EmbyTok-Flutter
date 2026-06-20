@@ -607,7 +607,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       (it) => it.seriesName == series,
       currentIndex + 1,
     );
-    if (nextIndex != null && nextIndex >= 0 && nextIndex < items.length) {
+    if (nextIndex >= 0 && nextIndex < items.length) {
       _pageController.animateToPage(
         nextIndex,
         duration: const Duration(milliseconds: 400),

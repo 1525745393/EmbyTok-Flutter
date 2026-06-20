@@ -53,8 +53,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
-  // 是否正在加载字幕
-  bool _isLoadingSubtitle = false;
   // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
   // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
   int _fallbackLevel = 0;
@@ -589,7 +587,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (selectedTrackId == null) {
       setState(() {
         _subtitleCues = const <SubtitleCue>[];
-        _isLoadingSubtitle = false;
       });
       return;
     }
@@ -619,9 +616,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     trackIndex ??= int.tryParse(selectedTrackId);
     if (trackIndex == null) return;
 
-    setState(() {
-      _isLoadingSubtitle = true;
-    });
     final embService = ref.read(embbytokServiceProvider);
     // 注入当前认证信息（确保字幕请求头包含 Token）
     final authState = ref.read(authProvider);
@@ -635,12 +629,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final cues = await embService.getSubtitleCues(
       itemId: widget.item.id,
       mediaSourceId: mediaSourceId,
-      index: trackIndex!,
+      index: trackIndex,
     );
     if (mounted) {
       setState(() {
         _subtitleCues = cues;
-        _isLoadingSubtitle = false;
       });
     }
   }
