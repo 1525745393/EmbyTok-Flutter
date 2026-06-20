@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 
 import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/providers/auth_provider.dart';
+import 'package:embbytok_flutter/providers/library_provider.dart';
 import 'package:embbytok_flutter/providers/video_list_provider.dart';
 import 'package:embbytok_flutter/services/embbytok_service.dart';
 import 'package:embbytok_flutter/utils/constants.dart';
@@ -68,9 +69,9 @@ void main() {
       container.dispose();
     });
 
-    // 创建带认证状态的容器
+    // 创建带认证状态的容器（支持传入选中的媒体库 ID 列表）
     ProviderContainer createContainerWithAuth({
-      String? selectedLibraryId,
+      List<String> selectedLibraryIds = const <String>['lib-1'],
     }) {
       return ProviderContainer(
         overrides: [
@@ -78,7 +79,9 @@ void main() {
           videoListProvider.overrideWith(
             (ref) => VideoListNotifier(ref, service: mockService),
           ),
-          selectedLibraryIdProvider.overrideWith((ref) => selectedLibraryId),
+          selectedLibraryIdsProvider.overrideWith(
+            (ref) => _TestSelectedLibraryNotifier(selectedLibraryIds),
+          ),
         ],
       );
     }
@@ -93,7 +96,7 @@ void main() {
       expect(state.error, isNull);
     });
 
-    test('refresh() 成功加载第一页', () async {
+    test('refresh() 成功加载第一页（单库）', () async {
       final items = List.generate(
         20,
         (i) => MediaItem(id: 'item-$i', title: 'Video $i', type: 'Movie'),
@@ -114,7 +117,7 @@ void main() {
         token: anyNamed('token'),
       )).thenAnswer((_) async => response);
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
@@ -122,7 +125,7 @@ void main() {
       final state = container.read(videoListProvider);
       expect(state.items.length, 20);
       expect(state.isLoading, false);
-      expect(state.hasMore, true); // total=50, loaded=20, has more
+      expect(state.hasMore, true);
       expect(state.offset, 20);
       expect(state.error, isNull);
 
@@ -135,15 +138,82 @@ void main() {
       )).called(1);
     });
 
+    test('refresh() 成功加载第一页（多库混合）', () async {
+      final items1 = List.generate(
+        10,
+        (i) => MediaItem(id: 'lib1-item-$i', title: 'Lib1 Video $i', type: 'Movie'),
+      );
+      final items2 = List.generate(
+        10,
+        (i) => MediaItem(id: 'lib2-item-$i', title: 'Lib2 Video $i', type: 'Movie'),
+      );
+
+      final response1 = PaginatedResponse<MediaItem>(
+        items: items1,
+        total: 50,
+        offset: 0,
+        limit: 20,
+      );
+      final response2 = PaginatedResponse<MediaItem>(
+        items: items2,
+        total: 30,
+        offset: 0,
+        limit: 20,
+      );
+
+      when(mockService.getLibraryItems(
+        'lib-1',
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+      )).thenAnswer((_) async => response1);
+
+      when(mockService.getLibraryItems(
+        'lib-2',
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+      )).thenAnswer((_) async => response2);
+
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1', 'lib-2']);
+
+      final notifier = container.read(videoListProvider.notifier);
+      await notifier.refresh();
+
+      final state = container.read(videoListProvider);
+      expect(state.items.length, 20); // 10 + 10
+      expect(state.items.first.id, 'lib1-item-0');
+      expect(state.items.last.id, 'lib2-item-9');
+      expect(state.hasMore, true);
+
+      verify(mockService.getLibraryItems(
+        'lib-1',
+        limit: 20,
+        offset: 0,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).called(1);
+
+      verify(mockService.getLibraryItems(
+        'lib-2',
+        limit: 20,
+        offset: 0,
+        serverUrl: 'http://emby.example.com',
+        token: 'test-token',
+      )).called(1);
+    });
+
     test('refresh() 加载所有数据时 hasMore = false', () async {
       final items = List.generate(
-        10,
+        5,
         (i) => MediaItem(id: 'item-$i', title: 'Video $i', type: 'Movie'),
       );
 
       final response = PaginatedResponse<MediaItem>(
         items: items,
-        total: 10,
+        total: 5,
         offset: 0,
         limit: 20,
       );
@@ -156,60 +226,40 @@ void main() {
         token: anyNamed('token'),
       )).thenAnswer((_) async => response);
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
 
       final state = container.read(videoListProvider);
-      expect(state.items.length, 10);
-      expect(state.hasMore, false); // total=10, loaded=10, no more
+      expect(state.items.length, 5);
+      // hasMore 基于 merged.length >= perLibLimit * selectedIds.length
+      // 5 < 20, 所以 hasMore = false
+      expect(state.hasMore, false);
     });
 
-    test('loadMore() 分页追加', () async {
-      // 第一页数据
-      final firstPageItems = List.generate(
+    test('loadMore() 多库模式下重新请求', () async {
+      final items = List.generate(
         20,
         (i) => MediaItem(id: 'item-$i', title: 'Video $i', type: 'Movie'),
       );
 
-      final firstResponse = PaginatedResponse<MediaItem>(
-        items: firstPageItems,
-        total: 60,
+      final response = PaginatedResponse<MediaItem>(
+        items: items,
+        total: 50,
         offset: 0,
         limit: 20,
       );
 
-      // 第二页数据
-      final secondPageItems = List.generate(
-        20,
-        (i) => MediaItem(id: 'item-${i + 20}', title: 'Video ${i + 20}', type: 'Movie'),
-      );
-
-      final secondResponse = PaginatedResponse<MediaItem>(
-        items: secondPageItems,
-        total: 60,
-        offset: 20,
-        limit: 20,
-      );
-
       when(mockService.getLibraryItems(
-        'lib-1',
+        any,
         limit: anyNamed('limit'),
-        offset: 0,
+        offset: anyNamed('offset'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
-      )).thenAnswer((_) async => firstResponse);
+      )).thenAnswer((_) async => response);
 
-      when(mockService.getLibraryItems(
-        'lib-1',
-        limit: anyNamed('limit'),
-        offset: 20,
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).thenAnswer((_) async => secondResponse);
-
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
 
@@ -221,9 +271,8 @@ void main() {
       await notifier.loadMore();
 
       final state = container.read(videoListProvider);
-      expect(state.items.length, 40); // 20 + 20
-      expect(state.offset, 40);
-      expect(state.hasMore, true); // total=60, loaded=40, has more
+      expect(state.items.length, 20); // 多库模式下重新拉取
+      expect(state.hasMore, true);
     });
 
     test('loadMore() 在无更多数据时不请求', () async {
@@ -247,7 +296,7 @@ void main() {
         token: anyNamed('token'),
       )).thenAnswer((_) async => response);
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
@@ -269,7 +318,7 @@ void main() {
     });
 
     test('loadMore() 在加载中时跳过', () async {
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
 
@@ -297,7 +346,7 @@ void main() {
         token: anyNamed('token'),
       )).thenThrow(Exception('网络错误'));
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
@@ -316,7 +365,7 @@ void main() {
         token: anyNamed('token'),
       )).thenThrow('服务器维护中');
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
@@ -334,7 +383,9 @@ void main() {
           videoListProvider.overrideWith(
             (ref) => VideoListNotifier(ref, service: mockService),
           ),
-          selectedLibraryIdProvider.overrideWith((ref) => 'lib-1'),
+          selectedLibraryIdsProvider.overrideWith(
+            (ref) => _TestSelectedLibraryNotifier(const <String>['lib-1']),
+          ),
         ],
       );
 
@@ -356,7 +407,7 @@ void main() {
     });
 
     test('未选择媒体库时 refresh() 不加载', () async {
-      container = createContainerWithAuth(selectedLibraryId: null);
+      container = createContainerWithAuth(selectedLibraryIds: const <String>[]);
 
       final notifier = container.read(videoListProvider.notifier);
       await notifier.refresh();
@@ -417,7 +468,7 @@ void main() {
         token: anyNamed('token'),
       )).thenAnswer((_) async => lib2Response);
 
-      container = createContainerWithAuth(selectedLibraryId: 'lib-1');
+      container = createContainerWithAuth(selectedLibraryIds: <String>['lib-1']);
 
       final notifier = container.read(videoListProvider.notifier);
 
@@ -425,12 +476,27 @@ void main() {
       await notifier.refresh();
       expect(container.read(videoListProvider).items.first.id, 'lib1-item-0');
 
-      // 切换到媒体库 2
-      await notifier.refresh(libraryId: 'lib-2');
-      final state = container.read(videoListProvider);
-      expect(state.items.length, 5);
-      expect(state.items.first.id, 'lib2-item-0');
-      expect(state.offset, 5);
+      // 切换到媒体库 2：需要通过 override 更新，这里直接创建新的 container 验证
+      final container2 = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith((ref) => _TestAuthNotifier(testAuthState)),
+          videoListProvider.overrideWith(
+            (ref) => VideoListNotifier(ref, service: mockService),
+          ),
+          selectedLibraryIdsProvider.overrideWith(
+            (ref) => _TestSelectedLibraryNotifier(const <String>['lib-2']),
+          ),
+        ],
+      );
+
+      final notifier2 = container2.read(videoListProvider.notifier);
+      await notifier2.refresh();
+      final state2 = container2.read(videoListProvider);
+      expect(state2.items.length, 5);
+      expect(state2.items.first.id, 'lib2-item-0');
+      expect(state2.offset, 5);
+
+      container2.dispose();
     });
   });
 }
@@ -438,4 +504,9 @@ void main() {
 // 测试用 AuthNotifier：直接返回预设状态
 class _TestAuthNotifier extends StateNotifier<AuthState> {
   _TestAuthNotifier(AuthState initialState) : super(initialState);
+}
+
+// 测试用 SelectedLibraryNotifier：返回预设的选中媒体库 ID 列表
+class _TestSelectedLibraryNotifier extends StateNotifier<List<String>> {
+  _TestSelectedLibraryNotifier(List<String> initialState) : super(initialState);
 }

@@ -1,9 +1,9 @@
-// 媒体库列表 & 当前选中的媒体库 ID
+// 媒体库列表 & 当前选中的媒体库 ID 列表（多选）
 // 功能：
-// 1. libraryListProvider: 从 Emby 获取媒体库列表（FutureProvider）
+// 1. libraryListProvider: 从 Emby 获取媒体库列表
 // 2. visibleLibraryListProvider: 根据 hiddenLibraryIds 过滤后的可见媒体库列表
-// 3. selectedLibraryIdProvider: 当前选中的媒体库 ID（自动选择第一个可见）
-// 4. selectedLibraryProvider: 当前选中的 Library 对象（供 UI 显示名称）
+// 3. selectedLibraryIdsProvider: 当前选中的媒体库 ID 列表（多选，媒体库加载后自动全选可见的）
+// 4. selectedLibrariesProvider: 当前选中的所有 Library 对象
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,19 +58,19 @@ final visibleLibraryListProvider = Provider<List<Library>>((ref) {
 
 // ==================== 选择状态 Provider ====================
 
-/// 当前选中的媒体库 ID（媒体库列表加载后自动选择第一个可见的）
+/// 当前选中的媒体库 ID 列表（支持多选，媒体库加载后自动全选可见的）
 ///
 /// 在 [VideoListNotifier] 中监听此 Provider 的变化来触发对应库的视频加载。
-final selectedLibraryIdProvider =
-    StateNotifierProvider<SelectedLibraryNotifier, String?>(
+final selectedLibraryIdsProvider =
+    StateNotifierProvider<SelectedLibraryNotifier, List<String>>(
   (ref) => SelectedLibraryNotifier(ref),
 );
 
-class SelectedLibraryNotifier extends StateNotifier<String?> {
+class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   final Ref _ref;
 
-  SelectedLibraryNotifier(this._ref) : super(null) {
-    // 监听媒体库列表变化，自动选择第一个可见的媒体库
+  SelectedLibraryNotifier(this._ref) : super(const <String>[]) {
+    // 监听媒体库列表变化，首次加载时自动全选可见媒体库
     _ref.listen<AsyncValue<List<Library>>>(
       libraryListProvider,
       (previous, next) {
@@ -79,14 +79,14 @@ class SelectedLibraryNotifier extends StateNotifier<String?> {
           final visible = libraries
               .where((lib) => !hiddenIds.contains(lib.id))
               .toList();
-          // 如果当前没有选择，自动选择第一个可见的
-          if (state == null && visible.isNotEmpty) {
-            state = visible.first.id;
-          } else if (state != null) {
-            // 如果当前选择的媒体库不存在于可见列表中，重新选择第一个
-            final stillExists = visible.any((lib) => lib.id == state);
+          // 如果当前没有选择，自动全选可见媒体库
+          if (state.isEmpty && visible.isNotEmpty) {
+            state = visible.map((lib) => lib.id).toList();
+          } else if (state.isNotEmpty) {
+            // 如果当前选择的媒体库中没有一个存在于可见列表中，重新全选
+            final stillExists = visible.any((lib) => state.contains(lib.id));
             if (!stillExists && visible.isNotEmpty) {
-              state = visible.first.id;
+              state = visible.map((lib) => lib.id).toList();
             }
           }
         });
@@ -94,20 +94,43 @@ class SelectedLibraryNotifier extends StateNotifier<String?> {
     );
   }
 
-  // 手动设置媒体库
+  /// 切换单个媒体库的选中状态
+  void toggleLibrary(String libraryId) {
+    if (state.contains(libraryId)) {
+      // 取消选中，但至少保留一个
+      final newList = state.where((id) => id != libraryId).toList();
+      state = newList.isNotEmpty ? newList : const <String>[];
+    } else {
+      // 添加选中
+      state = <String>[...state, libraryId];
+    }
+  }
+
+  /// 手动设置为单个媒体库（用于 chips 单击快捷切换）
   void setLibrary(String libraryId) {
-    state = libraryId;
+    state = <String>[libraryId];
+  }
+
+  /// 设置为指定的 ID 列表
+  void setLibraries(List<String> libraryIds) {
+    state = libraryIds;
+  }
+
+  /// 全选可见媒体库
+  void selectAll(List<Library> visibleLibraries) {
+    state = visibleLibraries.map((lib) => lib.id).toList();
+  }
+
+  /// 清空选择
+  void clear() {
+    state = const <String>[];
   }
 }
 
-// 当前选中的 Library 对象（用于 UI 显示名称）
-final selectedLibraryProvider = Provider<Library?>((ref) {
+// 当前选中的所有 Library 对象（供 UI 使用）
+final selectedLibrariesProvider = Provider<List<Library>>((ref) {
   final libraries = ref.watch(visibleLibraryListProvider);
-  final selectedId = ref.watch(selectedLibraryIdProvider);
-  if (selectedId == null) return null;
-  try {
-    return libraries.firstWhere((lib) => lib.id == selectedId);
-  } catch (_) {
-    return null;
-  }
+  final selectedIds = ref.watch(selectedLibraryIdsProvider);
+  if (selectedIds.isEmpty) return const <Library>[];
+  return libraries.where((lib) => selectedIds.contains(lib.id)).toList();
 });

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
 
-/// 媒体库选择器：底部弹窗，支持搜索和过滤
+/// 媒体库选择器：底部弹窗，支持搜索和多选
 class LibrarySelector extends ConsumerStatefulWidget {
   const LibrarySelector({super.key});
 
@@ -31,7 +31,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
-    final selectedId = ref.watch(selectedLibraryIdProvider);
+    final selectedIds = ref.watch(selectedLibraryIdsProvider);
+    final visibleLibraries = ref.watch(visibleLibraryListProvider);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -44,7 +45,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             width: 40, height: 4,
             decoration: BoxDecoration(color: scheme.onSurface.withOpacity(0.2), borderRadius: BorderRadius.circular(2)),
           ),
-          // 标题
+          // 标题 + 全选/清空按钮
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -52,6 +53,22 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 Icon(Icons.video_library, color: scheme.primary, size: 20),
                 const SizedBox(width: 8),
                 Text('选择媒体库', style: TextStyle(color: scheme.onSurface, fontSize: 18, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Text('已选 ${selectedIds.length}',
+                    style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 12)),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    ref.read(selectedLibraryIdsProvider.notifier).selectAll(visibleLibraries);
+                  },
+                  child: Text('全选', style: TextStyle(color: scheme.primary, fontSize: 13)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ref.read(selectedLibraryIdsProvider.notifier).clear();
+                  },
+                  child: Text('清空', style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 13)),
+                ),
               ],
             ),
           ),
@@ -99,7 +116,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final lib = filtered[index];
-                    final isSelected = lib.id == selectedId;
+                    final isSelected = selectedIds.contains(lib.id);
                     return ListTile(
                       leading: Icon(
                         isSelected ? Icons.check_circle : Icons.circle_outlined,
@@ -110,9 +127,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       )),
                       onTap: () {
-                        ref.read(selectedLibraryIdProvider.notifier).setLibrary(lib.id);
-                        ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
-                        Navigator.of(context).pop();
+                        ref.read(selectedLibraryIdsProvider.notifier).toggleLibrary(lib.id);
                       },
                     );
                   },
@@ -120,7 +135,27 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               );
             },
           ),
-          const SizedBox(height: 16),
+          // 底部确认按钮
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: scheme.primary,
+                  foregroundColor: scheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  ref.read(videoListProvider.notifier).refresh();
+                  Navigator.of(context).pop();
+                },
+                child: Text('确认（${selectedIds.length} 个媒体库）',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
         ],
       ),
     );

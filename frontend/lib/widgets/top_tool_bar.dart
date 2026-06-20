@@ -293,9 +293,9 @@ class TopToolBar extends ConsumerWidget {
     ref.read(orientationModeProvider.notifier).setMode(mode);
   }
 
-  // 切换当前媒体库
+  // 切换当前媒体库（单选快捷操作，选中一个库时清空其他）
   void _selectLibrary(WidgetRef ref, String libraryId) {
     if (libraryId.isEmpty) return;
-    ref.read(selectedLibraryIdProvider.notifier).setLibrary(libraryId);
+    ref.read(selectedLibraryIdsProvider.notifier).setLibrary(libraryId);
   }
 }

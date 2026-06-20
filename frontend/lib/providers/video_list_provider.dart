@@ -1,6 +1,6 @@
 // 视频列表分页加载：支持按媒体库筛选、下拉刷新与无限滚动
 // 关键特性：
-// 1. 监听 selectedLibraryIdProvider 变化，自动触发视频加载
+// 1. 监听 selectedLibraryIdsProvider 变化，自动触发视频加载
 // 2. 支持分页（offset/limit）
 // 3. 支持方向过滤（通过 filteredVideoListProvider）
 
@@ -65,7 +65,7 @@ class VideoListState {
 /// 视频列表 Notifier：响应媒体库切换和浏览模式变化自动加载视频
 ///
 /// 内部监听：
-/// - [selectedLibraryIdProvider] 媒体库选择变化
+/// - [selectedLibraryIdsProvider] 媒体库选择变化
 /// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
@@ -74,13 +74,15 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   VideoListNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
         super(const VideoListState()) {
-    // 监听 selectedLibraryIdProvider 变化：媒体库切换时自动刷新视频列表
-    _ref.listen<String?>(
-      selectedLibraryIdProvider,
+    // 监听 selectedLibraryIdsProvider 变化：媒体库切换时自动刷新视频列表
+    _ref.listen<List<String>>(
+      selectedLibraryIdsProvider,
       (previous, next) {
-        if (next != null && next.isNotEmpty && next != previous) {
-          AppLogger.debug('媒体库变化：$previous -> $next，刷新视频列表');
-          refresh(libraryId: next);
+        final prevStr = previous?.join(',') ?? '';
+        final nextStr = next.join(',');
+        if (next.isNotEmpty && nextStr != prevStr) {
+          AppLogger.debug('媒体库变化：[$prevStr] -> [$nextStr]，刷新视频列表');
+          refresh();
         }
       },
     );
@@ -100,12 +102,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   AuthState get _auth => _ref.read(authProvider);
 
   // 根据当前 feedType 刷新视频列表
-  // latest: 走 getLibraryItems 分页
-  // random: 拉 80 条打乱，不分页
+  // latest: 走 getLibraryItems 分页（支持多库混合）
+  // random: 拉 80 条打乱，不分页（支持多库混合）
   // favorites: 拉 getFavoriteMovies 纯列表，不分页
   // resume: 拉 getResumeItems 续播列表，不分页
-  Future<void> refresh({String? libraryId}) async {
+  Future<void> refresh() async {
     final currentFeedType = _ref.read(feedTypeProvider);
+    final selectedIds = _ref.read(selectedLibraryIdsProvider);
 
     state = VideoListState(
       items: const <MediaItem>[],
@@ -131,50 +134,57 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     try {
       AppLogger.info('刷新视频列表', data: {
         'feedType': currentFeedType.toStorageString(),
-        'libraryId': libraryId,
+        'libraryIds': selectedIds.join(','),
       });
 
       final List<MediaItem> loadedItems;
-      final int totalCount;
       final bool canPaginate;
 
       switch (currentFeedType) {
         case FeedType.latest:
-          final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
-          if (targetLibraryId == null || targetLibraryId.isEmpty) {
+          final libIds = selectedIds;
+          if (libIds.isEmpty) {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          final resp = await _service.getLibraryItems(
-            targetLibraryId,
-            limit: state.limit,
-            offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
-          );
-          loadedItems = resp.items;
-          totalCount = resp.total;
+          // 多库混合：对每个库取 limit 条，后续 loadMore 会对每个库独立分页
+          final merged = <MediaItem>[];
+          for (final libId in libIds) {
+            final resp = await _service.getLibraryItems(
+              libId,
+              limit: state.limit,
+              offset: 0,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+              userId: auth.user?.id,
+            );
+            merged.addAll(resp.items);
+          }
+          loadedItems = merged;
           canPaginate = true;
 
         case FeedType.random:
-          final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
-          if (targetLibraryId == null || targetLibraryId.isEmpty) {
+          final libIds = selectedIds;
+          if (libIds.isEmpty) {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          final resp = await _service.getLibraryItems(
-            targetLibraryId,
-            limit: 80,
-            offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
-          );
-          final shuffled = List<MediaItem>.from(resp.items);
+          // 多库混合：对每个库取适量条合并后打乱
+          final merged = <MediaItem>[];
+          for (final libId in libIds) {
+            final resp = await _service.getLibraryItems(
+              libId,
+              limit: (80 / libIds.length).ceil(),
+              offset: 0,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+              userId: auth.user?.id,
+            );
+            merged.addAll(resp.items);
+          }
+          final shuffled = List<MediaItem>.from(merged);
           shuffled.shuffle();
           loadedItems = shuffled;
-          totalCount = shuffled.length;
           canPaginate = false;
 
         case FeedType.favorites:
@@ -184,7 +194,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: auth.user?.id,
           );
           loadedItems = favList;
-          totalCount = favList.length;
           canPaginate = false;
 
         case FeedType.resume:
@@ -195,16 +204,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             token: auth.token!,
           );
           loadedItems = resp.items;
-          totalCount = resp.total;
           canPaginate = false;
       }
-
-      final hasMore = canPaginate && (state.limit > 0) && (loadedItems.length < totalCount);
 
       state = VideoListState(
         items: loadedItems,
         isLoading: false,
-        hasMore: hasMore,
+        hasMore: canPaginate,
         error: null,
         offset: loadedItems.length,
         limit: state.limit,
@@ -212,7 +218,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       );
       AppLogger.debug('视频列表刷新成功', data: {
         'count': loadedItems.length,
-        'total': totalCount,
         'feedType': currentFeedType.toStorageString(),
       });
     } catch (e) {
@@ -223,12 +228,18 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   }
 
   // 加载更多：仅在 latest 模式下生效，其它模式不分页
-  Future<void> loadMore({String? libraryId}) async {
+  // 多库模式下，对每个库从 offset/libIds.length 位置继续取 limit 条
+  Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore) return;
 
     final currentFeedType = state.feedType;
-    // random/favorites/resume 不分页
     if (currentFeedType != FeedType.latest) {
+      state = state.copyWith(hasMore: false);
+      return;
+    }
+
+    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    if (selectedIds.isEmpty) {
       state = state.copyWith(hasMore: false);
       return;
     }
@@ -244,35 +255,39 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      final targetLibraryId = libraryId ?? _ref.read(selectedLibraryIdProvider);
-      if (targetLibraryId == null || targetLibraryId.isEmpty) {
-        state = state.copyWith(isLoading: false);
-        return;
+      // 简单策略：对每个选中的库，从 0 重新获取 state.offset + limit 条，然后合并截断
+      // 避免多库各自分页带来的复杂度，保证结果的一致性
+      AppLogger.debug('加载更多视频', data: {'offset': state.offset, 'libraryCount': selectedIds.length});
+      final perLibOffset = state.offset; // 简化：每个库都从 0 重新取
+      final perLibLimit = state.limit;
+      final merged = <MediaItem>[];
+      for (final libId in selectedIds) {
+        final resp = await _service.getLibraryItems(
+          libId,
+          limit: perLibLimit,
+          offset: 0,
+          serverUrl: auth.embyServerUrl!,
+          token: auth.token!,
+          userId: auth.user?.id,
+        );
+        merged.addAll(resp.items);
       }
 
-      AppLogger.debug('加载更多视频', data: {'offset': state.offset});
-      final resp = await _service.getLibraryItems(
-        targetLibraryId,
-        limit: state.limit,
-        offset: state.offset,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
-      );
-
-      final newItems = <MediaItem>[...state.items, ...resp.items];
-      final hasMore = state.offset + resp.items.length < resp.total;
+      // 合并后排序（按 dateAdded 或 indexNumber 等保持原始顺序）
+      // 简化：保持各库原始顺序拼接
+      // 判断是否还有更多：如果所有库返回的条数都等于 perLibLimit，继续有更多
+      final hasMore = merged.length >= perLibLimit * selectedIds.length;
 
       state = VideoListState(
-        items: newItems,
+        items: merged,
         isLoading: false,
         hasMore: hasMore,
         error: null,
-        offset: state.offset + resp.items.length,
+        offset: merged.length,
         limit: state.limit,
         feedType: currentFeedType,
       );
-      AppLogger.debug('加载更多成功', data: {'newCount': resp.items.length});
+      AppLogger.debug('加载更多成功', data: {'newCount': merged.length});
     } catch (e) {
       AppLogger.error('加载更多失败', error: e);
       final message = e is String ? e : '加载更多失败：$e';

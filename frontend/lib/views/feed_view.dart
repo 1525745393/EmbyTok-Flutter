@@ -204,15 +204,14 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 工具：当前媒体库 ID（未选则为空字符串）
+  // 工具：当前媒体库 ID（多选时取第一个，未选则为空字符串）
   String _currentLibraryId() {
     try {
       final libs = ref.read(libraryListProvider);
       if (!libs.hasValue || libs.value!.isEmpty) return '';
-      // selectedLibraryIdProvider 返回 String（选中的库 id），非空则直接用
-      final selectedId = ref.read(selectedLibraryIdProvider);
-      return (selectedId != null && selectedId.isNotEmpty)
-          ? selectedId
+      final selectedIds = ref.read(selectedLibraryIdsProvider);
+      return selectedIds.isNotEmpty
+          ? selectedIds.first
           : libs.value!.first.id;
     } catch (_) {
       return '';
@@ -409,12 +408,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 选择媒体库
-  Future<void> _selectLibrary(Library lib) async {
-    ref.read(selectedLibraryIdProvider.notifier).setLibrary(lib.id);
-    await ref.read(videoListProvider.notifier).refresh(libraryId: lib.id);
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -457,7 +450,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 顶部栏：媒体库切换 + 视图切换按钮
+  // 顶部栏：媒体库 chips（支持多选） + 视图切换按钮
   Widget _buildTopBar(AsyncValue<List<Library>> librariesAsync, ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -477,7 +470,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         bottom: false,
         child: Row(
           children: [
-            // 媒体库切换器（横向滚动）
+            // 媒体库切换器（横向滚动，支持多选）
             Expanded(child: _buildLibraryChips(librariesAsync)),
             // 视图切换按钮
             IconButton(
@@ -491,11 +484,6 @@ class _FeedViewState extends ConsumerState<FeedView>
                   viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
                 );
               },
-            ),
-            // 媒体库选择器按钮（快捷键 G）
-            IconButton(
-              icon: Icon(Icons.library_books, color: scheme.onSurface.withOpacity(0.7), size: 22),
-              onPressed: () => LibrarySelector.show(context),
             ),
           ],
         ),
@@ -518,8 +506,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         title: err,
         actionLabel: '重试',
         onAction: () {
-          final libId = ref.read(selectedLibraryIdProvider);
-          ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+          ref.read(videoListProvider.notifier).refresh();
         },
       );
     }
@@ -626,14 +613,14 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 顶部媒体库横向切换器
+  // 顶部媒体库横向切换器（支持多选切换 + 长按单选）
   Widget _buildLibraryChips(AsyncValue<List<Library>> librariesAsync) {
     return librariesAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (libraries) {
         if (libraries.isEmpty) return const SizedBox.shrink();
-        final selectedId = ref.watch(selectedLibraryIdProvider);
+        final selectedIds = ref.watch(selectedLibraryIdsProvider);
         final scheme = Theme.of(context).colorScheme;
         return SizedBox(
           height: 40,
@@ -644,13 +631,17 @@ class _FeedViewState extends ConsumerState<FeedView>
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final lib = libraries[index];
-              final isSelected = lib.id == selectedId;
+              final isSelected = selectedIds.contains(lib.id);
               return TvFocusable(
                 key: Key('lib_${lib.id}'),
-                onTap: () => _selectLibrary(lib),
+                onTap: () {
+                  // 单击：切换该媒体库的选中状态（多选）
+                  ref.read(selectedLibraryIdsProvider.notifier).toggleLibrary(lib.id);
+                  ref.read(videoListProvider.notifier).refresh();
+                },
                 borderRadius: 20,
                 borderWidth: 2,
-                autofocus: index == 0 && selectedId == null,
+                autofocus: index == 0 && selectedIds.isEmpty,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(

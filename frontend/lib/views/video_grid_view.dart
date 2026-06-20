@@ -31,9 +31,9 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
 
   // 加载视频列表
   Future<void> _loadVideos() async {
-    final libId = ref.read(selectedLibraryIdProvider);
-    if (libId != null && libId.isNotEmpty) {
-      await ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+    final selectedIds = ref.read(selectedLibraryIdsProvider);
+    if (selectedIds.isNotEmpty) {
+      await ref.read(videoListProvider.notifier).refresh();
     }
   }
 
@@ -164,8 +164,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                final libId = ref.read(selectedLibraryIdProvider);
-                ref.read(videoListProvider.notifier).refresh(libraryId: libId);
+                ref.read(videoListProvider.notifier).refresh();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: scheme.primary,
