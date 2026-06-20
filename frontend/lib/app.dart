@@ -102,7 +102,6 @@ class EmbyTokApp extends ConsumerWidget {
                 : MediaItem(
                     id: personId,
                     title: '',
-                    name: '',
                     type: 'Person',
                   );
             return PersonDetailView(person: person);
@@ -118,7 +117,6 @@ class EmbyTokApp extends ConsumerWidget {
                 : MediaItem(
                     id: boxsetId,
                     title: '',
-                    name: '',
                     type: 'Boxset',
                   );
             return BoxsetDetailView(item: item);
@@ -134,7 +132,6 @@ class EmbyTokApp extends ConsumerWidget {
                 : MediaItem(
                     id: itemId,
                     title: '',
-                    name: '',
                     type: 'Video',
                   );
             return Scaffold(
