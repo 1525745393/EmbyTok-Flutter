@@ -255,10 +255,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      // 简单策略：对每个选中的库，从 0 重新获取 state.offset + limit 条，然后合并截断
+      // 简单策略：对每个选中的库，从 0 重新获取 limit 条，然后合并
       // 避免多库各自分页带来的复杂度，保证结果的一致性
       AppLogger.debug('加载更多视频', data: {'offset': state.offset, 'libraryCount': selectedIds.length});
-      final perLibOffset = state.offset; // 简化：每个库都从 0 重新取
       final perLibLimit = state.limit;
       final merged = <MediaItem>[];
       for (final libId in selectedIds) {

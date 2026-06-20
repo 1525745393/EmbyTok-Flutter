@@ -127,6 +127,16 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   }
 }
 
+// 当前选中的第一个 Library 对象（供 UI 显示名称等）
+// 多选模式下返回第一个选中的媒体库
+final selectedLibraryProvider = Provider<Library?>((ref) {
+  final libraries = ref.watch(visibleLibraryListProvider);
+  final selectedIds = ref.watch(selectedLibraryIdsProvider);
+  if (selectedIds.isEmpty) return null;
+  final firstId = selectedIds.first;
+  return libraries.where((lib) => lib.id == firstId).firstOrNull;
+});
+
 // 当前选中的所有 Library 对象（供 UI 使用）
 final selectedLibrariesProvider = Provider<List<Library>>((ref) {
   final libraries = ref.watch(visibleLibraryListProvider);
