@@ -270,10 +270,10 @@ class _SearchResultTile extends ConsumerWidget {
                 fit: BoxFit.cover,
                 httpHeaders: headers.isNotEmpty ? headers : null,
                 memCacheWidth: 240,
-                placeholder: (_, __) => _thumbPlaceholder(),
-                errorWidget: (_, __, ___) => _thumbPlaceholder(),
+                placeholder: (ctx, __) => _thumbPlaceholder(ctx),
+                errorWidget: (ctx, ___, __) => _thumbPlaceholder(ctx),
               )
-            : _thumbPlaceholder(),
+            : _thumbPlaceholder(context),
       ),
       title: Text(
         item.title,
@@ -312,7 +312,7 @@ class _SearchResultTile extends ConsumerWidget {
     );
   }
 
-  Widget _thumbPlaceholder() => Container(
+  Widget _thumbPlaceholder(BuildContext context) => Container(
         width: 120,
         height: 72,
         color: Theme.of(context).colorScheme.surface.withOpacity(0.3),

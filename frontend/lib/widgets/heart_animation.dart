@@ -66,18 +66,19 @@ class _HeartAnimationState extends State<HeartAnimation>
           AnimatedBuilder(
             animation: _controller,
             builder: (_, __) {
+              final scheme = Theme.of(context).colorScheme;
               return IgnorePointer(
                 child: Opacity(
                   opacity: _opacity.value,
                   child: Transform.scale(
                     scale: _scale.value,
-                    child: const Icon(
+                    child: Icon(
                       Icons.favorite,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: scheme.primary,
                       size: 96,
                       shadows: [
                         Shadow(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.33),
+                          color: scheme.onSurface.withOpacity(0.33),
                           blurRadius: 16,
                           offset: Offset(0, 4),
                         ),
