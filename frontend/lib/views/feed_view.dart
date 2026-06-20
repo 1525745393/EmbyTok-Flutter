@@ -210,7 +210,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       final libs = ref.read(libraryListProvider);
       if (!libs.hasValue || libs.value!.isEmpty) return '';
       // selectedLibraryIdProvider 返回 String（选中的库 id），非空则直接用
-      final selectedId = ref.watch(selectedLibraryIdProvider);
+      final selectedId = ref.read(selectedLibraryIdProvider);
       return (selectedId != null && selectedId.isNotEmpty)
           ? selectedId
           : libs.value!.first.id;

@@ -184,11 +184,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // 视频状态变化监听（用于检测播放结束）
   void _onVideoChanged() {
-    if (!mounted || _videoController == null) return;
+    if (!mounted) return;
+    final controller = _videoController;
+    if (controller == null) return;
     // 播放结束检测（接近末尾 1 秒内就算播放完）
     if (!_hasNotifiedEnded) {
-      final pos = _videoController!.value.position;
-      final dur = _videoController!.value.duration;
+      final pos = controller.value.position;
+      final dur = controller.value.duration;
       if (dur.inMilliseconds > 0 &&
           (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
