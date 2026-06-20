@@ -543,10 +543,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
 
     // 场景 3：正常播放视频（带字幕叠加）
-    // BoxFit 策略：
-    //   - 竖屏视频：cover（填满容器，TikTok 风格）
-    //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
-    final isLandscape = widget.item.isLandscape;
+    // BoxFit 策略：统一使用 cover（视频填满容器，TikTok 风格）
+    //   - 横屏视频：两侧少量裁剪，需要完整内容时点击"全屏观看"按钮
+    //   - 如需保持完整显示，可将下面的 fit 改为 isLandscape ? BoxFit.contain : BoxFit.cover
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
     // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
@@ -558,7 +557,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         fit: StackFit.expand,
         children: [
           FittedBox(
-            fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+            fit: BoxFit.cover,
             child: SizedBox(
               width: _controller!.value.size.width,
               height: _controller!.value.size.height,
