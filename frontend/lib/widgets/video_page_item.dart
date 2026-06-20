@@ -827,19 +827,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
 
     // 使用 WillPopScope 处理返回键：全屏模式下先退出全屏
-    Widget result;
-    if (_isFullscreen) {
-      result = Semantics(
-        label: '横屏全屏视频播放',
-        child: Container(
-          color: scheme.surface,
-          child: content,
-        ),
-      );
-    } else {
-      result = Semantics(label: '视频播放区域，双击点赞此视频', child: content);
-    }
-
     return WillPopScope(
       onWillPop: () async {
         if (_isFullscreen) {
@@ -848,7 +835,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         }
         return true;
       },
-      child: result,
+      child: _isFullscreen
+          ? Semantics(
+              label: '横屏全屏视频播放',
+              child: Container(
+                color: scheme.surface,
+                child: content,
+              ),
+            )
+          : Semantics(label: '视频播放区域，双击点赞此视频', child: content),
     );
   }
 }

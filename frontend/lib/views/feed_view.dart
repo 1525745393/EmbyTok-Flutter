@@ -426,10 +426,10 @@ class _FeedViewState extends ConsumerState<FeedView>
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.primary,
+                ),
                 child: Text('取消', style: TextStyle(color: scheme.onSurface)),
-              ),
-              style: TextButton.styleFrom(
-                onPrimary: scheme.primary,
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
