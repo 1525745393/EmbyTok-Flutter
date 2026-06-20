@@ -1,3 +1,10 @@
+## [1.55.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.1...v1.55.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* remove library chips, keep only icon buttons in feed view top bar ([9b46ace](https://github.com/1525745393/EmbyTok-Flutter/commit/9b46acef719600890a7d5262a1f40f5cbb65272d))
+
 ## [1.55.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.0...v1.55.1) (2026-06-20)
 
 
