@@ -20,7 +20,7 @@ import 'video_player_widget.dart';
 
 // 拆分出的子组件
 import 'video/video_action_button.dart';
-import 'video/video_control_buttons.dart' as vc;
+import 'video/video_control_buttons.dart';
 import 'video/video_progress_bars.dart';
 import 'video/video_sheet_utils.dart' as sheet_utils;
 import 'video/video_draggable_clean_actions.dart';
@@ -387,8 +387,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       try {
         await _service.deleteItem(
           itemId: widget.item.id,
-          serverUrl: _authServerUrl(),
-          token: _authToken(),
+          serverUrl: _authServerUrl()!,
+          token: _authToken()!,
         );
         if (mounted) {
           ScaffoldMessenger.of(context)
