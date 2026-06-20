@@ -535,8 +535,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             _videoController!.value.playbackSpeed > 1.0)
           SpeedBadge(speed: _videoController!.value.playbackSpeed),
 
-        // 底部细线进度条：仅在无信息栏时显示（全屏 / 纯净模式）
-        if (_videoController != null && _videoController!.value.isInitialized && (_isFullscreen || isAutoPlay))
+        // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
+            (_isFullscreen || isAutoPlay) &&
+            !_controlsVisible)
           Positioned(
             left: 0,
             right: 0,
@@ -579,7 +582,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 padding: EdgeInsets.fromLTRB(
                   16,
                   80,
-                  96,
+                  rs(80, 2.0) + 16,
                   toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
                 ),
                 decoration: BoxDecoration(
