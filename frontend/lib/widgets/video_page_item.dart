@@ -783,9 +783,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             ),
           ),
 
-        // 顶部操作区：全屏切换按钮（仅在全屏模式下显示，避免与 FeedView 顶部栏重叠）
-        if (_isFullscreen)
-          TopActions(onToggleFullscreen: _toggleFullscreen),
+        // 顶部操作区：全屏模式下控制条已有退出按钮，无需额外入口
 
         // NextUp 下一集提示条
         if (_showNextUpBanner && _nextUpItem != null)
