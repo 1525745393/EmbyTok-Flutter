@@ -2175,15 +2175,16 @@ class _PressableActionButtonState extends State<_PressableActionButton> {
 /// 信息面板中的分节标题（如"简介"、"主演"、"导演"）
 class _SectionLabel extends StatelessWidget {
   final String text;
+  final Color? color;
 
-  const _SectionLabel(this.text);
+  const _SectionLabel(this.text, {this.color});
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: textPrimary,
+      style: TextStyle(
+        color: color ?? Theme.of(context).colorScheme.onSurface,
         fontSize: 15,
         fontWeight: FontWeight.w700,
       ),
