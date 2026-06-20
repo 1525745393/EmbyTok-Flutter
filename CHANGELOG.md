@@ -1,3 +1,10 @@
+# [1.41.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.40.2...v1.41.0) (2026-06-20)
+
+
+### Features
+
+* 引入 Material Design 3 动态色彩系统（阶段1：主题框架搭建） ([aacb218](https://github.com/1525745393/EmbyTok-Flutter/commit/aacb2185cdc280fa1ac0af4488a3e380dd7640d7))
+
 ## [1.40.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.40.1...v1.40.2) (2026-06-20)
 
 
