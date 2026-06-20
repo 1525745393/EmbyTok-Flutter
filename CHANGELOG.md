@@ -1,3 +1,15 @@
+## [1.40.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.40.1...v1.40.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* 代码清理 - 移除多余断言操作符，修正 Riverpod read/watch 用法 ([b6ca2e8](https://github.com/1525745393/EmbyTok-Flutter/commit/b6ca2e848de67c96b9f90ceecba66d374c299928))
+
+
+### Reverts
+
+* 回退到 CI 成功状态（80648fa），回退期间引入编译错误的变更 ([99def38](https://github.com/1525745393/EmbyTok-Flutter/commit/99def3865549c7f924a4f73886fb959eaef5cf46))
+
 # [1.39.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.38.0...v1.39.0) (2026-06-19)
 
 
