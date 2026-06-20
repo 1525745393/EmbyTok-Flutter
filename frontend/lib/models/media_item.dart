@@ -274,7 +274,7 @@ class MediaItem {
     if (hours > 0) {
       return minutes > 0 ? '${hours}h ${minutes}m' : '${hours}h';
     }
-    return '$minutes 分钟';
+    return '${minutes} 分钟';
   }
 
   // 最终展示用的年份（productionYear / year 都兼容）
@@ -478,12 +478,12 @@ class MediaItem {
       indexNumber: indexNumber ?? this.indexNumber,
       parentIndexNumber: parentIndexNumber ?? this.parentIndexNumber,
       productionYear: productionYear ?? this.productionYear,
-      year: productionYear ?? year,
+      year: productionYear ?? this.year,
       runtimeTicks: runtimeTicks ?? this.runtimeTicks,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       overview: overview ?? this.overview,
       communityRating: communityRating ?? this.communityRating,
-      rating: communityRating ?? this.communityRating ?? rating,
+      rating: communityRating ?? this.communityRating ?? this.rating,
       genres: genres ?? this.genres,
       genreNames: genreNames ?? this.genreNames,
       studioNames: studioNames ?? this.studioNames,

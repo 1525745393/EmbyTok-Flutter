@@ -67,7 +67,7 @@ class _PosterCard extends ConsumerWidget {
     return TvFocusable(
       onTap: () {
         // 点击海报进入视频播放
-        Navigator.of(context).push(MaterialPageRoute<void>(
+        Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => Scaffold(
             backgroundColor: Colors.black,
             body: VideoPageItem(item: item),

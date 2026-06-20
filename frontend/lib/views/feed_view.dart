@@ -88,7 +88,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (index + 1 >= items.length) return;
     final nextIndex = index + 1;
     // 限制最多同时预加载 1 个（当前 + 下一条），避免内存占用过高
-    if (_preloadCache.isNotEmpty) return;
+    if (_preloadCache.length >= 1) return;
     if (_preloadCache.containsKey(nextIndex)) return;
     final nextItem = items[nextIndex];
     final url = nextItem.computePlaybackUrl(embyServerUrl, token);
