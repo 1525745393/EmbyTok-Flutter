@@ -444,7 +444,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final scheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    final rs = (double base, [double maxScale = 1.7]) => vc.responsiveSize(context, base, maxScale);
+    final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
 
     // 封面图 URL（用于唱片按钮）
     final posterUrl =
