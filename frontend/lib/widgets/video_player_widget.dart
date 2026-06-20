@@ -24,6 +24,9 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final String? token;
   // 预加载控制器（如果为 null，则动态创建）
   final VideoPlayerController? preloadedController;
+  // 预加载控制器的播放等级（0=DirectPlay, 1=DirectStream, 2=HLS）
+  // 如非空，将同步到 playbackLevelProvider，保证 Emby 上报一致
+  final int? preloadedPlaybackLevel;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
@@ -35,6 +38,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.embyServerUrl,
     this.token,
     this.preloadedController,
+    this.preloadedPlaybackLevel,
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
@@ -115,6 +119,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (widget.preloadedController != null) {
       try {
         _controller = widget.preloadedController;
+        // 同步预加载等级：保证 reportPlaybackStart/progress 使用正确的播放方法
+        if (widget.preloadedPlaybackLevel != null) {
+          _fallbackLevel = widget.preloadedPlaybackLevel!;
+          ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
+        }
         // addListener 监听错误和位置（跨秒时更新字幕）
         _controller!.addListener(() {
           if (!mounted) return;

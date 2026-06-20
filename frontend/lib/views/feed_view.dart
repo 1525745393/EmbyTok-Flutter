@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../services/video_pool_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/keyboard_shortcuts.dart';
 import '../utils/logger.dart';
@@ -31,10 +32,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     with AutomaticKeepAliveClientMixin<FeedView> {
   late PageController _pageController;
   bool _showHelp = false; // 快捷键帮助面板显示状态
-  // 预加载控制器缓存：key = index，value = VideoPlayerController
-  // 在 onPageChanged 时构建下一条的 controller，在 VideoPageItem 中复用
-  final Map<int, VideoPlayerController> _preloadCache =
-      <int, VideoPlayerController>{};
   // 当前正在播放的索引（与 _pageController 同步）
   int _currentIndex = 0;
 
@@ -66,78 +63,40 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
-    // 清理所有预加载控制器
-    for (final controller in _preloadCache.values) {
-      try {
-        controller.dispose();
-      } catch (_) {}
-    }
-    _preloadCache.clear();
+    // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
+    ref.read(videoPoolProvider).disposeAll();
     super.dispose();
   }
 
-  // ========== 预加载与清理 ==========
+  // ========== 预加载与清理（基于 VideoPoolService）==========
 
-  // 对指定 index 的 MediaItem 构建 VideoPlayerController 并 initialize()，
-  // 不调用 play()，只做初始化，以便滑动过来时立即播放。
-  // 设计原则：_preloadCache 只持有"尚未显示的"预加载项，一旦页面构建时从
-  // cache 取出一个 controller，就把它从 cache 中移除，交给 VideoPageItem
-  // 作为唯一的管理者，避免双重 dispose。
+  // 对指定 index 的下一条视频发起预加载
+  // 由 VideoPoolService 负责降级链（DirectPlay → DirectStream → HLS）
   void _preloadNextVideo(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
     if (index + 1 >= items.length) return;
-    final nextIndex = index + 1;
-    // 限制最多同时预加载 1 个（当前 + 下一条），避免内存占用过高
-    if (_preloadCache.length >= 1) return;
-    if (_preloadCache.containsKey(nextIndex)) return;
-    final nextItem = items[nextIndex];
-    final url = nextItem.computePlaybackUrl(embyServerUrl, token);
-    if (url == null || url.isEmpty) return;
-    try {
-      final headers = nextItem.authHeaders(token);
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse(url),
-        httpHeaders: headers,
-      );
-      controller.initialize().then((_) {
-        // 初始化完成后，如果 cache 仍持有该 index，则保留
-        // 否则立即释放，避免泄漏
-        if (_preloadCache[nextIndex] != controller) {
-          try { controller.dispose(); } catch (_) {}
-        }
-      }).catchError((_) {
-        try { controller.dispose(); } catch (_) {}
-        _preloadCache.remove(nextIndex);
-      });
-      _preloadCache[nextIndex] = controller;
-    } catch (_) {}
+    if (embyServerUrl == null || token == null) return;
+    final nextItem = items[index + 1];
+    if (ref.read(videoPoolProvider).hasSession(nextItem.id)) return;
+    // 异步发起，不 await，不阻塞 UI
+    ref
+        .read(videoPoolProvider)
+        .preload(item: nextItem, serverUrl: embyServerUrl, token: token);
   }
 
-  // 清理所有预加载控制器（在翻页时调用）
-  // 设计原则：除了当前 index 的下一条，其余全部释放
-  void _evictFarPreloads(int currentIndex) {
-    final keepIndex = currentIndex + 1;
-    final toRemove = <int>[];
-    for (final idx in _preloadCache.keys) {
-      if (idx != keepIndex) toRemove.add(idx);
+  // 清理距离当前索引较远的会话（只保留当前 + 下一条，其余全部清理）
+  void _evictFarPreloads(int currentIndex, List<MediaItem> items) {
+    final keepIds = <String>[];
+    // 当前条目（如存在）：保持在池中（VideoPageItem 已取出，池里不包含）
+    // 下一条（如存在）：保留预加载
+    if (currentIndex + 1 < items.length) {
+      keepIds.add(items[currentIndex + 1].id);
     }
-    for (final idx in toRemove) {
-      try {
-        _preloadCache[idx]?.dispose();
-      } catch (_) {}
-      _preloadCache.remove(idx);
-    }
+    ref.read(videoPoolProvider).evictExcept(keepIds);
   }
 
-  // 从 cache 取出某个 index 的预加载 controller，并从 cache 移除
-  // 取出后，controller 的生命周期交给调用方（VideoPageItem）管理
-  VideoPlayerController? _takePreloadedController(int index) {
-    final controller = _preloadCache[index];
-    if (controller != null) {
-      _preloadCache.remove(index);
-      return controller;
-    }
-    return null;
-  }
+  // 从池中取出会话（取出后池不再拥有它，由 VideoPageItem 负责释放）
+  PlaybackSession? _takePreloadedSession(String itemId) =>
+      ref.read(videoPoolProvider).take(itemId);
 
   // ========== 跨设备续播云同步 ==========
 
@@ -536,26 +495,25 @@ class _FeedViewState extends ConsumerState<FeedView>
         if (videoState.hasMore && index >= videoState.items.length - 2 && !videoState.isLoading) {
           ref.read(videoListProvider.notifier).loadMore();
         }
-        // 预加载下一条视频
+        // 预加载下一条视频（走 VideoPoolService 降级链）
         _preloadNextVideo(index, videoState.items, embyServerUrl, token);
-        // 清理距离较远的预加载缓存（>±2）
-        _evictFarPreloads(index);
+        // 清理距离较远的预加载缓存（保留当前 + 下一条）
+        _evictFarPreloads(index, videoState.items);
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
           return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
         }
         final item = videoState.items[index];
-        // 从 cache 取出预加载 controller，取出后就从 cache 移除，
-        // controller 的生命周期交给 VideoPageItem 管理
-        final preloadedController = _takePreloadedController(index);
-        // 首次构建时对当前条目 + 1 预加载
-        if (index == 0 && !_preloadCache.containsKey(1) && _preloadCache.isEmpty) {
+        // 从 VideoPoolService 取出预加载的会话（如存在）
+        final preloadedSession = _takePreloadedSession(item.id);
+        // 首次构建时对下一条发起预加载
+        if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
           _preloadNextVideo(0, videoState.items, embyServerUrl, token);
         }
         return VideoPageItem(
           item: item,
-          preloadedController: preloadedController,
+          preloadedSession: preloadedSession,
           onVideoEnded: _goToNextVideo,
           startFromResumePosition: isResumeMode,
           // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）

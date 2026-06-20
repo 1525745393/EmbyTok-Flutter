@@ -13,6 +13,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../services/video_pool_service.dart';
 import 'gesture_overlay.dart';
 import 'subtitle_renderer.dart';
 import 'video_controls.dart';
@@ -28,7 +29,7 @@ import 'video/video_draggable_clean_actions.dart';
 /// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
-  final VideoPlayerController? preloadedController;
+  final PlaybackSession? preloadedSession;
   final VoidCallback? onVideoEnded;
   final bool startFromResumePosition;
   final VoidCallback? onNextEpisode;
@@ -37,7 +38,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
   const VideoPageItem({
     super.key,
     required this.item,
-    this.preloadedController,
+    this.preloadedSession,
     this.onVideoEnded,
     this.startFromResumePosition = false,
     this.onNextEpisode,
@@ -266,7 +267,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _reportPlaybackStart() {
     if (_hasStartedReported) return;
     _hasStartedReported = true;
-    _playSessionId = _newPlaySessionId();
+    // 如果来自预加载会话，则复用其 playSessionId，保证预加载和播放使用同一个会话
+    _playSessionId = widget.preloadedSession?.playSessionId ?? _newPlaySessionId();
+    // 如果来自预加载会话，同步播放等级到 provider（保证 reportPlaybackProgress 正确）
+    if (widget.preloadedSession != null) {
+      ref.read(playbackLevelProvider.notifier).setLevel(widget.preloadedSession!.playbackLevel);
+    }
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
     unawaited(_service.reportPlaybackStart(
@@ -490,7 +496,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               item: widget.item,
               embyServerUrl: embyServerUrl,
               token: token,
-              preloadedController: widget.preloadedController,
+              preloadedController: widget.preloadedSession?.controller,
+              preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
               onControllerReady: (c) {
                 setState(() => _videoController = c);
                 ref.read(currentVideoControllerProvider.notifier).state = c;
