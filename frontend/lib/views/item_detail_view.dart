@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
-import '../utils/colors.dart';
 import '../widgets/video_page_item.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {

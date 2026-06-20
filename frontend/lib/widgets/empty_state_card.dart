@@ -3,8 +3,6 @@
 
 import 'package:flutter/material.dart';
 
-import '../utils/colors.dart';
-
 /// 空状态卡片
 ///
 /// 统一展示无内容的友好提示。

@@ -3,8 +3,6 @@
 
 import 'package:flutter/material.dart';
 
-import '../utils/colors.dart';
-
 /// 错误状态卡片
 ///
 /// 统一展示加载失败、网络错误等异常状态。
@@ -25,7 +23,7 @@ class ErrorStateCard extends StatelessWidget {
   /// 操作按钮回调
   final VoidCallback? onAction;
 
-  /// 图标颜色，默认 [errorColor]
+  /// 图标颜色，默认使用主题 error 色
   final Color? iconColor;
 
   const ErrorStateCard({
@@ -68,7 +66,6 @@ class ErrorStateCard extends StatelessWidget {
       subtitle: '登录到 Emby 服务器后即可浏览内容',
       actionLabel: '去登录',
       onAction: onLogin,
-      iconColor: amberColor,
     );
   }
 

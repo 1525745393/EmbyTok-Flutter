@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
-import '../utils/colors.dart';
 import '../widgets/video_page_item.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
@@ -61,6 +60,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final imageUrl = widget.person.primaryUrl(
       embyServerUrl: authState.embyServerUrl,
@@ -70,10 +70,10 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     final headers = widget.person.authHeaders(authState.token);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(widget.person.title, style: const TextStyle(fontSize: 16)),
       ),
       body: SingleChildScrollView(
@@ -113,7 +113,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                         Text(
                           widget.person.title,
                           style: TextStyle(
-                            color: textPrimary,
+                            color: scheme.onSurface,
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                           ),
@@ -121,7 +121,8 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                         const SizedBox(height: 8),
                         Text(
                           '演员/导演',
-                          style: TextStyle(color: textTertiary, fontSize: 13),
+                          style: TextStyle(
+                              color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
                         ),
                         if (widget.person.overview != null &&
                             widget.person.overview!.isNotEmpty) ...[
@@ -129,7 +130,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           Text(
                             widget.person.overview!,
                             style: TextStyle(
-                              color: textSecondary,
+                              color: scheme.onSurface.withOpacity(0.7),
                               fontSize: 13,
                               height: 1.4,
                             ),
@@ -150,7 +151,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
               child: Text(
                 '出演的作品 (${_works.length})',
                 style: TextStyle(
-                  color: textPrimary,
+                  color: scheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
@@ -158,21 +159,22 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             ),
 
             if (_loading)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: primaryPink),
+                  padding: const EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: scheme.primary),
                 ),
               )
             else if (_error != null)
-              _buildError()
+              _buildError(scheme)
             else if (_works.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
+              Padding(
+                padding: const EdgeInsets.all(32),
                 child: Center(
                   child: Text(
                     '暂无作品',
-                    style: TextStyle(color: textTertiary, fontSize: 14),
+                    style: TextStyle(
+                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
                   ),
                 ),
               )
@@ -195,22 +197,23 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Icon(Icons.error_outline, color: errorColor, size: 36),
+          Icon(Icons.error_outline, color: scheme.error, size: 36),
           const SizedBox(height: 8),
           Text(
             _error ?? '加载失败',
-            style: TextStyle(color: textSecondary, fontSize: 14),
+            style: TextStyle(
+                color: scheme.onSurface.withOpacity(0.7), fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: primaryPink,
-              foregroundColor: textPrimary,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -231,9 +234,10 @@ class _AvatarPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: Colors.grey[800],
-      child: Icon(Icons.person, color: textPlaceholder, size: 64),
+      color: scheme.surface.withOpacity(0.3),
+      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 64),
     );
   }
 }
@@ -244,6 +248,7 @@ class _WorkTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final imageUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
@@ -265,9 +270,9 @@ class _WorkTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0x1AFFFFFF),
+          color: scheme.onSurface.withOpacity(0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: dividerColor),
+          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
         ),
         child: Row(
           children: [
@@ -296,7 +301,7 @@ class _WorkTile extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: textPrimary,
+                      color: scheme.onSurface,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -304,13 +309,14 @@ class _WorkTile extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     _yearText,
-                    style: TextStyle(color: textTertiary, fontSize: 12),
+                    style: TextStyle(
+                        color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.play_circle_fill, color: historyPink, size: 32),
+            Icon(Icons.play_circle_fill, color: scheme.primary, size: 32),
           ],
         ),
       ),
@@ -329,11 +335,12 @@ class _ThumbPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: 120,
       height: 72,
-      color: Colors.grey[800],
-      child: Icon(Icons.movie_outlined, color: textPlaceholder),
+      color: scheme.surface.withOpacity(0.3),
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
     );
   }
 }
@@ -344,11 +351,12 @@ class _WorkPlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

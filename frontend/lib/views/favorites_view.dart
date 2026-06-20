@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import 'boxset_detail_view.dart';
@@ -36,23 +35,24 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(favoritesProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Row(
           children: [
-            const Icon(Icons.favorite, color: primaryPink, size: 24),
+            Icon(Icons.favorite, color: scheme.primary, size: 24),
             const SizedBox(width: 8),
             const Text('我的收藏'),
             const SizedBox(width: 12),
             Text(
               '${state.movies.length + state.boxSets.length + state.people.length}',
-              style: const TextStyle(
-                color: textTertiary,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
@@ -60,15 +60,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
             const Spacer(),
             IconButton(
               icon: state.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: textTertiary,
+                        color: scheme.onSurfaceVariant,
                       ),
                     )
-                  : const Icon(Icons.refresh, color: textTertiary, size: 22),
+                  : Icon(Icons.refresh, color: scheme.onSurfaceVariant, size: 22),
               onPressed: state.isLoading
                   ? null
                   : () => ref.read(favoritesProvider.notifier).loadFavorites(),
@@ -77,18 +77,18 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
           ],
         ),
       ),
-      body: _buildBody(state),
+      body: _buildBody(state, scheme),
     );
   }
 
-  Widget _buildBody(FavoritesState state) {
+  Widget _buildBody(FavoritesState state, ColorScheme scheme) {
     // 加载中
     if (state.isLoading &&
         state.movies.isEmpty &&
         state.boxSets.isEmpty &&
         state.people.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: primaryPink),
+      return Center(
+        child: CircularProgressIndicator(color: scheme.primary),
       );
     }
 
@@ -111,7 +111,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       return EmptyStateCard.noFavorites();
     }
 
-    // 三栏布局：使用 CustomScrollView + SliverList 替代 SingleChildScrollView + Column
+    // 三栏布局
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -147,11 +147,12 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     required _CardType itemType,
   }) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Text(
           '暂无收藏',
-          style: TextStyle(color: textTertiary, fontSize: 14),
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
         ),
       );
     }
@@ -194,14 +195,15 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Row(
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: textPrimary,
+            style: TextStyle(
+              color: scheme.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
@@ -209,7 +211,7 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '($count)',
-            style: const TextStyle(color: textTertiary, fontSize: 14),
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
           ),
         ],
       ),
@@ -233,6 +235,7 @@ class _FavoriteCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final imageUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
@@ -254,8 +257,8 @@ class _FavoriteCard extends ConsumerWidget {
               height: height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: surfaceColorL3,
-                border: Border.all(color: dividerColor),
+                color: scheme.surface.withOpacity(0.25),
+                border: Border.all(color: scheme.outlineVariant),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -266,9 +269,9 @@ class _FavoriteCard extends ConsumerWidget {
                         httpHeaders: headers.isNotEmpty ? headers : null,
                         memCacheWidth: 400,
                         placeholder: (_, __) => Container(
-                          color: surfaceColorL3,
-                          child: const Center(
-                            child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                          color: scheme.surface.withOpacity(0.25),
+                          child: Center(
+                            child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
                           ),
                         ),
                         errorWidget: (_, __, ___) => _PlaceholderIcon(
@@ -283,7 +286,7 @@ class _FavoriteCard extends ConsumerWidget {
               item.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: textPrimary, fontSize: 13,
+              style: TextStyle(color: scheme.onSurface, fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.2,
               ),
@@ -291,7 +294,7 @@ class _FavoriteCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               _subtitleText,
-              style: const TextStyle(color: textTertiary, fontSize: 11),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -347,6 +350,7 @@ class _PlaceholderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     IconData icon;
     switch (itemType) {
       case _CardType.person:
@@ -359,7 +363,7 @@ class _PlaceholderIcon extends StatelessWidget {
         icon = Icons.movie_outlined;
         break;
     }
-    return Icon(icon, color: textPlaceholder, size: 48);
+    return Icon(icon, color: scheme.onSurfaceVariant, size: 48);
   }
 }
 
@@ -369,11 +373,12 @@ class _FavoritePlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

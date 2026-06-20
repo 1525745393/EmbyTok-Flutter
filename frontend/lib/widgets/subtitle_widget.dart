@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import 'subtitle_renderer.dart';
 
 /// 字幕显示组件
@@ -88,7 +87,7 @@ class SubtitleStyle {
     return SubtitleStyle(
       fontSize: settings.fontSize,
       textColor: settings.textColor,
-      backgroundColor: Colors.black54,
+      backgroundColor: Colors.black.withOpacity(0.54),
       fontWeight: FontWeight.w600,
       lineHeight: 1.3,
       showBackground: true,

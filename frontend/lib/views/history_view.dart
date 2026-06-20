@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
@@ -34,18 +33,19 @@ class _HistoryViewState extends ConsumerState<HistoryView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(watchHistoryProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
-        title: const Row(
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        title: Row(
           children: [
-            Icon(Icons.history, color: historyPink, size: 24),
-            SizedBox(width: 8),
-            Text('观看历史'),
+            Icon(Icons.history, color: scheme.primary, size: 24),
+            const SizedBox(width: 8),
+            const Text('观看历史'),
           ],
         ),
       ),
@@ -55,8 +55,9 @@ class _HistoryViewState extends ConsumerState<HistoryView>
 
   Widget _buildBody(WatchHistoryState state) {
     if (state.isLoading && state.items.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: primaryPink),
+      final scheme = Theme.of(context).colorScheme;
+      return Center(
+        child: CircularProgressIndicator(color: scheme.primary),
       );
     }
     if (state.error != null && state.items.isEmpty) {
@@ -90,6 +91,7 @@ class _HistoryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
@@ -116,9 +118,9 @@ class _HistoryTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0x1AFFFFFF),
+          color: scheme.onSurface.withOpacity(0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: dividerColor),
+          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
         ),
         child: Row(
           children: [
@@ -132,10 +134,10 @@ class _HistoryTile extends ConsumerWidget {
                       fit: BoxFit.cover,
                       httpHeaders: headers.isNotEmpty ? headers : null,
                       memCacheWidth: 240,
-                      placeholder: (_, __) => _thumbPlaceholder(),
-                      errorWidget: (_, __, ___) => _thumbPlaceholder(),
+                      placeholder: (_, __) => _thumbPlaceholder(scheme),
+                      errorWidget: (_, __, ___) => _thumbPlaceholder(scheme),
                     )
-                  : _thumbPlaceholder(),
+                  : _thumbPlaceholder(scheme),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -146,8 +148,8 @@ class _HistoryTile extends ConsumerWidget {
                     item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textPrimary,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -155,8 +157,8 @@ class _HistoryTile extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     item.type,
-                    style: const TextStyle(
-                      color: primaryPink,
+                    style: TextStyle(
+                      color: scheme.primary,
                       fontSize: 12,
                     ),
                   ),
@@ -170,10 +172,9 @@ class _HistoryTile extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: progressPct,
-                              backgroundColor: dividerColor,
-                              valueColor:
-                                  const AlwaysStoppedAnimation<Color>(
-                                primaryPink,
+                              backgroundColor: scheme.onSurface.withOpacity(0.08),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                scheme.primary,
                               ),
                               minHeight: 4,
                             ),
@@ -182,8 +183,8 @@ class _HistoryTile extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Text(
                           '${(progressPct * 100).toInt()}%',
-                          style: const TextStyle(
-                              color: textTertiary, fontSize: 12),
+                          style: TextStyle(
+                              color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
                         ),
                       ],
                     ),
@@ -192,8 +193,8 @@ class _HistoryTile extends ConsumerWidget {
                   if (item.userData?.lastPlayedDate != null)
                     Text(
                       '上次观看：${item.userData!.lastPlayedDate!.split('T').first}',
-                      style: const TextStyle(
-                          color: textQuaternary, fontSize: 11),
+                      style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.4), fontSize: 11),
                     ),
                 ],
               ),
@@ -204,11 +205,11 @@ class _HistoryTile extends ConsumerWidget {
     );
   }
 
-  Widget _thumbPlaceholder() => Container(
+  Widget _thumbPlaceholder(ColorScheme scheme) => Container(
         width: 120,
         height: 72,
-        color: surfaceColorL3,
-        child: Icon(Icons.movie_outlined, color: textPlaceholder),
+        color: scheme.surface.withOpacity(0.3),
+        child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
       );
 }
 
@@ -218,11 +219,12 @@ class _HistoryPlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Text(item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: VideoPageItem(item: item),

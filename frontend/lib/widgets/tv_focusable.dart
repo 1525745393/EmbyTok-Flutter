@@ -5,8 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../utils/colors.dart';
-
 /// TV 焦点高亮容器
 ///
 /// 包裹任意子组件，在获得焦点时显示粉色圆角边框 + 缩放 1.05 动画。
@@ -116,7 +114,7 @@ class _TvFocusableState extends State<TvFocusable> {
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _isFocused
                   ? Border.all(
-                      color: primaryPink,
+                      color: Theme.of(context).colorScheme.primary,
                       width: widget.borderWidth,
                     )
                   : Border.all(color: Colors.transparent, width: widget.borderWidth),

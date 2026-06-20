@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../widgets/empty_state_card.dart';
@@ -78,14 +77,15 @@ class _SearchViewState extends ConsumerState<SearchView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(searchProvider);
     final history = ref.watch(searchHistoryProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: const Text('搜索'),
       ),
       body: SafeArea(
@@ -97,14 +97,16 @@ class _SearchViewState extends ConsumerState<SearchView>
               controller: _controller,
               focusNode: _focusNode,
               onChanged: _onQueryChanged,
-              style: const TextStyle(color: textPrimary, fontSize: 16),
+              style: TextStyle(color: scheme.onSurface, fontSize: 16),
               decoration: InputDecoration(
                 hintText: '输入关键词搜索...',
-                hintStyle: const TextStyle(color: textTertiary),
-                prefixIcon: const Icon(Icons.search, color: textTertiary),
+                hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                prefixIcon: Icon(Icons.search,
+                    color: scheme.onSurface.withOpacity(0.6)),
                 suffixIcon: _controller.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: textTertiary),
+                        icon: Icon(Icons.clear,
+                            color: scheme.onSurface.withOpacity(0.6)),
                         onPressed: () {
                           _controller.clear();
                           _onQueryChanged('');
@@ -112,7 +114,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                       )
                     : null,
                 filled: true,
-                fillColor: const Color(0x1AFFFFFF),
+                fillColor: scheme.onSurface.withOpacity(0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(28),
                   borderSide: BorderSide.none,
@@ -136,13 +138,15 @@ class _SearchViewState extends ConsumerState<SearchView>
     }
     // 加载中
     if (state.isLoading && state.results.isEmpty) {
-      return const _Centered(
+      final scheme = Theme.of(context).colorScheme;
+      return _Centered(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: primaryPink),
-            SizedBox(height: 12),
-            Text('搜索中...', style: TextStyle(color: textSecondary)),
+            CircularProgressIndicator(color: scheme.primary),
+            const SizedBox(height: 12),
+            Text('搜索中...',
+                style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
           ],
         ),
       );
@@ -166,10 +170,12 @@ class _SearchViewState extends ConsumerState<SearchView>
       );
     }
     // 正常结果列表
+    final scheme = Theme.of(context).colorScheme;
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: state.results.length,
-      separatorBuilder: (_, __) => const Divider(color: dividerColor, height: 1),
+      separatorBuilder: (_, __) =>
+          Divider(color: scheme.onSurface.withOpacity(0.1), height: 1),
       itemBuilder: (context, index) {
         final item = state.results[index];
         return _SearchResultTile(key: Key(item.id), item: item);
@@ -178,6 +184,7 @@ class _SearchViewState extends ConsumerState<SearchView>
   }
 
   Widget _buildHistory(List<String> history) {
+    final scheme = Theme.of(context).colorScheme;
     if (history.isEmpty) {
       return _Centered(
         child: EmptyStateCard.noSearchHistory(),
@@ -190,10 +197,12 @@ class _SearchViewState extends ConsumerState<SearchView>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('搜索历史', style: TextStyle(color: textSecondary, fontSize: 14)),
+              Text('搜索历史',
+                  style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
               TextButton(
                 onPressed: _clearHistory,
-                child: Text('清空', style: TextStyle(color: historyPink)),
+                child: Text('清空', style: TextStyle(color: scheme.primary)),
               ),
             ],
           ),
@@ -235,7 +244,7 @@ class _SearchResultTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 获取认证状态以构造带认证的图片 URL
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
@@ -270,7 +279,10 @@ class _SearchResultTile extends ConsumerWidget {
         item.title,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
+        style: TextStyle(
+            color: scheme.onSurface,
+            fontSize: 15,
+            fontWeight: FontWeight.w600),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
@@ -279,31 +291,33 @@ class _SearchResultTile extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: primaryPink,
+              color: scheme.primary,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               item.type,
-              style: const TextStyle(color: textPrimary, fontSize: 11),
+              style: TextStyle(color: scheme.onPrimary, fontSize: 11),
             ),
           ),
           const SizedBox(width: 8),
           Text(
             formatDuration(item.durationSeconds),
-            style: const TextStyle(color: textTertiary, fontSize: 12),
+            style: TextStyle(
+                color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
           ),
         ],
       ),
       ),
-      trailing: const Icon(Icons.play_circle_fill, color: historyPink, size: 28),
+      trailing: Icon(Icons.play_circle_fill, color: scheme.primary, size: 28),
     );
   }
 
   Widget _thumbPlaceholder() => Container(
         width: 120,
         height: 72,
-        color: Colors.grey[800],
-        child: const Icon(Icons.movie_outlined, color: textPlaceholder),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
+        child: Icon(Icons.movie_outlined,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
       );
 }
 
@@ -315,24 +329,28 @@ class _HistoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0x1AFFFFFF),
+          color: scheme.onSurface.withOpacity(0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: progressBackground),
+          border: Border.all(color: scheme.onSurface.withOpacity(0.15)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(color: textSecondary, fontSize: 13)),
+            Text(label,
+                style: TextStyle(
+                    color: scheme.onSurface.withOpacity(0.8), fontSize: 13)),
             const SizedBox(width: 6),
             GestureDetector(
               onTap: onRemove,
-              child: const Icon(Icons.close, size: 14, color: textTertiary),
+              child: Icon(Icons.close,
+                  size: 14, color: scheme.onSurface.withOpacity(0.5)),
             ),
           ],
         ),
@@ -349,19 +367,22 @@ class _ConfirmDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      backgroundColor: Colors.grey[900],
-      title: Text(title, style: const TextStyle(color: textPrimary)),
-      content: Text(message, style: const TextStyle(color: textSecondary)),
+      backgroundColor: scheme.surface,
+      title: Text(title, style: TextStyle(color: scheme.onSurface)),
+      content: Text(message,
+          style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: textSecondary)),
+          child: Text('取消',
+              style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
         ),
         ElevatedButton(
           onPressed: onConfirm,
-          style: ElevatedButton.styleFrom(backgroundColor: primaryPink),
-          child: const Text('确定', style: TextStyle(color: textPrimary)),
+          style: ElevatedButton.styleFrom(backgroundColor: scheme.primary),
+          child: Text('确定', style: TextStyle(color: scheme.onPrimary)),
         ),
       ],
     );
@@ -375,12 +396,14 @@ class _VideoPlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
-        title: Text(item.title, style: const TextStyle(color: textPrimary, fontSize: 16)),
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        title: Text(item.title,
+            style: TextStyle(color: scheme.onSurface, fontSize: 16)),
       ),
       body: VideoPageItem(item: item),
     );

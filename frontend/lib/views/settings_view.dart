@@ -4,80 +4,84 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final themeMode = ref.watch(themeModeProvider);
     final defaultRate = ref.watch(defaultPlaybackRateProvider);
     final defaultSubtitle = ref.watch(defaultSubtitleLanguageProvider);
     final auth = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        foregroundColor: textPrimary,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         title: Row(
-          children: const [
-            Icon(Icons.settings, color: historyPink, size: 24),
-            SizedBox(width: 8),
-            Text('设置'),
+          children: [
+            Icon(Icons.settings, color: scheme.primary, size: 24),
+            const SizedBox(width: 8),
+            const Text('设置'),
           ],
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _sectionTitle('外观'),
+          _sectionTitle('外观', scheme),
           _settingTile(
             icon: Icons.dark_mode_outlined,
             title: '主题',
             subtitle: _themeLabel(themeMode),
             onTap: () => _showThemeDialog(context, ref, themeMode),
+            scheme: scheme,
           ),
 
-          _sectionTitle('播放'),
+          _sectionTitle('播放', scheme),
           _settingTile(
             icon: Icons.speed_outlined,
             title: '默认倍速',
             subtitle: '${defaultRate.toStringAsFixed(1)}x',
             onTap: () => _showPlaybackRateDialog(context, ref, defaultRate),
+            scheme: scheme,
           ),
 
-          _sectionTitle('字幕'),
+          _sectionTitle('字幕', scheme),
           _settingTile(
             icon: Icons.closed_caption_outlined,
             title: '默认字幕语言',
             subtitle: defaultSubtitle.isEmpty ? '关闭' : defaultSubtitle,
             onTap: () => _showSubtitleDialog(context, ref, defaultSubtitle),
+            scheme: scheme,
           ),
 
-          _sectionTitle('存储'),
+          _sectionTitle('存储', scheme),
           _settingTile(
             icon: Icons.cleaning_services_outlined,
             title: '清除缓存',
             subtitle: '${_formatSize(ref.watch(cacheSizeProvider))}',
             onTap: () => _showClearCacheDialog(context, ref),
+            scheme: scheme,
           ),
 
-          _sectionTitle('账户'),
-          _profileTile(auth),
-          _logoutTile(context, ref),
+          _sectionTitle('账户', scheme),
+          _profileTile(auth, scheme),
+          _logoutTile(context, ref, scheme),
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _sectionTitle(String title) => Padding(
+  Widget _sectionTitle(String title, ColorScheme scheme) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
         child: Text(title,
-            style: const TextStyle(
-              color: textTertiary,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
@@ -89,49 +93,54 @@ class SettingsView extends ConsumerWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    required ColorScheme scheme,
   }) {
     return ListTile(
-      leading: Icon(icon, color: historyPink, size: 24),
+      leading: Icon(icon, color: scheme.primary, size: 24),
       title: Text(title,
-          style: const TextStyle(color: textPrimary, fontSize: 15)),
+          style: TextStyle(color: scheme.onSurface, fontSize: 15)),
       subtitle: Text(subtitle,
-          style: const TextStyle(color: textTertiary, fontSize: 13)),
-      trailing: const Icon(Icons.chevron_right, color: textTertiary),
+          style: TextStyle(
+              color: scheme.onSurfaceVariant.withOpacity(0.8), fontSize: 13)),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       onTap: onTap,
-      tileColor: const Color(0x1AFFFFFF),
+      tileColor: scheme.onSurface.withOpacity(0.05),
     );
   }
 
-  Widget _profileTile(AuthState auth) {
+  Widget _profileTile(AuthState auth, ColorScheme scheme) {
     final name = auth.user?.name ?? '未登录';
     return ListTile(
       leading: CircleAvatar(
         radius: 20,
-        backgroundColor: primaryPink,
+        backgroundColor: scheme.primary,
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+          style: TextStyle(
+              color: scheme.onPrimary, fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
       title: Text(name,
-          style: const TextStyle(color: textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+          style: TextStyle(
+              color: scheme.onSurface, fontSize: 15, fontWeight: FontWeight.w600)),
       subtitle: Text(auth.backendUrl ?? '未连接服务器',
-          style: const TextStyle(color: textTertiary, fontSize: 12)),
-      tileColor: const Color(0x1AFFFFFF),
+          style: TextStyle(
+              color: scheme.onSurfaceVariant.withOpacity(0.8), fontSize: 12)),
+      tileColor: scheme.onSurface.withOpacity(0.05),
     );
   }
 
-  Widget _logoutTile(BuildContext context, WidgetRef ref) {
+  Widget _logoutTile(BuildContext context, WidgetRef ref, ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
-          icon: const Icon(Icons.logout, color: textPrimary),
-          label: const Text('退出登录',
-              style: TextStyle(color: textPrimary, fontSize: 16)),
+          icon: Icon(Icons.logout, color: scheme.onError),
+          label: Text('退出登录',
+              style: TextStyle(color: scheme.onError, fontSize: 16)),
           style: ElevatedButton.styleFrom(
-            backgroundColor: errorColor,
+            backgroundColor: scheme.error,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -213,30 +222,31 @@ class SettingsView extends ConsumerWidget {
 
   // ---- 清除缓存 ----
   void _showClearCacheDialog(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text('清除缓存',
-            style: TextStyle(color: textPrimary)),
-        content: const Text('确定要清除全部缓存吗？这将删除临时下载的缩略图和字幕文件。',
-            style: TextStyle(color: textSecondary)),
+        backgroundColor: scheme.surface,
+        title: Text('清除缓存', style: TextStyle(color: scheme.onSurface)),
+        content: Text('确定要清除全部缓存吗？这将删除临时下载的缩略图和字幕文件。',
+            style: TextStyle(color: scheme.onSurfaceVariant)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: textSecondary)),
+            child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () {
               ref.read(cacheSizeProvider.notifier).clear();
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('缓存已清除'),
-                    backgroundColor: Colors.green),
+                SnackBar(
+                    content: const Text('缓存已清除'),
+                    backgroundColor: scheme.primary),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: errorColor),
-            child: const Text('清除', style: TextStyle(color: textPrimary)),
+            style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
+            child: Text('清除', style: TextStyle(color: scheme.onError)),
           ),
         ],
       ),
@@ -245,25 +255,26 @@ class SettingsView extends ConsumerWidget {
 
   // ---- 退出登录 ----
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: const Text('退出登录', style: TextStyle(color: textPrimary)),
-        content: const Text('确定要退出当前账号吗？',
-            style: TextStyle(color: textSecondary)),
+        backgroundColor: scheme.surface,
+        title: Text('退出登录', style: TextStyle(color: scheme.onSurface)),
+        content: Text('确定要退出当前账号吗？',
+            style: TextStyle(color: scheme.onSurfaceVariant)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: textSecondary)),
+            child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () {
               ref.read(authProvider.notifier).logout();
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: errorColor),
-            child: const Text('退出', style: TextStyle(color: textPrimary)),
+            style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
+            child: Text('退出', style: TextStyle(color: scheme.onError)),
           ),
         ],
       ),
@@ -306,9 +317,10 @@ class _OptionDialog<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return AlertDialog(
-      backgroundColor: Colors.grey[900],
-      title: Text(title, style: const TextStyle(color: textPrimary)),
+      backgroundColor: scheme.surface,
+      title: Text(title, style: TextStyle(color: scheme.onSurface)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: options.map((opt) {
@@ -316,10 +328,10 @@ class _OptionDialog<T> extends StatelessWidget {
           return ListTile(
             title: Text(opt.$1,
                 style: TextStyle(
-                    color: selected ? historyPink : textPrimary,
+                    color: selected ? scheme.primary : scheme.onSurface,
                     fontSize: 15)),
             trailing: selected
-                ? Icon(Icons.check, color: historyPink)
+                ? Icon(Icons.check, color: scheme.primary)
                 : null,
             onTap: () => onSelect(opt.$2),
           );
@@ -328,7 +340,7 @@ class _OptionDialog<T> extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('关闭', style: TextStyle(color: textSecondary)),
+          child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
         ),
       ],
     );

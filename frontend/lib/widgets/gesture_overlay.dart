@@ -322,7 +322,10 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                     end: _isSeekForward
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
-                    colors: [Colors.black38, Colors.transparent],
+                    colors: [
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.22),
+                      Colors.transparent
+                    ],
                   ),
                 ),
                 child: Column(
@@ -332,21 +335,31 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                       _isSeekForward
                           ? Icons.fast_forward
                           : Icons.fast_rewind,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       size: 48,
-                      shadows: const [
-                        Shadow(color: Colors.black54, blurRadius: 8),
+                      shadows: [
+                        Shadow(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.33),
+                            blurRadius: 8),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _isSeekForward ? '+10s' : '-10s',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         shadows: [
-                          Shadow(color: Colors.black54, blurRadius: 4),
+                          Shadow(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.33),
+                              blurRadius: 4),
                         ],
                       ),
                     ),
@@ -401,9 +414,10 @@ class _SeekPreviewBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.primary, width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -413,14 +427,14 @@ class _SeekPreviewBar extends StatelessWidget {
             children: [
               Icon(
                 isForward ? Icons.fast_forward : Icons.fast_rewind,
-                color: const Color(0xFFE91E63),
+                color: Theme.of(context).colorScheme.primary,
                 size: 18,
               ),
               const SizedBox(width: 6),
               Text(
                 offsetText,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
@@ -428,8 +442,11 @@ class _SeekPreviewBar extends StatelessWidget {
               const Spacer(),
               Text(
                 '${_format(current)} / ${_format(total)}',
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.7),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -439,9 +456,10 @@ class _SeekPreviewBar extends StatelessWidget {
           const SizedBox(height: 8),
           LinearProgressIndicator(
             value: clampedProgress,
-            backgroundColor: Colors.white24,
+            backgroundColor:
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.14),
             valueColor:
-                const AlwaysStoppedAnimation<Color>(Color(0xFFE91E63)),
+                AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
           ),
         ],
       ),
@@ -494,12 +512,15 @@ class _FlyingHeartState extends State<_FlyingHeart>
           opacity: _opacity.value,
           child: Transform.scale(
             scale: _scale.value,
-            child: const Icon(
+            child: Icon(
               Icons.favorite,
-              color: Color(0xFFFF5983),
+              color: Theme.of(context).colorScheme.primary,
               size: 96,
               shadows: [
-                Shadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, 4)),
+                Shadow(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.33),
+                    blurRadius: 16,
+                    offset: Offset(0, 4)),
               ],
             ),
           ),
@@ -519,14 +540,15 @@ class _SpeedBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black87,
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE91E63), width: 1.5),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.primary, width: 1.5),
       ),
       child: Text(
         '${speed.toStringAsFixed(1)}x',
-        style: const TextStyle(
-          color: Color(0xFFFF5983),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.primary,
           fontSize: 16,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,

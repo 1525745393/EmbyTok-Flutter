@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 
 // 登录页面：ConsumerWidget 直接读取 authProvider 状态
 class LoginView extends ConsumerStatefulWidget {

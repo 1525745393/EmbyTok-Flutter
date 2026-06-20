@@ -9,9 +9,10 @@ class LibrarySelector extends ConsumerStatefulWidget {
 
   /// 显示媒体库选择器底部弹窗
   static Future<void> show(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black87,
+      backgroundColor: scheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -28,6 +29,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
     final selectedId = ref.watch(selectedLibraryIdProvider);
 
@@ -40,16 +42,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           Container(
             margin: const EdgeInsets.only(top: 8, bottom: 16),
             width: 40, height: 4,
-            decoration: BoxDecoration(color: Colors.white30, borderRadius: BorderRadius.circular(2)),
+            decoration: BoxDecoration(color: scheme.onSurface.withOpacity(0.2), borderRadius: BorderRadius.circular(2)),
           ),
           // 标题
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.video_library, color: Color(0xFFE91E63), size: 20),
-                SizedBox(width: 8),
-                Text('选择媒体库', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                Icon(Icons.video_library, color: scheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Text('选择媒体库', style: TextStyle(color: scheme.onSurface, fontSize: 18, fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -57,13 +59,13 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: scheme.onSurface),
               decoration: InputDecoration(
                 hintText: '搜索媒体库...',
-                hintStyle: const TextStyle(color: Colors.white38),
-                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.4)),
+                prefixIcon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.6)),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.08),
+                fillColor: scheme.onSurface.withOpacity(0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               ),
               onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
@@ -72,22 +74,22 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           const SizedBox(height: 8),
           // 媒体库列表
           librariesAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+            loading: () => Padding(
+              padding: const EdgeInsets.all(32),
+              child: CircularProgressIndicator(color: scheme.primary),
             ),
-            error: (_, __) => const Padding(
-              padding: EdgeInsets.all(32),
-              child: Text('加载失败', style: TextStyle(color: Colors.white54)),
+            error: (_, __) => Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text('加载失败', style: TextStyle(color: scheme.onSurface.withOpacity(0.6))),
             ),
             data: (libraries) {
               final filtered = _searchQuery.isEmpty
                   ? libraries
                   : libraries.where((lib) => lib.name.toLowerCase().contains(_searchQuery)).toList();
               if (filtered.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('无匹配结果', style: TextStyle(color: Colors.white54)),
+                return Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text('无匹配结果', style: TextStyle(color: scheme.onSurface.withOpacity(0.6))),
                 );
               }
               return ConstrainedBox(
@@ -101,10 +103,10 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     return ListTile(
                       leading: Icon(
                         isSelected ? Icons.check_circle : Icons.circle_outlined,
-                        color: isSelected ? const Color(0xFFE91E63) : Colors.white38,
+                        color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.3),
                       ),
                       title: Text(lib.name, style: TextStyle(
-                        color: isSelected ? const Color(0xFFE91E63) : Colors.white,
+                        color: isSelected ? scheme.primary : scheme.onSurface,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       )),
                       onTap: () {

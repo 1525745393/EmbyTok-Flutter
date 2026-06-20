@@ -15,7 +15,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
-import '../utils/colors.dart';
+
 import '../utils/constants.dart';
 import 'gesture_overlay.dart';
 import 'subtitle_renderer.dart';
@@ -519,7 +519,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               end: Alignment.bottomRight,
               colors: isReady
                   ? [Colors.transparent, Colors.transparent]
-                  : [surfaceColorL2, surfaceColorL3],
+                  : [
+                      Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                      Theme.of(context).colorScheme.surface
+                    ],
             ),
           ),
         ),

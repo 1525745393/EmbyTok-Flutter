@@ -2,8 +2,6 @@
 
 import 'package:flutter/material.dart';
 
-import '../utils/colors.dart';
-
 // 双击触发的点赞心形动画（单次播放）
 class HeartAnimation extends StatefulWidget {
   final bool visible;
@@ -75,11 +73,11 @@ class _HeartAnimationState extends State<HeartAnimation>
                     scale: _scale.value,
                     child: const Icon(
                       Icons.favorite,
-                      color: historyPink,
+                      color: Theme.of(context).colorScheme.primary,
                       size: 96,
                       shadows: [
                         Shadow(
-                          color: black54,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.33),
                           blurRadius: 16,
                           offset: Offset(0, 4),
                         ),

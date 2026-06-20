@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
@@ -21,62 +20,54 @@ class VideoGridCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 获取认证信息用于构造图片 URL
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
 
-    // 获取图片 URL
     final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 400);
-
-    // 计算播放进度
     final progress = _calculateProgress(item);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: surfaceColorL2,
+          color: scheme.surface.withOpacity(0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 封面图 + 时长标签 + 进度条
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 封面图
-                  _buildCoverImage(imageUrl),
-                  // 右上角时长标签
+                  _buildCoverImage(imageUrl, scheme),
                   if (item.durationSeconds != null)
                     Positioned(
                       right: 6,
                       bottom: 6,
-                      child: _buildDurationBadge(item.durationSeconds!),
+                      child: _buildDurationBadge(item.durationSeconds!, scheme),
                     ),
-                  // 底部播放进度条
                   if (progress > 0)
                     Positioned(
                       left: 0,
                       right: 0,
                       bottom: 4,
-                      child: _buildProgressBar(progress),
+                      child: _buildProgressBar(progress, scheme),
                     ),
                 ],
               ),
             ),
-            // 标题区域
             Padding(
               padding: const EdgeInsets.all(8),
               child: Text(
                 item.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: textPrimary,
+                style: TextStyle(
+                  color: scheme.onSurface,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -88,58 +79,55 @@ class VideoGridCard extends ConsumerWidget {
     );
   }
 
-  // 构建封面图
-  Widget _buildCoverImage(String? imageUrl) {
+  Widget _buildCoverImage(String? imageUrl, ColorScheme scheme) {
     if (imageUrl == null || imageUrl.isEmpty) {
-      return _buildPlaceholder();
+      return _buildPlaceholder(scheme);
     }
 
     return CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
-      placeholder: (context, url) => _buildPlaceholder(),
-      errorWidget: (context, url, error) => _buildPlaceholder(),
+      placeholder: (context, url) => _buildPlaceholder(scheme),
+      errorWidget: (context, url, error) => _buildPlaceholder(scheme),
     );
   }
 
-  // 骨架屏占位图（加载中时显示渐变动画）
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(ColorScheme scheme) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            surfaceColorL3,
-            surfaceColorL2,
-            surfaceColorL3,
+            scheme.surface.withOpacity(0.4),
+            scheme.surface.withOpacity(0.25),
+            scheme.surface.withOpacity(0.4),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.video_library_outlined,
-          color: textQuaternary,
+          color: scheme.onSurfaceVariant.withOpacity(0.5),
           size: 40,
         ),
       ),
     );
   }
 
-  // 时长标签
-  Widget _buildDurationBadge(double seconds) {
+  Widget _buildDurationBadge(double seconds, ColorScheme scheme) {
     final duration = _formatDuration(seconds);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: durationBadgeBackground,
+        color: scheme.surface.withOpacity(0.87),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         duration,
-        style: const TextStyle(
-          color: textPrimary,
+        style: TextStyle(
+          color: scheme.onSurface,
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
@@ -147,22 +135,20 @@ class VideoGridCard extends ConsumerWidget {
     );
   }
 
-  // 播放进度条
-  Widget _buildProgressBar(double progress) {
+  Widget _buildProgressBar(double progress, ColorScheme scheme) {
     return Container(
       height: 3,
-      color: progressBackground,
+      color: scheme.onSurface.withOpacity(0.2),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress.clamp(0.0, 1.0),
         child: Container(
-          color: primaryPink,
+          color: scheme.primary,
         ),
       ),
     );
   }
 
-  // 计算播放进度（0.0 ~ 1.0）
   double _calculateProgress(MediaItem item) {
     if (item.userData == null || item.durationSeconds == null) return 0.0;
     if (item.durationSeconds! <= 0) return 0.0;
@@ -171,7 +157,6 @@ class VideoGridCard extends ConsumerWidget {
     return (positionSeconds / item.durationSeconds!).clamp(0.0, 1.0);
   }
 
-  // 格式化时长（秒 -> HH:MM:SS 或 MM:SS）
   String _formatDuration(double seconds) {
     final totalSeconds = seconds.round();
     final hours = totalSeconds ~/ 3600;

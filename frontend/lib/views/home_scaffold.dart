@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 import '../utils/constants.dart';
 import 'feed_view.dart';
 import 'search_view.dart';

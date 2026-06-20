@@ -673,31 +673,31 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             httpHeaders: headers.isNotEmpty ? headers : null,
             memCacheWidth: 800,
             placeholder: (_, __) => Container(
-              color: Colors.grey[900],
+              color: scheme.surface.withOpacity(0.3),
               child: Center(
                 child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
               ),
             ),
             errorWidget: (_, __, ___) => Container(
-              color: Colors.grey[900],
-              child: const Center(
-                child: Icon(Icons.broken_image, size: 64, color: Colors.white30),
+              color: scheme.surface.withOpacity(0.3),
+              child: Center(
+                child: Icon(Icons.broken_image, size: 64, color: scheme.onSurface.withOpacity(0.4)),
               ),
             ),
           )
         else
           Container(
-            color: Colors.grey[900],
+            color: scheme.surface.withOpacity(0.3),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.movie_outlined, size: 64, color: Colors.white30),
+                  Icon(Icons.movie_outlined, size: 64, color: scheme.onSurface.withOpacity(0.4)),
                   if (_hasError && _errorMessage != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
                     ),
                   ],
                 ],

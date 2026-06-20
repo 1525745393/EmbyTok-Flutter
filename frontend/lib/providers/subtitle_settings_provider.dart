@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../utils/colors.dart';
 import '../utils/constants.dart';
 
 /// 字幕设置状态：语言、字号、颜色、位置
@@ -75,7 +74,7 @@ class SubtitleSettings {
   /// 根据颜色名返回实际的文字颜色
   Color get textColor {
     if (color == kSubtitleColorYellow) return const Color(0xFFFFFF00);
-    return textPrimary;
+    return Colors.white;
   }
 
   /// 根据位置名返回实际的对齐方式

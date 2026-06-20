@@ -8,7 +8,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../utils/colors.dart';
 import 'feed_view.dart';
 
 class TVRootView extends ConsumerWidget {
@@ -18,35 +17,36 @@ class TVRootView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 目前占位：直接复用 FeedView，后续将用 TV 专用界面替换
     // TV 模式下 FeedView 行为与标准模式一致，Task 10 再增强。
-    return const Scaffold(
-      backgroundColor: backgroundColor,
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: scheme.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
                 children: [
-                  Icon(Icons.tv, color: primaryPink, size: 28),
-                  SizedBox(width: 12),
+                  Icon(Icons.tv, color: scheme.primary, size: 28),
+                  const SizedBox(width: 12),
                   Text(
                     'EmbyTok（TV 模式）',
                     style: TextStyle(
-                      color: textPrimary,
+                      color: scheme.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Text(
                     '后续将替换为电视专用首页',
-                    style: TextStyle(color: textTertiary, fontSize: 14),
+                    style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
                   ),
                 ],
               ),
             ),
-            Expanded(child: FeedView()),
+            const Expanded(child: FeedView()),
           ],
         ),
       ),

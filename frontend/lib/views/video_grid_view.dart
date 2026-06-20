@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
-import '../utils/colors.dart';
 import '../widgets/video_grid_card.dart';
 
 // 视频网格视图
@@ -41,19 +40,20 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   @override
   Widget build(BuildContext context) {
     // 视频列表状态（原始列表）
+    final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
     // 过滤后的视频列表（用于显示）
     final displayItems = ref.watch(filteredVideoListProvider);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        backgroundColor: backgroundColor,
-        title: const Text(
+        backgroundColor: scheme.surface,
+        title: Text(
           '视频列表',
-          style: TextStyle(color: textPrimary),
+          style: TextStyle(color: scheme.onSurface),
         ),
-        iconTheme: const IconThemeData(color: textPrimary),
+        iconTheme: IconThemeData(color: scheme.onSurface),
       ),
       body: _buildBody(videoState, displayItems),
     );
@@ -61,10 +61,11 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
 
   // 根据状态构建内容
   Widget _buildBody(VideoListState videoState, List<MediaItem> displayItems) {
+    final scheme = Theme.of(context).colorScheme;
     // 加载中（首次加载且无数据）
     if (displayItems.isEmpty && videoState.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: primaryPink),
+      return Center(
+        child: CircularProgressIndicator(color: scheme.primary),
       );
     }
 
@@ -80,7 +81,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
           videoState.items.isEmpty
               ? '暂无视频，请选择其他媒体库'
               : '没有符合筛选条件的视频',
-          style: const TextStyle(color: textSecondary, fontSize: 16),
+          style: TextStyle(
+              color: scheme.onSurface.withOpacity(0.6), fontSize: 16),
         ),
       );
     }
@@ -123,8 +125,9 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
             itemBuilder: (context, index) {
               // 末尾加载指示器
               if (index >= displayItems.length) {
-                return const Center(
-                  child: CircularProgressIndicator(color: primaryPink),
+                final scheme = Theme.of(context).colorScheme;
+                return Center(
+                  child: CircularProgressIndicator(color: scheme.primary),
                 );
               }
 
@@ -143,17 +146,19 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
 
   // 错误状态 UI
   Widget _buildErrorState(String error) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 48),
+            Icon(Icons.error_outline, color: scheme.error, size: 48),
             const SizedBox(height: 12),
             Text(
               error,
-              style: const TextStyle(color: textSecondary, fontSize: 16),
+              style: TextStyle(
+                  color: scheme.onSurface.withOpacity(0.7), fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -163,8 +168,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
                 ref.read(videoListProvider.notifier).refresh(libraryId: libId);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPink,
-                foregroundColor: textPrimary,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
               ),
               child: const Text('重试'),
             ),

@@ -71,7 +71,7 @@ class _PosterCard extends ConsumerWidget {
         // 点击海报进入视频播放
         Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => Scaffold(
-            backgroundColor: Colors.black,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             body: VideoPageItem(item: item),
           ),
         ));
@@ -90,35 +90,42 @@ class _PosterCard extends ConsumerWidget {
                 httpHeaders: item.authHeaders(authState.token),
                 memCacheWidth: 400,
                 placeholder: (_, __) => Container(
-                  color: Colors.grey[900],
+                  color: scheme.surface.withOpacity(0.3),
                   child: Center(
                     child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: Colors.grey[900],
-                  child: const Icon(Icons.broken_image, color: Colors.white30),
+                  color: scheme.surface.withOpacity(0.3),
+                  child: Icon(Icons.broken_image, color: scheme.onSurface.withOpacity(0.4)),
                 ),
               )
             else
-              Container(color: Colors.grey[900], child: const Icon(Icons.movie, color: Colors.white30)),
+              Container(
+                color: scheme.surface.withOpacity(0.3),
+                child: Icon(Icons.movie, color: scheme.onSurface.withOpacity(0.4)),
+              ),
             // 底部渐变 + 标题
             Positioned(
               left: 0, right: 0, bottom: 0,
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
-                    colors: [Colors.black87, Colors.transparent],
+                    colors: [
+                      Colors.black.withOpacity(0.75),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
                 child: Text(
                   item.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
