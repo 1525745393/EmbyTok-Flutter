@@ -665,7 +665,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 0,
                 toolbarVisible ? MediaQuery.of(context).padding.top + rs(48) : rs(32),
                 rs(6),
-                rs(20, 1.3) + bottomPadding,
+                toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
               ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
