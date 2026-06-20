@@ -1,3 +1,16 @@
+# [1.56.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.2...v1.56.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* add exit confirmation dialog and fullscreen back key handling ([a61682e](https://github.com/1525745393/EmbyTok-Flutter/commit/a61682e42be9c06be4b8a8f819cf18002fbb77e4))
+* resolve flutter analyze errors ([9352cbe](https://github.com/1525745393/EmbyTok-Flutter/commit/9352cbe3e4c702de567eb78a6cd221b74d51acd1))
+
+
+### Features
+
+* save progress ([5150787](https://github.com/1525745393/EmbyTok-Flutter/commit/51507879880dd75287fe3e354e2a0b525750fced))
+
 ## [1.55.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.1...v1.55.2) (2026-06-20)
 
 
