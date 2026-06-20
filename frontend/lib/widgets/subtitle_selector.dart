@@ -363,7 +363,7 @@ Future<void> showSubtitleSelector({
   String? selectedTrackId,
   SubtitleSelectedCallback? onSelected,
 }) async {
-  await showModalBottomSheet(
+  await showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
