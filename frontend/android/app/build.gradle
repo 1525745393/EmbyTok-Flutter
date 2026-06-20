@@ -79,10 +79,12 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
-        }
-        release {
             minifyEnabled false
             shrinkResources false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
             // 优先使用 release 签名配置（如果 key.properties 存在），否则回退到 debug 签名
             signingConfig signingConfigs.release ?: signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

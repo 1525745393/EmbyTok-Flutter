@@ -100,6 +100,7 @@ class PosterAvatar extends ConsumerWidget {
                                 imageUrl: actorImageUrl,
                                 fit: BoxFit.cover,
                                 httpHeaders: headers.isNotEmpty ? headers : null,
+                                memCacheWidth: 96,
                                 placeholder: (_, __) => Icon(Icons.person,
                                     color: scheme.onSurface.withOpacity(0.54),
                                     size: rs(24)),
@@ -173,6 +174,7 @@ class PosterAvatar extends ConsumerWidget {
                   imageUrl: posterUrl,
                   fit: BoxFit.cover,
                   httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
+                  memCacheWidth: 80,
                   placeholder: (_, __) => Icon(Icons.music_video,
                       color: scheme.onSurface.withOpacity(0.54), size: rs(20)),
                   errorWidget: (_, __, ___) => Icon(Icons.music_video,
@@ -375,9 +377,12 @@ class DiscMuteButton extends ConsumerWidget {
             ),
             image: posterUrl.isNotEmpty
                 ? DecorationImage(
-                    image: CachedNetworkImageProvider(
-                      posterUrl,
-                      headers: httpHeaders,
+                    image: ResizeImage(
+                      CachedNetworkImageProvider(
+                        posterUrl,
+                        headers: httpHeaders,
+                      ),
+                      width: 160,
                     ),
                     fit: BoxFit.cover,
                   )

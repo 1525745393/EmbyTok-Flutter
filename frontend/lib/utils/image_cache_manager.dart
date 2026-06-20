@@ -8,8 +8,9 @@
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// 应用内默认图片缓存管理器
-/// - 内存缓存：最多 200 张 / 最大 100MB
-/// - 磁盘缓存：最大 200MB
+/// - 磁盘缓存：最多 100 张缩略图 / 最大 50MB
+/// - 内存缓存由 Flutter ImageCache 统一管理（main.dart 中设置为 50 张 / 30MB）
+/// - 降低缓存数量以适配 512MB heap 限制的 Android 设备
 class AppImageCacheManager {
   static const String _cacheKey = 'embbytokImageCache';
 
@@ -18,7 +19,7 @@ class AppImageCacheManager {
     Config(
       _cacheKey,
       stalePeriod: const Duration(days: 7),
-      maxNrOfCacheObjects: 200,
+      maxNrOfCacheObjects: 100,
       repo: JsonCacheInfoRepository(databaseName: _cacheKey),
       fileService: HttpFileService(),
     ),
@@ -28,8 +29,8 @@ class AppImageCacheManager {
   static final CacheManager largeImage = CacheManager(
     Config(
       '${_cacheKey}Large',
-      stalePeriod: const Duration(days: 30),
-      maxNrOfCacheObjects: 100,
+      stalePeriod: const Duration(days: 7),
+      maxNrOfCacheObjects: 50,
       repo: JsonCacheInfoRepository(databaseName: '${_cacheKey}Large'),
       fileService: HttpFileService(),
     ),

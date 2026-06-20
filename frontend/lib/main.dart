@@ -8,12 +8,14 @@ import 'app.dart';
 /// - 初始化 Riverpod 状态管理
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // 限制 Flutter 内置图片缓存：最多 200 张，总大小不超过 100MB
+  // 限制 Flutter 内置图片缓存：最多 50 张，总大小不超过 30MB
   // 这是防止长时间滑动 feed 视图导致图片内存积累的关键优化
+  // - 512MB heap 限制的设备需更保守，避免 OOM
+  // - 配合各组件的 memCacheWidth 限制图片解码尺寸，进一步降低占用
   if (!kIsWeb) {
     PaintingBinding.instance.imageCache
-      ..maximumSize = 200
-      ..maximumSizeBytes = 100 * 1024 * 1024; // 100MB
+      ..maximumSize = 50
+      ..maximumSizeBytes = 30 * 1024 * 1024; // 30MB
   }
   runApp(const ProviderScope(child: EmbyTokApp()));
 }
