@@ -38,6 +38,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   Timer? _singleTapTimer;
   bool _pendingSingleTap = false;
   bool _isLongPressing = false;
+  double _originalRate = 1.0; // 保存长按前的原始播放速度
 
   // 水平拖动状态
   bool _isDragging = false;
@@ -142,9 +143,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     if (c == null || !c.value.isInitialized) return;
     try {
       _isLongPressing = true;
+      _originalRate = c.value.playbackSpeed; // 先保存原始速度
       c.setPlaybackSpeed(kLongPressPlaybackRate);
-      // 同步更新 playbackRateProvider，保持状态一致
-      ref.read(playbackRateProvider.notifier).state = kLongPressPlaybackRate;
       if (mounted) setState(() {});
     } catch (e) {
       debugPrint('_onLongPressStart error: $e');
@@ -157,7 +157,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
     try {
-      c.setPlaybackSpeed(ref.read(playbackRateProvider));
+      c.setPlaybackSpeed(_originalRate); // 用保存的原始速度恢复
+      ref.read(playbackRateProvider.notifier).state = _originalRate;
     } catch (e) {
       debugPrint('_onLongPressEnd error: $e');
     }
@@ -368,14 +369,6 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
               ),
             ),
           ),
-        // 长按倍速提示
-        if (_isLongPressing)
-          const IgnorePointer(
-            child: Positioned(
-              top: 48,
-              child: _SpeedBadge(speed: kLongPressPlaybackRate),
-            ),
-          ),
       ],
     );
   }
@@ -526,34 +519,6 @@ class _FlyingHeartState extends State<_FlyingHeart>
           ),
         );
       },
-    );
-  }
-}
-
-// ---- 内部子组件：倍速徽章（长按期间显示） ----
-class _SpeedBadge extends StatelessWidget {
-  final double speed;
-  const _SpeedBadge({required this.speed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: Theme.of(context).colorScheme.primary, width: 1.5),
-      ),
-      child: Text(
-        '${speed.toStringAsFixed(1)}x',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-        ),
-      ),
     );
   }
 }

@@ -161,6 +161,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (!mounted) return;
     final controller = _videoController;
     if (controller == null) return;
+    // 同步播放状态到 Provider，确保中央按钮和控制条状态一致
+    ref.read(isPlayingProvider.notifier).state = controller.value.isPlaying;
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
