@@ -1,3 +1,10 @@
+# [1.45.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.44.0...v1.45.0) (2026-06-20)
+
+
+### Features
+
+* save progress ([e1ee34f](https://github.com/1525745393/EmbyTok-Flutter/commit/e1ee34f61a914756cc136ac45d8c06a630860016))
+
 # [1.44.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.43.1...v1.44.0) (2026-06-20)
 
 
