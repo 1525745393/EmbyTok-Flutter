@@ -1,3 +1,10 @@
+## [1.43.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.43.0...v1.43.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* resolve compile errors in search_view and heart_animation ([fdbd6b3](https://github.com/1525745393/EmbyTok-Flutter/commit/fdbd6b345ac37fbe926cde7c60cc0e955888022b))
+
 # [1.43.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.42.0...v1.43.0) (2026-06-20)
 
 
