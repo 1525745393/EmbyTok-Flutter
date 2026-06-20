@@ -1,3 +1,10 @@
+# [1.50.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.49.0...v1.50.0) (2026-06-20)
+
+
+### Features
+
+* apply changes ([2f0032f](https://github.com/1525745393/EmbyTok-Flutter/commit/2f0032f4315b08a2d1445f5c64e7717f6d528eff))
+
 # [1.49.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.48.0...v1.49.0) (2026-06-20)
 
 
