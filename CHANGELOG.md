@@ -1,3 +1,10 @@
+## [1.56.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.1...v1.56.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* **memory:** reduce image cache and optimize Android build to prevent OOM ([d030aa9](https://github.com/1525745393/EmbyTok-Flutter/commit/d030aa9264aba2c95e63137f1f370faebcc6d641))
+
 ## [1.56.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.0...v1.56.1) (2026-06-20)
 
 
