@@ -666,7 +666,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 children: [
                   const AutoPlayButton(),
                   SizedBox(height: rs(16, 1.5)),
-                  PosterAvatar(item: widget.item, onTap: _togglePlay),
+                  PosterAvatar(item: widget.item),
                   SizedBox(height: rs(16, 1.5)),
                   PressableActionButton(
                     icon: favorited ? Icons.favorite : Icons.favorite_border,
