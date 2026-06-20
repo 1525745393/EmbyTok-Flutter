@@ -1,3 +1,10 @@
+## [1.56.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.0...v1.56.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **app:** replace WillPopScope with PopScope for proper back navigation ([ecadeed](https://github.com/1525745393/EmbyTok-Flutter/commit/ecadeed9b20d0c09b263473c2707a859c214c9d1))
+
 # [1.56.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.55.2...v1.56.0) (2026-06-20)
 
 
