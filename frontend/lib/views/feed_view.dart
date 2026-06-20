@@ -445,36 +445,36 @@ class _FeedViewState extends ConsumerState<FeedView>
         return result ?? false;
       },
       child: Scaffold(
-      backgroundColor: scheme.surface,
-      body: Stack(
-        children: [
-          // 主体内容：根据视图模式切换
-          if (viewMode == ViewMode.feed)
-            _buildVideoPageView(videoState)
-          else
-            const PosterGridView(),
+        backgroundColor: scheme.surface,
+        body: Stack(
+          children: [
+            // 主体内容：根据视图模式切换
+            if (viewMode == ViewMode.feed)
+              _buildVideoPageView(videoState)
+            else
+              const PosterGridView(),
 
-          // 顶部：媒体库切换器 + 视图切换按钮
-          Positioned(
-            left: 0, right: 0, top: 0,
-            child: _buildTopBar(viewMode),
-          ),
+            // 顶部：媒体库切换器 + 视图切换按钮
+            Positioned(
+              left: 0, right: 0, top: 0,
+              child: _buildTopBar(viewMode),
+            ),
 
-          // 快捷键帮助面板
-          if (_showHelp)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () => setState(() => _showHelp = false),
-                child: Container(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
-                  alignment: Alignment.center,
-                  child: const KeyboardHelpPanel(),
+            // 快捷键帮助面板
+            if (_showHelp)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: () => setState(() => _showHelp = false),
+                  child: Container(
+                    color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
+                    alignment: Alignment.center,
+                    child: const KeyboardHelpPanel(),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 

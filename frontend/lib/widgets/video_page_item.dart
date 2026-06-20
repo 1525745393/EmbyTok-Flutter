@@ -826,17 +826,29 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       ],
     );
 
-    // 横屏模式：黑色背景 + 居中
+    // 使用 WillPopScope 处理返回键：全屏模式下先退出全屏
+    Widget result;
     if (_isFullscreen) {
-      return Semantics(
+      result = Semantics(
         label: '横屏全屏视频播放',
         child: Container(
           color: scheme.surface,
           child: content,
         ),
       );
+    } else {
+      result = Semantics(label: '视频播放区域，双击点赞此视频', child: content);
     }
 
-    return Semantics(label: '视频播放区域，双击点赞此视频', child: content);
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isFullscreen) {
+          _toggleFullscreen();
+          return false;
+        }
+        return true;
+      },
+      child: result,
+    );
   }
 }
