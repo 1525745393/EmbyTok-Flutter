@@ -5,6 +5,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -150,12 +151,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 立即播放：跳转到 VideoPageItem 播放页
   void _playItem(MediaItem item) {
-    Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _DetailPlayPage(item: item),
-      ),
-    );
+    context.go('/play/${item.id}', extra: item);
   }
 
   // 切换收藏

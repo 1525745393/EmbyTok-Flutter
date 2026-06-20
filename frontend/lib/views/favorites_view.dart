@@ -3,6 +3,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -317,28 +318,13 @@ class _FavoriteCard extends ConsumerWidget {
   void _navigateTo(BuildContext context) {
     switch (itemType) {
       case _CardType.movie:
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => _FavoritePlayPage(item: item),
-          ),
-        );
+        context.go('/play/${item.id}', extra: item);
         break;
       case _CardType.boxSet:
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BoxsetDetailView(item: item),
-          ),
-        );
+        context.go('/boxset/${item.id}', extra: item);
         break;
       case _CardType.person:
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PersonDetailView(person: item),
-          ),
-        );
+        context.go('/person/${item.id}', extra: item);
         break;
     }
   }

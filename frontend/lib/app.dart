@@ -9,13 +9,16 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
+import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
 import 'views/history_view.dart';
 import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
+import 'views/person_detail_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
+import 'widgets/video_page_item.dart';
 
 class EmbyTokApp extends ConsumerWidget {
   const EmbyTokApp({super.key});
@@ -85,6 +88,67 @@ class EmbyTokApp extends ConsumerWidget {
             return ItemDetailView(
               itemId: itemId,
               initialItem: initialItem,
+            );
+          },
+        ),
+        // 演员/人物详情页：/person/:personId
+        GoRoute(
+          path: '/person/:personId',
+          builder: (context, state) {
+            final personId = state.pathParameters['personId'] ?? '';
+            // 支持通过 extra 传入已加载的 MediaItem
+            final person = state.extra is MediaItem
+                ? state.extra as MediaItem
+                : MediaItem(
+                    id: personId,
+                    title: '',
+                    name: '',
+                    type: 'Person',
+                  );
+            return PersonDetailView(person: person);
+          },
+        ),
+        // 合集/剧集详情页：/boxset/:boxsetId
+        GoRoute(
+          path: '/boxset/:boxsetId',
+          builder: (context, state) {
+            final boxsetId = state.pathParameters['boxsetId'] ?? '';
+            final item = state.extra is MediaItem
+                ? state.extra as MediaItem
+                : MediaItem(
+                    id: boxsetId,
+                    title: '',
+                    name: '',
+                    type: 'Boxset',
+                  );
+            return BoxsetDetailView(item: item);
+          },
+        ),
+        // 视频播放页：/play/:itemId
+        GoRoute(
+          path: '/play/:itemId',
+          builder: (context, state) {
+            final itemId = state.pathParameters['itemId'] ?? '';
+            final item = state.extra is MediaItem
+                ? state.extra as MediaItem
+                : MediaItem(
+                    id: itemId,
+                    title: '',
+                    name: '',
+                    type: 'Video',
+                  );
+            return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              appBar: AppBar(
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                title: Text(item.title,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 16,
+                    )),
+              ),
+              body: VideoPageItem(item: item),
             );
           },
         ),

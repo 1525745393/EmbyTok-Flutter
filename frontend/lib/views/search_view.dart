@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -254,10 +255,7 @@ class _SearchResultTile extends ConsumerWidget {
 
     return ListTile(
       onTap: () {
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(builder: (_) => _VideoPlayPage(item: item)),
-        );
+        context.go('/play/${item.id}', extra: item);
       },
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: ClipRRect(

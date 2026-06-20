@@ -3,6 +3,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -109,10 +110,7 @@ class _HistoryTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
-        Navigator.push<void>(
-          context,
-          MaterialPageRoute(builder: (_) => _HistoryPlayPage(item: item)),
-        );
+        context.go('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
