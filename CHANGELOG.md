@@ -1,3 +1,12 @@
+## [1.40.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.40.0...v1.40.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **ci:** 修复 feed_view.dart 可空类型比较错误 ([eacfa7b](https://github.com/1525745393/EmbyTok-Flutter/commit/eacfa7bc268eb16c7e04b3e5e9a1178e7930f7d3))
+* **ci:** 修复 imageUrl 调用参数错误 — 命名参数不能作为位置参数传递 ([58026dc](https://github.com/1525745393/EmbyTok-Flutter/commit/58026dc7089258031387845eb12832a3f366e26c))
+* 修复 flutter analyze warning ([cb65152](https://github.com/1525745393/EmbyTok-Flutter/commit/cb6515235af9bf50769852994ac22aa9c2a7bfd1))
+
 # [1.40.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.39.0...v1.40.0) (2026-06-19)
 
 
