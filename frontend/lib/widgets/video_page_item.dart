@@ -652,7 +652,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       return Semantics(
         label: '横屏全屏视频播放',
         child: Container(
-          color: backgroundColor,
+          color: Theme.of(context).colorScheme.surface,
           child: content,
         ),
       );
@@ -683,12 +683,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             width: responsiveSize(60),
             height: responsiveSize(60),
             decoration: BoxDecoration(
-              color: const Color(0x99000000),
+              color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.play_arrow,
-              color: textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
               size: responsiveSize(40),
             ),
           ),
@@ -699,6 +699,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // 倍速状态徽章：当播放速度 > 1x 时显示在右上角（与 EmbyTok 原版一致）
   Widget _buildSpeedBadge(double speed) {
+    final scheme = Theme.of(context).colorScheme;
     return Positioned(
       top: responsiveSize(40),
       left: 0,
@@ -707,7 +708,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: responsiveSize(12), vertical: responsiveSize(6)),
           decoration: BoxDecoration(
-            color: Colors.black87,
+            // 背景色：深色半透明（原 Colors.black87）
+            color: scheme.surface.withOpacity(0.87),
             borderRadius: BorderRadius.circular(responsiveSize(16)),
           ),
           child: Row(
@@ -715,14 +717,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             children: [
               Icon(
                 Icons.flash_on,
-                color: const Color(0xFFFFD700),
+                // 金色图标用 tertiary（自动生成的第三色）
+                color: scheme.tertiary,
                 size: responsiveSize(14),
               ),
               SizedBox(width: responsiveSize(4)),
               Text(
                 '${speed.toStringAsFixed(1)}x',
                 style: TextStyle(
-                  color: Colors.white,
+                  // 文字色：白色（原 Colors.white）
+                  color: scheme.onSurface,
                   fontSize: responsiveSize(12, 1.3),
                   fontWeight: FontWeight.bold,
                 ),
@@ -746,6 +750,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         ? '$seasonEp ${nextItem.title}'
         : nextItem.title;
 
+    final scheme = Theme.of(context).colorScheme;
     return Positioned(
       left: 16,
       right: 16,
@@ -755,24 +760,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: const Color(0xE6000000), // 90% 不透明黑色
+            // 深色 90% 不透明（原 Color(0xE6000000)）
+            color: scheme.surface.withOpacity(0.9),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: primaryPink, width: 1),
+            border: Border.all(color: scheme.primary, width: 1),
           ),
           child: Row(
             children: [
               // 左侧：下一集图标 + 标题信息
-              const Icon(Icons.skip_next, color: primaryPink, size: 28),
+              Icon(Icons.skip_next, color: scheme.primary, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       '即将播放下一集',
                       style: TextStyle(
-                        color: textSecondary,
+                        color: scheme.onSurfaceVariant,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -782,8 +788,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       nextTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: textPrimary,
+                      style: TextStyle(
+                        color: scheme.onSurface,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -796,13 +802,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 margin: const EdgeInsets.symmetric(horizontal: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: primaryPink,
+                  color: scheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_nextUpCountdown}s',
-                  style: const TextStyle(
-                    color: textPrimary,
+                  style: TextStyle(
+                    color: scheme.onPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -814,13 +820,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: primaryPink,
+                    color: scheme.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
+                  child: Text(
                     '立即播放',
                     style: TextStyle(
-                      color: textPrimary,
+                      color: scheme.onPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -829,7 +835,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ),
               // 取消按钮
               IconButton(
-                icon: const Icon(Icons.close, color: textSecondary, size: 20),
+                icon: Icon(Icons.close, color: scheme.onSurfaceVariant, size: 20),
                 onPressed: _cancelNextUp,
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -847,6 +853,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Widget _buildBottomGradient() {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     return Positioned(
       left: 0,
@@ -859,23 +866,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Container(
           padding: EdgeInsets.fromLTRB(
             16,
-            80, // 顶部距离：从视频画面上方开始计算（避开右侧操作按钮的垂直范围
+            80,
             96,
-            // 底部距离：导航栏可见时 = kBottomNavHeight + 手势条 + 24px；隐藏时 = 手势条 + 24px
             toolbarVisible
                 ? kBottomNavHeight + bottomPadding + 24
                 : bottomPadding + 24,
           ),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Color(0xCC000000),
-                  Color(0x80000000),
+                  scheme.surface.withOpacity(0.8),
+                  scheme.surface.withOpacity(0.5),
                   Colors.transparent,
                 ],
-                stops: [0.0, 0.45, 1.0],
+                stops: const [0.0, 0.45, 1.0],
               ),
           ),
         child: Column(
@@ -885,13 +891,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: primaryPink,
+                color: scheme.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 widget.item.type,
-                style: const TextStyle(
-                  color: textPrimary,
+                style: TextStyle(
+                  color: scheme.onPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -907,8 +913,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     _titleText(),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: textPrimary,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -918,8 +924,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 if (widget.item.displayRating != null && widget.item.displayRating! > 0)
                   Text(
                     '★ ${widget.item.displayRating!.toStringAsFixed(1)}',
-                    style: const TextStyle(
-                      color: primaryPink,
+                    style: TextStyle(
+                      color: scheme.primary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -932,8 +938,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 widget.item.overview!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: textSecondary,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
                   fontSize: 14,
                 ),
               ),
@@ -963,6 +969,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final playMode = ref.watch(playbackLevelProvider);
     final actionButtonSize = responsiveSize(40);
+    final scheme = Theme.of(context).colorScheme;
 
     return Positioned(
       right: 0,
@@ -978,12 +985,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           responsiveSize(6),
           responsiveSize(20, 1.3) + bottomPadding,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.centerRight,
             end: Alignment.centerLeft,
             colors: [
-              Color(0x8A000000),
+              scheme.surface.withOpacity(0.54),
               Colors.transparent,
             ],
           ),
@@ -991,44 +998,36 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // 1. 连播开关（最顶部）
             _buildAutoPlayButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 2. 海报/演员头像（TikTok 风格）
             _buildPosterAvatar(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 3. 点赞
+            // 点赞
             _buildActionButton(
               favorited ? Icons.favorite : Icons.favorite_border,
               '点赞',
-              color: favorited ? const Color(0xFFFF2D55) : textPrimary,
+              color: favorited ? scheme.primary : scheme.onSurface,
               onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
             ),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 4. 信息按钮
             _buildInfoButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 5. 删除按钮
             _buildDeleteButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 6. 倍速按钮
             _buildSpeedControlButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 7. 播放模式按钮
             _buildPlayModeButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 8. 字幕按钮
             _buildSubtitleButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 9. 唱片式静音按钮（播放中旋转动画）
             _buildDiscMuteButton(),
             SizedBox(height: responsiveSize(16, 1.5)),
-            // 10. 下一集（仅剧集类）
+            // 下一集（仅剧集类）
             if (widget.onNextEpisode != null) ...[
               _buildActionButton(
                 Icons.chevron_right,
                 '下一集',
-                color: textPrimary,
+                color: scheme.onSurface,
                 onTap: widget.onNextEpisode,
               ),
               SizedBox(height: responsiveSize(16, 1.5)),
@@ -1044,6 +1043,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
+    final scheme = Theme.of(context).colorScheme;
 
     // 从 people 列表中查找第一个 Actor
     final people = widget.item.people;
@@ -1095,8 +1095,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       height: responsiveSize(48),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0x66FFFFFF), width: 2),
-                        color: Colors.black26,
+                        border: Border.all(color: scheme.onSurface.withOpacity(0.4), width: 2),
+                        color: scheme.surface.withOpacity(0.15),
                       ),
                       child: ClipOval(
                         child: actorImageUrl != null && actorImageUrl.isNotEmpty
@@ -1104,10 +1104,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                                 imageUrl: actorImageUrl,
                                 fit: BoxFit.cover,
                                 httpHeaders: headers.isNotEmpty ? headers : null,
-                                placeholder: (_, __) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
-                                errorWidget: (_, __, ___) => Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                                placeholder: (_, __) => Icon(Icons.person, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(24)),
+                                errorWidget: (_, __, ___) => Icon(Icons.person, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(24)),
                               )
-                            : Icon(Icons.person, color: Colors.white54, size: responsiveSize(24)),
+                            : Icon(Icons.person, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(24)),
                       ),
                     ),
                   ),
@@ -1125,12 +1125,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       height: responsiveSize(20),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF00D9FF),
-                        border: Border.all(color: Colors.white, width: 1.5),
+                        color: scheme.tertiary,
+                        border: Border.all(color: scheme.onSurface, width: 1.5),
                       ),
                       child: Icon(
                         isFavorited ? Icons.check : Icons.add,
-                        color: Colors.white,
+                        color: scheme.onTertiary,
                         size: responsiveSize(12),
                       ),
                     ),
@@ -1144,7 +1144,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           Text(
             firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
             style: TextStyle(
-              color: Colors.white70,
+              color: scheme.onSurface.withOpacity(0.7),
               fontSize: responsiveSize(9, 1.3),
               fontWeight: FontWeight.bold,
             ),
@@ -1165,8 +1165,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         height: responsiveSize(40),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0x66FFFFFF), width: 2),
-          color: Colors.black26,
+          border: Border.all(color: scheme.onSurface.withOpacity(0.4), width: 2),
+          color: scheme.surface.withOpacity(0.15),
         ),
         child: ClipOval(
           child: posterUrl != null && posterUrl.isNotEmpty
@@ -1174,10 +1174,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   imageUrl: posterUrl,
                   fit: BoxFit.cover,
                   httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
-                  placeholder: (_, __) => Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
-                  errorWidget: (_, __, ___) => Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
+                  placeholder: (_, __) => Icon(Icons.music_video, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(20)),
+                  errorWidget: (_, __, ___) => Icon(Icons.music_video, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(20)),
                 )
-              : Icon(Icons.music_video, color: Colors.white54, size: responsiveSize(20)),
+              : Icon(Icons.music_video, color: scheme.onSurface.withOpacity(0.54), size: responsiveSize(20)),
         ),
       ),
     );
@@ -1185,12 +1185,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   /// 信息按钮：点击弹出底部详情面板，展示视频元信息
   Widget _buildInfoButton() {
+    final scheme = Theme.of(context).colorScheme;
     return _PressableActionButton(
       icon: Icons.info_outline,
       label: '信息',
-      color: textPrimary,
+      color: scheme.onSurface,
       onTap: () {
-        // 保留对底部小面积信息条的切换（便于纯净模式下仍能看到信息）
         setState(() {
           _isInfoExpanded = !_isInfoExpanded;
         });
@@ -1210,6 +1210,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final studios = item.studioNames;
     final overview = item.overview;
     final people = item.people;
+    final scheme = Theme.of(context).colorScheme;
 
     // 剧集信息
     final isEpisode = type == 'Episode' ||
@@ -1231,7 +1232,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: scheme.surface.withOpacity(0.9),
       isScrollControlled: true,
       builder: (context) {
         return DraggableScrollableSheet(
@@ -1251,7 +1252,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
+                        color: scheme.onSurface.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1261,8 +1262,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   // 标题
                   Text(
                     item.title,
-                    style: const TextStyle(
-                      color: textPrimary,
+                    style: TextStyle(
+                      color: scheme.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                     ),
@@ -1291,12 +1292,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
                   // 简介
                   if (overview != null && overview.isNotEmpty) ...[
-                    const _SectionLabel('简介'),
+                    _SectionLabel('简介', color: scheme.onSurface),
                     const SizedBox(height: 8),
                     Text(
                       overview,
-                      style: const TextStyle(
-                        color: textSecondary,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
                         fontSize: 14,
                         height: 1.5,
                       ),
@@ -1306,7 +1307,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
                   // 主要演员
                   if (actors != null && actors.isNotEmpty) ...[
-                    const _SectionLabel('主演'),
+                    _SectionLabel('主演', color: scheme.onSurface),
                     const SizedBox(height: 8),
                     _buildPeopleChips(actors),
                     const SizedBox(height: 24),
@@ -1314,7 +1315,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
                   // 导演
                   if (directors != null && directors.isNotEmpty) ...[
-                    const _SectionLabel('导演'),
+                    _SectionLabel('导演', color: scheme.onSurface),
                     const SizedBox(height: 8),
                     _buildPeopleChips(directors),
                     const SizedBox(height: 24),
@@ -1340,6 +1341,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     required int? season,
     required int? episode,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     final children = <Widget>[];
 
     // 类型标签
@@ -1347,13 +1349,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: primaryPink.withOpacity(0.18),
+          color: scheme.primary.withOpacity(0.18),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           type,
-          style: const TextStyle(
-            color: primaryPink,
+          style: TextStyle(
+            color: scheme.primary,
             fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
@@ -1367,8 +1369,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         const SizedBox(width: 8),
         Text(
           year.toString(),
-          style: const TextStyle(
-            color: textSecondary,
+          style: TextStyle(
+            color: scheme.onSurfaceVariant,
             fontSize: 13,
           ),
         ),
@@ -1380,16 +1382,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       if (seriesName != null && seriesName.isNotEmpty) {
         children.addAll([
           const SizedBox(width: 8),
-          const Text(
+          Text(
             '·',
-            style: TextStyle(color: textSecondary, fontSize: 13),
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               seriesName,
-              style: const TextStyle(
-                color: textSecondary,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
                 fontSize: 13,
               ),
               maxLines: 1,
@@ -1405,8 +1407,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           if (children.length > 1) const SizedBox(width: 8),
           Text(
             '$s$e',
-            style: const TextStyle(
-              color: textSecondary,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
               fontSize: 13,
             ),
           ),
@@ -1463,6 +1465,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // 人员 chips（如演员、导演）
   Widget _buildPeopleChips(List<Person> people) {
+    final scheme = Theme.of(context).colorScheme;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1474,13 +1477,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white10,
+            color: scheme.surface.withOpacity(0.25),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             display,
-            style: const TextStyle(
-              color: textPrimary,
+            style: TextStyle(
+              color: scheme.onSurface,
               fontSize: 13,
             ),
           ),
@@ -1493,22 +1496,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   /// 播放模式按钮：DirectPlay / Transcode / Fallback 循环切换
   Widget _buildPlayModeButton() {
     final currentLevel = ref.watch(playbackLevelProvider);
+    final scheme = Theme.of(context).colorScheme;
     // 0=Direct, 1=Transcode, 2=Fallback
     final IconData icon;
     final Color bgColor;
     switch (currentLevel) {
       case 0:
         icon = Icons.play_circle_outline;
-        bgColor = const Color(0x4D000000);
+        bgColor = scheme.surface.withOpacity(0.3);
         break;
       case 1:
         icon = Icons.swap_horiz;
-        bgColor = const Color(0xCC4F46E5);
+        bgColor = scheme.primary.withOpacity(0.8);
         break;
       case 2:
       default:
         icon = Icons.warning;
-        bgColor = const Color(0xCCFFA000);
+        bgColor = scheme.tertiary.withOpacity(0.8);
         break;
     }
     return GestureDetector(
@@ -1526,7 +1530,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         child: Center(
           child: Icon(
             icon,
-            color: Colors.white,
+            color: scheme.onSurface,
             size: responsiveSize(20),
           ),
         ),
@@ -1537,6 +1541,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   /// 字幕控制按钮：弹出字幕选择菜单
   Widget _buildSubtitleButton() {
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
+    final scheme = Theme.of(context).colorScheme;
     final bool hasSubtitles = widget.item.subtitleTracks.isNotEmpty;
     final bool isEnabled = subtitleSelected != null;
     return GestureDetector(
@@ -1549,12 +1554,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isEnabled
-              ? const Color(0xCC4F46E5)
-              : (hasSubtitles ? const Color(0x4D000000) : const Color(0x1A000000)),
+              ? scheme.primary.withOpacity(0.8)
+              : (hasSubtitles ? scheme.surface.withOpacity(0.3) : scheme.surface.withOpacity(0.1)),
         ),
         child: Icon(
           Icons.subtitles,
-          color: Colors.white,
+          color: scheme.onSurface,
           size: responsiveSize(20),
         ),
       ),
@@ -1564,10 +1569,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   /// 弹出字幕选择器
   void _showSubtitleSelector() {
     final tracks = widget.item.subtitleTracks;
+    final scheme = Theme.of(context).colorScheme;
     if (tracks.isEmpty) return;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: scheme.surface.withOpacity(0.9),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -1575,10 +1581,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('字幕选择', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('字幕选择', style: TextStyle(color: scheme.onSurface, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ListTile(
-                title: const Text('关闭字幕', style: TextStyle(color: Colors.white)),
+                title: Text('关闭字幕', style: TextStyle(color: scheme.onSurface)),
                 onTap: () {
                   ref.read(selectedSubtitleProvider.notifier).state = null;
                   Navigator.of(context).pop();
@@ -1587,7 +1593,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ...tracks.asMap().entries.map((entry) {
                 final track = entry.value;
                 return ListTile(
-                  title: Text(track.displayName ?? '字幕 ${entry.key + 1}', style: const TextStyle(color: Colors.white)),
+                  title: Text(track.displayName ?? '字幕 ${entry.key + 1}', style: TextStyle(color: scheme.onSurface)),
                   onTap: () {
                     ref.read(selectedSubtitleProvider.notifier).state = track.id;
                     Navigator.of(context).pop();
@@ -1605,13 +1611,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Widget _buildDiscMuteButton() {
     final isMuted = ref.watch(isMutedProvider);
     final isPlaying = ref.watch(isPlayingProvider);
-    // 获取认证信息用于构造带认证的封面图 URL
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    // 构造视频封面图 URL（使用命名参数，避免语法错误）
+    final scheme = Theme.of(context).colorScheme;
     final posterUrl = widget.item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token);
-    // 获取认证头
     final headers = widget.item.authHeaders(token);
 
     return GestureDetector(
@@ -1626,9 +1630,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           height: responsiveSize(40),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0x4D000000),
+            color: scheme.surface.withOpacity(0.3),
             border: Border.all(
-              color: isMuted ? const Color(0xFFFF2D55) : const Color(0x66FFFFFF),
+              color: isMuted ? scheme.primary : scheme.onSurface.withOpacity(0.4),
               width: 2,
             ),
             image: posterUrl != null && posterUrl.isNotEmpty
@@ -1645,7 +1649,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               ? Center(
                   child: Icon(
                     isMuted ? Icons.volume_off : Icons.music_note,
-                    color: isMuted ? const Color(0xFFFF2D55) : Colors.white,
+                    color: isMuted ? scheme.primary : scheme.onSurface,
                     size: responsiveSize(20),
                   ),
                 )
@@ -1673,6 +1677,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final topPadding = MediaQuery.of(context).padding.top;
     final buttonSize = responsiveSize(40);
     final padding = responsiveSize(8);
+    final scheme = Theme.of(context).colorScheme;
 
     return Positioned(
       top: topPadding + 8,
@@ -1686,11 +1691,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             duration: const Duration(milliseconds: 150),
             padding: EdgeInsets.all(padding),
             decoration: BoxDecoration(
-              color: const Color(0x66000000), // 半透明黑色
+              color: scheme.surface.withOpacity(0.4),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x40000000),
+                  color: scheme.onSurface.withOpacity(0.15),
                   blurRadius: 8,
                   spreadRadius: 0,
                 ),
@@ -1722,11 +1727,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             bottomSafeArea: bottomPadding + kBottomNavHeight + 16,
             // 右侧安全区：16px 边距
             rightSafeArea: 16,
-            // 按钮包裹在半透明黑色卡片中
+            // 按钮包裹在半透明卡片中（使用语义色）
             buttons: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0x66000000),
+                color: Theme.of(context).colorScheme.surface.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -1747,6 +1752,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   /// 自动播放开关按钮（Infinity 图标，与 EmbyTok 原版一致）
   Widget _buildAutoPlayButton() {
     final isAutoPlay = ref.watch(isAutoPlayProvider);
+    final scheme = Theme.of(context).colorScheme;
     // 自动播放开启时绿色高亮，关闭时灰色半透明
     final isEnabled = isAutoPlay;
     return GestureDetector(
@@ -1759,11 +1765,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             SnackBar(
               content: Text(
                 newState ? '连播模式已开启' : '连播模式已关闭',
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: scheme.onPrimary),
               ),
               backgroundColor: newState
-                  ? const Color(0xCC4CAF50) // 绿色
-                  : const Color(0xCC666666), // 灰色
+                  ? scheme.primary.withOpacity(0.8)
+                  : scheme.onSurface.withOpacity(0.6),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
               margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
@@ -1777,12 +1783,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isEnabled
-              ? const Color(0xCC4CAF50)
-              : const Color(0x4D000000),
+              ? scheme.primary.withOpacity(0.8)
+              : scheme.surface.withOpacity(0.3),
         ),
         child: Icon(
           Icons.all_inclusive,
-          color: Colors.white,
+          color: scheme.onSurface,
           size: responsiveSize(24),
         ),
       ),
@@ -1792,6 +1798,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   /// 倍速调节按钮：显示当前倍速，点击弹出调节面板（1x-10x）
   Widget _buildSpeedControlButton() {
     final currentSpeed = _videoController?.value.playbackSpeed ?? 1.0;
+    final scheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: _showSpeedControlPanel,
       child: Container(
@@ -1800,12 +1807,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: currentSpeed > 1.0
-              ? const Color(0xCCFF9800)
-              : const Color(0x4D000000),
+              ? scheme.tertiary.withOpacity(0.8)
+              : scheme.surface.withOpacity(0.3),
         ),
         child: Icon(
           Icons.speed,
-          color: Colors.white,
+          color: scheme.onSurface,
           size: responsiveSize(20),
         ),
       ),
@@ -1816,10 +1823,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _showSpeedControlPanel() {
     final currentSpeed = _videoController?.value.playbackSpeed ?? 1.0;
     double selectedSpeed = currentSpeed;
+    final scheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xE6000000),
+      backgroundColor: scheme.surface.withOpacity(0.9),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -1829,10 +1837,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 标题
-                  const Text(
+                  Text(
                     '播放速度',
                     style: TextStyle(
-                      color: textPrimary,
+                      color: scheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1841,8 +1849,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   // 当前速度显示
                   Text(
                     '${selectedSpeed.toStringAsFixed(1)}x',
-                    style: const TextStyle(
-                      color: Color(0xFFFF9800),
+                    style: TextStyle(
+                      color: scheme.tertiary,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1854,8 +1862,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     min: 1.0,
                     max: 10.0,
                     divisions: 18, // 0.5 步进
-                    activeColor: const Color(0xFFFF9800),
-                    inactiveColor: Colors.white24,
+                    activeColor: scheme.tertiary,
+                    inactiveColor: scheme.onSurface.withOpacity(0.2),
                     onChanged: (value) {
                       setSheetState(() {
                         selectedSpeed = double.parse(value.toStringAsFixed(1));
@@ -1863,11 +1871,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     },
                   ),
                   // 速度刻度标签
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('1x', style: TextStyle(color: textSecondary, fontSize: 12)),
-                      Text('10x', style: TextStyle(color: textSecondary, fontSize: 12)),
+                      Text('1x', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+                      Text('10x', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -1886,14 +1894,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFFFF9800)
-                                : Colors.white12,
+                                ? scheme.tertiary
+                                : scheme.onSurface.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             '${speed}x',
                             style: TextStyle(
-                              color: isSelected ? Colors.black : Colors.white,
+                              color: isSelected ? scheme.onTertiary : scheme.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1913,8 +1921,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                         Navigator.pop(context);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF9800),
-                        foregroundColor: Colors.black,
+                        backgroundColor: scheme.primary,
+                        foregroundColor: scheme.onPrimary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -1947,26 +1955,27 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   /// 显示删除确认对话框
   Future<void> _showDeleteConfirmDialog() async {
+    final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xE6000000),
-        title: const Text(
+        backgroundColor: scheme.surface.withOpacity(0.9),
+        title: Text(
           '确认删除',
-          style: TextStyle(color: textPrimary),
+          style: TextStyle(color: scheme.onSurface),
         ),
         content: Text(
           '确定要从媒体库中删除 "${widget.item.title}" 吗？',
-          style: const TextStyle(color: textSecondary),
+          style: TextStyle(color: scheme.onSurfaceVariant),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: textSecondary)),
+            child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text('删除', style: TextStyle(color: scheme.error)),
           ),
         ],
       ),
@@ -2263,6 +2272,7 @@ class _ThinProgressBarState extends State<_ThinProgressBar> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final duration = widget.controller.value.duration;
     final position = widget.controller.value.position;
     final progress = duration.inMilliseconds > 0
@@ -2272,11 +2282,11 @@ class _ThinProgressBarState extends State<_ThinProgressBar> {
     return Container(
       height: 2,
       width: double.infinity,
-      color: const Color(0x4D000000), // 30% 不透明黑色背景
+      color: scheme.surface.withOpacity(0.3),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
-        child: Container(color: primaryPink),
+        child: Container(color: scheme.primary),
       ),
     );
   }
@@ -2330,6 +2340,7 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final duration = widget.controller.value.duration;
     final position = widget.controller.value.position;
     final progress = duration.inMilliseconds > 0
@@ -2384,7 +2395,7 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
                   height: 4,
                   width: totalWidth,
                   decoration: BoxDecoration(
-                    color: const Color(0x33FFFFFF),
+                    color: scheme.onSurface.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Stack(
@@ -2395,7 +2406,7 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
                         widthFactor: displayProgress,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: primaryPink,
+                            color: scheme.primary,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -2409,12 +2420,12 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
                           width: indicatorRadius * 2,
                           height: indicatorRadius * 2,
                           decoration: BoxDecoration(
-                            color: _isDragging ? primaryPink : textPrimary,
+                            color: _isDragging ? scheme.primary : scheme.onSurface,
                             shape: BoxShape.circle,
                             boxShadow: _isDragging
                                 ? [
                                     BoxShadow(
-                                      color: primaryPink.withOpacity(0.5),
+                                      color: scheme.primary.withOpacity(0.5),
                                       blurRadius: 6,
                                     ),
                                   ]
@@ -2434,7 +2445,7 @@ class _SeekableProgressBarState extends State<_SeekableProgressBar> {
               child: Text(
                 '$currentTime / $totalTime',
                 style: TextStyle(
-                  color: textSecondary,
+                  color: scheme.onSurfaceVariant,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),
@@ -2512,6 +2523,7 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
         // AnimatedPositioned: 位置变化有平滑过渡（如屏幕旋转时）
@@ -2573,10 +2585,10 @@ class _DraggableCleanActionsState extends State<_DraggableCleanActions> {
                     padding: const EdgeInsets.only(right: 16),
                     alignment: Alignment.centerRight,
                     decoration: _isDragging
-                        ? const BoxDecoration(
+                        ? BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: Color(0x40000000),
+                                color: scheme.onSurface.withOpacity(0.25),
                                 blurRadius: 12,
                                 spreadRadius: 2,
                               ),
