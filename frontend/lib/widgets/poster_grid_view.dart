@@ -18,14 +18,15 @@ class PosterGridView extends ConsumerStatefulWidget {
 class _PosterGridViewState extends ConsumerState<PosterGridView> {
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
 
     if (videoState.items.isEmpty && videoState.isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
+      return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
     if (videoState.items.isEmpty) {
-      return const Center(
-        child: Text('暂无视频', style: TextStyle(color: Colors.white70, fontSize: 16)),
+      return Center(
+        child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
       );
     }
 
@@ -45,7 +46,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         }
         // 末尾加载指示器
         if (index >= videoState.items.length) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFE91E63)));
+          return Center(child: CircularProgressIndicator(color: scheme.primary));
         }
         final item = videoState.items[index];
         return _PosterCard(key: Key(item.id), item: item);
@@ -61,6 +62,7 @@ class _PosterCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
@@ -89,8 +91,8 @@ class _PosterCard extends ConsumerWidget {
                 memCacheWidth: 400,
                 placeholder: (_, __) => Container(
                   color: Colors.grey[900],
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+                  child: Center(
+                    child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (_, __, ___) => Container(
@@ -127,8 +129,8 @@ class _PosterCard extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: (item.userData!.playbackPositionTicks / item.runtimeTicks!).clamp(0.0, 1.0),
                   minHeight: 3,
-                  backgroundColor: Colors.white24,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE91E63)),
+                  backgroundColor: scheme.onSurface.withOpacity(0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                 ),
               ),
           ],

@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/colors.dart';
 
 /// 字幕选择器回调
 typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);
@@ -14,13 +13,13 @@ typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);
 class SubtitleSelector extends ConsumerWidget {
   /// 可用的字幕轨道列表
   final List<SubtitleTrack> tracks;
-  
+
   /// 当前选中的字幕轨道 ID
   final String? selectedTrackId;
-  
+
   /// 字幕选择回调
   final SubtitleSelectedCallback? onSelected;
-  
+
   /// 关闭回调
   final VoidCallback? onClose;
 
@@ -34,13 +33,14 @@ class SubtitleSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final settings = ref.watch(subtitleSettingsProvider);
     final currentLanguage = settings.language;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xE6000000), // 90% 黑色
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: scheme.surface.withOpacity(0.9),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         top: false,
@@ -53,36 +53,36 @@ class SubtitleSelector extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: progressBackground,
+                color: scheme.onSurface.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // 标题栏
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '字幕选择',
                     style: TextStyle(
-                      color: textPrimary,
+                      color: scheme.onSurface,
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   if (onClose != null)
                     IconButton(
-                      icon: const Icon(Icons.close, color: textTertiary),
+                      icon: Icon(Icons.close, color: scheme.onSurfaceVariant.withOpacity(0.7)),
                       onPressed: onClose,
                     ),
                 ],
               ),
             ),
-            
-            const Divider(color: dividerColor, height: 1),
-            
+
+            Divider(color: scheme.outlineVariant, height: 1),
+
             // 字幕列表
             ConstrainedBox(
               constraints: BoxConstraints(
@@ -105,25 +105,25 @@ class SubtitleSelector extends ConsumerWidget {
                       onClose?.call();
                     },
                   ),
-                  
+
                   // 分隔线
                   if (tracks.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Divider(color: dividerColor, height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Divider(color: scheme.outlineVariant, height: 1),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                       child: Text(
                         '可用字幕 (${tracks.length})',
-                        style: const TextStyle(
-                          color: textTertiary,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant.withOpacity(0.7),
                           fontSize: 12,
                         ),
                       ),
                     ),
                   ],
-                  
+
                   // 字幕轨道列表
                   ...tracks.map((track) => _buildTrackOption(
                     context: context,
@@ -136,7 +136,7 @@ class SubtitleSelector extends ConsumerWidget {
                       onClose?.call();
                     },
                   )),
-                  
+
                   // 无字幕提示
                   if (tracks.isEmpty)
                     Padding(
@@ -146,13 +146,13 @@ class SubtitleSelector extends ConsumerWidget {
                           Icon(
                             Icons.subtitles_off,
                             size: 48,
-                            color: progressBackground,
+                            color: scheme.onSurface.withOpacity(0.12),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             '当前视频没有可用字幕',
                             style: TextStyle(
-                              color: textTertiary,
+                              color: scheme.onSurfaceVariant.withOpacity(0.7),
                               fontSize: 14,
                             ),
                           ),
@@ -162,7 +162,7 @@ class SubtitleSelector extends ConsumerWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 8),
           ],
         ),
@@ -178,6 +178,7 @@ class SubtitleSelector extends ConsumerWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -191,13 +192,13 @@ class SubtitleSelector extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? primaryPink : progressBackground,
+                  color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.12),
                   width: 2,
                 ),
-                color: isSelected ? primaryPink : Colors.transparent,
+                color: isSelected ? scheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, color: textPrimary, size: 16)
+                  ? Icon(Icons.check, color: scheme.onPrimary, size: 16)
                   : null,
             ),
             const SizedBox(width: 16),
@@ -209,7 +210,7 @@ class SubtitleSelector extends ConsumerWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? textPrimary : textSecondary,
+                      color: isSelected ? scheme.onSurface : scheme.onSurfaceVariant,
                       fontSize: 16,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),
@@ -218,8 +219,8 @@ class SubtitleSelector extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: textTertiary,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant.withOpacity(0.7),
                         fontSize: 12,
                       ),
                     ),
@@ -240,6 +241,7 @@ class SubtitleSelector extends ConsumerWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -253,13 +255,13 @@ class SubtitleSelector extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? primaryPink : progressBackground,
+                  color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.12),
                   width: 2,
                 ),
-                color: isSelected ? primaryPink : Colors.transparent,
+                color: isSelected ? scheme.primary : Colors.transparent,
               ),
               child: isSelected
-                  ? const Icon(Icons.check, color: textPrimary, size: 16)
+                  ? Icon(Icons.check, color: scheme.onPrimary, size: 16)
                   : null,
             ),
             const SizedBox(width: 16),
@@ -268,12 +270,12 @@ class SubtitleSelector extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: isSelected ? primaryPink.withOpacity(0.2) : const Color(0x1AFFFFFF),
+                color: isSelected ? scheme.primary.withOpacity(0.12) : scheme.onSurface.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.subtitles,
-                color: isSelected ? primaryPink : textTertiary,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant.withOpacity(0.7),
                 size: 20,
               ),
             ),
@@ -286,17 +288,17 @@ class SubtitleSelector extends ConsumerWidget {
                   Text(
                     track.displayName,
                     style: TextStyle(
-                    color: isSelected ? textPrimary : textSecondary,
-                    fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  ),
+                      color: isSelected ? scheme.onSurface : scheme.onSurfaceVariant,
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ),
                   ),
                   if (track.language.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       _getLanguageLabel(track.language),
-                      style: const TextStyle(
-                        color: textTertiary,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant.withOpacity(0.7),
                         fontSize: 12,
                       ),
                     ),
@@ -309,13 +311,13 @@ class SubtitleSelector extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: primaryPink.withOpacity(0.2),
+                  color: scheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
+                child: Text(
                   '默认',
                   style: TextStyle(
-                    color: primaryPink,
+                    color: scheme.primary,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),

@@ -532,13 +532,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
-      return _buildThumbnailPlaceholder();
+      return _buildThumbnailPlaceholder(context);
     }
 
     // 场景 2：视频正在初始化，显示加载指示器
     if (_controller == null || !_initialized) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFFE91E63)),
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
 
@@ -656,11 +656,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   }
 
   // 缩略图占位：web 环境或无播放地址时使用
-  Widget _buildThumbnailPlaceholder() {
+  Widget _buildThumbnailPlaceholder(BuildContext context) {
     // 优先使用带认证信息的缩略图 URL
     final url = widget.item.thumbnailUrlWithAuth(widget.embyServerUrl, widget.token);
     // 获取认证头用于图片请求
     final headers = widget.item.authHeaders(widget.token);
+    final scheme = Theme.of(context).colorScheme;
 
     return Stack(
       fit: StackFit.expand,
@@ -673,8 +674,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             memCacheWidth: 800,
             placeholder: (_, __) => Container(
               color: Colors.grey[900],
-              child: const Center(
-                child: CircularProgressIndicator(color: Color(0xFFE91E63), strokeWidth: 2),
+              child: Center(
+                child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
               ),
             ),
             errorWidget: (_, __, ___) => Container(
