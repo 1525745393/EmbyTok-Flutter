@@ -563,6 +563,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   subtitleTracks: widget.item.subtitleTracks,
                   onPrevEpisode: widget.onPrevEpisode,
                   onNextEpisode: widget.onNextEpisode,
+                  onToggleFullscreen: _toggleFullscreen,
+                  isInFullscreen: _isFullscreen,
                 ),
               ),
             ),
@@ -680,6 +682,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  // 顶部全屏按钮（在右侧操作栏顶部，不与顶部栏重叠）
+                  PressableActionButton(
+                    icon: Icons.fullscreen,
+                    label: '全屏',
+                    color: scheme.onSurface,
+                    onTap: _toggleFullscreen,
+                  ),
+                  SizedBox(height: rs(16, 1.5)),
                   const AutoPlayButton(),
                   SizedBox(height: rs(16, 1.5)),
                   PosterAvatar(item: widget.item),
@@ -773,8 +783,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             ),
           ),
 
-        // 顶部操作区：全屏切换按钮（所有模式下显示）
-        TopActions(onToggleFullscreen: _toggleFullscreen),
+        // 顶部操作区：全屏切换按钮（仅在全屏模式下显示，避免与 FeedView 顶部栏重叠）
+        if (_isFullscreen)
+          TopActions(onToggleFullscreen: _toggleFullscreen),
 
         // NextUp 下一集提示条
         if (_showNextUpBanner && _nextUpItem != null)

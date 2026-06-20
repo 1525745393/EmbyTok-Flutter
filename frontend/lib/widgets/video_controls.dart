@@ -19,6 +19,10 @@ class VideoControls extends ConsumerStatefulWidget {
   final VoidCallback? onNextEpisode;
   // 倍速档位（支持常见的 0.5x ～ 2.0x 六档）
   final List<double> playbackRates;
+  // 全屏切换回调
+  final VoidCallback? onToggleFullscreen;
+  // 是否已经在全屏模式（用于切换图标）
+  final bool isInFullscreen;
 
   const VideoControls({
     super.key,
@@ -27,6 +31,8 @@ class VideoControls extends ConsumerStatefulWidget {
     this.onPrevEpisode,
     this.onNextEpisode,
     this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
+    this.onToggleFullscreen,
+    this.isInFullscreen = false,
   });
 
   @override
@@ -197,6 +203,15 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                 style: TextStyle(color: scheme.onSurface, fontSize: 14),
               ),
             ),
+            // 全屏切换按钮
+            if (widget.onToggleFullscreen != null)
+              IconButton(
+                icon: Icon(
+                  widget.isInFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: scheme.onSurface,
+                ),
+                onPressed: widget.onToggleFullscreen,
+              ),
           ],
         ),
       ),
