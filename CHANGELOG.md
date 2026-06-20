@@ -1,3 +1,15 @@
+# [1.57.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.2...v1.57.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* missing flutter_riverpod import and stale _preloadCache references ([28a0c3f](https://github.com/1525745393/EmbyTok-Flutter/commit/28a0c3f89552b1f7b4db4e6a7ced28dd75b2468d))
+
+
+### Features
+
+* implement VideoPoolService for Emby-aware video preloading ([14b6634](https://github.com/1525745393/EmbyTok-Flutter/commit/14b66341c09827efdffa0b3e98abbd5cb2199c39))
+
 ## [1.56.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.1...v1.56.2) (2026-06-20)
 
 
