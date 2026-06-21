@@ -130,11 +130,11 @@ class _PosterCard extends ConsumerWidget {
               ),
             ),
             // 继续观看进度条：当有播放位置时在底部显示细粉色条
-            if (item.userData != null && item.userData!.playbackPositionTicks > 0 && item.runtimeTicks != null && item.runtimeTicks! > 0)
+            if (item.hasProgress)
               Positioned(
                 left: 0, right: 0, bottom: 0,
                 child: LinearProgressIndicator(
-                  value: (item.userData!.playbackPositionTicks / item.runtimeTicks!).clamp(0.0, 1.0),
+                  value: item.progressPercent,
                   minHeight: 3,
                   backgroundColor: scheme.onSurface.withOpacity(0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),

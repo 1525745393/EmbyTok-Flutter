@@ -26,7 +26,7 @@ class VideoGridCard extends ConsumerWidget {
     final token = authState.token;
 
     final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 400);
-    final progress = _calculateProgress(item);
+    final progress = item.progressPercent;
 
     return GestureDetector(
       onTap: onTap,
@@ -147,14 +147,6 @@ class VideoGridCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  double _calculateProgress(MediaItem item) {
-    if (item.userData == null || item.durationSeconds == null) return 0.0;
-    if (item.durationSeconds! <= 0) return 0.0;
-
-    final positionSeconds = item.userData!.playbackPositionTicks / 10000000.0;
-    return (positionSeconds / item.durationSeconds!).clamp(0.0, 1.0);
   }
 
   String _formatDuration(double seconds) {

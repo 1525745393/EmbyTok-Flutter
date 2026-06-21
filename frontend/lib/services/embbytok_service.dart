@@ -2,6 +2,8 @@
 // 设计思路：每个方法都接受可选的 serverUrl / token 参数，调用方可以显式传入，
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 
 import '../models/models.dart';
@@ -1129,7 +1131,8 @@ class EmbytokService {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
+      if (includeTypes != null && includeTypes.isNotEmpty)
+        'IncludeItemTypes': includeTypes.join(','),
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
@@ -1290,10 +1293,10 @@ class EmbytokService {
   // 内部辅助方法
   // ============================
 
-  // 生成播放会话 ID：时间戳 + 短随机数，不依赖 uuid 包
+  // 生成播放会话 ID：时间戳 + 真随机数，降低碰撞概率
   String _generatePlaySessionId() {
     final now = DateTime.now().microsecondsSinceEpoch;
-    final rand = (now & 0xFFFF).toRadixString(16);
+    final rand = Random().nextInt(0xFFFF).toRadixString(16).padLeft(4, '0');
     return 'emb-$now-$rand';
   }
 

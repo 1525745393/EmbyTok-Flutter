@@ -296,6 +296,14 @@ class MediaItem {
   bool get hasProgress =>
       userData != null && userData!.playbackPositionTicks > 0;
 
+  // 播放进度百分比（0.0 ~ 1.0），统一进度计算逻辑
+  double get progressPercent {
+    if (userData == null || userData!.playbackPositionTicks <= 0) return 0.0;
+    final durSec = durationSec;
+    if (durSec <= 0) return 0.0;
+    return (userData!.playbackPositionTicks / 10000000.0 / durSec).clamp(0.0, 1.0);
+  }
+
   bool get isWatched => userData?.played ?? false;
 
   // 判断是否为横屏视频（根据媒体源的宽高）
