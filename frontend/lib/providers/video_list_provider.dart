@@ -148,6 +148,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             return;
           }
           // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
+          final merged = <MediaItem>[];
           for (final libId in libIds) {
             try {
               final resp = await _service.getLibraryItems(
@@ -159,7 +160,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 userId: auth.user?.id,
               );
               merged.addAll(resp.items);
-            } catch (Object e, StackTrace _) {
+            } catch (e) {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
@@ -185,7 +186,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 userId: auth.user?.id,
               );
               merged.addAll(resp.items);
-            } catch (Object e, StackTrace _) {
+            } catch (e) {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
@@ -227,10 +228,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'count': loadedItems.length,
         'feedType': currentFeedType.toStorageString(),
       });
-    } catch (Object e, StackTrace _) {
+    } catch (e) {
       AppLogger.error('刷新视频列表失败', error: e);
-      final message = e is String ? e : '加载视频失败：$e';
-      state = state.copyWith(isLoading: false, error: message);
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
@@ -277,7 +277,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: auth.user?.id,
           );
           merged.addAll(resp.items);
-        } catch (Object e, StackTrace _) {
+        } catch (e) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
       }
@@ -295,10 +295,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         feedType: currentFeedType,
       );
       AppLogger.debug('加载更多成功', data: {'newCount': merged.length});
-    } catch (Object e, StackTrace _) {
+    } catch (e) {
       AppLogger.error('加载更多失败', error: e);
-      final message = e is String ? e : '加载更多失败：$e';
-      state = state.copyWith(isLoading: false, error: message);
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
