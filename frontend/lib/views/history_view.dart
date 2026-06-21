@@ -1,4 +1,7 @@
 // 观看历史页面：从 Emby 服务器获取最近观看的条目
+// 支持两种模式：
+//   useScaffold=true: 独立路由模式（含 Scaffold + AppBar，通过 GoRouter 路由访问）
+//   useScaffold=false: 覆盖层模式（仅内容，通过 HomeScaffold Stack 渲染，Provider 管理返回）
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +15,9 @@ import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
-  const HistoryView({super.key});
+  // 是否使用 Scaffold（true=独立路由模式，false=覆盖层模式）
+  final bool useScaffold;
+  const HistoryView({super.key, this.useScaffold = true});
 
   @override
   ConsumerState<HistoryView> createState() => _HistoryViewState();
@@ -37,21 +42,66 @@ class _HistoryViewState extends ConsumerState<HistoryView>
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(watchHistoryProvider);
 
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Row(
-          children: [
-            Icon(Icons.history, color: scheme.primary, size: 24),
-            const SizedBox(width: 8),
-            const Text('观看历史'),
-          ],
-        ),
+    // 覆盖层模式下的顶部栏（含返回按钮 + 标题）
+    final topBar = Container(
+      padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+      color: scheme.surface,
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: scheme.onSurface),
+            onPressed: () {
+              // 使用 Provider 管理返回，避免 Navigator.pop 导致根路由被弹出
+              ref.read(pageNavigationNotifierProvider).backToFeed();
+            },
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.history, color: scheme.primary, size: 24),
+          const SizedBox(width: 8),
+          Text('观看历史',
+              style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600)),
+        ],
       ),
-      body: _buildBody(state),
     );
+
+    // 历史页核心内容
+    final content = Column(
+      children: [
+        if (!widget.useScaffold) topBar,
+        Expanded(child: _buildBody(state)),
+      ],
+    );
+
+    // 根据模式选择外层包装：Scaffold（独立路由）或 SafeArea（覆盖层）
+    if (widget.useScaffold) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        appBar: AppBar(
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
+          title: Row(
+            children: [
+              Icon(Icons.history, color: scheme.primary, size: 24),
+              const SizedBox(width: 8),
+              const Text('观看历史'),
+            ],
+          ),
+        ),
+        body: SafeArea(
+          child: _buildBody(state),
+        ),
+      );
+    } else {
+      return Container(
+        color: scheme.surface,
+        child: SafeArea(
+          child: content,
+        ),
+      );
+    }
   }
 
   Widget _buildBody(WatchHistoryState state) {

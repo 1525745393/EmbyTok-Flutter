@@ -1,4 +1,7 @@
 // 搜索页：关键词输入 + 搜索结果列表 + 搜索历史
+// 支持两种模式：
+//   useScaffold=true: 独立路由模式（含 Scaffold + AppBar，通过 GoRouter 路由访问）
+//   useScaffold=false: 覆盖层模式（仅内容，通过 HomeScaffold Stack 渲染，Provider 管理返回）
 
 import 'dart:async';
 
@@ -16,7 +19,9 @@ import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
 class SearchView extends ConsumerStatefulWidget {
-  const SearchView({super.key});
+  // 是否使用 Scaffold（true=独立路由模式，false=覆盖层模式）
+  final bool useScaffold;
+  const SearchView({super.key, this.useScaffold = true});
 
   @override
   ConsumerState<SearchView> createState() => _SearchViewState();
@@ -82,54 +87,93 @@ class _SearchViewState extends ConsumerState<SearchView>
     final state = ref.watch(searchProvider);
     final history = ref.watch(searchHistoryProvider);
 
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: const Text('搜索'),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              onChanged: _onQueryChanged,
-              style: TextStyle(color: scheme.onSurface, fontSize: 16),
-              decoration: InputDecoration(
-                hintText: '输入关键词搜索...',
-                hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
-                prefixIcon: Icon(Icons.search,
-                    color: scheme.onSurface.withOpacity(0.6)),
-                suffixIcon: _controller.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear,
-                            color: scheme.onSurface.withOpacity(0.6)),
-                        onPressed: () {
-                          _controller.clear();
-                          _onQueryChanged('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: scheme.onSurface.withOpacity(0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(28),
-                  borderSide: BorderSide.none,
+    // 搜索页核心内容：顶部栏（可选） + 搜索框 + 结果列表
+    final content = Column(
+      children: [
+        // 覆盖层模式下的顶部栏（含返回按钮 + 标题）
+        if (!widget.useScaffold)
+          Container(
+            padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+            color: scheme.surface,
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back, color: scheme.onSurface),
+                  onPressed: () {
+                    // 使用 Provider 管理返回，避免 Navigator.pop 导致根路由被弹出
+                    ref.read(pageNavigationNotifierProvider).backToFeed();
+                  },
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
+                const SizedBox(width: 4),
+                Icon(Icons.search, color: scheme.primary, size: 24),
+                const SizedBox(width: 8),
+                Text('搜索',
+                    style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600)),
+              ],
             ),
           ),
-          Expanded(
-            child: _buildBody(state, history),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            onChanged: _onQueryChanged,
+            style: TextStyle(color: scheme.onSurface, fontSize: 16),
+            decoration: InputDecoration(
+              hintText: '输入关键词搜索...',
+              hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+              prefixIcon: Icon(Icons.search,
+                  color: scheme.onSurface.withOpacity(0.6)),
+              suffixIcon: _controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear,
+                          color: scheme.onSurface.withOpacity(0.6)),
+                      onPressed: () {
+                        _controller.clear();
+                        _onQueryChanged('');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: scheme.onSurface.withOpacity(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(28),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
           ),
-        ],
-      ),
-    ));
+        ),
+        Expanded(
+          child: _buildBody(state, history),
+        ),
+      ],
+    );
+
+    // 根据模式选择外层包装：Scaffold（独立路由）或 SafeArea（覆盖层）
+    if (widget.useScaffold) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        appBar: AppBar(
+          backgroundColor: scheme.surface,
+          foregroundColor: scheme.onSurface,
+          title: const Text('搜索'),
+        ),
+        body: SafeArea(
+          child: content,
+        ),
+      );
+    } else {
+      return Container(
+        color: scheme.surface,
+        child: SafeArea(
+          child: content,
+        ),
+      );
+    }
   }
 
   Widget _buildBody(SearchState state, List<String> history) {

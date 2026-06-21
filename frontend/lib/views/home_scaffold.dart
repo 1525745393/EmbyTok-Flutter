@@ -112,14 +112,15 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
               ),
             ),
             // 覆盖层页面：搜索和历史（全屏覆盖，不预留底部导航栏空间）
+// 使用 useScaffold: false 避免 Scaffold 嵌套和 Navigator.pop 冲突
             if (pageNavState.isOverlayPage)
               Positioned.fill(
                 child: IndexedStack(
                   // search=3, history=4，映射到覆盖层索引 0/1
                   index: currentIndex == 3 ? 0 : 1,
-                  children: [
-                    const SearchView(),
-                    const HistoryView(),
+                  children: const [
+                    SearchView(useScaffold: false),
+                    HistoryView(useScaffold: false),
                   ],
                 ),
               ),
