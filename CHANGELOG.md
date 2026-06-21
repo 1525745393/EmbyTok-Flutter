@@ -1,3 +1,10 @@
+## [1.58.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.3...v1.58.4) (2026-06-21)
+
+
+### Bug Fixes
+
+* Android 13+ 系统返回键直接退出 App ([6f4189c](https://github.com/1525745393/EmbyTok-Flutter/commit/6f4189c5708b96727a723759ffffe0077c502662))
+
 ## [1.58.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.2...v1.58.3) (2026-06-21)
 
 
