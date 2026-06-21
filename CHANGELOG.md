@@ -1,3 +1,17 @@
+# [1.63.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.3...v1.63.0) (2026-06-21)
+
+
+### Bug Fixes
+
+* catch (e) 改为 catch (Object e, StackTrace _) 通过 strict-raw-types 检查 ([96a04c2](https://github.com/1525745393/EmbyTok-Flutter/commit/96a04c21b561db45f947b4b6dbf020e872b3c717))
+* 修复 FeedType.latest 分支缺少 merged 变量声明导致的 CI 错误 ([503a0b7](https://github.com/1525745393/EmbyTok-Flutter/commit/503a0b762f5699cc5e1ba383e3c79d2c09ca13b1))
+* 视图状态管理五项优化 ([3a79f6f](https://github.com/1525745393/EmbyTok-Flutter/commit/3a79f6f96e94134557c90069b0eef5406735fb0c))
+
+
+### Features
+
+* 检查历史和Emby服务器对接 ([ad8986b](https://github.com/1525745393/EmbyTok-Flutter/commit/ad8986bccf709e268d2ceda73bc68251d0018d68))
+
 ## [1.62.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.2...v1.62.3) (2026-06-21)
 
 
