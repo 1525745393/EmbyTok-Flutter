@@ -1,3 +1,10 @@
+# [1.66.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.65.0...v1.66.0) (2026-06-21)
+
+
+### Features
+
+* 修复顶部/底部操作区返回键逻辑问题，搜索/历史页面增加覆盖层模式 ([fec7265](https://github.com/1525745393/EmbyTok-Flutter/commit/fec7265c06b8a1a3712339a539f2c362d5c773e2))
+
 # [1.65.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.64.0...v1.65.0) (2026-06-21)
 
 
