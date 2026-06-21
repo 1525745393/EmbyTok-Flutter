@@ -39,15 +39,16 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final scheme = Theme.of(context).colorScheme;
 
-    // PopScope：统一处理根路由的返回键（应用退出确认）
+    // PopScope：统一处理根路由的返回键（两次确认退出）
     return PopScope(
-      canPop: false, // 根路由不允许直接 pop，自定义退出逻辑
+      canPop: false,
       onPopInvoked: (bool didPop) async {
-        if (didPop) return; // 已经完成 pop 则不处理
+        if (didPop) return;
 
-        // 显示退出确认对话框
-        final result = await showDialog<bool>(
+        // 第一次确认
+        final firstConfirm = await showDialog<bool>(
           context: context,
+          barrierDismissible: false,
           builder: (_) => AlertDialog(
             backgroundColor: scheme.surface,
             title: const Text('退出应用？'),
@@ -55,9 +56,6 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                style: TextButton.styleFrom(
-                  foregroundColor: scheme.primary,
-                ),
                 child: Text('取消', style: TextStyle(color: scheme.onSurface)),
               ),
               ElevatedButton(
@@ -72,8 +70,36 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
           ),
         );
 
-        // 用户确认退出：调用 SystemNavigator.pop() 关闭应用
-        if (result == true) {
+        // 用户取消第一次确认
+        if (firstConfirm != true) return;
+
+        // 第二次确认
+        final secondConfirm = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            backgroundColor: scheme.surface,
+            title: const Text('再次确认'),
+            content: const Text('确定要退出 EmbyTok 吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text('取消', style: TextStyle(color: scheme.onSurface)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: scheme.error,
+                  foregroundColor: scheme.onError,
+                ),
+                child: const Text('确定退出'),
+              ),
+            ],
+          ),
+        );
+
+        // 用户确认第二次：关闭应用
+        if (secondConfirm == true) {
           SystemNavigator.pop();
         }
       },
