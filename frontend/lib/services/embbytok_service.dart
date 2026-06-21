@@ -236,6 +236,7 @@ class EmbytokService {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items/Resume',
@@ -259,6 +260,7 @@ class EmbytokService {
       'Limit': '$limit',
       'Fields':
           'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber',
+      'IncludeItemTypes': 'Episode',
     };
     // 指定 seriesId 时只查询该剧集的下一集
     if (seriesId != null && seriesId.isNotEmpty) {
