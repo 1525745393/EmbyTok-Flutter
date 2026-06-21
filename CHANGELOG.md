@@ -1,3 +1,10 @@
+# [1.58.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.57.0...v1.58.0) (2026-06-21)
+
+
+### Features
+
+* 视频播放页返回键异常退出 ([aa960e2](https://github.com/1525745393/EmbyTok-Flutter/commit/aa960e29a3b388fb850df14ff8ffffead645bb51))
+
 # [1.57.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.56.2...v1.57.0) (2026-06-20)
 
 
