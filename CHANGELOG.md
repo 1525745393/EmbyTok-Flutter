@@ -1,3 +1,10 @@
+## [1.62.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.0...v1.62.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* getResumeItems/getNextUp 缺少 IncludeItemTypes 过滤 ([67dbae5](https://github.com/1525745393/EmbyTok-Flutter/commit/67dbae54618456617201236ad6569785fc3c8032))
+
 # [1.62.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.61.0...v1.62.0) (2026-06-21)
 
 
