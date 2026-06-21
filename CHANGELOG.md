@@ -1,3 +1,10 @@
+## [1.58.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.2...v1.58.3) (2026-06-21)
+
+
+### Bug Fixes
+
+* 返回键逐级返回直到首页后显示退出确认 ([ee82e8b](https://github.com/1525745393/EmbyTok-Flutter/commit/ee82e8bcac3dbf60b7201f7bf545d558bb61022f))
+
 ## [1.58.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.1...v1.58.2) (2026-06-21)
 
 
