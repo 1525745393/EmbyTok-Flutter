@@ -1,3 +1,10 @@
+## [1.62.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.2...v1.62.3) (2026-06-21)
+
+
+### Bug Fixes
+
+* 播放会话ID碰撞/搜索参数校验/进度计算重复 ([426cd8b](https://github.com/1525745393/EmbyTok-Flutter/commit/426cd8b0db3c6dbc29b8f7fa69f705d5d6d33f9d))
+
 ## [1.62.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.1...v1.62.2) (2026-06-21)
 
 
