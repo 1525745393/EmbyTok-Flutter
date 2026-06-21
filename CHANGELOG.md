@@ -1,3 +1,10 @@
+## [1.62.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.1...v1.62.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* 非"继续观看"Tab 下视频不续播的问题 ([81e0241](https://github.com/1525745393/EmbyTok-Flutter/commit/81e024161f0f06121ba8caa855aa3413e3d0af43))
+
 ## [1.62.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.62.0...v1.62.1) (2026-06-21)
 
 
