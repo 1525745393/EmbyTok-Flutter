@@ -368,8 +368,14 @@ class _FeedViewState extends ConsumerState<FeedView>
     super.build(context);
 
     final videoState = ref.watch(videoListProvider);
+    final authState = ref.watch(authProvider);
     final viewMode = ref.watch(viewModeProvider);
     final scheme = Theme.of(context).colorScheme;
+
+    // 未登录时直接显示提示卡片，不进入视频列表逻辑
+    final isNotAuthenticated = !authState.isAuthenticated ||
+        authState.embyServerUrl == null ||
+        authState.token == null;
 
     // 注意：返回键处理由 HomeScaffold 中的 PopScope 统一管理（应用退出确认）
     return Scaffold(
@@ -377,7 +383,9 @@ class _FeedViewState extends ConsumerState<FeedView>
         body: Stack(
           children: [
             // 主体内容：根据视图模式切换
-            if (viewMode == ViewMode.feed)
+            if (isNotAuthenticated)
+              ErrorStateCard.notLoggedIn()
+            else if (viewMode == ViewMode.feed)
               _buildVideoPageView(videoState)
             else
               const PosterGridView(),
@@ -461,18 +469,33 @@ class _FeedViewState extends ConsumerState<FeedView>
       return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
     }
     if (videoState.items.isEmpty && videoState.error != null) {
-      final err = videoState.error!;
-      // 未登录场景特殊处理
-      if (err.contains('登录') || err.contains('认证')) {
-        return ErrorStateCard.notLoggedIn();
-      }
       return ErrorStateCard(
-        title: err,
+        title: videoState.error!,
         actionLabel: '重试',
         onAction: () {
           ref.read(videoListProvider.notifier).refresh();
         },
       );
+    }
+    // 追加失败时用 SnackBar 提示，不清除已有数据
+    if (videoState.items.isNotEmpty && videoState.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(videoState.error!),
+              action: SnackBarAction(
+                label: '重试',
+                onPressed: () {
+                  ref.read(videoListProvider.notifier).loadMore();
+                },
+              ),
+            ),
+          );
+          // 清除 error 避免重复弹出
+          ref.read(videoListProvider.notifier).clearError();
+        }
+      });
     }
     if (videoState.items.isEmpty) {
       return EmptyStateCard.noVideos();
@@ -488,8 +511,12 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
-        if (videoState.hasMore && index >= videoState.items.length - 2 && !videoState.isLoading) {
-          ref.read(videoListProvider.notifier).loadMore();
+        if (videoState.hasMore && index >= videoState.items.length - 2) {
+          // 使用 ref.read 读取最新状态，避免闭包捕获过期值
+          final latestState = ref.read(videoListProvider);
+          if (!latestState.isLoading) {
+            ref.read(videoListProvider.notifier).loadMore();
+          }
         }
         // 预加载下一条视频（走 VideoPoolService 降级链）
         _preloadNextVideo(index, videoState.items, embyServerUrl, token);

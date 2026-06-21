@@ -147,18 +147,21 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          // 多库混合：对每个库取 limit 条，后续 loadMore 会对每个库独立分页
-          final merged = <MediaItem>[];
+          // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
           for (final libId in libIds) {
-            final resp = await _service.getLibraryItems(
-              libId,
-              limit: state.limit,
-              offset: 0,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-            );
-            merged.addAll(resp.items);
+            try {
+              final resp = await _service.getLibraryItems(
+                libId,
+                limit: state.limit,
+                offset: 0,
+                serverUrl: auth.embyServerUrl!,
+                token: auth.token!,
+                userId: auth.user?.id,
+              );
+              merged.addAll(resp.items);
+            } catch (e) {
+              AppLogger.error('加载库 $libId 失败，跳过', error: e);
+            }
           }
           loadedItems = merged;
           canPaginate = true;
@@ -169,18 +172,22 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          // 多库混合：对每个库取适量条合并后打乱
+          // 多库混合：每个库独立 try-catch
           final merged = <MediaItem>[];
           for (final libId in libIds) {
-            final resp = await _service.getLibraryItems(
-              libId,
-              limit: (80 / libIds.length).ceil(),
-              offset: 0,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-            );
-            merged.addAll(resp.items);
+            try {
+              final resp = await _service.getLibraryItems(
+                libId,
+                limit: (80 / libIds.length).ceil(),
+                offset: 0,
+                serverUrl: auth.embyServerUrl!,
+                token: auth.token!,
+                userId: auth.user?.id,
+              );
+              merged.addAll(resp.items);
+            } catch (e) {
+              AppLogger.error('加载库 $libId 失败，跳过', error: e);
+            }
           }
           final shuffled = List<MediaItem>.from(merged);
           shuffled.shuffle();
@@ -255,34 +262,35 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      // 简单策略：对每个选中的库，从 0 重新获取 limit 条，然后合并
-      // 避免多库各自分页带来的复杂度，保证结果的一致性
+      // 多库分页：使用当前 offset 作为起点，每个库独立获取 limit 条
       AppLogger.debug('加载更多视频', data: {'offset': state.offset, 'libraryCount': selectedIds.length});
       final perLibLimit = state.limit;
       final merged = <MediaItem>[];
       for (final libId in selectedIds) {
-        final resp = await _service.getLibraryItems(
-          libId,
-          limit: perLibLimit,
-          offset: 0,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
-          userId: auth.user?.id,
-        );
-        merged.addAll(resp.items);
+        try {
+          final resp = await _service.getLibraryItems(
+            libId,
+            limit: perLibLimit,
+            offset: state.offset,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+          );
+          merged.addAll(resp.items);
+        } catch (e) {
+          AppLogger.error('加载库 $libId 失败，跳过', error: e);
+        }
       }
 
-      // 合并后排序（按 dateAdded 或 indexNumber 等保持原始顺序）
-      // 简化：保持各库原始顺序拼接
       // 判断是否还有更多：如果所有库返回的条数都等于 perLibLimit，继续有更多
       final hasMore = merged.length >= perLibLimit * selectedIds.length;
 
       state = VideoListState(
-        items: merged,
+        items: [...state.items, ...merged],
         isLoading: false,
         hasMore: hasMore,
         error: null,
-        offset: merged.length,
+        offset: state.offset + merged.length,
         limit: state.limit,
         feedType: currentFeedType,
       );
@@ -292,6 +300,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       final message = e is String ? e : '加载更多失败：$e';
       state = state.copyWith(isLoading: false, error: message);
     }
+  }
+
+  // 清除当前错误状态（SnackBar 弹出后重置，避免重复弹出）
+  void clearError() {
+    state = state.copyWith(error: null);
   }
 
   // 从当前列表移除已播放完毕的条目（仅 resume 模式下需要）
