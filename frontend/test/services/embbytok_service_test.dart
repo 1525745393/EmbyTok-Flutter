@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/services/api_client.dart';
 import 'package:embbytok_flutter/services/embbytok_service.dart';
-import 'package:embbytok_flutter/models/models.dart';
 
 void main() {
   late Dio dio;
@@ -11,9 +11,17 @@ void main() {
   late ApiClient apiClient;
   late EmbytokService service;
 
-  const testBackendUrl = 'http://localhost:8000';
   const testEmbyUrl = 'http://emby.example.com';
   const testToken = 'test-access-token';
+  const testUserId = 'user-abc-123';
+  const testItemId = 'item-123';
+  const testLibraryId = 'lib-1';
+
+  const itemDetailFields =
+      'Overview,Genres,People,CommunityRating,CriticRating,OfficialRating,'
+      'RunTimeTicks,ProductionYear,PremiereDate,DateCreated,Studios,'
+      'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
+      'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags';
 
   setUp(() {
     dio = Dio();
@@ -23,26 +31,121 @@ void main() {
     service = EmbytokService(apiClient: apiClient);
   });
 
+  // 构造 Emby 原生 PascalCase 的单个媒体项响应
+  Map<String, dynamic> buildMediaItemJson({
+    required String id,
+    required String name,
+    required String type,
+    int? runTimeTicks,
+    int? productionYear,
+    String? overview,
+    Map<String, dynamic>? userData,
+  }) {
+    return <String, dynamic>{
+      'Id': id,
+      'Name': name,
+      'Type': type,
+      if (runTimeTicks != null) 'RunTimeTicks': runTimeTicks,
+      if (productionYear != null) 'ProductionYear': productionYear,
+      if (overview != null) 'Overview': overview,
+      if (userData != null) 'UserData': userData,
+    };
+  }
+
+  // 构造 getLibraryItems 期望的查询参数
+  Map<String, dynamic> buildLibraryItemsQuery({
+    required String libraryId,
+    int limit = 20,
+    int offset = 0,
+  }) {
+    return <String, dynamic>{
+      'ParentId': libraryId,
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'SortBy': 'DateCreated,SortName',
+      'SortOrder': 'Descending',
+      'Recursive': 'true',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+    };
+  }
+
+  // 构造 getFavorites 期望的查询参数
+  Map<String, dynamic> buildFavoritesQuery({
+    int limit = 100,
+    int offset = 0,
+  }) {
+    return <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+  }
+
+  // 构造 searchItems 期望的查询参数
+  Map<String, dynamic> buildSearchItemsQuery({
+    required String query,
+    int limit = 30,
+    int offset = 0,
+    List<String>? includeTypes,
+  }) {
+    final params = <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    if (includeTypes != null && includeTypes.isNotEmpty) {
+      params['IncludeItemTypes'] = includeTypes.join(',');
+    }
+    return params;
+  }
+
+  // 构造 searchHints 期望的查询参数
+  Map<String, dynamic> buildSearchHintsQuery({
+    required String query,
+    int limit = 20,
+  }) {
+    return <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'Recursive': 'true',
+    };
+  }
+
   group('EmbytokService', () {
     group('login', () {
-      test('登录成功返回 User 对象', () async {
-        final loginResponse = {
-          'user_id': 'user-123',
-          'username': 'testuser',
-          'access_token': 'token-abc',
+      test('登录成功返回 User 对象并保存默认认证信息', () async {
+        final loginResponse = <String, dynamic>{
+          'User': <String, dynamic>{
+            'Id': 'user-123',
+            'Name': 'testuser',
+          },
+          'AccessToken': 'token-abc',
         };
 
-        dioAdapter.onPost('/api/auth/login', body: {
-          'emby_url': testEmbyUrl,
-          'username': 'testuser',
-          'password': 'password123',
-        }).reply(200, loginResponse);
+        dioAdapter
+            .onPost(
+              '/Users/AuthenticateByName',
+              body: <String, dynamic>{
+                'Username': 'testuser',
+                'Pw': 'password123',
+              },
+            )
+            .reply(200, loginResponse);
 
         final user = await service.login(
-          testEmbyUrl,
-          testBackendUrl,
-          'testuser',
-          'password123',
+          embyServerUrl: testEmbyUrl,
+          username: 'testuser',
+          password: 'password123',
         );
 
         expect(user.id, 'user-123');
@@ -51,16 +154,15 @@ void main() {
       });
 
       test('登录失败抛出异常', () async {
-        dioAdapter.onPost('/api/auth/login').reply(401, {
+        dioAdapter.onPost('/Users/AuthenticateByName').reply(401, {
           'detail': '用户名或密码错误',
         });
 
         expect(
           () => service.login(
-            testEmbyUrl,
-            testBackendUrl,
-            'wronguser',
-            'wrongpass',
+            embyServerUrl: testEmbyUrl,
+            username: 'wronguser',
+            password: 'wrongpass',
           ),
           throwsA(equals('用户名或密码错误')),
         );
@@ -68,16 +170,32 @@ void main() {
     });
 
     group('getLibraries', () {
-      test('获取媒体库列表成功', () async {
-        final librariesResponse = [
-          {'id': 'lib-1', 'name': '电影', 'type': 'movies', 'item_count': 100},
-          {'id': 'lib-2', 'name': '电视剧', 'type': 'tvshows', 'item_count': 50},
-        ];
+      test('传入 userId 时使用 /Users/{userId}/Views 并解析 Items', () async {
+        final librariesResponse = <String, dynamic>{
+          'Items': [
+            <String, dynamic>{
+              'Id': 'lib-1',
+              'Name': '电影',
+              'CollectionType': 'movies',
+            },
+            <String, dynamic>{
+              'Id': 'lib-2',
+              'Name': '电视剧',
+              'CollectionType': 'tvshows',
+            },
+          ],
+        };
 
-        dioAdapter.onGet('/api/libraries').reply(200, librariesResponse);
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Views',
+              query: <String, dynamic>{},
+            )
+            .reply(200, librariesResponse);
 
         final libraries = await service.getLibraries(
-          serverUrl: testBackendUrl,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
@@ -86,17 +204,43 @@ void main() {
         expect(libraries[0].name, '电影');
         expect(libraries[0].type, 'movies');
         expect(libraries[1].id, 'lib-2');
-        expect(libraries[1].name, '电视剧');
+        expect(libraries[1].type, 'tvshows');
+      });
+
+      test('无 userId 时降级到 /Library/VirtualFolders 并解析数组', () async {
+        final librariesResponse = [
+          <String, dynamic>{
+            'Id': 'lib-3',
+            'Name': '音乐',
+            'CollectionType': 'music',
+          },
+        ];
+
+        dioAdapter
+            .onGet(
+              '/Library/VirtualFolders',
+              query: <String, dynamic>{},
+            )
+            .reply(200, librariesResponse);
+
+        final libraries = await service.getLibraries(
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(libraries.length, 1);
+        expect(libraries[0].id, 'lib-3');
+        expect(libraries[0].type, 'music');
       });
 
       test('获取媒体库列表失败', () async {
-        dioAdapter.onGet('/api/libraries').reply(500, {
+        dioAdapter.onGet('/Library/VirtualFolders').reply(500, {
           'detail': '服务器内部错误',
         });
 
         expect(
           () => service.getLibraries(
-            serverUrl: testBackendUrl,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(contains('服务器错误')),
@@ -105,27 +249,30 @@ void main() {
     });
 
     group('getLibraryItems', () {
-      test('获取媒体库条目成功', () async {
-        final response = {
-          'items': [
-            {
-              'id': 'item-1',
-              'title': '测试电影',
-              'type': 'Movie',
-              'duration_seconds': 7200.0,
-            },
+      test('传入 userId 时请求用户视图路径并解析分页结果', () async {
+        final response = <String, dynamic>{
+          'Items': [
+            buildMediaItemJson(
+              id: 'item-1',
+              name: '测试电影',
+              type: 'Movie',
+              runTimeTicks: 72000000000,
+            ),
           ],
-          'total': 1,
-          'offset': 0,
-          'limit': 20,
+          'TotalRecordCount': 1,
         };
 
-        dioAdapter.onGet('/api/libraries/lib-1/items',
-            query: {'limit': 20, 'offset': 0}).reply(200, response);
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Items',
+              query: buildLibraryItemsQuery(libraryId: testLibraryId),
+            )
+            .reply(200, response);
 
         final result = await service.getLibraryItems(
-          'lib-1',
-          serverUrl: testBackendUrl,
+          testLibraryId,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
@@ -133,41 +280,68 @@ void main() {
         expect(result.total, 1);
         expect(result.items[0].id, 'item-1');
         expect(result.items[0].title, '测试电影');
+        expect(result.items[0].type, 'Movie');
       });
 
-      test('获取媒体库条目带分页参数', () async {
-        final response = {
-          'items': [],
-          'total': 100,
-          'offset': 40,
-          'limit': 20,
-        };
-
-        dioAdapter.onGet('/api/libraries/lib-1/items',
-            query: {'limit': 20, 'offset': 40}).reply(200, response);
+      test('无 userId 时降级到 /Items 路径', () async {
+        dioAdapter
+            .onGet(
+              '/Items',
+              query: buildLibraryItemsQuery(libraryId: testLibraryId),
+            )
+            .reply(200, <String, dynamic>{
+              'Items': [],
+              'TotalRecordCount': 0,
+            });
 
         final result = await service.getLibraryItems(
-          'lib-1',
-          limit: 20,
-          offset: 40,
-          serverUrl: testBackendUrl,
+          testLibraryId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
-        expect(result.offset, 40);
-        expect(result.limit, 20);
+        expect(result.items, isEmpty);
+        expect(result.total, 0);
+      });
+
+      test('分页参数正确传递', () async {
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Items',
+              query: buildLibraryItemsQuery(
+                libraryId: testLibraryId,
+                limit: 10,
+                offset: 20,
+              ),
+            )
+            .reply(200, <String, dynamic>{
+              'Items': [],
+              'TotalRecordCount': 100,
+            });
+
+        final result = await service.getLibraryItems(
+          testLibraryId,
+          userId: testUserId,
+          limit: 10,
+          offset: 20,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(result.offset, 20);
+        expect(result.limit, 10);
         expect(result.total, 100);
       });
 
       test('获取媒体库条目失败', () async {
-        dioAdapter.onGet('/api/libraries/invalid-lib/items').reply(404, {
+        dioAdapter.onGet('/Items').reply(404, {
           'detail': '媒体库不存在',
         });
 
         expect(
           () => service.getLibraryItems(
             'invalid-lib',
-            serverUrl: testBackendUrl,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(equals('媒体库不存在')),
@@ -175,42 +349,74 @@ void main() {
       });
     });
 
-    group('getItem', () {
-      test('获取单个媒体项成功', () async {
-        final response = {
-          'id': 'item-123',
-          'title': '测试电影',
-          'type': 'Movie',
-          'duration_seconds': 5400.0,
-          'overview': '这是一部测试电影',
-          'year': 2024,
-        };
+    group('getItemDetail', () {
+      test('传入 userId 时请求 /Users/{userId}/Items/{id}', () async {
+        final response = buildMediaItemJson(
+          id: testItemId,
+          name: '测试电影',
+          type: 'Movie',
+          runTimeTicks: 54000000000,
+          productionYear: 2024,
+          overview: '这是一部测试电影',
+        );
 
-        dioAdapter.onGet('/api/items/item-123').reply(200, response);
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Items/$testItemId',
+              query: <String, dynamic>{'Fields': itemDetailFields},
+            )
+            .reply(200, response);
 
-        final item = await service.getItem(
-          'item-123',
-          serverUrl: testBackendUrl,
+        final item = await service.getItemDetail(
+          testItemId,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
-        expect(item.id, 'item-123');
+        expect(item.id, testItemId);
         expect(item.title, '测试电影');
         expect(item.type, 'Movie');
-        expect(item.durationSeconds, 5400.0);
+        expect(item.durationSeconds, closeTo(5400.0, 0.01));
         expect(item.overview, '这是一部测试电影');
         expect(item.year, 2024);
       });
 
+      test('无 userId 时降级到 /Items/{id}', () async {
+        dioAdapter
+            .onGet(
+              '/Items/$testItemId',
+              query: <String, dynamic>{'Fields': itemDetailFields},
+            )
+            .reply(200, buildMediaItemJson(
+              id: testItemId,
+              name: '测试电影',
+              type: 'Movie',
+            ));
+
+        final item = await service.getItemDetail(
+          testItemId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(item.id, testItemId);
+      });
+
       test('获取媒体项失败', () async {
-        dioAdapter.onGet('/api/items/not-found').reply(404, {
-          'detail': '媒体项不存在',
-        });
+        dioAdapter
+            .onGet(
+              '/Items/not-found',
+              query: <String, dynamic>{'Fields': itemDetailFields},
+            )
+            .reply(404, {
+              'detail': '媒体项不存在',
+            });
 
         expect(
-          () => service.getItem(
+          () => service.getItemDetail(
             'not-found',
-            serverUrl: testBackendUrl,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(equals('媒体项不存在')),
@@ -218,67 +424,35 @@ void main() {
       });
     });
 
-    group('getPlaybackUrl', () {
-      test('获取播放 URL 成功', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(200, {
-          'playback_url': 'http://emby.example.com/video/item-123/stream',
-        });
-
-        final url = await service.getPlaybackUrl(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(url, 'http://emby.example.com/video/item-123/stream');
-      });
-
-      test('播放 URL 为空时返回空字符串', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(200, {});
-
-        final url = await service.getPlaybackUrl(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(url, '');
-      });
-
-      test('获取播放 URL 失败', () async {
-        dioAdapter.onGet('/api/items/item-123/playback').reply(403, {
-          'detail': '无播放权限',
-        });
-
-        expect(
-          () => service.getPlaybackUrl(
-            'item-123',
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('无播放权限')),
-        );
-      });
-    });
-
-    group('search', () {
-      test('搜索成功返回结果', () async {
-        final response = {
-          'items': [
-            {'id': 'item-1', 'title': '测试电影', 'type': 'Movie'},
-            {'id': 'item-2', 'title': '测试剧集', 'type': 'Series'},
+    group('searchItems', () {
+      test('搜索成功返回分页结果', () async {
+        final response = <String, dynamic>{
+          'Items': [
+            buildMediaItemJson(
+              id: 'item-1',
+              name: '测试电影',
+              type: 'Movie',
+            ),
+            buildMediaItemJson(
+              id: 'item-2',
+              name: '测试剧集',
+              type: 'Series',
+            ),
           ],
-          'total': 2,
-          'offset': 0,
-          'limit': 20,
+          'TotalRecordCount': 2,
         };
 
-        dioAdapter.onGet('/api/search',
-            query: {'q': '测试', 'limit': 20, 'offset': 0}).reply(200, response);
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Items',
+              query: buildSearchItemsQuery(query: '测试'),
+            )
+            .reply(200, response);
 
-        final result = await service.search(
+        final result = await service.searchItems(
           '测试',
-          serverUrl: testBackendUrl,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
@@ -288,39 +462,53 @@ void main() {
         expect(result.items[1].title, '测试剧集');
       });
 
-      test('搜索带分页参数', () async {
-        final response = {
-          'items': [],
-          'total': 50,
-          'offset': 20,
-          'limit': 10,
-        };
+      test('带 IncludeItemTypes 参数', () async {
+        dioAdapter
+            .onGet(
+              '/Users/$testUserId/Items',
+              query: buildSearchItemsQuery(
+                query: 'test',
+                includeTypes: <String>['Movie', 'Series'],
+              ),
+            )
+            .reply(200, <String, dynamic>{
+              'Items': [],
+              'TotalRecordCount': 0,
+            });
 
-        dioAdapter.onGet('/api/search',
-            query: {'q': 'test', 'limit': 10, 'offset': 20}).reply(200, response);
-
-        final result = await service.search(
+        final result = await service.searchItems(
           'test',
-          limit: 10,
-          offset: 20,
-          serverUrl: testBackendUrl,
+          userId: testUserId,
+          includeTypes: <String>['Movie', 'Series'],
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
-        expect(result.offset, 20);
-        expect(result.limit, 10);
-        expect(result.total, 50);
+        expect(result.items, isEmpty);
+      });
+
+      test('空关键词直接返回空结果，不发起网络请求', () async {
+        final result = await service.searchItems(
+          '',
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(result.items, isEmpty);
+        expect(result.total, 0);
       });
 
       test('搜索失败', () async {
-        dioAdapter.onGet('/api/search').reply(400, {
+        dioAdapter.onGet('/Users/$testUserId/Items').reply(400, {
           'detail': '搜索关键词不能为空',
         });
 
         expect(
-          () => service.search(
-            '',
-            serverUrl: testBackendUrl,
+          () => service.searchItems(
+            'error',
+            userId: testUserId,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(equals('搜索关键词不能为空')),
@@ -328,77 +516,153 @@ void main() {
       });
     });
 
-    group('toggleFavorite', () {
-      test('添加收藏调用 POST', () async {
-        dioAdapter.onPost('/api/favorites/item-123').reply(200, {});
+    group('searchHints', () {
+      test('搜索提示成功返回列表', () async {
+        final response = <String, dynamic>{
+          'SearchHints': [
+            <String, dynamic>{
+              'Id': 'hint-1',
+              'Name': '提示电影',
+              'Type': 'Movie',
+              'ProductionYear': 2023,
+            },
+          ],
+        };
 
-        await service.toggleFavorite(
-          'item-123',
-          true,
-          serverUrl: testBackendUrl,
+        dioAdapter
+            .onGet(
+              '/Search/Hints',
+              query: buildSearchHintsQuery(query: '提示'),
+            )
+            .reply(200, response);
+
+        final hints = await service.searchHints(
+          '提示',
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
-        // 成功则不抛出异常
+        expect(hints.length, 1);
+        expect(hints[0].id, 'hint-1');
+        expect(hints[0].name, '提示电影');
+        expect(hints[0].type, 'Movie');
+        expect(hints[0].year, 2023);
       });
 
-      test('移除收藏调用 DELETE', () async {
-        dioAdapter.onDelete('/api/favorites/item-123').reply(200, {});
-
-        await service.toggleFavorite(
-          'item-123',
-          false,
-          serverUrl: testBackendUrl,
+      test('空关键词直接返回空列表', () async {
+        final hints = await service.searchHints(
+          '',
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
-        // 成功则不抛出异常
+        expect(hints, isEmpty);
+      });
+
+      test('搜索提示失败', () async {
+        dioAdapter.onGet('/Search/Hints').reply(500, {
+          'detail': '服务器内部错误',
+        });
+
+        expect(
+          () => service.searchHints(
+            'error',
+            serverUrl: testEmbyUrl,
+            token: testToken,
+          ),
+          throwsA(contains('服务器错误')),
+        );
+      });
+    });
+
+    group('toggleFavorite', () {
+      test('传入 userId 时添加收藏调用 POST', () async {
+        dioAdapter
+            .onPost('/Users/$testUserId/FavoriteItems/$testItemId')
+            .reply(200, {});
+
+        await service.toggleFavorite(
+          itemId: testItemId,
+          isFavorite: true,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+      });
+
+      test('传入 userId 时移除收藏调用 DELETE', () async {
+        dioAdapter
+            .onDelete('/Users/$testUserId/FavoriteItems/$testItemId')
+            .reply(200, {});
+
+        await service.toggleFavorite(
+          itemId: testItemId,
+          isFavorite: false,
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+      });
+
+      test('无 userId 时回退到 /UserFavoriteItems/{id}', () async {
+        dioAdapter
+            .onPost('/UserFavoriteItems/$testItemId')
+            .reply(200, {});
+
+        await service.toggleFavorite(
+          itemId: testItemId,
+          isFavorite: true,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
       });
 
       test('添加收藏失败', () async {
-        dioAdapter.onPost('/api/favorites/item-123').reply(404, {
-          'detail': '媒体项不存在',
-        });
+        dioAdapter
+            .onPost('/Users/$testUserId/FavoriteItems/$testItemId')
+            .reply(404, {
+              'detail': '媒体项不存在',
+            });
 
         expect(
           () => service.toggleFavorite(
-            'item-123',
-            true,
-            serverUrl: testBackendUrl,
+            itemId: testItemId,
+            isFavorite: true,
+            userId: testUserId,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(equals('媒体项不存在')),
-        );
-      });
-
-      test('移除收藏失败', () async {
-        dioAdapter.onDelete('/api/favorites/item-123').reply(403, {
-          'detail': '无权限操作',
-        });
-
-        expect(
-          () => service.toggleFavorite(
-            'item-123',
-            false,
-            serverUrl: testBackendUrl,
-            token: testToken,
-          ),
-          throwsA(equals('无权限操作')),
         );
       });
     });
 
     group('getFavorites', () {
       test('获取收藏列表成功', () async {
-        final response = [
-          {'id': 'item-1', 'title': '收藏电影1', 'type': 'Movie'},
-          {'id': 'item-2', 'title': '收藏剧集1', 'type': 'Series'},
-        ];
+        final response = <String, dynamic>{
+          'Items': [
+            buildMediaItemJson(
+              id: 'item-1',
+              name: '收藏电影1',
+              type: 'Movie',
+            ),
+            buildMediaItemJson(
+              id: 'item-2',
+              name: '收藏剧集1',
+              type: 'Series',
+            ),
+          ],
+        };
 
-        dioAdapter.onGet('/api/favorites').reply(200, response);
+        dioAdapter
+            .onGet(
+              '/Items',
+              query: buildFavoritesQuery(),
+            )
+            .reply(200, response);
 
         final favorites = await service.getFavorites(
-          serverUrl: testBackendUrl,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
 
@@ -408,13 +672,13 @@ void main() {
       });
 
       test('获取收藏列表失败', () async {
-        dioAdapter.onGet('/api/favorites').reply(401, {
+        dioAdapter.onGet('/Items').reply(401, {
           'detail': 'Token 已过期',
         });
 
         expect(
           () => service.getFavorites(
-            serverUrl: testBackendUrl,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(equals('Token 已过期')),
@@ -422,32 +686,28 @@ void main() {
       });
     });
 
-    group('saveProgress', () {
-      test('保存播放进度成功', () async {
-        dioAdapter.onPost('/api/progress/item-123', body: {
-          'position_seconds': 3600,
-        }).reply(200, {});
+    group('markAsPlayed', () {
+      test('标记已看成功调用 POST', () async {
+        dioAdapter
+            .onPost('/UserPlayedItems/$testItemId')
+            .reply(200, {});
 
-        await service.saveProgress(
-          'item-123',
-          3600,
-          serverUrl: testBackendUrl,
+        await service.markAsPlayed(
+          testItemId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
-
-        // 成功则不抛出异常
       });
 
-      test('保存播放进度失败', () async {
-        dioAdapter.onPost('/api/progress/item-123').reply(500, {
+      test('标记已看失败', () async {
+        dioAdapter.onPost('/UserPlayedItems/$testItemId').reply(500, {
           'detail': '数据库写入失败',
         });
 
         expect(
-          () => service.saveProgress(
-            'item-123',
-            3600,
-            serverUrl: testBackendUrl,
+          () => service.markAsPlayed(
+            testItemId,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
           throwsA(contains('服务器错误')),
@@ -455,45 +715,31 @@ void main() {
       });
     });
 
-    group('getProgress', () {
-      test('获取播放进度成功', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(200, {
-          'position_seconds': 1800,
-        });
+    group('markAsUnplayed', () {
+      test('标记未看成功调用 DELETE', () async {
+        dioAdapter
+            .onDelete('/UserPlayedItems/$testItemId')
+            .reply(200, {});
 
-        final progress = await service.getProgress(
-          'item-123',
-          serverUrl: testBackendUrl,
+        await service.markAsUnplayed(
+          testItemId,
+          serverUrl: testEmbyUrl,
           token: testToken,
         );
-
-        expect(progress, 1800);
       });
 
-      test('播放进度不存在返回 null', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(200, {});
-
-        final progress = await service.getProgress(
-          'item-123',
-          serverUrl: testBackendUrl,
-          token: testToken,
-        );
-
-        expect(progress, isNull);
-      });
-
-      test('获取播放进度失败', () async {
-        dioAdapter.onGet('/api/progress/item-123').reply(404, {
-          'detail': '媒体项不存在',
+      test('标记未看失败', () async {
+        dioAdapter.onDelete('/UserPlayedItems/$testItemId').reply(403, {
+          'detail': '无权限操作',
         });
 
         expect(
-          () => service.getProgress(
-            'item-123',
-            serverUrl: testBackendUrl,
+          () => service.markAsUnplayed(
+            testItemId,
+            serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('媒体项不存在')),
+          throwsA(equals('无权限操作')),
         );
       });
     });
