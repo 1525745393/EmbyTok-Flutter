@@ -29,3 +29,6 @@ export 'app_preferences_providers.dart';
 export 'user_preferences_provider.dart';
 export 'subtitle_settings_provider.dart';
 export 'toolbar_visibility_provider.dart';
+
+// ---- 页面导航 ----
+export 'page_navigation_provider.dart';

@@ -1,12 +1,11 @@
 // 主骨架页：底部导航栏 + 页面切换
-// 沉浸式体验：底部导航栏跟随 toolbarVisibilityProvider 平滑展开/折叠
+// 底部导航栏简化为3个标签：首页、收藏、设置
+// 搜索和历史通过 FeedView 顶部操作栏的图标按钮访问（覆盖层页面）
 //
 // 系统返回键拦截：HomeScaffold 的 PopScope 拦截系统返回键。
+// - 在覆盖层页面（搜索/历史）上按返回键 → 回到 Feed
 // - 在非 Feed Tab 上按返回键 → 回到 Feed Tab
 // - 在 Feed Tab 上按返回键 → 弹出退出确认对话框
-//
-// 注意：依赖 AndroidManifest 中 android:enableOnBackInvokedCallback="true"
-// 才会把系统返回键事件传给 Flutter（Android 13+ 默认行为）
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,13 +19,6 @@ import 'favorites_view.dart';
 import 'history_view.dart';
 import 'settings_view.dart';
 
-// 页面索引常量
-const int _indexFeed = 0;
-const int _indexSearch = 1;
-const int _indexFavorites = 2;
-const int _indexHistory = 3;
-const int _indexSettings = 4;
-
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
   const HomeScaffold({super.key});
@@ -36,27 +28,33 @@ class HomeScaffold extends ConsumerStatefulWidget {
 }
 
 class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
-  int _currentIndex = _indexFeed;
-
   @override
   Widget build(BuildContext context) {
+    // 监听页面导航状态
+    final pageNavState = ref.watch(pageNavigationProvider);
     // 监听工具栏可见性：用于驱动底部导航栏的折叠动画
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final scheme = Theme.of(context).colorScheme;
 
+    // 当前显示的页面索引
+    // 覆盖层页面（搜索/历史）使用独立索引，底部导航栏保持原位
+    final currentIndex = pageNavState.currentIndex;
+
     return PopScope(
-      // 拦截系统返回键，弹出退出确认对话框
-      // canPop=false 让 PopScope 接管返回事件，Flutter 不会自动退出 App
       canPop: false,
       onPopInvoked: (bool didPop) async {
         if (didPop) return;
 
+        // 如果在覆盖层页面（搜索/历史），返回到 Feed
+        if (pageNavState.isOverlayPage) {
+          ref.read(pageNavigationNotifierProvider).backToFeed();
+          return;
+        }
+
         // 在 Feed 之外的 Tab 上按返回键，先回到 Feed
-        if (_currentIndex != _indexFeed) {
-          setState(() {
-            _currentIndex = _indexFeed;
-          });
+        if (currentIndex != 0) {
+          ref.read(pageNavigationNotifierProvider).goToPage(0);
           return;
         }
 
@@ -90,105 +88,103 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
-        // 架构调整：使用 Stack 让内容 fill 全屏，底部导航栏用 Positioned 叠加
         body: Stack(
           children: [
-            // 页面内容：feed 页面让视频延伸到屏幕边缘，其他页面预留底部导航栏高度
+            // 页面内容
             Positioned.fill(
               child: IndexedStack(
-                index: _currentIndex,
+                // 覆盖层页面显示在 Feed 之上，不切换底部导航
+                index: pageNavState.isOverlayPage ? 0 : currentIndex,
                 children: [
-                  // Feed 页面：全屏展示
+                  // 索引 0: Feed 页面（全屏展示）
                   const FeedView(),
-                  // 其他普通页面：内容需要避开底部导航栏
-                  for (int i = 1; i < 5; i++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: kBottomNavHeight + bottomPadding,
-                      ),
-                      child: [
-                        const SizedBox.shrink(), // 占位
-                        const SearchView(),
-                        const FavoritesView(),
-                        const HistoryView(),
-                        const SettingsView(),
-                      ][i],
-                    ),
+                  // 索引 1: 收藏页面（预留底部导航栏高度）
+                  Padding(
+                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    child: const FavoritesView(),
+                  ),
+                  // 索引 2: 设置页面（预留底部导航栏高度）
+                  Padding(
+                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    child: const SettingsView(),
+                  ),
                 ],
               ),
             ),
-            // 底部导航栏：半透明渐变叠加在页面之上
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: kToolbarAnimMs),
-                curve: Curves.easeOut,
-                height: toolbarVisible ? kBottomNavHeight + bottomPadding : 0,
-                child: AnimatedOpacity(
+            // 覆盖层页面：搜索和历史（全屏覆盖，不预留底部导航栏空间）
+            if (pageNavState.isOverlayPage)
+              Positioned.fill(
+                child: IndexedStack(
+                  // search=3, history=4，映射到覆盖层索引 0/1
+                  index: currentIndex == 3 ? 0 : 1,
+                  children: [
+                    const SearchView(),
+                    const HistoryView(),
+                  ],
+                ),
+              ),
+            // 底部导航栏：只在非覆盖层页面时显示
+            if (!pageNavState.isOverlayPage)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: kToolbarAnimMs),
-                  opacity: toolbarVisible ? 1.0 : 0.0,
-                  child: ClipRect(
-                    child: SingleChildScrollView(
-                      physics: const NeverScrollableScrollPhysics(),
-                      child: Container(
-                        height: kBottomNavHeight + bottomPadding,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              scheme.surface,
-                              scheme.surface.withOpacity(0.0),
-                            ],
+                  curve: Curves.easeOut,
+                  height: toolbarVisible ? kBottomNavHeight + bottomPadding : 0,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: kToolbarAnimMs),
+                    opacity: toolbarVisible ? 1.0 : 0.0,
+                    child: ClipRect(
+                      child: SingleChildScrollView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Container(
+                          height: kBottomNavHeight + bottomPadding,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                scheme.surface,
+                                scheme.surface.withOpacity(0.0),
+                              ],
+                            ),
                           ),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: bottomPadding),
-                          child: BottomNavigationBar(
-                            currentIndex: _currentIndex,
-                            type: BottomNavigationBarType.fixed,
-                            backgroundColor: Colors.transparent,
-                            elevation: 0,
-                            selectedItemColor: scheme.primary,
-                            unselectedItemColor: scheme.onSurfaceVariant,
-                            selectedFontSize: 12,
-                            unselectedFontSize: 12,
-                            showSelectedLabels: true,
-                            showUnselectedLabels: true,
-                            onTap: (index) {
-                              setState(() {
-                                _currentIndex = index;
-                              });
-                            },
-                            items: const [
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.home_outlined),
-                                activeIcon: Icon(Icons.home),
-                                label: '首页',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.search),
-                                activeIcon: Icon(Icons.search),
-                                label: '搜索',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.favorite_border),
-                                activeIcon: Icon(Icons.favorite),
-                                label: '收藏',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.history_outlined),
-                                activeIcon: Icon(Icons.history),
-                                label: '历史',
-                              ),
-                              BottomNavigationBarItem(
-                                icon: Icon(Icons.settings_outlined),
-                                activeIcon: Icon(Icons.settings),
-                                label: '设置',
-                              ),
-                            ],
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: bottomPadding),
+                            child: BottomNavigationBar(
+                              currentIndex: currentIndex,
+                              type: BottomNavigationBarType.fixed,
+                              backgroundColor: Colors.transparent,
+                              elevation: 0,
+                              selectedItemColor: scheme.primary,
+                              unselectedItemColor: scheme.onSurfaceVariant,
+                              selectedFontSize: 12,
+                              unselectedFontSize: 12,
+                              showSelectedLabels: true,
+                              showUnselectedLabels: true,
+                              onTap: (index) {
+                                ref.read(pageNavigationNotifierProvider).goToPage(index);
+                              },
+                              items: const [
+                                BottomNavigationBarItem(
+                                  icon: Icon(Icons.home_outlined),
+                                  activeIcon: Icon(Icons.home),
+                                  label: '首页',
+                                ),
+                                BottomNavigationBarItem(
+                                  icon: Icon(Icons.favorite_border),
+                                  activeIcon: Icon(Icons.favorite),
+                                  label: '收藏',
+                                ),
+                                BottomNavigationBarItem(
+                                  icon: Icon(Icons.settings_outlined),
+                                  activeIcon: Icon(Icons.settings),
+                                  label: '设置',
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -196,7 +192,6 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

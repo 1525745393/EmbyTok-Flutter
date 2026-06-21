@@ -413,7 +413,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 顶部栏：媒体库管理按钮 + 视图切换按钮
+  // 顶部栏：搜索 + 历史 + 媒体库管理按钮 + 视图切换按钮
   Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -432,30 +432,64 @@ class _FeedViewState extends ConsumerState<FeedView>
       child: SafeArea(
         bottom: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // 媒体库管理按钮（打开多选弹窗）
-            IconButton(
-              icon: Icon(
-                Icons.library_books,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () => LibrarySelector.show(context),
-              tooltip: '媒体库',
+            // 左侧：搜索和历史按钮
+            Row(
+              children: [
+                // 搜索按钮
+                IconButton(
+                  icon: Icon(
+                    Icons.search,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(pageNavigationNotifierProvider).goToSearch();
+                  },
+                  tooltip: '搜索',
+                ),
+                // 历史按钮
+                IconButton(
+                  icon: Icon(
+                    Icons.history,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(pageNavigationNotifierProvider).goToHistory();
+                  },
+                  tooltip: '历史',
+                ),
+              ],
             ),
-            // 视图切换按钮
-            IconButton(
-              icon: Icon(
-                viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(viewModeProvider.notifier).setMode(
-                  viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-                );
-              },
+            // 右侧：媒体库管理和视图切换按钮
+            Row(
+              children: [
+                // 媒体库管理按钮（打开多选弹窗）
+                IconButton(
+                  icon: Icon(
+                    Icons.library_books,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () => LibrarySelector.show(context),
+                  tooltip: '媒体库',
+                ),
+                // 视图切换按钮
+                IconButton(
+                  icon: Icon(
+                    viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(viewModeProvider.notifier).setMode(
+                      viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
