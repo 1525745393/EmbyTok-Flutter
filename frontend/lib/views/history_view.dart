@@ -55,6 +55,15 @@ class _HistoryViewState extends ConsumerState<HistoryView>
   }
 
   Widget _buildBody(WatchHistoryState state) {
+    final authState = ref.watch(authProvider);
+
+    // 未登录时显示明确提示
+    if (!authState.isAuthenticated) {
+      return ErrorStateCard.notLoggedIn(
+        onLogin: () => context.go('/login'),
+      );
+    }
+
     if (state.isLoading && state.items.isEmpty) {
       final scheme = Theme.of(context).colorScheme;
       return Center(
@@ -64,6 +73,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
     if (state.error != null && state.items.isEmpty) {
       return ErrorStateCard(
         title: state.error!,
+        subtitle: '点击重试重新从 Emby 服务器加载',
         actionLabel: '重试',
         onAction: () {
           ref.read(watchHistoryProvider.notifier).load();

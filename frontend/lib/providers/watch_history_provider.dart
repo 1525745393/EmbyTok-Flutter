@@ -58,6 +58,7 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
     try {
       final items = await _service.getWatchHistory(
         limit: 50,
+        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );

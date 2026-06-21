@@ -1009,13 +1009,20 @@ class EmbytokService {
 
   // ============================
   // 观看历史（从 Emby 获取最近观看的条目）
+  //
+  // 优先使用用户级路径 /Users/{userId}/Items，该路径在多数 Emby 服务器上
+  // 对继续观看列表的权限更明确。若 userId 为空，则降级到全局 /Items
+  // 并附加 UserId 查询参数保证向后兼容。
   // ============================
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
@@ -1024,9 +1031,16 @@ class EmbytokService {
       'Filters': 'IsResumable',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
+
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
     final resp = await _apiClient.get<dynamic>(
-      '/Items',
+      path,
       queryParameters: params,
     );
     final items = resp.data is List

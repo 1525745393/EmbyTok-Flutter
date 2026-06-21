@@ -497,5 +497,181 @@ void main() {
         );
       });
     });
+
+    group('getWatchHistory', () {
+      const testUserId = 'user-abc-123';
+
+      // 构造 Emby 原生 PascalCase 的单个媒体项响应
+      Map<String, dynamic> buildWatchHistoryItem({
+        required String id,
+        required String name,
+        required String type,
+        int? runTimeTicks,
+        Map<String, dynamic>? userData,
+      }) {
+        return {
+          'Id': id,
+          'Name': name,
+          'Type': type,
+          if (runTimeTicks != null) 'RunTimeTicks': runTimeTicks,
+          if (userData != null) 'UserData': userData,
+        };
+      }
+
+      // 构造 getWatchHistory 期望的查询参数
+      Map<String, dynamic> buildExpectedQueryParams({
+        int limit = 50,
+        String? userId,
+      }) {
+        final params = <String, dynamic>{
+          'Limit': '$limit',
+          'Recursive': 'true',
+          'SortBy': 'DatePlayed',
+          'SortOrder': 'Descending',
+          'Filters': 'IsResumable',
+          'Fields':
+              'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+        };
+        if (userId != null && userId.isNotEmpty) {
+          params['UserId'] = userId;
+        }
+        return params;
+      }
+
+      test('正常加载：传入 userId 时请求用户视图路径并正确解析', () async {
+        final embyResponse = {
+          'Items': [
+            buildWatchHistoryItem(
+              id: 'item-watch-1',
+              name: '测试电影',
+              type: 'Movie',
+              runTimeTicks: 6000000000,
+              userData: {
+                'PlaybackPositionTicks': 1200000000,
+                'IsFavorite': false,
+                'Played': false,
+              },
+            ),
+            buildWatchHistoryItem(
+              id: 'item-watch-2',
+              name: '测试剧集 S01E02',
+              type: 'Episode',
+              runTimeTicks: 3000000000,
+              userData: {
+                'PlaybackPositionTicks': 1500000000,
+                'IsFavorite': true,
+                'Played': false,
+              },
+            ),
+          ],
+          'TotalRecordCount': 2,
+        };
+
+        dioAdapter.onGet(
+          '/Users/$testUserId/Items',
+          query: buildExpectedQueryParams(userId: testUserId),
+        ).reply(200, embyResponse);
+
+        final history = await service.getWatchHistory(
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(history.length, 2);
+        expect(history[0].id, 'item-watch-1');
+        expect(history[0].title, '测试电影');
+        expect(history[0].type, 'Movie');
+        expect(history[0].runtimeTicks, 6000000000);
+        expect(history[0].durationSeconds, closeTo(600.0, 0.01));
+        expect(history[0].userData, isNotNull);
+        expect(history[0].userData!.playbackPositionTicks, 1200000000.0);
+        expect(history[1].id, 'item-watch-2');
+        expect(history[1].title, '测试剧集 S01E02');
+        expect(history[1].type, 'Episode');
+        expect(history[1].userData!.isFavorite, true);
+      });
+
+      test('空历史：Emby 返回空 Items 列表时返回空列表', () async {
+        dioAdapter.onGet(
+          '/Users/$testUserId/Items',
+          query: buildExpectedQueryParams(userId: testUserId),
+        ).reply(200, {'Items': []});
+
+        final history = await service.getWatchHistory(
+          userId: testUserId,
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(history, isEmpty);
+      });
+
+      test('userId 为空时降级到 /Items 路径', () async {
+        dioAdapter.onGet(
+          '/Items',
+          query: buildExpectedQueryParams(),
+        ).reply(200, {'Items': []});
+
+        final history = await service.getWatchHistory(
+          serverUrl: testEmbyUrl,
+          token: testToken,
+        );
+
+        expect(history, isEmpty);
+      });
+
+      test('网络错误时抛出异常', () async {
+        dioAdapter.onGet(
+          '/Users/$testUserId/Items',
+          query: buildExpectedQueryParams(userId: testUserId),
+        ).throwDioError(
+          DioException.connectionError(
+            requestOptions: RequestOptions(path: '/Users/$testUserId/Items'),
+          ),
+        );
+
+        expect(
+          () => service.getWatchHistory(
+            userId: testUserId,
+            serverUrl: testEmbyUrl,
+            token: testToken,
+          ),
+          throwsA(equals('网络连接失败，请检查服务器地址')),
+        );
+      });
+
+      test('401 未授权时抛出异常', () async {
+        dioAdapter.onGet(
+          '/Users/$testUserId/Items',
+          query: buildExpectedQueryParams(userId: testUserId),
+        ).reply(401, {'detail': 'Token 已过期'});
+
+        expect(
+          () => service.getWatchHistory(
+            userId: testUserId,
+            serverUrl: testEmbyUrl,
+            token: testToken,
+          ),
+          throwsA(equals('Token 已过期')),
+        );
+      });
+
+      test('500 服务器错误时抛出异常', () async {
+        dioAdapter.onGet(
+          '/Users/$testUserId/Items',
+          query: buildExpectedQueryParams(userId: testUserId),
+        ).reply(500, {'detail': '服务器内部错误'});
+
+        expect(
+          () => service.getWatchHistory(
+            userId: testUserId,
+            serverUrl: testEmbyUrl,
+            token: testToken,
+          ),
+          throwsA(contains('服务器错误')),
+        );
+      });
+    });
   });
 }
