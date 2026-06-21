@@ -159,7 +159,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 userId: auth.user?.id,
               );
               merged.addAll(resp.items);
-            } catch (e) {
+            } catch (Object e, StackTrace _) {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
@@ -185,7 +185,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 userId: auth.user?.id,
               );
               merged.addAll(resp.items);
-            } catch (e) {
+            } catch (Object e, StackTrace _) {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
@@ -227,7 +227,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'count': loadedItems.length,
         'feedType': currentFeedType.toStorageString(),
       });
-    } catch (e) {
+    } catch (Object e, StackTrace _) {
       AppLogger.error('刷新视频列表失败', error: e);
       final message = e is String ? e : '加载视频失败：$e';
       state = state.copyWith(isLoading: false, error: message);
@@ -277,7 +277,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: auth.user?.id,
           );
           merged.addAll(resp.items);
-        } catch (e) {
+        } catch (Object e, StackTrace _) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
       }
@@ -295,7 +295,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         feedType: currentFeedType,
       );
       AppLogger.debug('加载更多成功', data: {'newCount': merged.length});
-    } catch (e) {
+    } catch (Object e, StackTrace _) {
       AppLogger.error('加载更多失败', error: e);
       final message = e is String ? e : '加载更多失败：$e';
       state = state.copyWith(isLoading: false, error: message);
