@@ -1,5 +1,12 @@
 // 主骨架页：底部导航栏 + 页面切换
 // 沉浸式体验：底部导航栏跟随 toolbarVisibilityProvider 平滑展开/折叠
+//
+// 系统返回键拦截：HomeScaffold 的 PopScope 拦截系统返回键。
+// - 在非 Feed Tab 上按返回键 → 回到 Feed Tab
+// - 在 Feed Tab 上按返回键 → 弹出退出确认对话框
+//
+// 注意：依赖 AndroidManifest 中 android:enableOnBackInvokedCallback="true"
+// 才会把系统返回键事件传给 Flutter（Android 13+ 默认行为）
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -38,12 +45,14 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final scheme = Theme.of(context).colorScheme;
 
-    // PopScope：逐级返回 → 首页 → 退出确认
     return PopScope(
+      // 拦截系统返回键，弹出退出确认对话框
+      // canPop=false 让 PopScope 接管返回事件，Flutter 不会自动退出 App
       canPop: false,
       onPopInvoked: (bool didPop) async {
         if (didPop) return;
 
+        // 在 Feed 之外的 Tab 上按返回键，先回到 Feed
         if (_currentIndex != _indexFeed) {
           setState(() {
             _currentIndex = _indexFeed;
@@ -51,6 +60,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
           return;
         }
 
+        // 在 Feed 上按返回键，弹出退出确认
         final result = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
@@ -88,10 +98,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
               child: IndexedStack(
                 index: _currentIndex,
                 children: [
-                  // Feed 页面：全屏展示（视频内容会延伸到底部边缘，被底部导航栏半透明覆盖
+                  // Feed 页面：全屏展示
                   const FeedView(),
-                  // 其他普通页面：内容需要避开底部导航栏（它们使用内部的布局
-                  // 用 Padding 包裹来避开底部导航栏区域
+                  // 其他普通页面：内容需要避开底部导航栏
                   for (int i = 1; i < 5; i++)
                     Padding(
                       padding: EdgeInsets.only(
@@ -125,12 +134,14 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                       physics: const NeverScrollableScrollPhysics(),
                       child: Container(
                         height: kBottomNavHeight + bottomPadding,
-                        // 半透明渐变：自底向上从黑色渐变为透明
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
-                            colors: [scheme.surface, scheme.surface.withOpacity(0.0)],
+                            colors: [
+                              scheme.surface,
+                              scheme.surface.withOpacity(0.0),
+                            ],
                           ),
                         ),
                         child: Padding(
@@ -138,8 +149,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                           child: BottomNavigationBar(
                             currentIndex: _currentIndex,
                             type: BottomNavigationBarType.fixed,
-                            backgroundColor: Colors.transparent, // 使用外层渐变
-                            elevation: 0, // 去除自带阴影
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
                             selectedItemColor: scheme.primary,
                             unselectedItemColor: scheme.onSurfaceVariant,
                             selectedFontSize: 12,

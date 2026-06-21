@@ -12,6 +12,7 @@
         android:largeHeap="true"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
+        android:enableOnBackInvokedCallback="true"
         android:theme="@style/LaunchTheme">
         <activity
             android:name=".MainActivity"

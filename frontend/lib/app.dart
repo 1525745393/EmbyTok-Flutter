@@ -56,14 +56,14 @@ class EmbyTokApp extends ConsumerWidget {
           path: '/',
           builder: (context, state) => const HomeScaffold(),
         ),
-        // 搜索
+        // 搜索：独立路由（深层链接场景），按返回键跳回首页
         GoRoute(
           path: '/search',
           builder: (context, state) => PopScope(
             canPop: false,
             onPopInvoked: (didPop) {
               if (didPop) return;
-              context.go('/');
+              GoRouter.of(context).go('/');
             },
             child: const SearchView(),
           ),
@@ -75,7 +75,7 @@ class EmbyTokApp extends ConsumerWidget {
             canPop: false,
             onPopInvoked: (didPop) {
               if (didPop) return;
-              context.go('/');
+              GoRouter.of(context).go('/');
             },
             child: const FavoritesView(),
           ),
@@ -87,7 +87,7 @@ class EmbyTokApp extends ConsumerWidget {
             canPop: false,
             onPopInvoked: (didPop) {
               if (didPop) return;
-              context.go('/');
+              GoRouter.of(context).go('/');
             },
             child: const HistoryView(),
           ),
@@ -99,7 +99,7 @@ class EmbyTokApp extends ConsumerWidget {
             canPop: false,
             onPopInvoked: (didPop) {
               if (didPop) return;
-              context.go('/');
+              GoRouter.of(context).go('/');
             },
             child: const SettingsView(),
           ),
