@@ -776,6 +776,7 @@ void main() {
           'SortOrder': 'Descending',
           'Fields':
               'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
         };
         if (userId != null && userId.isNotEmpty) {
           params['UserId'] = userId;
