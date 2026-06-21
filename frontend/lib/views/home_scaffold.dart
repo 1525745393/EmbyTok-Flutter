@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../providers/providers.dart';
 import '../utils/constants.dart';
@@ -39,11 +38,18 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final scheme = Theme.of(context).colorScheme;
 
-    // PopScope：统一处理根路由的返回键（应用退出确认）
+    // PopScope：逐级返回 → 首页 → 退出确认
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) async {
         if (didPop) return;
+
+        if (_currentIndex != _indexFeed) {
+          setState(() {
+            _currentIndex = _indexFeed;
+          });
+          return;
+        }
 
         final result = await showDialog<bool>(
           context: context,
@@ -144,24 +150,6 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                               setState(() {
                                 _currentIndex = index;
                               });
-                              // 根据路由跳转，便于保持浏览器 URL 与状态同步
-                              switch (index) {
-                                case _indexFeed:
-                                  context.go('/');
-                                  break;
-                                case _indexSearch:
-                                  context.go('/search');
-                                  break;
-                                case _indexFavorites:
-                                  context.go('/favorites');
-                                  break;
-                                case _indexHistory:
-                                  context.go('/history');
-                                  break;
-                                case _indexSettings:
-                                  context.go('/settings');
-                                  break;
-                              }
                             },
                             items: const [
                               BottomNavigationBarItem(

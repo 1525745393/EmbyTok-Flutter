@@ -59,22 +59,50 @@ class EmbyTokApp extends ConsumerWidget {
         // 搜索
         GoRoute(
           path: '/search',
-          builder: (context, state) => const SearchView(),
+          builder: (context, state) => PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              context.go('/');
+            },
+            child: const SearchView(),
+          ),
         ),
         // 收藏
         GoRoute(
           path: '/favorites',
-          builder: (context, state) => const FavoritesView(),
+          builder: (context, state) => PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              context.go('/');
+            },
+            child: const FavoritesView(),
+          ),
         ),
         // 历史
         GoRoute(
           path: '/history',
-          builder: (context, state) => const HistoryView(),
+          builder: (context, state) => PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              context.go('/');
+            },
+            child: const HistoryView(),
+          ),
         ),
         // 设置
         GoRoute(
           path: '/settings',
-          builder: (context, state) => const SettingsView(),
+          builder: (context, state) => PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              context.go('/');
+            },
+            child: const SettingsView(),
+          ),
         ),
         // 媒体项详情页：/item/:itemId
         GoRoute(
