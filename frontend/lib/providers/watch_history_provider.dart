@@ -39,9 +39,7 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
 
   WatchHistoryNotifier(this._ref)
       : _service = EmbytokService(),
-        super(const WatchHistoryState()) {
-    load();
-  }
+        super(const WatchHistoryState());
 
   // 从 Emby 服务器加载
   Future<void> load() async {

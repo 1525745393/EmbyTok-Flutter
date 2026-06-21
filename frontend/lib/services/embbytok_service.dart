@@ -1023,6 +1023,10 @@ class EmbytokService {
     _ensureConfig(serverUrl, token);
     final effectiveUserId = userId ?? _defaultUserId;
 
+    // 先决定路径：用户级路径优先，降级到全局 /Items
+    final isUserPath = effectiveUserId != null && effectiveUserId.isNotEmpty;
+    final path = isUserPath ? '/Users/$effectiveUserId/Items' : '/Items';
+
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
@@ -1031,13 +1035,10 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+      // 仅在降级到全局 /Items 路径时附加 UserId 参数
+      if (!isUserPath && effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
     };
-
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
 
     final resp = await _apiClient.get<dynamic>(
       path,

@@ -1,6 +1,6 @@
 # 观看历史与 Emby 服务器对接修复 — The Implementation Plan
 
-## [/] Task 1: 在 `getWatchHistory` 中添加 `IncludeItemTypes` 参数
+## [x] Task 1: 在 `getWatchHistory` 中添加 `IncludeItemTypes` 参数
 - **Priority**: P0
 - **Depends On**: None
 - **Description**:
@@ -14,7 +14,7 @@
   - `programmatic` TR-1.3: `buildExpectedQueryParams` 的新参数与实际实现一致，原有六个测试用例继续通过。
 - **Notes**: 仅修改 params 构造，不改变 `path` 逻辑、`_defaultUserId` 逻辑或响应解析。
 
-## [ ] Task 2: 在用户级路径下移除冗余 `UserId` 查询参数
+## [x] Task 2: 在用户级路径下移除冗余 `UserId` 查询参数
 - **Priority**: P1
 - **Depends On**: None（可与 Task 1 并行或顺序执行）
 - **Description**:
@@ -28,7 +28,7 @@
   - `programmatic` TR-2.3: 测试"空历史 / 网络错误 / 401 / 500"四个用例在新参数下继续通过。
 - **Notes**: 代码结构建议：先计算 `effectiveUserId`，再计算 `path`，最后根据 `path` 是否以 `/Users/` 开头来决定是否在 `params` 中加入 `UserId`。
 
-## [ ] Task 3: 消除 `load()` 重复调用
+## [x] Task 3: 消除 `load()` 重复调用
 - **Priority**: P1
 - **Depends On**: None
 - **Description**:
@@ -43,7 +43,7 @@
   - `human-judgment` TR-3.3: 进入观看历史页面时 AppLogger 中仅出现一条"观看历史加载成功/失败"日志记录。
 - **Notes**: 此修改对已登录用户可减少一次无用网络请求；未登录用户因 `authProvider` 提前返回"尚未登录"，无网络影响。
 
-## [ ] Task 4: 回归测试与分析
+## [x] Task 4: 回归测试与分析
 - **Priority**: P0
 - **Depends On**: Task 1, Task 2, Task 3
 - **Description**:
