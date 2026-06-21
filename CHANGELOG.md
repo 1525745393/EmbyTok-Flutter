@@ -1,3 +1,10 @@
+## [1.58.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.0...v1.58.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* 详情页导航改用push保留返回栈 ([f56f616](https://github.com/1525745393/EmbyTok-Flutter/commit/f56f6164de6d041540f9e5c032260d601d9ae243))
+
 # [1.58.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.57.0...v1.58.0) (2026-06-21)
 
 
