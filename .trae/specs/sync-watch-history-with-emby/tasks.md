@@ -7,7 +7,7 @@
   - [x] SubTask 1.4: 确保 `WatchHistoryNotifier.load()` 从 `authProvider` 读取 userId 并传入
 
 - [x] Task 2: 增强 `HistoryView` 状态展示
-  - [x] SubTask 2.1: 在未登录时展示“尚未登录”空状态
+  - [x] SubTask 2.1: 在未登录时展示"尚未登录"空状态
   - [x] SubTask 2.2: 在请求失败时展示区分错误类型的 ErrorStateCard
   - [x] SubTask 2.3: 空列表时保持现有 `EmptyStateCard.noHistory()`
 
@@ -17,12 +17,17 @@
   - [x] SubTask 3.3: 测试 userId 为空时降级路径
   - [x] SubTask 3.4: 测试网络错误/401/空列表三种边界
 
-- [ ] Task 4: 回归验证
-  - [ ] SubTask 4.1: 运行 `flutter test`（当前环境无 Flutter SDK，请在本地/CI 执行验证）
-  - [ ] SubTask 4.2: 运行 `flutter analyze`（当前环境无 Flutter SDK，请在本地/CI 执行验证）
-  - [x] SubTask 4.3: 手动检查 `HistoryView` 在登录/未登录/空数据下的表现
+- [x] Task 4: 移除 `Filters=IsResumable` 以拉取完整观看历史
+  - [x] SubTask 4.1: 在 `getWatchHistory` 中去掉 `Filters=IsResumable` 参数
+  - [x] SubTask 4.2: 更新单元测试中对应的查询参数断言
+
+- [ ] Task 5: 回归验证
+  - [ ] SubTask 5.1: 运行 `flutter test`（当前环境无 Flutter SDK，请在本地/CI 执行验证）
+  - [ ] SubTask 5.2: 运行 `flutter analyze`（当前环境无 Flutter SDK，请在本地/CI 执行验证）
+  - [x] SubTask 5.3: 手动检查 `HistoryView` 在登录/未登录/空数据下的表现
 
 # Task Dependencies
 - Task 2 依赖 Task 1
 - Task 3 可并行于 Task 2
-- Task 4 依赖 Task 1、Task 2、Task 3
+- Task 4 依赖 Task 1
+- Task 5 依赖 Task 1、Task 2、Task 3、Task 4

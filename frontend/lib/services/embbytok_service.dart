@@ -1028,7 +1028,6 @@ class EmbytokService {
       'Recursive': 'true',
       'SortBy': 'DatePlayed',
       'SortOrder': 'Descending',
-      'Filters': 'IsResumable',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       if (effectiveUserId != null && effectiveUserId.isNotEmpty)

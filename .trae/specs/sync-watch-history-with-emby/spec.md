@@ -5,7 +5,7 @@
 
 ## What Changes
 - 修复 `EmbytokService.getWatchHistory` 的 API 调用，使用用户级路径 `/Users/{userId}/Items`
-- 调整查询参数：`Filters=IsResumable` 保留，同时支持拉取全部已播放条目作为兜底
+- 移除 `Filters=IsResumable`，改为拉取所有最近播放过的条目（已看完 + 未看完），确保完整的观看历史展示
 - 确保 `WatchHistoryNotifier.load()` 在登录态有效时正确传递 `serverUrl`、`token`、`userId`
 - 在 `HistoryView` 增加更明确的空状态与错误重试提示
 - 补充单元测试覆盖成功、空列表、未登录、请求失败四种场景
