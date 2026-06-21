@@ -151,7 +151,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 立即播放：跳转到 VideoPageItem 播放页
   void _playItem(MediaItem item) {
-    context.go('/play/${item.id}', extra: item);
+    context.push('/play/${item.id}', extra: item);
   }
 
   // 切换收藏

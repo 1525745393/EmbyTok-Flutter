@@ -255,7 +255,7 @@ class _SearchResultTile extends ConsumerWidget {
 
     return ListTile(
       onTap: () {
-        context.go('/play/${item.id}', extra: item);
+        context.push('/play/${item.id}', extra: item);
       },
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
       leading: ClipRRect(

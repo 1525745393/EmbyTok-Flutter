@@ -260,7 +260,7 @@ class _WorkTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
-        context.go('/play/${item.id}', extra: item);
+        context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(

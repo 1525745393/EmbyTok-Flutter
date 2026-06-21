@@ -318,7 +318,7 @@ class _FavoriteCard extends ConsumerWidget {
   void _navigateTo(BuildContext context) {
     switch (itemType) {
       case _CardType.movie:
-        context.go('/play/${item.id}', extra: item);
+        context.push('/play/${item.id}', extra: item);
         break;
       case _CardType.boxSet:
         context.go('/boxset/${item.id}', extra: item);
