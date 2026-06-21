@@ -1,3 +1,11 @@
+## [1.58.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.1...v1.58.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* 退出应用改为两次确认弹窗 ([62c5db2](https://github.com/1525745393/EmbyTok-Flutter/commit/62c5db2063818fba0ceefce2c8e7c957bf9144fe))
+* 退出确认改回一次弹窗 ([9cb9bfc](https://github.com/1525745393/EmbyTok-Flutter/commit/9cb9bfc1e13cb893a007e3eeadfbf2927a221809))
+
 ## [1.58.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.58.0...v1.58.1) (2026-06-21)
 
 
