@@ -478,7 +478,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       return EmptyStateCard.noVideos();
     }
 
-    final isResumeMode = videoState.feedType == FeedType.resume;
     final auth = ref.read(authProvider);
     final embyServerUrl = auth.embyServerUrl;
     final token = auth.token;
@@ -512,7 +511,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           item: item,
           preloadedSession: preloadedSession,
           onVideoEnded: _goToNextVideo,
-          startFromResumePosition: isResumeMode,
+          startFromResumePosition: item.hasProgress,
           // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
           onNextEpisode: item.seriesName != null
               ? () {
