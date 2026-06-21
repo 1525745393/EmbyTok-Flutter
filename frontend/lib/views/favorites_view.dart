@@ -321,10 +321,10 @@ class _FavoriteCard extends ConsumerWidget {
         context.push('/play/${item.id}', extra: item);
         break;
       case _CardType.boxSet:
-        context.go('/boxset/${item.id}', extra: item);
+        context.push('/boxset/${item.id}', extra: item);
         break;
       case _CardType.person:
-        context.go('/person/${item.id}', extra: item);
+        context.push('/person/${item.id}', extra: item);
         break;
     }
   }

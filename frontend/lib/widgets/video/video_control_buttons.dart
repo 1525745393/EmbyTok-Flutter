@@ -80,7 +80,7 @@ class PosterAvatar extends ConsumerWidget {
                   child: GestureDetector(
                     onTap: onTap ??
                         () {
-                          context.go('/person/${actorMediaItem.id}',
+                          context.push('/person/${actorMediaItem.id}',
                               extra: actorMediaItem);
                         },
                     child: Container(
