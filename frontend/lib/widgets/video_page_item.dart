@@ -498,6 +498,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               token: token,
               preloadedController: widget.preloadedSession?.controller,
               preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
+              startFromResumePosition: widget.startFromResumePosition,
               onControllerReady: (c) {
                 setState(() => _videoController = c);
                 ref.read(currentVideoControllerProvider.notifier).state = c;
@@ -505,19 +506,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 ref.read(currentPlayingItemProvider.notifier).state = widget.item;
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 _resetInfoHideTimer();
-                if (widget.startFromResumePosition) {
-                  final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
-                  if (posTicks > 0.0) {
-                    final posMs = (posTicks / 10000.0).round();
-                    if (posMs > 0) {
-                      Future.microtask(() async {
-                        try {
-                          await c.seekTo(Duration(milliseconds: posMs));
-                        } catch (_) {}
-                      });
-                    }
-                  }
-                }
                 _ensureCapabilitiesReported();
                 _reportPlaybackStart();
                 _startProgressTimer();

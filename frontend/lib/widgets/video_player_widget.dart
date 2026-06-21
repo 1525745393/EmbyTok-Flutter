@@ -31,6 +31,8 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
   final bool loop;
+  // 是否从续播位置开始播放（Emby 服务器同步的播放进度）
+  final bool startFromResumePosition;
 
   const VideoPlayerWidget({
     super.key,
@@ -42,6 +44,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,
+    this.startFromResumePosition = false,
   });
 
   @override
@@ -155,6 +158,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           });
           widget.onControllerReady?.call(_controller!);
           _autoLoadDefaultSubtitle();
+          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+          await _seekToResumePosition();
           if (widget.autoPlay) {
             try {
               await _controller!.play();
@@ -228,6 +233,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         });
         widget.onControllerReady?.call(_controller!);
         _autoLoadDefaultSubtitle();
+        // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+        await _seekToResumePosition();
         if (widget.autoPlay) {
           try {
             await _controller!.play();
@@ -494,6 +501,22 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       await _controller?.seekTo(position);
     } catch (e) {
       debugPrint('seekTo error: $e');
+    }
+  }
+
+  // 从 Emby 服务器同步的续播位置 seek 到对应进度
+  // 在 _initVideo() 中 play 之前调用，避免竞态条件
+  Future<void> _seekToResumePosition() async {
+    if (!widget.startFromResumePosition) return;
+    final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
+    if (posTicks <= 0.0) return;
+    final posMs = (posTicks / 10000.0).round();
+    if (posMs <= 0) return;
+    try {
+      await _controller!.seekTo(Duration(milliseconds: posMs));
+      debugPrint('续播 seek 到 ${posMs}ms');
+    } catch (e) {
+      debugPrint('续播 seek 失败: $e');
     }
   }
 
