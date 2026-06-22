@@ -232,14 +232,15 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   // 根据 Tab 过滤演员
   List<Person> _getActorsByTab(int tabIndex) {
+    // 全部 Tab 显示已加载的所有演员（包含搜索过滤）
     final actors = _filteredActors;
     switch (tabIndex) {
       case 1:
-        // 已关注：过滤出 id 在收藏列表中的演员
-        return actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
+        // 已关注：从原始列表中过滤出已关注的演员
+        return _actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
       case 2:
-        // 未关注：过滤出 id 不在收藏列表中的演员（包括 id 为空的）
-        return actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
+        // 未关注：从原始列表中过滤出未关注的演员
+        return _actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
       default:
         return actors;
     }
@@ -316,8 +317,11 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     final favoriteCount = _favoritedIds.length;
-    final allCount = _filteredActors.length;
-    final unfavoritedCount = _filteredActors.where((actor) => !_favoritedIds.contains(actor.id)).toList().length;
+    // 显示已加载的演员数量和总数
+    final loadedCount = _actors.length;
+    final totalCount = _total;
+    final allCount = _actors.length; // 全部 Tab 显示已加载数量
+    final unfavoritedCount = _actors.where((actor) => actor.id != null && !_favoritedIds.contains(actor.id)).length;
 
     final content = NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -378,7 +382,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                   indicatorColor: scheme.primary,
                   indicatorWeight: 2,
                   tabs: [
-                    Tab(text: '全部($allCount)'),
+                    Tab(text: totalCount > loadedCount ? '全部($loadedCount/$totalCount)' : '全部($allCount)'),
                     Tab(text: '已关注($favoriteCount)'),
                     Tab(text: '未关注($unfavoritedCount)'),
                   ],
