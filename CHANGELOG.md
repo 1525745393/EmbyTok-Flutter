@@ -1,3 +1,15 @@
+# [1.69.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.68.1...v1.69.0) (2026-06-22)
+
+
+### Features
+
+* 检查历史和Emby服务器对接 ([8203887](https://github.com/1525745393/EmbyTok-Flutter/commit/82038870ba16f0c8c74662beba0049251155a8b1))
+
+
+### Reverts
+
+* 回退到 fec7265 (对应 Actions run [#27913920086](https://github.com/1525745393/EmbyTok-Flutter/issues/27913920086)) ([b336e0d](https://github.com/1525745393/EmbyTok-Flutter/commit/b336e0d48a601aa29badfebfa138f92a7ec53a85))
+
 # [1.65.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.64.0...v1.65.0) (2026-06-21)
 
 
