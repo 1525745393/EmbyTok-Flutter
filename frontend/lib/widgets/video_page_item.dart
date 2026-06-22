@@ -80,6 +80,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
+  // 连播按钮独立可见性（连播模式下自动隐藏）
+  bool _autoPlayButtonVisible = true;
+  Timer? _autoPlayButtonHideTimer;
+  static const int _autoPlayButtonHideSeconds = 3;
+
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -96,6 +101,30 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     )..repeat();
     _discRotation = Tween<double>(begin: 0.0, end: 1.0)
         .animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
+  }
+
+  bool _wasAutoPlay = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 监听 isAutoPlayProvider 变化
+    final isAutoPlay = ref.watch(isAutoPlayProvider);
+    if (isAutoPlay && !_wasAutoPlay) {
+      // 从关闭变为开启，启动 3 秒自动隐藏计时器
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startAutoPlayButtonHideTimer();
+      });
+    } else if (!isAutoPlay && _wasAutoPlay) {
+      // 从开启变为关闭，显示 AutoPlayButton
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _autoPlayButtonHideTimer?.cancel();
+          setState(() => _autoPlayButtonVisible = true);
+        }
+      });
+    }
+    _wasAutoPlay = isAutoPlay;
   }
 
   // ===== 底部信息条 3 秒自动隐藏 =====
@@ -137,6 +166,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _progressTimer = null;
     if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
+    _autoPlayButtonHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
     if (_isFullscreen) {
@@ -368,11 +398,47 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _controlsHideTimer?.cancel();
     setState(() => _controlsVisible = true);
     _controlsHideTimer = Timer(const Duration(seconds: _controlsAutoHideSeconds), _hideControls);
+    // 连播模式下不自动显示 AutoPlayButton，保持其当前状态
   }
 
   void _hideControls() {
     _controlsHideTimer?.cancel();
-    if (mounted) setState(() => _controlsVisible = false);
+    _autoPlayButtonHideTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        _controlsVisible = false;
+        // 连播模式下同步隐藏 AutoPlayButton
+        if (ref.read(isAutoPlayProvider)) {
+          _autoPlayButtonVisible = false;
+        }
+      });
+    }
+  }
+
+  // ===== 连播按钮独立显示/隐藏（连播模式下生效）=====
+  // 连播模式开启时是否已显示过（用于区分初始开启和后续点击屏幕）
+  bool _hasShownAutoPlayButtonOnEnable = false;
+
+  void _showAutoPlayButton() {
+    _autoPlayButtonHideTimer?.cancel();
+    setState(() => _autoPlayButtonVisible = true);
+  }
+
+  void _hideAutoPlayButton() {
+    _autoPlayButtonHideTimer?.cancel();
+    if (mounted) setState(() => _autoPlayButtonVisible = false);
+  }
+
+  // 开启连播模式时，调用此方法启动 3 秒自动隐藏
+  void _startAutoPlayButtonHideTimer() {
+    _autoPlayButtonHideTimer?.cancel();
+    setState(() {
+      _autoPlayButtonVisible = true;
+      _hasShownAutoPlayButtonOnEnable = true;
+    });
+    _autoPlayButtonHideTimer = Timer(const Duration(seconds: _autoPlayButtonHideSeconds), () {
+      if (mounted) setState(() => _autoPlayButtonVisible = false);
+    });
   }
 
   // ===== 播放/暂停切换 =====
@@ -793,8 +859,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const AutoPlayButton(),
-                        SizedBox(height: rs(16, 1.5)),
+                        if (_autoPlayButtonVisible) const AutoPlayButton(),
+                        if (_autoPlayButtonVisible)
+                          SizedBox(height: rs(16, 1.5)),
                         SpeedControlButton(
                           controller: _videoController,
                           onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
