@@ -702,6 +702,9 @@ class _ActorCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
+                            httpHeaders: token != null && token!.isNotEmpty
+                                ? {'X-Emby-Token': token!}
+                                : null,
                             placeholder: (_, __) => Center(
                               child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
                             ),
