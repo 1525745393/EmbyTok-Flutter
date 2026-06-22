@@ -1,3 +1,10 @@
+## [1.70.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.70.0...v1.70.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 优化演员页面错误提示信息 ([eab1656](https://github.com/1525745393/EmbyTok-Flutter/commit/eab1656174b9a79120b9fe7e597ff1fcbc6d6ddc))
+
 # [1.70.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.69.0...v1.70.0) (2026-06-22)
 
 
