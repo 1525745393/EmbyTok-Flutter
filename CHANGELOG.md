@@ -1,3 +1,18 @@
+# [1.72.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.71.1...v1.72.0) (2026-06-22)
+
+
+### Bug Fixes
+
+* **ci:** 优化 flutter analyze 日志显示，按 error/warning/info 分开显示 ([b348a79](https://github.com/1525745393/EmbyTok-Flutter/commit/b348a79a9bb891051c8dc8ff106a105ca8041e2e))
+* 修复演员页面分页加载逻辑错误 ([4fce088](https://github.com/1525745393/EmbyTok-Flutter/commit/4fce088b8321c7b6cc50f61fe2062aec106b47da))
+* 修复编译错误 - getPeople返回类型和TickerProvider ([966987a](https://github.com/1525745393/EmbyTok-Flutter/commit/966987a933b83756cc2cb5c70bd30245eba83bc6))
+* 清理未使用的代码变量和方法 ([d4ab9ff](https://github.com/1525745393/EmbyTok-Flutter/commit/d4ab9ffaacf519544baa016a0163a8916e9182a3))
+
+
+### Features
+
+* 演员界面优化 - Tab分类显示、搜索、分页加载、类型筛选、卡片优化 ([5feab37](https://github.com/1525745393/EmbyTok-Flutter/commit/5feab37aa26ab58e5c1690d704f61f15e47d51c9))
+
 ## [1.71.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.71.0...v1.71.1) (2026-06-22)
 
 
