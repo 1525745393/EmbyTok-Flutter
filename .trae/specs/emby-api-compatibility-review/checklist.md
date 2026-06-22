@@ -1,0 +1,11 @@
+- [x] Checkpoint 1: EmbytokService 所有 API 端点路径正确（认证/媒体库/列表/详情/收藏/搜索/播放进度等均符合 Emby 规范）
+- [x] Checkpoint 2: Fields 参数包含必要字段（MediaStreams、UserData、MediaSources 等已全部添加）
+- [x] Checkpoint 3: UserId 查询参数在需要时正确附加（8 处方法已添加）
+- [x] Checkpoint 4: X-Emby-Authorization 头格式正确（MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId=动态, Version="1.0.0"）
+- [x] Checkpoint 5: DeviceId 动态生成逻辑正确（基于 userId+serverUrl hashCode 生成稳定 ID）
+- [x] Checkpoint 6: 播放 URL 构造符合 Emby 规范（DirectPlay/DirectStream/HLS 三种模式）
+- [x] Checkpoint 7: 播放进度上报使用毫秒精度（inMilliseconds * 10000）
+- [x] Checkpoint 8: MediaItem 模型字段与 Emby 响应匹配（支持 PascalCase 和 snake_case 双重解析）
+- [x] Checkpoint 9: UserData 模型字段与 Emby 响应匹配（PlaybackPositionTicks/IsFavorite/Played 等正确解析）
+- [x] Checkpoint 10: MediaSource/MediaStream 模型字段与 Emby 响应匹配（支持 MediaStreams 字段解析）
+- [x] Checkpoint 11: 适配度评分报告生成完成（见下方）
