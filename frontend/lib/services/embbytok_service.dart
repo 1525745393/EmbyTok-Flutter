@@ -172,6 +172,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
@@ -239,6 +240,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items/Resume',
@@ -297,6 +299,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
@@ -630,6 +633,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
@@ -1079,6 +1083,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
       // 仅在降级到全局 /Items 路径时附加 UserId 参数
       if (!isUserPath && effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
