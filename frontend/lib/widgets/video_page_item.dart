@@ -892,17 +892,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       color: scheme.surface.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_autoPlayButtonVisible) const AutoPlayButton(),
-                        if (_autoPlayButtonVisible)
-                          SizedBox(height: rs(16, 1.5)),
-                        SpeedControlButton(
-                          controller: _videoController,
-                          onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _autoPlayButtonVisible ? 1.0 : 0.0,
+                      child: IgnorePointer(
+                        ignoring: !_autoPlayButtonVisible,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const AutoPlayButton(),
+                            SizedBox(height: rs(16, 1.5)),
+                            SpeedControlButton(
+                              controller: _videoController,
+                              onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );
