@@ -85,6 +85,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _autoPlayButtonHideTimer;
   static const int _autoPlayButtonHideSeconds = 3;
 
+  // 3击显示连播按钮计数器
+  int _tapCount = 0;
+  Timer? _tapResetTimer;
+  static const int _tapCountThreshold = 3;
+  static const Duration _tapResetDuration = Duration(milliseconds: 500);
+
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -167,6 +173,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
     _autoPlayButtonHideTimer?.cancel();
+    _tapResetTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
     if (_isFullscreen) {
@@ -389,6 +396,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _toggleControls() {
     if (_controlsVisible) {
       _hideControls();
+      // 连播模式下点击屏幕触发3击检测
+      if (isAutoPlay) {
+        _handleTapForAutoPlayButton();
+      }
     } else {
       _showControls();
     }
@@ -419,8 +430,33 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   // 连播模式开启时是否已显示过（用于区分初始开启和后续点击屏幕）
   bool _hasShownAutoPlayButtonOnEnable = false;
 
+  // 处理3击显示连播按钮
+  void _handleTapForAutoPlayButton() {
+    // 如果按钮已经显示，重置隐藏计时器
+    if (_autoPlayButtonVisible) {
+      _startAutoPlayButtonHideTimer();
+      return;
+    }
+
+    // 按钮隐藏时，增加点击计数
+    _tapCount++;
+    _tapResetTimer?.cancel();
+
+    if (_tapCount >= _tapCountThreshold) {
+      // 达到3击，显示按钮并重置
+      _showAutoPlayButton();
+      _tapCount = 0;
+    } else {
+      // 500ms内未达到3击则重置计数
+      _tapResetTimer = Timer(_tapResetDuration, () {
+        _tapCount = 0;
+      });
+    }
+  }
+
   void _showAutoPlayButton() {
     _autoPlayButtonHideTimer?.cancel();
+    _tapCount = 0; // 显示后重置计数
     setState(() => _autoPlayButtonVisible = true);
   }
 
