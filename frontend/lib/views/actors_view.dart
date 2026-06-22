@@ -191,9 +191,14 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
       children: [
         Icon(Icons.error_outline, color: scheme.error, size: 36),
         const SizedBox(height: 8),
+        const Text(
+          '加载演员列表失败',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
         Text(
-          _error ?? '加载失败',
-          style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 14),
+          '请检查 Emby 服务器是否正常运行',
+          style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 14),
         ),
         const SizedBox(height: 16),
         ElevatedButton.icon(
