@@ -114,10 +114,11 @@ class VideoPoolService {
     }
 
     // 降级链：DirectPlay → DirectStream → HLS
+    // 认证通过 X-Emby-Token 请求头传递，URL 中不需要 api_key 参数
     final urls = <int, String?>{
-      0: item.computePlaybackUrl(serverUrl, token),
-      1: item.computeDirectStreamUrl(serverUrl, token),
-      2: item.computeHlsUrl(serverUrl, token,
+      0: item.computePlaybackUrl(serverUrl),
+      1: item.computeDirectStreamUrl(serverUrl),
+      2: item.computeHlsUrl(serverUrl,
           playSessionId: _generatePlaySessionId()),
     };
     final headers = item.authHeaders(token);
