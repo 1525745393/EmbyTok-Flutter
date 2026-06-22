@@ -1,0 +1,9 @@
+- [x] `embbytok_service_test.dart` 中不存在对已删除方法的调用
+- [x] 所有 mock 路径与当前 `EmbytokService` 实际调用的 Emby 原生端点一致
+- [x] 请求/响应字段使用 Emby PascalCase 命名
+- [x] `login`、`getLibraries`、`getLibraryItems`、`getItemDetail`、`searchItems` 测试通过
+- [x] `toggleFavorite`、`getFavorites` 测试通过
+- [x] 已移除的 `getPlaybackUrl`、`saveProgress`、`getProgress` 测试被删除或迁移
+- [x] `getWatchHistory` 新增测试与整体文件风格保持一致
+- [ ] `flutter test test/services/embbytok_service_test.dart` 全部通过（当前环境无 Flutter SDK，请在本地/CI 执行验证）
+- [ ] `flutter analyze` 无新增问题（当前环境无 Flutter SDK，请在本地/CI 执行验证）

@@ -1,0 +1,54 @@
+# Flutter 非 Web 构建产物（Web 构建产物 build/web/ 需保留用于镜像）
+build/app/
+build/flutter_assets/
+build/ios/
+build/windows/
+build/linux/
+build/macos/
+build/.*
+
+# Dart/Flutter 缓存
+.dart_tool/
+.pub-cache/
+.pub/
+
+# 平台相关代码
+android/
+ios/
+
+# Git
+.git/
+.gitignore
+
+# 开发文档与配置
+*.md
+*.log
+
+# 测试代码
+test/
+
+# IDE 配置
+.idea/
+.vscode/
+*.iml
+
+# Gradle/Android
+android/app/build.gradle
+android/build.gradle
+android/gradle/
+android/gradlew
+android/gradlew.bat
+
+# iOS
+ios/Podfile
+ios/Podfile.lock
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# 本地配置文件
+*.local
+.env
+.env.*
+local.properties
+key.properties

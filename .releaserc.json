@@ -1,0 +1,55 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyConditionsCmd": "cd frontend && flutter pub get && (flutter analyze --no-pub lib || true) && if flutter analyze --no-pub lib 2>&1 | grep -q 'error •'; then echo 'ERROR: Found compile errors in lib/'; exit 1; fi",
+        "prepareCmd": "BUILD_NUM=$(echo ${nextRelease.version} | tr -d '.' | sed 's/^0*//') && echo \"BUILD_NUM=$BUILD_NUM\" && sed -i \"s/^version: .*/version: ${nextRelease.version}+$BUILD_NUM/\" frontend/pubspec.yaml && cat frontend/pubspec.yaml | grep '^version:'",
+        "publishCmd": "mkdir -p frontend/android/app && echo \"$ANDROID_KEYSTORE\" | base64 -d > frontend/android/app/embbytok-keystore.jks && printf 'storePassword=%s\\nkeyPassword=%s\\nkeyAlias=%s\\nstoreFile=%s\\n' \"$ANDROID_KEYSTORE_PWD\" \"$ANDROID_KEY_PWD\" \"$ANDROID_KEY_ALIAS\" \"$(pwd)/frontend/android/app/embbytok-keystore.jks\" > frontend/android/key.properties && cd frontend && flutter build apk --release --split-per-abi && flutter build appbundle --release"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["frontend/pubspec.yaml", "CHANGELOG.md"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "frontend/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk",
+            "label": "APK (arm64-v8a) - ${nextRelease.version}"
+          },
+          {
+            "path": "frontend/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk",
+            "label": "APK (armeabi-v7a) - ${nextRelease.version}"
+          },
+          {
+            "path": "frontend/build/app/outputs/flutter-apk/app-x86_64-release.apk",
+            "label": "APK (x86_64) - ${nextRelease.version}"
+          },
+          {
+            "path": "frontend/build/app/outputs/flutter-apk/app-release.apk",
+            "label": "APK (universal) - ${nextRelease.version}"
+          },
+          {
+            "path": "frontend/build/app/outputs/bundle/release/app-release.aab",
+            "label": "AAB (Android App Bundle) - ${nextRelease.version}"
+          }
+        ]
+      }
+    ]
+  ]
+}

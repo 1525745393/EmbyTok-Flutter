@@ -1,0 +1,11 @@
+- [ ] `MediaItem.computePlaybackUrl()` 方法正确构造 Emby 视频流 URL
+- [ ] `MediaItem.authHeaders` getter 返回正确的 X-Emby-Token 请求头
+- [ ] `VideoPlayerWidget` 构造函数新增 `embyServerUrl` 和 `token` 参数
+- [ ] `VideoPlayerWidget._canPlayVideo` 在 `playbackUrl` 为空时尝试动态构造 URL
+- [ ] `VideoPlayerController.networkUrl` 调用时正确传递 `httpHeaders`
+- [ ] `VideoPageItem` 从 `authProvider` 获取 `embyServerUrl` 和 `token` 并传递给播放器
+- [ ] 播放失败时降级到缩略图 + 错误提示显示
+- [ ] `flutter analyze` 无错误和警告
+- [ ] Android APK 构建成功（`flutter build apk --release`）
+- [ ] 在真实设备上测试视频可以播放（加载、暂停、进度条正常）
+- [ ] 现有列表/搜索/收藏页面功能不受影响

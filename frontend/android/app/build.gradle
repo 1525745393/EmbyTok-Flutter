@@ -1,0 +1,97 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+// 显式从 pubspec.yaml 解析 version 字段，不依赖 Flutter Gradle 插件的自动注入
+// 格式：version: X.Y.Z+B  →  versionName = "X.Y.Z", versionCode = B（整数）
+def pubspecFile = new File("${rootProject.projectDir}/../pubspec.yaml")
+def pubspecVersion = ""
+if (pubspecFile.exists()) {
+    pubspecFile.eachLine { line ->
+        if (line.trim().startsWith("version:")) {
+            pubspecVersion = line.replace("version:", "").trim()
+        }
+    }
+}
+def parsedVersionName = "1.0.0"
+def parsedVersionCode = 1
+if (pubspecVersion.contains("+")) {
+    def parts = pubspecVersion.split("\\+")
+    parsedVersionName = parts[0].trim()
+    def codePart = parts[1].trim()
+    if (codePart.isInteger()) {
+        parsedVersionCode = codePart.toInteger()
+    }
+} else if (!pubspecVersion.isEmpty()) {
+    parsedVersionName = pubspecVersion
+}
+
+android {
+    namespace "com.embbytok.app"
+    compileSdk 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    defaultConfig {
+        applicationId "com.embbytok.app"
+        minSdk 21
+        targetSdk 34
+        // 从 pubspec.yaml 显式解析：version: X.Y.Z+B
+        // versionName = X.Y.Z（展示给用户），versionCode = B（递增整数，用于商店判断）
+        versionCode parsedVersionCode
+        versionName parsedVersionName
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            // 优先使用 release 签名配置（如果 key.properties 存在），否则回退到 debug 签名
+            signingConfig signingConfigs.release ?: signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}

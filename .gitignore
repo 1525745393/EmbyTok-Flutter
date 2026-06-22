@@ -1,66 +1,123 @@
-# ===== OS =====
-.DS_Store
-._*
-Thumbs.db
-Desktop.ini
+# ========
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
 
-# ===== IDE/Editor =====
-.vscode/
-.idea/
-.project
-.classpath
-.settings/
-*.sublime-*
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/.idea/
+**/android/key.properties
+**/android/**.properties
+**/android/app/*.iml
+**/android/*.iml
+**/android/**/*.jks
+**/android/**.keystore
+**/android/**.iml
+**/android/**.gradle/local.properties
+**/android/app/build/
 
-# ===== Node.js/Frontend =====
-node_modules/
-.pnpm-store/
-.next/
-.nuxt/
-.vite/
-.cache/
-.eslintcache
-*.tsbuildinfo
+# iOS
+**/ios/Pods/
+**/ios/**.xcworkspace/
+**/ios/Runner.xcworkspace/
+**/ios/**.xcuserdata/
+**/ios/Runner.xcodeproj/xcuserdata/
+**/ios/Runner.xcodeproj/project.xcworkspace/
+**/ios/build/
+**/ios/
 
-# ===== Python =====
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+# 排除 Flutter 项目的源代码目录
+!frontend/lib/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 .venv/
 venv/
+ENV/
+env/
+
+# pytest
 .pytest_cache/
-.mypy_cache/
-.ipynb_checkpoints/
-*.egg-info/
 
-# ===== Rust =====
-target/
-
-# ===== Java/JVM =====
-.gradle/
-*.class
-*.jar
-*.war
-*.ear
-
-# ===== Ruby =====
-.bundle/
-
-# ===== Logs/Temp =====
-*.log
-logs/
-*.tmp
-*.temp
+# IDE
+.idea/
+.vscode/
 *.swp
 *.swo
 *~
 
-# ===== Test Coverage =====
-coverage/
-.nyc_output/
-htmlcov/
-.coverage
-*.lcov
+# JetBrains (Android Studio / IntelliJ)
+*.iml
+*.ipr
+*.iws
+out/
 
-# ===== Internal =====
-/.work/
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境变量 / 密钥
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.*
+*.pem
+secrets/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# pub
+# 编译缓存
+*.pid
+*.pid
+*.pid.lock
+
+# Docker
+*.dockerignore
+
+# Node.js / Semantic Release（CI 中使用，不提交到仓库）
+node_modules/
+.semantic-release/
+package-lock.json
+package.json

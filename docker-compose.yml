@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  # EmbyTok 后端服务
+  embbytok-backend:
+    # 基于 backend 目录下的 Dockerfile 构建
+    build: ./backend
+    # 端口映射：主机 8000 -> 容器 8000
+    ports:
+      - "8000:8000"
+    # 除非手动停止，否则自动重启
+    restart: unless-stopped
+    # 环境变量配置
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=info
+    # 健康检查：每 30 秒探测一次 /health 接口
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

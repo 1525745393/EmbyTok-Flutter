@@ -1,0 +1,10 @@
+- [x] 视频列表 Fields 参数包含 MediaSources 和 Path
+- [x] media_item.dart 提供 computeDirectStreamUrl 方法
+- [x] media_item.dart 提供 computeHlsUrl 方法
+- [x] video_player_widget.dart 实现 Direct Play → Direct Stream → HLS 降级链
+- [x] embbytok_service.dart 提供 reportCapabilities 方法
+- [x] embbytok_service.dart 提供 reportPlaybackStart 方法
+- [x] reportPlaybackPosition 包含 IsPaused、PlayMethod、EventName 等字段
+- [x] getLibraries 使用 /Users/{userId}/Views 端点
+- [x] embbytok_service.dart 提供 saveCloudSync 方法
+- [x] embbytok_service.dart 提供 checkCloudSync 方法
