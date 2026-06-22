@@ -30,7 +30,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
   DateTime? _debounceTimer;
   late TabController _tabController;
   // 分页状态
-  int _startIndex = 0;
   int _total = 0;
   static const int _pageSize = 50;
   final ScrollController _scrollController = ScrollController();
@@ -64,7 +63,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
     setState(() {
       _loading = true;
       _error = null;
-      _startIndex = 0;
       _actors = [];
     });
     try {
@@ -228,36 +226,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
         });
       }
     });
-  }
-
-  // 构建类型筛选 Chip
-  Widget _buildTypeChip(String? type, String label, ColorScheme scheme) {
-    final isSelected = _selectedPersonType == type;
-    return GestureDetector(
-      onTap: () {
-        if (_selectedPersonType != type) {
-          setState(() {
-            _selectedPersonType = type;
-          });
-          _loadActors();
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? scheme.primary : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? scheme.onPrimary : scheme.onSurface,
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
   }
 
   // 根据 Tab 过滤演员
