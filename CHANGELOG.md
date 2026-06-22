@@ -1,3 +1,10 @@
+## [1.72.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.72.0...v1.72.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 清理代码警告 - 删除未使用导入和修复非空断言 ([4d420cf](https://github.com/1525745393/EmbyTok-Flutter/commit/4d420cf625a95b770d69997c2bd9d26a34bc4cc8))
+
 # [1.72.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.71.1...v1.72.0) (2026-06-22)
 
 
