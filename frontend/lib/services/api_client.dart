@@ -32,9 +32,17 @@ class ApiClient {
   /// 当前配置的 baseUrl（供 service 层判断是否需要切换）
   String? get optionsBaseUrl => _dio.options.baseUrl;
 
-  // Emby 客户端标识（用于 Emby 原生 API 认证）
-  static const _clientAuthorization =
-      'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+  // Emby 客户端标识（用于 Emby 原生 API 认证）—— DeviceId 可动态更新
+  // 默认为 embbytok-client，登录时会基于 userId + serverUrl 生成稳定的 DeviceId
+  String _deviceId = 'embbytok-client';
+
+  String get _clientAuthorization =>
+      'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="$_deviceId", Version="1.0.0"';
+
+  /// 动态更新 DeviceId（基于登录信息生成稳定、唯一的设备标识）
+  void setDeviceId(String deviceId) {
+    _deviceId = deviceId;
+  }
 
   // 注册拦截器：自动注入 X-Emby-Token + X-Emby-Authorization 头
   void _setupInterceptors() {

@@ -275,8 +275,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
+    final resumeTicks = widget.item.userData?.playbackPositionTicks;
     unawaited(_service.reportPlaybackStart(
       itemId: widget.item.id,
+      positionTicks: resumeTicks != null ? resumeTicks.toInt() : 0,
       mediaSourceId: widget.item.id,
       playSessionId: _playSessionId!,
       playMethod: method,
@@ -294,7 +296,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _lastProgressReport = now;
     final controller = _videoController;
     final position = controller?.value.position;
-    final positionTicks = (position?.inSeconds ?? 0) * 10000000;
+    final positionTicks = (position?.inMilliseconds ?? 0) * 10000;
     final isPaused = controller != null && !controller.value.isPlaying;
     final volume = controller?.value.volume;
     final volumeLevel = volume != null ? (volume * 100).round() : null;
@@ -317,7 +319,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _reportPlaybackStopped() {
     final controller = _videoController;
     final position = controller?.value.position;
-    final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
+    final positionTicks = position != null ? position.inMilliseconds * 10000 : 0;
     unawaited(_service.reportPlaybackStopped(
       itemId: widget.item.id,
       positionTicks: positionTicks,

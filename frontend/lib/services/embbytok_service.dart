@@ -32,6 +32,11 @@ class EmbytokService {
     _defaultUserId = userId;
     _apiClient.setBaseUrl(embyServerUrl);
     _apiClient.setToken(apiKey);
+    // 基于 userId + embyServerUrl 生成稳定的 DeviceId
+    // 避免多设备共享同一 DeviceId 导致 Emby 会话混乱
+    final seed = '${userId ?? ''}|$embyServerUrl';
+    final seedHash = seed.hashCode.toRadixString(16).padLeft(8, '0');
+    _apiClient.setDeviceId('embbytok-$seedHash');
   }
 
   // 清除认证信息
@@ -160,6 +165,7 @@ class EmbytokService {
       'offset': offset,
     });
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'ParentId': libraryId,
       'Limit': '$limit',
@@ -168,11 +174,12 @@ class EmbytokService {
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -203,7 +210,7 @@ class EmbytokService {
       'Fields':
           'Overview,Genres,People,CommunityRating,CriticRating,OfficialRating,'
               'RunTimeTicks,ProductionYear,PremiereDate,DateCreated,Studios,'
-              'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
+              'MediaSources,MediaStreams,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
               'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
     };
     final effectiveUserId = userId ?? _defaultUserId;
@@ -235,7 +242,7 @@ class EmbytokService {
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items/Resume',
@@ -258,7 +265,7 @@ class EmbytokService {
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Fields':
-          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber',
+          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams,SeriesName,ParentIndexNumber,IndexNumber',
     };
     // 指定 seriesId 时只查询该剧集的下一集
     if (seriesId != null && seriesId.isNotEmpty) {
@@ -283,6 +290,7 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -291,11 +299,12 @@ class EmbytokService {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items/Latest'
         : '/Items/Latest';
@@ -333,7 +342,7 @@ class EmbytokService {
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items/$itemId/Similar',
@@ -407,13 +416,16 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'PersonIds': personId,
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items',
@@ -469,7 +481,7 @@ class EmbytokService {
       'Recursive': 'true',
       'Genres': genre,
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items',
@@ -525,7 +537,7 @@ class EmbytokService {
       'Recursive': 'true',
       'Studios': studio,
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items',
@@ -550,7 +562,7 @@ class EmbytokService {
       'Recursive': 'true',
       'Filters': 'IsFavorite',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
@@ -578,19 +590,21 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Filters': 'IsFavorite',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -619,19 +633,21 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Filters': 'IsFavorite',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'BoxSet',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -660,19 +676,21 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Filters': 'IsFavorite',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'Person',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
@@ -843,16 +861,18 @@ class EmbytokService {
     required String itemId,
     required String mediaSourceId,
     required int index,
+    int startPositionTicks = 0,
+    int endPositionTicks = 36000000000,
     String format = 'srt',
     String? serverUrl,
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
     try {
-      // URL: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
-      // 36000000000 = 1小时（1 tick = 100ns）
+      // URL: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/{start}/{end}.{format}
+      // 使用传入的 start/end ticks 而非硬编码 1 小时上限
       final url =
-          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/36000000000.$format';
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/$startPositionTicks/$endPositionTicks.$format';
       // 需要非 JSON 请求（SRT 文本）
       final resp = await _apiClient.dio.get<String>(
         url,
@@ -900,6 +920,7 @@ class EmbytokService {
   // 上报播放开始
   Future<void> reportPlaybackStart({
     required String itemId,
+    int positionTicks = 0,
     String? mediaSourceId,
     String? playSessionId,
     bool isPaused = false,
@@ -914,7 +935,7 @@ class EmbytokService {
     final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
     final body = <String, dynamic>{
       'ItemId': itemId,
-      'PositionTicks': 0,
+      'PositionTicks': positionTicks,
       'IsPaused': isPaused,
       'IsMuted': isMuted,
       'PlayMethod': playMethod,
@@ -1023,7 +1044,6 @@ class EmbytokService {
     _ensureConfig(serverUrl, token);
     final effectiveUserId = userId ?? _defaultUserId;
 
-    // 先决定路径：用户级路径优先，降级到全局 /Items
     final isUserPath = effectiveUserId != null && effectiveUserId.isNotEmpty;
     final path = isUserPath ? '/Users/$effectiveUserId/Items' : '/Items';
 
@@ -1033,10 +1053,9 @@ class EmbytokService {
       'SortBy': 'DatePlayed',
       'SortOrder': 'Descending',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      // 仅在降级到全局 /Items 路径时附加 UserId 参数
-      if (!isUserPath && effectiveUserId != null && effectiveUserId.isNotEmpty)
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
     };
 
@@ -1120,17 +1139,19 @@ class EmbytokService {
         limit: limit,
       );
     }
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'SearchTerm': query,
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       if (includeTypes != null) 'IncludeItemTypes': includeTypes.join(','),
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
 
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';

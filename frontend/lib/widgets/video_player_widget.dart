@@ -639,6 +639,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       itemId: widget.item.id,
       mediaSourceId: mediaSourceId,
       index: trackIndex,
+      endPositionTicks: widget.item.runtimeTicks ?? 36000000000,
     );
     if (mounted) {
       setState(() {
