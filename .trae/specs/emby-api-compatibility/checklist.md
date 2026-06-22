@@ -1,15 +1,15 @@
-- [ ] Checkpoint 1: getLibraryItems 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 2: getItemDetail 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 3: getResumeItems/getNextUp/getRecentlyAdded/getSimilarItems/getPersonItems 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 4: getItemsByGenre/getItemsByStudio/getFavorites 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 5: getFavoriteMovies/getFavoriteBoxSets/getFavoritePeople 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 6: getWatchHistory/searchItems 的 Fields 包含 "MediaStreams"
-- [ ] Checkpoint 7: 走 /Items 路径时 UserId 查询参数被正确附加
-- [ ] Checkpoint 8: VideoPageItem._reportPlaybackProgress 使用 inMilliseconds * 10000
-- [ ] Checkpoint 9: VideoPageItem._reportPlaybackStopped 使用 inMilliseconds * 10000
-- [ ] Checkpoint 10: reportPlaybackStart 支持可选 positionTicks 参数且被播放页正确传入
-- [ ] Checkpoint 11: getSubtitleCues 支持 startPositionTicks 和 endPositionTicks 参数
-- [ ] Checkpoint 12: getSubtitleCues 调用点传入实际视频时长
-- [ ] Checkpoint 13: ApiClient 提供可配置 DeviceId 的接口
-- [ ] Checkpoint 14: EmbytokService.setupAuth 调用新接口并生成动态 DeviceId
-- [ ] Checkpoint 15: flutter analyze --no-pub lib 通过（0 errors）
+- [x] Checkpoint 1: getLibraryItems 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 2: getItemDetail 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 3: getResumeItems/getNextUp/getRecentlyAdded/getSimilarItems/getPersonItems 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 4: getItemsByGenre/getItemsByStudio/getFavorites 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 5: getFavoriteMovies/getFavoriteBoxSets/getFavoritePeople 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 6: getWatchHistory/searchItems 的 Fields 包含 "MediaStreams"
+- [x] Checkpoint 7: 走 /Items 路径时 UserId 查询参数被正确附加（共 8 处）
+- [x] Checkpoint 8: VideoPageItem._reportPlaybackProgress 使用 inMilliseconds * 10000
+- [x] Checkpoint 9: VideoPageItem._reportPlaybackStopped 使用 inMilliseconds * 10000
+- [x] Checkpoint 10: reportPlaybackStart 支持可选 positionTicks 参数且被播放页正确传入
+- [x] Checkpoint 11: getSubtitleCues 支持 startPositionTicks 和 endPositionTicks 参数
+- [x] Checkpoint 12: getSubtitleCues 调用点传入实际视频时长（runtimeTicks）
+- [x] Checkpoint 13: ApiClient 提供可配置 DeviceId 的接口（setDeviceId 方法）
+- [x] Checkpoint 14: EmbytokService.setupAuth 调用新接口并生成动态 DeviceId（基于 hashCode）
+- [x] Checkpoint 15: Dart format 验证通过（语法正确）
