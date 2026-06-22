@@ -146,15 +146,14 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                         if (person.overview != null &&
                             person.overview!.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          Text(
-                            person.overview!,
+                          _ExpandableText(
+                            text: person.overview!,
+                            maxLines: 6,
                             style: TextStyle(
                               color: scheme.onSurface.withOpacity(0.7),
                               fontSize: 13,
                               height: 1.4,
                             ),
-                            maxLines: 6,
-                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ],
@@ -355,6 +354,91 @@ class _ThumbPlaceholder extends StatelessWidget {
       height: 72,
       color: scheme.surface.withOpacity(0.3),
       child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+    );
+  }
+}
+
+/// 可折叠文本组件：超过 maxLines 时显示展开/收起按钮
+class _ExpandableText extends StatefulWidget {
+  final String text;
+  final int maxLines;
+  final TextStyle style;
+
+  const _ExpandableText({
+    required this.text,
+    this.maxLines = 6,
+    required this.style,
+  });
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _isExpanded = false;
+  bool _hasOverflow = false;
+  final GlobalKey _textKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // 异步检查文本是否溢出
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOverflow();
+    });
+  }
+
+  void _checkOverflow() {
+    final renderObject = _textKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderObject != null) {
+      final textPainter = TextPainter(
+        text: TextSpan(text: widget.text, style: widget.style),
+        maxLines: widget.maxLines,
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: renderObject.size.width);
+      setState(() {
+        _hasOverflow = textPainter.didExceedMaxLines;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          key: _textKey,
+          style: widget.style,
+          maxLines: _isExpanded ? null : widget.maxLines,
+          overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+        ),
+        if (_hasOverflow) ...[
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(48, 24),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              _isExpanded ? '收起' : '展开',
+              style: TextStyle(
+                color: scheme.primary,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
