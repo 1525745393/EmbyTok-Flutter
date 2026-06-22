@@ -43,16 +43,32 @@ jobs:
           echo "🔍 正在检查发布代码（lib/ 目录）..."
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
           echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
-          echo "::group::flutter analyze --no-pub lib"
-          flutter analyze --no-pub lib || true
-          echo "::endgroup::"
-          # ☝️ flutter analyze 只要发现任何问题（包括 info）就会返回非零退出码
-          # 我们需要自己用 grep 来判断是否存在真正的 error
-          echo "🤖 正在检查是否存在 error 级别的问题..."
+          
+          # 运行 flutter analyze 并分别捕获各级别日志
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "❌ ERROR（严重错误 - 必须修复）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub lib 2>&1 | grep "error •" || echo "✅ 没有 error 级别的问题"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "⚠️  WARNING（警告 - 建议修复）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub lib 2>&1 | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "ℹ️  INFO（风格建议 - 可选修复）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub lib 2>&1 | grep "info •" || echo "✅ 没有 info 级别的问题"
+          
+          # 检查是否存在 error 级别问题
           if flutter analyze --no-pub lib 2>&1 | grep -q "error •"; then
             echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ 发现 error 级别的编译错误！请修复后再提交"
-            echo "ℹ️ info（风格建议）和 warning（注意事项）可以稍后修复"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
           echo ""
@@ -64,9 +80,26 @@ jobs:
           echo "🔍 正在检查测试代码（test/ 目录）..."
           echo "ℹ️  说明：这里的问题不会影响发布 APK，但测试代码需要保持最新"
           echo "⚠️  如果这一步失败，只表示测试文件可能过时了，不会阻止发布"
-          echo "::group::flutter analyze --no-pub test"
-          flutter analyze --no-pub test || true
-          echo "::endgroup::"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "❌ ERROR（严重错误）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub test 2>&1 | grep "error •" || echo "✅ 没有 error 级别的问题"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "⚠️  WARNING（警告）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub test 2>&1 | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "ℹ️  INFO（风格建议）"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          flutter analyze --no-pub test 2>&1 | grep "info •" || echo "✅ 没有 info 级别的问题"
+          
+          echo ""
           echo "✅ 测试代码检查完成（如有问题需要后续修复，不影响发布）"
         working-directory: frontend
 
