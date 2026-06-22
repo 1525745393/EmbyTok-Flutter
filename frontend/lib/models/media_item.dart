@@ -418,9 +418,16 @@ class MediaItem {
   }
 
   // 获取认证 HTTP 请求头（用于 video_player 插件）
-  Map<String, String> authHeaders(String? token) {
-    if (token == null || token.isEmpty) return {};
-    return {'X-Emby-Token': token};
+  // Emby 需要同时传递 X-Emby-Authorization 和 X-Emby-Token 请求头
+  Map<String, String> authHeaders(String? token, {String? deviceId}) {
+    final headers = <String, String>{};
+    // Emby 客户端标识
+    headers['X-Emby-Authorization'] =
+        'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="${deviceId ?? 'embbytok-client'}", Version="1.0.0"';
+    if (token != null && token.isNotEmpty) {
+      headers['X-Emby-Token'] = token;
+    }
+    return headers;
   }
 
   // 获取缩略图 URL（带认证信息）
