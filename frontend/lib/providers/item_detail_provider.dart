@@ -87,7 +87,8 @@ final peopleListProvider = FutureProvider<List<Person>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <Person>[];
   final service = _authService(ref, auth);
-  return service.getPeople();
+  final response = await service.getPeople();
+  return response.items;
 });
 
 // ============================

@@ -18,7 +18,7 @@ class ActorsView extends ConsumerStatefulWidget {
   ConsumerState<ActorsView> createState() => _ActorsViewState();
 }
 
-class _ActorsViewState extends ConsumerState<ActorsView> {
+class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStateMixin {
   List<Person> _actors = const <Person>[];
   bool _loading = true;
   bool _isLoadingMore = false;
