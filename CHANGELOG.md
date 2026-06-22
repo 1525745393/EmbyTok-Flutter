@@ -1,3 +1,10 @@
+## [1.73.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.1...v1.73.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* 演员收藏功能缺少 userId 参数 ([995494f](https://github.com/1525745393/EmbyTok-Flutter/commit/995494f01eecd8f942da1511ecf79e92c779fb94))
+
 ## [1.73.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.0...v1.73.1) (2026-06-22)
 
 
