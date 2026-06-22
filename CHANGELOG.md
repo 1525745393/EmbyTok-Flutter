@@ -1,3 +1,10 @@
+# [1.70.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.69.0...v1.70.0) (2026-06-22)
+
+
+### Features
+
+* 添加演员按钮与演员页面 ([d356ee4](https://github.com/1525745393/EmbyTok-Flutter/commit/d356ee47c5ea466d5ad28347b1243a53cf02480c))
+
 # [1.69.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.68.1...v1.69.0) (2026-06-22)
 
 
