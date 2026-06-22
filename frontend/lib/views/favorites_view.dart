@@ -9,8 +9,6 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
-import 'boxset_detail_view.dart';
-import 'person_detail_view.dart';
 import '../widgets/video_page_item.dart';
 
 class FavoritesView extends ConsumerStatefulWidget {

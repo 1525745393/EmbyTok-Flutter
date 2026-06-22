@@ -15,7 +15,6 @@ import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
 import 'gesture_overlay.dart';
-import 'subtitle_renderer.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
 

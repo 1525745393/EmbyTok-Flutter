@@ -55,8 +55,8 @@ class PosterAvatar extends ConsumerWidget {
 
     if (firstActor != null && firstActor.id != null && firstActor.id!.isNotEmpty) {
       final actorImageUrl = embyServerUrl != null && token != null
-          ? '$embyServerUrl/Items/${firstActor!.id!}/Images/Primary?MaxWidth=200&api_key=$token'
-          : firstActor!.imageUrl;
+          ? '$embyServerUrl/Items/${firstActor.id}/Images/Primary?MaxWidth=200&api_key=$token'
+          : firstActor.imageUrl;
       final headers = item.authHeaders(token);
       final isFavorited =
           ref.watch(favoritesProvider).favoriteIds.contains(firstActor.id!);
@@ -290,7 +290,7 @@ class PlayModeButton extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         final newLevel = (currentLevel + 1) % 3;
-        ref.read(playbackLevelProvider.notifier).state = newLevel;
+        ref.read(playbackLevelProvider.notifier).setLevel(newLevel);
       },
       child: Container(
         width: rs(40),

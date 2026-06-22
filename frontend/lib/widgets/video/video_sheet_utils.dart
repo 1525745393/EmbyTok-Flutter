@@ -171,7 +171,7 @@ Future<void> showSubtitleSelector(
             ...tracks.asMap().entries.map((entry) {
               final track = entry.value;
               return ListTile(
-                title: Text(track.displayName ?? '字幕 ${entry.key + 1}',
+                title: Text('${track.displayName} (${entry.key + 1})',
                     style: TextStyle(color: scheme.onSurface)),
                 onTap: () {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
