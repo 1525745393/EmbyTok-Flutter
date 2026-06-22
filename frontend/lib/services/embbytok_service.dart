@@ -174,7 +174,7 @@ class EmbytokService {
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams,Path',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,MediaStreams',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       if (effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
@@ -392,8 +392,7 @@ class EmbytokService {
           String? imgUrl;
           if (imageTag != null && baseUrl.isNotEmpty) {
             imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
-                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-                '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}';
+                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg';
           }
           return Person(
             id: id,
@@ -839,14 +838,29 @@ class EmbytokService {
   }
 
   // ============================
-  // 播放信息（通过 getItemDetail 获取，MediaSources 在详情中已包含）
+  // 播放信息（调用 Emby PlaybackInfo 端点获取真实播放信息）
+  // 返回：MediaSources、DirectStreamUrl、TranscodingUrl、PlaySessionId 等
   // ============================
-  Future<MediaItem?> getPlaybackInfo(
+  Future<Map<String, dynamic>> getPlaybackInfo(
     String itemId, {
+    String? userId,
     String? serverUrl,
     String? token,
   }) async {
-    return getItemDetail(itemId, serverUrl: serverUrl, token: token);
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    final params = <String, dynamic>{
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$itemId/PlaybackInfo',
+      queryParameters: params,
+    );
+    final data = resp.data is Map
+        ? Map<String, dynamic>.from(resp.data as Map)
+        : <String, dynamic>{};
+    return data;
   }
 
   // ============================
@@ -1108,7 +1122,6 @@ class EmbytokService {
               thumbnailUrl: _defaultServerUrl != null
                   ? '$_defaultServerUrl/Items/${e['Id']}/Images/Primary'
                       '?MaxWidth=200&Format=jpg'
-                      '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}'
                   : null,
             ))
         .toList();

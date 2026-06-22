@@ -383,42 +383,38 @@ class MediaItem {
   }
 
   // 动态构造 Emby 视频流播放 URL
-  // Emby API 不返回 playbackUrl，需要根据服务器地址和 token 动态构造
-  String? computePlaybackUrl(String? embyServerUrl, String? token) {
+  // Emby API 不返回 playbackUrl，需要根据服务器地址动态构造
+  // 注意：认证通过 X-Emby-Token 请求头传递，URL 中不需要 api_key 参数
+  String? computePlaybackUrl(String? embyServerUrl, {String? mediaSourceId}) {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
-    if (token == null || token.isEmpty) return null;
-    final encodedToken = Uri.encodeQueryComponent(token);
-    return '$embyServerUrl/Videos/$id/stream?api_key=$encodedToken&Static=true';
+    final msId = mediaSourceId ?? (mediaSources?.isNotEmpty == true ? mediaSources!.first.id : id);
+    return '$embyServerUrl/Videos/$id/$msId/stream?Static=true';
   }
 
   // 构造 Direct Stream URL（Remux 不重编码）
   // 用于 Direct Play 失败后的第一级降级
-  String? computeDirectStreamUrl(String? embyServerUrl, String? token) {
+  // 认证通过 X-Emby-Token 请求头传递
+  String? computeDirectStreamUrl(String? embyServerUrl, {String? mediaSourceId}) {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
-    if (token == null || token.isEmpty) return null;
-    final encodedToken = Uri.encodeQueryComponent(token);
-    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
-    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
-    return '$embyServerUrl/Videos/$id/stream.mp4?api_key=$encodedToken'
-        '&VideoCodec=h264,hevc,av1&AudioCodec=aac,mp3,ac3'
-        '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true$msIdParam';
+    final msId = mediaSourceId ?? (mediaSources?.isNotEmpty == true ? mediaSources!.first.id : id);
+    return '$embyServerUrl/Videos/$id/$msId/stream.mp4'
+        '?VideoCodec=h264,hevc,av1&AudioCodec=aac,mp3,ac3'
+        '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true';
   }
 
   // 构造 HLS 转码 URL（最后一级降级）
-  String? computeHlsUrl(String? embyServerUrl, String? token, {String? playSessionId}) {
+  // 认证通过 X-Emby-Token 请求头传递
+  String? computeHlsUrl(String? embyServerUrl, {String? mediaSourceId, String? playSessionId}) {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
-    if (token == null || token.isEmpty) return null;
-    final encodedToken = Uri.encodeQueryComponent(token);
-    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
-    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
+    final msId = mediaSourceId ?? (mediaSources?.isNotEmpty == true ? mediaSources!.first.id : id);
     final sessionParam = playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
-    return '$embyServerUrl/Videos/$id/master.m3u8?api_key=$encodedToken'
-        '&VideoCodec=h264&AudioCodec=aac,mp3,ac3'
+    return '$embyServerUrl/Videos/$id/$msId/master.m3u8'
+        '?VideoCodec=h264&AudioCodec=aac,mp3,ac3'
         '&VideoBitrate=20000000&AudioBitrate=320000'
         '&TranscodingMaxAudioChannels=2'
         '&SegmentContainer=ts&MinSegments=1&BreakOnNonKeyFrames=True'
         '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true'
-        '$msIdParam$sessionParam';
+        '$sessionParam';
   }
 
   // 获取认证 HTTP 请求头（用于 video_player 插件）

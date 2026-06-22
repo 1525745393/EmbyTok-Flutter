@@ -71,8 +71,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (widget.item.playbackUrl != null && widget.item.playbackUrl!.isNotEmpty) {
       return widget.item.playbackUrl;
     }
-    // 尝试动态构造 Emby 视频流 URL
-    return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+    // 尝试动态构造 Emby 视频流 URL（认证通过 X-Emby-Token 请求头传递）
+    return widget.item.computePlaybackUrl(widget.embyServerUrl);
   }
 
   // 根据降级等级获取对应的播放 URL
@@ -82,12 +82,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   String? _getUrlForFallbackLevel(int level) {
     switch (level) {
       case 1:
-        return widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token);
+        return widget.item.computeDirectStreamUrl(widget.embyServerUrl);
       case 2:
-        return widget.item.computeHlsUrl(widget.embyServerUrl, widget.token);
+        return widget.item.computeHlsUrl(widget.embyServerUrl);
       case 0:
       default:
-        return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+        return widget.item.computePlaybackUrl(widget.embyServerUrl);
     }
   }
 
