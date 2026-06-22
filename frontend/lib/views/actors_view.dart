@@ -51,6 +51,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
       final favoritePeople = await service.getFavoritePeople(
         serverUrl: auth.embyServerUrl,
         token: auth.token,
+        userId: auth.user?.id,
       );
 
       if (mounted) {
