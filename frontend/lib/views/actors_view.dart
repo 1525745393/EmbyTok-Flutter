@@ -128,7 +128,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
         personTypes = [_selectedPersonType!];
       }
 
-      final nextStartIndex = _startIndex + _pageSize;
+      final nextStartIndex = _actors.length;
       final response = await service.getPeople(
         limit: _pageSize,
         startIndex: nextStartIndex,
@@ -140,7 +140,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
       if (mounted) {
         setState(() {
           _actors = [..._actors, ...response.items];
-          _startIndex = nextStartIndex;
+          _total = response.total;
           _isLoadingMore = false;
         });
       }
@@ -215,20 +215,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
     if (_searchQuery.isEmpty) return _actors;
     final query = _searchQuery.toLowerCase();
     return _actors.where((actor) => actor.name.toLowerCase().contains(query)).toList();
-  }
-
-  // 根据当前 Tab 过滤演员
-  List<Person> _getActorsForCurrentTab() {
-    final actors = _filteredActors;
-    final tabIndex = _tabController.index;
-    if (tabIndex == 1) {
-      // 已关注
-      return actors.where((actor) => _favoritedIds.contains(actor.id)).toList();
-    } else if (tabIndex == 2) {
-      // 未关注
-      return actors.where((actor) => !_favoritedIds.contains(actor.id)).toList();
-    }
-    return actors;
   }
 
   // 防抖处理搜索输入
