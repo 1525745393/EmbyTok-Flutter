@@ -1,3 +1,10 @@
+## [1.73.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.0...v1.73.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复演员详情页图片加载问题 ([fae715b](https://github.com/1525745393/EmbyTok-Flutter/commit/fae715b1a2160e13d625be0f8ffb191e249e4ecb))
+
 # [1.73.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.72.1...v1.73.0) (2026-06-22)
 
 
