@@ -1,3 +1,10 @@
+## [1.71.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.71.0...v1.71.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复演员页面缺少userId参数导致API调用失败的问题 ([dae9308](https://github.com/1525745393/EmbyTok-Flutter/commit/dae93087d3f76ab432db3e017f2c66e3e6320368))
+
 # [1.71.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.70.1...v1.71.0) (2026-06-22)
 
 
