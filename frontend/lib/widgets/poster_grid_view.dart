@@ -60,6 +60,29 @@ class _PosterCard extends ConsumerWidget {
   final MediaItem item;
   const _PosterCard({super.key, required this.item});
 
+  // 类型标签映射
+  static String _getTypeLabel(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'movie':
+      case 'video':
+        return '电影';
+      case 'episode':
+        return '剧集';
+      case 'series':
+        return '系列';
+      case 'musicalbum':
+        return '音乐';
+      case 'musicvideo':
+        return '音乐视频';
+      case 'trailer':
+        return '预告片';
+      case 'boxset':
+        return '合集';
+      default:
+        return type ?? '视频';
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -105,27 +128,68 @@ class _PosterCard extends ConsumerWidget {
                 color: scheme.surface.withOpacity(0.3),
                 child: Icon(Icons.movie, color: scheme.onSurface.withOpacity(0.4)),
               ),
-            // 底部渐变 + 标题
+            // 底部渐变 + 标题 + 类型/标签
             Positioned(
               left: 0, right: 0, bottom: 0,
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.fromLTRB(6, 20, 6, 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      scheme.surface.withOpacity(0.75),
+                      scheme.surface.withOpacity(0.85),
+                      scheme.surface.withOpacity(0.6),
                       Colors.transparent,
                     ],
                   ),
                 ),
-                child: Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: scheme.onSurface, fontSize: 12, fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 类型标签
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _getTypeLabel(item.type),
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    // 标题
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    // 标签（genres）
+                    if (item.displayGenres.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        item.displayGenres.take(3).join(' / '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
