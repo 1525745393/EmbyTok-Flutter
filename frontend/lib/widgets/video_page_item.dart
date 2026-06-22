@@ -397,7 +397,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (_controlsVisible) {
       _hideControls();
       // 连播模式下点击屏幕触发3击检测
-      if (isAutoPlay) {
+      if (ref.read(isAutoPlayProvider)) {
         _handleTapForAutoPlayButton();
       }
     } else {
