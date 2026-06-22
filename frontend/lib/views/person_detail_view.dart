@@ -63,11 +63,13 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    final imageUrl = widget.person.primaryUrl(
-      embyServerUrl: authState.embyServerUrl,
-      apiKey: authState.token,
-      maxWidth: 400,
-    );
+    // 演员使用 thumbnailUrl（已构建完整URL），避免 imageTag 格式问题
+    final imageUrl = widget.person.thumbnailUrl ??
+        widget.person.primaryUrl(
+          embyServerUrl: authState.embyServerUrl,
+          apiKey: authState.token,
+          maxWidth: 400,
+        );
     final headers = widget.person.authHeaders(authState.token);
 
     return Scaffold(

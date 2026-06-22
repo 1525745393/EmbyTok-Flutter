@@ -203,7 +203,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       id: actor.id ?? '',
       title: actor.name,
       type: 'Person',
-      imageTags: actor.imageUrl != null ? {'Primary': actor.imageUrl!} : {},
+      thumbnailUrl: actor.imageUrl,
     );
     context.push('/person/${actor.id}', extra: mediaItem);
   }
