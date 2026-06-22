@@ -1,3 +1,10 @@
+# [1.76.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.75.0...v1.76.0) (2026-06-22)
+
+
+### Features
+
+* 连播模式下 AutoPlayButton 智能隐藏 ([b3d31e6](https://github.com/1525745393/EmbyTok-Flutter/commit/b3d31e6f64f94e984feccd1682c4b4d19f0d543b))
+
 # [1.75.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.74.1...v1.75.0) (2026-06-22)
 
 
