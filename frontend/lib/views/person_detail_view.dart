@@ -225,7 +225,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           ...item.people!
                               .where((p) => p.id != currentActor.id)
                         ]);
-                  return _WorkTile(key: Key(item.id), item: itemWithActor);
+                  return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);
                 },
               ),
             const SizedBox(height: 32),
@@ -282,7 +282,8 @@ class _AvatarPlaceholder extends StatelessWidget {
 
 class _WorkTile extends ConsumerWidget {
   final MediaItem item;
-  const _WorkTile({super.key, required this.item});
+  final List<MediaItem> allItems; // 完整列表
+  const _WorkTile({super.key, required this.item, required this.allItems});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -297,6 +298,8 @@ class _WorkTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
+        // 设置播放列表后再跳转
+        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),

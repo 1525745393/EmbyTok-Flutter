@@ -177,6 +177,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
               itemType: itemType,
               width: cardWidth,
               height: cardHeight,
+              allItems: items,
             ),
           );
         },
@@ -223,6 +224,7 @@ class _FavoriteCard extends ConsumerWidget {
   final _CardType itemType;
   final double width;
   final double height;
+  final List<MediaItem> allItems; // 完整列表
 
   const _FavoriteCard({
     super.key,
@@ -230,6 +232,7 @@ class _FavoriteCard extends ConsumerWidget {
     required this.itemType,
     required this.width,
     required this.height,
+    required this.allItems,
   });
 
   @override
@@ -244,7 +247,7 @@ class _FavoriteCard extends ConsumerWidget {
     final headers = item.authHeaders(authState.token);
 
     return InkWell(
-      onTap: () => _navigateTo(context),
+      onTap: () => _navigateTo(context, ref),
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         width: width,
@@ -313,9 +316,11 @@ class _FavoriteCard extends ConsumerWidget {
     return item.type;
   }
 
-  void _navigateTo(BuildContext context) {
+  void _navigateTo(BuildContext context, WidgetRef ref) {
     switch (itemType) {
       case _CardType.movie:
+        // 设置播放列表后再跳转
+        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
         break;
       case _CardType.boxSet:

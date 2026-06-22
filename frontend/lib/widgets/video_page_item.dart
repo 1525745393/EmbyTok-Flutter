@@ -849,11 +849,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 /// 使用 PageView 展示视频列表，支持上下滑动切换视频
 class PlaybackShell extends ConsumerStatefulWidget {
   final MediaItem item; // 当前播放的视频
+  final List<MediaItem> items; // 视频列表（可选）
   final VoidCallback onBack; // 返回回调
 
   const PlaybackShell({
     super.key,
     required this.item,
+    this.items = const [],
     required this.onBack,
   });
 
@@ -864,14 +866,14 @@ class PlaybackShell extends ConsumerStatefulWidget {
 class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   late PageController _pageController;
   int _currentIndex = 0;
-  List<MediaItem> _items = [];
+  late List<MediaItem> _items;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
-    _loadItems();
+    _initItems();
   }
 
   @override
@@ -880,17 +882,13 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     super.dispose();
   }
 
-  Future<void> _loadItems() async {
-    // 从 videoListProvider 获取当前视频列表
-    final videoState = ref.read(videoListProvider);
-    if (videoState.items.isNotEmpty) {
-      // 找到当前 item 在列表中的索引
-      final initialIndex = videoState.items.indexWhere((i) => i.id == widget.item.id);
-      setState(() {
-        _items = videoState.items;
-        _currentIndex = initialIndex >= 0 ? initialIndex : 0;
-        _isLoading = false;
-      });
+  void _initItems() {
+    // 优先使用传入的列表，否则从 playbackListProvider 获取
+    if (widget.items.isNotEmpty) {
+      _items = widget.items;
+      final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
+      _currentIndex = initialIndex >= 0 ? initialIndex : 0;
+      _isLoading = false;
       // 如果初始索引不是 0，滚动到对应位置
       if (initialIndex > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -900,11 +898,26 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
         });
       }
     } else {
-      // 如果列表为空，只播放当前视频
-      setState(() {
-        _items = [widget.item];
+      // 从 playbackListProvider 获取播放列表
+      final playbackState = ref.read(playbackListProvider);
+      if (playbackState.items.isNotEmpty) {
+        _items = playbackState.items;
+        final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
+        _currentIndex = initialIndex >= 0 ? initialIndex : 0;
         _isLoading = false;
-      });
+        if (initialIndex > 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _pageController.hasClients) {
+              _pageController.jumpToPage(initialIndex);
+            }
+          });
+        }
+      } else {
+        // 如果列表为空，只播放当前视频
+        _items = [widget.item];
+        _currentIndex = 0;
+        _isLoading = false;
+      }
     }
   }
 

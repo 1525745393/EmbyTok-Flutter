@@ -140,7 +140,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _HistoryTile(key: Key(item.id), item: item);
+        return _HistoryTile(key: Key(item.id), item: item, allItems: state.items);
       },
     );
   }
@@ -148,7 +148,8 @@ class _HistoryViewState extends ConsumerState<HistoryView>
 
 class _HistoryTile extends ConsumerWidget {
   final MediaItem item;
-  const _HistoryTile({super.key, required this.item});
+  final List<MediaItem> allItems; // 完整列表
+  const _HistoryTile({super.key, required this.item, required this.allItems});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -170,6 +171,8 @@ class _HistoryTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
+        // 设置播放列表后再跳转
+        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),

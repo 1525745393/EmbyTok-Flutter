@@ -151,6 +151,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 立即播放：跳转到 VideoPageItem 播放页
   void _playItem(MediaItem item) {
+    // 设置播放列表后再跳转（剧集使用 _episodes 作为播放列表）
+    final items = item.type == 'Episode' ? _episodes : [item];
+    ref.read(playbackListProvider.notifier).setPlaybackList(items, item.id);
     context.push('/play/${item.id}', extra: item);
   }
 

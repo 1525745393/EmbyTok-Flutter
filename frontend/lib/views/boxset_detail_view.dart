@@ -181,7 +181,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final child = _children[index];
-                  return _ChildTile(key: Key(child.id), item: child);
+                  return _ChildTile(key: Key(child.id), item: child, allItems: _children);
                 },
               ),
             const SizedBox(height: 32),
@@ -247,7 +247,8 @@ class _CoverPlaceholder extends StatelessWidget {
 
 class _ChildTile extends ConsumerWidget {
   final MediaItem item;
-  const _ChildTile({super.key, required this.item});
+  final List<MediaItem> allItems; // 完整列表
+  const _ChildTile({super.key, required this.item, required this.allItems});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -262,6 +263,8 @@ class _ChildTile extends ConsumerWidget {
 
     return InkWell(
       onTap: () {
+        // 设置播放列表后再跳转
+        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
