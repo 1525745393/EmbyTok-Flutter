@@ -95,7 +95,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         setState(() {
           _actors = response.items;
           _total = response.total;
-          _favoritedIds = Set.from(favoritePeople.map((p) => p.id));
+          // 统一转换为字符串ID，确保与演员列表的ID格式一致
+          _favoritedIds = Set.from(favoritePeople.map((p) => p.id.toString()).where((id) => id.isNotEmpty));
           _loading = false;
         });
       }
@@ -234,9 +235,11 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     final actors = _filteredActors;
     switch (tabIndex) {
       case 1:
-        return actors.where((actor) => _favoritedIds.contains(actor.id)).toList();
+        // 已关注：过滤出 id 在收藏列表中的演员
+        return actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
       case 2:
-        return actors.where((actor) => !_favoritedIds.contains(actor.id)).toList();
+        // 未关注：过滤出 id 不在收藏列表中的演员（包括 id 为空的）
+        return actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
       default:
         return actors;
     }
