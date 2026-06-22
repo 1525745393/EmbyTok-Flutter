@@ -254,7 +254,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
       // 使用 Emby SearchHints API 进行服务器端搜索
       final searchResults = await service.searchHints(
-        query: query,
+        query,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
