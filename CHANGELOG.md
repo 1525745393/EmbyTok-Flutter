@@ -1,3 +1,10 @@
+# [1.68.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.67.0...v1.68.0) (2026-06-22)
+
+
+### Features
+
+* **emby-api:** 增强 Emby API 适配度 ([#13](https://github.com/1525745393/EmbyTok-Flutter/issues/13)) ([6462828](https://github.com/1525745393/EmbyTok-Flutter/commit/6462828996d7cf8de1da2eb8297cfd060ecefe29))
+
 # [1.67.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.66.0...v1.67.0) (2026-06-22)
 
 
