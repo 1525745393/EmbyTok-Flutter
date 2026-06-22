@@ -377,6 +377,8 @@ class EmbytokService {
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
     final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
+    // 使用传入的 token 或默认 token
+    final effectiveToken = token ?? _defaultToken;
     return items
         .whereType<Map<String, dynamic>>()
         .map((e) {
@@ -388,7 +390,7 @@ class EmbytokService {
           if (imageTag != null && baseUrl.isNotEmpty) {
             imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
                 '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-                '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}';
+                '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
           }
           return Person(
             id: id,
