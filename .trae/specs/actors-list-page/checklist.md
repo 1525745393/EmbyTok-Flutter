@@ -1,0 +1,10 @@
+- [x] Checkpoint 1: 演员列表页面组件 `actors_view.dart` 已创建并实现
+- [x] Checkpoint 2: 演员列表显示所有演员的头像和姓名
+- [x] Checkpoint 3: 关注/取消关注功能正常工作
+- [x] Checkpoint 4: 点击演员可跳转到详情页
+- [x] Checkpoint 5: 底部导航栏添加了演员按钮
+- [x] Checkpoint 6: 点击演员按钮跳转到演员列表页面
+- [x] Checkpoint 7: 路由配置正确添加了 `/actors` 路径
+- [x] Checkpoint 8: 页面导航Provider正确处理演员页面索引
+- [x] Checkpoint 9: 所有现有测试通过，无回归问题
+- [x] Checkpoint 10: 端到端验证所有功能正常

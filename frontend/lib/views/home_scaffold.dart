@@ -18,6 +18,7 @@ import 'search_view.dart';
 import 'favorites_view.dart';
 import 'history_view.dart';
 import 'settings_view.dart';
+import 'actors_view.dart';
 
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
@@ -53,7 +54,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
         }
 
         // 在 Feed 之外的 Tab 上按返回键，先回到 Feed
-        if (currentIndex != 0) {
+        if (currentIndex != 0 && currentIndex != PageIndices.search && currentIndex != PageIndices.history) {
           ref.read(pageNavigationNotifierProvider).goToPage(0);
           return;
         }
@@ -103,7 +104,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                     padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
                     child: const FavoritesView(),
                   ),
-                  // 索引 2: 设置页面（预留底部导航栏高度）
+                  // 索引 2: 演员页面（预留底部导航栏高度）
+                  Padding(
+                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    child: const ActorsView(),
+                  ),
+                  // 索引 3: 设置页面（预留底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
                     child: const SettingsView(),
@@ -116,8 +122,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
             if (pageNavState.isOverlayPage)
               Positioned.fill(
                 child: IndexedStack(
-                  // search=3, history=4，映射到覆盖层索引 0/1
-                  index: currentIndex == 3 ? 0 : 1,
+                  // search=4, history=5，映射到覆盖层索引 0/1
+                  index: currentIndex == 4 ? 0 : 1,
                   children: const [
                     SearchView(useScaffold: false),
                     HistoryView(useScaffold: false),
@@ -178,6 +184,11 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                                   icon: Icon(Icons.favorite_border),
                                   activeIcon: Icon(Icons.favorite),
                                   label: '收藏',
+                                ),
+                                BottomNavigationBarItem(
+                                  icon: Icon(Icons.person_outline),
+                                  activeIcon: Icon(Icons.person),
+                                  label: '演员',
                                 ),
                                 BottomNavigationBarItem(
                                   icon: Icon(Icons.settings_outlined),

@@ -7,9 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class PageIndices {
   static const int feed = 0;
   static const int favorites = 1;
-  static const int settings = 2;
-  static const int search = 3;
-  static const int history = 4;
+  static const int actors = 2;
+  static const int settings = 3;
+  static const int search = 4;
+  static const int history = 5;
 }
 
 // 页面导航状态

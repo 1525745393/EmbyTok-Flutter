@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
+import 'views/actors_view.dart';
 import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
 import 'views/history_view.dart';
@@ -90,6 +91,18 @@ class EmbyTokApp extends ConsumerWidget {
               GoRouter.of(context).go('/');
             },
             child: const HistoryView(),
+          ),
+        ),
+        // 演员
+        GoRoute(
+          path: '/actors',
+          builder: (context, state) => PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              GoRouter.of(context).go('/');
+            },
+            child: const ActorsView(),
           ),
         ),
         // 设置
