@@ -1,3 +1,15 @@
+# [1.71.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.70.1...v1.71.0) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复演员页面图片URL缺少认证token的问题 ([c91f478](https://github.com/1525745393/EmbyTok-Flutter/commit/c91f47899b52b1282f09dc4ef1bc2c1504836462))
+
+
+### Features
+
+* 添加演员按钮与演员页面 ([93bad2e](https://github.com/1525745393/EmbyTok-Flutter/commit/93bad2ec99d7556542f513ab882cbeb203d25b36))
+
 ## [1.70.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.70.0...v1.70.1) (2026-06-22)
 
 
