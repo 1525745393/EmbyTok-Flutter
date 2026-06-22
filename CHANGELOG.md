@@ -1,3 +1,16 @@
+# [1.74.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.3...v1.74.0) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复演员详情页编译错误 ([4e768ca](https://github.com/1525745393/EmbyTok-Flutter/commit/4e768ca4c4066bdc52464f46dcefe3d16ce42c69))
+
+
+### Features
+
+* 演员简介支持折叠/展开 ([ec530cc](https://github.com/1525745393/EmbyTok-Flutter/commit/ec530ccd66f6f5297669996335e152925537417f))
+* 演员详情页显示简介 ([0ac3b06](https://github.com/1525745393/EmbyTok-Flutter/commit/0ac3b06ab6b9cb7efc58698f857dc0ee4c6f87e2))
+
 ## [1.73.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.2...v1.73.3) (2026-06-22)
 
 
