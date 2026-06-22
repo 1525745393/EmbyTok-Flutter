@@ -163,7 +163,7 @@ class EmbyTokApp extends ConsumerWidget {
             return BoxsetDetailView(item: item);
           },
         ),
-        // 视频播放页：/play/:itemId
+        // 视频播放页：/play/:itemId - 支持滑动切换视频列表
         GoRoute(
           path: '/play/:itemId',
           builder: (context, state) {
@@ -175,18 +175,9 @@ class EmbyTokApp extends ConsumerWidget {
                     title: '',
                     type: 'Video',
                   );
-            return Scaffold(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              appBar: AppBar(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-                title: Text(item.title,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 16,
-                    )),
-              ),
-              body: VideoPageItem(item: item),
+            return PlaybackShell(
+              item: item,
+              onBack: () => context.pop(),
             );
           },
         ),

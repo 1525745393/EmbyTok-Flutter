@@ -21,7 +21,9 @@ import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
 
 class FeedView extends ConsumerStatefulWidget {
-  const FeedView({super.key});
+  final String? initialItemId; // 初始播放的视频 ID（从其他页面跳转时使用）
+
+  const FeedView({super.key, this.initialItemId});
 
   @override
   ConsumerState<FeedView> createState() => _FeedViewState();
@@ -34,6 +36,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 当前正在播放的索引（与 _pageController 同步）
   int _currentIndex = 0;
 
+  // 初始播放的视频 ID（从其他页面跳转时使用）
+  String? _initialItemId;
+  bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
+
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
@@ -45,6 +51,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
+    // 保存初始播放的 itemId
+    _initialItemId = widget.initialItemId;
     // 注册全局键盘监听
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
@@ -532,6 +540,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
     if (videoState.items.isEmpty) {
       return EmptyStateCard.noVideos();
+    }
+
+    // 如果有初始播放 itemId，且尚未滚动到该位置，则查找并滚动
+    if (_initialItemId != null && !_hasScrolledToInitial) {
+      final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
+      if (initialIndex >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pageController.hasClients && !_hasScrolledToInitial) {
+            _hasScrolledToInitial = true;
+            _currentIndex = initialIndex;
+            _pageController.jumpToPage(initialIndex);
+          }
+        });
+      }
     }
 
     final auth = ref.read(authProvider);

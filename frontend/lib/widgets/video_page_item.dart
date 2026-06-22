@@ -843,3 +843,150 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
   }
 }
+
+/// 播放页面外壳：支持滑动切换视频列表
+///
+/// 使用 PageView 展示视频列表，支持上下滑动切换视频
+class PlaybackShell extends ConsumerStatefulWidget {
+  final MediaItem item; // 当前播放的视频
+  final VoidCallback onBack; // 返回回调
+
+  const PlaybackShell({
+    super.key,
+    required this.item,
+    required this.onBack,
+  });
+
+  @override
+  ConsumerState<PlaybackShell> createState() => _PlaybackShellState();
+}
+
+class _PlaybackShellState extends ConsumerState<PlaybackShell> {
+  late PageController _pageController;
+  int _currentIndex = 0;
+  List<MediaItem> _items = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
+    _loadItems();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadItems() async {
+    // 从 videoListProvider 获取当前视频列表
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isNotEmpty) {
+      // 找到当前 item 在列表中的索引
+      final initialIndex = videoState.items.indexWhere((i) => i.id == widget.item.id);
+      setState(() {
+        _items = videoState.items;
+        _currentIndex = initialIndex >= 0 ? initialIndex : 0;
+        _isLoading = false;
+      });
+      // 如果初始索引不是 0，滚动到对应位置
+      if (initialIndex > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pageController.hasClients) {
+            _pageController.jumpToPage(initialIndex);
+          }
+        });
+      }
+    } else {
+      // 如果列表为空，只播放当前视频
+      setState(() {
+        _items = [widget.item];
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        body: Center(
+          child: CircularProgressIndicator(color: scheme.primary),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      body: Stack(
+        children: [
+          // PageView 支持滑动切换视频
+          PageView.builder(
+            controller: _pageController,
+            scrollDirection: Axis.vertical,
+            itemCount: _items.length,
+            onPageChanged: _onPageChanged,
+            itemBuilder: (context, index) {
+              final item = _items[index];
+              return VideoPageItem(
+                key: ValueKey(item.id),
+                item: item,
+                onVideoEnded: index < _items.length - 1
+                    ? () {
+                        // 自动播放下一个
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    : null,
+                startFromResumePosition: item.hasProgress,
+              );
+            },
+          ),
+          // 返回按钮
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back, color: scheme.onSurface),
+              onPressed: widget.onBack,
+            ),
+          ),
+          // 当前位置指示器
+          if (_items.length > 1)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_currentIndex + 1}/${_items.length}',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
