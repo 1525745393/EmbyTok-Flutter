@@ -1,3 +1,18 @@
+# [1.77.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.76.0...v1.77.0) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复 isAutoPlay 未定义错误 ([824bb9b](https://github.com/1525745393/EmbyTok-Flutter/commit/824bb9be5be9f458ab18c24819b5b8b25d249157))
+* 排除类型/标签等非视频类型的项目 ([2e79e7d](https://github.com/1525745393/EmbyTok-Flutter/commit/2e79e7d6e6c7933a7c153b5b7f705a26c70d11e3))
+* 连播按钮隐藏时倍速按钮一起隐藏 ([7acd262](https://github.com/1525745393/EmbyTok-Flutter/commit/7acd262bba32573013bf0d37555d01fc97d9c64b))
+
+
+### Features
+
+* 网格视图视频卡片显示类型和标签 ([f81a087](https://github.com/1525745393/EmbyTok-Flutter/commit/f81a087f545afeee0583309885b2e4b9e01cb115))
+* 连播按钮需3击屏幕才显示 ([b268420](https://github.com/1525745393/EmbyTok-Flutter/commit/b268420c6f7f1fb963344a6bb4b811486bad2e8a))
+
 # [1.76.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.75.0...v1.76.0) (2026-06-22)
 
 
