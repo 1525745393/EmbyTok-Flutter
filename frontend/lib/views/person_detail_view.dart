@@ -41,7 +41,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       final service = EmbytokService();
 
       // 并行加载：演员详情和出演作品
-      final [personDetail, worksResponse] = await Future.wait([
+      final results = await Future.wait([
         service.getPersonDetail(
           widget.person.id,
           serverUrl: auth.embyServerUrl,
@@ -56,8 +56,8 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
 
       if (mounted) {
         setState(() {
-          _personDetail = personDetail;
-          _works = worksResponse.items;
+          _personDetail = results[0] as MediaItem?;
+          _works = (results[1] as PaginatedResponse<MediaItem>).items;
           _loading = false;
         });
       }
@@ -239,7 +239,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             ),
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('重试'),
-            onPressed: _loadWorks,
+            onPressed: _loadData,
           ),
         ],
       ),
