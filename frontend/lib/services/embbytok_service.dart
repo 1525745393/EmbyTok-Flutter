@@ -440,6 +440,33 @@ class EmbytokService {
   }
 
   // ============================
+  // 获取单个演员详情（包含 overview）
+  // ============================
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
+    };
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '/Items/$personId',
+        queryParameters: params,
+      );
+      if (resp.data is Map<String, dynamic>) {
+        return MediaItem.fromJson(resp.data);
+      }
+      return null;
+    } catch (e) {
+      AppLogger.error('获取演员详情失败', error: e);
+      return null;
+    }
+  }
+
+  // ============================
   // 类型列表（Genres）
   // ============================
   Future<List<Library>> getGenres({
