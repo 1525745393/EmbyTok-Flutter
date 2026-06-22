@@ -241,6 +241,33 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     }
   }
 
+  // 构建类型筛选芯片
+  Widget _buildTypeFilterChip(String label, String? type) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = _selectedPersonType == type;
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedPersonType = type;
+        });
+        _loadActors();
+      },
+      backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+      selectedColor: scheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
+        fontSize: 13,
+      ),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
+  }
+
   // 构建演员网格列表
   Widget _buildActorGrid(List<Person> actors, String? embyServerUrl, String? token) {
     if (actors.isEmpty) {
@@ -296,7 +323,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           title: const Text('演员', style: TextStyle(fontSize: 16)),
           pinned: true,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(100),
+            preferredSize: const Size.fromHeight(130),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -319,6 +346,24 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                       isDense: true,
                     ),
                     style: TextStyle(color: scheme.onSurface, fontSize: 14),
+                  ),
+                ),
+                // 类型筛选器
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildTypeFilterChip('全部', null),
+                        const SizedBox(width: 8),
+                        _buildTypeFilterChip('演员', 'Actor'),
+                        const SizedBox(width: 8),
+                        _buildTypeFilterChip('导演', 'Director'),
+                        const SizedBox(width: 8),
+                        _buildTypeFilterChip('编剧', 'Writer'),
+                      ],
+                    ),
                   ),
                 ),
                 // TabBar
