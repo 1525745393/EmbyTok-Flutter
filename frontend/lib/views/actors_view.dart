@@ -33,6 +33,9 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   int _total = 0;
   static const int _pageSize = 50;
   final ScrollController _scrollController = ScrollController();
+  // 搜索状态
+  bool _isSearching = false;
+  List<Person> _searchResults = const [];
 
   @override
   void initState() {
@@ -210,24 +213,76 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     context.push('/person/${actor.id}', extra: mediaItem);
   }
 
-  // 根据搜索关键词过滤演员
+  // 根据搜索关键词返回演员列表（搜索时使用 API 结果）
   List<Person> get _filteredActors {
-    if (_searchQuery.isEmpty) return _actors;
-    final query = _searchQuery.toLowerCase();
-    return _actors.where((actor) => actor.name.toLowerCase().contains(query)).toList();
+    // 有搜索关键词时返回搜索结果
+    if (_searchQuery.isNotEmpty) {
+      return _searchResults;
+    }
+    // 无搜索时返回已加载的演员列表
+    return _actors;
   }
 
-  // 防抖处理搜索输入
+  // 防抖处理搜索输入，调用 API 进行全局搜索
   void _onSearchChanged(String value) {
     final now = DateTime.now();
     _debounceTimer = now;
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 300), () async {
       if (_debounceTimer == now && mounted) {
-        setState(() {
-          _searchQuery = value;
-        });
+        if (value.isEmpty) {
+          setState(() {
+            _searchQuery = '';
+            _searchResults = [];
+            _isSearching = false;
+          });
+        } else {
+          setState(() {
+            _searchQuery = value;
+            _isSearching = true;
+          });
+          await _searchActors(value);
+        }
       }
     });
+  }
+
+  // 从 API 搜索演员（使用服务器端搜索）
+  Future<void> _searchActors(String query) async {
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+
+      // 使用 Emby SearchHints API 进行服务器端搜索
+      final searchResults = await service.searchHints(
+        query: query,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+
+      if (mounted) {
+        // 过滤出 Person 类型的搜索结果
+        final personResults = searchResults
+            .where((hint) => hint.type == 'Person')
+            .map((hint) => Person(
+                  id: hint.id,
+                  name: hint.name,
+                  type: 'Actor',
+                  imageUrl: hint.thumbnailUrl,
+                ))
+            .toList();
+
+        setState(() {
+          _searchResults = personResults;
+          _isSearching = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   // 根据 Tab 过滤演员
@@ -398,45 +453,47 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           // 全部
           _loading
               ? _buildLoading()
-              : _error != null
-                  ? _buildError(scheme)
-                  : RefreshIndicator(
-                      onRefresh: _onRefresh,
-                      child: CustomScrollView(
-                        controller: _scrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          _buildActorGrid(_getActorsByTab(0), embyServerUrl, token),
-                          if (_isLoadingMore)
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: scheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (!_loading && !_isLoadingMore && !hasMore && _actors.isNotEmpty)
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: Text(
-                                    '已加载全部 ${_actors.length} 位演员',
-                                    style: TextStyle(
-                                      color: scheme.onSurface.withOpacity(0.5),
-                                      fontSize: 12,
+              : _isSearching
+                  ? _buildLoading(message: '正在搜索...')
+                  : _error != null
+                      ? _buildError(scheme)
+                      : RefreshIndicator(
+                          onRefresh: _onRefresh,
+                          child: CustomScrollView(
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              _buildActorGrid(_getActorsByTab(0), embyServerUrl, token),
+                              if (_isLoadingMore)
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: scheme.primary,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                              if (!_loading && !_isLoadingMore && !hasMore && _actors.isNotEmpty)
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    child: Center(
+                                      child: Text(
+                                        '已加载全部 ${_actors.length} 位演员',
+                                        style: TextStyle(
+                                          color: scheme.onSurface.withOpacity(0.5),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
           // 已关注
           _loading
               ? _buildLoading()
@@ -464,7 +521,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   }
 
   // 构建优化的加载动画
-  Widget _buildLoading() {
+  Widget _buildLoading({String message = '正在加载演员...'}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -479,7 +536,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           ),
           const SizedBox(height: 16),
           Text(
-            '正在加载演员...',
+            message,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               fontSize: 14,
