@@ -21,28 +21,67 @@ class ActorsView extends ConsumerStatefulWidget {
 class _ActorsViewState extends ConsumerState<ActorsView> {
   List<Person> _actors = const <Person>[];
   bool _loading = true;
+  bool _isLoadingMore = false;
   String? _error;
   Set<String> _favoritedIds = {};
+  // 类型筛选状态：null 表示全部，'Actor'/'Director'/'Writer' 表示对应类型
+  String? _selectedPersonType;
+  String _searchQuery = '';
+  DateTime? _debounceTimer;
+  late TabController _tabController;
+  // 分页状态
+  int _startIndex = 0;
+  int _total = 0;
+  static const int _pageSize = 50;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadActors());
+    _scrollController.addListener(_onScroll);
   }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // 滚动监听：检测是否接近底部
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  bool get hasMore => _actors.length < _total;
 
   Future<void> _loadActors() async {
     setState(() {
       _loading = true;
       _error = null;
+      _startIndex = 0;
+      _actors = [];
     });
     try {
       final auth = ref.read(authProvider);
       final service = EmbytokService();
 
-      // 获取所有演员
-      final people = await service.getPeople(
-        limit: 100,
-        personTypes: ['Actor'],
+      // 根据选择的类型设置 personTypes 参数
+      List<String>? personTypes;
+      if (_selectedPersonType != null) {
+        personTypes = [_selectedPersonType!];
+      }
+
+      // 获取演员列表（支持分页）
+      final response = await service.getPeople(
+        limit: _pageSize,
+        startIndex: 0,
+        personTypes: personTypes,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
@@ -56,7 +95,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
 
       if (mounted) {
         setState(() {
-          _actors = people;
+          _actors = response.items;
+          _total = response.total;
           _favoritedIds = Set.from(favoritePeople.map((p) => p.id));
           _loading = false;
         });
@@ -69,6 +109,53 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
         });
       }
     }
+  }
+
+  // 加载更多（分页加载）
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !hasMore) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+
+      List<String>? personTypes;
+      if (_selectedPersonType != null) {
+        personTypes = [_selectedPersonType!];
+      }
+
+      final nextStartIndex = _startIndex + _pageSize;
+      final response = await service.getPeople(
+        limit: _pageSize,
+        startIndex: nextStartIndex,
+        personTypes: personTypes,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+
+      if (mounted) {
+        setState(() {
+          _actors = [..._actors, ...response.items];
+          _startIndex = nextStartIndex;
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
+  // 下拉刷新
+  Future<void> _onRefresh() async {
+    await _loadActors();
   }
 
   Future<void> _toggleFavorite(Person actor) async {
@@ -123,57 +210,240 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
     context.push('/person/${actor.id}', extra: mediaItem);
   }
 
+  // 根据搜索关键词过滤演员
+  List<Person> get _filteredActors {
+    if (_searchQuery.isEmpty) return _actors;
+    final query = _searchQuery.toLowerCase();
+    return _actors.where((actor) => actor.name.toLowerCase().contains(query)).toList();
+  }
+
+  // 根据当前 Tab 过滤演员
+  List<Person> _getActorsForCurrentTab() {
+    final actors = _filteredActors;
+    final tabIndex = _tabController.index;
+    if (tabIndex == 1) {
+      // 已关注
+      return actors.where((actor) => _favoritedIds.contains(actor.id)).toList();
+    } else if (tabIndex == 2) {
+      // 未关注
+      return actors.where((actor) => !_favoritedIds.contains(actor.id)).toList();
+    }
+    return actors;
+  }
+
+  // 防抖处理搜索输入
+  void _onSearchChanged(String value) {
+    final now = DateTime.now();
+    _debounceTimer = now;
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (_debounceTimer == now && mounted) {
+        setState(() {
+          _searchQuery = value;
+        });
+      }
+    });
+  }
+
+  // 构建类型筛选 Chip
+  Widget _buildTypeChip(String? type, String label, ColorScheme scheme) {
+    final isSelected = _selectedPersonType == type;
+    return GestureDetector(
+      onTap: () {
+        if (_selectedPersonType != type) {
+          setState(() {
+            _selectedPersonType = type;
+          });
+          _loadActors();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? scheme.primary : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? scheme.onPrimary : scheme.onSurface,
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 根据 Tab 过滤演员
+  List<Person> _getActorsByTab(int tabIndex) {
+    final actors = _filteredActors;
+    switch (tabIndex) {
+      case 1:
+        return actors.where((actor) => _favoritedIds.contains(actor.id)).toList();
+      case 2:
+        return actors.where((actor) => !_favoritedIds.contains(actor.id)).toList();
+      default:
+        return actors;
+    }
+  }
+
+  // 构建演员网格列表
+  Widget _buildActorGrid(List<Person> actors, String? embyServerUrl, String? token) {
+    if (actors.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          isSearchEmpty: _searchQuery.isNotEmpty,
+          isFavoriteEmpty: false,
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.all(16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final actor = actors[index];
+            return _ActorCard(
+              actor: actor,
+              embyServerUrl: embyServerUrl,
+              token: token,
+              isFavorited: _favoritedIds.contains(actor.id),
+              onFavoriteTap: () => _toggleFavorite(actor),
+              onTap: () => _navigateToPersonDetail(actor),
+            );
+          },
+          childCount: actors.length,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
+    final favoriteCount = _favoritedIds.length;
+    final allCount = _filteredActors.length;
+    final unfavoritedCount = _filteredActors.where((actor) => !_favoritedIds.contains(actor.id)).toList().length;
 
-    final content = CustomScrollView(
-      slivers: [
+    final content = NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) => [
         SliverAppBar(
           backgroundColor: scheme.surface,
           foregroundColor: scheme.onSurface,
           title: const Text('演员', style: TextStyle(fontSize: 16)),
           pinned: true,
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: _loading
-              ? const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : _error != null
-                  ? SliverFillRemaining(child: _buildError(scheme))
-                  : _actors.isEmpty
-                      ? const SliverFillRemaining(
-                          child: Center(child: Text('暂无演员')),
-                        )
-                      : SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 16,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final actor = _actors[index];
-                              return _ActorCard(
-                                actor: actor,
-                                embyServerUrl: embyServerUrl,
-                                token: token,
-                                isFavorited: _favoritedIds.contains(actor.id),
-                                onFavoriteTap: () => _toggleFavorite(actor),
-                                onTap: () => _navigateToPersonDetail(actor),
-                              );
-                            },
-                            childCount: _actors.length,
-                          ),
-                        ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(100),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 搜索框
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: TextField(
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: '搜索演员...',
+                      hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+                      prefixIcon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.5)),
+                      filled: true,
+                      fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      isDense: true,
+                    ),
+                    style: TextStyle(color: scheme.onSurface, fontSize: 14),
+                  ),
+                ),
+                // TabBar
+                TabBar(
+                  controller: _tabController,
+                  labelColor: scheme.primary,
+                  unselectedLabelColor: scheme.onSurface.withOpacity(0.6),
+                  indicatorColor: scheme.primary,
+                  indicatorWeight: 2,
+                  tabs: [
+                    Tab(text: '全部($allCount)'),
+                    Tab(text: '已关注($favoriteCount)'),
+                    Tab(text: '未关注($unfavoritedCount)'),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ],
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // 全部
+          _loading
+              ? _buildLoading()
+              : _error != null
+                  ? _buildError(scheme)
+                  : RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          _buildActorGrid(_getActorsByTab(0), embyServerUrl, token),
+                          if (_isLoadingMore)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (!_loading && !_isLoadingMore && !hasMore && _actors.isNotEmpty)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: Text(
+                                    '已加载全部 ${_actors.length} 位演员',
+                                    style: TextStyle(
+                                      color: scheme.onSurface.withOpacity(0.5),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+          // 已关注
+          _loading
+              ? _buildLoading()
+              : _error != null
+                  ? _buildError(scheme)
+                  : _buildActorGrid(_getActorsByTab(1), embyServerUrl, token),
+          // 未关注
+          _loading
+              ? _buildLoading()
+              : _error != null
+                  ? _buildError(scheme)
+                  : _buildActorGrid(_getActorsByTab(2), embyServerUrl, token),
+        ],
+      ),
     );
 
     if (widget.useScaffold) {
@@ -186,36 +456,202 @@ class _ActorsViewState extends ConsumerState<ActorsView> {
     return content;
   }
 
-  Widget _buildError(ColorScheme scheme) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.error_outline, color: scheme.error, size: 36),
-        const SizedBox(height: 8),
-        const Text(
-          '加载演员列表失败',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '请检查 Emby 服务器是否正常运行',
-          style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 14),
-        ),
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+  // 构建优化的加载动画
+  Widget _buildLoading() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
-          icon: const Icon(Icons.refresh, size: 16),
-          label: const Text('重试'),
-          onPressed: _loadActors,
+          const SizedBox(height: 16),
+          Text(
+            '正在加载演员...',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 构建空状态提示
+  Widget _buildEmptyState({bool isSearchEmpty = false, bool isFavoriteEmpty = false}) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (isSearchEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: scheme.onSurface.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '未找到相关演员',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '换个关键词试试吧',
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
         ),
-      ],
+      );
+    }
+
+    if (isFavoriteEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: scheme.onSurface.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '暂无关注的演员',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '快去关注你喜欢的演员吧',
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.touch_app,
+                    size: 16,
+                    color: scheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '点击演员卡片上的爱心图标即可关注',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 默认空状态
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.people_outline,
+            size: 64,
+            color: scheme.onSurface.withOpacity(0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '暂无演员',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请检查 Emby 服务器是否正常',
+            style: TextStyle(
+              fontSize: 14,
+              color: scheme.onSurface.withOpacity(0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: scheme.error,
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '加载演员列表失败',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请检查 Emby 服务器是否正常运行',
+            style: TextStyle(
+              color: scheme.onSurface.withOpacity(0.6),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('重试'),
+            onPressed: _loadActors,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -258,8 +694,8 @@ class _ActorCard extends StatelessWidget {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                // 圆形裁剪头像
+                ClipOval(
                   child: Container(
                     width: double.infinity,
                     color: scheme.surface.withOpacity(0.3),
@@ -279,14 +715,16 @@ class _ActorCard extends StatelessWidget {
                           ),
                   ),
                 ),
+                // 增大关注按钮点击区域至 44x44
                 Positioned(
-                  right: -4,
-                  top: -4,
+                  right: 2,
+                  top: 2,
                   child: GestureDetector(
                     onTap: onFavoriteTap,
                     child: Container(
-                      width: 28,
-                      height: 28,
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isFavorited ? scheme.primary : scheme.surface,
@@ -295,7 +733,7 @@ class _ActorCard extends StatelessWidget {
                       child: Icon(
                         isFavorited ? Icons.favorite : Icons.favorite_border,
                         color: isFavorited ? scheme.onPrimary : scheme.onSurface,
-                        size: 16,
+                        size: 20,
                       ),
                     ),
                   ),

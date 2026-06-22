@@ -355,8 +355,9 @@ class EmbytokService {
   // ============================
   // 人员（演员/导演）列表
   // ============================
-  Future<List<Person>> getPeople({
+  Future<PaginatedResponse<Person>> getPeople({
     int limit = 50,
+    int startIndex = 0,
     List<String>? personTypes,
     String? serverUrl,
     String? token,
@@ -364,6 +365,7 @@ class EmbytokService {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'Limit': '$limit',
+      'StartIndex': '$startIndex',
       'Recursive': 'true',
       if (personTypes != null && personTypes.isNotEmpty)
         'PersonTypes': personTypes.join(','),
@@ -376,10 +378,13 @@ class EmbytokService {
     final items = resp.data is List
         ? resp.data as List<dynamic>
         : (resp.data['Items'] as List<dynamic>?) ?? [];
+    final total = (resp.data is Map<String, dynamic>)
+        ? (resp.data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
     final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
     // 使用传入的 token 或默认 token
     final effectiveToken = token ?? _defaultToken;
-    return items
+    final people = items
         .whereType<Map<String, dynamic>>()
         .map((e) {
           final id = (e['Id'] as String?) ?? '';
@@ -400,6 +405,12 @@ class EmbytokService {
           );
         })
         .toList();
+    return PaginatedResponse<Person>(
+      items: people,
+      total: total,
+      offset: startIndex,
+      limit: limit,
+    );
   }
 
   // ============================
