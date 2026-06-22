@@ -1,3 +1,10 @@
+## [1.74.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.74.0...v1.74.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复演员列表显示问题 ([bfaabac](https://github.com/1525745393/EmbyTok-Flutter/commit/bfaabac9ae2c3a0bfd3ebc9cadaabe61e163ce44))
+
 # [1.74.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.73.3...v1.74.0) (2026-06-22)
 
 
