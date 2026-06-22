@@ -21,16 +21,17 @@ class PersonDetailView extends ConsumerStatefulWidget {
 
 class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   List<MediaItem> _works = const <MediaItem>[];
+  MediaItem? _personDetail;
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorks());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
-  Future<void> _loadWorks() async {
+  Future<void> _loadData() async {
     setState(() {
       _loading = true;
       _error = null;
@@ -38,14 +39,25 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     try {
       final auth = ref.read(authProvider);
       final service = EmbytokService();
-      final response = await service.getPersonItems(
-        widget.person.id,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
+
+      // 并行加载：演员详情和出演作品
+      final [personDetail, worksResponse] = await Future.wait([
+        service.getPersonDetail(
+          widget.person.id,
+          serverUrl: auth.embyServerUrl,
+          token: auth.token,
+        ),
+        service.getPersonItems(
+          widget.person.id,
+          serverUrl: auth.embyServerUrl,
+          token: auth.token,
+        ),
+      ]);
+
       if (mounted) {
         setState(() {
-          _works = response.items;
+          _personDetail = personDetail;
+          _works = worksResponse.items;
           _loading = false;
         });
       }
@@ -63,21 +75,25 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
+    
+    // 使用加载的详情数据，fallback 到原始 person
+    final person = _personDetail ?? widget.person;
+    
     // 演员使用 thumbnailUrl（已构建完整URL），避免 imageTag 格式问题
-    final imageUrl = widget.person.thumbnailUrl ??
-        widget.person.primaryUrl(
+    final imageUrl = person.thumbnailUrl ??
+        person.primaryUrl(
           embyServerUrl: authState.embyServerUrl,
           apiKey: authState.token,
           maxWidth: 400,
         );
-    final headers = widget.person.authHeaders(authState.token);
+    final headers = person.authHeaders(authState.token);
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        title: Text(widget.person.title, style: const TextStyle(fontSize: 16)),
+        title: Text(person.title, style: const TextStyle(fontSize: 16)),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -114,7 +130,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                       children: [
                         const SizedBox(height: 8),
                         Text(
-                          widget.person.title,
+                          person.title,
                           style: TextStyle(
                             color: scheme.onSurface,
                             fontSize: 20,
@@ -127,11 +143,11 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           style: TextStyle(
                               color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
                         ),
-                        if (widget.person.overview != null &&
-                            widget.person.overview!.isNotEmpty) ...[
+                        if (person.overview != null &&
+                            person.overview!.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           Text(
-                            widget.person.overview!,
+                            person.overview!,
                             style: TextStyle(
                               color: scheme.onSurface.withOpacity(0.7),
                               fontSize: 13,
