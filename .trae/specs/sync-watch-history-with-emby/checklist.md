@@ -1,9 +1,0 @@
-- [x] `EmbytokService.getWatchHistory` 接受 `userId` 参数并优先使用 `/Users/{userId}/Items`
-- [x] `WatchHistoryNotifier.load()` 从 `authProvider` 获取 userId 并传给 service
-- [x] 未登录时 `HistoryView` 显示"尚未登录"且不发起请求
-- [x] 请求失败时 `HistoryView` 显示可重试的错误状态
-- [x] 空历史时 `HistoryView` 显示"暂无观看历史"
-- [x] 新增/补充单元测试覆盖成功、空列表、未登录、请求失败场景
-- [x] 移除 `Filters=IsResumable`，拉取完整观看历史（已看完 + 未看完）
-- [ ] `flutter test` 全部通过（当前环境无 Flutter SDK，请在本地/CI 执行验证）
-- [ ] `flutter analyze` 无错误（当前环境无 Flutter SDK，请在本地/CI 执行验证）

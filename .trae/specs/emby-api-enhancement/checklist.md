@@ -1,7 +1,0 @@
-- [ ] Checkpoint 1: EmbytokService 新增 getPlaybackInfo 方法，正确调用 /Items/{itemId}/PlaybackInfo
-- [ ] Checkpoint 2: VideoPlayerWidget 在播放前调用 getPlaybackInfo 获取真实 MediaSourceId
-- [ ] Checkpoint 3: 播放 URL 使用 PlaybackInfo 返回的 DirectStreamUrl 或 TranscodingUrl
-- [ ] Checkpoint 4: 图片 URL 不包含 api_key 参数（仅使用 X-Emby-Token 请求头）
-- [ ] Checkpoint 5: Fields 参数不包含 Path 字段
-- [ ] Checkpoint 6: Dart format 验证通过（语法正确）
-- [ ] Checkpoint 7: 适配度评分提升至 9.8/10 或更高
