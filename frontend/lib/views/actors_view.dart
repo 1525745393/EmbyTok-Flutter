@@ -173,6 +173,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       await service.toggleFavorite(
         itemId: actor.id ?? '',
         isFavorite: !isFavorited,
+        userId: auth.user?.id,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
