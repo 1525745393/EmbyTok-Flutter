@@ -205,7 +205,27 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = _works[index];
-                  return _WorkTile(key: Key(item.id), item: item);
+                  // 将当前演员信息注入作品，以便播放页显示正确的演员头像
+                  final currentPerson = _personDetail ?? widget.person;
+                  final currentActor = Person(
+                    id: currentPerson.id,
+                    name: currentPerson.title,
+                    type: 'Actor',
+                    imageUrl: currentPerson.thumbnailUrl ??
+                        currentPerson.primaryUrl(
+                          embyServerUrl: authState.embyServerUrl,
+                          apiKey: authState.token,
+                          maxWidth: 200,
+                        ),
+                  );
+                  final itemWithActor = item.people == null || item.people!.isEmpty
+                      ? item.copyWith(people: [currentActor])
+                      : item.copyWith(people: [
+                          currentActor,
+                          ...item.people!
+                              .where((p) => p.id != currentActor.id)
+                        ]);
+                  return _WorkTile(key: Key(item.id), item: itemWithActor);
                 },
               ),
             const SizedBox(height: 32),

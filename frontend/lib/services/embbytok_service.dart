@@ -237,7 +237,7 @@ class EmbytokService {
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
     };
     final resp = await _apiClient.get<dynamic>(
@@ -261,7 +261,7 @@ class EmbytokService {
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Fields':
-          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber',
+          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber,People',
       'IncludeItemTypes': 'Episode',
     };
     // 指定 seriesId 时只查询该剧集的下一集
@@ -430,7 +430,7 @@ class EmbytokService {
       'Recursive': 'true',
       'PersonIds': personId,
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items',
