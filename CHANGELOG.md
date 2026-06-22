@@ -1,3 +1,10 @@
+## [1.68.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.68.0...v1.68.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* 修复视频播放认证头缺失问题 ([#14](https://github.com/1525745393/EmbyTok-Flutter/issues/14)) ([a70bb1c](https://github.com/1525745393/EmbyTok-Flutter/commit/a70bb1cb68a207a607d91970776d353cbe448f35))
+
 # [1.68.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.67.0...v1.68.0) (2026-06-22)
 
 
