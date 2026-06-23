@@ -7,75 +7,32 @@ import '../providers/providers.dart';
 import 'tv_focusable.dart';
 import 'video_page_item.dart';
 
-/// 排序选项枚举
-enum SortOption {
-  recentlyAdded('最近添加'),
-  rating('评分'),
-  title('标题');
-
-  final String label;
-  const SortOption(this.label);
-}
-
 /// 海报墙视图：网格布局展示视频缩略图
 class PosterGridView extends ConsumerStatefulWidget {
-  const PosterGridView({super.key});
+  final List<MediaItem> items;
+  final bool hasMore;
+  final bool isLoading;
+  final VoidCallback onLoadMore;
+
+  const PosterGridView({
+    super.key,
+    required this.items,
+    required this.hasMore,
+    required this.isLoading,
+    required this.onLoadMore,
+  });
 
   @override
   ConsumerState<PosterGridView> createState() => _PosterGridViewState();
 }
 
 class _PosterGridViewState extends ConsumerState<PosterGridView> {
-  // 搜索和排序状态
-  final TextEditingController _searchController = TextEditingController();
-  SortOption _sortOption = SortOption.recentlyAdded;
-  String _searchQuery = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   // 根据屏幕宽度计算网格列数
   int _getCrossAxisCount(double width) {
     if (width < 600) return 3;
     if (width < 900) return 4;
     if (width < 1200) return 5;
     return 6;
-  }
-
-  // 过滤并排序视频列表
-  List<MediaItem> _filterAndSortItems(List<MediaItem> items) {
-    var filtered = items;
-
-    // 搜索过滤
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      filtered = filtered.where((item) {
-        return item.title.toLowerCase().contains(query) ||
-            (item.seriesName?.toLowerCase().contains(query) ?? false) ||
-            item.displayGenres.any((g) => g.toLowerCase().contains(query));
-      }).toList();
-    }
-
-    // 排序
-    switch (_sortOption) {
-      case SortOption.recentlyAdded:
-        // 按 productionYear 降序（较新的在前）
-        filtered.sort((a, b) => (b.productionYear ?? 0).compareTo(a.productionYear ?? 0));
-        break;
-      case SortOption.rating:
-        // 按评分降序
-        filtered.sort((a, b) => (b.displayRating ?? 0).compareTo(a.displayRating ?? 0));
-        break;
-      case SortOption.title:
-        // 按标题升序
-        filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-        break;
-    }
-
-    return filtered;
   }
 
   // 显示长按操作菜单
@@ -124,136 +81,46 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final videoState = ref.watch(videoListProvider);
 
-    if (videoState.items.isEmpty && videoState.isLoading) {
+    if (widget.items.isEmpty && widget.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
-    if (videoState.items.isEmpty) {
+    if (widget.items.isEmpty) {
       return Center(
         child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
       );
     }
 
-    // 过滤并排序后的视频列表
-    final filteredItems = _filterAndSortItems(videoState.items);
-
-    return Column(
-      children: [
-        // 搜索和排序栏
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-          child: Row(
-            children: [
-              // 搜索框
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: '搜索视频...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // 排序选择器
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: scheme.outline.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<SortOption>(
-                    value: _sortOption,
-                    isDense: true,
-                    items: SortOption.values.map((option) {
-                      return DropdownMenuItem(
-                        value: option,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.sort, size: 16, color: scheme.primary),
-                            const SizedBox(width: 4),
-                            Text(option.label),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() => _sortOption = value);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
+        return GridView.builder(
+          padding: const EdgeInsets.all(8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: 0.65,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
           ),
-        ),
-        // 过滤结果提示
-        if (_searchQuery.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(
-              children: [
-                Text(
-                  '找到 ${filteredItems.length} 个结果',
-                  style: TextStyle(color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        // 网格视图
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
-              return GridView.builder(
-                padding: const EdgeInsets.all(8),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                itemCount: filteredItems.length + (videoState.hasMore && _searchQuery.isEmpty ? 1 : 0),
-                itemBuilder: (context, index) {
-                  // 分页加载触发
-                  if (videoState.hasMore && index >= filteredItems.length - 3 && !videoState.isLoading && _searchQuery.isEmpty) {
-                    ref.read(videoListProvider.notifier).loadMore();
-                  }
-                  // 末尾加载指示器
-                  if (index >= filteredItems.length) {
-                    return Center(child: CircularProgressIndicator(color: scheme.primary));
-                  }
-                  final item = filteredItems[index];
-                  return _PosterCard(
-                    key: Key(item.id),
-                    item: item,
-                    onLongPress: () => _showActionMenu(context, item),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+          itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            // 分页加载触发
+            if (widget.hasMore && index >= widget.items.length - 3 && !widget.isLoading) {
+              widget.onLoadMore();
+            }
+            // 末尾加载指示器
+            if (index >= widget.items.length) {
+              return Center(child: CircularProgressIndicator(color: scheme.primary));
+            }
+            final item = widget.items[index];
+            return _PosterCard(
+              key: Key(item.id),
+              item: item,
+              onLongPress: () => _showActionMenu(context, item),
+            );
+          },
+        );
+      },
     );
   }
 }
