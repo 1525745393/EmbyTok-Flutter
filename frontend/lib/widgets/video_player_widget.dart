@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 import 'subtitle_renderer.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
@@ -111,6 +112,34 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
   }
 
+  // 统一的控制器变化监听器（命名方法，便于 dispose 显式移除）
+  // 处理：错误降级链触发、错误状态标记、位置变化（跨秒更新字幕）
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final controller = _controller;
+    if (controller == null) return;
+    // 错误处理：触发降级链或标记错误状态
+    if (controller.value.hasError &&
+        !_hasError &&
+        !_isFallbackInProgress &&
+        _fallbackLevel < 2) {
+      _triggerRuntimeFallback();
+      return;
+    }
+    if (controller.value.hasError && !_hasError) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = '播放出错';
+        _isFallbackInProgress = false;
+      });
+    }
+    // 位置变化：更新字幕
+    final sec = controller.value.position.inSeconds;
+    if (sec != _positionSeconds.value) {
+      _positionSeconds.value = sec;
+    }
+  }
+
   // 初始化视频控制器
   // 优先级：优先使用 widget.preloadedController（已预加载的），否则动态构造
   // 错误处理策略：
@@ -128,19 +157,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
         }
         // addListener 监听错误和位置（跨秒时更新字幕）
-        _controller!.addListener(() {
-          if (!mounted) return;
-          if (_controller!.value.hasError && !_hasError) {
-            setState(() {
-              _hasError = true;
-              _errorMessage = '播放出错';
-            });
-          }
-          final sec = _controller!.value.position.inSeconds;
-          if (sec != _positionSeconds.value) {
-            _positionSeconds.value = sec;
-          }
-        });
+        _controller!.addListener(_onControllerChanged);
         // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
         if (!_controller!.value.isInitialized) {
           await _controller!.initialize().timeout(
@@ -196,26 +213,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
 
       // 监听器：运行时 error 触发降级链，否则仅标记错误状态
-      _controller!.addListener(() {
-        if (!mounted) return;
-        if (_controller!.value.hasError &&
-            !_hasError &&
-            !_isFallbackInProgress &&
-            _fallbackLevel < 2) {
-          _triggerRuntimeFallback();
-          return;
-        }
-        if (_controller!.value.hasError && !_hasError) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = '播放出错';
-          });
-        }
-        final sec = _controller!.value.position.inSeconds;
-        if (sec != _positionSeconds.value) {
-          _positionSeconds.value = sec;
-        }
-      });
+      _controller!.addListener(_onControllerChanged);
 
       _controller!.setLooping(widget.loop);
       await _controller!.initialize().timeout(
@@ -312,27 +310,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         httpHeaders: headers,
       );
       // 新 controller 也注册降级监听器（再失败则继续降级）
-      _controller!.addListener(() {
-        if (!mounted) return;
-        if (_controller!.value.hasError &&
-            !_hasError &&
-            !_isFallbackInProgress &&
-            _fallbackLevel < 2) {
-          _triggerRuntimeFallback();
-          return;
-        }
-        if (_controller!.value.hasError && !_hasError) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = '播放出错';
-            _isFallbackInProgress = false;
-          });
-        }
-        final sec = _controller!.value.position.inSeconds;
-        if (sec != _positionSeconds.value) {
-          _positionSeconds.value = sec;
-        }
-      });
+      _controller!.addListener(_onControllerChanged);
 
       _controller!.setLooping(widget.loop);
       await _controller!.initialize().timeout(
@@ -420,19 +398,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         Uri.parse(newUrl),
         httpHeaders: headers,
       );
-      _controller!.addListener(() {
-        if (!mounted) return;
-        if (_controller!.value.hasError && !_hasError) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = '播放出错';
-          });
-        }
-        final sec = _controller!.value.position.inSeconds;
-        if (sec != _positionSeconds.value) {
-          _positionSeconds.value = sec;
-        }
-      });
+      _controller!.addListener(_onControllerChanged);
 
       _controller!.setLooping(widget.loop);
       await _controller!.initialize().timeout(
@@ -532,6 +498,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   void dispose() {
     _positionSeconds.dispose();
+    // 显式移除命名 listener，保证监听器与控制器生命周期解耦
+    _controller?.removeListener(_onControllerChanged);
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     try {
       _controller?.pause();
@@ -701,6 +669,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         if (url != null && url.isNotEmpty)
           CachedNetworkImage(
             imageUrl: url,
+            cacheManager: AppImageCacheManager.thumbnail,
             fit: BoxFit.cover,
             httpHeaders: headers.isNotEmpty ? headers : null,
             memCacheWidth: 800,

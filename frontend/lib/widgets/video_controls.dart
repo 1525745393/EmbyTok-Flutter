@@ -40,9 +40,14 @@ class VideoControls extends ConsumerStatefulWidget {
 }
 
 class _VideoControlsState extends ConsumerState<VideoControls> {
+  // 记录上一次的播放状态，仅在 isPlaying 实际变化时才写入 Provider，
+  // 避免播放时每帧重复写入 isPlayingProvider
+  late bool _lastIsPlaying;
+
   @override
   void initState() {
     super.initState();
+    _lastIsPlaying = widget.controller.value.isPlaying;
     widget.controller.addListener(_onControllerChanged);
   }
 
@@ -52,12 +57,16 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     super.dispose();
   }
 
+  // 控制器变化回调：不再调用 setState，依赖 controller.value 的组件
+  // （进度条、时间、播放按钮、倍速）通过 ValueListenableBuilder 实现局部重建，
+  // 避免整棵 VideoControls 每秒重建约 60 次
   void _onControllerChanged() {
-    if (mounted) {
-      setState(() {});
-      // 同步播放状态到 Provider（供中央播放按钮显示/隐藏使用）
-      ref.read(isPlayingProvider.notifier).state =
-          widget.controller.value.isPlaying;
+    if (!mounted) return;
+    // 仅在 isPlaying 实际变化时才同步到 Provider（供中央播放按钮显示/隐藏使用）
+    final isPlaying = widget.controller.value.isPlaying;
+    if (isPlaying != _lastIsPlaying) {
+      _lastIsPlaying = isPlaying;
+      ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
   }
 
@@ -125,12 +134,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final position = widget.controller.value.position;
-    final duration = widget.controller.value.duration;
-    final isPlaying = widget.controller.value.isPlaying;
-    final progress = duration.inMilliseconds > 0
-        ? position.inMilliseconds / duration.inMilliseconds
-        : 0.0;
+    final controller = widget.controller;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -149,65 +153,95 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
         top: false,
         child: Row(
           children: [
-            // 上一集
+            // 上一集（静态，不随播放进度重建）
             IconButton(
               icon: Icon(Icons.skip_previous, color: scheme.onSurface),
               onPressed: widget.onPrevEpisode,
             ),
-            // 播放/暂停按钮
-            IconButton(
-              icon: Icon(
-                isPlaying ? Icons.pause : Icons.play_arrow,
-                color: scheme.onSurface,
-                size: 28,
-              ),
-              onPressed: _togglePlay,
+            // 播放/暂停按钮：仅 isPlaying 变化时局部重建
+            ValueListenableBuilder<VideoPlayerValue>(
+              valueListenable: controller,
+              builder: (context, value, child) {
+                return IconButton(
+                  icon: Icon(
+                    value.isPlaying ? Icons.pause : Icons.play_arrow,
+                    color: scheme.onSurface,
+                    size: 28,
+                  ),
+                  onPressed: _togglePlay,
+                );
+              },
             ),
-            // 下一集
+            // 下一集（静态）
             IconButton(
               icon: Icon(Icons.skip_next, color: scheme.onSurface),
               onPressed: widget.onNextEpisode,
             ),
             const SizedBox(width: 8),
-            // 时间显示
-            Text(
-              '${_formatDuration(position)} / ${_formatDuration(duration)}',
-              style: TextStyle(color: scheme.onSurface, fontSize: 14),
-            ),
-            const SizedBox(width: 8),
-            // 进度条
+            // 时间显示 + 进度条：共享 position/duration，合并为一个监听器
+            // Expanded 保证进度条填充剩余水平空间
             Expanded(
-              child: Slider(
-                value: progress.clamp(0.0, 1.0),
-                onChanged: (value) {
-                  final target = Duration(
-                    milliseconds: (value * duration.inMilliseconds).toInt(),
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: controller,
+                builder: (context, value, child) {
+                  final position = value.position;
+                  final duration = value.duration;
+                  final progress = duration.inMilliseconds > 0
+                      ? position.inMilliseconds / duration.inMilliseconds
+                      : 0.0;
+                  return Row(
+                    children: [
+                      Text(
+                        '${_formatDuration(position)} / ${_formatDuration(duration)}',
+                        style:
+                            TextStyle(color: scheme.onSurface, fontSize: 14),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Slider(
+                          value: progress.clamp(0.0, 1.0),
+                          onChanged: (v) {
+                            final target = Duration(
+                              milliseconds:
+                                  (v * duration.inMilliseconds).toInt(),
+                            );
+                            controller.seekTo(target);
+                          },
+                          activeColor: scheme.primary,
+                          inactiveColor: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   );
-                  widget.controller.seekTo(target);
                 },
-                activeColor: scheme.primary,
-                inactiveColor: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(width: 8),
-            // 字幕按钮
+            // 字幕按钮（静态）
             IconButton(
               icon: Icon(Icons.subtitles, color: scheme.onSurface),
               onPressed: _showSubtitleMenu,
             ),
-            // 倍速按钮（点击弹出选择菜单）
-            TextButton(
-              onPressed: _showRateMenu,
-              child: Text(
-                '${widget.controller.value.playbackSpeed.toStringAsFixed(1)}x',
-                style: TextStyle(color: scheme.onSurface, fontSize: 14),
-              ),
+            // 倍速按钮：仅 playbackSpeed 变化时局部重建
+            ValueListenableBuilder<VideoPlayerValue>(
+              valueListenable: controller,
+              builder: (context, value, child) {
+                return TextButton(
+                  onPressed: _showRateMenu,
+                  child: Text(
+                    '${value.playbackSpeed.toStringAsFixed(1)}x',
+                    style: TextStyle(color: scheme.onSurface, fontSize: 14),
+                  ),
+                );
+              },
             ),
-            // 全屏切换按钮
+            // 全屏切换按钮（静态）
             if (widget.onToggleFullscreen != null)
               IconButton(
                 icon: Icon(
-                  widget.isInFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                  widget.isInFullscreen
+                      ? Icons.fullscreen_exit
+                      : Icons.fullscreen,
                   color: scheme.onSurface,
                 ),
                 onPressed: widget.onToggleFullscreen,

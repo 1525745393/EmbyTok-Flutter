@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/video_page_item.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
@@ -89,6 +90,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
+                      cacheManager: AppImageCacheManager.largeImage,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       httpHeaders: headers.isNotEmpty ? headers : null,
@@ -282,6 +284,7 @@ class _ChildTile extends ConsumerWidget {
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
+                      cacheManager: AppImageCacheManager.thumbnail,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,

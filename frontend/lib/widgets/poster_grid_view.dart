@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 import 'tv_focusable.dart';
 import 'video_page_item.dart';
 
@@ -86,6 +87,7 @@ class _PosterCard extends ConsumerWidget {
             if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
               CachedNetworkImage(
                 imageUrl: thumbnailUrl,
+                cacheManager: AppImageCacheManager.thumbnail,
                 fit: BoxFit.cover,
                 httpHeaders: item.authHeaders(authState.token),
                 memCacheWidth: 400,

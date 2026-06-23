@@ -14,6 +14,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/formatters.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
@@ -307,6 +308,7 @@ class _SearchResultTile extends ConsumerWidget {
         child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
             ? CachedNetworkImage(
                 imageUrl: thumbnailUrl,
+                cacheManager: AppImageCacheManager.thumbnail,
                 width: 120,
                 height: 72,
                 fit: BoxFit.cover,

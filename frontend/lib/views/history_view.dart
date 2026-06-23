@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
@@ -190,6 +191,7 @@ class _HistoryTile extends ConsumerWidget {
               child: thumbnailUrl != null && thumbnailUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: thumbnailUrl,
+                      cacheManager: AppImageCacheManager.thumbnail,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,

@@ -96,6 +96,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     )..repeat();
     _discRotation = Tween<double>(begin: 0.0, end: 1.0)
         .animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
+
+    // 监听播放状态变化（播放时旋转唱片，暂停时停止）
+    // 放在 initState 中通过 listenManual 注册，避免每次 build 重复注册
+    ref.listenManual<bool>(isPlayingProvider, (previous, next) {
+      if (next) {
+        if (!_discRotationCtrl.isAnimating) _discRotationCtrl.repeat();
+      } else {
+        if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
+      }
+    });
   }
 
   // ===== 底部信息条 3 秒自动隐藏 =====
@@ -133,6 +143,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
     _videoController?.removeListener(_onVideoChanged);
+    _videoController?.removeListener(_onVideoChangedForReport);
     _progressTimer?.cancel();
     _progressTimer = null;
     if (_hasStartedReported) _reportPlaybackStopped();
@@ -178,6 +189,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         _queryNextUp();
       }
     }
+  }
+
+  // 暂停事件上报与信息条计时器重置（命名 listener，便于 dispose 显式移除）
+  void _onVideoChangedForReport() {
+    if (!mounted) return;
+    final c = _videoController;
+    if (c == null) return;
+    if (!c.value.isPlaying) _reportPlaybackProgress(isPauseEvent: true);
+    _resetInfoHideTimer();
   }
 
   // ===== NextUp 下一集查询与倒计时 =====
@@ -337,8 +357,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   }
 
   // ===== 认证辅助 =====
-  String? _authServerUrl() => ref.watch(authProvider).embyServerUrl;
-  String? _authToken() => ref.watch(authProvider).token;
+  // 使用 ref.read 而非 ref.watch，因为这些方法在非 build 上下文中调用
+  // （如 _reportPlaybackStart、_reportPlaybackProgress 等回调）
+  // 只需读取当前值，不需要订阅变化触发重建
+  String? _authServerUrl() => ref.read(authProvider).embyServerUrl;
+  String? _authToken() => ref.read(authProvider).token;
 
   // ===== 全屏切换 =====
   void _toggleFullscreen() {
@@ -431,21 +454,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   @override
   Widget build(BuildContext context) {
-    // 监听播放状态变化（播放时旋转唱片，暂停时停止）
-    ref.listen<bool>(isPlayingProvider, (previous, next) {
-      if (next) {
-        if (!_discRotationCtrl.isAnimating) _discRotationCtrl.repeat();
-      } else {
-        if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
-      }
-    });
-
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    final favorited = ref.watch(favoritesProvider).favoriteIds.contains(widget.item.id);
-    final isReady = ref.watch(videoReadyProvider).contains(widget.item.id);
-    final isPlaying = ref.watch(isPlayingProvider);
+    // 使用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化时触发重建
+    final favorited = ref.watch(
+        favoritesProvider.select((s) => s.favoriteIds.contains(widget.item.id)));
+    // 使用 select 仅监听当前 item 的就绪状态，避免其他 item 就绪状态变化时触发重建
+    final isReady = ref.watch(
+        videoReadyProvider.select((s) => s.contains(widget.item.id)));
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final scheme = Theme.of(context).colorScheme;
@@ -509,19 +526,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 _reportPlaybackStart();
                 _startProgressTimer();
                 c.addListener(_onVideoChanged);
-                c.addListener(() {
-                  if (!mounted) return;
-                  if (!c.value.isPlaying) _reportPlaybackProgress(isPauseEvent: true);
-                  _resetInfoHideTimer();
-                });
+                c.addListener(_onVideoChangedForReport);
               },
             ),
           ),
         ),
 
-        // 中央播放/暂停按钮（暂停时显示）
-        if (_videoController != null && _videoController!.value.isInitialized && !isPlaying)
-          CenterPlayButton(onPlay: _togglePlay),
+        // 中央播放/暂停按钮（暂停时显示）—— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
+        _CenterPlayButtonWrapper(
+          controller: _videoController,
+          onPlay: _togglePlay,
+        ),
 
         // 倍速状态徽章
         if (_videoController != null &&
@@ -841,6 +856,30 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             )
           : Semantics(label: '视频播放区域，双击点赞此视频', child: content),
     );
+  }
+}
+
+/// 中央播放按钮包装器：仅监听 isPlayingProvider，避免父组件因播放状态变化而整体重建
+///
+/// 将 [CenterPlayButton] 的显示逻辑拆分到独立 [ConsumerWidget]，
+/// 这样 isPlayingProvider 状态变化时只重建本组件，不会触发 [VideoPageItem] 重建。
+class _CenterPlayButtonWrapper extends ConsumerWidget {
+  final VideoPlayerController? controller;
+  final VoidCallback onPlay;
+
+  const _CenterPlayButtonWrapper({
+    required this.controller,
+    required this.onPlay,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPlaying = ref.watch(isPlayingProvider);
+    // 仅在控制器已初始化且非播放状态时显示中央播放按钮
+    if (controller != null && controller!.value.isInitialized && !isPlaying) {
+      return CenterPlayButton(onPlay: onPlay);
+    }
+    return const SizedBox.shrink();
   }
 }
 
