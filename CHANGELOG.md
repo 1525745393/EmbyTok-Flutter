@@ -1,3 +1,10 @@
+## [1.79.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.79.0...v1.79.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* 修复网格视图顶部按钮重叠问题 ([f2dcd62](https://github.com/1525745393/EmbyTok-Flutter/commit/f2dcd62e68d6b8e76843a94326ac9f897c9635c0))
+
 # [1.79.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.78.0...v1.79.0) (2026-06-23)
 
 
