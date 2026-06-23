@@ -110,6 +110,7 @@ class _TvFocusableState extends State<TvFocusable> {
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: widget.duration,
+            padding: EdgeInsets.all(_isFocused ? widget.borderWidth : 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _isFocused
@@ -117,7 +118,7 @@ class _TvFocusableState extends State<TvFocusable> {
                       color: Theme.of(context).colorScheme.primary,
                       width: widget.borderWidth,
                     )
-                  : Border.all(color: Colors.transparent, width: widget.borderWidth),
+                  : null,
             ),
             child: widget.child,
           ),
