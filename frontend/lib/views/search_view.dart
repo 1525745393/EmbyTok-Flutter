@@ -68,19 +68,18 @@ class _SearchViewState extends ConsumerState<SearchView>
     _debounce?.cancel();
     if (value.isEmpty) {
       ref.read(searchProvider.notifier).search('');
-      ref.read(searchHintsProvider.notifier).clear();
+      ref.read(searchHintsStateProvider.notifier).clear();
       return;
     }
-    // 短延迟后获取搜索建议
     _debounce = Timer(const Duration(milliseconds: 200), () {
-      ref.read(searchHintsProvider.notifier).fetchHints(value);
+      ref.read(searchHintsStateProvider.notifier).fetchHints(value);
     });
   }
 
   void _doSearch(String value) {
     ref.read(searchProvider.notifier).search(value);
     ref.read(searchHistoryProvider.notifier).add(value);
-    ref.read(searchHintsProvider.notifier).clear();
+    ref.read(searchHintsStateProvider.notifier).clear();
   }
 
   void _selectHint(SearchHint hint) {
@@ -107,7 +106,7 @@ class _SearchViewState extends ConsumerState<SearchView>
     super.build(context);
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(searchProvider);
-    final hintsState = ref.watch(searchHintsProvider);
+    final hintsState = ref.watch(searchHintsStateProvider);
     final history = ref.watch(searchHistoryProvider);
 
     final content = Column(
