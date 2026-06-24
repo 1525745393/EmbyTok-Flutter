@@ -1,3 +1,10 @@
+# [1.91.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.90.1...v1.91.0) (2026-06-24)
+
+
+### Features
+
+* 演员页面支持按类型缓存 ([#40](https://github.com/1525745393/EmbyTok-Flutter/issues/40)) ([d059c2c](https://github.com/1525745393/EmbyTok-Flutter/commit/d059c2ccbb54b9d342c882f5e8ab2c96665fdba5))
+
 ## [1.90.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.90.0...v1.90.1) (2026-06-24)
 
 
