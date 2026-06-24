@@ -343,14 +343,15 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 切换浏览模式（最新/随机/收藏/继续观看）——清理缓存后刷新
+  // 切换浏览模式（最新/随机/收藏/继续观看/推荐）——清理缓存后刷新
   void _toggleFeedType() {
     final current = ref.read(feedTypeProvider);
     final next = switch (current) {
       FeedType.latest => FeedType.random,
       FeedType.random => FeedType.favorites,
       FeedType.favorites => FeedType.resume,
-      FeedType.resume => FeedType.latest,
+      FeedType.resume => FeedType.recommend,
+      FeedType.recommend => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
     ref.read(videoPoolProvider).disposeAll();
@@ -438,6 +439,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 顶部栏：搜索 + 历史 + 媒体库管理按钮 + 视图切换按钮
   Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
+    final feedType = ref.watch(feedTypeProvider);
     return Container(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
       decoration: BoxDecoration(
@@ -456,7 +458,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // 左侧：搜索和历史按钮
+            // 左侧：搜索、推荐和历史按钮
             Row(
               children: [
                 // 搜索按钮
@@ -470,6 +472,23 @@ class _FeedViewState extends ConsumerState<FeedView>
                     ref.read(pageNavigationNotifierProvider).goToSearch();
                   },
                   tooltip: '搜索',
+                ),
+                // 推荐按钮
+                IconButton(
+                  icon: Icon(
+                    Icons.auto_awesome,
+                    color: feedType == FeedType.recommend
+                        ? scheme.primary
+                        : scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    final newType = feedType == FeedType.recommend
+                        ? FeedType.latest
+                        : FeedType.recommend;
+                    ref.read(feedTypeProvider.notifier).setType(newType);
+                  },
+                  tooltip: feedType == FeedType.recommend ? '关闭推荐' : '推荐',
                 ),
                 // 历史按钮
                 IconButton(

@@ -256,6 +256,44 @@ class EmbytokService {
   }
 
   // ============================
+  // 推荐列表：按社区评分从高到低排序
+  // ============================
+  Future<PaginatedResponse<MediaItem>> getRecommendations({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      if (libraryId != null) 'ParentId': libraryId,
+      'Recursive': 'true',
+      'SortBy': 'CommunityRating,SortName',
+      'SortOrder': 'Descending',
+      'MinCommunityRating': '6.0',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
   // Next Up（下一步看什么）—— 剧集的下一集
   // 可选 seriesId：传入则只返回指定剧集的下一集
   // ============================

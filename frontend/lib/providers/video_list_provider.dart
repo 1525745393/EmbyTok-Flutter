@@ -213,6 +213,32 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           );
           loadedItems = resp.items;
           canPaginate = false;
+
+        case FeedType.recommend:
+          final libIds = selectedIds;
+          if (libIds.isEmpty) {
+            state = state.copyWith(isLoading: false, hasMore: false);
+            return;
+          }
+          // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
+          final merged = <MediaItem>[];
+          for (final libId in libIds) {
+            try {
+              final resp = await _service.getRecommendations(
+                libraryId: libId,
+                limit: state.limit,
+                offset: 0,
+                serverUrl: auth.embyServerUrl!,
+                token: auth.token!,
+                userId: auth.user?.id,
+              );
+              merged.addAll(resp.items);
+            } catch (e) {
+              AppLogger.error('加载库 $libId 推荐列表失败，跳过', error: e);
+            }
+          }
+          loadedItems = merged;
+          canPaginate = true;
       }
 
       state = VideoListState(
@@ -234,13 +260,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 加载更多：仅在 latest 模式下生效，其它模式不分页
+  // 加载更多：仅在 latest 和 recommend 模式下生效，其它模式不分页
   // 多库模式下，对每个库从 offset/libIds.length 位置继续取 limit 条
   Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore) return;
 
     final currentFeedType = state.feedType;
-    if (currentFeedType != FeedType.latest) {
+    if (currentFeedType != FeedType.latest && currentFeedType != FeedType.recommend) {
       state = state.copyWith(hasMore: false);
       return;
     }
@@ -268,15 +294,27 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       final merged = <MediaItem>[];
       for (final libId in selectedIds) {
         try {
-          final resp = await _service.getLibraryItems(
-            libId,
-            limit: perLibLimit,
-            offset: state.offset,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
-          );
-          merged.addAll(resp.items);
+          if (currentFeedType == FeedType.recommend) {
+            final resp = await _service.getRecommendations(
+              libraryId: libId,
+              limit: perLibLimit,
+              offset: state.offset,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+              userId: auth.user?.id,
+            );
+            merged.addAll(resp.items);
+          } else {
+            final resp = await _service.getLibraryItems(
+              libId,
+              limit: perLibLimit,
+              offset: state.offset,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+              userId: auth.user?.id,
+            );
+            merged.addAll(resp.items);
+          }
         } catch (e) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
