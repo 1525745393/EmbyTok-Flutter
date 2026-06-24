@@ -1,3 +1,12 @@
+# [1.89.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.88.1...v1.89.0) (2026-06-24)
+
+
+### Features
+
+* 添加推荐按钮 ([28d0806](https://github.com/1525745393/EmbyTok-Flutter/commit/28d08066b5af1bd6ddd118920422e09706a3be1b))
+* 添加推荐按钮 ([ad2e875](https://github.com/1525745393/EmbyTok-Flutter/commit/ad2e8758774a28c5f5bf3d30be399c064a68eed8))
+* 页面导航状态持久化，重启后恢复上次页面 ([f827de5](https://github.com/1525745393/EmbyTok-Flutter/commit/f827de5cd37085829eab145ee7fb7ebc4f4174d7))
+
 ## [1.88.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.88.0...v1.88.1) (2026-06-24)
 
 
