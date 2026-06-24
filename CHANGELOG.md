@@ -1,3 +1,15 @@
+# [1.85.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.84.0...v1.85.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复设置页面编译错误 ([610b565](https://github.com/1525745393/EmbyTok-Flutter/commit/610b565b13e92a2ff7dc0617ea2a5ca245c73fc2))
+
+
+### Features
+
+* 恢复网格模式顶部栏搜索和排序功能 ([17fa60f](https://github.com/1525745393/EmbyTok-Flutter/commit/17fa60f05aad8199009246583f66d57b46aedb99))
+
 # [1.84.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.83.0...v1.84.0) (2026-06-24)
 
 
