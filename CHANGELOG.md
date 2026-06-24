@@ -1,3 +1,15 @@
+# [1.87.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.86.0...v1.87.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复 searchHintsProvider 命名冲突 ([9f30b95](https://github.com/1525745393/EmbyTok-Flutter/commit/9f30b9552fab75b84d4fff61b5531d95615e0494))
+
+
+### Features
+
+* 搜索页面增强，接近 Emby 官方体验 ([df486c1](https://github.com/1525745393/EmbyTok-Flutter/commit/df486c14abfbb6807045d1fdc4c4d43bc6e2eb4a))
+
 # [1.86.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.85.0...v1.86.0) (2026-06-24)
 
 
