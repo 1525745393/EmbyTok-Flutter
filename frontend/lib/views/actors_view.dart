@@ -1,13 +1,17 @@
 // 演员列表页面：展示 Emby 服务器上的所有演员，支持关注/取消关注
 
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/constants.dart';
 import '../utils/image_cache_manager.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
@@ -31,11 +35,12 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   late TabController _tabController;
   int _total = 0;
   static const int _pageSize = 50;
+  static const int _cacheExpiryHours = 24;
   final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
   List<Person> _searchResults = const [];
-  // 添加防抖标记，防止滚动时重复加载
   bool _hasTriggeredLoadMore = false;
+  bool _isRefreshingFromCache = false;
 
   @override
   void initState() {
@@ -70,23 +75,201 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   bool get hasMore => _actors.length < _total;
 
-  Future<void> _loadActors() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      _actors = [];
-    });
+  Future<Map<String, dynamic>?> _loadActorsFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cacheJson = prefs.getString(kStorageKeyActorsCache);
+      if (cacheJson == null || cacheJson.isEmpty) return null;
+
+      final decoded = json.decode(cacheJson);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _saveActorsToCache(List<Person> actors, int total) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final actorsJson = actors.map((a) => a.toJson()).toList();
+      final cacheData = {
+        'actors': actorsJson,
+        'total': total,
+      };
+      await prefs.setString(kStorageKeyActorsCache, json.encode(cacheData));
+      await prefs.setInt(kStorageKeyActorsCacheTime, DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
+  Future<int?> _getCacheTimestamp() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(kStorageKeyActorsCacheTime);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _isCacheExpired() async {
+    final timestamp = await _getCacheTimestamp();
+    if (timestamp == null) return true;
+    final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    return now.difference(cacheTime).inHours >= _cacheExpiryHours;
+  }
+
+  Future<void> _loadActors({bool forceRefresh = false}) async {
+    // 只有"全部"类型时才使用缓存，其他类型直接从服务器加载
+    final useCache = _selectedPersonType == null;
+
+    if (useCache) {
+      final cacheData = await _loadActorsFromCache();
+      final isExpired = await _isCacheExpired();
+      final hasCache = cacheData != null;
+
+      // 强制刷新或无缓存时，显示加载动画
+      if (forceRefresh || !hasCache) {
+        setState(() {
+          _loading = true;
+          _error = null;
+          _actors = [];
+        });
+        _fetchAllActorsFromServer(forceRefresh: forceRefresh);
+        return;
+      }
+
+      // 有缓存时，先显示缓存数据
+      final actorsList = (cacheData['actors'] as List<dynamic>)
+          .map((e) => Person.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final total = cacheData['total'] as int? ?? 0;
+
+      if (mounted) {
+        setState(() {
+          _actors = actorsList;
+          _total = total;
+          _loading = false;
+          _error = null;
+          _isRefreshingFromCache = !isExpired;
+        });
+      }
+
+      _loadFavoritePeople();
+
+      // 缓存过期时，后台静默刷新
+      if (isExpired) {
+        _fetchAllActorsFromServer(forceRefresh: false);
+      }
+    } else {
+      // 非全部类型，直接从服务器加载第一页
+      setState(() {
+        _loading = true;
+        _error = null;
+        _actors = [];
+      });
+      _fetchActorsFirstPage(forceRefresh: true);
+    }
+  }
+
+  Future<void> _loadFavoritePeople() async {
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+      final favoritePeople = await service.getFavoritePeople(
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+        userId: auth.user?.id,
+      );
+      if (mounted) {
+        setState(() {
+          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
+        });
+      }
+    } catch (_) {}
+  }
+
+  // 一次性加载全部演员数据并缓存
+  Future<void> _fetchAllActorsFromServer({bool forceRefresh = false}) async {
     try {
       final auth = ref.read(authProvider);
       final service = EmbytokService();
 
-      // 根据选择的类型设置 personTypes 参数
       List<String>? personTypes;
       if (_selectedPersonType != null) {
         personTypes = [_selectedPersonType!];
       }
 
-      // 获取演员列表（支持分页）
+      // 先获取总数
+      final initialResponse = await service.getPeople(
+        limit: _pageSize,
+        startIndex: 0,
+        personTypes: personTypes,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+
+      final total = initialResponse.total;
+      final allActors = List<Person>.from(initialResponse.items);
+
+      // 如果总数大于当前页大小，继续加载剩余数据
+      if (total > _pageSize) {
+        int startIndex = _pageSize;
+        while (startIndex < total) {
+          final response = await service.getPeople(
+            limit: _pageSize,
+            startIndex: startIndex,
+            personTypes: personTypes,
+            serverUrl: auth.embyServerUrl,
+            token: auth.token,
+          );
+          allActors.addAll(response.items);
+          startIndex += _pageSize;
+        }
+      }
+
+      final favoritePeople = await service.getFavoritePeople(
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+        userId: auth.user?.id,
+      );
+
+      // 只有"全部"类型时才缓存数据
+      if (_selectedPersonType == null) {
+        _saveActorsToCache(allActors, total);
+      }
+
+      if (mounted) {
+        setState(() {
+          _actors = allActors;
+          _total = total;
+          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
+          _loading = false;
+          _error = null;
+          _isRefreshingFromCache = false;
+        });
+      }
+    } catch (e) {
+      if (mounted && (forceRefresh || _actors.isEmpty)) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  // 仅加载第一页（用于下拉刷新等场景）
+  Future<void> _fetchActorsFirstPage({bool forceRefresh = false}) async {
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+
+      List<String>? personTypes;
+      if (_selectedPersonType != null) {
+        personTypes = [_selectedPersonType!];
+      }
+
       final response = await service.getPeople(
         limit: _pageSize,
         startIndex: 0,
@@ -95,7 +278,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         token: auth.token,
       );
 
-      // 获取已收藏的演员
       final favoritePeople = await service.getFavoritePeople(
         serverUrl: auth.embyServerUrl,
         token: auth.token,
@@ -106,13 +288,14 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         setState(() {
           _actors = response.items;
           _total = response.total;
-          // 统一转换为字符串ID，确保与演员列表的ID格式一致
           _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
           _loading = false;
+          _error = null;
+          _isRefreshingFromCache = false;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && forceRefresh) {
         setState(() {
           _error = e.toString();
           _loading = false;
@@ -167,7 +350,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   // 下拉刷新
   Future<void> _onRefresh() async {
-    await _loadActors();
+    await _loadActors(forceRefresh: true);
   }
 
   Future<void> _toggleFavorite(Person actor) async {
@@ -323,7 +506,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         setState(() {
           _selectedPersonType = type;
         });
-        _loadActors();
+        _loadActors(forceRefresh: true);
       },
       backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
       selectedColor: scheme.primaryContainer,
