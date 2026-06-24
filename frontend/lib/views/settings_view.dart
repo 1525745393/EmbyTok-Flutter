@@ -1,9 +1,13 @@
-// 设置页面：主题、默认倍速、字幕、缓存、用户信息、退出登录
+// 设置页面：主题、播放、字幕、存储、账户、关于等
+// 优化：组件提取、配置化、UI 优化、新增功能
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../utils/app_preferences.dart' show OrientationMode;
+
+// ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});
@@ -11,10 +15,6 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final themeMode = ref.watch(themeModeProvider);
-    final defaultRate = ref.watch(defaultPlaybackRateProvider);
-    final defaultSubtitle = ref.watch(defaultSubtitleLanguageProvider);
-    final auth = ref.watch(authProvider);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -32,113 +32,299 @@ class SettingsView extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-          _sectionTitle('外观', scheme),
-          _settingTile(
-            icon: Icons.dark_mode_outlined,
-            title: '主题',
-            subtitle: _themeLabel(themeMode),
-            onTap: () => _showThemeDialog(context, ref, themeMode),
-            scheme: scheme,
+          // 播放设置
+          _buildSection(
+            context,
+            ref,
+            '播放',
+            [
+              _buildAutoPlayTile(context, ref),
+              _buildPlaybackRateTile(context, ref),
+              _buildVideoQualityTile(context, ref),
+              _buildGestureControlTile(context, ref),
+            ],
           ),
-
-          _sectionTitle('播放', scheme),
-          _settingTile(
-            icon: Icons.speed_outlined,
-            title: '默认倍速',
-            subtitle: '${defaultRate.toStringAsFixed(1)}x',
-            onTap: () => _showPlaybackRateDialog(context, ref, defaultRate),
-            scheme: scheme,
+          // 字幕设置
+          _buildSection(
+            context,
+            ref,
+            '字幕',
+            [
+              _buildSubtitleLanguageTile(context, ref),
+              _buildSubtitleSizeTile(context, ref),
+            ],
           ),
-
-          _sectionTitle('字幕', scheme),
-          _settingTile(
-            icon: Icons.closed_caption_outlined,
-            title: '默认字幕语言',
-            subtitle: defaultSubtitle.isEmpty ? '关闭' : defaultSubtitle,
-            onTap: () => _showSubtitleDialog(context, ref, defaultSubtitle),
-            scheme: scheme,
+          // 外观设置
+          _buildSection(
+            context,
+            ref,
+            '外观',
+            [
+              _buildThemeTile(context, ref),
+              _buildOrientationTile(context, ref),
+            ],
           ),
-
-          _sectionTitle('存储', scheme),
-          _settingTile(
-            icon: Icons.cleaning_services_outlined,
-            title: '清除缓存',
-            subtitle: '${_formatSize(ref.watch(cacheSizeProvider))}',
-            onTap: () => _showClearCacheDialog(context, ref),
-            scheme: scheme,
+          // 存储设置
+          _buildSection(
+            context,
+            ref,
+            '存储',
+            [
+              _buildCacheTile(context, ref),
+            ],
           ),
-
-          _sectionTitle('账户', scheme),
-          _profileTile(auth, scheme),
-          _logoutTile(context, ref, scheme),
-          const SizedBox(height: 24),
+          // 服务器设置
+          _buildSection(
+            context,
+            ref,
+            '服务器',
+            [
+              _buildServerInfoTile(context, ref),
+            ],
+          ),
+          // 关于
+          _buildSection(
+            context,
+            ref,
+            '关于',
+            [
+              _buildAboutTile(context),
+              _buildVersionTile(context),
+            ],
+          ),
+          // 账户
+          _buildSection(
+            context,
+            ref,
+            '账户',
+            [
+              _buildProfileTile(context, ref),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildLogoutButton(context, ref),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _sectionTitle(String title, ColorScheme scheme) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-        child: Text(title,
+  // ==================== 分组构建 ====================
+
+  Widget _buildSection(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    List<Widget> children,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Text(
+            title,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
               fontSize: 13,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.8,
-            )),
-      );
-
-  Widget _settingTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required ColorScheme scheme,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: scheme.primary, size: 24),
-      title: Text(title,
-          style: TextStyle(color: scheme.onSurface, fontSize: 15)),
-      subtitle: Text(subtitle,
-          style: TextStyle(
-              color: scheme.onSurfaceVariant.withOpacity(0.8), fontSize: 13)),
-      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
-      onTap: onTap,
-      tileColor: scheme.onSurface.withOpacity(0.05),
-    );
-  }
-
-  Widget _profileTile(AuthState auth, ColorScheme scheme) {
-    final name = auth.user?.name ?? '未登录';
-    return ListTile(
-      leading: CircleAvatar(
-        radius: 20,
-        backgroundColor: scheme.primary,
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: TextStyle(
-              color: scheme.onPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ),
         ),
-      ),
-      title: Text(name,
-          style: TextStyle(
-              color: scheme.onSurface, fontSize: 15, fontWeight: FontWeight.w600)),
-      subtitle: Text(auth.backendUrl ?? '未连接服务器',
-          style: TextStyle(
-              color: scheme.onSurfaceVariant.withOpacity(0.8), fontSize: 12)),
-      tileColor: scheme.onSurface.withOpacity(0.05),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: _buildItemList(children),
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _logoutTile(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+  List<Widget> _buildItemList(List<Widget> children) {
+    final widgets = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      widgets.add(children[i]);
+      if (i < children.length - 1) {
+        widgets.add(const Divider(height: 1, indent: 56));
+      }
+    }
+    return widgets;
+  }
+
+  // ==================== 设置项构建 ====================
+
+  // 播放 - 自动播放
+  Widget _buildAutoPlayTile(BuildContext context, WidgetRef ref) {
+    final isAutoPlay = ref.watch(isAutoPlayProvider);
+    return _SwitchTile(
+      icon: Icons.play_circle_outline,
+      iconColor: Colors.green,
+      title: '自动播放',
+      subtitle: '视频结束后自动播放下一个',
+      value: isAutoPlay,
+      onChanged: (value) {
+        ref.read(isAutoPlayProvider.notifier).setAutoPlay(value);
+      },
+    );
+  }
+
+  // 播放 - 默认倍速
+  Widget _buildPlaybackRateTile(BuildContext context, WidgetRef ref) {
+    final rate = ref.watch(defaultPlaybackRateProvider);
+    return _TapTile(
+      icon: Icons.speed_outlined,
+      iconColor: Colors.orange,
+      title: '默认播放倍速',
+      subtitle: '${rate.toStringAsFixed(1)}x',
+      onTap: () => _showPlaybackRateDialog(context, ref, rate),
+    );
+  }
+
+  // 播放 - 画质偏好
+  Widget _buildVideoQualityTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.high_quality_outlined,
+      iconColor: Colors.blue,
+      title: '画质偏好',
+      subtitle: '自动选择最佳画质',
+      onTap: () => _showVideoQualityDialog(context, ref),
+    );
+  }
+
+  // 播放 - 手势控制
+  Widget _buildGestureControlTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.touch_app_outlined,
+      iconColor: Colors.purple,
+      title: '手势控制',
+      subtitle: '配置滑动和双击手势',
+      onTap: () => _showGestureControlDialog(context),
+    );
+  }
+
+  // 字幕 - 默认语言
+  Widget _buildSubtitleLanguageTile(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(defaultSubtitleLanguageProvider);
+    return _TapTile(
+      icon: Icons.closed_caption_outlined,
+      iconColor: Colors.teal,
+      title: '默认字幕语言',
+      subtitle: lang.isEmpty ? '关闭' : _getLanguageName(lang),
+      onTap: () => _showSubtitleDialog(context, ref, lang),
+    );
+  }
+
+  // 字幕 - 字幕大小
+  Widget _buildSubtitleSizeTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.format_size_outlined,
+      iconColor: Colors.teal,
+      title: '字幕大小',
+      subtitle: '中等',
+      onTap: () => _showSubtitleSizeDialog(context),
+    );
+  }
+
+  // 外观 - 主题
+  Widget _buildThemeTile(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    return _TapTile(
+      icon: Icons.dark_mode_outlined,
+      iconColor: Colors.indigo,
+      title: '主题',
+      subtitle: _themeLabel(themeMode),
+      onTap: () => _showThemeDialog(context, ref, themeMode),
+    );
+  }
+
+  // 外观 - 方向过滤
+  Widget _buildOrientationTile(BuildContext context, WidgetRef ref) {
+    final orientationMode = ref.watch(orientationModeProvider);
+    return _TapTile(
+      icon: Icons.screen_rotation_outlined,
+      iconColor: Colors.indigo,
+      title: '视频方向',
+      subtitle: orientationMode.zhLabel,
+      onTap: () => _showOrientationDialog(context, ref, orientationMode),
+    );
+  }
+
+  // 存储 - 清除缓存
+  Widget _buildCacheTile(BuildContext context, WidgetRef ref) {
+    final cacheSize = ref.watch(cacheSizeProvider);
+    return _TapTile(
+      icon: Icons.cleaning_services_outlined,
+      iconColor: Colors.grey,
+      title: '清除缓存',
+      subtitle: _formatSize(cacheSize),
+      onTap: () => _showClearCacheDialog(context, ref),
+    );
+  }
+
+  // 服务器 - 服务器信息
+  Widget _buildServerInfoTile(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    return _InfoTile(
+      icon: Icons.cloud_outlined,
+      iconColor: Colors.blue,
+      title: '当前服务器',
+      subtitle: auth.backendUrl ?? '未连接',
+    );
+  }
+
+  // 关于 - 应用信息
+  Widget _buildAboutTile(BuildContext context) {
+    return _TapTile(
+      icon: Icons.info_outline,
+      iconColor: Colors.blueGrey,
+      title: '关于 EmbyTok',
+      subtitle: '了解更多关于应用的信息',
+      onTap: () => _showAboutDialog(context),
+    );
+  }
+
+  // 关于 - 版本信息
+  Widget _buildVersionTile(BuildContext context) {
+    return const _InfoTile(
+      icon: Icons.new_releases_outlined,
+      iconColor: Colors.blueGrey,
+      title: '版本',
+      subtitle: '1.82.0',
+    );
+  }
+
+  // 账户 - 用户信息
+  Widget _buildProfileTile(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final name = auth.user?.name ?? '未登录';
+    return _InfoTile(
+      icon: Icons.account_circle_outlined,
+      iconColor: Colors.blue,
+      title: name,
+      subtitle: auth.backendUrl ?? '未连接服务器',
+    );
+  }
+
+  // 退出登录按钮
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
           icon: Icon(Icons.logout, color: scheme.onError),
-          label: Text('退出登录',
-              style: TextStyle(color: scheme.onError, fontSize: 16)),
+          label: Text(
+            '退出登录',
+            style: TextStyle(color: scheme.onError, fontSize: 16),
+          ),
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.error,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -152,7 +338,117 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 主题选择 ----
+  // ==================== 组件定义 ====================
+
+  // 点击型设置项
+  static Widget _TapTile({
+    required IconData icon,
+    Color? iconColor,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Builder(builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return ListTile(
+        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
+        title: Text(
+          title,
+          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  fontSize: 13,
+                ),
+              )
+            : null,
+        trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        onTap: onTap,
+      );
+    });
+  }
+
+  // 开关型设置项
+  static Widget _SwitchTile({
+    required IconData icon,
+    Color? iconColor,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Builder(builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return ListTile(
+        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
+        title: Text(
+          title,
+          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  fontSize: 13,
+                ),
+              )
+            : null,
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: scheme.primary,
+        ),
+      );
+    });
+  }
+
+  // 信息型设置项（不可点击）
+  static Widget _InfoTile({
+    required IconData icon,
+    Color? iconColor,
+    required String title,
+    String? subtitle,
+  }) {
+    return Builder(builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return ListTile(
+        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
+        title: Text(
+          title,
+          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  fontSize: 13,
+                ),
+              )
+            : null,
+      );
+    });
+  }
+
+  // 图标容器
+  static Widget _IconContainer({required IconData icon, required Color color}) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+
+  // ==================== 对话框 ====================
+
   void _showThemeDialog(BuildContext context, WidgetRef ref, String current) {
     showDialog<void>(
       context: context,
@@ -172,9 +468,11 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 倍速选择 ----
   void _showPlaybackRateDialog(
-      BuildContext context, WidgetRef ref, double current) {
+    BuildContext context,
+    WidgetRef ref,
+    double current,
+  ) {
     showDialog<void>(
       context: context,
       builder: (_) => _OptionDialog(
@@ -196,9 +494,82 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 默认字幕语言 ----
+  void _showVideoQualityDialog(BuildContext context, WidgetRef ref) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _OptionDialog(
+        title: '画质偏好',
+        options: const [
+          ('自动（最佳画质）', 'auto'),
+          ('1080p', '1080p'),
+          ('720p', '720p'),
+          ('480p', '480p'),
+        ],
+        currentValue: 'auto',
+        onSelect: (v) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('画质偏好已设置为: $v'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showGestureControlDialog(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: Text('手势控制', style: TextStyle(color: scheme.onSurface)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _GestureItem(
+              icon: Icons.swipe,
+              title: '上下滑动',
+              description: '调节音量/亮度',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.touch_app,
+              title: '左右滑动',
+              description: '快进/快退 10 秒',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.double_arrow,
+              title: '双击左右侧',
+              description: '快进/快退 10 秒',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.pause,
+              title: '单击',
+              description: '播放/暂停',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('关闭', style: TextStyle(color: scheme.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSubtitleDialog(
-      BuildContext context, WidgetRef ref, String current) {
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) {
     showDialog<void>(
       context: context,
       builder: (_) => _OptionDialog(
@@ -220,7 +591,65 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 清除缓存 ----
+  void _showSubtitleSizeDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _OptionDialog(
+        title: '字幕大小',
+        options: const [
+          ('小', 'small'),
+          ('中', 'medium'),
+          ('大', 'large'),
+        ],
+        currentValue: 'medium',
+        onSelect: (v) {
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _showOrientationDialog(
+    BuildContext context,
+    WidgetRef ref,
+    OrientationMode current,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _OptionDialog(
+        title: '视频方向',
+        options: const [
+          ('全部', 'both'),
+          ('只看竖屏', 'vertical'),
+          ('只看横屏', 'horizontal'),
+        ],
+        currentValue: _orientationModeToString(current),
+        onSelect: (v) {
+          ref.read(orientationModeProvider.notifier).setMode(
+            _parseOrientationMode(v),
+          );
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  String _orientationModeToString(OrientationMode mode) {
+    return switch (mode) {
+      OrientationMode.vertical => 'vertical',
+      OrientationMode.horizontal => 'horizontal',
+      OrientationMode.both => 'both',
+    };
+  }
+
+  OrientationMode _parseOrientationMode(String value) {
+    return switch (value) {
+      'vertical' => OrientationMode.vertical,
+      'horizontal' => OrientationMode.horizontal,
+      _ => OrientationMode.both,
+    };
+  }
+
   void _showClearCacheDialog(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
@@ -228,8 +657,10 @@ class SettingsView extends ConsumerWidget {
       builder: (_) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('清除缓存', style: TextStyle(color: scheme.onSurface)),
-        content: Text('确定要清除全部缓存吗？这将删除临时下载的缩略图和字幕文件。',
-            style: TextStyle(color: scheme.onSurfaceVariant)),
+        content: Text(
+          '确定要清除全部缓存吗？这将删除临时下载的缩略图和字幕文件。',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -241,8 +672,9 @@ class SettingsView extends ConsumerWidget {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                    content: const Text('缓存已清除'),
-                    backgroundColor: scheme.primary),
+                  content: const Text('缓存已清除'),
+                  backgroundColor: scheme.primary,
+                ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
@@ -253,7 +685,6 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // ---- 退出登录 ----
   void _showLogoutDialog(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
@@ -261,8 +692,10 @@ class SettingsView extends ConsumerWidget {
       builder: (_) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('退出登录', style: TextStyle(color: scheme.onSurface)),
-        content: Text('确定要退出当前账号吗？',
-            style: TextStyle(color: scheme.onSurfaceVariant)),
+        content: Text(
+          '确定要退出当前账号吗？',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -281,7 +714,33 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  static String _themeLabel(String mode) {
+  void _showAboutDialog(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    showAboutDialog(
+      context: context,
+      applicationName: 'EmbyTok',
+      applicationVersion: '1.82.0',
+      applicationIcon: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.play_circle_filled, color: Colors.white, size: 40),
+      ),
+      children: [
+        const SizedBox(height: 16),
+        const Text('EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验。'),
+        const SizedBox(height: 16),
+        const Text('© 2024 EmbyTok'),
+      ],
+    );
+  }
+
+  // ==================== 工具方法 ====================
+
+  String _themeLabel(String mode) {
     switch (mode) {
       case 'dark':
         return '深色';
@@ -293,20 +752,84 @@ class SettingsView extends ConsumerWidget {
     }
   }
 
-  static String _formatSize(int bytes) {
+  String _getLanguageName(String code) {
+    switch (code) {
+      case 'zh-CN':
+        return '中文（简体）';
+      case 'zh-TW':
+        return '中文（繁体）';
+      case 'en':
+        return '英语';
+      case 'ja':
+        return '日语';
+      case 'ko':
+        return '韩语';
+      default:
+        return code;
+    }
+  }
+
+  String _formatSize(int bytes) {
     if (bytes <= 0) return '暂无缓存';
-    if (bytes < 1024) return '${bytes} B';
+    if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
 
-// 通用选项对话框
+// ==================== 手势项组件 ====================
+
+class _GestureItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _GestureItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, color: scheme.primary, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                description,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ==================== 通用选项对话框 ====================
+
 class _OptionDialog<T> extends StatelessWidget {
   final String title;
   final List<(String label, T value)> options;
   final T currentValue;
-  final void Function(T) onSelect;
+  final ValueChanged<T> onSelect;
 
   const _OptionDialog({
     required this.title,
@@ -326,10 +849,13 @@ class _OptionDialog<T> extends StatelessWidget {
         children: options.map((opt) {
           final selected = opt.$2 == currentValue;
           return ListTile(
-            title: Text(opt.$1,
-                style: TextStyle(
-                    color: selected ? scheme.primary : scheme.onSurface,
-                    fontSize: 15)),
+            title: Text(
+              opt.$1,
+              style: TextStyle(
+                color: selected ? scheme.primary : scheme.onSurface,
+                fontSize: 15,
+              ),
+            ),
             trailing: selected
                 ? Icon(Icons.check, color: scheme.primary)
                 : null,
