@@ -1,3 +1,10 @@
+## [1.87.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.87.0...v1.87.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复演员界面问题 ([486c373](https://github.com/1525745393/EmbyTok-Flutter/commit/486c373eab80cfe5c0a4e22c4ca5d6e1f3f2763b))
+
 # [1.87.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.86.0...v1.87.0) (2026-06-24)
 
 
