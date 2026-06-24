@@ -1,3 +1,10 @@
+## [1.90.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.90.0...v1.90.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复网格模式排序没有实际效果的问题 ([8f10b8e](https://github.com/1525745393/EmbyTok-Flutter/commit/8f10b8e95c734072ebbe80551ed2eead887b37dd))
+
 # [1.90.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.89.0...v1.90.0) (2026-06-24)
 
 
