@@ -1,6 +1,7 @@
 // 演员列表页面：展示 Emby 服务器上的所有演员，支持关注/取消关注
 
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -41,24 +42,123 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   List<Person> _searchResults = const [];
   bool _hasTriggeredLoadMore = false;
   bool _isRefreshingFromCache = false;
+  bool _hasRestoredState = false;
+  Timer? _scrollSaveTimer;
+  late final TextEditingController _searchController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadActors());
+    _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
+    _searchController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _restoreState();
+      _searchController.text = _searchQuery;
+      _loadActors();
+    });
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _scrollController.dispose();
     _tabController.dispose();
+    _scrollSaveTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  // ========== 状态持久化 ==========
+
+  // 恢复保存的状态
+  Future<void> _restoreState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // 恢复类型筛选
+      final savedType = prefs.getString(kStorageKeyActorsSelectedType);
+      if (savedType != null && savedType.isNotEmpty) {
+        _selectedPersonType = savedType == 'null' ? null : savedType;
+      }
+
+      // 恢复 Tab 索引
+      final savedTab = prefs.getInt(kStorageKeyActorsSelectedTab);
+      if (savedTab != null && savedTab >= 0 && savedTab < 3) {
+        _tabController.index = savedTab;
+      }
+
+      // 恢复搜索关键词
+      final savedSearch = prefs.getString(kStorageKeyActorsSearchQuery);
+      if (savedSearch != null && savedSearch.isNotEmpty) {
+        _searchQuery = savedSearch;
+      }
+
+      _hasRestoredState = true;
+    } catch (_) {}
+  }
+
+  // 保存类型筛选
+  Future<void> _saveSelectedType(String? type) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStorageKeyActorsSelectedType, type ?? 'null');
+    } catch (_) {}
+  }
+
+  // 保存 Tab 索引
+  Future<void> _saveSelectedTab(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyActorsSelectedTab, index);
+    } catch (_) {}
+  }
+
+  // 保存搜索关键词
+  Future<void> _saveSearchQuery(String query) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStorageKeyActorsSearchQuery, query);
+    } catch (_) {}
+  }
+
+  // 保存滚动位置（防抖）
+  void _saveScrollOffset() {
+    _scrollSaveTimer?.cancel();
+    _scrollSaveTimer = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        if (!_scrollController.hasClients) return;
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setDouble(kStorageKeyActorsScrollOffset, _scrollController.offset);
+      } catch (_) {}
+    });
+  }
+
+  // 恢复滚动位置
+  Future<void> _restoreScrollOffset() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final offset = prefs.getDouble(kStorageKeyActorsScrollOffset);
+      if (offset != null && offset > 0 && _scrollController.hasClients) {
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        final safeOffset = offset.clamp(0.0, maxScroll);
+        _scrollController.jumpTo(safeOffset);
+      }
+    } catch (_) {}
+  }
+
+  // Tab 变化时保存
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    _saveSelectedTab(_tabController.index);
   }
 
   // 滚动监听：检测是否接近底部（带防抖）
   void _onScroll() {
+    // 保存滚动位置（防抖）
+    _saveScrollOffset();
+    
     if (_loading || _isLoadingMore || !hasMore || _isSearching) return;
     
     // 防抖：只在滚动方向向下且真正接近底部时触发
@@ -161,6 +261,11 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         _error = null;
         _isRefreshingFromCache = !isExpired;
       });
+
+      // 恢复滚动位置
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _restoreScrollOffset();
+      });
     }
 
     _loadFavoritePeople();
@@ -245,6 +350,13 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           _error = null;
           _isRefreshingFromCache = false;
         });
+
+        // 初次加载且不是强制刷新时恢复滚动位置
+        if (!forceRefresh) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _restoreScrollOffset();
+          });
+        }
       }
     } catch (e) {
       if (mounted && (forceRefresh || _actors.isEmpty)) {
@@ -432,6 +544,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           });
           await _searchActors(value);
         }
+        // 保存搜索关键词
+        _saveSearchQuery(value);
       }
     });
   }
@@ -501,6 +615,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         setState(() {
           _selectedPersonType = type;
         });
+        // 保存类型筛选
+        _saveSelectedType(type);
         // 如果正在搜索状态，切换类型后重新搜索
         if (_searchQuery.isNotEmpty) {
           setState(() {
@@ -591,6 +707,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
+                    controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
                       hintText: '搜索演员...',
