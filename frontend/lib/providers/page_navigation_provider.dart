@@ -2,6 +2,8 @@
 // 用于在 FeedView 顶部操作栏和 HomeScaffold 之间共享页面切换状态
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart';
 
 // 页面索引常量
 class PageIndices {
@@ -36,11 +38,33 @@ class PageNavigationState {
 
 // 页面导航 Notifier
 class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
-  PageNavigationNotifier() : super(const PageNavigationState());
+  PageNavigationNotifier() : super(const PageNavigationState()) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final index = prefs.getInt(kStorageKeyLastPageIndex);
+      if (index != null && index >= PageIndices.feed && index <= PageIndices.settings) {
+        state = PageNavigationState(currentIndex: index, isOverlayPage: false);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyLastPageIndex, index);
+    } catch (_) {}
+  }
 
   // 切换到底部导航栏的页面
   void goToPage(int index) {
     state = PageNavigationState(currentIndex: index, isOverlayPage: false);
+    if (index >= PageIndices.feed && index <= PageIndices.settings) {
+      _saveIndex(index);
+    }
   }
 
   // 切换到搜索页面（覆盖层）
@@ -65,6 +89,7 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
       currentIndex: PageIndices.feed,
       isOverlayPage: false,
     );
+    _saveIndex(PageIndices.feed);
   }
 }
 
