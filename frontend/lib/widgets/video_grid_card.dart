@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
@@ -86,6 +87,7 @@ class VideoGridCard extends ConsumerWidget {
 
     return CachedNetworkImage(
       imageUrl: imageUrl,
+      cacheManager: AppImageCacheManager.thumbnail,
       fit: BoxFit.cover,
       placeholder: (context, url) => _buildPlaceholder(scheme),
       errorWidget: (context, url, error) => _buildPlaceholder(scheme),

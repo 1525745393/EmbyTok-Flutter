@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
@@ -267,6 +268,7 @@ class _FavoriteCard extends ConsumerWidget {
                 child: imageUrl != null && imageUrl.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: imageUrl,
+                        cacheManager: AppImageCacheManager.thumbnail,
                         fit: BoxFit.cover,
                         httpHeaders: headers.isNotEmpty ? headers : null,
                         memCacheWidth: 400,

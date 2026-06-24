@@ -1,5 +1,7 @@
 // 基于 Dio 的 API 客户端封装：统一配置、Token 注入、错误处理与日志
 
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../utils/formatters.dart';
@@ -7,6 +9,9 @@ import '../utils/formatters.dart';
 class ApiClient {
   final Dio _dio;
   String? _token;
+
+  // GET 请求去重：相同 path + queryParameters 的并发请求复用同一个 Future
+  final Map<String, Completer<Response<dynamic>>> _pendingGets = {};
 
   ApiClient({String? baseUrl})
       : _dio = Dio(BaseOptions(
@@ -134,8 +139,42 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
-  }) =>
-      _request<T>(path, method: 'GET', queryParameters: queryParameters, headers: headers);
+  }) async {
+    // 生成请求去重 key：path + 排序后的 queryParameters
+    final key = _buildDedupeKey(path, queryParameters);
+    // 如果已有相同 key 的请求在进行中，等待其完成并复用结果
+    final existing = _pendingGets[key];
+    if (existing != null) {
+      final response = await existing.future;
+      return response as Response<T>;
+    }
+    // 创建新的 Completer 并发起新请求
+    final completer = Completer<Response<dynamic>>();
+    _pendingGets[key] = completer;
+    try {
+      final response = await _request<T>(path, method: 'GET', queryParameters: queryParameters, headers: headers);
+      completer.complete(response);
+      return response;
+    } catch (e) {
+      completer.completeError(e);
+      rethrow;
+    } finally {
+      // 无论成功或失败，都从 map 中移除 key，确保下次请求可以正常发送
+      _pendingGets.remove(key);
+    }
+  }
+
+  /// 生成 GET 请求去重 key：path + 排序后的 queryParameters
+  /// 对 queryParameters 按 key 排序，确保不同顺序的参数生成相同的 key
+  String _buildDedupeKey(String path, Map<String, dynamic>? queryParameters) {
+    if (queryParameters == null || queryParameters.isEmpty) return path;
+    final sortedKeys = queryParameters.keys.toList()..sort();
+    final parts = <String>[];
+    for (final k in sortedKeys) {
+      parts.add('$k=${queryParameters[k]}');
+    }
+    return '$path?${parts.join('&')}';
+  }
 
   Future<Response<T>> post<T>(
     String path, {

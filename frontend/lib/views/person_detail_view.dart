@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/video_page_item.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
@@ -113,6 +114,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                       child: imageUrl != null && imageUrl.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
+                              cacheManager: AppImageCacheManager.largeImage,
                               fit: BoxFit.cover,
                               httpHeaders: headers.isNotEmpty ? headers : null,
                               memCacheWidth: 240,
@@ -317,6 +319,7 @@ class _WorkTile extends ConsumerWidget {
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
+                      cacheManager: AppImageCacheManager.thumbnail,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,

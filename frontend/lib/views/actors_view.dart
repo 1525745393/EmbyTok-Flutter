@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/image_cache_manager.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
   final bool useScaffold;
@@ -766,6 +767,7 @@ class _ActorCard extends StatelessWidget {
                     child: imageUrl != null && imageUrl.isNotEmpty
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
+                            cacheManager: AppImageCacheManager.thumbnail,
                             fit: BoxFit.cover,
                             httpHeaders: token != null && token!.isNotEmpty
                                 ? {'X-Emby-Token': token!}

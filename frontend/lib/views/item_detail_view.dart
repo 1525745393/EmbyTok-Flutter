@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/video_page_item.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {
@@ -242,6 +243,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       child: imageUrl != null && imageUrl.isNotEmpty
           ? CachedNetworkImage(
               imageUrl: imageUrl,
+              cacheManager: AppImageCacheManager.largeImage,
               fit: BoxFit.cover,
               width: double.infinity,
               httpHeaders: headers.isNotEmpty ? headers : null,
@@ -685,6 +687,7 @@ class _CastCard extends StatelessWidget {
               child: person.imageUrl != null && person.imageUrl!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: person.imageUrl!,
+                      cacheManager: AppImageCacheManager.thumbnail,
                       fit: BoxFit.cover,
                       memCacheWidth: 144,
                       placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
@@ -785,6 +788,7 @@ class _EpisodeTile extends StatelessWidget {
               child: imageUrl != null && imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
+                      cacheManager: AppImageCacheManager.thumbnail,
                       width: 120,
                       height: 72,
                       fit: BoxFit.cover,

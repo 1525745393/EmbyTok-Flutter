@@ -20,16 +20,6 @@ import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
 
-/// 排序选项枚举
-enum SortOption {
-  recentlyAdded('最近添加'),
-  rating('评分'),
-  title('标题');
-
-  final String label;
-  const SortOption(this.label);
-}
-
 class FeedView extends ConsumerStatefulWidget {
   final String? initialItemId; // 初始播放的视频 ID（从其他页面跳转时使用）
 
@@ -53,11 +43,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
-
-  // 网格视图搜索和排序状态
-  final TextEditingController _searchController = TextEditingController();
-  SortOption _sortOption = SortOption.recentlyAdded;
-  String _searchQuery = '';
 
   @override
   bool get wantKeepAlive => true;
@@ -85,7 +70,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
-    _searchController.dispose();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
     ref.read(videoPoolProvider).disposeAll();
     super.dispose();
@@ -212,39 +196,6 @@ class _FeedViewState extends ConsumerState<FeedView>
         curve: Curves.easeOut,
       );
     }
-  }
-
-  // 过滤并排序视频列表（用于网格视图）
-  List<MediaItem> _filterAndSortItems(List<MediaItem> items) {
-    var filtered = items;
-
-    // 搜索过滤
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      filtered = filtered.where((item) {
-        return item.title.toLowerCase().contains(query) ||
-            (item.seriesName?.toLowerCase().contains(query) ?? false) ||
-            item.displayGenres.any((g) => g.toLowerCase().contains(query));
-      }).toList();
-    }
-
-    // 排序
-    switch (_sortOption) {
-      case SortOption.recentlyAdded:
-        // 按 productionYear 降序（较新的在前）
-        filtered.sort((a, b) => (b.productionYear ?? 0).compareTo(a.productionYear ?? 0));
-        break;
-      case SortOption.rating:
-        // 按评分降序
-        filtered.sort((a, b) => (b.displayRating ?? 0).compareTo(a.displayRating ?? 0));
-        break;
-      case SortOption.title:
-        // 按标题升序
-        filtered.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-        break;
-    }
-
-    return filtered;
   }
 
   // 键盘快捷键处理
@@ -444,21 +395,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             else if (viewMode == ViewMode.feed)
               _buildVideoPageView(videoState)
             else
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 60),
-                  child: PosterGridView(
-                    items: _filterAndSortItems(videoState.items),
-                    hasMore: videoState.hasMore && _searchQuery.isEmpty,
-                    isLoading: videoState.isLoading,
-                    onLoadMore: () {
-                      if (!videoState.isLoading) {
-                        ref.read(videoListProvider.notifier).loadMore();
-                      }
-                    },
-                  ),
-                ),
-              ),
+              const PosterGridView(),
 
             // 顶部：媒体库切换器 + 视图切换按钮
             Positioned(
@@ -483,7 +420,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 顶部栏：根据视图模式显示不同布局
+  // 顶部栏：搜索 + 历史 + 媒体库管理按钮 + 视图切换按钮
   Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -501,157 +438,68 @@ class _FeedViewState extends ConsumerState<FeedView>
       ),
       child: SafeArea(
         bottom: false,
-        child: viewMode == ViewMode.feed
-            ? _buildFeedTopBar(scheme, viewMode)
-            : _buildGridTopBar(scheme, viewMode),
-      ),
-    );
-  }
-
-  // 视频流模式顶部栏：搜索 + 历史 + 媒体库 + 视图切换
-  Widget _buildFeedTopBar(ColorScheme scheme, ViewMode viewMode) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // 左侧：搜索和历史按钮
-        Row(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // 搜索按钮
-            IconButton(
-              icon: Icon(
-                Icons.search,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(pageNavigationNotifierProvider).goToSearch();
-              },
-              tooltip: '搜索',
-            ),
-            // 历史按钮
-            IconButton(
-              icon: Icon(
-                Icons.history,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(pageNavigationNotifierProvider).goToHistory();
-              },
-              tooltip: '历史',
-            ),
-          ],
-        ),
-        // 右侧：媒体库管理和视图切换按钮
-        Row(
-          children: [
-            // 媒体库管理按钮（打开多选弹窗）
-            IconButton(
-              icon: Icon(
-                Icons.library_books,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () => LibrarySelector.show(context),
-              tooltip: '媒体库',
-            ),
-            // 视图切换按钮
-            IconButton(
-              icon: Icon(
-                viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(viewModeProvider.notifier).setMode(
-                  viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-                );
-              },
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // 网格模式顶部栏：搜索框 + 排序 + 视图切换
-  Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          // 搜索框
-          Expanded(
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索视频...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
-                      )
-                    : null,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            // 左侧：搜索和历史按钮
+            Row(
+              children: [
+                // 搜索按钮
+                IconButton(
+                  icon: Icon(
+                    Icons.search,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(pageNavigationNotifierProvider).goToSearch();
+                  },
+                  tooltip: '搜索',
                 ),
-              ),
-              onChanged: (value) => setState(() => _searchQuery = value),
+                // 历史按钮
+                IconButton(
+                  icon: Icon(
+                    Icons.history,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(pageNavigationNotifierProvider).goToHistory();
+                  },
+                  tooltip: '历史',
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          // 排序选择器
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: scheme.outline.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(8),
+            // 右侧：媒体库管理和视图切换按钮
+            Row(
+              children: [
+                // 媒体库管理按钮（打开多选弹窗）
+                IconButton(
+                  icon: Icon(
+                    Icons.library_books,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () => LibrarySelector.show(context),
+                  tooltip: '媒体库',
+                ),
+                // 视图切换按钮
+                IconButton(
+                  icon: Icon(
+                    viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    ref.read(viewModeProvider.notifier).setMode(
+                      viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
+                    );
+                  },
+                ),
+              ],
             ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<SortOption>(
-                value: _sortOption,
-                isDense: true,
-                items: SortOption.values.map((option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.sort, size: 16, color: scheme.primary),
-                        const SizedBox(width: 4),
-                        Text(option.label),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _sortOption = value);
-                  }
-                },
-              ),
-            ),
-          ),
-          // 视图切换按钮
-          IconButton(
-            icon: Icon(
-              viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-              color: scheme.onSurface.withOpacity(0.7),
-              size: 22,
-            ),
-            onPressed: () {
-              ref.read(viewModeProvider.notifier).setMode(
-                viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-              );
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

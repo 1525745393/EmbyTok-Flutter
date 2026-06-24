@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../utils/image_cache_manager.dart';
 
 // ===== 响应式尺寸工具 =====
 double responsiveSize(BuildContext context, double base, [double maxScale = 1.7]) {
@@ -98,6 +99,7 @@ class PosterAvatar extends ConsumerWidget {
                         child: actorImageUrl != null && actorImageUrl.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: actorImageUrl,
+                                cacheManager: AppImageCacheManager.thumbnail,
                                 fit: BoxFit.cover,
                                 httpHeaders: headers.isNotEmpty ? headers : null,
                                 memCacheWidth: 96,
@@ -172,6 +174,7 @@ class PosterAvatar extends ConsumerWidget {
           child: posterUrl != null && posterUrl.isNotEmpty
               ? CachedNetworkImage(
                   imageUrl: posterUrl,
+                  cacheManager: AppImageCacheManager.thumbnail,
                   fit: BoxFit.cover,
                   httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
                   memCacheWidth: 80,
