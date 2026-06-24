@@ -7,11 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
+import '../utils/constants.dart';
 import '../utils/keyboard_shortcuts.dart';
 import '../utils/logger.dart';
 import '../widgets/empty_state_card.dart';
@@ -40,6 +43,12 @@ class _FeedViewState extends ConsumerState<FeedView>
   String? _initialItemId;
   bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
 
+  // 滚动位置持久化相关
+  bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
+  bool _hasRestoredGridScrollPosition = false; // 是否已恢复网格滚动位置
+  final ScrollController _gridScrollController = ScrollController();
+  Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
+
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
@@ -67,6 +76,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
     _checkCloudSyncOnStartup();
+    // 监听网格滚动位置，防抖保存
+    _gridScrollController.addListener(_onGridScrollChanged);
   }
 
   @override
@@ -74,9 +85,69 @@ class _FeedViewState extends ConsumerState<FeedView>
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
     _gridSearchController.dispose();
+    _gridScrollController.removeListener(_onGridScrollChanged);
+    _gridScrollController.dispose();
+    _gridScrollSaveTimer?.cancel();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
     ref.read(videoPoolProvider).disposeAll();
     super.dispose();
+  }
+
+  // ========== 滚动位置持久化 ==========
+
+  // 保存视频流当前索引到 SharedPreferences
+  Future<void> _saveVideoIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyLastVideoIndex, index);
+    } catch (_) {}
+  }
+
+  // 从 SharedPreferences 恢复视频流滚动位置
+  Future<void> _restoreVideoIndex(int maxIndex) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastIndex = prefs.getInt(kStorageKeyLastVideoIndex);
+      if (lastIndex != null && lastIndex >= 0 && lastIndex <= maxIndex) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(lastIndex);
+          _currentIndex = lastIndex;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 网格滚动变化回调，防抖保存
+  void _onGridScrollChanged() {
+    _gridScrollSaveTimer?.cancel();
+    _gridScrollSaveTimer = Timer(const Duration(milliseconds: 500), () {
+      _saveGridScrollOffset();
+    });
+  }
+
+  // 保存网格滚动偏移量到 SharedPreferences
+  Future<void> _saveGridScrollOffset() async {
+    try {
+      if (!_gridScrollController.hasClients) return;
+      final offset = _gridScrollController.offset;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(kStorageKeyLastGridScrollOffset, offset);
+    } catch (_) {}
+  }
+
+  // 从 SharedPreferences 恢复网格滚动位置
+  Future<void> _restoreGridScrollOffset() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastOffset = prefs.getDouble(kStorageKeyLastGridScrollOffset);
+      if (lastOffset != null && lastOffset > 0) {
+        if (mounted && _gridScrollController.hasClients) {
+          final maxScroll = _gridScrollController.position.maxScrollExtent;
+          final safeOffset = lastOffset.clamp(0.0, maxScroll);
+          _gridScrollController.jumpTo(safeOffset);
+        }
+      }
+    } catch (_) {}
   }
 
   // ========== 预加载与清理（基于 VideoPoolService）==========
@@ -415,7 +486,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             else if (viewMode == ViewMode.feed)
               _buildVideoPageView(videoState)
             else
-              const PosterGridView(),
+              _buildGridPageView(videoState),
 
             // 顶部：媒体库切换器 + 视图切换按钮
             Positioned(
@@ -635,6 +706,26 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
+  // 构建网格视图：支持滚动位置持久化
+  Widget _buildGridPageView(VideoListState videoState) {
+    final filteredItems = ref.watch(gridFilteredVideoListProvider);
+
+    // 网格数据加载完成后恢复滚动位置
+    if (!_hasRestoredGridScrollPosition &&
+        videoState.items.isNotEmpty &&
+        filteredItems.isNotEmpty &&
+        !videoState.isLoading) {
+      _hasRestoredGridScrollPosition = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _restoreGridScrollOffset();
+        }
+      });
+    }
+
+    return PosterGridView(scrollController: _gridScrollController);
+  }
+
   // 构建视频流 PageView：支持相邻条目预加载、自动连播、resume 模式
   Widget _buildVideoPageView(VideoListState videoState) {
     if (videoState.items.isEmpty && videoState.isLoading) {
@@ -687,6 +778,16 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     }
 
+    // 如果没有初始播放 itemId（不是从其他页面跳转来的），且尚未恢复滚动位置，则从 SharedPreferences 恢复
+    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
+      _hasRestoredScrollPosition = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _restoreVideoIndex(videoState.items.length - 1);
+        }
+      });
+    }
+
     final auth = ref.read(authProvider);
     final embyServerUrl = auth.embyServerUrl;
     final token = auth.token;
@@ -697,6 +798,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
+        // 保存当前视频索引到 SharedPreferences
+        _saveVideoIndex(index);
         if (videoState.hasMore && index >= videoState.items.length - 2) {
           // 使用 ref.read 读取最新状态，避免闭包捕获过期值
           final latestState = ref.read(videoListProvider);

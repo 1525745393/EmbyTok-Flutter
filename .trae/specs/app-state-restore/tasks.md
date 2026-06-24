@@ -1,6 +1,6 @@
 # 应用状态恢复 - The Implementation Plan (Decomposed and Prioritized Task List)
 
-## [ ] Task 1: 在 constants.dart 中添加页面索引存储键常量
+## [x] Task 1: 在 constants.dart 中添加页面索引存储键常量
 - **Priority**: high
 - **Depends On**: None
 - **Description**: 
@@ -10,7 +10,7 @@
 - **Test Requirements**:
   - `programmatic` TR-1.1: constants.dart 中定义了新的存储键常量
 
-## [ ] Task 2: 修改 pageNavigationProvider 添加持久化支持
+## [x] Task 2: 修改 pageNavigationProvider 添加持久化支持
 - **Priority**: high
 - **Depends On**: Task 1
 - **Description**: 
@@ -25,7 +25,7 @@
   - `programmatic` TR-2.3: 覆盖层页面（搜索/历史）切换时不保存
   - `programmatic` TR-2.4: 如果上次是覆盖层页面，恢复到底层主页面
 
-## [ ] Task 3: 验证现有持久化设置正常工作
+## [x] Task 3: 验证现有持久化设置正常工作
 - **Priority**: medium
 - **Depends On**: None
 - **Description**: 
