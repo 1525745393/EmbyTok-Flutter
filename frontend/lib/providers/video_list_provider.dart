@@ -366,6 +366,28 @@ final videoListProvider =
   return VideoListNotifier(ref);
 });
 
+// ==================== 网格模式排序与搜索 ====================
+
+/// 网格视图排序选项
+enum GridSortOption {
+  recentlyAdded('最近添加'),
+  rating('评分'),
+  title('标题');
+
+  final String label;
+  const GridSortOption(this.label);
+}
+
+/// 网格视图排序选项 Provider
+final gridSortOptionProvider = StateProvider<GridSortOption>((ref) {
+  return GridSortOption.recentlyAdded;
+});
+
+/// 网格视图搜索关键词 Provider
+final gridSearchQueryProvider = StateProvider<String>((ref) {
+  return '';
+});
+
 // ==================== 方向过滤的派生 Provider ====================
 
 /// 根据屏幕方向模式过滤后的视频列表
@@ -436,3 +458,56 @@ class PlaybackListNotifier extends StateNotifier<PlaybackListState> {
     state = const PlaybackListState();
   }
 }
+
+// ==================== 网格模式过滤与排序后的派生 Provider ====================
+
+/// 网格模式下经过搜索过滤和排序后的视频列表
+///
+/// 功能：
+/// - 按标题关键词搜索过滤
+/// - 按排序选项排序（最近添加/评分/标题）
+final gridFilteredVideoListProvider = Provider<List<MediaItem>>((ref) {
+  final videoState = ref.watch(videoListProvider);
+  final searchQuery = ref.watch(gridSearchQueryProvider);
+  final sortOption = ref.watch(gridSortOptionProvider);
+
+  // 如果是加载中或错误状态，直接返回原列表
+  if (videoState.isLoading || videoState.error != null) {
+    return videoState.items;
+  }
+
+  var items = videoState.items;
+
+  // 1. 搜索过滤
+  if (searchQuery.isNotEmpty) {
+    final query = searchQuery.toLowerCase();
+    items = items.where((item) {
+      return item.title.toLowerCase().contains(query) ||
+          (item.seriesName?.toLowerCase().contains(query) ?? false) ||
+          (item.overview?.toLowerCase().contains(query) ?? false);
+    }).toList();
+  }
+
+  // 2. 排序
+  switch (sortOption) {
+    case GridSortOption.recentlyAdded:
+      // 保持原顺序（服务端返回的就是按添加时间排序的）
+      break;
+    case GridSortOption.rating:
+      items = List<MediaItem>.from(items)
+        ..sort((a, b) {
+          final ratingA = a.displayRating ?? 0.0;
+          final ratingB = b.displayRating ?? 0.0;
+          return ratingB.compareTo(ratingA); // 评分从高到低
+        });
+      break;
+    case GridSortOption.title:
+      items = List<MediaItem>.from(items)
+        ..sort((a, b) {
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
+      break;
+  }
+
+  return items;
+});

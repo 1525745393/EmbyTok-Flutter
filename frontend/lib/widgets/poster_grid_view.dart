@@ -21,11 +21,12 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
+    final filteredItems = ref.watch(gridFilteredVideoListProvider);
 
     if (videoState.items.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
-    if (videoState.items.isEmpty) {
+    if (filteredItems.isEmpty) {
       return Center(
         child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
       );
@@ -39,17 +40,17 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
+      itemCount: filteredItems.length + (videoState.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        // 分页加载触发
+        // 分页加载触发（基于原始列表，因为过滤是客户端行为）
         if (videoState.hasMore && index >= videoState.items.length - 3 && !videoState.isLoading) {
           ref.read(videoListProvider.notifier).loadMore();
         }
         // 末尾加载指示器
-        if (index >= videoState.items.length) {
+        if (index >= filteredItems.length) {
           return Center(child: CircularProgressIndicator(color: scheme.primary));
         }
-        final item = videoState.items[index];
+        final item = filteredItems[index];
         return _PosterCard(key: Key(item.id), item: item);
       },
     );
