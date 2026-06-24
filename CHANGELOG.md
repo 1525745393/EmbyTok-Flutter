@@ -1,3 +1,11 @@
+# [1.82.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.81.0...v1.82.0) (2026-06-24)
+
+
+### Features
+
+* 自动化测试缺口分析与补充 ([16407f5](https://github.com/1525745393/EmbyTok-Flutter/commit/16407f51c977a78bffd5600fbf52f602a5029b5b))
+* 自动化测试缺口分析与补充 ([b745f53](https://github.com/1525745393/EmbyTok-Flutter/commit/b745f538ca24ab85fa17dc37a93ac8ee0750a3b3))
+
 # [1.81.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.80.0...v1.81.0) (2026-06-24)
 
 
