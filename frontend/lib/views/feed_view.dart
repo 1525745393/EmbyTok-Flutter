@@ -77,23 +77,38 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // ========== 预加载与清理（基于 VideoPoolService）==========
 
-  // 对指定 index 的下一条视频发起预加载
+  // 对指定 index 的上一条和下一条视频发起预加载
   // 由 VideoPoolService 负责降级链（DirectPlay → DirectStream → HLS）
-  void _preloadNextVideo(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
-    if (index + 1 >= items.length) return;
+  void _preloadNeighbors(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
     if (embyServerUrl == null || token == null) return;
-    final nextItem = items[index + 1];
-    if (ref.read(videoPoolProvider).hasSession(nextItem.id)) return;
-    // 异步发起，不 await，不阻塞 UI
-    ref
-        .read(videoPoolProvider)
-        .preload(item: nextItem, serverUrl: embyServerUrl, token: token);
+    // 预加载上一条
+    if (index - 1 >= 0) {
+      final prevItem = items[index - 1];
+      if (!ref.read(videoPoolProvider).hasSession(prevItem.id)) {
+        unawaited(
+          ref.read(videoPoolProvider).preload(item: prevItem, serverUrl: embyServerUrl, token: token),
+        );
+      }
+    }
+    // 预加载下一条
+    if (index + 1 < items.length) {
+      final nextItem = items[index + 1];
+      if (!ref.read(videoPoolProvider).hasSession(nextItem.id)) {
+        unawaited(
+          ref.read(videoPoolProvider).preload(item: nextItem, serverUrl: embyServerUrl, token: token),
+        );
+      }
+    }
   }
 
-  // 清理距离当前索引较远的会话（只保留当前 + 下一条，其余全部清理）
+  // 清理距离当前索引较远的会话（只保留上一条 + 下一条，其余全部清理）
   void _evictFarPreloads(int currentIndex, List<MediaItem> items) {
     final keepIds = <String>[];
     // 当前条目（如存在）：保持在池中（VideoPageItem 已取出，池里不包含）
+    // 上一条（如存在）：保留预加载
+    if (currentIndex - 1 >= 0) {
+      keepIds.add(items[currentIndex - 1].id);
+    }
     // 下一条（如存在）：保留预加载
     if (currentIndex + 1 < items.length) {
       keepIds.add(items[currentIndex + 1].id);
@@ -573,9 +588,9 @@ class _FeedViewState extends ConsumerState<FeedView>
             ref.read(videoListProvider.notifier).loadMore();
           }
         }
-        // 预加载下一条视频（走 VideoPoolService 降级链）
-        _preloadNextVideo(index, videoState.items, embyServerUrl, token);
-        // 清理距离较远的预加载缓存（保留当前 + 下一条）
+        // 预加载上一条和下一条视频（走 VideoPoolService 降级链）
+        _preloadNeighbors(index, videoState.items, embyServerUrl, token);
+        // 清理距离较远的预加载缓存（保留上一条 + 下一条）
         _evictFarPreloads(index, videoState.items);
       },
       itemBuilder: (context, index) {
@@ -585,9 +600,9 @@ class _FeedViewState extends ConsumerState<FeedView>
         final item = videoState.items[index];
         // 从 VideoPoolService 取出预加载的会话（如存在）
         final preloadedSession = _takePreloadedSession(item.id);
-        // 首次构建时对下一条发起预加载
+        // 首次构建时对相邻条目发起预加载
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
-          _preloadNextVideo(0, videoState.items, embyServerUrl, token);
+          _preloadNeighbors(0, videoState.items, embyServerUrl, token);
         }
         return VideoPageItem(
           item: item,

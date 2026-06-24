@@ -23,7 +23,7 @@ void main() {
     dioAdapter = DioAdapter(dio: dio);
     dio.httpClientAdapter = dioAdapter;
     apiClient = ApiClient.withDio(dio);
-    service = EmbytokService(apiClient: apiClient);
+    service = EmbytokService.withClient(apiClient);
   });
 
   group('演员 API 对接测试', () {

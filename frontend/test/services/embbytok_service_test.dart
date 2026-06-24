@@ -28,7 +28,7 @@ void main() {
     dioAdapter = DioAdapter(dio: dio);
     dio.httpClientAdapter = dioAdapter;
     apiClient = ApiClient.withDio(dio);
-    service = EmbytokService(apiClient: apiClient);
+    service = EmbytokService.withClient(apiClient);
   });
 
   // 构造 Emby 原生 PascalCase 的单个媒体项响应

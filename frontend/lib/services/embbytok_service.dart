@@ -11,14 +11,20 @@ import '../utils/logger.dart';
 import 'api_client.dart';
 
 class EmbytokService {
+  static final EmbytokService _instance = EmbytokService._internal();
+
+  factory EmbytokService() => _instance;
+
+  EmbytokService._internal()
+      : _apiClient = ApiClient();
+
+  EmbytokService.withClient(this._apiClient);
+
   final ApiClient _apiClient;
   String? _defaultServerUrl;
   String? _defaultToken;
   // 保存当前登录用户的 userId，用于 Views 端点和云同步等需要用户身份的接口
   String? _defaultUserId;
-
-  EmbytokService({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
 
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
