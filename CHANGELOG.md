@@ -1,3 +1,15 @@
+# [1.80.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.79.1...v1.80.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复 TvFocusable 边框遮挡内容问题 ([e313094](https://github.com/1525745393/EmbyTok-Flutter/commit/e31309453f3112b105b0905109ba8300962c414f))
+
+
+### Features
+
+* 添加演员按钮与演员页面 ([f076d6f](https://github.com/1525745393/EmbyTok-Flutter/commit/f076d6f6abdbe8a368415699a71883a1b3587229))
+
 ## [1.74.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.74.0...v1.74.1) (2026-06-22)
 
 
