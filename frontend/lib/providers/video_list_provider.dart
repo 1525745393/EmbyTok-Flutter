@@ -3,12 +3,15 @@
 // 1. 监听 selectedLibraryIdsProvider 变化，自动触发视频加载
 // 2. 支持分页（offset/limit）
 // 3. 支持方向过滤（通过 filteredVideoListProvider）
+// 4. 网格模式支持服务端排序和搜索
+
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
-import '../utils/app_preferences.dart' show OrientationMode, FeedType;
+import '../utils/app_preferences.dart' show OrientationMode, FeedType, ViewMode;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
@@ -22,6 +25,9 @@ import 'library_provider.dart';
 /// - [isLoading] 是否正在加载中
 /// - [hasMore] 是否还有更多数据可加载
 /// - [feedType] 当前浏览模式（latest/random/favorites/resume）
+/// - [sortBy] 排序字段（Emby SortBy 参数）
+/// - [sortOrder] 排序顺序（Ascending/Descending）
+/// - [searchTerm] 搜索关键词
 class VideoListState {
   final List<MediaItem> items;
   final bool isLoading;
@@ -30,6 +36,9 @@ class VideoListState {
   final int offset;
   final int limit;
   final FeedType feedType; // 当前浏览模式
+  final String sortBy;
+  final String sortOrder;
+  final String searchTerm;
 
   const VideoListState({
     this.items = const <MediaItem>[],
@@ -39,6 +48,9 @@ class VideoListState {
     this.offset = 0,
     this.limit = kDefaultPageLimit,
     this.feedType = FeedType.latest,
+    this.sortBy = 'DateCreated,SortName',
+    this.sortOrder = 'Descending',
+    this.searchTerm = '',
   });
 
   VideoListState copyWith({
@@ -49,6 +61,9 @@ class VideoListState {
     int? offset,
     int? limit,
     FeedType? feedType,
+    String? sortBy,
+    String? sortOrder,
+    String? searchTerm,
   }) {
     return VideoListState(
       items: items ?? this.items,
@@ -58,6 +73,9 @@ class VideoListState {
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
       feedType: feedType ?? this.feedType,
+      sortBy: sortBy ?? this.sortBy,
+      sortOrder: sortOrder ?? this.sortOrder,
+      searchTerm: searchTerm ?? this.searchTerm,
     );
   }
 }
@@ -67,9 +85,13 @@ class VideoListState {
 /// 内部监听：
 /// - [selectedLibraryIdsProvider] 媒体库选择变化
 /// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
+/// - [gridSortOptionProvider] 网格排序变化
+/// - [gridSearchQueryProvider] 网格搜索变化
+/// - [viewModeProvider] 视图模式变化（切回feed时重置排序搜索）
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
+  Timer? _searchDebounceTimer;
 
   VideoListNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
@@ -96,10 +118,69 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
+    // 监听 gridSortOptionProvider 变化：网格排序变化时刷新（仅 latest 模式）
+    _ref.listen<GridSortOption>(
+      gridSortOptionProvider,
+      (previous, next) {
+        if (next != previous) {
+          final viewMode = _ref.read(viewModeProvider);
+          final feedType = _ref.read(feedTypeProvider);
+          if (viewMode == ViewMode.grid && feedType == FeedType.latest) {
+            AppLogger.debug('网格排序变化：${previous?.label} -> ${next.label}，刷新视频列表');
+            _applySortAndRefresh(next.sortBy, next.sortOrder);
+          }
+        }
+      },
+    );
+    // 监听 gridSearchQueryProvider 变化：网格搜索变化时刷新（防抖）
+    _ref.listen<String>(
+      gridSearchQueryProvider,
+      (previous, next) {
+        final viewMode = _ref.read(viewModeProvider);
+        final feedType = _ref.read(feedTypeProvider);
+        if (viewMode == ViewMode.grid && feedType == FeedType.latest) {
+          _searchDebounceTimer?.cancel();
+          _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+            AppLogger.debug('网格搜索变化："$previous" -> "$next"，刷新视频列表');
+            _applySearchAndRefresh(next);
+          });
+        }
+      },
+    );
+    // 监听 viewModeProvider 变化：切回 feed 模式时重置排序搜索
+    _ref.listen<ViewMode>(
+      viewModeProvider,
+      (previous, next) {
+        if (next == ViewMode.feed && previous == ViewMode.grid) {
+          // 切回 feed 模式：如果排序或搜索不是默认值，则重置并刷新
+          if (state.sortBy != 'DateCreated,SortName' ||
+              state.sortOrder != 'Descending' ||
+              state.searchTerm.isNotEmpty) {
+            AppLogger.debug('切回 feed 模式，重置排序和搜索');
+            // 重置 grid provider 的值
+            _ref.read(gridSortOptionProvider.notifier).state = GridSortOption.recentlyAdded;
+            _ref.read(gridSearchQueryProvider.notifier).state = '';
+            refresh();
+          }
+        }
+      },
+    );
   }
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
+
+  // 应用排序并刷新
+  void _applySortAndRefresh(String sortBy, String sortOrder) {
+    state = state.copyWith(sortBy: sortBy, sortOrder: sortOrder);
+    refresh();
+  }
+
+  // 应用搜索并刷新
+  void _applySearchAndRefresh(String searchTerm) {
+    state = state.copyWith(searchTerm: searchTerm);
+    refresh();
+  }
 
   // 根据当前 feedType 刷新视频列表
   // latest: 走 getLibraryItems 分页（支持多库混合）
@@ -158,6 +239,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 serverUrl: auth.embyServerUrl!,
                 token: auth.token!,
                 userId: auth.user?.id,
+                sortBy: state.sortBy,
+                sortOrder: state.sortOrder,
+                searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
               );
               merged.addAll(resp.items);
             } catch (e) {
@@ -312,6 +396,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
               serverUrl: auth.embyServerUrl!,
               token: auth.token!,
               userId: auth.user?.id,
+              sortBy: state.sortBy,
+              sortOrder: state.sortOrder,
+              searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
             );
             merged.addAll(resp.items);
           }
@@ -369,13 +456,99 @@ final videoListProvider =
 // ==================== 网格模式排序与搜索 ====================
 
 /// 网格视图排序选项
+///
+/// 每个选项对应 Emby API 的 SortBy 和 SortOrder 参数
 enum GridSortOption {
-  recentlyAdded('最近添加'),
-  rating('评分'),
-  title('标题');
+  resolution(
+    label: '分辨率',
+    sortBy: 'Height',
+    sortOrder: 'Descending',
+  ),
+  dateCreated(
+    label: '加入日期',
+    sortBy: 'DateCreated',
+    sortOrder: 'Descending',
+  ),
+  premiereDate(
+    label: '发行日期',
+    sortBy: 'PremiereDate',
+    sortOrder: 'Descending',
+  ),
+  container(
+    label: '媒体容器',
+    sortBy: 'Container',
+    sortOrder: 'Ascending',
+  ),
+  officialRating(
+    label: '家长评分',
+    sortBy: 'OfficialRating',
+    sortOrder: 'Ascending',
+  ),
+  productionYear(
+    label: '年份',
+    sortBy: 'ProductionYear',
+    sortOrder: 'Descending',
+  ),
+  criticRating(
+    label: '影评人评分',
+    sortBy: 'CriticRating',
+    sortOrder: 'Descending',
+  ),
+  datePlayed(
+    label: '播放日期',
+    sortBy: 'DatePlayed',
+    sortOrder: 'Descending',
+  ),
+  runtime(
+    label: '播放时长',
+    sortBy: 'Runtime',
+    sortOrder: 'Descending',
+  ),
+  playCount(
+    label: '播放次数',
+    sortBy: 'PlayCount',
+    sortOrder: 'Descending',
+  ),
+  sortName(
+    label: '文件名',
+    sortBy: 'SortName',
+    sortOrder: 'Ascending',
+  ),
+  size(
+    label: '文件尺寸',
+    sortBy: 'Size',
+    sortOrder: 'Descending',
+  ),
+  name(
+    label: '标题',
+    sortBy: 'SortName',
+    sortOrder: 'Ascending',
+  ),
+  bitrate(
+    label: '比特率',
+    sortBy: 'Bitrate',
+    sortOrder: 'Descending',
+  ),
+  random(
+    label: '随机',
+    sortBy: 'Random',
+    sortOrder: 'Ascending',
+  ),
+  recentlyAdded(
+    label: '最近添加',
+    sortBy: 'DateCreated,SortName',
+    sortOrder: 'Descending',
+  );
 
   final String label;
-  const GridSortOption(this.label);
+  final String sortBy;
+  final String sortOrder;
+
+  const GridSortOption({
+    required this.label,
+    required this.sortBy,
+    required this.sortOrder,
+  });
 }
 
 /// 网格视图排序选项 Provider
@@ -461,53 +634,13 @@ class PlaybackListNotifier extends StateNotifier<PlaybackListState> {
 
 // ==================== 网格模式过滤与排序后的派生 Provider ====================
 
-/// 网格模式下经过搜索过滤和排序后的视频列表
+/// 网格模式下的视频列表
 ///
-/// 功能：
-/// - 按标题关键词搜索过滤
-/// - 按排序选项排序（最近添加/评分/标题）
+/// 说明：排序和搜索已通过 Emby 服务端 API 实现，
+/// 这里直接返回 videoListProvider 的数据。
+/// 保留此 provider 是为了保持 API 一致性，
+/// 未来如果需要客户端额外过滤可以在这里添加。
 final gridFilteredVideoListProvider = Provider<List<MediaItem>>((ref) {
   final videoState = ref.watch(videoListProvider);
-  final searchQuery = ref.watch(gridSearchQueryProvider);
-  final sortOption = ref.watch(gridSortOptionProvider);
-
-  // 如果是加载中或错误状态，直接返回原列表
-  if (videoState.isLoading || videoState.error != null) {
-    return videoState.items;
-  }
-
-  var items = videoState.items;
-
-  // 1. 搜索过滤
-  if (searchQuery.isNotEmpty) {
-    final query = searchQuery.toLowerCase();
-    items = items.where((item) {
-      return item.title.toLowerCase().contains(query) ||
-          (item.seriesName?.toLowerCase().contains(query) ?? false) ||
-          (item.overview?.toLowerCase().contains(query) ?? false);
-    }).toList();
-  }
-
-  // 2. 排序
-  switch (sortOption) {
-    case GridSortOption.recentlyAdded:
-      // 保持原顺序（服务端返回的就是按添加时间排序的）
-      break;
-    case GridSortOption.rating:
-      items = List<MediaItem>.from(items)
-        ..sort((a, b) {
-          final ratingA = a.displayRating ?? 0.0;
-          final ratingB = b.displayRating ?? 0.0;
-          return ratingB.compareTo(ratingA); // 评分从高到低
-        });
-      break;
-    case GridSortOption.title:
-      items = List<MediaItem>.from(items)
-        ..sort((a, b) {
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-        });
-      break;
-  }
-
-  return items;
+  return videoState.items;
 });
