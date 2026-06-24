@@ -1,3 +1,10 @@
+# [1.92.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.91.0...v1.92.0) (2026-06-24)
+
+
+### Features
+
+* 网格模式点击视频切换到视频流并从该视频播放 ([#41](https://github.com/1525745393/EmbyTok-Flutter/issues/41)) ([9ff860a](https://github.com/1525745393/EmbyTok-Flutter/commit/9ff860a0ef4c16fe84912261e3f5f65e295e587f))
+
 # [1.91.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.90.1...v1.91.0) (2026-06-24)
 
 
