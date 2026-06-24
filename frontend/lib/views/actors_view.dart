@@ -75,10 +75,20 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   bool get hasMore => _actors.length < _total;
 
-  Future<Map<String, dynamic>?> _loadActorsFromCache() async {
+  // 根据类型获取缓存键
+  String _getCacheKey(String? personType) {
+    return personType == null ? kStorageKeyActorsCache : '$kStorageKeyActorsCachePrefix$personType';
+  }
+
+  // 根据类型获取缓存时间键
+  String _getCacheTimeKey(String? personType) {
+    return personType == null ? kStorageKeyActorsCacheTime : '$kStorageKeyActorsCacheTimePrefix$personType';
+  }
+
+  Future<Map<String, dynamic>?> _loadActorsFromCache(String? personType) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cacheJson = prefs.getString(kStorageKeyActorsCache);
+      final cacheJson = prefs.getString(_getCacheKey(personType));
       if (cacheJson == null || cacheJson.isEmpty) return null;
 
       final decoded = json.decode(cacheJson);
@@ -89,30 +99,31 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     return null;
   }
 
-  Future<void> _saveActorsToCache(List<Person> actors, int total) async {
+  Future<void> _saveActorsToCache(List<Person> actors, int total, String? personType) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final actorsJson = actors.map((a) => a.toJson()).toList();
       final cacheData = {
         'actors': actorsJson,
         'total': total,
+        'personType': personType,
       };
-      await prefs.setString(kStorageKeyActorsCache, json.encode(cacheData));
-      await prefs.setInt(kStorageKeyActorsCacheTime, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setString(_getCacheKey(personType), json.encode(cacheData));
+      await prefs.setInt(_getCacheTimeKey(personType), DateTime.now().millisecondsSinceEpoch);
     } catch (_) {}
   }
 
-  Future<int?> _getCacheTimestamp() async {
+  Future<int?> _getCacheTimestamp(String? personType) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(kStorageKeyActorsCacheTime);
+      return prefs.getInt(_getCacheTimeKey(personType));
     } catch (_) {
       return null;
     }
   }
 
-  Future<bool> _isCacheExpired() async {
-    final timestamp = await _getCacheTimestamp();
+  Future<bool> _isCacheExpired(String? personType) async {
+    final timestamp = await _getCacheTimestamp(personType);
     if (timestamp == null) return true;
     final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
@@ -120,55 +131,43 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   }
 
   Future<void> _loadActors({bool forceRefresh = false}) async {
-    // 只有"全部"类型时才使用缓存，其他类型直接从服务器加载
-    final useCache = _selectedPersonType == null;
+    final personType = _selectedPersonType;
+    final cacheData = await _loadActorsFromCache(personType);
+    final isExpired = await _isCacheExpired(personType);
+    final hasCache = cacheData != null;
 
-    if (useCache) {
-      final cacheData = await _loadActorsFromCache();
-      final isExpired = await _isCacheExpired();
-      final hasCache = cacheData != null;
-
-      // 强制刷新或无缓存时，显示加载动画
-      if (forceRefresh || !hasCache) {
-        setState(() {
-          _loading = true;
-          _error = null;
-          _actors = [];
-        });
-        _fetchAllActorsFromServer(forceRefresh: forceRefresh);
-        return;
-      }
-
-      // 有缓存时，先显示缓存数据
-      final actorsList = (cacheData['actors'] as List<dynamic>)
-          .map((e) => Person.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final total = cacheData['total'] as int? ?? 0;
-
-      if (mounted) {
-        setState(() {
-          _actors = actorsList;
-          _total = total;
-          _loading = false;
-          _error = null;
-          _isRefreshingFromCache = !isExpired;
-        });
-      }
-
-      _loadFavoritePeople();
-
-      // 缓存过期时，后台静默刷新
-      if (isExpired) {
-        _fetchAllActorsFromServer(forceRefresh: false);
-      }
-    } else {
-      // 非全部类型，直接从服务器加载第一页
+    // 强制刷新或无缓存时，显示加载动画
+    if (forceRefresh || !hasCache) {
       setState(() {
         _loading = true;
         _error = null;
         _actors = [];
       });
-      _fetchActorsFirstPage(forceRefresh: true);
+      _fetchAllActorsFromServer(forceRefresh: forceRefresh);
+      return;
+    }
+
+    // 有缓存时，先显示缓存数据
+    final actorsList = (cacheData['actors'] as List<dynamic>)
+        .map((e) => Person.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final total = cacheData['total'] as int? ?? 0;
+
+    if (mounted) {
+      setState(() {
+        _actors = actorsList;
+        _total = total;
+        _loading = false;
+        _error = null;
+        _isRefreshingFromCache = !isExpired;
+      });
+    }
+
+    _loadFavoritePeople();
+
+    // 缓存过期时，后台静默刷新
+    if (isExpired) {
+      _fetchAllActorsFromServer(forceRefresh: false);
     }
   }
 
@@ -234,10 +233,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         userId: auth.user?.id,
       );
 
-      // 只有"全部"类型时才缓存数据
-      if (_selectedPersonType == null) {
-        _saveActorsToCache(allActors, total);
-      }
+      // 缓存全部演员数据
+      _saveActorsToCache(allActors, total, _selectedPersonType);
 
       if (mounted) {
         setState(() {

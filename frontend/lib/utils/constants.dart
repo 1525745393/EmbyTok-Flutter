@@ -45,6 +45,8 @@ const String kStorageKeyLastVideoIndex = 'embbytok_last_video_index';
 const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
 const String kStorageKeyActorsCache = 'embbytok_actors_cache';
 const String kStorageKeyActorsCacheTime = 'embbytok_actors_cache_time';
+const String kStorageKeyActorsCachePrefix = 'embbytok_actors_cache_';
+const String kStorageKeyActorsCacheTimePrefix = 'embbytok_actors_cache_time_';
 
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
