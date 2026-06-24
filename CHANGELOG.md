@@ -1,3 +1,10 @@
+# [1.93.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.92.0...v1.93.0) (2026-06-24)
+
+
+### Features
+
+* 演员页面状态持久化（类型/Tab/搜索/滚动位置） ([#43](https://github.com/1525745393/EmbyTok-Flutter/issues/43)) ([1774028](https://github.com/1525745393/EmbyTok-Flutter/commit/17740281606f426c29df7edb0a31ece79203a94e))
+
 # [1.92.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.91.0...v1.92.0) (2026-06-24)
 
 
