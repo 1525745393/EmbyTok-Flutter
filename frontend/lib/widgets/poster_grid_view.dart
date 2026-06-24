@@ -10,7 +10,9 @@ import 'video_page_item.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
 class PosterGridView extends ConsumerStatefulWidget {
-  const PosterGridView({super.key});
+  final ScrollController? scrollController;
+
+  const PosterGridView({super.key, this.scrollController});
 
   @override
   ConsumerState<PosterGridView> createState() => _PosterGridViewState();
@@ -33,6 +35,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     }
 
     return GridView.builder(
+      controller: widget.scrollController,
       padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
