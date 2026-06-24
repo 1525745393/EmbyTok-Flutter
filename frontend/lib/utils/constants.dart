@@ -40,6 +40,7 @@ const String kStorageKeyDefaultPlaybackRate = 'embbytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_language';
 const String kStorageKeyVideoQuality = 'embbytok_video_quality';
 const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
+const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
 
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
