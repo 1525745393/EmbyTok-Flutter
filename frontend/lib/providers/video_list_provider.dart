@@ -668,3 +668,8 @@ final gridFilteredVideoListProvider = Provider<List<MediaItem>>((ref) {
   final videoState = ref.watch(videoListProvider);
   return videoState.items;
 });
+
+/// 网格模式下点击选中的视频 ID
+///
+/// 用于：网格模式点击视频后，切换到视频流模式并从该视频开始播放
+final gridSelectedItemIdProvider = StateProvider<String?>((ref) => null);

@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/image_cache_manager.dart';
 import 'tv_focusable.dart';
-import 'video_page_item.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
 class PosterGridView extends ConsumerStatefulWidget {
@@ -73,13 +73,11 @@ class _PosterCard extends ConsumerWidget {
 
     return TvFocusable(
       onTap: () {
-        // 点击海报进入视频播放
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            body: VideoPageItem(item: item),
-          ),
-        ));
+        // 点击海报切换到视频流模式并从该视频开始播放
+        // 1. 设置选中的视频 ID
+        ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
+        // 2. 切换到视频流模式
+        ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
       },
       borderRadius: 8,
       borderWidth: 2,
