@@ -170,7 +170,7 @@ class SettingsView extends ConsumerWidget {
       subtitle: '视频结束后自动播放下一个',
       value: isAutoPlay,
       onChanged: (value) {
-        ref.read(isAutoPlayProvider.notifier).setAutoPlay(value);
+        ref.read(isAutoPlayProvider.notifier).setEnabled(value);
       },
     );
   }
@@ -292,7 +292,7 @@ class SettingsView extends ConsumerWidget {
 
   // 关于 - 版本信息
   Widget _buildVersionTile(BuildContext context) {
-    return const _InfoTile(
+    return _InfoTile(
       icon: Icons.new_releases_outlined,
       iconColor: Colors.blueGrey,
       title: '版本',
