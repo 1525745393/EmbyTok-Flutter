@@ -1,3 +1,11 @@
+# [1.90.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.89.0...v1.90.0) (2026-06-24)
+
+
+### Features
+
+* 列表滚动位置持久化，重启后恢复上次浏览位置 ([cb264d4](https://github.com/1525745393/EmbyTok-Flutter/commit/cb264d4ed8c6dd338e12d0830859067982d6e563))
+* 添加推荐按钮 ([2a5d163](https://github.com/1525745393/EmbyTok-Flutter/commit/2a5d163407d4ed104a90bd254306518766439891))
+
 # [1.89.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.88.1...v1.89.0) (2026-06-24)
 
 
