@@ -5,6 +5,7 @@ class UserData {
   final bool played;                    // 是否已完整观看
   final int unplayedItemCount;          // 未看集数（用于剧集/季）
   final String? lastPlayedDate;         // 最后播放日期
+  final int playCount;                  // 播放次数
 
   const UserData({
     this.playbackPositionTicks = 0.0,
@@ -12,6 +13,7 @@ class UserData {
     this.played = false,
     this.unplayedItemCount = 0,
     this.lastPlayedDate,
+    this.playCount = 0,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,10 @@ class UserData {
           0,
       lastPlayedDate: (json['LastPlayedDate'] as String?) ??
           (json['last_played_date'] as String?),
+      playCount: (json['PlayCount'] as int?) ??
+          (json['play_count'] as int?) ??
+          (json['playCount'] as int?) ??
+          0,
     );
   }
 
@@ -43,5 +49,6 @@ class UserData {
         'played': played,
         'unplayed_item_count': unplayedItemCount,
         'last_played_date': lastPlayedDate,
+        'play_count': playCount,
       };
 }

@@ -161,24 +161,31 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
+    String sortBy = 'DateCreated,SortName',
+    String sortOrder = 'Descending',
+    String? searchTerm,
   }) async {
     AppLogger.debug('请求视频列表', data: {
       'libraryId': libraryId,
       'limit': limit,
       'offset': offset,
+      'sortBy': sortBy,
+      'sortOrder': sortOrder,
+      if (searchTerm != null) 'searchTerm': searchTerm,
     });
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
       'ParentId': libraryId,
       'Limit': '$limit',
       'StartIndex': '$offset',
-      'SortBy': 'DateCreated,SortName',
-      'SortOrder': 'Descending',
+      'SortBy': sortBy,
+      'SortOrder': sortOrder,
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
+      if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
     };
 
     final effectiveUserId = userId ?? _defaultUserId;

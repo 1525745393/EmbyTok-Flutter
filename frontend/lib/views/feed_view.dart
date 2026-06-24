@@ -20,16 +20,6 @@ import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
 
-/// 排序选项枚举
-enum SortOption {
-  recentlyAdded('最近添加'),
-  rating('评分'),
-  title('标题');
-
-  final String label;
-  const SortOption(this.label);
-}
-
 class FeedView extends ConsumerStatefulWidget {
   final String? initialItemId; // 初始播放的视频 ID（从其他页面跳转时使用）
 
@@ -54,10 +44,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
 
-  // 网格视图搜索和排序状态
-  final TextEditingController _searchController = TextEditingController();
-  SortOption _sortOption = SortOption.recentlyAdded;
-  String _searchQuery = '';
+  // 网格视图搜索框控制器（值同步到 gridSearchQueryProvider）
+  final TextEditingController _gridSearchController = TextEditingController();
 
   @override
   bool get wantKeepAlive => true;
@@ -85,7 +73,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
-    _searchController.dispose();
+    _gridSearchController.dispose();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
     ref.read(videoPoolProvider).disposeAll();
     super.dispose();
@@ -563,7 +551,8 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 网格模式顶部栏：搜索框 + 排序 + 视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    final feedType = ref.watch(feedTypeProvider);
+    final sortOption = ref.watch(gridSortOptionProvider);
+    final searchQuery = ref.watch(gridSearchQueryProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
@@ -571,16 +560,16 @@ class _FeedViewState extends ConsumerState<FeedView>
           // 搜索框
           Expanded(
             child: TextField(
-              controller: _searchController,
+              controller: _gridSearchController,
               decoration: InputDecoration(
                 hintText: '搜索视频...',
                 prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
+                suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
+                          _gridSearchController.clear();
+                          ref.read(gridSearchQueryProvider.notifier).state = '';
                         },
                       )
                     : null,
@@ -590,7 +579,9 @@ class _FeedViewState extends ConsumerState<FeedView>
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onChanged: (value) => setState(() => _searchQuery = value),
+              onChanged: (value) {
+                ref.read(gridSearchQueryProvider.notifier).state = value;
+              },
             ),
           ),
           const SizedBox(width: 8),
@@ -602,10 +593,10 @@ class _FeedViewState extends ConsumerState<FeedView>
               borderRadius: BorderRadius.circular(8),
             ),
             child: DropdownButtonHideUnderline(
-              child: DropdownButton<SortOption>(
-                value: _sortOption,
+              child: DropdownButton<GridSortOption>(
+                value: sortOption,
                 isDense: true,
-                items: SortOption.values.map((option) {
+                items: GridSortOption.values.map((option) {
                   return DropdownMenuItem(
                     value: option,
                     child: Row(
@@ -620,7 +611,7 @@ class _FeedViewState extends ConsumerState<FeedView>
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
-                    setState(() => _sortOption = value);
+                    ref.read(gridSortOptionProvider.notifier).state = value;
                   }
                 },
               ),

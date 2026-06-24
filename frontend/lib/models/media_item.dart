@@ -287,6 +287,67 @@ class MediaItem {
   // 有效评分：取 communityRating / rating 第一个有效值
   double? get displayRating => communityRating ?? rating;
 
+  // 加入日期（从 rawJson 读取 DateCreated）
+  DateTime? get dateCreated {
+    final raw = rawJson?['DateCreated'] as String?;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
+  // 家长评级（从 rawJson 读取 OfficialRating）
+  String? get officialRating => rawJson?['OfficialRating'] as String?;
+
+  // 影评人评分（从 rawJson 读取 CriticRating）
+  double? get criticRating {
+    final raw = rawJson?['CriticRating'];
+    if (raw == null) return null;
+    return (raw as num).toDouble();
+  }
+
+  // 文件名/路径（从 rawJson 读取 Path）
+  String? get path => rawJson?['Path'] as String?;
+
+  // 排序用名称（从 rawJson 读取 SortName）
+  String? get sortName => rawJson?['SortName'] as String?;
+
+  // 主媒体源（第一个媒体源）
+  MediaSource? get primaryMediaSource {
+    if (mediaSources == null || mediaSources!.isEmpty) return null;
+    return mediaSources!.first;
+  }
+
+  // 视频宽度（主媒体源）
+  int? get videoWidth => primaryMediaSource?.width;
+
+  // 视频高度（主媒体源）
+  int? get videoHeight => primaryMediaSource?.height;
+
+  // 视频分辨率（像素数，用于排序比较）
+  int get videoResolutionPixels {
+    final w = videoWidth ?? 0;
+    final h = videoHeight ?? 0;
+    return w * h;
+  }
+
+  // 媒体容器类型（主媒体源）
+  String? get container => primaryMediaSource?.container;
+
+  // 文件大小（字节，主媒体源）
+  int? get fileSize => primaryMediaSource?.size;
+
+  // 比特率（主媒体源）
+  int? get bitrate => primaryMediaSource?.bitrate;
+
+  // 播放次数
+  int get playCount => userData?.playCount ?? 0;
+
+  // 最后播放日期
+  DateTime? get lastPlayedDate {
+    final raw = userData?.lastPlayedDate;
+    if (raw == null || raw.isEmpty) return null;
+    return DateTime.tryParse(raw);
+  }
+
   bool get hasImage =>
       imageTags != null && imageTags!.isNotEmpty;
 
