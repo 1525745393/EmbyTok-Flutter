@@ -71,8 +71,9 @@ class _SearchViewState extends ConsumerState<SearchView>
       ref.read(searchHintsStateProvider.notifier).clear();
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 200), () {
-      ref.read(searchHintsStateProvider.notifier).fetchHints(value);
+    // 300ms 防抖后执行搜索
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _doSearch(value);
     });
   }
 
