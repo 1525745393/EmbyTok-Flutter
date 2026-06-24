@@ -1,3 +1,15 @@
+# [1.84.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.83.0...v1.84.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复设置页面编译错误 ([#28](https://github.com/1525745393/EmbyTok-Flutter/issues/28)) ([251a6e3](https://github.com/1525745393/EmbyTok-Flutter/commit/251a6e3e7e73dbd9013ac1ce476d0d484bb07174))
+
+
+### Features
+
+* 设置页面全面优化 ([c607ebc](https://github.com/1525745393/EmbyTok-Flutter/commit/c607ebc040b6c3bc06b8e8ca81adc823b8c823e2))
+
 # [1.83.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.82.0...v1.83.0) (2026-06-24)
 
 
