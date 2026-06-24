@@ -1,3 +1,10 @@
+## [1.88.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.88.0...v1.88.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复设置重启后恢复默认值的问题 ([ac612b8](https://github.com/1525745393/EmbyTok-Flutter/commit/ac612b8df18f8c5371b364c2191760919d11791d))
+
 # [1.88.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.87.1...v1.88.0) (2026-06-24)
 
 
