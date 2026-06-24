@@ -189,12 +189,13 @@ class SettingsView extends ConsumerWidget {
 
   // 播放 - 画质偏好
   Widget _buildVideoQualityTile(BuildContext context, WidgetRef ref) {
+    final quality = ref.watch(videoQualityProvider);
     return _TapTile(
       icon: Icons.high_quality_outlined,
       iconColor: Colors.blue,
       title: '画质偏好',
-      subtitle: '自动选择最佳画质',
-      onTap: () => _showVideoQualityDialog(context, ref),
+      subtitle: _videoQualityLabel(quality),
+      onTap: () => _showVideoQualityDialog(context, ref, quality),
     );
   }
 
@@ -223,12 +224,13 @@ class SettingsView extends ConsumerWidget {
 
   // 字幕 - 字幕大小
   Widget _buildSubtitleSizeTile(BuildContext context, WidgetRef ref) {
+    final size = ref.watch(subtitleSizeProvider);
     return _TapTile(
       icon: Icons.format_size_outlined,
       iconColor: Colors.teal,
       title: '字幕大小',
-      subtitle: '中等',
-      onTap: () => _showSubtitleSizeDialog(context),
+      subtitle: _subtitleSizeLabel(size),
+      onTap: () => _showSubtitleSizeDialog(context, ref, size),
     );
   }
 
@@ -494,7 +496,11 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  void _showVideoQualityDialog(BuildContext context, WidgetRef ref) {
+  void _showVideoQualityDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) {
     showDialog<void>(
       context: context,
       builder: (_) => _OptionDialog(
@@ -505,15 +511,10 @@ class SettingsView extends ConsumerWidget {
           ('720p', '720p'),
           ('480p', '480p'),
         ],
-        currentValue: 'auto',
+        currentValue: current,
         onSelect: (v) {
+          ref.read(videoQualityProvider.notifier).set(v);
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('画质偏好已设置为: $v'),
-              duration: const Duration(seconds: 1),
-            ),
-          );
         },
       ),
     );
@@ -591,7 +592,11 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  void _showSubtitleSizeDialog(BuildContext context) {
+  void _showSubtitleSizeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) {
     showDialog<void>(
       context: context,
       builder: (_) => _OptionDialog(
@@ -601,8 +606,9 @@ class SettingsView extends ConsumerWidget {
           ('中', 'medium'),
           ('大', 'large'),
         ],
-        currentValue: 'medium',
+        currentValue: current,
         onSelect: (v) {
+          ref.read(subtitleSizeProvider.notifier).set(v);
           Navigator.pop(context);
         },
       ),
@@ -749,6 +755,32 @@ class SettingsView extends ConsumerWidget {
       case 'system':
       default:
         return '跟随系统';
+    }
+  }
+
+  String _videoQualityLabel(String quality) {
+    switch (quality) {
+      case '1080p':
+        return '1080p';
+      case '720p':
+        return '720p';
+      case '480p':
+        return '480p';
+      case 'auto':
+      default:
+        return '自动选择最佳画质';
+    }
+  }
+
+  String _subtitleSizeLabel(String size) {
+    switch (size) {
+      case 'small':
+        return '小';
+      case 'large':
+        return '大';
+      case 'medium':
+      default:
+        return '中等';
     }
   }
 

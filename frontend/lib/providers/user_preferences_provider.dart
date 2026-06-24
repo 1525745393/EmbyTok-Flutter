@@ -2,14 +2,26 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../utils/app_preferences.dart';
+
 // ---------------- 默认播放倍速 ----------------
 
 /// 默认播放倍速：0.25 - 3.0 之间
 class DefaultPlaybackRateNotifier extends StateNotifier<double> {
-  DefaultPlaybackRateNotifier() : super(1.0);
+  DefaultPlaybackRateNotifier() : super(1.0) {
+    _load();
+  }
 
-  void set(double rate) {
-    if (rate >= 0.25 && rate <= 3.0) state = rate;
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.defaultPlaybackRate;
+  }
+
+  Future<void> set(double rate) async {
+    if (rate >= 0.25 && rate <= 3.0) {
+      state = rate;
+      await const AppPreferencesService().setDefaultPlaybackRate(rate);
+    }
   }
 }
 
@@ -22,15 +34,73 @@ final defaultPlaybackRateProvider =
 
 /// 默认字幕语言：如 'zh-CN'、'en'；空字符串表示关闭
 class DefaultSubtitleLanguageNotifier extends StateNotifier<String> {
-  DefaultSubtitleLanguageNotifier() : super('');
+  DefaultSubtitleLanguageNotifier() : super('') {
+    _load();
+  }
 
-  void set(String lang) => state = lang;
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.defaultSubtitleLanguage;
+  }
+
+  Future<void> set(String lang) async {
+    state = lang;
+    await const AppPreferencesService().setDefaultSubtitleLanguage(lang);
+  }
 }
 
 /// 顶层默认字幕语言 Provider
 final defaultSubtitleLanguageProvider =
     StateNotifierProvider<DefaultSubtitleLanguageNotifier, String>(
         (ref) => DefaultSubtitleLanguageNotifier());
+
+// ---------------- 视频画质 ----------------
+
+/// 视频画质：如 'auto'、'1080p'、'720p' 等
+class VideoQualityNotifier extends StateNotifier<String> {
+  VideoQualityNotifier() : super('auto') {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.videoQuality;
+  }
+
+  Future<void> set(String quality) async {
+    state = quality;
+    await const AppPreferencesService().setVideoQuality(quality);
+  }
+}
+
+/// 顶层视频画质 Provider
+final videoQualityProvider =
+    StateNotifierProvider<VideoQualityNotifier, String>(
+        (ref) => VideoQualityNotifier());
+
+// ---------------- 字幕大小 ----------------
+
+/// 字幕大小：如 'small'、'medium'、'large'
+class SubtitleSizeNotifier extends StateNotifier<String> {
+  SubtitleSizeNotifier() : super('medium') {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.subtitleSize;
+  }
+
+  Future<void> set(String size) async {
+    state = size;
+    await const AppPreferencesService().setSubtitleSize(size);
+  }
+}
+
+/// 顶层字幕大小 Provider
+final subtitleSizeProvider =
+    StateNotifierProvider<SubtitleSizeNotifier, String>(
+        (ref) => SubtitleSizeNotifier());
 
 // ---------------- 缓存大小 ----------------
 

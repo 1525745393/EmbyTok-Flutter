@@ -132,6 +132,10 @@ class AppPreferences {
   final bool isMuted;
   final bool isAutoPlay;
   final Set<String> hiddenLibraryIds;
+  final double defaultPlaybackRate;
+  final String defaultSubtitleLanguage;
+  final String videoQuality;
+  final String subtitleSize;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -141,6 +145,10 @@ class AppPreferences {
     this.isMuted = true,
     this.isAutoPlay = false,
     this.hiddenLibraryIds = const <String>{},
+    this.defaultPlaybackRate = 1.0,
+    this.defaultSubtitleLanguage = '',
+    this.videoQuality = 'auto',
+    this.subtitleSize = 'medium',
   });
 
   AppPreferences copyWith({
@@ -151,6 +159,10 @@ class AppPreferences {
     bool? isMuted,
     bool? isAutoPlay,
     Set<String>? hiddenLibraryIds,
+    double? defaultPlaybackRate,
+    String? defaultSubtitleLanguage,
+    String? videoQuality,
+    String? subtitleSize,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -160,6 +172,10 @@ class AppPreferences {
       isMuted: isMuted ?? this.isMuted,
       isAutoPlay: isAutoPlay ?? this.isAutoPlay,
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
+      defaultPlaybackRate: defaultPlaybackRate ?? this.defaultPlaybackRate,
+      defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
+      videoQuality: videoQuality ?? this.videoQuality,
+      subtitleSize: subtitleSize ?? this.subtitleSize,
     );
   }
 }
@@ -205,6 +221,11 @@ class AppPreferencesService {
       }
     }
 
+    final defaultPlaybackRate = prefs.getDouble(kStorageKeyDefaultPlaybackRate) ?? 1.0;
+    final defaultSubtitleLanguage = prefs.getString(kStorageKeyDefaultSubtitleLanguage) ?? '';
+    final videoQuality = prefs.getString(kStorageKeyVideoQuality) ?? 'auto';
+    final subtitleSize = prefs.getString(kStorageKeySubtitleSize) ?? 'medium';
+
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
       feedType: feedType,
@@ -213,6 +234,10 @@ class AppPreferencesService {
       isMuted: isMuted,
       isAutoPlay: isAutoPlay,
       hiddenLibraryIds: hiddenLibraryIds,
+      defaultPlaybackRate: defaultPlaybackRate,
+      defaultSubtitleLanguage: defaultSubtitleLanguage,
+      videoQuality: videoQuality,
+      subtitleSize: subtitleSize,
     );
   }
 
@@ -227,6 +252,10 @@ class AppPreferencesService {
       prefs.setBool(kStorageKeyIsMuted, preferences.isMuted),
       prefs.setBool(kStorageKeyIsAutoPlay, preferences.isAutoPlay),
       prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
+      prefs.setDouble(kStorageKeyDefaultPlaybackRate, preferences.defaultPlaybackRate),
+      prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
+      prefs.setString(kStorageKeyVideoQuality, preferences.videoQuality),
+      prefs.setString(kStorageKeySubtitleSize, preferences.subtitleSize),
     ]);
   }
 
@@ -270,5 +299,29 @@ class AppPreferencesService {
   Future<void> setHiddenLibraryIds(Set<String> ids) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(ids.toList(growable: false)));
+  }
+
+  // 单独更新默认播放速度
+  Future<void> setDefaultPlaybackRate(double rate) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(kStorageKeyDefaultPlaybackRate, rate);
+  }
+
+  // 单独更新默认字幕语言
+  Future<void> setDefaultSubtitleLanguage(String language) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kStorageKeyDefaultSubtitleLanguage, language);
+  }
+
+  // 单独更新视频画质
+  Future<void> setVideoQuality(String quality) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kStorageKeyVideoQuality, quality);
+  }
+
+  // 单独更新字幕大小
+  Future<void> setSubtitleSize(String size) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(kStorageKeySubtitleSize, size);
   }
 }
