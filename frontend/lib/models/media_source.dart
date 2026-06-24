@@ -8,6 +8,8 @@ class MediaSource {
   final int? runTimeTicks;             // 总时长
   final int? width;                   // 视频宽度
   final int? height;                  // 视频高度
+  final int? size;                    // 文件大小（字节）
+  final int? bitrate;                 // 比特率（bps）
   final List<MediaStream> mediaStreams;
   final Map<String, String>? httpHeaders;  // 播放需要的请求头（如 X-Emby-Token）
 
@@ -20,6 +22,8 @@ class MediaSource {
     this.runTimeTicks,
     this.width,
     this.height,
+    this.size,
+    this.bitrate,
     this.mediaStreams = const [],
     this.httpHeaders,
   });
@@ -59,9 +63,12 @@ class MediaSource {
           (json['transcoding_url'] as String?),
       container: (json['Container'] as String?) ?? (json['container'] as String?),
       runTimeTicks: (json['RunTimeTicks'] as int?) ??
-          (json['run_time_ticks'] as int?),
+          (json['run_time_ticks'] as int?) ??
+          (json['runtimeTicks'] as int?),
       width: videoWidth ?? (json['Width'] as int?) ?? (json['width'] as int?),
       height: videoHeight ?? (json['Height'] as int?) ?? (json['height'] as int?),
+      size: (json['Size'] as int?) ?? (json['size'] as int?),
+      bitrate: (json['Bitrate'] as int?) ?? (json['bitrate'] as int?),
       mediaStreams: streams,
       httpHeaders: null,
     );
