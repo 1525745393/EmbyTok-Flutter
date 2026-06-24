@@ -1,4 +1,4 @@
-// 搜索页：关键词输入 + 搜索结果列表 + 搜索历史
+// 搜索页：关键词输入 + 搜索建议 + 搜索结果列表 + 搜索历史
 // 支持两种模式：
 //   useScaffold=true: 独立路由模式（含 Scaffold + AppBar，通过 GoRouter 路由访问）
 //   useScaffold=false: 覆盖层模式（仅内容，通过 HomeScaffold Stack 渲染，Provider 管理返回）
@@ -20,7 +20,6 @@ import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
 class SearchView extends ConsumerStatefulWidget {
-  // 是否使用 Scaffold（true=独立路由模式，false=覆盖层模式）
   final bool useScaffold;
   const SearchView({super.key, this.useScaffold = true});
 
@@ -33,11 +32,25 @@ class _SearchViewState extends ConsumerState<SearchView>
   late final TextEditingController _controller;
   Timer? _debounce;
   final FocusNode _focusNode = FocusNode();
+  String? _selectedType;
+
+  // Emby 支持的媒体类型
+  static const List<Map<String, String>> _mediaTypes = [
+    {'type': '', 'label': '全部'},
+    {'type': 'Movie', 'label': '电影'},
+    {'type': 'Series', 'label': '剧集'},
+    {'type': 'Episode', 'label': '剧集'},
+    {'type': 'MusicAlbum', 'label': '音乐专辑'},
+    {'type': 'MusicArtist', 'label': '艺术家'},
+    {'type': 'Audio', 'label': '音频'},
+    {'type': 'BoxSet', 'label': '合集'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    _focusNode.requestFocus();
   }
 
   @override
@@ -55,16 +68,24 @@ class _SearchViewState extends ConsumerState<SearchView>
     _debounce?.cancel();
     if (value.isEmpty) {
       ref.read(searchProvider.notifier).search('');
+      ref.read(searchHintsProvider.notifier).clear();
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: kDebounceMs), () {
-      _doSearch(value);
+    // 短延迟后获取搜索建议
+    _debounce = Timer(const Duration(milliseconds: 200), () {
+      ref.read(searchHintsProvider.notifier).fetchHints(value);
     });
   }
 
   void _doSearch(String value) {
     ref.read(searchProvider.notifier).search(value);
     ref.read(searchHistoryProvider.notifier).add(value);
+    ref.read(searchHintsProvider.notifier).clear();
+  }
+
+  void _selectHint(SearchHint hint) {
+    _controller.text = hint.name;
+    _doSearch(hint.name);
   }
 
   void _clearHistory() {
@@ -86,12 +107,11 @@ class _SearchViewState extends ConsumerState<SearchView>
     super.build(context);
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(searchProvider);
+    final hintsState = ref.watch(searchHintsProvider);
     final history = ref.watch(searchHistoryProvider);
 
-    // 搜索页核心内容：顶部栏（可选） + 搜索框 + 结果列表
     final content = Column(
       children: [
-        // 覆盖层模式下的顶部栏（含返回按钮 + 标题）
         if (!widget.useScaffold)
           Container(
             padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
@@ -101,7 +121,6 @@ class _SearchViewState extends ConsumerState<SearchView>
                 IconButton(
                   icon: Icon(Icons.arrow_back, color: scheme.onSurface),
                   onPressed: () {
-                    // 使用 Provider 管理返回，避免 Navigator.pop 导致根路由被弹出
                     ref.read(pageNavigationNotifierProvider).backToFeed();
                   },
                 ),
@@ -122,6 +141,7 @@ class _SearchViewState extends ConsumerState<SearchView>
             controller: _controller,
             focusNode: _focusNode,
             onChanged: _onQueryChanged,
+            onSubmitted: _doSearch,
             style: TextStyle(color: scheme.onSurface, fontSize: 16),
             decoration: InputDecoration(
               hintText: '输入关键词搜索...',
@@ -144,17 +164,17 @@ class _SearchViewState extends ConsumerState<SearchView>
                 borderRadius: BorderRadius.circular(28),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
         ),
         Expanded(
-          child: _buildBody(state, history),
+          child: _buildBody(state, hintsState, history),
         ),
       ],
     );
 
-    // 根据模式选择外层包装：Scaffold（独立路由）或 SafeArea（覆盖层）
     if (widget.useScaffold) {
       return Scaffold(
         backgroundColor: scheme.surface,
@@ -177,10 +197,17 @@ class _SearchViewState extends ConsumerState<SearchView>
     }
   }
 
-  Widget _buildBody(SearchState state, List<String> history) {
-    // 空查询：显示历史
+  Widget _buildBody(
+      SearchState state, SearchHintsState hintsState, List<String> history) {
+    // 显示搜索建议（输入时显示）
+    if (hintsState.query.isNotEmpty &&
+        hintsState.hints.isNotEmpty &&
+        state.query.isEmpty) {
+      return _buildHints(hintsState);
+    }
+    // 空查询：显示历史和分类筛选
     if (state.query.isEmpty) {
-      return _buildHistory(history);
+      return _buildHistoryAndFilters(history);
     }
     // 加载中
     if (state.isLoading && state.results.isEmpty) {
@@ -229,46 +256,128 @@ class _SearchViewState extends ConsumerState<SearchView>
     );
   }
 
-  Widget _buildHistory(List<String> history) {
+  Widget _buildHints(SearchHintsState hintsState) {
     final scheme = Theme.of(context).colorScheme;
-    if (history.isEmpty) {
-      return _Centered(
-        child: EmptyStateCard.noSearchHistory(),
-      );
-    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: hintsState.hints.length,
+      itemBuilder: (context, index) {
+        final hint = hintsState.hints[index];
+        return ListTile(
+          onTap: () => _selectHint(hint),
+          leading: const Icon(Icons.search, size: 18),
+          title: Text(
+            hint.name,
+            style: TextStyle(color: scheme.onSurface, fontSize: 15),
+          ),
+          subtitle: hint.seriesName != null && hint.seriesName!.isNotEmpty
+              ? Text(
+                  hint.seriesName!,
+                  style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
+                )
+              : null,
+          trailing: hint.year != null
+              ? Text(
+                  hint.year.toString(),
+                  style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                )
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildHistoryAndFilters(List<String> history) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          // 分类筛选
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('媒体类型',
+                  style: TextStyle(
+                      color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _mediaTypes
+                  .map((item) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(item['label']!),
+                          selected: _selectedType == item['type'],
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedType =
+                                  selected ? item['type'] : null;
+                            });
+                          },
+                          selectedColor: scheme.primary,
+                          labelStyle: TextStyle(
+                            color: _selectedType == item['type']
+                                ? scheme.onPrimary
+                                : scheme.onSurface.withOpacity(0.7),
+                            fontSize: 13,
+                          ),
+                          backgroundColor:
+                              scheme.onSurface.withOpacity(0.05),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // 搜索历史
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('搜索历史',
                   style: TextStyle(
                       color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
-              TextButton(
-                onPressed: _clearHistory,
-                child: Text('清空', style: TextStyle(color: scheme.primary)),
-              ),
+              if (history.isNotEmpty)
+                TextButton(
+                  onPressed: _clearHistory,
+                  child: Text('清空', style: TextStyle(color: scheme.primary)),
+                ),
             ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.start,
-            children: history
-                .map((keyword) => _HistoryChip(
-                  label: keyword,
-                  onTap: () {
-                    _controller.text = keyword;
-                    _doSearch(keyword);
-                  },
-                  onRemove: () =>
-                      ref.read(searchHistoryProvider.notifier).remove(keyword),
-                ))
-                .toList(),
-          ),
+          if (history.isEmpty)
+            Expanded(
+              child: _Centered(
+                child: EmptyStateCard.noSearchHistory(),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
+              children: history
+                  .map((keyword) => _HistoryChip(
+                        label: keyword,
+                        onTap: () {
+                          _controller.text = keyword;
+                          _doSearch(keyword);
+                        },
+                        onRemove: () => ref
+                            .read(searchHistoryProvider.notifier)
+                            .remove(keyword),
+                      ))
+                  .toList(),
+            ),
         ],
       ),
     );
@@ -280,8 +389,7 @@ class _Centered extends StatelessWidget {
   const _Centered({required this.child});
 
   @override
-  Widget build(BuildContext context) =>
-      Center(child: child);
+  Widget build(BuildContext context) => Center(child: child);
 }
 
 class _SearchResultTile extends ConsumerWidget {
@@ -324,14 +432,11 @@ class _SearchResultTile extends ConsumerWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-            color: scheme.onSurface,
-            fontSize: 15,
-            fontWeight: FontWeight.w600),
+            color: scheme.onSurface, fontSize: 15, fontWeight: FontWeight.w600),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Row(
-        children: [
+        child: Row(children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
@@ -349,8 +454,7 @@ class _SearchResultTile extends ConsumerWidget {
             style: TextStyle(
                 color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
           ),
-        ],
-      ),
+        ]),
       ),
       trailing: Icon(Icons.play_circle_fill, color: scheme.primary, size: 28),
     );
@@ -369,7 +473,8 @@ class _HistoryChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final VoidCallback onRemove;
-  const _HistoryChip({required this.label, required this.onTap, required this.onRemove});
+  const _HistoryChip(
+      {required this.label, required this.onTap, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -407,7 +512,8 @@ class _ConfirmDialog extends StatelessWidget {
   final String title;
   final String message;
   final VoidCallback onConfirm;
-  const _ConfirmDialog({required this.title, required this.message, required this.onConfirm});
+  const _ConfirmDialog(
+      {required this.title, required this.message, required this.onConfirm});
 
   @override
   Widget build(BuildContext context) {
@@ -433,7 +539,6 @@ class _ConfirmDialog extends StatelessWidget {
   }
 }
 
-// 简化版播放页：跳转结果点击后播放（全屏视频页
 class _VideoPlayPage extends StatelessWidget {
   final MediaItem item;
   const _VideoPlayPage({required this.item});

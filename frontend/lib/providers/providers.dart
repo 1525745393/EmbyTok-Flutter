@@ -22,6 +22,7 @@ export 'watch_history_provider.dart';
 // ---- 搜索 ----
 export 'search_provider.dart';
 export 'search_history_provider.dart';
+export 'search_hints_provider.dart';
 
 // ---- 主题与偏好 ----
 export 'theme_provider.dart';
