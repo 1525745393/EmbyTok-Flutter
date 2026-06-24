@@ -1,3 +1,15 @@
+# [1.88.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.87.1...v1.88.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 修复演员列表重复加载问题 ([d27ce53](https://github.com/1525745393/EmbyTok-Flutter/commit/d27ce53d28cdf4dce98fb6e4a361865361a41946))
+
+
+### Features
+
+* 添加推荐按钮 ([d147f58](https://github.com/1525745393/EmbyTok-Flutter/commit/d147f58b8d85fec93d14a8201d3d479c441c0bd1))
+
 ## [1.87.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.87.0...v1.87.1) (2026-06-24)
 
 
