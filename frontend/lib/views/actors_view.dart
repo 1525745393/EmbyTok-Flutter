@@ -25,18 +25,17 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   bool _isLoadingMore = false;
   String? _error;
   Set<String> _favoritedIds = {};
-  // 类型筛选状态：null 表示全部，'Actor'/'Director'/'Writer' 表示对应类型
   String? _selectedPersonType;
   String _searchQuery = '';
   DateTime? _debounceTimer;
   late TabController _tabController;
-  // 分页状态
   int _total = 0;
   static const int _pageSize = 50;
   final ScrollController _scrollController = ScrollController();
-  // 搜索状态
   bool _isSearching = false;
   List<Person> _searchResults = const [];
+  // 添加防抖标记，防止滚动时重复加载
+  bool _hasTriggeredLoadMore = false;
 
   @override
   void initState() {
@@ -53,11 +52,19 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     super.dispose();
   }
 
-  // 滚动监听：检测是否接近底部
+  // 滚动监听：检测是否接近底部（带防抖）
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_loading || _isLoadingMore || !hasMore || _isSearching) return;
+    
+    // 防抖：只在滚动方向向下且真正接近底部时触发
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200 && !_hasTriggeredLoadMore) {
+      _hasTriggeredLoadMore = true;
       _loadMore();
+    }
+    // 滚动向上时重置防抖标记
+    if (position.pixels < position.maxScrollExtent - 300) {
+      _hasTriggeredLoadMore = false;
     }
   }
 
@@ -145,12 +152,14 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           _actors = [..._actors, ...response.items];
           _total = response.total;
           _isLoadingMore = false;
+          _hasTriggeredLoadMore = false; // 重置防抖标记
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoadingMore = false;
+          _hasTriggeredLoadMore = false; // 重置防抖标记
         });
       }
     }
