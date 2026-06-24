@@ -413,6 +413,7 @@ class EmbytokService {
     int limit = 50,
     int startIndex = 0,
     List<String>? personTypes,
+    String? searchTerm,
     String? serverUrl,
     String? token,
   }) async {
@@ -423,6 +424,8 @@ class EmbytokService {
       'Recursive': 'true',
       if (personTypes != null && personTypes.isNotEmpty)
         'PersonTypes': personTypes.join(','),
+      if (searchTerm != null && searchTerm.isNotEmpty)
+        'SearchTerm': searchTerm,
       'Fields': 'PrimaryImageTag,Overview',
     };
     final resp = await _apiClient.get<dynamic>(

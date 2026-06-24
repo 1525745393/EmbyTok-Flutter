@@ -436,33 +436,30 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     });
   }
 
-  // 从 API 搜索演员（使用服务器端搜索）
+  // 从 API 搜索演员（使用 Emby Persons API 进行服务器端搜索）
   Future<void> _searchActors(String query) async {
     try {
       final auth = ref.read(authProvider);
       final service = EmbytokService();
 
-      // 使用 Emby SearchHints API 进行服务器端搜索
-      final searchResults = await service.searchHints(
-        query,
+      List<String>? personTypes;
+      if (_selectedPersonType != null) {
+        personTypes = [_selectedPersonType!];
+      }
+
+      // 使用 Emby Persons API 进行搜索，支持类型筛选
+      final response = await service.getPeople(
+        limit: 50,
+        startIndex: 0,
+        personTypes: personTypes,
+        searchTerm: query,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
 
       if (mounted) {
-        // 过滤出 Person 类型的搜索结果
-        final personResults = searchResults
-            .where((hint) => hint.type == 'Person')
-            .map((hint) => Person(
-                  id: hint.id,
-                  name: hint.name,
-                  type: 'Actor',
-                  imageUrl: hint.thumbnailUrl,
-                ))
-            .toList();
-
         setState(() {
-          _searchResults = personResults;
+          _searchResults = response.items;
           _isSearching = false;
         });
       }
@@ -470,6 +467,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       if (mounted) {
         setState(() {
           _isSearching = false;
+          _searchResults = [];
         });
       }
     }
@@ -503,7 +501,16 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         setState(() {
           _selectedPersonType = type;
         });
-        _loadActors(forceRefresh: true);
+        // 如果正在搜索状态，切换类型后重新搜索
+        if (_searchQuery.isNotEmpty) {
+          setState(() {
+            _isSearching = true;
+            _searchResults = [];
+          });
+          _searchActors(_searchQuery);
+        } else {
+          _loadActors(forceRefresh: true);
+        }
       },
       backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
       selectedColor: scheme.primaryContainer,
@@ -687,15 +694,19 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           // 已关注
           _loading
               ? _buildLoading()
-              : _error != null
-                  ? _buildError(scheme)
-                  : _buildActorGrid(_getActorsByTab(1), embyServerUrl, token),
+              : _isSearching
+                  ? _buildLoading(message: '正在搜索...')
+                  : _error != null
+                      ? _buildError(scheme)
+                      : _buildActorGrid(_getActorsByTab(1), embyServerUrl, token),
           // 未关注
           _loading
               ? _buildLoading()
-              : _error != null
-                  ? _buildError(scheme)
-                  : _buildActorGrid(_getActorsByTab(2), embyServerUrl, token),
+              : _isSearching
+                  ? _buildLoading(message: '正在搜索...')
+                  : _error != null
+                      ? _buildError(scheme)
+                      : _buildActorGrid(_getActorsByTab(2), embyServerUrl, token),
         ],
       ),
     );
