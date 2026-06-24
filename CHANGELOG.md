@@ -1,3 +1,17 @@
+# [1.86.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.85.0...v1.86.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* 添加 MediaSource 缺失的 size 和 bitrate 字段 ([107b406](https://github.com/1525745393/EmbyTok-Flutter/commit/107b406698b45d186f29882864fbb03d1789d8ae))
+
+
+### Features
+
+* 基于 Emby 服务端实现网格模式排序和搜索 ([fdba37f](https://github.com/1525745393/EmbyTok-Flutter/commit/fdba37ff2927f3aed5979438c0c9ce13474aa380))
+* 实现网格模式搜索和排序的实际功能 ([f62a0dc](https://github.com/1525745393/EmbyTok-Flutter/commit/f62a0dc9a3f5c41a881e6565e1088041918bc79c))
+* 添加推荐按钮 ([d682724](https://github.com/1525745393/EmbyTok-Flutter/commit/d6827248353e0c01668fa330eab92f9b0ca7bcaf))
+
 # [1.85.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.84.0...v1.85.0) (2026-06-24)
 
 
