@@ -126,8 +126,9 @@ class VideoPoolService {
     for (int level = 0; level < 3; level++) {
       final url = urls[level];
       if (url == null || url.isEmpty) continue;
+      VideoPlayerController? controller;
       try {
-        final controller = VideoPlayerController.networkUrl(
+        controller = VideoPlayerController.networkUrl(
           Uri.parse(url),
           httpHeaders: headers,
         );
@@ -148,9 +149,12 @@ class VideoPoolService {
         return created;
       } catch (e) {
         debugPrint('VideoPoolService preload level=$level failed: $e');
-        try {
-          // 失败后继续尝试下一个降级等级
-        } catch (_) {}
+        // 释放失败的控制器，避免原生资源泄漏（MediaCodec、文件描述符等）
+        if (controller != null) {
+          try {
+            await controller.dispose();
+          } catch (_) {}
+        }
       }
     }
 
