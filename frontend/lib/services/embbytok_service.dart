@@ -850,6 +850,48 @@ class EmbytokService {
   }
 
   // ============================
+  // 推荐列表：按社区评分排序，获取高分推荐影片
+  // ============================
+  Future<List<MediaItem>> getRecommendations({
+    int limit = 50,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+      'SortBy': 'CommunityRating,DateCreated',
+      'SortOrder': 'Descending',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+      'MinCommunityRating': '6.0',
+      if (libraryId != null) 'ParentId': libraryId,
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
   // 预告片
   // ============================
   Future<PaginatedResponse<MediaItem>> getTrailers({

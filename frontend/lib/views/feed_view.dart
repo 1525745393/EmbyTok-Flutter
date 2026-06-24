@@ -343,14 +343,15 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 切换浏览模式（最新/随机/收藏/继续观看）——清理缓存后刷新
+  // 切换浏览模式（最新/随机/收藏/继续观看/推荐）——清理缓存后刷新
   void _toggleFeedType() {
     final current = ref.read(feedTypeProvider);
     final next = switch (current) {
       FeedType.latest => FeedType.random,
       FeedType.random => FeedType.favorites,
       FeedType.favorites => FeedType.resume,
-      FeedType.resume => FeedType.latest,
+      FeedType.resume => FeedType.recommend,
+      FeedType.recommend => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
     ref.read(videoPoolProvider).disposeAll();

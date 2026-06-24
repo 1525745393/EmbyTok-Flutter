@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show ViewMode, OrientationMode;
+import '../utils/app_preferences.dart' show ViewMode, OrientationMode, FeedType;
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();
@@ -37,6 +37,8 @@ class TopToolBar extends ConsumerWidget {
     final isMuted = ref.watch(isMutedProvider);
     // 监听方向过滤模式
     final orientationMode = ref.watch(orientationModeProvider);
+    // 监听当前浏览模式
+    final feedType = ref.watch(feedTypeProvider);
 
     return Container(
       height: 56,
@@ -51,11 +53,27 @@ class TopToolBar extends ConsumerWidget {
         bottom: false,
         child: Row(
           children: [
-            // 左侧：菜单按钮
-            IconButton(
-              icon: Icon(Icons.menu, color: scheme.onSurface),
-              onPressed: onMenuPressed ?? () => _openDrawer(context),
-              tooltip: '菜单',
+            // 左侧：菜单按钮 + 推荐按钮
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.menu, color: scheme.onSurface),
+                  onPressed: onMenuPressed ?? () => _openDrawer(context),
+                  tooltip: '菜单',
+                ),
+                // 推荐按钮：切换到推荐浏览模式
+                IconButton(
+                  icon: Icon(
+                    Icons.auto_awesome,
+                    color: feedType == FeedType.recommend
+                        ? scheme.primary
+                        : scheme.onSurface,
+                  ),
+                  onPressed: () => _toggleRecommendMode(ref, feedType),
+                  tooltip: '推荐',
+                ),
+              ],
             ),
             // 中间：当前媒体库名称（点击切换）
             Expanded(
@@ -297,5 +315,13 @@ class TopToolBar extends ConsumerWidget {
   void _selectLibrary(WidgetRef ref, String libraryId) {
     if (libraryId.isEmpty) return;
     ref.read(selectedLibraryIdsProvider.notifier).setLibrary(libraryId);
+  }
+
+  // 切换推荐模式：如果当前是推荐模式则切回最新，否则切到推荐
+  void _toggleRecommendMode(WidgetRef ref, FeedType current) {
+    final newType = current == FeedType.recommend
+        ? FeedType.latest
+        : FeedType.recommend;
+    ref.read(feedTypeProvider.notifier).setType(newType);
   }
 }

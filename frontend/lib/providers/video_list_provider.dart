@@ -66,7 +66,7 @@ class VideoListState {
 ///
 /// 内部监听：
 /// - [selectedLibraryIdsProvider] 媒体库选择变化
-/// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
+/// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume/recommend）
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -212,6 +212,42 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             token: auth.token!,
           );
           loadedItems = resp.items;
+          canPaginate = false;
+
+        case FeedType.recommend:
+          final libIds = selectedIds;
+          // 推荐模式：多库混合，每个库独立 try-catch
+          final merged = <MediaItem>[];
+          if (libIds.isNotEmpty) {
+            for (final libId in libIds) {
+              try {
+                final items = await _service.getRecommendations(
+                  limit: (80 / libIds.length).ceil(),
+                  libraryId: libId,
+                  serverUrl: auth.embyServerUrl!,
+                  token: auth.token!,
+                  userId: auth.user?.id,
+                );
+                merged.addAll(items);
+              } catch (e) {
+                AppLogger.error('加载库 $libId 推荐失败，跳过', error: e);
+              }
+            }
+          } else {
+            // 未选库时，从全部内容中获取推荐
+            try {
+              final items = await _service.getRecommendations(
+                limit: 80,
+                serverUrl: auth.embyServerUrl!,
+                token: auth.token!,
+                userId: auth.user?.id,
+              );
+              merged.addAll(items);
+            } catch (e) {
+              AppLogger.error('加载推荐失败', error: e);
+            }
+          }
+          loadedItems = merged;
           canPaginate = false;
       }
 
