@@ -147,7 +147,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 viewModeProvider 变化：切回 feed 模式时重置排序搜索
+    // 监听 viewModeProvider 变化：切回 feed 模式时重置排序搜索，切到 grid 模式时应用当前排序搜索
     _ref.listen<ViewMode>(
       viewModeProvider,
       (previous, next) {
@@ -161,6 +161,27 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             _ref.read(gridSortOptionProvider.notifier).state = GridSortOption.recentlyAdded;
             _ref.read(gridSearchQueryProvider.notifier).state = '';
             refresh();
+          }
+        } else if (next == ViewMode.grid && previous == ViewMode.feed) {
+          // 切到 grid 模式：应用当前的排序和搜索设置
+          final sortOption = _ref.read(gridSortOptionProvider);
+          final searchQuery = _ref.read(gridSearchQueryProvider);
+          final feedType = _ref.read(feedTypeProvider);
+          if (feedType == FeedType.latest) {
+            final sortBy = sortOption.sortBy;
+            final sortOrder = sortOption.sortOrder;
+            // 如果排序或搜索不是默认值，则刷新
+            if (sortBy != 'DateCreated,SortName' ||
+                sortOrder != 'Descending' ||
+                searchQuery.isNotEmpty) {
+              AppLogger.debug('切到 grid 模式，应用排序和搜索');
+              state = state.copyWith(
+                sortBy: sortBy,
+                sortOrder: sortOrder,
+                searchTerm: searchQuery,
+              );
+              refresh();
+            }
           }
         }
       },
@@ -199,6 +220,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       offset: 0,
       limit: state.limit,
       feedType: currentFeedType,
+      sortBy: state.sortBy,
+      sortOrder: state.sortOrder,
+      searchTerm: state.searchTerm,
     );
 
     final auth = _auth;
