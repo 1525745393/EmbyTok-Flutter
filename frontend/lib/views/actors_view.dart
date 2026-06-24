@@ -100,7 +100,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           _actors = response.items;
           _total = response.total;
           // 统一转换为字符串ID，确保与演员列表的ID格式一致
-          _favoritedIds = Set.from(favoritePeople.map((p) => p.id.toString()).where((id) => id.isNotEmpty));
+          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
           _loading = false;
         });
       }
@@ -288,15 +288,15 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   // 根据 Tab 过滤演员
   List<Person> _getActorsByTab(int tabIndex) {
-    // 全部 Tab 显示已加载的所有演员（包含搜索过滤）
+    // 使用搜索过滤后的列表
     final actors = _filteredActors;
     switch (tabIndex) {
       case 1:
-        // 已关注：从原始列表中过滤出已关注的演员
-        return _actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
+        // 已关注：从过滤后的列表中过滤出已关注的演员
+        return actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
       case 2:
-        // 未关注：从原始列表中过滤出未关注的演员
-        return _actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
+        // 未关注：从过滤后的列表中过滤出未关注的演员
+        return actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
       default:
         return actors;
     }
