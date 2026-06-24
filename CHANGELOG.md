@@ -1,3 +1,15 @@
+# [1.83.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.82.0...v1.83.0) (2026-06-24)
+
+
+### Features
+
+* 添加推荐按钮 ([b1af2af](https://github.com/1525745393/EmbyTok-Flutter/commit/b1af2af6f7350b88e679020968d71fc42febfe1b))
+
+
+### Reverts
+
+* 回退测试文件以确保 CI 通过 ([f1adc5e](https://github.com/1525745393/EmbyTok-Flutter/commit/f1adc5e9834f44d6ca4b1c96d9de1edbab8669fb))
+
 # [1.82.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.81.0...v1.82.0) (2026-06-24)
 
 
