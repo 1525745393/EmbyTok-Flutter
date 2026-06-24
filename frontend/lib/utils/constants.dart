@@ -36,6 +36,10 @@ const String kStorageKeyOrientationMode = 'embbytok_orientation_mode';
 const String kStorageKeyIsMuted = 'embbytok_is_muted';
 const String kStorageKeyIsAutoPlay = 'embbytok_is_autoplay';
 const String kStorageKeyHiddenLibraryIds = 'embbytok_hidden_library_ids';
+const String kStorageKeyDefaultPlaybackRate = 'embbytok_default_playback_rate';
+const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_language';
+const String kStorageKeyVideoQuality = 'embbytok_video_quality';
+const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
