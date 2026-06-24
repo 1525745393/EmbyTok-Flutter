@@ -73,11 +73,30 @@ class _FeedViewState extends ConsumerState<FeedView>
       ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
         _saveCloudSyncIfNeeded(next);
       });
+      // 监听视图模式变化：从网格切换到视频流时处理跳转
+      ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+        if (prev == ViewMode.grid && next == ViewMode.feed) {
+          _handleGridToFeedTransition();
+        }
+      });
+      // 监听网格选中的视频 ID：收到后跳转到该视频
+      ref.listen<String?>(gridSelectedItemIdProvider, (prev, next) {
+        if (next != null && next.isNotEmpty) {
+          _seekToItem(next);
+        }
+      });
     });
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
     _checkCloudSyncOnStartup();
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
+  }
+
+  // 从网格模式切换到视频流模式时的处理
+  void _handleGridToFeedTransition() {
+    // 重置已恢复滚动位置的标记，以便从正确位置开始
+    _hasRestoredScrollPosition = false;
+    _hasScrolledToInitial = false;
   }
 
   @override
