@@ -95,4 +95,61 @@ void main() {
       });
     });
   });
+
+  group('htmlDecode', () {
+    group('基本 HTML 实体解码', () {
+      test('解码单引号', () {
+        expect(htmlDecode('&#39;'), "'");
+        expect(htmlDecode('这是&#39;一条&#39;测试'), "这是'一条'测试");
+      });
+
+      test('解码双引号', () {
+        expect(htmlDecode('&quot;'), '"');
+        expect(htmlDecode('&quot;开始&quot;和&quot;结束&quot;'), '"开始"和"结束"');
+      });
+
+      test('解码 & 符号', () {
+        expect(htmlDecode('&amp;'), '&');
+        expect(htmlDecode('Tom &amp; Jerry'), 'Tom & Jerry');
+      });
+
+      test('解码小于号', () {
+        expect(htmlDecode('&lt;'), '<');
+        expect(htmlDecode('a &lt; b'), 'a < b');
+      });
+
+      test('解码大于号', () {
+        expect(htmlDecode('&gt;'), '>');
+        expect(htmlDecode('a &gt; b'), 'a > b');
+      });
+    });
+
+    group('混合解码', () {
+      test('多个 HTML 实体混合', () {
+        expect(
+          htmlDecode('&lt;div&gt;这是&amp;测试&#39;s&lt;/div&gt;'),
+          '<div>这是&测试\'s</div>',
+        );
+      });
+    });
+
+    group('边界情况', () {
+      test('空字符串', () {
+        expect(htmlDecode(''), '');
+      });
+
+      test('无 HTML 实体的普通文本', () {
+        expect(htmlDecode('普通文本'), '普通文本');
+        expect(htmlDecode('No HTML entities here'), 'No HTML entities here');
+      });
+
+      test('部分 HTML 实体', () {
+        expect(htmlDecode('部分&amp;解码'), '部分&解码');
+      });
+
+      test('连续解码相同实体', () {
+        expect(htmlDecode('&#39;&#39;&#39;'), "'''");
+      });
+    });
+  });
 }

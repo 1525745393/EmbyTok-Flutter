@@ -292,5 +292,83 @@ void main() {
         );
       });
     });
+
+    group('GET 请求去重逻辑', () {
+      test('相同 path 和 queryParameters 的并发请求复用结果', () async {
+        // 配置单个响应，但会收到多个请求
+        dioAdapter.onGet('/dedupe-test', query: {'page': 1}).reply(200, {'data': 'test'});
+
+        // 发起两个并发请求
+        final futures = await Future.wait([
+          apiClient.get('/dedupe-test', queryParameters: {'page': 1}),
+          apiClient.get('/dedupe-test', queryParameters: {'page': 1}),
+        ]);
+
+        // 两个请求都应该成功
+        expect(futures.length, 2);
+        expect(futures[0].data['data'], 'test');
+        expect(futures[1].data['data'], 'test');
+      });
+
+      test('不同 queryParameters 顺序生成相同的 key', () async {
+        // 配置单个响应
+        dioAdapter.onGet('/order-test', query: {'a': 1, 'b': 2}).reply(200, {'data': 'order无关'});
+
+        // 以不同顺序传入参数，应该复用同一个请求
+        final futures = await Future.wait([
+          apiClient.get('/order-test', queryParameters: {'a': 1, 'b': 2}),
+          apiClient.get('/order-test', queryParameters: {'b': 2, 'a': 1}),
+        ]);
+
+        expect(futures.length, 2);
+        expect(futures[0].data['data'], 'order无关');
+        expect(futures[1].data['data'], 'order无关');
+      });
+
+      test('不同 queryParameters 生成不同的 key', () async {
+        // 配置两个不同的响应
+        dioAdapter.onGet('/diff-test', query: {'page': 1}).reply(200, {'page': 1});
+        dioAdapter.onGet('/diff-test', query: {'page': 2}).reply(200, {'page': 2});
+
+        // 发起两个不同参数的请求
+        final result1 = await apiClient.get('/diff-test', queryParameters: {'page': 1});
+        final result2 = await apiClient.get('/diff-test', queryParameters: {'page': 2});
+
+        expect(result1.data['page'], 1);
+        expect(result2.data['page'], 2);
+      });
+
+      test('无 queryParameters 时只使用 path 作为 key', () async {
+        dioAdapter.onGet('/no-params').reply(200, {'data': 'no-params'});
+
+        final result = await apiClient.get('/no-params');
+
+        expect(result.data['data'], 'no-params');
+      });
+
+      test('空 queryParameters 字典使用 path 作为 key', () async {
+        dioAdapter.onGet('/empty-params').reply(200, {'data': 'empty-params'});
+
+        final result = await apiClient.get('/empty-params', queryParameters: {});
+
+        expect(result.data['data'], 'empty-params');
+      });
+
+      test('请求失败时错误被正确传播到所有等待者', () async {
+        // 配置一个会失败的请求
+        dioAdapter.onGet('/error-propagation', query: {}).reply(500, {'detail': 'Server Error'});
+
+        // 发起两个并发请求，都应该得到相同的错误
+        try {
+          await Future.wait([
+            apiClient.get('/error-propagation'),
+            apiClient.get('/error-propagation'),
+          ]);
+          fail('应该抛出异常');
+        } catch (e) {
+          expect(e, equals('服务器错误'));
+        }
+      });
+    });
   });
 }
