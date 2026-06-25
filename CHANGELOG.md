@@ -1,3 +1,10 @@
+# [1.97.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.96.0...v1.97.0) (2026-06-25)
+
+
+### Features
+
+* 从视频流切回网格时滚动到当前视频位置 ([2966ada](https://github.com/1525745393/EmbyTok-Flutter/commit/2966adaa07e5832700c52a8312dba3cd977c5f91))
+
 # [1.96.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.2...v1.96.0) (2026-06-25)
 
 
