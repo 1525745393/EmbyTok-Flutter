@@ -373,6 +373,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                       ),
                   ],
                 ),
+              ],
             ),
             // 右上角勾选标记
             if (isSelected)
