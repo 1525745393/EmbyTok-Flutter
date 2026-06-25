@@ -399,10 +399,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         idx,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
-      ).then((_) {
-        // 跳转完成后重置 grid→feed 切换标记
-        _isGridToFeedTransition = false;
-      });
+      );
     }
   }
 
