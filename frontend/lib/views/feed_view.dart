@@ -46,6 +46,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 滚动位置持久化相关
   bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
   bool _hasRestoredGridScrollPosition = false; // 是否已恢复网格滚动位置
+  bool _needScrollToCurrentVideo = false; // 从 feed 切到 grid 时是否需要滚动到当前视频
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -77,6 +78,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       ref.listen<ViewMode>(viewModeProvider, (prev, next) {
         if (prev == ViewMode.grid && next == ViewMode.feed) {
           _handleGridToFeedTransition();
+        } else if (prev == ViewMode.feed && next == ViewMode.grid) {
+          _handleFeedToGridTransition();
         }
       });
       // 监听网格选中的视频 ID：收到后跳转到该视频
@@ -112,6 +115,14 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
       });
     }
+  }
+
+  // 从视频流模式切换到网格模式时的处理
+  void _handleFeedToGridTransition() {
+    // 标记需要滚动到当前视频位置
+    _needScrollToCurrentVideo = true;
+    // 重置网格滚动位置恢复标记，确保下一帧重新计算
+    _hasRestoredGridScrollPosition = false;
   }
 
   @override
@@ -192,6 +203,53 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
       }
     } catch (_) {}
+  }
+
+  // 将网格滚动到当前播放视频的位置，返回是否成功滚动
+  bool _tryScrollToCurrentVideo() {
+    if (!_gridScrollController.hasClients) return false;
+
+    final videoState = ref.read(videoListProvider);
+    final currentIndex = ref.read(currentIndexProvider);
+    final gridStartIndex = videoState.gridStartIndex;
+    final gridItems = videoState.gridItems;
+
+    if (gridItems.isEmpty) return false;
+
+    // 计算当前视频在 gridItems 中的索引
+    final indexInGrid = currentIndex - gridStartIndex;
+    if (indexInGrid < 0 || indexInGrid >= gridItems.length) return false;
+
+    // GridView 配置（与 PosterGridView 保持一致）
+    const crossAxisCount = 3;
+    const crossAxisSpacing = 8.0;
+    const mainAxisSpacing = 8.0;
+    const padding = 8.0;
+    // Flutter GridView 的 childAspectRatio = crossAxisExtent / mainAxisExtent = 宽/高
+    const childAspectRatio = 0.65;
+
+    // 计算每个 item 的宽度：屏幕宽度 - padding*2 - 间距*(列数-1)，然后平均分
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth - padding * 2 - crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
+    final itemHeight = itemWidth / childAspectRatio;
+    final rowHeight = itemHeight + mainAxisSpacing;
+
+    // 计算目标行
+    final targetRow = indexInGrid ~/ crossAxisCount;
+    // 目标偏移 = 顶部 padding + 行号 * 行高
+    final targetOffset = (padding + targetRow * rowHeight).clamp(
+      0.0,
+      _gridScrollController.position.maxScrollExtent,
+    );
+
+    // 平滑滚动到目标位置
+    _gridScrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+
+    return true;
   }
 
   // ========== 预加载与清理（基于 VideoPoolService）==========
@@ -679,14 +737,26 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 构建网格视图：支持滚动位置持久化
+  // 构建网格视图：支持滚动位置持久化和从当前视频位置显示
   Widget _buildGridPageView(VideoListState videoState) {
-    final filteredItems = ref.watch(gridFilteredVideoListProvider);
-
-    // 网格数据加载完成后恢复滚动位置
-    if (!_hasRestoredGridScrollPosition &&
-        videoState.items.isNotEmpty &&
-        filteredItems.isNotEmpty &&
+    // 从 feed 切到 grid 时：滚动到当前播放视频的位置
+    if (_needScrollToCurrentVideo &&
+        videoState.gridItems.isNotEmpty &&
+        !videoState.isLoading) {
+      _needScrollToCurrentVideo = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final scrolled = _tryScrollToCurrentVideo();
+          if (!scrolled) {
+            _restoreGridScrollOffset();
+          }
+          _hasRestoredGridScrollPosition = true;
+        }
+      });
+    }
+    // 网格数据加载完成后恢复滚动位置（仅首次进入或非 feed→grid 切换时）
+    else if (!_hasRestoredGridScrollPosition &&
+        videoState.gridItems.isNotEmpty &&
         !videoState.isLoading) {
       _hasRestoredGridScrollPosition = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
