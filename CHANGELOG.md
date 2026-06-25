@@ -1,3 +1,21 @@
+# [1.94.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.93.1...v1.94.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* **app-exit:** batch-dispose video controllers to prevent OOM on exit ([c585a56](https://github.com/1525745393/EmbyTok-Flutter/commit/c585a561f6cd228afb069b01c3fd09c0250a01bb))
+* 修复编译错误 - 缺少导入和错误参数 ([f17b2c1](https://github.com/1525745393/EmbyTok-Flutter/commit/f17b2c16d9399e08763afd437e01d7db1f259bd0))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([d7e0fc7](https://github.com/1525745393/EmbyTok-Flutter/commit/d7e0fc70ab1bd7448f8b54cda440b35c0c2afe81))
+* EmbyX 媒体库网格视图实现 ([d3e8792](https://github.com/1525745393/EmbyTok-Flutter/commit/d3e8792ebc823ca2c77aeb7400930220b5c185ee))
+* EmbyX 媒体库网格视图实现 ([0d3009d](https://github.com/1525745393/EmbyTok-Flutter/commit/0d3009d2980bd51b08ad44c08ce74c17108ae5c2))
+* EmbyX 媒体库网格视图实现 ([8488dad](https://github.com/1525745393/EmbyTok-Flutter/commit/8488dadb5f02bd3743e01d7f67dd7239b88c412c))
+* EmbyX 媒体库网格视图实现 ([5db88ff](https://github.com/1525745393/EmbyTok-Flutter/commit/5db88ff1f752efcdb8fbd7558bfa3ccca2bc439c))
+* EmbyX 媒体库网格视图实现 ([7c6cb45](https://github.com/1525745393/EmbyTok-Flutter/commit/7c6cb4580130ec4f0db55cbbb632360a5de82e39))
+
 ## [1.93.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.93.0...v1.93.1) (2026-06-25)
 
 
