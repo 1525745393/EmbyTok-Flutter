@@ -6,14 +6,14 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'tv_focusable.dart';
 
-/// 媒体库选择器：居中弹窗，2列网格布局，单选模式
+/// 媒体库选择器：居中弹窗，2列网格布局，多选模式
 ///
 /// 参考 EmbyX 实现：
 /// - 居中 Dialog 弹窗
 /// - 2 列网格卡片布局
 /// - 收藏夹入口（特殊卡片）
 /// - 媒体库分组
-/// - 单选模式：点击即切换并关闭弹窗
+/// - 多选模式：点击切换选中状态，确认后关闭弹窗
 class LibrarySelector extends ConsumerStatefulWidget {
   const LibrarySelector({super.key});
 
@@ -31,6 +31,9 @@ class LibrarySelector extends ConsumerStatefulWidget {
 }
 
 class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
+  // 本地选中状态（确认前临时使用）
+  Set<String> _localSelectedIds = {};
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -41,6 +44,20 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
 
     // 判断是否为收藏夹模式
     final isFavoritesMode = currentFeedType == FeedType.favorites;
+
+    // 初始化本地选中状态（仅首次打开弹窗时）
+    if (_localSelectedIds.isEmpty && selectedIds.isNotEmpty) {
+      _localSelectedIds = Set.from(selectedIds);
+    } else if (_localSelectedIds.isEmpty) {
+      // 默认选中第一个库
+      if (visibleLibraries.isNotEmpty) {
+        _localSelectedIds.add(visibleLibraries.first.id);
+      }
+    }
+
+    // 判断是否全选
+    final allSelected = visibleLibraries.isNotEmpty &&
+        _localSelectedIds.length >= visibleLibraries.length;
 
     return Dialog(
       backgroundColor: scheme.surface.withOpacity(0.95),
@@ -64,7 +81,9 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   Icon(Icons.video_library, color: scheme.primary, size: 22),
                   const SizedBox(width: 10),
                   Text(
-                    '选择媒体库',
+                    _localSelectedIds.isEmpty
+                        ? '选择媒体库'
+                        : '选择媒体库 (已选 ${_localSelectedIds.length} 个)',
                     style: TextStyle(
                       color: scheme.onSurface,
                       fontSize: 18,
@@ -72,6 +91,29 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     ),
                   ),
                   const Spacer(),
+                  // 全选/取消全选按钮
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        if (allSelected) {
+                          // 取消全选，只保留第一个
+                          _localSelectedIds = visibleLibraries.isNotEmpty
+                              ? {visibleLibraries.first.id}
+                              : {};
+                        } else {
+                          // 全选
+                          _localSelectedIds = visibleLibraries.map((lib) => lib.id).toSet();
+                        }
+                      });
+                    },
+                    child: Text(
+                      allSelected ? '取消全选' : '全选',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: Icon(Icons.close, color: scheme.onSurface.withOpacity(0.6)),
@@ -102,7 +144,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 data: (_) => _buildGridContent(
                   scheme,
                   visibleLibraries,
-                  selectedIds,
+                  _localSelectedIds.toList(),
                   isFavoritesMode,
                 ),
               ),
@@ -181,7 +223,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             mainAxisSpacing: 12,
             childAspectRatio: 1.4,
             children: libraries.map((lib) {
-              final isSelected = !isFavoritesMode && selectedIds.contains(lib.id);
+              final isSelected = !isFavoritesMode && _localSelectedIds.contains(lib.id);
               return _buildLibraryCard(
                 scheme: scheme,
                 icon: _getLibraryIcon(lib.type),
@@ -189,14 +231,48 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 count: lib.itemCount,
                 isSelected: isSelected,
                 onTap: () {
-                  // 单选模式：设置为单个媒体库 + 切换回 latest 模式
-                  ref.read(selectedLibraryIdsProvider.notifier).setLibrary(lib.id);
-                  ref.read(feedTypeProvider.notifier).setType(FeedType.latest);
-                  ref.read(videoListProvider.notifier).refresh();
-                  Navigator.of(context).pop();
+                  // 多选模式：切换该库的选中状态，不关闭弹窗
+                  setState(() {
+                    if (_localSelectedIds.contains(lib.id)) {
+                      _localSelectedIds.remove(lib.id);
+                      // 确保至少保留一个
+                      if (_localSelectedIds.isEmpty) {
+                        _localSelectedIds.add(lib.id);
+                      }
+                    } else {
+                      _localSelectedIds.add(lib.id);
+                    }
+                  });
                 },
               );
             }).toList(),
+          ),
+          const SizedBox(height: 16),
+          // 确认/取消按钮
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  '取消',
+                  style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _localSelectedIds.isEmpty
+                    ? null
+                    : () {
+                        // 应用选择
+                        ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                        ref.read(feedTypeProvider.notifier).setType(FeedType.latest);
+                        ref.read(videoListProvider.notifier).refresh();
+                        Navigator.of(context).pop();
+                      },
+                child: const Text('确认'),
+              ),
+            ],
           ),
         ],
       ),
@@ -231,14 +307,14 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   }) {
     final bgGradient = gradientColors ??
         [
-          scheme.primary.withOpacity(0.15),
-          scheme.primary.withOpacity(0.05),
+          scheme.primary.withOpacity(isSelected ? 0.25 : 0.15),
+          scheme.primary.withOpacity(isSelected ? 0.1 : 0.05),
         ];
 
     return TvFocusable(
       onTap: onTap,
       borderRadius: 12,
-      borderWidth: 2,
+      borderWidth: isSelected ? 2 : 1,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
@@ -252,49 +328,71 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               : Border.all(color: scheme.onSurface.withOpacity(0.1), width: 1),
         ),
         padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Stack(
           children: [
-            // 图标
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                color: isSelected ? scheme.onPrimary : scheme.onSurface.withOpacity(0.7),
-                size: 20,
-              ),
-            ),
-            // 名称 + 数量
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isSelected ? scheme.primary : scheme.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                // 图标
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: isSelected ? scheme.onPrimary : scheme.onSurface.withOpacity(0.7),
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 2),
-                if (count != null)
-                  Text(
-                    '$count 个视频',
-                    style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.5),
-                      fontSize: 11,
+                // 名称 + 数量
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isSelected ? scheme.primary : scheme.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-              ],
+                    const SizedBox(height: 2),
+                    if (count != null)
+                      Text(
+                        '$count 个视频',
+                        style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.5),
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
             ),
+            // 右上角勾选标记
+            if (isSelected)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
