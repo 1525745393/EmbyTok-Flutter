@@ -500,11 +500,15 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       });
 
       final merged = <MediaItem>[];
+      // 多库时平均分配，确保总数约为 150 条
+      final perLibLimit = selectedIds.isNotEmpty
+          ? (150 / selectedIds.length).ceil()
+          : 150;
       for (final libId in selectedIds) {
         try {
           final resp = await _service.getLibraryItems(
             libId,
-            limit: 150,
+            limit: perLibLimit,
             offset: 0,
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
@@ -528,19 +532,22 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         merged.addAll(rest);
       }
 
+      // 截取最多 150 条
+      final finalItems = merged.length > 150 ? merged.sublist(0, 150) : merged;
+
       state = VideoListState(
-        items: merged,
+        items: finalItems,
         isLoading: false,
         hasMore: false,
         error: null,
-        offset: merged.length,
+        offset: finalItems.length,
         limit: 150,
-        totalCount: merged.length,
+        totalCount: finalItems.length,
         feedType: FeedType.latest,
         sortBy: 'Random',
         sortOrder: 'Ascending',
       );
-      AppLogger.debug('换一批成功', data: {'count': merged.length});
+      AppLogger.debug('换一批成功', data: {'count': finalItems.length});
     } catch (e) {
       AppLogger.error('换一批失败', error: e);
       state = state.copyWith(isLoading: false, error: e.toString());

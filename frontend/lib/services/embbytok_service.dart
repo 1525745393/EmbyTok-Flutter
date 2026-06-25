@@ -129,6 +129,8 @@ class EmbytokService {
               id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
               name: (e['Name'] as String?) ?? '',
               type: (e['CollectionType'] as String?) ?? 'movies',
+              itemCount: e['RecursiveItemCount'] as int?,
+              coverImageUrl: e['ImageTags']?['Primary'] as String?,
             ))
         .toList();
 

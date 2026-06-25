@@ -187,9 +187,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
-            itemCount: filteredItems.length + (videoState.hasMore ? 1 : 0),
+            itemCount: filteredItems.length + (videoState.hasMore && !showPager ? 1 : 0),
             itemBuilder: (context, index) {
-              // 加载指示器
               if (index >= filteredItems.length) {
                 return Center(child: CircularProgressIndicator(color: scheme.primary));
               }
