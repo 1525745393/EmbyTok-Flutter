@@ -1,3 +1,10 @@
+## [1.94.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.94.0...v1.94.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* 网格模式顶部栏删除搜索框，避免重叠 ([9fdfd6f](https://github.com/1525745393/EmbyTok-Flutter/commit/9fdfd6fb6199587286da08416eec85f9c6b0fabc))
+
 # [1.94.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.93.1...v1.94.0) (2026-06-25)
 
 
