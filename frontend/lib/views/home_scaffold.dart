@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/providers.dart';
+import '../services/video_pool_service.dart';
 import '../utils/constants.dart';
 import 'feed_view.dart';
 import 'search_view.dart';

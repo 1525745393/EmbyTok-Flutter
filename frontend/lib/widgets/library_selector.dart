@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'tv_focusable.dart';
@@ -18,10 +19,8 @@ class LibrarySelector extends ConsumerStatefulWidget {
 
   /// 显示媒体库选择器（居中弹窗）
   static Future<void> show(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withOpacity(0.6),
       builder: (_) => const LibrarySelector(),
     );
