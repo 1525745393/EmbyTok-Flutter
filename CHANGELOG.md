@@ -1,3 +1,15 @@
+# [1.95.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.94.1...v1.95.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* 删除网格排序功能，修复顶部栏重叠和滚动加载更多 ([bd7a98a](https://github.com/1525745393/EmbyTok-Flutter/commit/bd7a98a7367d45cd4fbf6c664facdcf44b2772d9))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([ba10f39](https://github.com/1525745393/EmbyTok-Flutter/commit/ba10f3904cbe952df06d0c631816662de1664d49))
+
 ## [1.94.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.94.0...v1.94.1) (2026-06-25)
 
 
