@@ -1,3 +1,10 @@
+## [1.95.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.1...v1.95.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* 修复网格视图点击后视频流跳转到第一个视频的问题 ([db0b0a1](https://github.com/1525745393/EmbyTok-Flutter/commit/db0b0a14a055fd1e08f2b10ca01d44585b2704f5))
+
 ## [1.95.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.0...v1.95.1) (2026-06-25)
 
 
