@@ -1,3 +1,11 @@
+## [1.99.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.99.0...v1.99.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* 移除 _seekToItem 中已删除的 _isGridToFeedTransition 引用，修复编译错误 ([39906fd](https://github.com/1525745393/EmbyTok-Flutter/commit/39906fd39e0df1d1cde973c19f4aa852edbeab22))
+* 简化网格与视频流切换逻辑，直接在 transition 中处理跳转 ([9648660](https://github.com/1525745393/EmbyTok-Flutter/commit/964866094bec7ab630a63a41a5147aa0df70fc61))
+
 # [1.99.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.98.0...v1.99.0) (2026-06-25)
 
 
