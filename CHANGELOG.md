@@ -1,3 +1,11 @@
+## [1.95.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.0...v1.95.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* 修复 AppLogger.debug error 参数错误 ([24738c4](https://github.com/1525745393/EmbyTok-Flutter/commit/24738c43e90b7408bbc2c4e48312d1f9c310b608))
+* 媒体库视频数量单独请求，确保能正常显示 ([a9a7ad5](https://github.com/1525745393/EmbyTok-Flutter/commit/a9a7ad5b49539dcafc581844299566f29b304074))
+
 # [1.95.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.94.1...v1.95.0) (2026-06-25)
 
 
