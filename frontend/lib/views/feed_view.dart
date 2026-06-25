@@ -142,6 +142,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollSaveTimer = Timer(const Duration(milliseconds: 500), () {
       _saveGridScrollOffset();
     });
+
+    // 滚动到底部附近时触发加载更多（仅无限滚动模式，分页模式使用按钮翻页）
+    final videoState = ref.read(videoListProvider);
+    if (videoState.hasMore &&
+        !videoState.isLoading &&
+        _gridScrollController.hasClients &&
+        _gridScrollController.position.pixels >=
+            _gridScrollController.position.maxScrollExtent - 200) {
+      ref.read(videoListProvider.notifier).loadMore();
+    }
   }
 
   // 保存网格滚动偏移量到 SharedPreferences
@@ -640,59 +650,15 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 网格模式顶部栏：排序 + 视图切换
+  // 网格模式顶部栏：视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    final sortOption = ref.watch(gridSortOptionProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        children: [
-          const Spacer(),
-          // 排序选择器
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: scheme.outline.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<GridSortOption>(
-                value: sortOption,
-                isDense: true,
-                items: GridSortOption.values.map((option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.sort, size: 16, color: scheme.primary),
-                        const SizedBox(width: 4),
-                        Text(option.label),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    ref.read(gridSortOptionProvider.notifier).state = value;
-                  }
-                },
-              ),
-            ),
-          ),
+        children: const [
+          Spacer(),
           // 视图切换按钮
-          IconButton(
-            icon: Icon(
-              viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-              color: scheme.onSurface.withOpacity(0.7),
-              size: 22,
-            ),
-            onPressed: () {
-              ref.read(viewModeProvider.notifier).setMode(
-                viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-              );
-            },
-          ),
+          // 注意：网格模式下悬浮顶部栏已隐藏，视图切换按钮在 PosterGridView 的 Header 中
         ],
       ),
     );

@@ -101,9 +101,8 @@ class VideoListState {
 /// 内部监听：
 /// - [selectedLibraryIdsProvider] 媒体库选择变化
 /// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
-/// - [gridSortOptionProvider] 网格排序变化
 /// - [gridSearchQueryProvider] 网格搜索变化
-/// - [viewModeProvider] 视图模式变化（切回feed时重置排序搜索）
+/// - [viewModeProvider] 视图模式变化（切回feed时重置搜索）
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -134,20 +133,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 gridSortOptionProvider 变化：网格排序变化时刷新（仅 latest 模式）
-    _ref.listen<GridSortOption>(
-      gridSortOptionProvider,
-      (previous, next) {
-        if (next != previous) {
-          final viewMode = _ref.read(viewModeProvider);
-          final feedType = _ref.read(feedTypeProvider);
-          if (viewMode == ViewMode.grid && feedType == FeedType.latest) {
-            AppLogger.debug('网格排序变化：${previous?.label} -> ${next.label}，刷新视频列表');
-            _applySortAndRefresh(next.sortBy, next.sortOrder);
-          }
-        }
-      },
-    );
     // 监听 gridSearchQueryProvider 变化：网格搜索变化时刷新（防抖）
     _ref.listen<String>(
       gridSearchQueryProvider,
@@ -163,83 +148,69 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 viewModeProvider 变化：切回 feed 模式时重置排序搜索，切到 grid 模式时应用当前排序搜索
+    // 监听 viewModeProvider 变化：切回 feed 模式时重置搜索，切到 grid 模式时应用当前搜索
     _ref.listen<ViewMode>(
       viewModeProvider,
       (previous, next) {
         if (next == ViewMode.feed && previous == ViewMode.grid) {
-          // 切回 feed 模式：如果排序或搜索不是默认值，则重置并刷新
-          if (state.sortBy != 'DateCreated,SortName' ||
-              state.sortOrder != 'Descending' ||
-              state.searchTerm.isNotEmpty) {
-            AppLogger.debug('切回 feed 模式，重置排序和搜索');
+          // 切回 feed 模式：如果搜索不是默认值，则重置并刷新
+          if (state.searchTerm.isNotEmpty) {
+            AppLogger.debug('切回 feed 模式，重置搜索');
             // 重置 grid provider 的值
-            _ref.read(gridSortOptionProvider.notifier).state = GridSortOption.recentlyAdded;
             _ref.read(gridSearchQueryProvider.notifier).state = '';
             refresh();
           }
         } else if (next == ViewMode.grid && previous == ViewMode.feed) {
-          // 切到 grid 模式：应用当前的排序和搜索设置
-          // 同时执行"神之一手"：裁剪到当前播放位置所在的页
-          final currentIndex = _ref.read(currentIndexProvider);
-          final pageIndex = currentIndex ~/ kGridPageSize;
-          final startIndex = pageIndex * kGridPageSize;
-          final endIndex = startIndex + kGridPageSize;
-
-          // 检查 items 是否包含当前页的数据
-          final hasEnoughData = state.items.length > startIndex;
-
-          if (hasEnoughData) {
-            // items 包含当前页数据，执行裁剪
-            final pageItems = state.items.sublist(
-              startIndex,
-              endIndex.clamp(0, state.items.length),
-            );
-            // 保留当前页之后的 items（用于加载更多）
-            final remainingItems = state.items.length > endIndex
-                ? state.items.sublist(endIndex)
-                : <MediaItem>[];
-
-            AppLogger.debug('神之一手：裁剪到当前页', data: {
-              'currentIndex': currentIndex,
-              'pageIndex': pageIndex,
-              'startIndex': startIndex,
-              'gridItemsLength': pageItems.length,
-            });
-
-            state = state.copyWith(
-              gridItems: pageItems,
-              gridStartIndex: startIndex,
-            );
-          } else {
-            // items 不包含当前页数据，需要加载那一页
-            AppLogger.debug('神之一手：当前页未加载，先使用全部数据', data: {
-              'currentIndex': currentIndex,
-              'itemsLength': state.items.length,
-            });
-            state = state.copyWith(
-              gridItems: state.items,
-              gridStartIndex: 0,
-            );
-          }
-
-          // 应用排序和搜索（如果需要）
-          final sortOption = _ref.read(gridSortOptionProvider);
+          // 先判断是否需要应用搜索并刷新
           final searchQuery = _ref.read(gridSearchQueryProvider);
           final feedType = _ref.read(feedTypeProvider);
-          if (feedType == FeedType.latest) {
-            final sortBy = sortOption.sortBy;
-            final sortOrder = sortOption.sortOrder;
-            if (sortBy != 'DateCreated,SortName' ||
-                sortOrder != 'Descending' ||
-                searchQuery.isNotEmpty) {
-              AppLogger.debug('切到 grid 模式，应用排序和搜索');
-              state = state.copyWith(
-                sortBy: sortBy,
-                sortOrder: sortOrder,
-                searchTerm: searchQuery,
+          final needsRefresh = feedType == FeedType.latest && searchQuery.isNotEmpty;
+
+          if (needsRefresh) {
+            // 需要刷新：直接应用搜索并刷新，不执行裁剪（刷新后数据全新）
+            AppLogger.debug('切到 grid 模式，应用搜索');
+            state = state.copyWith(
+              searchTerm: searchQuery,
+            );
+            refresh();
+          } else {
+            // 不需要刷新：执行"神之一手"，裁剪到当前播放位置所在的页
+            final currentIndex = _ref.read(currentIndexProvider);
+            final pageIndex = currentIndex ~/ kGridPageSize;
+            final startIndex = pageIndex * kGridPageSize;
+            final endIndex = startIndex + kGridPageSize;
+
+            // 检查 items 是否包含当前页的数据
+            final hasEnoughData = state.items.length > startIndex;
+
+            if (hasEnoughData) {
+              // items 包含当前页数据，执行裁剪
+              final pageItems = state.items.sublist(
+                startIndex,
+                endIndex.clamp(0, state.items.length),
               );
-              refresh();
+
+              AppLogger.debug('神之一手：裁剪到当前页', data: {
+                'currentIndex': currentIndex,
+                'pageIndex': pageIndex,
+                'startIndex': startIndex,
+                'gridItemsLength': pageItems.length,
+              });
+
+              state = state.copyWith(
+                gridItems: pageItems,
+                gridStartIndex: startIndex,
+              );
+            } else {
+              // items 不包含当前页数据，先使用全部数据
+              AppLogger.debug('神之一手：当前页未加载，先使用全部数据', data: {
+                'currentIndex': currentIndex,
+                'itemsLength': state.items.length,
+              });
+              state = state.copyWith(
+                gridItems: state.items,
+                gridStartIndex: 0,
+              );
             }
           }
         }
@@ -249,12 +220,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
-
-  // 应用排序并刷新
-  void _applySortAndRefresh(String sortBy, String sortOrder) {
-    state = state.copyWith(sortBy: sortBy, sortOrder: sortOrder);
-    refresh();
-  }
 
   // 应用搜索并刷新
   void _applySearchAndRefresh(String searchTerm) {
@@ -754,108 +719,7 @@ final videoListProvider =
   return VideoListNotifier(ref);
 });
 
-// ==================== 网格模式排序与搜索 ====================
-
-/// 网格视图排序选项
-///
-/// 每个选项对应 Emby API 的 SortBy 和 SortOrder 参数
-enum GridSortOption {
-  resolution(
-    label: '分辨率',
-    sortBy: 'Height',
-    sortOrder: 'Descending',
-  ),
-  dateCreated(
-    label: '加入日期',
-    sortBy: 'DateCreated',
-    sortOrder: 'Descending',
-  ),
-  premiereDate(
-    label: '发行日期',
-    sortBy: 'PremiereDate',
-    sortOrder: 'Descending',
-  ),
-  container(
-    label: '媒体容器',
-    sortBy: 'Container',
-    sortOrder: 'Ascending',
-  ),
-  officialRating(
-    label: '家长评分',
-    sortBy: 'OfficialRating',
-    sortOrder: 'Ascending',
-  ),
-  productionYear(
-    label: '年份',
-    sortBy: 'ProductionYear',
-    sortOrder: 'Descending',
-  ),
-  criticRating(
-    label: '影评人评分',
-    sortBy: 'CriticRating',
-    sortOrder: 'Descending',
-  ),
-  datePlayed(
-    label: '播放日期',
-    sortBy: 'DatePlayed',
-    sortOrder: 'Descending',
-  ),
-  runtime(
-    label: '播放时长',
-    sortBy: 'Runtime',
-    sortOrder: 'Descending',
-  ),
-  playCount(
-    label: '播放次数',
-    sortBy: 'PlayCount',
-    sortOrder: 'Descending',
-  ),
-  sortName(
-    label: '文件名',
-    sortBy: 'SortName',
-    sortOrder: 'Ascending',
-  ),
-  size(
-    label: '文件尺寸',
-    sortBy: 'Size',
-    sortOrder: 'Descending',
-  ),
-  name(
-    label: '标题',
-    sortBy: 'SortName',
-    sortOrder: 'Ascending',
-  ),
-  bitrate(
-    label: '比特率',
-    sortBy: 'Bitrate',
-    sortOrder: 'Descending',
-  ),
-  random(
-    label: '随机',
-    sortBy: 'Random',
-    sortOrder: 'Ascending',
-  ),
-  recentlyAdded(
-    label: '最近添加',
-    sortBy: 'DateCreated,SortName',
-    sortOrder: 'Descending',
-  );
-
-  final String label;
-  final String sortBy;
-  final String sortOrder;
-
-  const GridSortOption({
-    required this.label,
-    required this.sortBy,
-    required this.sortOrder,
-  });
-}
-
-/// 网格视图排序选项 Provider
-final gridSortOptionProvider = StateProvider<GridSortOption>((ref) {
-  return GridSortOption.recentlyAdded;
-});
+// ==================== 网格模式搜索 ====================
 
 /// 网格视图搜索关键词 Provider
 final gridSearchQueryProvider = StateProvider<String>((ref) {
