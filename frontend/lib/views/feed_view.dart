@@ -99,6 +99,19 @@ class _FeedViewState extends ConsumerState<FeedView>
     _hasScrolledToInitial = false;
     // 清理初始播放位置标记，避免从 grid 切回 feed 时错误跳转
     _initialItemId = null;
+
+    // 检查是否有待跳转的视频（用户在网格中点击了某个视频）
+    final selectedItemId = ref.read(gridSelectedItemIdProvider);
+    if (selectedItemId != null && selectedItemId.isNotEmpty) {
+      // 在下一帧执行跳转，确保 PageView 已构建完成
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _seekToItem(selectedItemId);
+          // 跳转完成后清理选中 ID，避免重复触发
+          ref.read(gridSelectedItemIdProvider.notifier).state = null;
+        }
+      });
+    }
   }
 
   @override
@@ -758,6 +771,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
+        // 同步更新全局 currentIndexProvider，供"神之一手"裁剪等逻辑使用
+        ref.read(currentIndexProvider.notifier).state = index;
         // 保存当前视频索引到 SharedPreferences
         _saveVideoIndex(index);
         if (videoState.hasMore && index >= videoState.items.length - 2) {
