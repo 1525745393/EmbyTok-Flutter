@@ -1,14 +1,19 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show ViewMode;
+import '../utils/app_preferences.dart' show FeedType, ViewMode;
 import '../utils/image_cache_manager.dart';
-import 'tv_focusable.dart';
+import '../widgets/tv_focusable.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
+/// 参考 EmbyX 实现：
+/// - 3列网格布局
+/// - 顶部 Header 显示媒体库名、总数、换一批按钮、分页控件
+/// - 支持分页导航（上一页/下一页）
 class PosterGridView extends ConsumerStatefulWidget {
   final ScrollController? scrollController;
 
@@ -24,6 +29,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
     final filteredItems = ref.watch(gridFilteredVideoListProvider);
+    final selectedLibraries = ref.watch(selectedLibrariesProvider);
 
     if (videoState.items.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
@@ -34,28 +40,157 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       );
     }
 
-    return GridView.builder(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.65,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: filteredItems.length + (videoState.hasMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        // 分页加载触发（基于原始列表，因为过滤是客户端行为）
-        if (videoState.hasMore && index >= videoState.items.length - 3 && !videoState.isLoading) {
-          ref.read(videoListProvider.notifier).loadMore();
-        }
-        // 末尾加载指示器
-        if (index >= filteredItems.length) {
-          return Center(child: CircularProgressIndicator(color: scheme.primary));
-        }
-        final item = filteredItems[index];
-        return _PosterCard(key: Key(item.id), item: item);
-      },
+    // 计算分页信息
+    final currentPage = ref.read(videoListProvider.notifier).currentPage;
+    final totalPages = ref.read(videoListProvider.notifier).totalPages;
+    final hasPrevPage = ref.read(videoListProvider.notifier).hasPrevPage;
+    final hasNextPage = ref.read(videoListProvider.notifier).hasNextPage;
+    final totalCount = videoState.totalCount;
+    final countStr = totalCount > 999 ? '999+' : '$totalCount';
+
+    // 获取媒体库名称
+    String libraryName = '全部视频';
+    if (videoState.feedType == FeedType.favorites) {
+      libraryName = '收藏夹';
+    } else if (selectedLibraries.isNotEmpty) {
+      final firstLib = selectedLibraries.first;
+      libraryName = firstLib.name;
+    }
+
+    // 判断是否显示分页控件（仅单库模式且多页时显示）
+    final showPager = selectedLibraries.length == 1 && totalPages > 1;
+
+    return Column(
+      children: [
+        // 顶部 Header：媒体库名 + 总数 + 换一批 + 分页控件
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: scheme.surface.withOpacity(0.5),
+            border: Border(
+              bottom: BorderSide(color: scheme.onSurface.withOpacity(0.1)),
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              children: [
+                // 媒体库名称
+                Text(
+                  libraryName,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 总数 + 换一批按钮
+                GestureDetector(
+                  onTap: () {
+                    // 换一批：随机获取 150 条
+                    ref.read(videoListProvider.notifier).shuffleRandom();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scheme.onSurface.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          countStr,
+                          style: TextStyle(
+                            color: scheme.primary.withOpacity(0.7),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 14,
+                          color: scheme.onSurface.withOpacity(0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // 分页控件：仅在单库模式且多页时显示
+                if (showPager) ...[
+                  // 上一页按钮
+                  IconButton(
+                    onPressed: hasPrevPage
+                        ? () => ref.read(videoListProvider.notifier).prevPage()
+                        : null,
+                    icon: Icon(
+                      Icons.chevron_left,
+                      color: hasPrevPage
+                          ? scheme.onSurface.withOpacity(0.7)
+                          : scheme.onSurface.withOpacity(0.3),
+                    ),
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    tooltip: '上一页',
+                  ),
+                  // 页码显示
+                  Text(
+                    '$currentPage/$totalPages',
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  // 下一页按钮
+                  IconButton(
+                    onPressed: hasNextPage
+                        ? () => ref.read(videoListProvider.notifier).nextPage()
+                        : null,
+                    icon: Icon(
+                      Icons.chevron_right,
+                      color: hasNextPage
+                          ? scheme.onSurface.withOpacity(0.7)
+                          : scheme.onSurface.withOpacity(0.3),
+                    ),
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    tooltip: '下一页',
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        // 网格内容
+        Expanded(
+          child: GridView.builder(
+            controller: widget.scrollController,
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: filteredItems.length + (videoState.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              // 加载指示器
+              if (index >= filteredItems.length) {
+                return Center(child: CircularProgressIndicator(color: scheme.primary));
+              }
+              final item = filteredItems[index];
+              return _PosterCard(key: Key(item.id), item: item);
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -72,11 +207,28 @@ class _PosterCard extends ConsumerWidget {
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
     return TvFocusable(
-      onTap: () {
+      onTap: () async {
         // 点击海报切换到视频流模式并从该视频开始播放
         // 1. 设置选中的视频 ID
         ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
-        // 2. 切换到视频流模式
+
+        // 2. 获取当前视频在列表中的索引
+        final videoState = ref.read(videoListProvider);
+        final index = videoState.items.indexWhere((i) => i.id == item.id);
+
+        // 3. 将目标索引持久化到 SharedPreferences
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('emby_last_video_index', index >= 0 ? index : 0);
+        } catch (_) {
+          // 持久化失败不阻断流程
+        }
+
+        // 4. 同步更新全局播放状态
+        ref.read(currentIndexProvider.notifier).state = index >= 0 ? index : 0;
+        ref.read(currentPlayingItemProvider.notifier).state = item;
+
+        // 5. 切换到视频流模式
         ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
       },
       borderRadius: 8,

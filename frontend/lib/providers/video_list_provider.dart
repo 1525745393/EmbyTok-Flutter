@@ -24,6 +24,7 @@ import 'library_provider.dart';
 /// - [items] 当前加载的媒体项列表
 /// - [isLoading] 是否正在加载中
 /// - [hasMore] 是否还有更多数据可加载
+/// - [totalCount] 媒体库总视频数（用于分页显示)
 /// - [feedType] 当前浏览模式（latest/random/favorites/resume）
 /// - [sortBy] 排序字段（Emby SortBy 参数）
 /// - [sortOrder] 排序顺序（Ascending/Descending）
@@ -35,6 +36,7 @@ class VideoListState {
   final String? error;
   final int offset;
   final int limit;
+  final int totalCount; // 媒体库总视频数，用于分页显示
   final FeedType feedType; // 当前浏览模式
   final String sortBy;
   final String sortOrder;
@@ -47,6 +49,7 @@ class VideoListState {
     this.error,
     this.offset = 0,
     this.limit = kDefaultPageLimit,
+    this.totalCount = 0,
     this.feedType = FeedType.latest,
     this.sortBy = 'DateCreated,SortName',
     this.sortOrder = 'Descending',
@@ -60,6 +63,7 @@ class VideoListState {
     String? error,
     int? offset,
     int? limit,
+    int? totalCount,
     FeedType? feedType,
     String? sortBy,
     String? sortOrder,
@@ -72,6 +76,7 @@ class VideoListState {
       error: error ?? this.error,
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
+      totalCount: totalCount ?? this.totalCount,
       feedType: feedType ?? this.feedType,
       sortBy: sortBy ?? this.sortBy,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -219,6 +224,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       error: null,
       offset: 0,
       limit: state.limit,
+      totalCount: 0,
       feedType: currentFeedType,
       sortBy: state.sortBy,
       sortOrder: state.sortOrder,
@@ -244,6 +250,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       final List<MediaItem> loadedItems;
       final bool canPaginate;
+      int loadedTotal = 0; // 媒体库总视频数（用于分页显示）
 
       switch (currentFeedType) {
         case FeedType.latest:
@@ -254,6 +261,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           }
           // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
           final merged = <MediaItem>[];
+          int totalItems = 0;
           for (final libId in libIds) {
             try {
               final resp = await _service.getLibraryItems(
@@ -268,11 +276,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
               );
               merged.addAll(resp.items);
+              totalItems += resp.total; // 累加每个库的总视频数
             } catch (e) {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
           loadedItems = merged;
+          loadedTotal = totalItems;
           canPaginate = true;
 
         case FeedType.random:
@@ -356,6 +366,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         error: null,
         offset: loadedItems.length,
         limit: state.limit,
+        totalCount: loadedTotal,
         feedType: currentFeedType,
       );
       AppLogger.debug('视频列表刷新成功', data: {
@@ -450,9 +461,201 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
+  // 换一批：使用 SortBy=Random 服务端随机排序，获取 150 条随机视频
+  // 与 refresh() 的区别：始终使用 Random 排序，且不改变当前的 sortOption 设置
+  Future<void> shuffleRandom() async {
+    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    final auth = _auth;
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: '尚未登录',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      items: const <MediaItem>[],
+      isLoading: true,
+      hasMore: false, // 随机模式不支持分页
+      error: null,
+      offset: 0,
+      limit: 150, // 换一批获取 150 条
+      feedType: FeedType.latest,
+      sortBy: 'Random',
+      sortOrder: 'Ascending',
+      searchTerm: '',
+    );
+
+    try {
+      AppLogger.info('换一批：随机获取视频', data: {
+        'libraryIds': selectedIds.join(','),
+      });
+
+      final merged = <MediaItem>[];
+      for (final libId in selectedIds) {
+        try {
+          final resp = await _service.getLibraryItems(
+            libId,
+            limit: 150,
+            offset: 0,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+            sortBy: 'Random',
+            sortOrder: 'Ascending',
+          );
+          merged.addAll(resp.items);
+        } catch (e) {
+          AppLogger.error('加载库 $libId 失败，跳过', error: e);
+        }
+      }
+
+      // 随机模式下加载完，直接原地洗牌（保持第一个视频在首位）
+      if (merged.isNotEmpty) {
+        final firstItem = merged.first;
+        final rest = merged.skip(1).toList();
+        rest.shuffle();
+        merged.clear();
+        merged.add(firstItem);
+        merged.addAll(rest);
+      }
+
+      state = VideoListState(
+        items: merged,
+        isLoading: false,
+        hasMore: false,
+        error: null,
+        offset: merged.length,
+        limit: 150,
+        totalCount: merged.length,
+        feedType: FeedType.latest,
+        sortBy: 'Random',
+        sortOrder: 'Ascending',
+      );
+      AppLogger.debug('换一批成功', data: {'count': merged.length});
+    } catch (e) {
+      AppLogger.error('换一批失败', error: e);
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   // 清除当前错误状态（SnackBar 弹出后重置，避免重复弹出）
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  // 分页常量：与 EmbyX 保持一致，每页 150 条
+  static const int kGridPageSize = 150;
+
+  // 计算当前页码（从 1 开始）
+  int get currentPage {
+    if (state.limit <= 0) return 1;
+    return (state.offset / state.limit).floor() + 1;
+  }
+
+  // 计算总页数
+  int get totalPages {
+    if (state.totalCount <= 0) return 1;
+    return (state.totalCount / kGridPageSize).ceil();
+  }
+
+  // 是否有上一页
+  bool get hasPrevPage => currentPage > 1;
+
+  // 是否有下一页
+  bool get hasNextPage => currentPage < totalPages;
+
+  // 跳转到指定页
+  Future<void> goToPage(int page) async {
+    if (page < 1 || page > totalPages) return;
+    final newOffset = (page - 1) * kGridPageSize;
+    await _loadPageAt(newOffset);
+  }
+
+  // 下一页
+  Future<void> nextPage() async {
+    if (!hasNextPage) return;
+    await goToPage(currentPage + 1);
+  }
+
+  // 上一页
+  Future<void> prevPage() async {
+    if (!hasPrevPage) return;
+    await goToPage(currentPage - 1);
+  }
+
+  // 内部方法：加载指定 offset 的页面
+  Future<void> _loadPageAt(int offset) async {
+    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    final auth = _auth;
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: '尚未登录',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      offset: offset,
+    );
+
+    try {
+      AppLogger.debug('加载第 ${(offset / kGridPageSize).floor() + 1} 页', data: {
+        'offset': offset,
+        'libraryCount': selectedIds.length,
+      });
+
+      final merged = <MediaItem>[];
+      for (final libId in selectedIds) {
+        try {
+          final resp = await _service.getLibraryItems(
+            libId,
+            limit: kGridPageSize,
+            offset: offset,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+            sortBy: state.sortBy,
+            sortOrder: state.sortOrder,
+            searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+          );
+          merged.addAll(resp.items);
+        } catch (e) {
+          AppLogger.error('加载库 $libId 失败，跳过', error: e);
+        }
+      }
+
+      // 判断是否还有更多
+      final hasMore = merged.length >= kGridPageSize * selectedIds.length;
+
+      state = VideoListState(
+        items: merged,
+        isLoading: false,
+        hasMore: hasMore,
+        error: null,
+        offset: offset + merged.length,
+        limit: kGridPageSize,
+        totalCount: state.totalCount,
+        feedType: state.feedType,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+        searchTerm: state.searchTerm,
+      );
+      AppLogger.debug('分页加载成功', data: {'newCount': merged.length, 'currentPage': currentPage});
+    } catch (e) {
+      AppLogger.error('分页加载失败', error: e);
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
   }
 
   // 从当前列表移除已播放完毕的条目（仅 resume 模式下需要）
