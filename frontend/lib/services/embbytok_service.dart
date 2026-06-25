@@ -134,6 +134,34 @@ class EmbytokService {
             ))
         .toList();
 
+    // 如果接口没有返回视频数量，为每个库单独请求一次
+    final needsCount = libraries.any((lib) => lib.itemCount == null);
+    if (needsCount && effectiveUserId != null && effectiveUserId.isNotEmpty) {
+      for (var i = 0; i < libraries.length; i++) {
+        final lib = libraries[i];
+        if (lib.itemCount == null) {
+          try {
+            final resp = await getLibraryItems(
+              lib.id,
+              limit: 0,
+              userId: effectiveUserId,
+              serverUrl: serverUrl,
+              token: token,
+            );
+            libraries[i] = Library(
+              id: lib.id,
+              name: lib.name,
+              type: lib.type,
+              itemCount: resp.total,
+              coverImageUrl: lib.coverImageUrl,
+            );
+          } catch (e) {
+            AppLogger.debug('获取库 ${lib.name} 视频数量失败', error: e);
+          }
+        }
+      }
+    }
+
     AppLogger.debug('媒体库列表响应', data: {'count': libraries.length});
     return libraries;
   }
