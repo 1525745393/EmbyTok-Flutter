@@ -639,42 +639,14 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 网格模式顶部栏：搜索框 + 排序 + 视图切换
+  // 网格模式顶部栏：排序 + 视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
     final sortOption = ref.watch(gridSortOptionProvider);
-    final searchQuery = ref.watch(gridSearchQueryProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
-          // 搜索框
-          Expanded(
-            child: TextField(
-              controller: _gridSearchController,
-              decoration: InputDecoration(
-                hintText: '搜索视频...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _gridSearchController.clear();
-                          ref.read(gridSearchQueryProvider.notifier).state = '';
-                        },
-                      )
-                    : null,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onChanged: (value) {
-                ref.read(gridSearchQueryProvider.notifier).state = value;
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
+          const Spacer(),
           // 排序选择器
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
