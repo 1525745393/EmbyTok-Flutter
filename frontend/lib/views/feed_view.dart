@@ -45,7 +45,6 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 滚动位置持久化相关
   bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
-  bool _hasRestoredGridScrollPosition = false; // 是否已恢复网格滚动位置
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -81,12 +80,6 @@ class _FeedViewState extends ConsumerState<FeedView>
           _handleFeedToGridTransition();
         }
       });
-      // 监听网格选中的视频 ID：收到后跳转到该视频
-      ref.listen<String?>(gridSelectedItemIdProvider, (prev, next) {
-        if (next != null && next.isNotEmpty) {
-          _seekToItem(next);
-        }
-      });
     });
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
     _checkCloudSyncOnStartup();
@@ -108,9 +101,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
       // 清理选中 ID，避免重复触发
       ref.read(gridSelectedItemIdProvider.notifier).state = null;
-    } else if (items.isNotEmpty && _currentIndex >= 0 && _currentIndex < items.length) {
-      // 没有选中视频，用当前播放位置
-      targetIndex = _currentIndex;
     }
 
     // 在下一帧跳转到目标位置（确保 PageView 已构建完成）
@@ -753,18 +743,6 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 构建网格视图
   Widget _buildGridPageView(VideoListState videoState) {
-    // 首次进入时从 SharedPreferences 恢复滚动位置
-    if (!_hasRestoredGridScrollPosition &&
-        videoState.gridItems.isNotEmpty &&
-        !videoState.isLoading) {
-      _hasRestoredGridScrollPosition = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _restoreGridScrollOffset();
-        }
-      });
-    }
-
     return PosterGridView(scrollController: _gridScrollController);
   }
 
