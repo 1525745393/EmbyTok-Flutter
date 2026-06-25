@@ -311,6 +311,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           final shuffled = List<MediaItem>.from(merged);
           shuffled.shuffle();
           loadedItems = shuffled;
+          loadedTotal = shuffled.length;
           canPaginate = false;
 
         case FeedType.favorites:
@@ -320,6 +321,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: auth.user?.id,
           );
           loadedItems = favList;
+          loadedTotal = favList.length;
           canPaginate = false;
 
         case FeedType.resume:
@@ -330,6 +332,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             token: auth.token!,
           );
           loadedItems = resp.items;
+          loadedTotal = resp.items.length;
           canPaginate = false;
 
         case FeedType.recommend:
@@ -356,6 +359,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             }
           }
           loadedItems = merged;
+          loadedTotal = merged.length;
           canPaginate = true;
       }
 

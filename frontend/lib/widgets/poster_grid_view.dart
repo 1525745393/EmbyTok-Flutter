@@ -40,13 +40,21 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       );
     }
 
-    // 计算分页信息
-    final currentPage = ref.read(videoListProvider.notifier).currentPage;
-    final totalPages = ref.read(videoListProvider.notifier).totalPages;
-    final hasPrevPage = ref.read(videoListProvider.notifier).hasPrevPage;
-    final hasNextPage = ref.read(videoListProvider.notifier).hasNextPage;
     final totalCount = videoState.totalCount;
     final countStr = totalCount > 999 ? '999+' : '$totalCount';
+
+    // 计算分页信息（直接从 state 计算，确保 UI 响应式更新）
+    const gridPageSize = 150;
+    final currentPage = totalCount > 0
+        ? (videoState.offset <= 0
+            ? 1
+            : ((videoState.offset - videoState.items.length) ~/ gridPageSize) + 1)
+        : 1;
+    final totalPages = totalCount > 0
+        ? (totalCount / gridPageSize).ceil()
+        : 1;
+    final hasPrevPage = currentPage > 1;
+    final hasNextPage = currentPage < totalPages;
 
     // 获取媒体库名称
     String libraryName = '全部视频';
