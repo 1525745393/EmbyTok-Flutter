@@ -17,11 +17,14 @@ import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'library_provider.dart';
+import 'video_playback_controller.dart';
 
 /// 视频列表状态：包含分页数据、加载状态和浏览模式
 ///
 /// 核心字段：
-/// - [items] 当前加载的媒体项列表
+/// - [items] 当前加载的媒体项列表（feed 模式使用）
+/// - [gridItems] 网格视图专用列表（grid 模式使用，是 items 的子集）
+/// - [gridStartIndex] 网格视图的全局起始偏移（用于 feed 模式跳转）
 /// - [isLoading] 是否正在加载中
 /// - [hasMore] 是否还有更多数据可加载
 /// - [totalCount] 媒体库总视频数（用于分页显示)
@@ -31,6 +34,8 @@ import 'library_provider.dart';
 /// - [searchTerm] 搜索关键词
 class VideoListState {
   final List<MediaItem> items;
+  final List<MediaItem> gridItems; // 网格视图专用列表（裁剪后）
+  final int gridStartIndex; // 网格视图的全局起始偏移
   final bool isLoading;
   final bool hasMore;
   final String? error;
@@ -44,6 +49,8 @@ class VideoListState {
 
   const VideoListState({
     this.items = const <MediaItem>[],
+    this.gridItems = const <MediaItem>[],
+    this.gridStartIndex = 0,
     this.isLoading = false,
     this.hasMore = true,
     this.error,
@@ -58,6 +65,8 @@ class VideoListState {
 
   VideoListState copyWith({
     List<MediaItem>? items,
+    List<MediaItem>? gridItems,
+    int? gridStartIndex,
     bool? isLoading,
     bool? hasMore,
     String? error,
@@ -71,6 +80,8 @@ class VideoListState {
   }) {
     return VideoListState(
       items: items ?? this.items,
+      gridItems: gridItems ?? this.gridItems,
+      gridStartIndex: gridStartIndex ?? this.gridStartIndex,
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
@@ -169,13 +180,56 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           }
         } else if (next == ViewMode.grid && previous == ViewMode.feed) {
           // 切到 grid 模式：应用当前的排序和搜索设置
+          // 同时执行"神之一手"：裁剪到当前播放位置所在的页
+          final currentIndex = _ref.read(currentIndexProvider);
+          final pageIndex = currentIndex ~/ kGridPageSize;
+          final startIndex = pageIndex * kGridPageSize;
+          final endIndex = startIndex + kGridPageSize;
+
+          // 检查 items 是否包含当前页的数据
+          final hasEnoughData = state.items.length > startIndex;
+
+          if (hasEnoughData) {
+            // items 包含当前页数据，执行裁剪
+            final pageItems = state.items.sublist(
+              startIndex,
+              endIndex.clamp(0, state.items.length),
+            );
+            // 保留当前页之后的 items（用于加载更多）
+            final remainingItems = state.items.length > endIndex
+                ? state.items.sublist(endIndex)
+                : <MediaItem>[];
+
+            AppLogger.debug('神之一手：裁剪到当前页', data: {
+              'currentIndex': currentIndex,
+              'pageIndex': pageIndex,
+              'startIndex': startIndex,
+              'gridItemsLength': pageItems.length,
+            });
+
+            state = state.copyWith(
+              gridItems: pageItems,
+              gridStartIndex: startIndex,
+            );
+          } else {
+            // items 不包含当前页数据，需要加载那一页
+            AppLogger.debug('神之一手：当前页未加载，先使用全部数据', data: {
+              'currentIndex': currentIndex,
+              'itemsLength': state.items.length,
+            });
+            state = state.copyWith(
+              gridItems: state.items,
+              gridStartIndex: 0,
+            );
+          }
+
+          // 应用排序和搜索（如果需要）
           final sortOption = _ref.read(gridSortOptionProvider);
           final searchQuery = _ref.read(gridSearchQueryProvider);
           final feedType = _ref.read(feedTypeProvider);
           if (feedType == FeedType.latest) {
             final sortBy = sortOption.sortBy;
             final sortOrder = sortOption.sortOrder;
-            // 如果排序或搜索不是默认值，则刷新
             if (sortBy != 'DateCreated,SortName' ||
                 sortOrder != 'Descending' ||
                 searchQuery.isNotEmpty) {
@@ -219,6 +273,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
     state = VideoListState(
       items: const <MediaItem>[],
+      gridItems: const <MediaItem>[],
+      gridStartIndex: 0,
       isLoading: true,
       hasMore: true,
       error: null,
@@ -365,6 +421,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       state = VideoListState(
         items: loadedItems,
+        gridItems: loadedItems,
+        gridStartIndex: 0,
         isLoading: false,
         hasMore: canPaginate,
         error: null,
@@ -451,6 +509,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       state = VideoListState(
         items: [...state.items, ...merged],
+        gridItems: [...state.gridItems, ...merged],
+        gridStartIndex: state.gridStartIndex,
         isLoading: false,
         hasMore: hasMore,
         error: null,
@@ -537,6 +597,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       state = VideoListState(
         items: finalItems,
+        gridItems: finalItems,
+        gridStartIndex: 0,
         isLoading: false,
         hasMore: false,
         error: null,
@@ -651,6 +713,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
       state = VideoListState(
         items: merged,
+        gridItems: merged,
+        gridStartIndex: offset,
         isLoading: false,
         hasMore: hasMore,
         error: null,

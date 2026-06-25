@@ -28,13 +28,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
-    final filteredItems = ref.watch(gridFilteredVideoListProvider);
+    final gridItems = videoState.gridItems; // 使用裁剪后的网格列表
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
 
-    if (videoState.items.isEmpty && videoState.isLoading) {
+    if (gridItems.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
-    if (filteredItems.isEmpty) {
+    if (gridItems.isEmpty) {
       return Center(
         child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
       );
@@ -45,10 +45,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 
     // 计算分页信息（直接从 state 计算，确保 UI 响应式更新）
     const gridPageSize = 150;
+    final gridStartIndex = videoState.gridStartIndex;
     final currentPage = totalCount > 0
-        ? (videoState.offset <= 0
-            ? 1
-            : ((videoState.offset - videoState.items.length) ~/ gridPageSize) + 1)
+        ? (gridStartIndex ~/ gridPageSize) + 1
         : 1;
     final totalPages = totalCount > 0
         ? (totalCount / gridPageSize).ceil()
@@ -187,13 +186,17 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
-            itemCount: filteredItems.length + (videoState.hasMore && !showPager ? 1 : 0),
+            itemCount: gridItems.length + (videoState.hasMore && !showPager ? 1 : 0),
             itemBuilder: (context, index) {
-              if (index >= filteredItems.length) {
+              if (index >= gridItems.length) {
                 return Center(child: CircularProgressIndicator(color: scheme.primary));
               }
-              final item = filteredItems[index];
-              return _PosterCard(key: Key(item.id), item: item);
+              final item = gridItems[index];
+              return _PosterCard(
+                key: Key(item.id),
+                item: item,
+                gridStartIndex: gridStartIndex, // 传递起始偏移
+              );
             },
           ),
         ),
@@ -205,7 +208,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
   final MediaItem item;
-  const _PosterCard({super.key, required this.item});
+  final int gridStartIndex; // 网格视图的全局起始偏移
+
+  const _PosterCard({
+    super.key,
+    required this.item,
+    required this.gridStartIndex,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -214,28 +223,20 @@ class _PosterCard extends ConsumerWidget {
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
     return TvFocusable(
-      onTap: () async {
+      onTap: () {
         // 点击海报切换到视频流模式并从该视频开始播放
-        // 1. 设置选中的视频 ID
-        ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
-
-        // 2. 获取当前视频在列表中的索引
+        // 1. 获取当前视频在 gridItems 中的索引
         final videoState = ref.read(videoListProvider);
-        final index = videoState.items.indexWhere((i) => i.id == item.id);
+        final indexInGrid = videoState.gridItems.indexWhere((i) => i.id == item.id);
 
-        // 3. 将目标索引持久化到 SharedPreferences
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('emby_last_video_index', index >= 0 ? index : 0);
-        } catch (_) {
-          // 持久化失败不阻断流程
-        }
+        // 2. 计算全局索引：gridStartIndex + 页内索引
+        final globalIndex = gridStartIndex + (indexInGrid >= 0 ? indexInGrid : 0);
 
-        // 4. 同步更新全局播放状态
-        ref.read(currentIndexProvider.notifier).state = index >= 0 ? index : 0;
+        // 3. 同步更新全局播放状态
+        ref.read(currentIndexProvider.notifier).state = globalIndex;
         ref.read(currentPlayingItemProvider.notifier).state = item;
 
-        // 5. 切换到视频流模式
+        // 4. 切换到视频流模式
         ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
       },
       borderRadius: 8,
