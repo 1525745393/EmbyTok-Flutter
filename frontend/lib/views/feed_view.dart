@@ -97,6 +97,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 重置已恢复滚动位置的标记，以便从正确位置开始
     _hasRestoredScrollPosition = false;
     _hasScrolledToInitial = false;
+    // 清理初始播放位置标记，避免从 grid 切回 feed 时错误跳转
+    _initialItemId = null;
   }
 
   @override
