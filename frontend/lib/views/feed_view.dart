@@ -46,7 +46,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 滚动位置持久化相关
   bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
   bool _hasRestoredGridScrollPosition = false; // 是否已恢复网格滚动位置
-  bool _needScrollToCurrentVideo = false; // 从 feed 切到 grid 时是否需要滚动到当前视频
+  bool _isGridToFeedTransition = false; // 是否正在从 grid 切回 feed（跳过 SharedPreferences 恢复）
+  bool _isFeedToGridTransition = false; // 是否正在从 feed 切到 grid（跳过 SharedPreferences 恢复）
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -97,6 +98,8 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 从网格模式切换到视频流模式时的处理
   void _handleGridToFeedTransition() {
+    // 标记：从 grid 切回 feed，需要跳转到用户点击的视频
+    _isGridToFeedTransition = true;
     // 重置已恢复滚动位置的标记，以便从正确位置开始
     _hasRestoredScrollPosition = false;
     _hasScrolledToInitial = false;
@@ -119,10 +122,20 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 从视频流模式切换到网格模式时的处理
   void _handleFeedToGridTransition() {
-    // 标记需要滚动到当前视频位置
-    _needScrollToCurrentVideo = true;
-    // 重置网格滚动位置恢复标记，确保下一帧重新计算
+    // 标记：从 feed 切到 grid，跳过 SharedPreferences 恢复
+    _isFeedToGridTransition = true;
+    // 重置网格滚动位置恢复标记，避免干扰
     _hasRestoredGridScrollPosition = false;
+    // 在下一帧执行滚动，确保 GridView 已构建完成
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scrolled = _tryScrollToCurrentVideo();
+      if (!scrolled) {
+        _restoreGridScrollOffset();
+      }
+      _hasRestoredGridScrollPosition = true;
+      _isFeedToGridTransition = false;
+    });
   }
 
   @override
@@ -386,7 +399,10 @@ class _FeedViewState extends ConsumerState<FeedView>
         idx,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
-      );
+      ).then((_) {
+        // 跳转完成后重置 grid→feed 切换标记
+        _isGridToFeedTransition = false;
+      });
     }
   }
 
@@ -739,23 +755,9 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 构建网格视图：支持滚动位置持久化和从当前视频位置显示
   Widget _buildGridPageView(VideoListState videoState) {
-    // 从 feed 切到 grid 时：滚动到当前播放视频的位置
-    if (_needScrollToCurrentVideo &&
-        videoState.gridItems.isNotEmpty &&
-        !videoState.isLoading) {
-      _needScrollToCurrentVideo = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final scrolled = _tryScrollToCurrentVideo();
-          if (!scrolled) {
-            _restoreGridScrollOffset();
-          }
-          _hasRestoredGridScrollPosition = true;
-        }
-      });
-    }
-    // 网格数据加载完成后恢复滚动位置（仅首次进入或非 feed→grid 切换时）
-    else if (!_hasRestoredGridScrollPosition &&
+    // 网格数据加载完成后恢复滚动位置（仅首次进入时，feed→grid 切换时不走这里）
+    if (!_hasRestoredGridScrollPosition &&
+        !_isFeedToGridTransition &&
         videoState.gridItems.isNotEmpty &&
         !videoState.isLoading) {
       _hasRestoredGridScrollPosition = true;
@@ -821,8 +823,12 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     }
 
-    // 如果没有初始播放 itemId（不是从其他页面跳转来的），且尚未恢复滚动位置，则从 SharedPreferences 恢复
-    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
+    // 如果没有初始播放 itemId（不是从其他页面跳转来的），且不是从 grid 切回 feed，
+    // 且尚未恢复滚动位置，则从 SharedPreferences 恢复
+    if (_initialItemId == null &&
+        !_isGridToFeedTransition &&
+        !_hasRestoredScrollPosition &&
+        videoState.items.isNotEmpty) {
       _hasRestoredScrollPosition = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
