@@ -116,9 +116,10 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 在下一帧跳转到目标位置（确保 PageView 已构建完成）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final totalItems = ref.read(videoListProvider).items.length;
       if (_pageController.hasClients &&
           targetIndex >= 0 &&
-          targetIndex < _pageController.position.maxScrollExtent) {
+          targetIndex < totalItems) {
         _pageController.jumpToPage(targetIndex);
         _currentIndex = targetIndex;
         ref.read(currentIndexProvider.notifier).state = targetIndex;
