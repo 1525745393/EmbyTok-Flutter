@@ -1,3 +1,17 @@
+# [1.98.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.97.0...v1.98.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* 修复 library_selector.dart 语法错误（缺少 children 闭合括号） ([122dcb7](https://github.com/1525745393/EmbyTok-Flutter/commit/122dcb76e8dd482360e8c1821cab637f4e573a18))
+* 修复网格与视频流切换时的跳转和滚动问题 ([af62c4e](https://github.com/1525745393/EmbyTok-Flutter/commit/af62c4e0d9bb8fe72a81c051ed6c50c1d4369d25))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([c52d633](https://github.com/1525745393/EmbyTok-Flutter/commit/c52d6333d59064b55e5c62f5e0f387f090d87e2d))
+* 媒体库选择器支持多选模式 ([c3b77bf](https://github.com/1525745393/EmbyTok-Flutter/commit/c3b77bfee12caf34f193a6c900c8d11ecd02d001))
+
 # [1.97.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.96.0...v1.97.0) (2026-06-25)
 
 
