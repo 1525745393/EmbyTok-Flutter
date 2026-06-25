@@ -1,3 +1,15 @@
+# [1.96.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.2...v1.96.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* 修复网格点击跳转视频流失效的问题 ([aa8cff7](https://github.com/1525745393/EmbyTok-Flutter/commit/aa8cff70a6a0f944de3896b808085f25d2cd9df6))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([03ce155](https://github.com/1525745393/EmbyTok-Flutter/commit/03ce155c952f3dcb6fd3378eec32839d456a4ee6))
+
 ## [1.95.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.95.1...v1.95.2) (2026-06-25)
 
 
