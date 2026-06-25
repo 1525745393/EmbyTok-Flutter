@@ -108,7 +108,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollController.dispose();
     _gridScrollSaveTimer?.cancel();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
-    ref.read(videoPoolProvider).disposeAll();
+    unawaited(ref.read(videoPoolProvider).disposeAll());
     super.dispose();
   }
 
@@ -448,7 +448,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       FeedType.recommend => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
-    ref.read(videoPoolProvider).disposeAll();
+    unawaited(ref.read(videoPoolProvider).disposeAll());
     ref.read(feedTypeProvider.notifier).setType(next);
     _showModeToast(next);
   }

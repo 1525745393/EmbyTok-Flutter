@@ -84,6 +84,13 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
         );
 
         if (result == true) {
+          // 主动释放视频控制器池，避免 SystemNavigator.pop() 回收时序与
+          // FeedView.dispose() 中的批量 dispose 叠加导致 OOM
+          try {
+            await ref.read(videoPoolProvider).disposeAll();
+          } catch (_) {}
+          // 让出一帧给 GC 和 native texture 回收
+          await Future.delayed(Duration.zero);
           SystemNavigator.pop();
         }
       },

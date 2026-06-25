@@ -81,7 +81,8 @@ class VideoPoolService {
     _currentServer = serverUrl;
     _currentToken = token;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
-    disposeAll();
+    // 异步释放，不阻塞当前调用链
+    unawaited(disposeAll());
   }
 
   /// 预加载一个媒体条目
@@ -183,12 +184,26 @@ class VideoPoolService {
   }
 
   /// 清理所有会话（如退出登录、切换服务器）
-  void disposeAll() {
-    for (final session in _sessions.values) {
-      session.dispose();
-    }
+  ///
+  /// 分批释放以避免同步批量 dispose VideoPlayerController 时内存峰值过高
+  /// 导致的 OOM 崩溃（特别是在退出应用时）。
+  Future<void> disposeAll() async {
+    // 分批释放：每批处理 2 个，批次间让事件循环有机会触发 GC
+    final sessions = List<PlaybackSession>.from(_sessions.values);
     _sessions.clear();
     _accessOrder.clear();
+
+    const batchSize = 2;
+    for (var i = 0; i < sessions.length; i += batchSize) {
+      final end = (i + batchSize < sessions.length) ? i + batchSize : sessions.length;
+      for (var j = i; j < end; j++) {
+        sessions[j].dispose();
+      }
+      // 批次之间让出主线程，给 GC 和 native texture 回收时间
+      if (i + batchSize < sessions.length) {
+        await Future.delayed(Duration.zero);
+      }
+    }
   }
 
   /// 当前池中的会话数
