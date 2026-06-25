@@ -195,7 +195,6 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
               return _PosterCard(
                 key: Key(item.id),
                 item: item,
-                gridStartIndex: gridStartIndex, // 传递起始偏移
               );
             },
           ),
@@ -208,12 +207,10 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
   final MediaItem item;
-  final int gridStartIndex; // 网格视图的全局起始偏移
 
   const _PosterCard({
     super.key,
     required this.item,
-    required this.gridStartIndex,
   });
 
   @override
@@ -225,18 +222,13 @@ class _PosterCard extends ConsumerWidget {
     return TvFocusable(
       onTap: () {
         // 点击海报切换到视频流模式并从该视频开始播放
-        // 1. 获取当前视频在 gridItems 中的索引
-        final videoState = ref.read(videoListProvider);
-        final indexInGrid = videoState.gridItems.indexWhere((i) => i.id == item.id);
+        // 1. 设置选中的视频 ID，由 feed_view 监听并跳转到对应位置
+        ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
 
-        // 2. 计算全局索引：gridStartIndex + 页内索引
-        final globalIndex = gridStartIndex + (indexInGrid >= 0 ? indexInGrid : 0);
-
-        // 3. 同步更新全局播放状态
-        ref.read(currentIndexProvider.notifier).state = globalIndex;
+        // 2. 同步更新全局播放状态
         ref.read(currentPlayingItemProvider.notifier).state = item;
 
-        // 4. 切换到视频流模式
+        // 3. 切换到视频流模式
         ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
       },
       borderRadius: 8,

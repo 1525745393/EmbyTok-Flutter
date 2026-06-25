@@ -626,8 +626,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
   // 计算当前页码（从 1 开始）
   int get currentPage {
-    if (state.limit <= 0) return 1;
-    return (state.offset / state.limit).floor() + 1;
+    return (state.gridStartIndex ~/ kGridPageSize) + 1;
   }
 
   // 计算总页数
