@@ -1,3 +1,10 @@
+## [1.99.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.99.1...v1.99.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* 修复 grid→feed 跳转判断条件错误（maxScrollExtent 是像素值不是页数） ([1b3ab92](https://github.com/1525745393/EmbyTok-Flutter/commit/1b3ab9259af38226de435d2e942aaa9724a049c8))
+
 ## [1.99.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.99.0...v1.99.1) (2026-06-25)
 
 
