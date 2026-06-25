@@ -156,7 +156,7 @@ class EmbytokService {
               coverImageUrl: lib.coverImageUrl,
             );
           } catch (e) {
-            AppLogger.debug('获取库 ${lib.name} 视频数量失败', error: e);
+            AppLogger.debug('获取库 ${lib.name} 视频数量失败', data: {'error': e.toString()});
           }
         }
       }
