@@ -1,3 +1,10 @@
+## [1.93.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.93.0...v1.93.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **video_grid_view:** persist tapped index when switching to feed mode for grid-feed sync ([22acaf3](https://github.com/1525745393/EmbyTok-Flutter/commit/22acaf33e45af74cb3de4aa381a52e3c743e4c02))
+
 # [1.93.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.92.0...v1.93.0) (2026-06-24)
 
 
