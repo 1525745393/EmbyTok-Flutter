@@ -127,6 +127,20 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                   ),
                 ),
                 const Spacer(),
+                // 视图切换按钮
+                IconButton(
+                  onPressed: () {
+                    ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+                  },
+                  icon: Icon(
+                    Icons.phone_android,
+                    color: scheme.onSurface.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  tooltip: '切换到视频流',
+                ),
                 // 分页控件：仅在单库模式且多页时显示
                 if (showPager) ...[
                   // 上一页按钮

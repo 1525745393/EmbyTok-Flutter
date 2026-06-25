@@ -507,11 +507,12 @@ class _FeedViewState extends ConsumerState<FeedView>
             else
               _buildGridPageView(videoState),
 
-            // 顶部：媒体库切换器 + 视图切换按钮
-            Positioned(
-              left: 0, right: 0, top: 0,
-              child: _buildTopBar(viewMode),
-            ),
+            // 顶部：媒体库切换器 + 视图切换按钮（仅 feed 模式显示，grid 模式使用 PosterGridView 自带 Header）
+            if (viewMode == ViewMode.feed)
+              Positioned(
+                left: 0, right: 0, top: 0,
+                child: _buildTopBar(viewMode),
+              ),
 
             // 快捷键帮助面板
             if (_showHelp)
