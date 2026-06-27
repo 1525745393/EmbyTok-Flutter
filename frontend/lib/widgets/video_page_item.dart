@@ -33,6 +33,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final bool startFromResumePosition;
   final VoidCallback? onNextEpisode;
   final VoidCallback? onPrevEpisode;
+  /// 播放进度达到预加载阈值时回调，用于触发下一个视频的预加载
+  final VoidCallback? onPreloadThreshold;
 
   const VideoPageItem({
     super.key,
@@ -42,6 +44,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.startFromResumePosition = false,
     this.onNextEpisode,
     this.onPrevEpisode,
+    this.onPreloadThreshold,
   });
 
   @override
@@ -51,6 +54,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
 class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
   bool _hasNotifiedEnded = false;
+  // 是否已触发预加载回调（每个视频只触发一次）
+  bool _hasFiredPreload = false;
 
   // 唱片式静音按钮动画控制器
   late final AnimationController _discRotationCtrl;
@@ -173,7 +178,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final controller = _videoController;
     if (controller == null) return;
     // 同步播放状态到 Provider，确保中央按钮和控制条状态一致
-    ref.read(isPlayingProvider.notifier).state = controller.value.isPlaying;
+    final isPlaying = controller.value.isPlaying;
+    if (ref.read(isPlayingProvider) != isPlaying) {
+      ref.read(isPlayingProvider.notifier).state = isPlaying;
+    }
+    // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
+    if (!_hasFiredPreload && widget.onPreloadThreshold != null) {
+      final pos = controller.value.position;
+      final dur = controller.value.duration;
+      if (dur.inMilliseconds > 0) {
+        final progress = pos.inMilliseconds / dur.inMilliseconds;
+        if (progress >= ref.read(preloadThresholdProvider)) {
+          _hasFiredPreload = true;
+          widget.onPreloadThreshold!.call();
+        }
+      }
+    }
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
@@ -197,7 +217,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final c = _videoController;
     if (c == null) return;
     if (!c.value.isPlaying) _reportPlaybackProgress(isPauseEvent: true);
-    _resetInfoHideTimer();
+    // 仅在信息条不可见时重置，避免每帧无意义 setState
+    if (!_isInfoVisible) _resetInfoHideTimer();
   }
 
   // ===== NextUp 下一集查询与倒计时 =====

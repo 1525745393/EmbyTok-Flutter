@@ -884,12 +884,16 @@ class _FeedViewState extends ConsumerState<FeedView>
           preloadedSession: preloadedSession,
           onVideoEnded: _goToNextVideo,
           startFromResumePosition: item.hasProgress,
-          // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
+          // 下一集：在 items 中查找同系列的下一集
           onNextEpisode: item.seriesName != null
               ? () {
                   _jumpToNextEpisode(videoState.items, index);
                 }
               : null,
+          // 播放进度达到阈值时预加载下一个视频
+          onPreloadThreshold: () {
+            _preloadNeighbors(index, videoState.items, embyServerUrl, token);
+          },
         );
       },
     );
