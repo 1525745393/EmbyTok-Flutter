@@ -578,11 +578,12 @@ class _FeedViewState extends ConsumerState<FeedView>
             else
               _buildGridPageView(videoState),
 
-            // 顶部：媒体库切换器 + 视图切换按钮
-            Positioned(
-              left: 0, right: 0, top: 0,
-              child: _buildTopBar(viewMode),
-            ),
+            // 顶部：媒体库切换器 + 视图切换按钮（仅视频流模式显示，网格模式由 PosterGridView 自带 header）
+            if (viewMode == ViewMode.feed)
+              Positioned(
+                left: 0, right: 0, top: 0,
+                child: _buildTopBar(viewMode),
+              ),
 
             // 快捷键帮助面板
             if (_showHelp)
@@ -601,7 +602,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 顶部栏：根据视图模式显示不同布局
+  // 顶部栏：视频流模式使用
   Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
@@ -619,9 +620,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       ),
       child: SafeArea(
         bottom: false,
-        child: viewMode == ViewMode.feed
-            ? _buildFeedTopBar(scheme, viewMode)
-            : _buildGridTopBar(scheme, viewMode),
+        child: _buildFeedTopBar(scheme, viewMode),
       ),
     );
   }
@@ -707,31 +706,6 @@ class _FeedViewState extends ConsumerState<FeedView>
           ],
         ),
       ],
-    );
-  }
-
-  // 网格模式顶部栏：视图切换
-  Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          const Spacer(),
-          // 视图切换按钮
-          IconButton(
-            icon: Icon(
-              viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-              color: scheme.onSurface.withOpacity(0.7),
-              size: 22,
-            ),
-            onPressed: () {
-              ref.read(viewModeProvider.notifier).setMode(
-                viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 
