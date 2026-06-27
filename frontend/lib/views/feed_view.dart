@@ -3,7 +3,6 @@
 
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,9 +42,11 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 初始播放的视频 ID（从其他页面跳转时使用）
   String? _initialItemId;
   bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
+  // 网格点击选中的视频 ID（网格→视频流跳转，优先级高于 _initialItemId）
+  String? _gridToFeedItemId;
 
   // 滚动位置持久化相关
-  bool _hasRestoredScrollPosition = false;
+  bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -73,7 +74,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
         _saveCloudSyncIfNeeded(next);
       });
-      // 监听视图模式变化：从网格切换到视频流时处理跳转
+      // 监听视图模式变化：处理网格与视频流之间的切换
       ref.listen<ViewMode>(viewModeProvider, (prev, next) {
         if (prev == ViewMode.grid && next == ViewMode.feed) {
           _handleGridToFeedTransition();
@@ -91,29 +92,89 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 从网格模式切换到视频流模式时的处理
   void _handleGridToFeedTransition() {
     final selectedItemId = ref.read(gridSelectedItemIdProvider);
-    if (selectedItemId != null && selectedItemId.isNotEmpty) {
-      // 复用 _buildVideoPageView 中已有的 _initialItemId 跳转逻辑
-      // 避免在此处使用 addPostFrameCallback 与 _restoreVideoIndex 竞争
-      _initialItemId = selectedItemId;
-      _hasScrolledToInitial = false;
-      // 标记已跳过 SharedPreferences 恢复，防止 _restoreVideoIndex 覆盖跳转
-      _hasRestoredScrollPosition = true;
-      AppLogger.debug('网格→视频流跳转', data: {'itemId': selectedItemId});
-    }
-    // 清理选中 ID（此时 _buildVideoPageView 已通过 _initialItemId 获取到目标）
+    if (selectedItemId == null || selectedItemId.isEmpty) return;
+
+    // 设置网格跳转专用字段，由 _buildVideoPageView 统一处理跳转
+    _gridToFeedItemId = selectedItemId;
+    // 阻止 _initialItemId 和 _restoreVideoIndex 块竞争
+    _hasScrolledToInitial = true;
+    _hasRestoredScrollPosition = true;
+    // 清理 gridSelectedItemIdProvider，防止重复触发
     ref.read(gridSelectedItemIdProvider.notifier).state = null;
+
+    AppLogger.debug('网格→视频流：设置 _gridToFeedItemId', data: {'itemId': selectedItemId});
   }
 
   // 从视频流模式切换到网格模式时的处理
   void _handleFeedToGridTransition() {
-    // 在下一帧滚动到当前视频位置（确保 GridView 已构建完成）
+    // 优先尝试滚动到当前视频位置
+    if (!_tryScrollToCurrentVideo()) {
+      // 降级方案：从 SharedPreferences 恢复滚动位置
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _restoreGridScrollOffset();
+        }
+      });
+    }
+  }
+
+  // 尝试滚动到当前视频在网格中的位置，返回 true 表示成功触发滚动
+  bool _tryScrollToCurrentVideo() {
+    // 读取当前视频索引
+    final currentIndex = ref.read(currentIndexProvider);
+    // 读取网格状态
+    final videoState = ref.read(videoListProvider);
+    final gridStartIndex = videoState.gridStartIndex;
+    final gridItems = videoState.gridItems;
+
+    // 计算当前视频在网格列表中的索引
+    final indexInGrid = currentIndex - gridStartIndex;
+
+    // 边界检查：当前视频不在当前网格页中
+    if (indexInGrid < 0 || indexInGrid >= gridItems.length) {
+      return false;
+    }
+
+    // 计算行号（3列布局）
+    final row = indexInGrid ~/ 3;
+
+    // 在帧后执行滚动，确保 GridView 已布局完成
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final scrolled = _tryScrollToCurrentVideo();
-      if (!scrolled) {
-        _restoreGridScrollOffset();
-      }
+      if (!mounted || !_gridScrollController.hasClients) return;
+
+      final viewportWidth = MediaQuery.of(context).size.width;
+      final viewportHeight = _gridScrollController.position.viewportDimension;
+      const padding = 8.0; // GridView 的 padding
+      const crossAxisSpacing = 8.0;
+      const mainAxisSpacing = 8.0;
+      const crossAxisCount = 3;
+      const childAspectRatio = 0.65;
+
+      // 计算每列宽度和卡片高度
+      final availableWidth = viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
+      final itemWidth = availableWidth / crossAxisCount;
+      final itemHeight = itemWidth / childAspectRatio;
+      final rowHeight = itemHeight + mainAxisSpacing;
+
+      // 计算目标 item 顶部相对于 GridView 内容顶部的位置
+      final targetTop = padding + row * rowHeight;
+
+      // 垂直居中对齐：item 中心 = viewport 中心
+      final scrollOffset = targetTop - (viewportHeight / 2) + (itemHeight / 2);
+
+      // 限制滚动范围在有效范围内
+      final maxScroll = _gridScrollController.position.maxScrollExtent;
+      final safeOffset = scrollOffset.clamp(0.0, maxScroll);
+
+      // 平滑滚动到目标位置
+      _gridScrollController.animateTo(
+        safeOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     });
+
+    return true;
   }
 
   @override
@@ -148,7 +209,6 @@ class _FeedViewState extends ConsumerState<FeedView>
         if (mounted && _pageController.hasClients) {
           _pageController.jumpToPage(lastIndex);
           _currentIndex = lastIndex;
-          ref.read(currentIndexProvider.notifier).state = lastIndex;
         }
       }
     } catch (_) {}
@@ -160,16 +220,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollSaveTimer = Timer(const Duration(milliseconds: 500), () {
       _saveGridScrollOffset();
     });
-
-    // 滚动到底部附近时触发加载更多（仅无限滚动模式，分页模式使用按钮翻页）
-    final videoState = ref.read(videoListProvider);
-    if (videoState.hasMore &&
-        !videoState.isLoading &&
-        _gridScrollController.hasClients &&
-        _gridScrollController.position.pixels >=
-            _gridScrollController.position.maxScrollExtent - 200) {
-      ref.read(videoListProvider.notifier).loadMore();
-    }
   }
 
   // 保存网格滚动偏移量到 SharedPreferences
@@ -197,59 +247,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     } catch (_) {}
   }
 
-  // 将网格滚动到当前播放视频的位置（垂直居中），返回是否成功滚动
-  // 对齐 EmbyX 实现：elTop - (areaHeight / 2) + (elHeight / 2)
-  bool _tryScrollToCurrentVideo() {
-    if (!_gridScrollController.hasClients) return false;
-
-    final videoState = ref.read(videoListProvider);
-    final currentIndex = ref.read(currentIndexProvider);
-    final gridStartIndex = videoState.gridStartIndex;
-    final gridItems = videoState.gridItems;
-
-    if (gridItems.isEmpty) return false;
-
-    // 计算当前视频在 gridItems 中的索引
-    final indexInGrid = currentIndex - gridStartIndex;
-    if (indexInGrid < 0 || indexInGrid >= gridItems.length) return false;
-
-    // GridView 配置（与 PosterGridView 保持一致）
-    const crossAxisCount = 3;
-    const crossAxisSpacing = 8.0;
-    const mainAxisSpacing = 8.0;
-    const padding = 8.0;
-    // Flutter GridView 的 childAspectRatio = crossAxisExtent / mainAxisExtent = 宽/高
-    const childAspectRatio = 0.65;
-
-    // 计算每个 item 的尺寸
-    final screenWidth = MediaQuery.of(context).size.width;
-    final viewportHeight = _gridScrollController.position.viewportDimension;
-    final itemWidth = (screenWidth - padding * 2 - crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
-    final itemHeight = itemWidth / childAspectRatio;
-    final rowHeight = itemHeight + mainAxisSpacing;
-
-    // 计算目标行和目标 item 顶部位置
-    final targetRow = indexInGrid ~/ crossAxisCount;
-    final targetTop = padding + targetRow * rowHeight;
-
-    // 垂直居中对齐：item 中心 = viewport 中心（对齐 EmbyX）
-    // 公式：elTop - (areaHeight / 2) + (elHeight / 2)
-    final scrollOffset = targetTop - (viewportHeight / 2) + (itemHeight / 2);
-
-    // 限制滚动范围在有效范围内
-    final maxScroll = _gridScrollController.position.maxScrollExtent;
-    final safeOffset = scrollOffset.clamp(0.0, maxScroll);
-
-    // 平滑滚动到目标位置
-    _gridScrollController.animateTo(
-      safeOffset,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-
-    return true;
-  }
-
   // ========== 预加载与清理（基于 VideoPoolService）==========
 
   // 对指定 index 的上一条和下一条视频发起预加载
@@ -271,29 +268,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (!ref.read(videoPoolProvider).hasSession(nextItem.id)) {
         unawaited(
           ref.read(videoPoolProvider).preload(item: nextItem, serverUrl: embyServerUrl, token: token),
-        );
-      }
-    }
-  }
-
-  // 预加载相邻视频的封面图（上一条 + 下一条 + 下下条）
-  // 使用 precacheImage + CachedNetworkImageProvider，让切换视频时封面已缓存
-  void _preloadPosters(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
-    if (embyServerUrl == null || token == null) return;
-    // 需要预加载的索引列表：上一条、下一条、下下条
-    final targetIndices = <int>[];
-    if (index - 1 >= 0) targetIndices.add(index - 1);
-    if (index + 1 < items.length) targetIndices.add(index + 1);
-    if (index + 2 < items.length) targetIndices.add(index + 2);
-    // 逐个预加载封面图
-    for (final i in targetIndices) {
-      final item = items[i];
-      final posterUrl = item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token);
-      if (posterUrl != null && posterUrl.isNotEmpty) {
-        final headers = item.authHeaders(token);
-        precacheImage(
-          CachedNetworkImageProvider(posterUrl, headers: headers),
-          context,
         );
       }
     }
@@ -611,12 +585,11 @@ class _FeedViewState extends ConsumerState<FeedView>
             else
               _buildGridPageView(videoState),
 
-            // 顶部：媒体库切换器 + 视图切换按钮（仅 feed 模式显示，grid 模式使用 PosterGridView 自带 Header）
-            if (viewMode == ViewMode.feed)
-              Positioned(
-                left: 0, right: 0, top: 0,
-                child: _buildTopBar(viewMode),
-              ),
+            // 顶部：媒体库切换器 + 视图切换按钮
+            Positioned(
+              left: 0, right: 0, top: 0,
+              child: _buildTopBar(viewMode),
+            ),
 
             // 快捷键帮助面板
             if (_showHelp)
@@ -681,26 +654,22 @@ class _FeedViewState extends ConsumerState<FeedView>
               },
               tooltip: '搜索',
             ),
-            // 推荐按钮（推荐模式下点击可换一批）
+            // 推荐按钮
             IconButton(
               icon: Icon(
-                feedType == FeedType.recommend
-                    ? Icons.auto_awesome
-                    : Icons.auto_awesome,
+                Icons.auto_awesome,
                 color: feedType == FeedType.recommend
                     ? scheme.primary
                     : scheme.onSurface.withOpacity(0.7),
                 size: 22,
               ),
               onPressed: () {
-                if (feedType == FeedType.recommend) {
-                  // 已在推荐模式，点击刷新推荐
-                  ref.read(videoListProvider.notifier).refresh();
-                } else {
-                  ref.read(feedTypeProvider.notifier).setType(FeedType.recommend);
-                }
+                final newType = feedType == FeedType.recommend
+                    ? FeedType.latest
+                    : FeedType.recommend;
+                ref.read(feedTypeProvider.notifier).setType(newType);
               },
-              tooltip: feedType == FeedType.recommend ? '换一批推荐' : '推荐',
+              tooltip: feedType == FeedType.recommend ? '关闭推荐' : '推荐',
             ),
             // 历史按钮
             IconButton(
@@ -748,15 +717,87 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 网格模式顶部栏：视图切换
+  // 网格模式顶部栏：搜索框 + 排序 + 视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
+    final sortOption = ref.watch(gridSortOptionProvider);
+    final searchQuery = ref.watch(gridSearchQueryProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
-        children: const [
-          Spacer(),
+        children: [
+          // 搜索框
+          Expanded(
+            child: TextField(
+              controller: _gridSearchController,
+              decoration: InputDecoration(
+                hintText: '搜索视频...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _gridSearchController.clear();
+                          ref.read(gridSearchQueryProvider.notifier).state = '';
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (value) {
+                ref.read(gridSearchQueryProvider.notifier).state = value;
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          // 排序选择器
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: scheme.outline.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<GridSortOption>(
+                value: sortOption,
+                isDense: true,
+                items: GridSortOption.values.map((option) {
+                  return DropdownMenuItem(
+                    value: option,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.sort, size: 16, color: scheme.primary),
+                        const SizedBox(width: 4),
+                        Text(option.label),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    ref.read(gridSortOptionProvider.notifier).state = value;
+                  }
+                },
+              ),
+            ),
+          ),
           // 视图切换按钮
-          // 注意：网格模式下悬浮顶部栏已隐藏，视图切换按钮在 PosterGridView 的 Header 中
+          IconButton(
+            icon: Icon(
+              viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
+              color: scheme.onSurface.withOpacity(0.7),
+              size: 22,
+            ),
+            onPressed: () {
+              ref.read(viewModeProvider.notifier).setMode(
+                viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
+              );
+            },
+          ),
         ],
       ),
     );
@@ -805,8 +846,34 @@ class _FeedViewState extends ConsumerState<FeedView>
       return EmptyStateCard.noVideos();
     }
 
-    // 初始播放位置（从其他页面跳转过来时使用，也用于网格→视频流跳转）
-    if (_initialItemId != null && !_hasScrolledToInitial) {
+    // =======================================================
+    // 跳转优先级：1.网格点击 > 2.路由跳转 > 3.SharedPreferences恢复
+    // 三者互斥，同时只有一个生效
+    // =======================================================
+
+    // 1. 网格点击跳转（最高优先级）
+    if (_gridToFeedItemId != null) {
+      final gridIndex = videoState.items.indexWhere((item) => item.id == _gridToFeedItemId);
+      if (gridIndex >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pageController.hasClients) {
+            _currentIndex = gridIndex;
+            ref.read(currentIndexProvider.notifier).state = gridIndex;
+            _pageController.jumpToPage(gridIndex);
+            AppLogger.debug('网格→视频流跳转完成', data: {'index': gridIndex, 'itemId': _gridToFeedItemId});
+          }
+          // 跳转后清除，防止重复触发
+          _gridToFeedItemId = null;
+        });
+      } else {
+        // 找不到目标视频，清除标记
+        _gridToFeedItemId = null;
+        AppLogger.error('网格→视频流：找不到目标视频', data: {'itemId': _gridToFeedItemId});
+      }
+    }
+
+    // 2. 路由跳转（从其他页面跳转过来，如搜索结果）
+    else if (_initialItemId != null && !_hasScrolledToInitial) {
       final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
       if (initialIndex >= 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -821,14 +888,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     }
 
-    // 首次进入时从 SharedPreferences 恢复滚动位置
-    // 如果来自网格点击，跳过恢复（由 _handleGridToFeedTransition 控制跳转）
-    // 注意：_restoreVideoIndex 是 async 的，若不跳过会晚于网格跳转完成并覆盖正确位置
-    final gridSelectedId = ref.read(gridSelectedItemIdProvider);
-    if (_initialItemId == null &&
-        !_hasRestoredScrollPosition &&
-        (gridSelectedId == null || gridSelectedId.isEmpty) &&
-        videoState.items.isNotEmpty) {
+    // 3. SharedPreferences 恢复（首次进入，无网格点击也无路由跳转）
+    if (_gridToFeedItemId == null && _initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
       _hasRestoredScrollPosition = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -847,8 +908,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
-        // 同步更新全局 currentIndexProvider，供"神之一手"裁剪等逻辑使用
-        ref.read(currentIndexProvider.notifier).state = index;
         // 保存当前视频索引到 SharedPreferences
         _saveVideoIndex(index);
         if (videoState.hasMore && index >= videoState.items.length - 2) {
@@ -860,8 +919,6 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
         // 预加载上一条和下一条视频（走 VideoPoolService 降级链）
         _preloadNeighbors(index, videoState.items, embyServerUrl, token);
-        // 预加载相邻视频的封面图（上一条 + 下一条 + 下下条）
-        _preloadPosters(index, videoState.items, embyServerUrl, token);
         // 清理距离较远的预加载缓存（保留上一条 + 下一条）
         _evictFarPreloads(index, videoState.items);
       },
@@ -875,23 +932,18 @@ class _FeedViewState extends ConsumerState<FeedView>
         // 首次构建时对相邻条目发起预加载
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
           _preloadNeighbors(0, videoState.items, embyServerUrl, token);
-          _preloadPosters(0, videoState.items, embyServerUrl, token);
         }
         return VideoPageItem(
           item: item,
           preloadedSession: preloadedSession,
           onVideoEnded: _goToNextVideo,
           startFromResumePosition: item.hasProgress,
-          // 下一集：在 items 中查找同系列的下一集
+          // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
           onNextEpisode: item.seriesName != null
               ? () {
                   _jumpToNextEpisode(videoState.items, index);
                 }
               : null,
-          // 播放进度达到阈值时预加载下一个视频
-          onPreloadThreshold: () {
-            _preloadNeighbors(index, videoState.items, embyServerUrl, token);
-          },
         );
       },
     );
