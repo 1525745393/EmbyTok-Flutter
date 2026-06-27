@@ -100,9 +100,10 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (idx >= 0) {
         targetIndex = idx;
       }
-      // 清理选中 ID，避免重复触发
-      ref.read(gridSelectedItemIdProvider.notifier).state = null;
     }
+
+    // 标记已跳过 SharedPreferences 恢复，防止 _buildVideoPageView 中 _restoreVideoIndex 覆盖跳转
+    _hasRestoredScrollPosition = true;
 
     // 在下一帧跳转到目标位置（确保 PageView 已构建完成）
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -115,6 +116,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         _currentIndex = targetIndex;
         ref.read(currentIndexProvider.notifier).state = targetIndex;
       }
+      // 跳转完成后再清理选中 ID（避免在 _buildVideoPageView 重建前被清空）
+      ref.read(gridSelectedItemIdProvider.notifier).state = null;
     });
   }
 
