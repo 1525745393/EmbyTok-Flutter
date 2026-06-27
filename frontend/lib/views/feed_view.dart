@@ -695,22 +695,26 @@ class _FeedViewState extends ConsumerState<FeedView>
               },
               tooltip: '搜索',
             ),
-            // 推荐按钮
+            // 推荐按钮（推荐模式下点击可换一批）
             IconButton(
               icon: Icon(
-                Icons.auto_awesome,
+                feedType == FeedType.recommend
+                    ? Icons.auto_awesome
+                    : Icons.auto_awesome,
                 color: feedType == FeedType.recommend
                     ? scheme.primary
                     : scheme.onSurface.withOpacity(0.7),
                 size: 22,
               ),
               onPressed: () {
-                final newType = feedType == FeedType.recommend
-                    ? FeedType.latest
-                    : FeedType.recommend;
-                ref.read(feedTypeProvider.notifier).setType(newType);
+                if (feedType == FeedType.recommend) {
+                  // 已在推荐模式，点击刷新推荐
+                  ref.read(videoListProvider.notifier).refresh();
+                } else {
+                  ref.read(feedTypeProvider.notifier).setType(FeedType.recommend);
+                }
               },
-              tooltip: feedType == FeedType.recommend ? '关闭推荐' : '推荐',
+              tooltip: feedType == FeedType.recommend ? '换一批推荐' : '推荐',
             ),
             // 历史按钮
             IconButton(

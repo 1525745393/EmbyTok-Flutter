@@ -329,8 +329,29 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
+          // 推荐模式：社区评分 + 个性化推荐混合，打乱排序，去重
           final merged = <MediaItem>[];
+          int totalItems = 0;
+          final seenIds = <String>{}; // 去重用
+
+          // 1. 先尝试 Emby Suggestions 个性化推荐
+          try {
+            final suggestions = await _service.getSuggestions(
+              limit: state.limit,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+              userId: auth.user?.id,
+            );
+            for (final item in suggestions) {
+              if (seenIds.add(item.id)) {
+                merged.add(item);
+              }
+            }
+          } catch (e) {
+            AppLogger.error('加载个性化推荐失败，跳过', error: e);
+          }
+
+          // 2. 多库评分推荐：每个库独立 try-catch
           for (final libId in libIds) {
             try {
               final resp = await _service.getRecommendations(
@@ -341,14 +362,22 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 token: auth.token!,
                 userId: auth.user?.id,
               );
-              merged.addAll(resp.items);
+              totalItems += resp.total;
+              for (final item in resp.items) {
+                if (seenIds.add(item.id)) {
+                  merged.add(item);
+                }
+              }
             } catch (e) {
               AppLogger.error('加载库 $libId 推荐列表失败，跳过', error: e);
             }
           }
+
+          // 3. 打乱顺序让各库内容均匀分布
+          merged.shuffle();
           loadedItems = merged;
-          loadedTotal = merged.length;
-          canPaginate = true;
+          loadedTotal = totalItems;
+          canPaginate = totalItems > merged.length; // 精确判断是否还有更多
       }
 
       state = VideoListState(
@@ -405,6 +434,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('加载更多视频', data: {'offset': state.offset, 'libraryCount': selectedIds.length});
       final perLibLimit = state.limit;
       final merged = <MediaItem>[];
+      int totalAvailable = 0; // 累加各库 TotalRecordCount
       for (final libId in selectedIds) {
         try {
           if (currentFeedType == FeedType.recommend) {
@@ -417,6 +447,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
               userId: auth.user?.id,
             );
             merged.addAll(resp.items);
+            totalAvailable += resp.total;
           } else {
             final resp = await _service.getLibraryItems(
               libId,
@@ -430,14 +461,16 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
               searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
             );
             merged.addAll(resp.items);
+            totalAvailable += resp.total;
           }
         } catch (e) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
       }
 
-      // 判断是否还有更多：如果所有库返回的条数都等于 perLibLimit，继续有更多
-      final hasMore = merged.length >= perLibLimit * selectedIds.length;
+      // 精确判断：当前已加载 + 本次新加载 < 总记录数则还有更多
+      final newTotal = state.items.length + merged.length;
+      final hasMore = totalAvailable > 0 && newTotal < totalAvailable;
 
       state = VideoListState(
         items: [...state.items, ...merged],

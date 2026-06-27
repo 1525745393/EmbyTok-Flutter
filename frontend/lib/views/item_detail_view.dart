@@ -694,7 +694,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                         key: Key(item.id),
                         item: item,
                         authState: authState,
-                        onTap: () => context.push('/item/${item.id}'),
+                        // 点击相似推荐：跳转到播放页，并注入相似推荐列表作为播放队列
+                        onTap: () => context.push('/play/${item.id}', extra: {
+                          'item': item,
+                          'items': _similarItems,
+                        }),
                       );
                     },
                   ),

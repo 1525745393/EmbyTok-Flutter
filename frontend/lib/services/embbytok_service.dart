@@ -293,7 +293,7 @@ class EmbytokService {
   }
 
   // ============================
-  // 推荐列表：按社区评分从高到低排序
+  // 推荐列表：按社区评分从高到低排序，评分阈值 4.0（满分 10）
   // ============================
   Future<PaginatedResponse<MediaItem>> getRecommendations({
     int limit = 20,
@@ -311,7 +311,7 @@ class EmbytokService {
       'Recursive': 'true',
       'SortBy': 'CommunityRating,SortName',
       'SortOrder': 'Descending',
-      'MinCommunityRating': '6.0',
+      'MinCommunityRating': '4.0',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
@@ -328,6 +328,42 @@ class EmbytokService {
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 个性化推荐：基于 Emby Suggestions API，利用观看历史做智能推荐
+  // ============================
+  Future<List<MediaItem>> getSuggestions({
+    int limit = 20,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      return <MediaItem>[];
+    }
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+    };
+
+    final resp = await _apiClient.get<dynamic>(
+      '/Users/$effectiveUserId/Suggestions',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    if (data is! Map<String, dynamic>) {
+      return <MediaItem>[];
+    }
+    final items = (data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
   }
 
   // ============================

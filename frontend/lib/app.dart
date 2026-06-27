@@ -168,15 +168,22 @@ class EmbyTokApp extends ConsumerWidget {
           path: '/play/:itemId',
           builder: (context, state) {
             final itemId = state.pathParameters['itemId'] ?? '';
-            final item = state.extra is MediaItem
-                ? state.extra as MediaItem
-                : MediaItem(
-                    id: itemId,
-                    title: '',
-                    type: 'Video',
-                  );
+            MediaItem item;
+            List<MediaItem> items = [];
+            // 支持两种 extra 格式：MediaItem（单视频）或 Map（含 items 列表）
+            if (state.extra is Map<String, dynamic>) {
+              final extra = state.extra as Map<String, dynamic>;
+              item = extra['item'] as MediaItem? ??
+                  MediaItem(id: itemId, title: '', type: 'Video');
+              items = (extra['items'] as List<MediaItem>?) ?? [];
+            } else if (state.extra is MediaItem) {
+              item = state.extra as MediaItem;
+            } else {
+              item = MediaItem(id: itemId, title: '', type: 'Video');
+            }
             return PlaybackShell(
               item: item,
+              items: items,
               onBack: () => context.pop(),
             );
           },
