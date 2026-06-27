@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -117,6 +119,28 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  // 随机播放：从当前 gridItems 中随机选一个视频，跳转到 feed 从该视频开始
+  // 路由透传 itemId，复用 grid→feed 的标准流程（PR #50 三层架构）
+  void _playRandom() {
+    final gridItems = ref.read(videoListProvider).gridItems;
+    if (gridItems.isEmpty) {
+      AppLogger.warn('随机播放失败：gridItems 为空');
+      return;
+    }
+    // 随机选取（包含当前在播视频，避免每次都"原地不动"）
+    final randomIndex = Random().nextInt(gridItems.length);
+    final randomItem = gridItems[randomIndex];
+    AppLogger.info('随机播放：选中视频', data: {
+      'id': randomItem.id,
+      'title': randomItem.title,
+      'index': randomIndex,
+      'total': gridItems.length,
+    });
+    // 切到 feed 模式 + 路由透传 initialId
+    ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+    context.go('/?initialId=${Uri.encodeComponent(randomItem.id)}');
   }
 
   @override
