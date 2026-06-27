@@ -1,3 +1,17 @@
+## [1.104.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.104.1...v1.104.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* controller.dispose() 加空安全检查 ([a928e40](https://github.com/1525745393/EmbyTok-Flutter/commit/a928e40aa0ee8fc3cf5de7726dd2dbcad5d4e475))
+* 修复 _restoreVideoIndex async 延迟覆盖网格点击跳转 ([7fc733e](https://github.com/1525745393/EmbyTok-Flutter/commit/7fc733e654fc2bb099317b5b1cfc55f4813c1c3c))
+* 随机模式删除 150 条限制，加载全部视频 ([493ac7a](https://github.com/1525745393/EmbyTok-Flutter/commit/493ac7a4ea061bd6967075983794f6983ff73e26))
+
+
+### Performance Improvements
+
+* 修复播放器 4 个高优性能问题 ([fcc4bee](https://github.com/1525745393/EmbyTok-Flutter/commit/fcc4bee23edf835c8664e12cd2d0e31be03a73a0))
+
 ## [1.104.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.104.0...v1.104.1) (2026-06-27)
 
 
