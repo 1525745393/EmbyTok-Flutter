@@ -42,8 +42,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 初始播放的视频 ID（从其他页面跳转时使用）
   String? _initialItemId;
   bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
-  // 网格点击选中的视频 ID（网格→视频流跳转，优先级高于 _initialItemId）
-  String? _gridToFeedItemId;
 
   // 滚动位置持久化相关
   bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
@@ -88,15 +86,69 @@ class _FeedViewState extends ConsumerState<FeedView>
     final selectedItemId = ref.read(gridSelectedItemIdProvider);
     if (selectedItemId == null || selectedItemId.isEmpty) return;
 
-    // 设置网格跳转专用字段，由 _buildVideoPageView 统一处理跳转
-    _gridToFeedItemId = selectedItemId;
-    // 阻止 _initialItemId 和 _restoreVideoIndex 块竞争
-    _hasScrolledToInitial = true;
-    _hasRestoredScrollPosition = true;
     // 清理 gridSelectedItemIdProvider，防止重复触发
     ref.read(gridSelectedItemIdProvider.notifier).state = null;
 
-    AppLogger.debug('网格→视频流：设置 _gridToFeedItemId', data: {'itemId': selectedItemId});
+    // 阻止 _initialItemId 和 _restoreVideoIndex 竞争
+    _hasScrolledToInitial = true;
+    _hasRestoredScrollPosition = true;
+
+    AppLogger.debug('网格→视频流：等待 PageView 就绪后跳转', data: {'itemId': selectedItemId});
+
+    // 使用帧轮询等待 PageView 构建完成后跳转：
+    // 不能在 build 中重建 controller（反模式），也不能依赖 addPostFrameCallback 一次就成功
+    // （因为 VideoListNotifier 可能触发 refresh 导致 PageView 暂时不显示）
+    _jumpToItemWhenReady(selectedItemId);
+  }
+
+  /// 帧轮询：等到 PageController 已 attach 后执行 jumpToPage
+  /// 用于初始路由跳转和 SharedPreferences 恢复
+  void _jumpToPageWhenReady(int targetIndex, {int retryCount = 0}) {
+    if (!mounted) return;
+    if (retryCount > 20) return;
+
+    if (_pageController.hasClients) {
+      _currentIndex = targetIndex;
+      ref.read(currentIndexProvider.notifier).state = targetIndex;
+      _pageController.jumpToPage(targetIndex);
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _jumpToPageWhenReady(targetIndex, retryCount: retryCount + 1);
+    });
+  }
+
+  /// 帧轮询：等到目标视频在 items 中存在且 PageController 已 attach 后执行 jumpToPage
+  void _jumpToItemWhenReady(String itemId, {int retryCount = 0}) {
+    if (!mounted) return;
+    if (retryCount > 20) {
+      // 最多等约 1 秒（20帧 * 约50ms/帧调度间隔），防止无限轮询
+      AppLogger.error('网格→视频流：跳转超时，未找到目标视频', data: {'itemId': itemId});
+      return;
+    }
+
+    final videoState = ref.read(videoListProvider);
+    final viewMode = ref.read(viewModeProvider);
+
+    // 如果已切回网格模式，放弃跳转
+    if (viewMode != ViewMode.feed) return;
+
+    final targetIndex = videoState.items.indexWhere((item) => item.id == itemId);
+
+    if (targetIndex >= 0 && _pageController.hasClients) {
+      // 目标已就绪，执行跳转
+      _currentIndex = targetIndex;
+      ref.read(currentIndexProvider.notifier).state = targetIndex;
+      _pageController.jumpToPage(targetIndex);
+      AppLogger.debug('网格→视频流：跳转成功', data: {'index': targetIndex, 'itemId': itemId});
+      return;
+    }
+
+    // 未就绪，下一帧重试
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _jumpToItemWhenReady(itemId, retryCount: retryCount + 1);
+    });
   }
 
   // 从视频流模式切换到网格模式时的处理
@@ -753,46 +805,21 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
 
     // =======================================================
-    // 跳转优先级：1.网格点击 > 2.路由跳转 > 3.SharedPreferences恢复
-    // 三者互斥，同时只有一个生效
+    // 初始化跳转：仅处理路由跳转和 SharedPreferences 恢复
+    // 网格点击跳转由 _handleGridToFeedTransition 中的帧轮询处理
     // =======================================================
 
-    // 1. 网格点击跳转（最高优先级）
-    //    在构建 PageView 之前重建 PageController，使 PageView 直接从目标页开始，
-    //    避免"先显示第一个视频再跳转"的闪烁和竞态问题。
-    if (_gridToFeedItemId != null) {
-      final gridIndex = videoState.items.indexWhere((item) => item.id == _gridToFeedItemId);
-      if (gridIndex >= 0) {
-        // 重建 controller，使 PageView 从目标页开始构建
-        _pageController.dispose();
-        _pageController = PageController(initialPage: gridIndex, viewportFraction: 1.0);
-        _currentIndex = gridIndex;
-        ref.read(currentIndexProvider.notifier).state = gridIndex;
-        AppLogger.debug('网格→视频流跳转：重建 PageController', data: {'index': gridIndex, 'itemId': _gridToFeedItemId});
-        _gridToFeedItemId = null;
-      } else if (videoState.items.isNotEmpty && !videoState.isLoading) {
-        // items 已加载完成但找不到目标视频，清除标记
-        AppLogger.error('网格→视频流：找不到目标视频', data: {'itemId': _gridToFeedItemId});
-        _gridToFeedItemId = null;
-      }
-      // 如果 items 为空或正在加载，保留 _gridToFeedItemId，等下次 build 再试
-    }
-
-    // 2. 路由跳转（从其他页面跳转过来，如搜索结果）
-    if (_gridToFeedItemId == null && _initialItemId != null && !_hasScrolledToInitial) {
+    // 1. 路由跳转（从其他页面跳转过来，如搜索结果、演员详情）
+    if (_initialItemId != null && !_hasScrolledToInitial) {
       final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
       if (initialIndex >= 0) {
-        // 同样使用重建 controller 的方式，避免闪烁
-        _pageController.dispose();
-        _pageController = PageController(initialPage: initialIndex, viewportFraction: 1.0);
         _hasScrolledToInitial = true;
-        _currentIndex = initialIndex;
-        ref.read(currentIndexProvider.notifier).state = initialIndex;
+        _jumpToPageWhenReady(initialIndex);
       }
     }
 
-    // 3. SharedPreferences 恢复（首次进入，无网格点击也无路由跳转）
-    if (_gridToFeedItemId == null && _initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
+    // 2. SharedPreferences 恢复（首次进入，无网格点击也无路由跳转）
+    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
       _hasRestoredScrollPosition = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
