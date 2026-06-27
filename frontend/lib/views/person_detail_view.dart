@@ -9,7 +9,6 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/image_cache_manager.dart';
-import '../widgets/video_page_item.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
   final MediaItem person;
@@ -25,11 +24,30 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   MediaItem? _personDetail;
   bool _loading = true;
   String? _error;
+  int _total = 0;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// 滚动监听：距底部 200px 时触发加载更多
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
   }
 
   Future<void> _loadData() async {
@@ -58,7 +76,9 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       if (mounted) {
         setState(() {
           _personDetail = results[0] as MediaItem?;
-          _works = (results[1] as PaginatedResponse<MediaItem>).items;
+          final worksResponse = results[1] as PaginatedResponse<MediaItem>;
+          _works = worksResponse.items;
+          _total = worksResponse.total;
           _loading = false;
         });
       }
@@ -68,6 +88,33 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
           _error = e.toString();
           _loading = false;
         });
+      }
+    }
+  }
+
+  /// 分页加载更多作品
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || _works.length >= _total) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+      final response = await service.getPersonItems(
+        widget.person.id,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+        limit: 30,
+        offset: _works.length,
+      );
+      if (mounted) {
+        setState(() {
+          _works = [..._works, ...response.items];
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
       }
     }
   }
@@ -97,6 +144,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
         title: Text(person.title, style: const TextStyle(fontSize: 16)),
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -230,6 +278,11 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                   return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);
                 },
               ),
+            if (_isLoadingMore)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
             const SizedBox(height: 32),
           ],
         ),
@@ -290,7 +343,7 @@ class _WorkTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final authState = ref.watch(authProvider);
+    final authState = ref.read(authProvider);
     final imageUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
       authState.token,
@@ -469,21 +522,4 @@ class _ExpandableTextState extends State<_ExpandableText> {
   }
 }
 
-class _WorkPlayPage extends StatelessWidget {
-  final MediaItem item;
-  const _WorkPlayPage({required this.item});
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(item.title, style: const TextStyle(fontSize: 16)),
-      ),
-      body: VideoPageItem(item: item),
-    );
-  }
-}

@@ -1,6 +1,6 @@
 // 演员列表页面：展示 Emby 服务器上的所有演员，支持关注/取消关注
+// 状态管理已迁移至 actorsProvider（Riverpod StateNotifier）
 
-import 'dart:convert';
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/image_cache_manager.dart';
 
@@ -25,23 +24,8 @@ class ActorsView extends ConsumerStatefulWidget {
 }
 
 class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStateMixin {
-  List<Person> _actors = const <Person>[];
-  bool _loading = true;
-  bool _isLoadingMore = false;
-  String? _error;
-  Set<String> _favoritedIds = {};
-  String? _selectedPersonType;
-  String _searchQuery = '';
-  DateTime? _debounceTimer;
   late TabController _tabController;
-  int _total = 0;
-  static const int _pageSize = 50;
-  static const int _cacheExpiryHours = 24;
   final ScrollController _scrollController = ScrollController();
-  bool _isSearching = false;
-  List<Person> _searchResults = const [];
-  bool _hasTriggeredLoadMore = false;
-  bool _isRefreshingFromCache = false;
   bool _hasRestoredState = false;
   Timer? _scrollSaveTimer;
   late final TextEditingController _searchController;
@@ -55,8 +39,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     _searchController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _restoreState();
-      _searchController.text = _searchQuery;
-      _loadActors();
+      // 首次加载演员数据
+      ref.read(actorsProvider.notifier).loadActors();
     });
   }
 
@@ -72,7 +56,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
 
   // ========== 状态持久化 ==========
 
-  // 恢复保存的状态
+  // 恢复保存的状态（类型筛选、Tab 索引、搜索关键词、滚动位置）
   Future<void> _restoreState() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -80,7 +64,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       // 恢复类型筛选
       final savedType = prefs.getString(kStorageKeyActorsSelectedType);
       if (savedType != null && savedType.isNotEmpty) {
-        _selectedPersonType = savedType == 'null' ? null : savedType;
+        final type = savedType == 'null' ? null : savedType;
+        ref.read(actorsProvider.notifier).setSelectedType(type);
       }
 
       // 恢复 Tab 索引
@@ -92,7 +77,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       // 恢复搜索关键词
       final savedSearch = prefs.getString(kStorageKeyActorsSearchQuery);
       if (savedSearch != null && savedSearch.isNotEmpty) {
-        _searchQuery = savedSearch;
+        _searchController.text = savedSearch;
+        ref.read(actorsProvider.notifier).searchActors(savedSearch);
       }
 
       _hasRestoredState = true;
@@ -154,357 +140,17 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     _saveSelectedTab(_tabController.index);
   }
 
-  // 滚动监听：检测是否接近底部（带防抖）
+  // 滚动监听：保存滚动位置
   void _onScroll() {
-    // 保存滚动位置（防抖）
     _saveScrollOffset();
-
-    if (_loading || _isLoadingMore || !hasMore || _isSearching) return;
-    
-    // 防抖：只在滚动方向向下且真正接近底部时触发
-    final position = _scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 200 && !_hasTriggeredLoadMore) {
-      _hasTriggeredLoadMore = true;
-      _loadMore();
-    }
-    // 滚动向上时重置防抖标记
-    if (position.pixels < position.maxScrollExtent - 300) {
-      _hasTriggeredLoadMore = false;
-    }
-  }
-
-  bool get hasMore => _actors.length < _total;
-
-  // 根据类型获取缓存键
-  String _getCacheKey(String? personType) {
-    return personType == null ? kStorageKeyActorsCache : '$kStorageKeyActorsCachePrefix$personType';
-  }
-
-  // 根据类型获取缓存时间键
-  String _getCacheTimeKey(String? personType) {
-    return personType == null ? kStorageKeyActorsCacheTime : '$kStorageKeyActorsCacheTimePrefix$personType';
-  }
-
-  Future<Map<String, dynamic>?> _loadActorsFromCache(String? personType) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cacheJson = prefs.getString(_getCacheKey(personType));
-      if (cacheJson == null || cacheJson.isEmpty) return null;
-
-      final decoded = json.decode(cacheJson);
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Future<void> _saveActorsToCache(List<Person> actors, int total, String? personType) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final actorsJson = actors.map((a) => a.toJson()).toList();
-      final cacheData = {
-        'actors': actorsJson,
-        'total': total,
-        'personType': personType,
-      };
-      await prefs.setString(_getCacheKey(personType), json.encode(cacheData));
-      await prefs.setInt(_getCacheTimeKey(personType), DateTime.now().millisecondsSinceEpoch);
-    } catch (_) {}
-  }
-
-  Future<int?> _getCacheTimestamp(String? personType) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(_getCacheTimeKey(personType));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<bool> _isCacheExpired(String? personType) async {
-    final timestamp = await _getCacheTimestamp(personType);
-    if (timestamp == null) return true;
-    final cacheTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final now = DateTime.now();
-    return now.difference(cacheTime).inHours >= _cacheExpiryHours;
-  }
-
-  Future<void> _loadActors({bool forceRefresh = false}) async {
-    final personType = _selectedPersonType;
-    final cacheData = await _loadActorsFromCache(personType);
-    final isExpired = await _isCacheExpired(personType);
-    final hasCache = cacheData != null;
-
-    // 强制刷新或无缓存时，显示加载动画
-    if (forceRefresh || !hasCache) {
-      setState(() {
-        _loading = true;
-        _error = null;
-        _actors = [];
-      });
-      _fetchAllActorsFromServer(forceRefresh: forceRefresh);
-      return;
-    }
-
-    // 有缓存时，先显示缓存数据
-    final actorsList = (cacheData['actors'] as List<dynamic>)
-        .map((e) => Person.fromJson(e as Map<String, dynamic>))
-        .toList();
-    final total = cacheData['total'] as int? ?? 0;
-
-    if (mounted) {
-      setState(() {
-        _actors = actorsList;
-        _total = total;
-        _loading = false;
-        _error = null;
-        _isRefreshingFromCache = !isExpired;
-      });
-
-      // 恢复滚动位置
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _restoreScrollOffset();
-      });
-    }
-
-    _loadFavoritePeople();
-
-    // 缓存过期时，后台静默刷新
-    if (isExpired) {
-      _fetchAllActorsFromServer(forceRefresh: false);
-    }
-  }
-
-  Future<void> _loadFavoritePeople() async {
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final favoritePeople = await service.getFavoritePeople(
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-        userId: auth.user?.id,
-      );
-      if (mounted) {
-        setState(() {
-          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
-        });
-      }
-    } catch (_) {}
-  }
-
-  // 一次性加载全部演员数据并缓存
-  Future<void> _fetchAllActorsFromServer({bool forceRefresh = false}) async {
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-
-      List<String>? personTypes;
-      if (_selectedPersonType != null) {
-        personTypes = [_selectedPersonType!];
-      }
-
-      // 先获取总数
-      final initialResponse = await service.getPeople(
-        limit: _pageSize,
-        startIndex: 0,
-        personTypes: personTypes,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
-
-      final total = initialResponse.total;
-      final allActors = List<Person>.from(initialResponse.items);
-
-      // 如果总数大于当前页大小，继续加载剩余数据
-      if (total > _pageSize) {
-        int startIndex = _pageSize;
-        while (startIndex < total) {
-          final response = await service.getPeople(
-            limit: _pageSize,
-            startIndex: startIndex,
-            personTypes: personTypes,
-            serverUrl: auth.embyServerUrl,
-            token: auth.token,
-          );
-          allActors.addAll(response.items);
-          startIndex += _pageSize;
-        }
-      }
-
-      final favoritePeople = await service.getFavoritePeople(
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-        userId: auth.user?.id,
-      );
-
-      // 缓存全部演员数据
-      _saveActorsToCache(allActors, total, _selectedPersonType);
-
-      if (mounted) {
-        setState(() {
-          _actors = allActors;
-          _total = total;
-          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
-          _loading = false;
-          _error = null;
-          _isRefreshingFromCache = false;
-        });
-
-        // 初次加载且不是强制刷新时恢复滚动位置
-        if (!forceRefresh) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _restoreScrollOffset();
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted && (forceRefresh || _actors.isEmpty)) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  // 仅加载第一页（用于下拉刷新等场景）
-  Future<void> _fetchActorsFirstPage({bool forceRefresh = false}) async {
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-
-      List<String>? personTypes;
-      if (_selectedPersonType != null) {
-        personTypes = [_selectedPersonType!];
-      }
-
-      final response = await service.getPeople(
-        limit: _pageSize,
-        startIndex: 0,
-        personTypes: personTypes,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
-
-      final favoritePeople = await service.getFavoritePeople(
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-        userId: auth.user?.id,
-      );
-
-      if (mounted) {
-        setState(() {
-          _actors = response.items;
-          _total = response.total;
-          _favoritedIds = Set.from(favoritePeople.map((p) => p.id).where((id) => id != null && id.isNotEmpty));
-          _loading = false;
-          _error = null;
-          _isRefreshingFromCache = false;
-        });
-      }
-    } catch (e) {
-      if (mounted && forceRefresh) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  // 加载更多（分页加载）
-  Future<void> _loadMore() async {
-    if (_isLoadingMore || !hasMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-
-      List<String>? personTypes;
-      if (_selectedPersonType != null) {
-        personTypes = [_selectedPersonType!];
-      }
-
-      final nextStartIndex = _actors.length;
-      final response = await service.getPeople(
-        limit: _pageSize,
-        startIndex: nextStartIndex,
-        personTypes: personTypes,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
-
-      if (mounted) {
-        setState(() {
-          _actors = [..._actors, ...response.items];
-          _total = response.total;
-          _isLoadingMore = false;
-          _hasTriggeredLoadMore = false; // 重置防抖标记
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-          _hasTriggeredLoadMore = false; // 重置防抖标记
-        });
-      }
-    }
   }
 
   // 下拉刷新
   Future<void> _onRefresh() async {
-    await _loadActors(forceRefresh: true);
+    await ref.read(actorsProvider.notifier).loadActors(forceRefresh: true);
   }
 
-  Future<void> _toggleFavorite(Person actor) async {
-    final isFavorited = _favoritedIds.contains(actor.id);
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-
-      // 创建 MediaItem 用于收藏操作
-      final mediaItem = MediaItem(
-        id: actor.id ?? '',
-        title: actor.name,
-        type: 'Person',
-        imageTags: actor.imageUrl != null ? {'Primary': actor.imageUrl!} : {},
-      );
-
-      await service.toggleFavorite(
-        itemId: actor.id ?? '',
-        isFavorite: !isFavorited,
-        userId: auth.user?.id,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
-
-      if (mounted) {
-        setState(() {
-          if (isFavorited) {
-            _favoritedIds.remove(actor.id);
-          } else {
-            _favoritedIds.add(actor.id ?? '');
-          }
-        });
-
-        // 更新 favoritesProvider
-        ref.read(favoritesProvider.notifier).toggleFavorite(mediaItem);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败: $e'), duration: const Duration(seconds: 2)),
-        );
-      }
-    }
-  }
-
+  // 导航到演员详情
   void _navigateToPersonDetail(Person actor) {
     final mediaItem = MediaItem(
       id: actor.id ?? '',
@@ -515,117 +161,21 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     context.push('/person/${actor.id}', extra: mediaItem);
   }
 
-  // 根据搜索关键词返回演员列表（搜索时使用 API 结果）
-  List<Person> get _filteredActors {
-    // 有搜索关键词时返回搜索结果
-    if (_searchQuery.isNotEmpty) {
-      return _searchResults;
-    }
-    // 无搜索时返回已加载的演员列表
-    return _actors;
-  }
-
-  // 防抖处理搜索输入，调用 API 进行全局搜索
-  void _onSearchChanged(String value) {
-    final now = DateTime.now();
-    _debounceTimer = now;
-    Future.delayed(const Duration(milliseconds: 300), () async {
-      if (_debounceTimer == now && mounted) {
-        if (value.isEmpty) {
-          setState(() {
-            _searchQuery = '';
-            _searchResults = [];
-            _isSearching = false;
-          });
-        } else {
-          setState(() {
-            _searchQuery = value;
-            _isSearching = true;
-          });
-          await _searchActors(value);
-        }
-        // 保存搜索关键词
-        _saveSearchQuery(value);
-      }
-    });
-  }
-
-  // 从 API 搜索演员（使用 Emby Persons API 进行服务器端搜索）
-  Future<void> _searchActors(String query) async {
-    try {
-      final auth = ref.read(authProvider);
-      final service = EmbytokService();
-
-      List<String>? personTypes;
-      if (_selectedPersonType != null) {
-        personTypes = [_selectedPersonType!];
-      }
-
-      // 使用 Emby Persons API 进行搜索，支持类型筛选
-      final response = await service.getPeople(
-        limit: 50,
-        startIndex: 0,
-        personTypes: personTypes,
-        searchTerm: query,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
-      );
-
-      if (mounted) {
-        setState(() {
-          _searchResults = response.items;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isSearching = false;
-          _searchResults = [];
-        });
-      }
-    }
-  }
-
-  // 根据 Tab 过滤演员
-  List<Person> _getActorsByTab(int tabIndex) {
-    // 使用搜索过滤后的列表
-    final actors = _filteredActors;
-    switch (tabIndex) {
-      case 1:
-        // 已关注：从过滤后的列表中过滤出已关注的演员
-        return actors.where((actor) => actor.id != null && _favoritedIds.contains(actor.id)).toList();
-      case 2:
-        // 未关注：从过滤后的列表中过滤出未关注的演员
-        return actors.where((actor) => actor.id == null || !_favoritedIds.contains(actor.id)).toList();
-      default:
-        return actors;
-    }
-  }
-
   // 构建类型筛选芯片
-  Widget _buildTypeFilterChip(String label, String? type) {
+  Widget _buildTypeFilterChip(String label, String? type, ActorsState state) {
     final scheme = Theme.of(context).colorScheme;
-    final isSelected = _selectedPersonType == type;
+    final isSelected = state.selectedPersonType == type;
 
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
-        setState(() {
-          _selectedPersonType = type;
-        });
-        // 保存类型筛选
+        if (!selected) return;
         _saveSelectedType(type);
-        // 如果正在搜索状态，切换类型后重新搜索
-        if (_searchQuery.isNotEmpty) {
-          setState(() {
-            _isSearching = true;
-            _searchResults = [];
-          });
-          _searchActors(_searchQuery);
-        } else {
-          _loadActors(forceRefresh: true);
+        ref.read(actorsProvider.notifier).setSelectedType(type);
+        // 如果正在搜索，切换类型后重新搜索
+        if (state.searchQuery.isNotEmpty) {
+          ref.read(actorsProvider.notifier).searchActors(state.searchQuery);
         }
       },
       backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
@@ -641,12 +191,12 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     );
   }
 
-  // 构建演员网格列表
-  Widget _buildActorGrid(List<Person> actors, String? embyServerUrl, String? token) {
+  // 构建演员网格列表（Tab 参数化，三个 Tab 共用）
+  Widget _buildActorGrid(List<Person> actors, String? embyServerUrl, String? token, Set<String> favoritedIds, bool isSearchActive) {
     if (actors.isEmpty) {
       return SliverFillRemaining(
         child: _buildEmptyState(
-          isSearchEmpty: _searchQuery.isNotEmpty,
+          isSearchEmpty: isSearchActive,
           isFavoriteEmpty: false,
         ),
       );
@@ -667,8 +217,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               actor: actor,
               embyServerUrl: embyServerUrl,
               token: token,
-              isFavorited: _favoritedIds.contains(actor.id),
-              onFavoriteTap: () => _toggleFavorite(actor),
+              isFavorited: favoritedIds.contains(actor.id),
+              onFavoriteTap: () => ref.read(actorsProvider.notifier).toggleFavorite(actor),
               onTap: () => _navigateToPersonDetail(actor),
             );
           },
@@ -682,14 +232,25 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
+    final actorsState = ref.watch(actorsProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    final favoriteCount = _favoritedIds.length;
-    // 显示已加载的演员数量和总数
-    final loadedCount = _actors.length;
-    final totalCount = _total;
-    final allCount = _actors.length; // 全部 Tab 显示已加载数量
-    final unfavoritedCount = _actors.where((actor) => actor.id != null && !_favoritedIds.contains(actor.id)).length;
+
+    // 是否处于搜索状态
+    final isSearchActive = actorsState.searchQuery.isNotEmpty;
+
+    // 当前显示的演员列表（搜索时用搜索结果，否则用全量列表）
+    final displayActors = isSearchActive ? actorsState.searchResults : actorsState.actors;
+
+    // 各 Tab 过滤后的演员列表
+    final allActors = displayActors;
+    final favoritedActors = displayActors.where((a) => actorsState.favoritedIds.contains(a.id)).toList();
+    final unfavoritedActors = displayActors.where((a) => !actorsState.favoritedIds.contains(a.id)).toList();
+
+    // 各 Tab 计数
+    final allCount = actorsState.actors.length;
+    final favoritedCount = actorsState.favoritedIds.length;
+    final unfavoritedCount = actorsState.actors.where((a) => !actorsState.favoritedIds.contains(a.id)).length;
 
     final content = NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -708,7 +269,10 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: _onSearchChanged,
+                    onChanged: (value) {
+                      ref.read(actorsProvider.notifier).searchActors(value);
+                      _saveSearchQuery(value);
+                    },
                     decoration: InputDecoration(
                       hintText: '搜索演员...',
                       hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
@@ -732,13 +296,13 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildTypeFilterChip('全部', null),
+                        _buildTypeFilterChip('全部', null, actorsState),
                         const SizedBox(width: 8),
-                        _buildTypeFilterChip('演员', 'Actor'),
+                        _buildTypeFilterChip('演员', 'Actor', actorsState),
                         const SizedBox(width: 8),
-                        _buildTypeFilterChip('导演', 'Director'),
+                        _buildTypeFilterChip('导演', 'Director', actorsState),
                         const SizedBox(width: 8),
-                        _buildTypeFilterChip('编剧', 'Writer'),
+                        _buildTypeFilterChip('编剧', 'Writer', actorsState),
                       ],
                     ),
                   ),
@@ -751,8 +315,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                   indicatorColor: scheme.primary,
                   indicatorWeight: 2,
                   tabs: [
-                    Tab(text: totalCount > loadedCount ? '全部($loadedCount/$totalCount)' : '全部($allCount)'),
-                    Tab(text: '已关注($favoriteCount)'),
+                    Tab(text: '全部($allCount)'),
+                    Tab(text: '已关注($favoritedCount)'),
                     Tab(text: '未关注($unfavoritedCount)'),
                   ],
                 ),
@@ -764,66 +328,45 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 全部
-          _loading
-              ? _buildLoading()
-              : _isSearching
-                  ? _buildLoading(message: '正在搜索...')
-                  : _error != null
-                      ? _buildError(scheme)
-                      : RefreshIndicator(
-                          onRefresh: _onRefresh,
-                          child: CustomScrollView(
-                            controller: _scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            slivers: [
-                              _buildActorGrid(_getActorsByTab(0), embyServerUrl, token),
-                              if (_isLoadingMore)
-                                SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: scheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              if (!_loading && !_isLoadingMore && !hasMore && _actors.isNotEmpty)
-                                SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    child: Center(
-                                      child: Text(
-                                        '已加载全部 ${_actors.length} 位演员',
-                                        style: TextStyle(
-                                          color: scheme.onSurface.withOpacity(0.5),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-          // 已关注
-          _loading
-              ? _buildLoading()
-              : _isSearching
-                  ? _buildLoading(message: '正在搜索...')
-                  : _error != null
-                      ? _buildError(scheme)
-                      : _buildActorGrid(_getActorsByTab(1), embyServerUrl, token),
-          // 未关注
-          _loading
-              ? _buildLoading()
-              : _isSearching
-                  ? _buildLoading(message: '正在搜索...')
-                  : _error != null
-                      ? _buildError(scheme)
-                      : _buildActorGrid(_getActorsByTab(2), embyServerUrl, token),
+          // 全部 Tab
+          _buildTabContent(
+            actors: allActors,
+            embyServerUrl: embyServerUrl,
+            token: token,
+            favoritedIds: actorsState.favoritedIds,
+            isSearchActive: isSearchActive,
+            loading: actorsState.loading,
+            isSearching: actorsState.isSearching,
+            error: actorsState.error,
+            scheme: scheme,
+            hasScrollController: true,
+          ),
+          // 已关注 Tab
+          _buildTabContent(
+            actors: favoritedActors,
+            embyServerUrl: embyServerUrl,
+            token: token,
+            favoritedIds: actorsState.favoritedIds,
+            isSearchActive: isSearchActive,
+            loading: actorsState.loading,
+            isSearching: actorsState.isSearching,
+            error: actorsState.error,
+            scheme: scheme,
+            hasScrollController: false,
+          ),
+          // 未关注 Tab
+          _buildTabContent(
+            actors: unfavoritedActors,
+            embyServerUrl: embyServerUrl,
+            token: token,
+            favoritedIds: actorsState.favoritedIds,
+            isSearchActive: isSearchActive,
+            loading: actorsState.loading,
+            isSearching: actorsState.isSearching,
+            error: actorsState.error,
+            scheme: scheme,
+            hasScrollController: false,
+          ),
         ],
       ),
     );
@@ -836,6 +379,68 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     }
 
     return content;
+  }
+
+  // 构建单个 Tab 的内容（处理加载、错误、搜索中、正常显示等状态）
+  Widget _buildTabContent({
+    required List<Person> actors,
+    required String? embyServerUrl,
+    required String? token,
+    required Set<String> favoritedIds,
+    required bool isSearchActive,
+    required bool loading,
+    required bool isSearching,
+    required String? error,
+    required ColorScheme scheme,
+    required bool hasScrollController,
+  }) {
+    // 加载中
+    if (loading) {
+      return _buildLoading();
+    }
+
+    // 搜索中
+    if (isSearching) {
+      return _buildLoading(message: '正在搜索...');
+    }
+
+    // 出错
+    if (error != null) {
+      return _buildError(scheme);
+    }
+
+    // 正常显示：全部 Tab 带下拉刷新和滚动控制器
+    if (hasScrollController) {
+      return RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive),
+            // 已加载全部演员的提示
+            if (!loading && actors.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: Text(
+                      '已加载全部 ${actors.length} 位演员',
+                      style: TextStyle(
+                        color: scheme.onSurface.withOpacity(0.5),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    // 已关注/未关注 Tab：简单的网格显示
+    return _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive);
   }
 
   // 构建优化的加载动画
@@ -1030,7 +635,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             ),
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('重试'),
-            onPressed: _loadActors,
+            onPressed: _onRefresh,
           ),
         ],
       ),
@@ -1038,6 +643,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   }
 }
 
+// 演员卡片组件
 class _ActorCard extends StatelessWidget {
   final Person actor;
   final String? embyServerUrl;
@@ -1128,15 +734,25 @@ class _ActorCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            actor.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
+          // 名字 + 类型标签
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  actor.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              _buildTypeChip(actor.type, scheme),
+            ],
           ),
           Text(
             isFavorited ? '已关注' : '未关注',
@@ -1146,6 +762,39 @@ class _ActorCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // 类型标签：Actor=蓝色, Director=橙色, Writer=绿色
+  Widget _buildTypeChip(String type, ColorScheme scheme) {
+    Color chipColor;
+    switch (type) {
+      case 'Director':
+        chipColor = Colors.orange;
+        break;
+      case 'Writer':
+        chipColor = Colors.green;
+        break;
+      default: // 'Actor' 或其他
+        chipColor = Colors.blue;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: chipColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: chipColor.withOpacity(0.4), width: 0.5),
+      ),
+      child: Text(
+        type,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          color: chipColor,
+        ),
       ),
     );
   }
