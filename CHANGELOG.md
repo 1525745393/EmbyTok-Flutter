@@ -1,3 +1,11 @@
+## [1.106.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.2...v1.106.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格与视频流切换跳转问题 ([e5863f2](https://github.com/1525745393/EmbyTok-Flutter/commit/e5863f22339342ce29a0391bec314def3e2913ba))
+* 用 ref.watch 替代 ref.listen 彻底解决网格↔视频流跳转竞态 ([485a6ce](https://github.com/1525745393/EmbyTok-Flutter/commit/485a6cef864819ae7c20742fc02c97c5f6a49d02))
+
 ## [1.106.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.1...v1.106.2) (2026-06-27)
 
 
