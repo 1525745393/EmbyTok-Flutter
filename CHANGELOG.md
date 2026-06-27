@@ -1,3 +1,15 @@
+# [1.104.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.103.0...v1.104.0) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格→视频流跳转被 SharedPreferences 恢复覆盖 ([7cefd66](https://github.com/1525745393/EmbyTok-Flutter/commit/7cefd66f84682c50470d6e5d801123428ce4dfd4))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([d0451bb](https://github.com/1525745393/EmbyTok-Flutter/commit/d0451bb1024b0cc3f06601b182629887b69154b6))
+
 # [1.103.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.102.0...v1.103.0) (2026-06-27)
 
 
