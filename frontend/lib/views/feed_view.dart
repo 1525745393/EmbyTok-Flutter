@@ -758,39 +758,36 @@ class _FeedViewState extends ConsumerState<FeedView>
     // =======================================================
 
     // 1. 网格点击跳转（最高优先级）
+    //    在构建 PageView 之前重建 PageController，使 PageView 直接从目标页开始，
+    //    避免"先显示第一个视频再跳转"的闪烁和竞态问题。
     if (_gridToFeedItemId != null) {
       final gridIndex = videoState.items.indexWhere((item) => item.id == _gridToFeedItemId);
       if (gridIndex >= 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _pageController.hasClients) {
-            _currentIndex = gridIndex;
-            ref.read(currentIndexProvider.notifier).state = gridIndex;
-            _pageController.jumpToPage(gridIndex);
-            AppLogger.debug('网格→视频流跳转完成', data: {'index': gridIndex, 'itemId': _gridToFeedItemId});
-          }
-          // 跳转后清除，防止重复触发
-          _gridToFeedItemId = null;
-        });
-      } else {
-        // 找不到目标视频，清除标记
+        // 重建 controller，使 PageView 从目标页开始构建
+        _pageController.dispose();
+        _pageController = PageController(initialPage: gridIndex, viewportFraction: 1.0);
+        _currentIndex = gridIndex;
+        ref.read(currentIndexProvider.notifier).state = gridIndex;
+        AppLogger.debug('网格→视频流跳转：重建 PageController', data: {'index': gridIndex, 'itemId': _gridToFeedItemId});
         _gridToFeedItemId = null;
+      } else if (videoState.items.isNotEmpty && !videoState.isLoading) {
+        // items 已加载完成但找不到目标视频，清除标记
         AppLogger.error('网格→视频流：找不到目标视频', data: {'itemId': _gridToFeedItemId});
+        _gridToFeedItemId = null;
       }
+      // 如果 items 为空或正在加载，保留 _gridToFeedItemId，等下次 build 再试
     }
 
     // 2. 路由跳转（从其他页面跳转过来，如搜索结果）
-    else if (_initialItemId != null && !_hasScrolledToInitial) {
+    if (_gridToFeedItemId == null && _initialItemId != null && !_hasScrolledToInitial) {
       final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
       if (initialIndex >= 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _pageController.hasClients && !_hasScrolledToInitial) {
-            _hasScrolledToInitial = true;
-            _currentIndex = initialIndex;
-            // 同步更新 currentIndexProvider，供切回网格时 _tryScrollToCurrentVideo 使用
-            ref.read(currentIndexProvider.notifier).state = initialIndex;
-            _pageController.jumpToPage(initialIndex);
-          }
-        });
+        // 同样使用重建 controller 的方式，避免闪烁
+        _pageController.dispose();
+        _pageController = PageController(initialPage: initialIndex, viewportFraction: 1.0);
+        _hasScrolledToInitial = true;
+        _currentIndex = initialIndex;
+        ref.read(currentIndexProvider.notifier).state = initialIndex;
       }
     }
 
@@ -814,6 +811,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
+        // 同步更新全局 currentIndexProvider，供切回网格时 _tryScrollToCurrentVideo 使用
+        ref.read(currentIndexProvider.notifier).state = index;
         // 保存当前视频索引到 SharedPreferences
         _saveVideoIndex(index);
         if (videoState.hasMore && index >= videoState.items.length - 2) {
