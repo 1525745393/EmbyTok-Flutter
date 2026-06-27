@@ -1,3 +1,10 @@
+## [1.105.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.5...v1.105.6) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格顶部栏与 PosterGridView header 重叠问题 ([0a39d2f](https://github.com/1525745393/EmbyTok-Flutter/commit/0a39d2f9757b85e6872259b7276b5d81bf585a0e))
+
 ## [1.105.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.4...v1.105.5) (2026-06-27)
 
 
