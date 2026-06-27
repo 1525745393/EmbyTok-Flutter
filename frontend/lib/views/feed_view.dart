@@ -717,9 +717,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 网格模式顶部栏：搜索框 + 排序 + 视图切换
+  // 网格模式顶部栏：搜索框 + 视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    final sortOption = ref.watch(gridSortOptionProvider);
     final searchQuery = ref.watch(gridSearchQueryProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -753,38 +752,6 @@ class _FeedViewState extends ConsumerState<FeedView>
             ),
           ),
           const SizedBox(width: 8),
-          // 排序选择器
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: scheme.outline.withOpacity(0.3)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<GridSortOption>(
-                value: sortOption,
-                isDense: true,
-                items: GridSortOption.values.map((option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.sort, size: 16, color: scheme.primary),
-                        const SizedBox(width: 4),
-                        Text(option.label),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    ref.read(gridSortOptionProvider.notifier).state = value;
-                  }
-                },
-              ),
-            ),
-          ),
           // 视图切换按钮
           IconButton(
             icon: Icon(
