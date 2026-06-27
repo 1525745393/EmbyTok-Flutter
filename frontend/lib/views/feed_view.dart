@@ -54,9 +54,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
 
-  // 网格视图搜索框控制器（值同步到 gridSearchQueryProvider）
-  final TextEditingController _gridSearchController = TextEditingController();
-
   @override
   bool get wantKeepAlive => true;
 
@@ -181,7 +178,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageController.dispose();
-    _gridSearchController.dispose();
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
     _gridScrollSaveTimer?.cancel();
@@ -717,41 +713,13 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 网格模式顶部栏：搜索框 + 视图切换
+  // 网格模式顶部栏：视图切换
   Widget _buildGridTopBar(ColorScheme scheme, ViewMode viewMode) {
-    final searchQuery = ref.watch(gridSearchQueryProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
-          // 搜索框
-          Expanded(
-            child: TextField(
-              controller: _gridSearchController,
-              decoration: InputDecoration(
-                hintText: '搜索视频...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _gridSearchController.clear();
-                          ref.read(gridSearchQueryProvider.notifier).state = '';
-                        },
-                      )
-                    : null,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onChanged: (value) {
-                ref.read(gridSearchQueryProvider.notifier).state = value;
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
+          const Spacer(),
           // 视图切换按钮
           IconButton(
             icon: Icon(
