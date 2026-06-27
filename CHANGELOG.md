@@ -1,3 +1,15 @@
+# [1.102.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.101.1...v1.102.0) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复媒体库选择器单选模式，初始只选中第一个库，对齐 EmbyX ([2b0f0e1](https://github.com/1525745393/EmbyTok-Flutter/commit/2b0f0e1dbf92a40291a256e10f7c76ddbbdf233e))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([e56443f](https://github.com/1525745393/EmbyTok-Flutter/commit/e56443facbcedd62bf27296f5fd64c37f3962fea))
+
 ## [1.101.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.101.0...v1.101.1) (2026-06-27)
 
 
