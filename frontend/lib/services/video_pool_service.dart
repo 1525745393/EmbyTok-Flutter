@@ -152,7 +152,7 @@ class VideoPoolService {
         debugPrint('VideoPoolService preload level=$level failed: $e');
         // 释放失败的控制器，避免 native 资源泄漏
         try {
-          controller.dispose();
+          controller?.dispose();
         } catch (_) {}
       }
     }
