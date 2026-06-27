@@ -45,7 +45,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
 
   // 滚动位置持久化相关
-  bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -91,10 +90,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 从网格模式切换到视频流模式时的处理
   void _handleGridToFeedTransition() {
     final selectedItemId = ref.read(gridSelectedItemIdProvider);
-    // 网格点击切换时，阻止 SharedPreferences 恢复覆盖正确跳转
-    if (selectedItemId != null && selectedItemId.isNotEmpty) {
-      _hasRestoredScrollPosition = true;
-    }
     final items = ref.read(videoListProvider).items;
 
     // 计算目标索引
@@ -154,20 +149,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyLastVideoIndex, index);
-    } catch (_) {}
-  }
-
-  // 从 SharedPreferences 恢复视频流滚动位置
-  Future<void> _restoreVideoIndex(int maxIndex) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastIndex = prefs.getInt(kStorageKeyLastVideoIndex);
-      if (lastIndex != null && lastIndex >= 0 && lastIndex <= maxIndex) {
-        if (mounted && _pageController.hasClients) {
-          _pageController.jumpToPage(lastIndex);
-          _currentIndex = lastIndex;
-        }
-      }
     } catch (_) {}
   }
 
@@ -830,21 +811,6 @@ class _FeedViewState extends ConsumerState<FeedView>
           }
         });
       }
-    }
-
-    // 首次进入时从 SharedPreferences 恢复滚动位置
-    // 如果来自网格点击，跳过恢复（由 _handleGridToFeedTransition 控制跳转）
-    final gridSelectedId = ref.read(gridSelectedItemIdProvider);
-    if (_initialItemId == null &&
-        !_hasRestoredScrollPosition &&
-        (gridSelectedId == null || gridSelectedId.isEmpty) &&
-        videoState.items.isNotEmpty) {
-      _hasRestoredScrollPosition = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _restoreVideoIndex(videoState.items.length - 1);
-        }
-      });
     }
 
     final auth = ref.read(authProvider);
