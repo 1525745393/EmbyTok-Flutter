@@ -479,7 +479,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       hasMore: false, // 随机模式不支持分页
       error: null,
       offset: 0,
-      limit: 150, // 换一批获取 150 条
+      limit: 0, // 不限制数量，加载全部
       feedType: FeedType.latest,
       sortBy: 'Random',
       sortOrder: 'Ascending',
@@ -492,15 +492,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       });
 
       final merged = <MediaItem>[];
-      // 多库时平均分配，确保总数约为 150 条
-      final perLibLimit = selectedIds.isNotEmpty
-          ? (150 / selectedIds.length).ceil()
-          : 150;
       for (final libId in selectedIds) {
         try {
           final resp = await _service.getLibraryItems(
             libId,
-            limit: perLibLimit,
+            limit: 10000, // 不限制数量，取全部
             offset: 0,
             serverUrl: auth.embyServerUrl!,
             token: auth.token!,
@@ -524,8 +520,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         merged.addAll(rest);
       }
 
-      // 截取最多 150 条
-      final finalItems = merged.length > 150 ? merged.sublist(0, 150) : merged;
+      // 不再截取，使用全部随机数据
+      final finalItems = merged;
 
       state = VideoListState(
         items: finalItems,
@@ -535,7 +531,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         hasMore: false,
         error: null,
         offset: finalItems.length,
-        limit: 150,
+        limit: finalItems.length,
         totalCount: finalItems.length,
         feedType: FeedType.latest,
         sortBy: 'Random',
