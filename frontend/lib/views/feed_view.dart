@@ -209,7 +209,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     } catch (_) {}
   }
 
-  // 将网格滚动到当前播放视频的位置，返回是否成功滚动
+  // 将网格滚动到当前播放视频的位置（垂直居中），返回是否成功滚动
+  // 对齐 EmbyX 实现：elTop - (areaHeight / 2) + (elHeight / 2)
   bool _tryScrollToCurrentVideo() {
     if (!_gridScrollController.hasClients) return false;
 
@@ -232,23 +233,28 @@ class _FeedViewState extends ConsumerState<FeedView>
     // Flutter GridView 的 childAspectRatio = crossAxisExtent / mainAxisExtent = 宽/高
     const childAspectRatio = 0.65;
 
-    // 计算每个 item 的宽度：屏幕宽度 - padding*2 - 间距*(列数-1)，然后平均分
+    // 计算每个 item 的尺寸
     final screenWidth = MediaQuery.of(context).size.width;
+    final viewportHeight = _gridScrollController.position.viewportDimension;
     final itemWidth = (screenWidth - padding * 2 - crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
     final itemHeight = itemWidth / childAspectRatio;
     final rowHeight = itemHeight + mainAxisSpacing;
 
-    // 计算目标行
+    // 计算目标行和目标 item 顶部位置
     final targetRow = indexInGrid ~/ crossAxisCount;
-    // 目标偏移 = 顶部 padding + 行号 * 行高
-    final targetOffset = (padding + targetRow * rowHeight).clamp(
-      0.0,
-      _gridScrollController.position.maxScrollExtent,
-    );
+    final targetTop = padding + targetRow * rowHeight;
+
+    // 垂直居中对齐：item 中心 = viewport 中心（对齐 EmbyX）
+    // 公式：elTop - (areaHeight / 2) + (elHeight / 2)
+    final scrollOffset = targetTop - (viewportHeight / 2) + (itemHeight / 2);
+
+    // 限制滚动范围在有效范围内
+    final maxScroll = _gridScrollController.position.maxScrollExtent;
+    final safeOffset = scrollOffset.clamp(0.0, maxScroll);
 
     // 平滑滚动到目标位置
     _gridScrollController.animateTo(
-      targetOffset,
+      safeOffset,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
