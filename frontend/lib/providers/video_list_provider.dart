@@ -149,10 +149,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 viewModeProvider 变化：处理视图切换时的数据同步
+    // 监听 viewModeProvider 变化：处理视图切换时的视频播放/暂停
     // 核心原则：视频流(feed)的 items 是主数据源，网格只是入口和定位目标
-    // - 切回 feed 时，feed 的 items 保持不变（不 refresh），无需重置
-    // - 切到网格时，根据 feedToGridJumpItemIdProvider 准备对应页（路由透传 itemId）
+    // 切回 feed 时，feed 的 items 保持不变（不 refresh），无需重置
     _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
       if (next == ViewMode.feed && previous == ViewMode.grid) {
         // 切回 feed：feed 的 items 不变，无需操作
@@ -160,18 +159,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           'itemsCount': state.items.length,
         });
       }
-      // 切到 grid 的逻辑由 feedToGridJumpItemIdProvider listener 处理
-    });
-    // 监听 feedToGridJumpItemIdProvider：feed→grid 切换时根据 itemId 准备网格页
-    // 这是"路由 + 起始 itemId 透传"模式的核心：所有跨视图定位都通过这个 provider
-    _ref.listen<String?>(feedToGridJumpItemIdProvider, (previous, next) {
-      if (next == null || next.isEmpty) return;
-      // 只在 grid 模式被显示时响应
-      if (_ref.read(viewModeProvider) != ViewMode.grid) return;
-      AppLogger.debug('切到 grid 模式：定位到指定视频', data: {'itemId': next});
-      updateGridForFeedItem(next);
-      // 清理 signal，等待下次切换
-      _ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
     });
   }
 
@@ -730,44 +717,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     state = state.copyWith(items: newItems);
     AppLogger.debug('已从 resume 列表移除播放完毕条目', data: {'itemId': itemId});
   }
-
-  // 从 feed 切回网格时，更新网格数据以包含目标 item
-  // 策略：将网格重置为第一页（使用 feed 已加载的 items），并标记需要滚动到的 item
-  void updateGridForFeedItem(String targetItemId) {
-    final feedItems = state.items;
-    // 目标在 feed 已加载的 items 中的位置
-    final indexInFeed = feedItems.indexWhere((item) => item.id == targetItemId);
-    if (indexInFeed < 0) {
-      // 不在已加载列表中，重置到第一页
-      state = state.copyWith(
-        gridItems: feedItems.length > kGridPageSize ? feedItems.sublist(0, kGridPageSize) : feedItems,
-        gridStartIndex: 0,
-      );
-      return;
-    }
-
-    // 计算目标视频应该在哪一页（每页150条，简单用整数除法估算）
-    // 注意：多库情况下这是估算值，但目标页肯定在第一页或后续，我们把所在页加载为当前页
-    // 简单策略：直接将 gridItems 设为从包含目标视频的位置开始
-    // 但网格分页要求每页 150 条，我们简化处理：始终显示第一页，如果目标在第一页就能滚动到
-    final firstPageEnd = feedItems.length > kGridPageSize ? kGridPageSize : feedItems.length;
-    if (indexInFeed < firstPageEnd) {
-      // 目标在第一页内，直接显示第一页
-      state = state.copyWith(
-        gridItems: feedItems.length > kGridPageSize ? feedItems.sublist(0, kGridPageSize) : feedItems,
-        gridStartIndex: 0,
-      );
-    } else {
-      // 目标不在已加载的第一页范围内，显示 feed 已加载的最后一页（包含目标）
-      // 简单起见，显示最后一整页开始的数据
-      final pageStart = (indexInFeed ~/ kGridPageSize) * kGridPageSize;
-      final pageEnd = pageStart + kGridPageSize;
-      state = state.copyWith(
-        gridItems: feedItems.length > pageEnd ? feedItems.sublist(pageStart, pageEnd) : feedItems.sublist(pageStart),
-        gridStartIndex: pageStart,
-      );
-    }
-  }
 }
 
 /// 顶层视频列表 Provider：暴露 [VideoListState] 给 UI 使用
@@ -872,10 +821,15 @@ final gridFilteredVideoListProvider = Provider<List<MediaItem>>((ref) {
 
 /// 网格模式下点击选中的视频 ID
 ///
-/// 用于：网格模式点击视频后，切换到视频流模式并从该视频开始播放
+/// 已废弃：网格 → 视频流的跳转现在通过 GoRouter `?initialId=<itemId>` 透传。
+/// 保留此 provider 是为了与历史代码兼容（部分测试仍可能引用）。
+/// 后续 PR 将彻底删除。
+@Deprecated('使用 GoRouter ?initialId= 透传，不再需要此 provider')
 final gridSelectedItemIdProvider = StateProvider<String?>((ref) => null);
 
 /// 从 feed 切回网格时需要定位到的视频 ID
 ///
-/// 用于：视频流模式切换回网格时，自动滚动到当前播放视频的位置
+/// 已废弃：feed → grid 的回显定位现在由 currentPlayingIdProvider 驱动。
+/// PosterGridView 监听 currentPlayingIdProvider 后自行滚动。
+@Deprecated('使用 currentPlayingIdProvider，不再需要此 provider')
 final feedToGridJumpItemIdProvider = StateProvider<String?>((ref) => null);

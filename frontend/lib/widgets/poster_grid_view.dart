@@ -24,40 +24,36 @@ class PosterGridView extends ConsumerStatefulWidget {
 }
 
 class _PosterGridViewState extends ConsumerState<PosterGridView> {
-  String? _lastProcessedJumpItemId;
+  // 已滚动的目标 ID（避免重复滚动到同一位置）
+  String? _lastScrolledPlayingId;
 
-  // 等待目标视频出现在 gridItems 中，然后滚动到对应位置
-  void _waitForItemAndScroll(String itemId, {int retryCount = 0}) {
-    if (!mounted) return;
-    if (retryCount > 60) {
-      // 最多等待3秒
-      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
-      _lastProcessedJumpItemId = null;
-      return;
-    }
+  // 滚动到当前正在播放的视频位置
+  // 设计：feed 切回 grid 时，gridItems 已包含 currentPlayingIdProvider 指示的当前在播视频。
+  // 这里只需在 gridItems 中找到它并滚动到对应位置。
+  // 路径：feed.onPageChanged → currentPlayingIdProvider → 本视图 watch → 滚动。
+  void _scrollToPlayingId(String playingId) {
+    final controller = widget.scrollController;
+    if (controller == null) return;
+    if (_lastScrolledPlayingId == playingId) return; // 已经处理过
 
-    // 如果用户切回了视频流模式，放弃
-    if (ref.read(viewModeProvider) != ViewMode.grid) {
-      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
-      _lastProcessedJumpItemId = null;
+    // 帧轮询：等待 controller attach
+    if (!controller.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToPlayingId(playingId);
+      });
       return;
     }
 
     final gridItems = ref.read(videoListProvider).gridItems;
-    final targetIndex = gridItems.indexWhere((item) => item.id == itemId);
-
-    if (targetIndex >= 0) {
-      // 找到目标，执行滚动
-      _scrollToGridIndex(targetIndex);
-      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
-      _lastProcessedJumpItemId = null;
+    final targetIndex = gridItems.indexWhere((item) => item.id == playingId);
+    if (targetIndex < 0) {
+      // gridItems 中暂无目标，video_list_provider 正在加载对应页
+      AppLogger.debug('网格定位：目标不在 gridItems，等待更新', data: {'itemId': playingId});
       return;
     }
 
-    // 如果还在加载中或还没找到，等待下一帧重试
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitForItemAndScroll(itemId, retryCount: retryCount + 1);
-    });
+    _lastScrolledPlayingId = playingId;
+    _scrollToGridIndex(targetIndex);
   }
 
   // 滚动到网格中指定索引位置（3列布局，居中对齐）
@@ -115,8 +111,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     final videoState = ref.watch(videoListProvider);
     final gridItems = videoState.gridItems;
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
-    // 监听从 feed 切回网格时需要定位到的 itemId
-    final jumpToItemId = ref.watch(feedToGridJumpItemIdProvider);
+    // 全局"当前在播"信号源：用于定位 + 高亮回显
+    final playingId = ref.watch(currentPlayingIdProvider);
 
     if (gridItems.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
@@ -127,11 +123,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       );
     }
 
-    // 处理从视频流切回时的定位：在帧后滚动到目标视频
-    // 使用帧轮询：如果目标还没加载到 gridItems 中，等待重试
-    if (jumpToItemId != null && jumpToItemId.isNotEmpty && jumpToItemId != _lastProcessedJumpItemId) {
-      _lastProcessedJumpItemId = jumpToItemId;
-      _waitForItemAndScroll(jumpToItemId);
+    // 定位到当前正在播放的视频（feed 切回 grid 时由 video_list_provider 已加载对应页）
+    if (playingId != null && playingId.isNotEmpty) {
+      _scrollToPlayingId(playingId);
     }
 
     final totalCount = videoState.totalCount;
@@ -303,6 +297,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
               return _PosterCard(
                 key: Key(item.id),
                 item: item,
+                isPlaying: item.id == playingId, // 标记"当前正在播"高亮
               );
             },
           ),
@@ -315,10 +310,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
   final MediaItem item;
+  // 是否为当前正在播放的视频（用于回显高亮）
+  final bool isPlaying;
 
   const _PosterCard({
     super.key,
     required this.item,
+    this.isPlaying = false,
   });
 
   @override
@@ -329,18 +327,17 @@ class _PosterCard extends ConsumerWidget {
 
     return TvFocusable(
       onTap: () {
-        // 点击海报切换到视频流模式并从该视频开始播放
-        // 1. 设置选中的视频 ID，由 feed_view 监听并跳转到对应位置
-        ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
-
-        // 2. 同步更新全局播放状态
-        ref.read(currentPlayingItemProvider.notifier).state = item;
-
-        // 3. 切换到视频流模式
+        // 点击海报：通过路由透传 initialId 跳转到目标视频
+        // - 路由：context.go('/?initialId=$id') 会触发路由重建
+        // - HomeScaffold 把 initialItemId 透传给 FeedView
+        // - FeedView 接收后调用 _waitForInitialItemToLoad → _jumpToPageWhenReady
         ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+        context.go('/?initialId=${Uri.encodeComponent(item.id)}');
       },
       borderRadius: 8,
-      borderWidth: 2,
+      borderWidth: isPlaying ? 3 : 2,
+      // isPlaying 时显示醒目边框
+      borderColor: isPlaying ? scheme.primary : null,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Stack(
@@ -368,6 +365,33 @@ class _PosterCard extends ConsumerWidget {
               Container(
                 color: scheme.surface.withOpacity(0.3),
                 child: Icon(Icons.movie, color: scheme.onSurface.withOpacity(0.4)),
+              ),
+            // "正在播放"角标：左上角小播放图标
+            if (isPlaying)
+              Positioned(
+                left: 6, top: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.play_arrow, size: 10, color: scheme.onPrimary),
+                      const SizedBox(width: 2),
+                      Text(
+                        '播放中',
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             // 底部渐变 + 标题
             Positioned(

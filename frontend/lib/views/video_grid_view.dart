@@ -188,18 +188,11 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   }
 
   // 导航到视频流中的对应位置
-  // 路由 + 起始 itemId 透传：不依赖任何外部持久化状态
-  Future<void> _navigateToVideo(MediaItem item, int index) async {
-    // 1. 设置网格选中 ID（feed_view 监听此值，等待目标进入 items 后 jumpToPage）
-    ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
-
-    // 2. 同步当前播放条目
-    ref.read(currentPlayingItemProvider.notifier).state = item;
-
-    // 3. 切换到视频流模式
+  // 路由 + initialId 透传：跳转由路由层处理，feed_view 通过 widget.initialItemId 接收
+  void _navigateToVideo(MediaItem item, int index) {
+    // 切换到视频流模式
     ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
-
-    // 4. 导航到主界面
-    context.go('/');
+    // 路由透传：把目标 itemId 编码到 query string
+    context.go('/?initialId=${Uri.encodeComponent(item.id)}');
   }
 }

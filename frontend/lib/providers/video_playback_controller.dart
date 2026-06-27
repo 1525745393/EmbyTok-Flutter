@@ -11,6 +11,18 @@ import '../utils/constants.dart';
 /// 全局 EmbytokService 实例（用于加载字幕、上报播放状态等）
 final embbytokServiceProvider = Provider<EmbytokService>((ref) => EmbytokService());
 
+/// 当前正在播放的视频 ID（仅 ID，不存对象引用）
+///
+/// 用途：作为"上一帧播了谁"的 session 状态，供其他视图（网格、收藏、历史）回显高亮。
+///
+/// 设计原则：
+/// - 仅存 ID，避免对象引用陈旧
+/// - 不持久化，进程内有效，重启清空
+/// - 由 feed_view.onPageChanged 写入（权威源）
+/// - 由 _jumpToPageWhenReady 写入（程序化跳转时）
+/// - 网格等视图只读不写
+final currentPlayingIdProvider = StateProvider<String?>((ref) => null);
+
 /// 当前正在播放的媒体条目（供详情页/控制层引用）
 ///
 /// 这是"视频流内"的当前播放信号源：

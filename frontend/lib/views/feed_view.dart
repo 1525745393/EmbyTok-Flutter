@@ -1,5 +1,10 @@
 // 视频流页面：竖向全屏滑动 + 顶部媒体库切换 + 分页加载 + 键盘快捷键 + 视图切换
 // 新增：跨设备续播（通过 Emby DisplayPreferences 接口与其它设备/EmbyX 共享续播书签）
+//
+// 路由 + 起始 itemId 透传模式：
+// - 路由 `/` 支持 `?initialId=<itemId>`，FeedView 接收后等待目标在 items 中出现，jumpToPage
+// - onPageChanged 同步写入 currentPlayingIdProvider（全局"当前在播"信号源）
+// - 网格等其他视图只读 currentPlayingIdProvider 用于高亮回显
 
 import 'dart:async';
 
@@ -24,7 +29,11 @@ import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
 
 class FeedView extends ConsumerStatefulWidget {
-  final String? initialItemId; // 初始播放的视频 ID（从其他页面跳转时使用）
+  // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`
+  // - 网格点击 → 跳转前 context.go('/?initialId=$id')
+  // - 搜索/收藏/演员详情 → 跳转前 context.go('/?initialId=$id')
+  // - 跨进程清空：每次新路由都是一次新的"起点"
+  final String? initialItemId;
 
   const FeedView({super.key, this.initialItemId});
 
@@ -39,13 +48,16 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 当前正在播放的索引（与 _pageController 同步）
   int _currentIndex = 0;
 
-  // 滚动位置持久化相关
+  // 滚动位置持久化相关（仅网格视图，视频流不持久化）
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
   // 云同步（跨设备续播）相关
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
+
+  // 已处理的初始播放项 ID（防止重复跳转）
+  String? _processedInitialItemId;
 
   @override
   bool get wantKeepAlive => true;
@@ -60,22 +72,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
       _saveCloudSyncIfNeeded(next);
     });
-    // 监听视图模式变化：
-    // - feed→grid：设置跳转目标 + 暂停当前视频（IndexedStack 中视频在后台仍在播放）
-    // - grid→feed：恢复视频播放
-    // 网格→视频流跳转由 _buildVideoPageView 中的 ref.listen(gridSelectedItemIdProvider) 处理，
-    // 避免 listener 回调与 build 之间的时序竞态
+    // 监听视图模式变化：feed↔grid 切换时处理视频播放/暂停
     ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+      final controller = ref.read(currentVideoControllerProvider);
       if (prev == ViewMode.feed && next == ViewMode.grid) {
-        _handleFeedToGridTransition();
-        // 切到网格：暂停当前播放的视频，避免后台继续播放消耗资源
-        final controller = ref.read(currentVideoControllerProvider);
+        // 切到网格：暂停视频
         if (controller != null && controller.value.isPlaying) {
           controller.pause();
         }
       } else if (prev == ViewMode.grid && next == ViewMode.feed) {
         // 切回视频流：恢复播放
-        final controller = ref.read(currentVideoControllerProvider);
         if (controller != null && !controller.value.isPlaying) {
           controller.play();
         }
@@ -87,21 +93,22 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollController.addListener(_onGridScrollChanged);
   }
 
-  // 记录上一次处理的网格选中项 ID，避免重复跳转
-  String? _lastProcessedGridItemId;
+  // 已处理的初始播放项 ID（防止重复跳转）。见 build 中的初始 ID 处理。
 
   /// 帧轮询：等到 PageController 已 attach 后执行 jumpToPage
-  /// 用于路由跳转、网格跳转、SharedPreferences 恢复等场景
+  /// 用于路由透传 initialId 时，PageController 还没 attach 的场景
   void _jumpToPageWhenReady(int targetIndex, {int retryCount = 0}) {
     if (!mounted) return;
     if (retryCount > 30) return;
 
     if (_pageController.hasClients) {
       _currentIndex = targetIndex;
-      // 同步当前播放条目（onPageChanged 会再次确认，但这里先设避免 UI 闪烁）
+      // 同步当前播放 ID 和条目（onPageChanged 会再次确认，但这里先设避免 UI 闪烁）
       final items = ref.read(videoListProvider).items;
       if (targetIndex < items.length) {
-        ref.read(currentPlayingItemProvider.notifier).state = items[targetIndex];
+        final targetItem = items[targetIndex];
+        ref.read(currentPlayingIdProvider.notifier).state = targetItem.id;
+        ref.read(currentPlayingItemProvider.notifier).state = targetItem;
       }
       _pageController.jumpToPage(targetIndex);
       return;
@@ -112,23 +119,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
   }
 
-  /// 等待目标视频出现在 items 中后再执行跳转
-  /// 如果目标视频不在当前已加载的列表中，自动触发 loadMore 加载更多（可连续多次加载）
-  void _waitForItemAndJump(String itemId, {int retryCount = 0}) {
+  /// 等待路由透传的初始播放项出现在 items 中
+  /// - 目标项不在当前已加载的列表时，自动 loadMore 连续加载直到找到
+  /// - 找到后调用 _jumpToPageWhenReady
+  void _waitForInitialItemToLoad(String itemId, {int retryCount = 0}) {
     if (!mounted) return;
+    if (_processedInitialItemId != itemId) return; // 用户已经切换到其他初始项
 
     // 最多等待约5秒（100帧），超时则放弃
     if (retryCount > 100) {
-      AppLogger.error('网格→视频流：等待目标视频超时', data: {'itemId': itemId});
-      ref.read(gridSelectedItemIdProvider.notifier).state = null;
-      _lastProcessedGridItemId = null;
-      return;
-    }
-
-    // 如果用户切回了网格模式，放弃
-    if (ref.read(viewModeProvider) != ViewMode.feed) {
-      ref.read(gridSelectedItemIdProvider.notifier).state = null;
-      _lastProcessedGridItemId = null;
+      AppLogger.error('路由初始项：等待目标视频超时', data: {'itemId': itemId});
       return;
     }
 
@@ -136,54 +136,29 @@ class _FeedViewState extends ConsumerState<FeedView>
     final targetIndex = videoState.items.indexWhere((item) => item.id == itemId);
 
     if (targetIndex >= 0) {
-      // 找到目标视频，执行帧轮询跳转
+      AppLogger.debug('路由初始项：找到目标视频并跳转', data: {'index': targetIndex, 'itemId': itemId});
       _jumpToPageWhenReady(targetIndex);
-      ref.read(gridSelectedItemIdProvider.notifier).state = null;
-      _lastProcessedGridItemId = null;
-      AppLogger.debug('网格→视频流：找到目标视频并跳转', data: {'index': targetIndex});
       return;
     }
 
-    // 如果正在加载中，等待下一帧
     if (videoState.isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _waitForItemAndJump(itemId, retryCount: retryCount + 1);
+        _waitForInitialItemToLoad(itemId, retryCount: retryCount + 1);
       });
       return;
     }
 
-    // 如果还有更多数据，触发 loadMore 加载更多
     if (videoState.hasMore) {
-      AppLogger.debug('网格→视频流：目标视频不在当前列表，加载更多', data: {
+      AppLogger.debug('路由初始项：目标视频不在当前列表，加载更多', data: {
         'currentItemCount': videoState.items.length,
         'itemId': itemId,
       });
       ref.read(videoListProvider.notifier).loadMore();
     }
 
-    // 等待下一帧继续检查（无论是否触发了 loadMore，都继续轮询）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitForItemAndJump(itemId, retryCount: retryCount + 1);
+      _waitForInitialItemToLoad(itemId, retryCount: retryCount + 1);
     });
-  }
-
-  // 从视频流模式切换到网格模式时的处理
-  // 路由 + itemId 透传：从 feed 内部状态 (_currentIndex + items) 取出当前播放的 itemId，
-  // 显式设置给 feedToGridJumpItemIdProvider，video_list_provider 会据此准备网格页数据。
-  void _handleFeedToGridTransition() {
-    final items = ref.read(videoListProvider).items;
-    if (_currentIndex >= 0 && _currentIndex < items.length) {
-      final currentItem = items[_currentIndex];
-      AppLogger.debug('feed→grid：透传当前 itemId', data: {'itemId': currentItem.id, 'index': _currentIndex});
-      ref.read(feedToGridJumpItemIdProvider.notifier).state = currentItem.id;
-    } else {
-      // 没有当前播放视频时，尝试恢复上次的网格滚动位置
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _restoreGridScrollOffset();
-        }
-      });
-    }
   }
 
   @override
@@ -553,8 +528,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     final videoState = ref.watch(videoListProvider);
     final authState = ref.watch(authProvider);
     final viewMode = ref.watch(viewModeProvider);
-    // 无条件 watch gridSelectedItemIdProvider，确保网格点击时能触发 rebuild
-    final gridSelectedId = ref.watch(gridSelectedItemIdProvider);
     final scheme = Theme.of(context).colorScheme;
 
     // 未登录时直接显示提示卡片，不进入视频列表逻辑
@@ -578,7 +551,7 @@ class _FeedViewState extends ConsumerState<FeedView>
               IndexedStack(
                 index: viewMode == ViewMode.feed ? 0 : 1,
                 children: [
-                  _buildVideoPageView(videoState, gridSelectedId),
+                  _buildVideoPageView(videoState),
                   _buildGridPageView(videoState),
                 ],
               ),
@@ -720,8 +693,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // 构建视频流 PageView：支持相邻条目预加载、自动连播、resume 模式
-  // gridSelectedId 从 build 传入（已在 build 开头通过 ref.watch 获取），避免条件 ref.watch
-  Widget _buildVideoPageView(VideoListState videoState, String? gridSelectedId) {
+  // 起始播放项由 build 中读取 widget.initialItemId 决定（路由透传）
+  Widget _buildVideoPageView(VideoListState videoState) {
     if (videoState.items.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
     }
@@ -759,21 +732,17 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
 
     // =======================================================
-    // 统一处理所有跳转场景，均使用 addPostFrameCallback + 帧轮询：
-    //   1. 网格点击跳转（最高优先级）
+    // 路由透传 initialId 跳转（最高优先级）
+    // - 网格点击/搜索/演员详情：context.go('/?initialId=$id')
+    // - 这里只读 widget.initialItemId，不依赖任何全局 provider
     // =======================================================
-
-    // 1. 网格点击跳转：gridSelectedId 由 build 方法通过 ref.watch 传入
-    //    当用户在网格中点击视频时，PosterCard.onTap 设置 gridSelectedItemIdProvider + viewModeProvider=feed
-    //    build 中无条件 ref.watch 保证能及时检测到值变化，彻底避免 listener 时序竞态
-    //    统一使用 _waitForItemAndJump：等待目标视频出现在 items 中（必要时自动 loadMore），然后执行帧轮询跳转
-    if (gridSelectedId != null && gridSelectedId.isNotEmpty && gridSelectedId != _lastProcessedGridItemId) {
-      _lastProcessedGridItemId = gridSelectedId;
-      AppLogger.debug('网格→视频流：启动等待跳转', data: {'itemId': gridSelectedId});
-      // 统一入口：帧轮询等待目标视频出现，必要时自动连续 loadMore
+    final initialId = widget.initialItemId;
+    if (initialId != null && initialId.isNotEmpty && _processedInitialItemId != initialId) {
+      _processedInitialItemId = initialId;
+      AppLogger.debug('路由透传：启动等待跳转', data: {'itemId': initialId});
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _waitForItemAndJump(gridSelectedId);
+          _waitForInitialItemToLoad(initialId);
         }
       });
     }
@@ -788,10 +757,13 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
-        // 同步当前播放条目（PageView 真正切换完成时更新，比 onControllerReady 更可靠）
-        // 这是 feed 内部唯一权威的"当前正在播"信号源
+        // 同步当前播放 ID（全局 store，供网格/收藏/历史高亮使用）
+        // 这是 feed 内部唯一权威的"当前在播"信号源。
+        // onPageChanged 是 PageView 真正切换完成时，比 onControllerReady 更可靠。
         if (index < videoState.items.length) {
-          ref.read(currentPlayingItemProvider.notifier).state = videoState.items[index];
+          final playingItem = videoState.items[index];
+          ref.read(currentPlayingIdProvider.notifier).state = playingItem.id;
+          ref.read(currentPlayingItemProvider.notifier).state = playingItem;
         }
         if (videoState.hasMore && index >= videoState.items.length - 2) {
           // 使用 ref.read 读取最新状态，避免闭包捕获过期值

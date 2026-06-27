@@ -6,6 +6,9 @@
 // - 在覆盖层页面（搜索/历史）上按返回键 → 回到 Feed
 // - 在非 Feed Tab 上按返回键 → 回到 Feed Tab
 // - 在 Feed Tab 上按返回键 → 弹出退出确认对话框
+//
+// 路由透传：HomeScaffold 接受 initialItemId（来自 GoRouter `?initialId=` 参数），
+// 透传给 FeedView 作为"目标播放项"。
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,7 +26,11 @@ import 'actors_view.dart';
 
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
-  const HomeScaffold({super.key});
+  // 从路由 ?initialId= 透传过来的初始播放视频 ID
+  // HomeScaffold 不消费此参数，仅透传给 FeedView
+  final String? initialItemId;
+
+  const HomeScaffold({super.key, this.initialItemId});
 
   @override
   ConsumerState<HomeScaffold> createState() => _HomeScaffoldState();
@@ -106,7 +113,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
                 index: pageNavState.isOverlayPage ? 0 : currentIndex,
                 children: [
                   // 索引 0: Feed 页面（全屏展示）
-                  const FeedView(),
+                  // 路由透传：把 initialItemId 传给 FeedView 用于 jumpToPage
+                  FeedView(initialItemId: widget.initialItemId),
                   // 索引 1: 收藏页面（预留底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),

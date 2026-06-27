@@ -22,6 +22,11 @@ class TvFocusable extends StatefulWidget {
   /// 焦点边框宽度，默认 2
   final double borderWidth;
 
+  /// 自定义边框颜色（未聚焦时也显示）。
+  /// - 传 null：仅聚焦时显示默认主题色边框
+  /// - 传颜色：始终显示该颜色边框（用于"正在播放"等永久高亮）
+  final Color? borderColor;
+
   /// 焦点缩放比例，默认 1.05
   final double focusScale;
 
@@ -40,6 +45,7 @@ class TvFocusable extends StatefulWidget {
     this.onTap,
     this.borderRadius = 12,
     this.borderWidth = 2,
+    this.borderColor,
     this.focusScale = 1.05,
     this.duration = const Duration(milliseconds: 150),
     this.autofocus = false,
@@ -110,15 +116,24 @@ class _TvFocusableState extends State<TvFocusable> {
           curve: Curves.easeOut,
           child: AnimatedContainer(
             duration: widget.duration,
-            padding: EdgeInsets.all(_isFocused ? widget.borderWidth : 0),
+            // 始终预留 borderWidth 空间，避免未聚焦/无 borderColor 时尺寸跳变
+            padding: EdgeInsets.all(_isFocused || widget.borderColor != null
+                ? widget.borderWidth
+                : 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _isFocused
                   ? Border.all(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: widget.borderColor ??
+                          Theme.of(context).colorScheme.primary,
                       width: widget.borderWidth,
                     )
-                  : null,
+                  : widget.borderColor != null
+                      ? Border.all(
+                          color: widget.borderColor!,
+                          width: widget.borderWidth,
+                        )
+                      : null,
             ),
             child: widget.child,
           ),
