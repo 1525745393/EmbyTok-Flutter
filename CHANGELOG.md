@@ -1,3 +1,10 @@
+## [1.105.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.3...v1.105.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* 删除网格顶部栏搜索框 ([0e4b5d1](https://github.com/1525745393/EmbyTok-Flutter/commit/0e4b5d15c860698fa85a0b8aab5e0ca40c0cb343))
+
 ## [1.105.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.2...v1.105.3) (2026-06-27)
 
 
