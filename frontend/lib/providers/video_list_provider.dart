@@ -174,44 +174,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             );
             refresh();
           } else {
-            // 不需要刷新：执行"神之一手"，裁剪到当前播放位置所在的页
-            final currentIndex = _ref.read(currentIndexProvider);
-            final pageIndex = currentIndex ~/ kGridPageSize;
-            final startIndex = pageIndex * kGridPageSize;
-            final endIndex = startIndex + kGridPageSize;
-
-            // 检查 items 是否包含当前页的数据
-            final hasEnoughData = state.items.length > startIndex;
-
-            if (hasEnoughData) {
-              // items 包含当前页数据，执行裁剪
-              final pageItems = state.items.sublist(
-                startIndex,
-                endIndex.clamp(0, state.items.length),
-              );
-
-              AppLogger.debug('神之一手：裁剪到当前页', data: {
-                'currentIndex': currentIndex,
-                'pageIndex': pageIndex,
-                'startIndex': startIndex,
-                'gridItemsLength': pageItems.length,
-              });
-
-              state = state.copyWith(
-                gridItems: pageItems,
-                gridStartIndex: startIndex,
-              );
-            } else {
-              // items 不包含当前页数据，先使用全部数据
-              AppLogger.debug('神之一手：当前页未加载，先使用全部数据', data: {
-                'currentIndex': currentIndex,
-                'itemsLength': state.items.length,
-              });
-              state = state.copyWith(
-                gridItems: state.items,
-                gridStartIndex: 0,
-              );
-            }
+            // 切到 grid 模式：使用全部数据
+            state = state.copyWith(
+              gridItems: state.items,
+              gridStartIndex: 0,
+            );
           }
         }
       },
