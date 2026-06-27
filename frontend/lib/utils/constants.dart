@@ -41,7 +41,6 @@ const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_lan
 const String kStorageKeyVideoQuality = 'embbytok_video_quality';
 const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
-const String kStorageKeyLastVideoIndex = 'embbytok_last_video_index';
 const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
 const String kStorageKeySelectedLibraryId = 'embbytok_selected_library_id';
 const String kStorageKeyActorsCache = 'embbytok_actors_cache';

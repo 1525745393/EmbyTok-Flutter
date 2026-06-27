@@ -12,6 +12,12 @@ import '../utils/constants.dart';
 final embbytokServiceProvider = Provider<EmbytokService>((ref) => EmbytokService());
 
 /// 当前正在播放的媒体条目（供详情页/控制层引用）
+///
+/// 这是"视频流内"的当前播放信号源：
+/// - 由 feed_view 的 onPageChanged 写入（PageView 真正切换完成时）
+/// - 由 _jumpToPageWhenReady 写入（程序化跳转时）
+/// - 由 video_page_item.onControllerReady 写入（兜底）
+/// - 跨视图（feed ↔ grid）时通过 itemId 透传，不依赖此 provider 的历史值
 final currentPlayingItemProvider = StateProvider<MediaItem?>((ref) => null);
 
 /// 当前播放位置（用于跳转后记忆续播进度）
@@ -19,9 +25,6 @@ final currentPositionProvider = StateProvider<Duration>((ref) => Duration.zero);
 
 /// 是否正在播放（用于中央播放按钮显示）
 final isPlayingProvider = StateProvider<bool>((ref) => false);
-
-/// 当前视频在列表中的索引（用于网格视图点击后进入详情页）
-final currentIndexProvider = StateProvider<int>((ref) => 0);
 
 /// 是否全屏播放（控制横屏沉浸模式切换）
 final isFullscreenProvider = StateProvider<bool>((ref) => false);

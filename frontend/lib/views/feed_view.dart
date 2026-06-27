@@ -39,12 +39,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 当前正在播放的索引（与 _pageController 同步）
   int _currentIndex = 0;
 
-  // 初始播放的视频 ID（从其他页面跳转时使用）
-  String? _initialItemId;
-  bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
-
   // 滚动位置持久化相关
-  bool _hasRestoredScrollPosition = false; // 是否已恢复视频流滚动位置
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -59,8 +54,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
-    // 保存初始播放的 itemId
-    _initialItemId = widget.initialItemId;
     // 注册全局键盘监听
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
@@ -105,8 +98,7 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     if (_pageController.hasClients) {
       _currentIndex = targetIndex;
-      ref.read(currentIndexProvider.notifier).state = targetIndex;
-      // 同步当前播放条目，确保状态一致
+      // 同步当前播放条目（onPageChanged 会再次确认，但这里先设避免 UI 闪烁）
       final items = ref.read(videoListProvider).items;
       if (targetIndex < items.length) {
         ref.read(currentPlayingItemProvider.notifier).state = items[targetIndex];
@@ -176,12 +168,13 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // 从视频流模式切换到网格模式时的处理
+  // 路由 + itemId 透传：从 feed 内部状态 (_currentIndex + items) 取出当前播放的 itemId，
+  // 显式设置给 feedToGridJumpItemIdProvider，video_list_provider 会据此准备网格页数据。
   void _handleFeedToGridTransition() {
-    // 获取当前播放的视频 ID，设置给网格用于定位
-    // video_list_provider 会自动准备包含当前视频的网格页数据
-    // poster_grid_view 会监听 feedToGridJumpItemIdProvider 并自动滚动到对应位置
-    final currentItem = ref.read(currentPlayingItemProvider);
-    if (currentItem != null) {
+    final items = ref.read(videoListProvider).items;
+    if (_currentIndex >= 0 && _currentIndex < items.length) {
+      final currentItem = items[_currentIndex];
+      AppLogger.debug('feed→grid：透传当前 itemId', data: {'itemId': currentItem.id, 'index': _currentIndex});
       ref.read(feedToGridJumpItemIdProvider.notifier).state = currentItem.id;
     } else {
       // 没有当前播放视频时，尝试恢复上次的网格滚动位置
@@ -206,33 +199,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // ========== 滚动位置持久化 ==========
-
-  // 保存视频流当前索引到 SharedPreferences
-  Future<void> _saveVideoIndex(int index) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(kStorageKeyLastVideoIndex, index);
-    } catch (_) {}
-  }
-
-  // 从 SharedPreferences 恢复视频流滚动位置
-  Future<void> _restoreVideoIndex(int maxIndex) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final lastIndex = prefs.getInt(kStorageKeyLastVideoIndex);
-      if (lastIndex != null && lastIndex >= 0 && lastIndex <= maxIndex) {
-        if (mounted && _pageController.hasClients) {
-          _currentIndex = lastIndex;
-          ref.read(currentIndexProvider.notifier).state = lastIndex;
-          final items = ref.read(videoListProvider).items;
-          if (lastIndex < items.length) {
-            ref.read(currentPlayingItemProvider.notifier).state = items[lastIndex];
-          }
-          _pageController.jumpToPage(lastIndex);
-        }
-      }
-    } catch (_) {}
-  }
+  // 注意：视频流内部的 currentIndex 不持久化。
+  // 设计原则：每次进入视频流从 index 0 开始；跨视图定位完全靠路由/Provider 透传 ID。
 
   // 网格滚动变化回调，防抖保存
   void _onGridScrollChanged() {
@@ -793,8 +761,6 @@ class _FeedViewState extends ConsumerState<FeedView>
     // =======================================================
     // 统一处理所有跳转场景，均使用 addPostFrameCallback + 帧轮询：
     //   1. 网格点击跳转（最高优先级）
-    //   2. 路由跳转（从搜索/演员详情跳转）
-    //   3. SharedPreferences 恢复
     // =======================================================
 
     // 1. 网格点击跳转：gridSelectedId 由 build 方法通过 ref.watch 传入
@@ -803,36 +769,11 @@ class _FeedViewState extends ConsumerState<FeedView>
     //    统一使用 _waitForItemAndJump：等待目标视频出现在 items 中（必要时自动 loadMore），然后执行帧轮询跳转
     if (gridSelectedId != null && gridSelectedId.isNotEmpty && gridSelectedId != _lastProcessedGridItemId) {
       _lastProcessedGridItemId = gridSelectedId;
-      // 阻止初始路由跳转和 SharedPreferences 恢复竞争
-      _hasScrolledToInitial = true;
-      _hasRestoredScrollPosition = true;
-
       AppLogger.debug('网格→视频流：启动等待跳转', data: {'itemId': gridSelectedId});
       // 统一入口：帧轮询等待目标视频出现，必要时自动连续 loadMore
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _waitForItemAndJump(gridSelectedId);
-        }
-      });
-    }
-
-    // 2. 路由跳转（从其他页面跳转过来，如搜索结果、演员详情）
-    if (_initialItemId != null && !_hasScrolledToInitial) {
-      final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
-      if (initialIndex >= 0) {
-        _hasScrolledToInitial = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _jumpToPageWhenReady(initialIndex);
-        });
-      }
-    }
-
-    // 3. SharedPreferences 恢复（首次进入，无网格点击也无路由跳转）
-    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
-      _hasRestoredScrollPosition = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _restoreVideoIndex(videoState.items.length - 1);
         }
       });
     }
@@ -847,14 +788,11 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
-        // 同步更新全局 currentIndexProvider，供切回网格时定位使用
-        ref.read(currentIndexProvider.notifier).state = index;
         // 同步当前播放条目（PageView 真正切换完成时更新，比 onControllerReady 更可靠）
+        // 这是 feed 内部唯一权威的"当前正在播"信号源
         if (index < videoState.items.length) {
           ref.read(currentPlayingItemProvider.notifier).state = videoState.items[index];
         }
-        // 保存当前视频索引到 SharedPreferences
-        _saveVideoIndex(index);
         if (videoState.hasMore && index >= videoState.items.length - 2) {
           // 使用 ref.read 读取最新状态，避免闭包捕获过期值
           final latestState = ref.read(videoListProvider);

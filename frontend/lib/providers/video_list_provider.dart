@@ -133,83 +133,103 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 gridSearchQueryProvider 变化：网格搜索变化时刷新（防抖）
+    // 监听 gridSearchQueryProvider 变化：网格搜索只影响 gridItems，不影响 feed 的 items
+    // 设计原则：feed 和 grid 数据隔离。搜索是 grid 的本地行为，feed 始终是未过滤的视频流。
     _ref.listen<String>(
       gridSearchQueryProvider,
       (previous, next) {
         final viewMode = _ref.read(viewModeProvider);
         final feedType = _ref.read(feedTypeProvider);
-        if (viewMode == ViewMode.grid && feedType == FeedType.latest) {
+        if (viewMode == ViewMode.grid && feedType == FeedType.latest && next != previous) {
           _searchDebounceTimer?.cancel();
           _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
-            AppLogger.debug('网格搜索变化："$previous" -> "$next"，刷新视频列表');
-            _applySearchAndRefresh(next);
+            AppLogger.debug('网格搜索变化："$previous" -> "$next"，只刷新网格');
+            _refreshGridOnly(next);
           });
         }
       },
     );
     // 监听 viewModeProvider 变化：处理视图切换时的数据同步
     // 核心原则：视频流(feed)的 items 是主数据源，网格只是入口和定位目标
-    // - 切回 feed 时，feed 的 items 保持不变（不 refresh），仅清除搜索词
-    // - 切到网格时，网格从 items 截取数据或独立加载
-    _ref.listen<ViewMode>(
-      viewModeProvider,
-      (previous, next) {
-        if (next == ViewMode.feed && previous == ViewMode.grid) {
-          // 切回 feed 模式：
-          // 视频流自管数据，不因为网格翻页而重置 items
-          // 只有当网格有搜索词时（items 被搜索结果污染），才需要 refresh 恢复默认排序
-          final hasSearch = state.searchTerm.isNotEmpty;
-          if (hasSearch) {
-            AppLogger.debug('切回 feed 模式：清除搜索词并刷新');
-            _ref.read(gridSearchQueryProvider.notifier).state = '';
-            state = state.copyWith(searchTerm: '');
-            // refresh 会清除搜索结果，按默认排序重新加载 items
-            refresh();
-          } else {
-            // 无搜索：feed 的 items 是正确的，直接使用，不做任何重置
-            AppLogger.debug('切回 feed 模式：保留 feed 数据', data: {
-              'itemsCount': state.items.length,
-              'gridStartIndex': state.gridStartIndex,
-            });
-          }
-        } else if (next == ViewMode.grid && previous == ViewMode.feed) {
-          // 切到 grid 模式：
-          final searchQuery = _ref.read(gridSearchQueryProvider);
-          final feedType = _ref.read(feedTypeProvider);
-          final hasSearchQuery = feedType == FeedType.latest && searchQuery.isNotEmpty;
-          final currentItem = _ref.read(currentPlayingItemProvider);
-
-          if (hasSearchQuery) {
-            // 有搜索词：应用搜索刷新（搜索结果同时设置 items 和 gridItems）
-            AppLogger.debug('切到 grid 模式：应用搜索');
-            state = state.copyWith(searchTerm: searchQuery);
-            refresh();
-          } else if (currentItem != null) {
-            // 无搜索：基于当前播放视频准备网格数据（从 items 截取对应页）
-            AppLogger.debug('切到 grid 模式：定位到当前播放视频', data: {'itemId': currentItem.id});
-            updateGridForFeedItem(currentItem.id);
-          } else {
-            // 首次切到网格：显示第一页数据
-            state = state.copyWith(
-              gridItems: state.items.length > kGridPageSize
-                  ? state.items.sublist(0, kGridPageSize)
-                  : state.items,
-              gridStartIndex: 0,
-            );
-          }
-        }
-      },
-    );
+    // - 切回 feed 时，feed 的 items 保持不变（不 refresh），无需重置
+    // - 切到网格时，根据 feedToGridJumpItemIdProvider 准备对应页（路由透传 itemId）
+    _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
+      if (next == ViewMode.feed && previous == ViewMode.grid) {
+        // 切回 feed：feed 的 items 不变，无需操作
+        AppLogger.debug('切回 feed 模式：保留 feed 数据', data: {
+          'itemsCount': state.items.length,
+        });
+      }
+      // 切到 grid 的逻辑由 feedToGridJumpItemIdProvider listener 处理
+    });
+    // 监听 feedToGridJumpItemIdProvider：feed→grid 切换时根据 itemId 准备网格页
+    // 这是"路由 + 起始 itemId 透传"模式的核心：所有跨视图定位都通过这个 provider
+    _ref.listen<String?>(feedToGridJumpItemIdProvider, (previous, next) {
+      if (next == null || next.isEmpty) return;
+      // 只在 grid 模式被显示时响应
+      if (_ref.read(viewModeProvider) != ViewMode.grid) return;
+      AppLogger.debug('切到 grid 模式：定位到指定视频', data: {'itemId': next});
+      updateGridForFeedItem(next);
+      // 清理 signal，等待下次切换
+      _ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
+    });
   }
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
 
-  // 应用搜索并刷新
-  void _applySearchAndRefresh(String searchTerm) {
-    state = state.copyWith(searchTerm: searchTerm);
-    refresh();
+  // 仅刷新网格数据（搜索变化时调用）
+  // 设计原则：feed 的 items 永远不依赖 gridSearchQueryProvider
+  // - 搜索只影响网格的 gridItems
+  // - 切回 feed 时不重置 feed 数据
+  Future<void> _refreshGridOnly(String searchTerm) async {
+    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    final auth = _auth;
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      return;
+    }
+
+    state = state.copyWith(
+      gridItems: const <MediaItem>[],
+      gridStartIndex: 0,
+      isLoading: true,
+      error: null,
+    );
+
+    try {
+      final merged = <MediaItem>[];
+      int totalAvailable = 0;
+      for (final libId in selectedIds) {
+        try {
+          final resp = await _service.getLibraryItems(
+            libId,
+            limit: kGridPageSize,
+            offset: 0,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+            sortBy: state.sortBy,
+            sortOrder: state.sortOrder,
+            searchTerm: searchTerm.isEmpty ? null : searchTerm,
+          );
+          merged.addAll(resp.items);
+          totalAvailable += resp.total;
+        } catch (e) {
+          AppLogger.error('刷新网格库 $libId 失败，跳过', error: e);
+        }
+      }
+      state = state.copyWith(
+        gridItems: merged,
+        totalCount: totalAvailable,
+        isLoading: false,
+      );
+    } catch (e) {
+      AppLogger.error('刷新网格失败', error: e);
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
   }
 
   // 根据当前 feedType 刷新视频列表

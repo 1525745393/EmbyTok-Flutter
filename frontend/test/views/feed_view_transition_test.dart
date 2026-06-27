@@ -48,30 +48,22 @@ void main() {
     });
 
     group('currentIndexProvider', () {
-      late ProviderContainer container;
+      // 注：currentIndexProvider 已删除。视频流自管 currentIndex（feed_view 的 _currentIndex），
+      // 跨视图通过 itemId 透传，不再用全局 index 同步。
 
-      setUp(() {
-        container = ProviderContainer();
-      });
+      test('视频流自管 currentIndex，跨视图靠 itemId', () {
+        // 验证设计：currentIndexProvider 不再存在
+        // 这里改测 currentPlayingItemProvider 的 ID 透传能力
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
 
-      tearDown(() {
-        container.dispose();
-      });
+        final testItem = MediaItem(id: 'item-99', title: '测试视频');
+        container.read(currentPlayingItemProvider.notifier).state = testItem;
+        expect(container.read(currentPlayingItemProvider)!.id, 'item-99');
 
-      test('初始值为 0', () {
-        final index = container.read(currentIndexProvider);
-        expect(index, 0);
-      });
-
-      test('可以正确更新为任意非负整数', () {
-        container.read(currentIndexProvider.notifier).state = 10;
-        expect(container.read(currentIndexProvider), 10);
-
-        container.read(currentIndexProvider.notifier).state = 0;
-        expect(container.read(currentIndexProvider), 0);
-
-        container.read(currentIndexProvider.notifier).state = 999;
-        expect(container.read(currentIndexProvider), 999);
+        // 清空时还原
+        container.read(currentPlayingItemProvider.notifier).state = null;
+        expect(container.read(currentPlayingItemProvider), isNull);
       });
     });
 

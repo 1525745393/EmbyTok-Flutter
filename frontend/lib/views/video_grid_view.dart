@@ -5,7 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
@@ -189,24 +188,16 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   }
 
   // 导航到视频流中的对应位置
+  // 路由 + 起始 itemId 透传：不依赖任何外部持久化状态
   Future<void> _navigateToVideo(MediaItem item, int index) async {
-    // 1. 切换到视频流模式
-    ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+    // 1. 设置网格选中 ID（feed_view 监听此值，等待目标进入 items 后 jumpToPage）
+    ref.read(gridSelectedItemIdProvider.notifier).state = item.id;
 
-    // 2. 将目标索引持久化到 SharedPreferences
-    //    修复 Bug：视频流和网格模式状态不同步
-    //    原因：_restoreVideoIndex 只读 SharedPreferences，
-    //           而 currentIndexProvider 的值从未被消费
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(kStorageKeyLastVideoIndex, index);
-    } catch (_) {
-      // 持久化失败不阻断流程
-    }
-
-    // 3. 同步更新全局播放状态
-    ref.read(currentIndexProvider.notifier).state = index;
+    // 2. 同步当前播放条目
     ref.read(currentPlayingItemProvider.notifier).state = item;
+
+    // 3. 切换到视频流模式
+    ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
 
     // 4. 导航到主界面
     context.go('/');
