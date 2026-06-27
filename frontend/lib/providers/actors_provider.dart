@@ -267,7 +267,7 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
     try {
       final auth = _ref.read(authProvider);
       await _service.toggleFavorite(
-        itemId: actor.id,
+        itemId: actorId,
         isFavorite: !isFav,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
