@@ -11,7 +11,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
@@ -480,15 +480,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
   }
 
-  // 切换浏览模式（最新/随机/收藏/继续观看/推荐）——清理缓存后刷新
+  // 切换浏览模式（最新/随机/收藏/继续观看）——清理缓存后刷新
+  // 注："推荐"已从 FeedType 移除（PR #57），改为独立路由 /recommend
+  // 顶部操作栏的"推荐"图标按钮现在直接 context.go('/recommend')
   void _toggleFeedType() {
     final current = ref.read(feedTypeProvider);
     final next = switch (current) {
       FeedType.latest => FeedType.random,
       FeedType.random => FeedType.favorites,
       FeedType.favorites => FeedType.resume,
-      FeedType.resume => FeedType.recommend,
-      FeedType.recommend => FeedType.latest,
+      FeedType.resume => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
     unawaited(ref.read(videoPoolProvider).disposeAll());
@@ -634,28 +635,20 @@ class _FeedViewState extends ConsumerState<FeedView>
               },
               tooltip: '搜索',
             ),
-            // 推荐按钮
+            // 推荐按钮：跳转到独立路由 /recommend
+            // 推荐已与 FeedType 解耦（PR #57），不再在视频流中切浏览模式
             IconButton(
               icon: Icon(
                 Icons.auto_awesome,
-                color: feedType == FeedType.recommend
-                    ? scheme.primary
-                    : scheme.onSurface.withOpacity(0.7),
+                color: scheme.onSurface.withOpacity(0.7),
                 size: 22,
               ),
               onPressed: () {
-                final newType = feedType == FeedType.recommend
-                    ? FeedType.latest
-                    : FeedType.recommend;
-                // ★ 视频流中点"推荐"必须先切到 grid 视图
-                // 否则 refresh() 会在视频流中替换 items → PageView index 对应的视频突变
-                // → VideoPlayerWidget 即使 didUpdateWidget 重建，也会中断当前播放
-                if (ref.read(viewModeProvider) == ViewMode.feed) {
-                  ref.read(viewModeProvider.notifier).setMode(ViewMode.grid);
-                }
-                ref.read(feedTypeProvider.notifier).setType(newType);
+                // 独立入口：跳到 /recommend
+                // 推荐页有独立数据源（recommendProvider），不影响 feed 视频流
+                context.push('/recommend');
               },
-              tooltip: feedType == FeedType.recommend ? '关闭推荐' : '推荐',
+              tooltip: '推荐',
             ),
             // 历史按钮
             IconButton(

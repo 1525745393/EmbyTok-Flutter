@@ -17,6 +17,7 @@ import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
 import 'views/person_detail_view.dart';
+import 'views/recommend_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
 import 'widgets/video_page_item.dart';
@@ -107,6 +108,14 @@ class EmbyTokApp extends ConsumerWidget {
               GoRouter.of(context).go('/');
             },
             child: const ActorsView(),
+          ),
+        ),
+        // 推荐：独立路由（PR #57），与 FeedType / video_list_provider 完全解耦
+        GoRoute(
+          path: '/recommend',
+          builder: (context, state) => PopScope(
+            canPop: true,
+            child: const RecommendView(),
           ),
         ),
         // 设置
