@@ -515,7 +515,14 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   }
 
   // 换一批：使用 SortBy=Random 服务端随机排序，获取 150 条随机视频
-  // 与 refresh() 的区别：始终使用 Random 排序，且不改变当前的 sortOption 设置
+  //
+  // 关键设计（避免破坏 feed/grid 跨视图定位）：
+  // 1. **只改 gridItems，不动 items**：shuffleRandom 是 grid 模式下的"换一批"按钮，
+  //    feed 模式的 items 是 feed 的数据源，不应被"换一批"重置
+  // 2. **不动 feedType/sortBy/sortOrder**：这些是 feed 的配置，
+  //    grid 的换一批不应影响 feed 后续切换回来的浏览模式
+  // 3. **保留当前在播视频到 gridItems 首位**：保证 PosterGridView 的
+  //    _scrollToPlayingId 能找到目标，"播放中"卡片能高亮
   Future<void> shuffleRandom() async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
     final auth = _auth;
@@ -531,16 +538,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     state = state.copyWith(
-      items: const <MediaItem>[],
       isLoading: true,
       hasMore: false, // 随机模式不支持分页
       error: null,
-      offset: 0,
-      limit: 0, // 不限制数量，加载全部
-      feedType: FeedType.latest,
-      sortBy: 'Random',
-      sortOrder: 'Ascending',
-      searchTerm: '',
     );
 
     try {
@@ -577,24 +577,35 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         merged.addAll(rest);
       }
 
-      // 不再截取，使用全部随机数据
-      final finalItems = merged;
+      // ★ 关键：保留当前在播视频到 gridItems 首位
+      // 服务端随机返回的 150 条视频可能不包含 currentPlayingItemProvider 指示的当前在播视频，
+      // 这会导致 PosterGridView 的 _scrollToPlayingId 找不到目标（indexWhere 返回 -1），
+      // 切回 grid 时"播放中"定位 + 高亮失效。
+      // 解决：读 currentPlayingItemProvider / currentPlayingIdProvider，
+      // 如果当前在播视频不在 merged 中，插入到首位（保证能找到）。
+      final playingId = _ref.read(currentPlayingIdProvider);
+      if (playingId != null && playingId.isNotEmpty) {
+        final hasPlayingItem = merged.any((item) => item.id == playingId);
+        if (!hasPlayingItem) {
+          final playingItem = _ref.read(currentPlayingItemProvider);
+          if (playingItem != null) {
+            merged.insert(0, playingItem);
+            AppLogger.debug('换一批：保留当前在播视频到 gridItems 首位', data: {
+              'itemId': playingId,
+            });
+          }
+        }
+      }
 
-      state = VideoListState(
-        items: finalItems,
-        gridItems: finalItems,
+      // ★ 只更新 gridItems，不动 items/feedType/sortBy
+      state = state.copyWith(
+        gridItems: merged,
         gridStartIndex: 0,
         isLoading: false,
         hasMore: false,
         error: null,
-        offset: finalItems.length,
-        limit: finalItems.length,
-        totalCount: finalItems.length,
-        feedType: FeedType.latest,
-        sortBy: 'Random',
-        sortOrder: 'Ascending',
       );
-      AppLogger.debug('换一批成功', data: {'count': finalItems.length});
+      AppLogger.debug('换一批成功', data: {'count': merged.length});
     } catch (e) {
       AppLogger.error('换一批失败', error: e);
       state = state.copyWith(isLoading: false, error: e.toString());

@@ -28,6 +28,8 @@ class PosterGridView extends ConsumerStatefulWidget {
 class _PosterGridViewState extends ConsumerState<PosterGridView> {
   // 已滚动的目标 ID（避免重复滚动到同一位置）
   String? _lastScrolledPlayingId;
+  // 上次滚动时的 gridItems 引用（用于检测 gridItems 是否被换了一批）
+  List<MediaItem>? _lastScrolledGridItems;
 
   // 滚动到当前正在播放的视频位置
   // 设计：feed 切回 grid 时，gridItems 已包含 currentPlayingIdProvider 指示的当前在播视频。
@@ -36,7 +38,6 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   void _scrollToPlayingId(String playingId) {
     final controller = widget.scrollController;
     if (controller == null) return;
-    if (_lastScrolledPlayingId == playingId) return; // 已经处理过
 
     // 帧轮询：等待 controller attach
     if (!controller.hasClients) {
@@ -46,10 +47,21 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       return;
     }
 
+    // ★ 关键：gridItems 引用变化时，重置去重状态
+    // 场景：用户在 grid 点了"换一批"(shuffleRandom) → gridItems 引用变了
+    // 此时 _lastScrolledPlayingId 跟 playingId 相同（都是当前在播视频 id），
+    // 但 gridItems 内容已变，必须允许重新滚动
     final gridItems = ref.read(videoListProvider).gridItems;
+    if (!identical(_lastScrolledGridItems, gridItems)) {
+      _lastScrolledGridItems = gridItems;
+      _lastScrolledPlayingId = null;
+    }
+
+    if (_lastScrolledPlayingId == playingId) return; // 已经处理过
+
     final targetIndex = gridItems.indexWhere((item) => item.id == playingId);
     if (targetIndex < 0) {
-      // gridItems 中暂无目标，video_list_provider 正在加载对应页
+      // gridItems 中暂无目标
       AppLogger.debug('网格定位：目标不在 gridItems，等待更新', data: {'itemId': playingId});
       return;
     }
