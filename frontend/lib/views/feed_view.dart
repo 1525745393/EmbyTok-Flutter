@@ -646,6 +646,12 @@ class _FeedViewState extends ConsumerState<FeedView>
                 final newType = feedType == FeedType.recommend
                     ? FeedType.latest
                     : FeedType.recommend;
+                // ★ 视频流中点"推荐"必须先切到 grid 视图
+                // 否则 refresh() 会在视频流中替换 items → PageView index 对应的视频突变
+                // → VideoPlayerWidget 即使 didUpdateWidget 重建，也会中断当前播放
+                if (ref.read(viewModeProvider) == ViewMode.feed) {
+                  ref.read(viewModeProvider.notifier).setMode(ViewMode.grid);
+                }
                 ref.read(feedTypeProvider.notifier).setType(newType);
               },
               tooltip: feedType == FeedType.recommend ? '关闭推荐' : '推荐',

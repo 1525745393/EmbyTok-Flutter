@@ -405,6 +405,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           canPaginate = totalItems > merged.length; // 精确判断是否还有更多
       }
 
+      // ★ 关键：保留当前在播视频到 loadedItems 首位
+      // 解决"推荐"等浏览模式切换时与视频流的冲突：
+      //   - 用户在 video-X 播到 30s → 切到"推荐"模式 → loadedItems 被换成推荐列表
+      //   - video-X 不在 loadedItems 中 → PageView 仍在 index=N → 但 N 对应的视频变了
+      // 解决：把 currentPlayingItem 插到 loadedItems[0]，保持"当前在播视频在列表首位"
+      _ensurePlayingItemFirst(loadedItems, source: 'refresh/$currentFeedType');
+
       state = VideoListState(
         items: loadedItems,
         gridItems: loadedItems,
@@ -581,21 +588,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       // 服务端随机返回的 150 条视频可能不包含 currentPlayingItemProvider 指示的当前在播视频，
       // 这会导致 PosterGridView 的 _scrollToPlayingId 找不到目标（indexWhere 返回 -1），
       // 切回 grid 时"播放中"定位 + 高亮失效。
-      // 解决：读 currentPlayingItemProvider / currentPlayingIdProvider，
-      // 如果当前在播视频不在 merged 中，插入到首位（保证能找到）。
-      final playingId = _ref.read(currentPlayingIdProvider);
-      if (playingId != null && playingId.isNotEmpty) {
-        final hasPlayingItem = merged.any((item) => item.id == playingId);
-        if (!hasPlayingItem) {
-          final playingItem = _ref.read(currentPlayingItemProvider);
-          if (playingItem != null) {
-            merged.insert(0, playingItem);
-            AppLogger.debug('换一批：保留当前在播视频到 gridItems 首位', data: {
-              'itemId': playingId,
-            });
-          }
-        }
-      }
+      // 解决：调 _ensurePlayingItemFirst 把当前在播视频插到首位（保证能找到）。
+      _ensurePlayingItemFirst(merged, source: 'shuffleRandom');
 
       // ★ 只更新 gridItems，不动 items/feedType/sortBy
       state = state.copyWith(
@@ -610,6 +604,32 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.error('换一批失败', error: e);
       state = state.copyWith(isLoading: false, error: e.toString());
     }
+  }
+
+  // 保留当前在播视频到列表首位
+  //
+  // 作用：解决"feed/grid 跨视图 + 浏览模式切换"场景下当前在播视频丢失的问题
+  // 场景：
+  //   1. shuffleRandom: 服务端随机 150 条不包含当前在播视频 → grid 定位失效
+  //   2. refresh: 切到"推荐"/"收藏"/"最新"等模式时 items 被替换 → 视频流 PageView
+  //      仍在 index=N，但 N 对应的视频变了（"播放中"位置错位）
+  // 实现：
+  //   - 读 currentPlayingIdProvider / currentPlayingItemProvider
+  //   - 如果当前在播视频不在 [items] 中，插入到首位
+  //   - 已在 [items] 中则不动
+  //   - 当前没有在播视频则不动
+  void _ensurePlayingItemFirst(List<MediaItem> items, {required String source}) {
+    final playingId = _ref.read(currentPlayingIdProvider);
+    if (playingId == null || playingId.isEmpty) return;
+    if (items.any((item) => item.id == playingId)) return; // 已在列表中
+    final playingItem = _ref.read(currentPlayingItemProvider);
+    if (playingItem == null) return; // 没有完整 item 引用，跳过
+    items.insert(0, playingItem);
+    AppLogger.debug('保留当前在播视频到列表首位', data: {
+      'source': source,
+      'itemId': playingId,
+      'listSize': items.length,
+    });
   }
 
   // 清除当前错误状态（SnackBar 弹出后重置，避免重复弹出）
