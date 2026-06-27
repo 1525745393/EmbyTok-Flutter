@@ -1,3 +1,14 @@
+## [1.106.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.5...v1.106.6) (2026-06-27)
+
+
+### Bug Fixes
+
+* **build:** AppLogger.warn 误用 error 参数 ([#56](https://github.com/1525745393/EmbyTok-Flutter/issues/56)) ([c44bfd1](https://github.com/1525745393/EmbyTok-Flutter/commit/c44bfd1240cec42c3e8002a8b96428b1ff366b0a))
+* **build:** 修复 PR [#54](https://github.com/1525745393/EmbyTok-Flutter/issues/54) + [#52](https://github.com/1525745393/EmbyTok-Flutter/issues/52) 引入的编译错误 ([#55](https://github.com/1525745393/EmbyTok-Flutter/issues/55)) ([6346575](https://github.com/1525745393/EmbyTok-Flutter/commit/634657560cac05ed15c2d323a7023c747377f857))
+* **feed-grid:** 推荐模式与视频流冲突根治（C 方案） ([#54](https://github.com/1525745393/EmbyTok-Flutter/issues/54)) ([ad8bb14](https://github.com/1525745393/EmbyTok-Flutter/commit/ad8bb147d306bf123bf2c74b5bdeb508fc116958))
+* **feed-grid:** 网格"换一批"后切回 grid 仍能定位当前在播 ([#53](https://github.com/1525745393/EmbyTok-Flutter/issues/53)) ([f375b9f](https://github.com/1525745393/EmbyTok-Flutter/commit/f375b9fa08d0b00e707509923f01fc04fe4072d3))
+* **fullscreen:** 全屏页复用全局 controller，进度 100% 不丢 ([#52](https://github.com/1525745393/EmbyTok-Flutter/issues/52)) ([a9aa7bd](https://github.com/1525745393/EmbyTok-Flutter/commit/a9aa7bd987226ee2806226587b32be5cebffeb2f))
+
 ## [1.106.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.4...v1.106.5) (2026-06-27)
 
 
