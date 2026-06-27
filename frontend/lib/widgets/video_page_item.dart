@@ -857,25 +857,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     );
 
     // 使用 PopScope 处理返回键：全屏模式下先退出全屏
+    // ⚠️ 关键：保持全屏/非全屏的 Widget 树结构完全一致，仅属性变化
+    // 如果子树深度或 Widget 类型随 _isFullscreen 变化，Flutter 会卸载重建
+    // 导致 VideoPlayerWidget State 被 dispose → 控制器重建 → 视频从头播放
     return PopScope(
       canPop: !_isFullscreen,
       onPopInvoked: (bool didPop) {
-        // didPop == true 表示已经完成 pop，不需要额外处理
         if (didPop) return;
-        // didPop == false 且在全屏模式：手动退出全屏
         if (_isFullscreen) {
           _toggleFullscreen();
         }
       },
-      child: _isFullscreen
-          ? Semantics(
-              label: '横屏全屏视频播放',
-              child: Container(
-                color: scheme.surface,
-                child: content,
-              ),
-            )
-          : Semantics(label: '视频播放区域，双击点赞此视频', child: content),
+      child: Semantics(
+        label: _isFullscreen ? '横屏全屏视频播放' : '视频播放区域，双击点赞此视频',
+        child: Container(
+          color: _isFullscreen ? scheme.surface : null,
+          child: content,
+        ),
+      ),
     );
   }
 }
