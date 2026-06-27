@@ -1,3 +1,12 @@
+## [1.106.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.3...v1.106.4) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复全屏切换导致视频从头播放的问题 ([9e50822](https://github.com/1525745393/EmbyTok-Flutter/commit/9e5082282bc4645f3a7da5b1f2c9b2a04b00dd07))
+* 重构网格/视频流索引管理，实现视频流自管播放索引 ([d07fa0a](https://github.com/1525745393/EmbyTok-Flutter/commit/d07fa0a0ca4b238ca83b5e214906fc9f46732646))
+* 重构网格/视频流索引管理，实现视频流自管播放索引 ([#48](https://github.com/1525745393/EmbyTok-Flutter/issues/48)) ([7843b88](https://github.com/1525745393/EmbyTok-Flutter/commit/7843b889983c306215ccd6d3a40be4e5ba37555b))
+
 ## [1.106.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.2...v1.106.3) (2026-06-27)
 
 
