@@ -1,3 +1,10 @@
+## [1.106.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.4...v1.106.5) (2026-06-27)
+
+
+### Bug Fixes
+
+* **feed-grid:** 补全 poster_grid_view 的 go_router/logger import ([#51](https://github.com/1525745393/EmbyTok-Flutter/issues/51)) ([b9fb586](https://github.com/1525745393/EmbyTok-Flutter/commit/b9fb58683e5a6b1b33ecc0764a0ec342ff1863fe))
+
 ## [1.106.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.3...v1.106.4) (2026-06-27)
 
 
