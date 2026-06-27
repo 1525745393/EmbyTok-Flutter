@@ -33,3 +33,6 @@ export 'toolbar_visibility_provider.dart';
 
 // ---- 页面导航 ----
 export 'page_navigation_provider.dart';
+
+// ---- 演员 ----
+export 'actors_provider.dart';
