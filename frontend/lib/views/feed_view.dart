@@ -27,6 +27,7 @@ import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
+import 'fullscreen_video_page.dart';
 
 class FeedView extends ConsumerStatefulWidget {
   // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`

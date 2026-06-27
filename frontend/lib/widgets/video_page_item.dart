@@ -24,6 +24,7 @@ import 'video/video_control_buttons.dart';
 import 'video/video_progress_bars.dart';
 import 'video/video_sheet_utils.dart' as sheet_utils;
 import 'video/video_draggable_clean_actions.dart';
+import '../views/fullscreen_video_page.dart';
 
 /// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
