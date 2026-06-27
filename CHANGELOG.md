@@ -1,3 +1,10 @@
+## [1.104.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.104.0...v1.104.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* 恢复退出后视频位置和媒体库选择的状态持久化 ([208dfd8](https://github.com/1525745393/EmbyTok-Flutter/commit/208dfd8b48ca24bbec40ce08b9ce81e1a762f79a))
+
 # [1.104.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.103.0...v1.104.0) (2026-06-27)
 
 
