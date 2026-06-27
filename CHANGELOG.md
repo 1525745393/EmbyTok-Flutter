@@ -1,3 +1,11 @@
+## [1.105.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.2...v1.105.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* 移除未定义的 gridSortOptionProvider/GridSortOption 引用 ([37640ef](https://github.com/1525745393/EmbyTok-Flutter/commit/37640ef9f1bfaf150a9c42be8b24011e3b2a73ca))
+* 网格↔视频流切换 v2 - 彻底消除三套跳转逻辑的竞态条件 ([b71388a](https://github.com/1525745393/EmbyTok-Flutter/commit/b71388ae26880d6c3b307c553de0dd2f8b68e42a))
+
 ## [1.105.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.1...v1.105.2) (2026-06-27)
 
 
