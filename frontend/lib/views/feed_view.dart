@@ -103,11 +103,13 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   /// 等待目标视频出现在 items 中后再执行跳转
-  /// 用于切回 feed 模式时 video_list_provider 因重置 searchTerm 触发 refresh 的场景
-  void _waitForItemAndJump(String itemId, {int retryCount = 0}) {
+  /// 如果目标视频不在当前已加载的列表中，自动触发 loadMore 加载更多
+  /// 用于切回 feed 模式时 video_list_provider 因重置 searchTerm/分页触发 refresh 的场景
+  void _waitForItemAndJump(String itemId, {int retryCount = 0, bool hasTriggeredLoadMore = false}) {
     if (!mounted) return;
-    if (retryCount > 60) {
-      // 最多等待约3秒（60帧），超时则放弃
+
+    // 最多等待约5秒（100帧），超时则放弃
+    if (retryCount > 100) {
       AppLogger.error('网格→视频流：等待目标视频超时', data: {'itemId': itemId});
       ref.read(gridSelectedItemIdProvider.notifier).state = null;
       _lastProcessedGridItemId = null;
@@ -129,85 +131,53 @@ class _FeedViewState extends ConsumerState<FeedView>
       _jumpToPageWhenReady(targetIndex);
       ref.read(gridSelectedItemIdProvider.notifier).state = null;
       _lastProcessedGridItemId = null;
-      AppLogger.debug('网格→视频流：等待目标视频完成跳转', data: {'index': targetIndex});
+      AppLogger.debug('网格→视频流：找到目标视频并跳转', data: {'index': targetIndex});
       return;
     }
 
+    // 如果正在加载中，继续等待
+    if (videoState.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _waitForItemAndJump(itemId, retryCount: retryCount + 1, hasTriggeredLoadMore: hasTriggeredLoadMore);
+      });
+      return;
+    }
+
+    // 如果还有更多数据可以加载，且还没触发过当前批次的 loadMore，则触发加载
+    if (videoState.hasMore && !hasTriggeredLoadMore) {
+      AppLogger.debug('网格→视频流：目标视频不在当前列表，加载更多', data: {
+        'currentItemCount': videoState.items.length,
+        'itemId': itemId,
+      });
+      ref.read(videoListProvider.notifier).loadMore();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _waitForItemAndJump(itemId, retryCount: retryCount + 1, hasTriggeredLoadMore: true);
+      });
+      return;
+    }
+
+    // 没有更多数据了或者正在等待 loadMore 返回，继续等待
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitForItemAndJump(itemId, retryCount: retryCount + 1);
+      _waitForItemAndJump(itemId, retryCount: retryCount + 1, hasTriggeredLoadMore: hasTriggeredLoadMore);
     });
   }
 
   // 从视频流模式切换到网格模式时的处理
   void _handleFeedToGridTransition() {
-    // 优先尝试滚动到当前视频位置
-    if (!_tryScrollToCurrentVideo()) {
-      // 降级方案：从 SharedPreferences 恢复滚动位置
+    // 获取当前播放的视频 ID，设置给网格用于定位
+    // video_list_provider 会自动准备包含当前视频的网格页数据
+    // poster_grid_view 会监听 feedToGridJumpItemIdProvider 并自动滚动到对应位置
+    final currentItem = ref.read(currentPlayingItemProvider);
+    if (currentItem != null) {
+      ref.read(feedToGridJumpItemIdProvider.notifier).state = currentItem.id;
+    } else {
+      // 没有当前播放视频时，尝试恢复上次的网格滚动位置
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _restoreGridScrollOffset();
         }
       });
     }
-  }
-
-  // 尝试滚动到当前视频在网格中的位置，返回 true 表示成功触发滚动
-  bool _tryScrollToCurrentVideo() {
-    // 读取当前视频索引
-    final currentIndex = ref.read(currentIndexProvider);
-    // 读取网格状态
-    final videoState = ref.read(videoListProvider);
-    final gridStartIndex = videoState.gridStartIndex;
-    final gridItems = videoState.gridItems;
-
-    // 计算当前视频在网格列表中的索引
-    final indexInGrid = currentIndex - gridStartIndex;
-
-    // 边界检查：当前视频不在当前网格页中
-    if (indexInGrid < 0 || indexInGrid >= gridItems.length) {
-      return false;
-    }
-
-    // 计算行号（3列布局）
-    final row = indexInGrid ~/ 3;
-
-    // 在帧后执行滚动，确保 GridView 已布局完成
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_gridScrollController.hasClients) return;
-
-      final viewportWidth = MediaQuery.of(context).size.width;
-      final viewportHeight = _gridScrollController.position.viewportDimension;
-      const padding = 8.0; // GridView 的 padding
-      const crossAxisSpacing = 8.0;
-      const mainAxisSpacing = 8.0;
-      const crossAxisCount = 3;
-      const childAspectRatio = 0.65;
-
-      // 计算每列宽度和卡片高度
-      final availableWidth = viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
-      final itemWidth = availableWidth / crossAxisCount;
-      final itemHeight = itemWidth / childAspectRatio;
-      final rowHeight = itemHeight + mainAxisSpacing;
-
-      // 计算目标 item 顶部相对于 GridView 内容顶部的位置
-      final targetTop = padding + row * rowHeight;
-
-      // 垂直居中对齐：item 中心 = viewport 中心
-      final scrollOffset = targetTop - (viewportHeight / 2) + (itemHeight / 2);
-
-      // 限制滚动范围在有效范围内
-      final maxScroll = _gridScrollController.position.maxScrollExtent;
-      final safeOffset = scrollOffset.clamp(0.0, maxScroll);
-
-      // 平滑滚动到目标位置
-      _gridScrollController.animateTo(
-        safeOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-
-    return true;
   }
 
   @override

@@ -148,33 +148,53 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
-    // 监听 viewModeProvider 变化：切回 feed 模式时重置搜索，切到 grid 模式时应用当前搜索
+    // 监听 viewModeProvider 变化：处理视图切换时的数据同步
     _ref.listen<ViewMode>(
       viewModeProvider,
       (previous, next) {
         if (next == ViewMode.feed && previous == ViewMode.grid) {
-          // 切回 feed 模式：如果搜索不是默认值，则重置并刷新
-          if (state.searchTerm.isNotEmpty) {
-            AppLogger.debug('切回 feed 模式，重置搜索');
-            // 重置 grid provider 的值
+          // 切回 feed 模式：
+          // 1. 重置搜索（feed 模式不使用网格搜索）
+          // 2. 如果网格翻页过或者有搜索词，需要 refresh 让 feed 从 0 开始重新加载
+          // 3. 如果网格没有翻页也没有搜索，items 是最新的，无需刷新
+          final hasSearch = state.searchTerm.isNotEmpty;
+          final hasGridPaged = state.gridStartIndex > 0;
+
+          if (hasSearch || hasGridPaged) {
+            AppLogger.debug('切回 feed 模式，重置数据', data: {
+              'hasSearch': hasSearch,
+              'gridStartIndex': state.gridStartIndex,
+            });
             _ref.read(gridSearchQueryProvider.notifier).state = '';
+            // 直接清除 searchTerm（gridSearchQueryProvider 的 listener 在 feed 模式下不触发）
+            state = state.copyWith(searchTerm: '');
+            // refresh 会重置 items 为从 offset=0 开始的第一页数据
             refresh();
           }
+          // 如果既没有搜索也没有翻页，items 就是正确的，直接使用即可
         } else if (next == ViewMode.grid && previous == ViewMode.feed) {
-          // 先判断是否需要应用搜索并刷新
+          // 切到 grid 模式：
           final searchQuery = _ref.read(gridSearchQueryProvider);
           final feedType = _ref.read(feedTypeProvider);
-          final needsRefresh = feedType == FeedType.latest && searchQuery.isNotEmpty;
+          final hasSearchQuery = feedType == FeedType.latest && searchQuery.isNotEmpty;
+          // 读取当前播放条目，用于定位
+          final currentItem = _ref.read(currentPlayingItemProvider);
 
-          if (needsRefresh) {
-            // 需要刷新：直接应用搜索并刷新，不执行裁剪（刷新后数据全新）
+          if (hasSearchQuery) {
+            // 有搜索词：应用搜索并刷新网格数据
             AppLogger.debug('切到 grid 模式，应用搜索');
-            state = state.copyWith(
-              searchTerm: searchQuery,
-            );
+            state = state.copyWith(searchTerm: searchQuery);
             refresh();
+          } else if (currentItem != null) {
+            // 有当前播放视频：准备包含该视频的网格页，方便 poster_grid_view 定位
+            AppLogger.debug('切到 grid 模式，定位到当前播放视频', data: {'itemId': currentItem.id});
+            updateGridForFeedItem(currentItem.id);
+          } else if (state.gridStartIndex > 0) {
+            // 用户之前翻过网格页：保持当时的分页状态，重新加载那一页
+            AppLogger.debug('切到 grid 模式，恢复之前的分页', data: {'page': currentPage});
+            _loadPageAt(state.gridStartIndex);
           } else {
-            // 切到 grid 模式：使用全部数据
+            // 首次切到网格或网格在第一页：使用当前 feed 已加载的所有数据
             state = state.copyWith(
               gridItems: state.items,
               gridStartIndex: 0,
@@ -472,16 +492,15 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       final newTotal = state.items.length + merged.length;
       final hasMore = totalAvailable > 0 && newTotal < totalAvailable;
 
-      state = VideoListState(
+      state = state.copyWith(
         items: [...state.items, ...merged],
-        gridItems: [...state.gridItems, ...merged],
-        gridStartIndex: state.gridStartIndex,
+        // 只有当网格还没有手动翻页（gridStartIndex == 0）时，才同步追加到 gridItems
+        // 一旦用户翻了网格页，gridItems 就保持独立，不再跟随 feed 追加
+        gridItems: state.gridStartIndex == 0 ? [...state.gridItems, ...merged] : state.gridItems,
         isLoading: false,
         hasMore: hasMore,
         error: null,
         offset: state.offset + merged.length,
-        limit: state.limit,
-        feedType: currentFeedType,
       );
       AppLogger.debug('加载更多成功', data: {'newCount': merged.length});
     } catch (e) {
@@ -621,7 +640,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     await goToPage(currentPage - 1);
   }
 
-  // 内部方法：加载指定 offset 的页面
+  // 内部方法：加载指定 offset 的页面（仅更新网格数据，不影响 feed 的 items）
   Future<void> _loadPageAt(int offset) async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
     final auth = _auth;
@@ -639,11 +658,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     state = state.copyWith(
       isLoading: true,
       error: null,
-      offset: offset,
     );
 
     try {
-      AppLogger.debug('加载第 ${(offset / kGridPageSize).floor() + 1} 页', data: {
+      AppLogger.debug('加载网格第 ${(offset / kGridPageSize).floor() + 1} 页', data: {
         'offset': offset,
         'libraryCount': selectedIds.length,
       });
@@ -668,27 +686,17 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       }
 
-      // 判断是否还有更多
-      final hasMore = merged.length >= kGridPageSize * selectedIds.length;
-
-      state = VideoListState(
-        items: merged,
+      // 网格分页：只更新 gridItems 和 gridStartIndex，不修改 feed 的 items
+      // feed 的 items 保持独立的无限滚动状态，不受网格翻页影响
+      state = state.copyWith(
         gridItems: merged,
         gridStartIndex: offset,
         isLoading: false,
-        hasMore: hasMore,
         error: null,
-        offset: offset + merged.length,
-        limit: kGridPageSize,
-        totalCount: state.totalCount,
-        feedType: state.feedType,
-        sortBy: state.sortBy,
-        sortOrder: state.sortOrder,
-        searchTerm: state.searchTerm,
       );
-      AppLogger.debug('分页加载成功', data: {'newCount': merged.length, 'currentPage': currentPage});
+      AppLogger.debug('网格分页加载成功', data: {'newCount': merged.length, 'currentPage': currentPage});
     } catch (e) {
-      AppLogger.error('分页加载失败', error: e);
+      AppLogger.error('网格分页加载失败', error: e);
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -703,6 +711,44 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     final newItems = List<MediaItem>.from(items)..removeAt(idx);
     state = state.copyWith(items: newItems);
     AppLogger.debug('已从 resume 列表移除播放完毕条目', data: {'itemId': itemId});
+  }
+
+  // 从 feed 切回网格时，更新网格数据以包含目标 item
+  // 策略：将网格重置为第一页（使用 feed 已加载的 items），并标记需要滚动到的 item
+  void updateGridForFeedItem(String targetItemId) {
+    final feedItems = state.items;
+    // 目标在 feed 已加载的 items 中的位置
+    final indexInFeed = feedItems.indexWhere((item) => item.id == targetItemId);
+    if (indexInFeed < 0) {
+      // 不在已加载列表中，重置到第一页
+      state = state.copyWith(
+        gridItems: feedItems.length > kGridPageSize ? feedItems.sublist(0, kGridPageSize) : feedItems,
+        gridStartIndex: 0,
+      );
+      return;
+    }
+
+    // 计算目标视频应该在哪一页（每页150条，简单用整数除法估算）
+    // 注意：多库情况下这是估算值，但目标页肯定在第一页或后续，我们把所在页加载为当前页
+    // 简单策略：直接将 gridItems 设为从包含目标视频的位置开始
+    // 但网格分页要求每页 150 条，我们简化处理：始终显示第一页，如果目标在第一页就能滚动到
+    final firstPageEnd = feedItems.length > kGridPageSize ? kGridPageSize : feedItems.length;
+    if (indexInFeed < firstPageEnd) {
+      // 目标在第一页内，直接显示第一页
+      state = state.copyWith(
+        gridItems: feedItems.length > kGridPageSize ? feedItems.sublist(0, kGridPageSize) : feedItems,
+        gridStartIndex: 0,
+      );
+    } else {
+      // 目标不在已加载的第一页范围内，显示 feed 已加载的最后一页（包含目标）
+      // 简单起见，显示最后一整页开始的数据
+      final pageStart = (indexInFeed ~/ kGridPageSize) * kGridPageSize;
+      final pageEnd = pageStart + kGridPageSize;
+      state = state.copyWith(
+        gridItems: feedItems.length > pageEnd ? feedItems.sublist(pageStart, pageEnd) : feedItems.sublist(pageStart),
+        gridStartIndex: pageStart,
+      );
+    }
   }
 }
 
@@ -810,3 +856,8 @@ final gridFilteredVideoListProvider = Provider<List<MediaItem>>((ref) {
 ///
 /// 用于：网格模式点击视频后，切换到视频流模式并从该视频开始播放
 final gridSelectedItemIdProvider = StateProvider<String?>((ref) => null);
+
+/// 从 feed 切回网格时需要定位到的视频 ID
+///
+/// 用于：视频流模式切换回网格时，自动滚动到当前播放视频的位置
+final feedToGridJumpItemIdProvider = StateProvider<String?>((ref) => null);

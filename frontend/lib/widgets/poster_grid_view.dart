@@ -24,12 +24,99 @@ class PosterGridView extends ConsumerStatefulWidget {
 }
 
 class _PosterGridViewState extends ConsumerState<PosterGridView> {
+  String? _lastProcessedJumpItemId;
+
+  // 等待目标视频出现在 gridItems 中，然后滚动到对应位置
+  void _waitForItemAndScroll(String itemId, {int retryCount = 0}) {
+    if (!mounted) return;
+    if (retryCount > 60) {
+      // 最多等待3秒
+      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
+      _lastProcessedJumpItemId = null;
+      return;
+    }
+
+    // 如果用户切回了视频流模式，放弃
+    if (ref.read(viewModeProvider) != ViewMode.grid) {
+      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
+      _lastProcessedJumpItemId = null;
+      return;
+    }
+
+    final gridItems = ref.read(videoListProvider).gridItems;
+    final targetIndex = gridItems.indexWhere((item) => item.id == itemId);
+
+    if (targetIndex >= 0) {
+      // 找到目标，执行滚动
+      _scrollToGridIndex(targetIndex);
+      ref.read(feedToGridJumpItemIdProvider.notifier).state = null;
+      _lastProcessedJumpItemId = null;
+      return;
+    }
+
+    // 如果还在加载中或还没找到，等待下一帧重试
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _waitForItemAndScroll(itemId, retryCount: retryCount + 1);
+    });
+  }
+
+  // 滚动到网格中指定索引位置（3列布局，居中对齐）
+  // 使用帧轮询等待 controller attach，确保 GridView 构建完成后再执行滚动
+  void _scrollToGridIndex(int indexInGrid, {int retryCount = 0}) {
+    final controller = widget.scrollController;
+    if (controller == null) return;
+
+    if (retryCount > 30) return; // 最多等待约1.5秒
+
+    if (!controller.hasClients) {
+      // GridView 还未构建完成，等待下一帧重试
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _scrollToGridIndex(indexInGrid, retryCount: retryCount + 1);
+        }
+      });
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !controller.hasClients) return;
+
+      final viewportWidth = MediaQuery.of(context).size.width;
+      final viewportHeight = controller.position.viewportDimension;
+      const padding = 8.0;
+      const crossAxisSpacing = 8.0;
+      const mainAxisSpacing = 8.0;
+      const crossAxisCount = 3;
+      const childAspectRatio = 0.65;
+
+      final availableWidth = viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
+      final itemWidth = availableWidth / crossAxisCount;
+      final itemHeight = itemWidth / childAspectRatio;
+      final rowHeight = itemHeight + mainAxisSpacing;
+      final row = indexInGrid ~/ 3;
+
+      final targetTop = padding + row * rowHeight;
+      final scrollOffset = targetTop - (viewportHeight / 2) + (itemHeight / 2);
+
+      final maxScroll = controller.position.maxScrollExtent;
+      final safeOffset = scrollOffset.clamp(0.0, maxScroll);
+
+      controller.animateTo(
+        safeOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final videoState = ref.watch(videoListProvider);
-    final gridItems = videoState.gridItems; // 使用裁剪后的网格列表
+    final gridItems = videoState.gridItems;
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
+    // 监听从 feed 切回网格时需要定位到的 itemId
+    final jumpToItemId = ref.watch(feedToGridJumpItemIdProvider);
 
     if (gridItems.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
@@ -38,6 +125,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       return Center(
         child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
       );
+    }
+
+    // 处理从视频流切回时的定位：在帧后滚动到目标视频
+    // 使用帧轮询：如果目标还没加载到 gridItems 中，等待重试
+    if (jumpToItemId != null && jumpToItemId.isNotEmpty && jumpToItemId != _lastProcessedJumpItemId) {
+      _lastProcessedJumpItemId = jumpToItemId;
+      _waitForItemAndScroll(jumpToItemId);
     }
 
     final totalCount = videoState.totalCount;
