@@ -39,6 +39,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   bool _loadingEpisodes = false;
   // 简介展开状态
   bool _overviewExpanded = false;
+  // 相关推荐
+  List<MediaItem> _similarItems = const <MediaItem>[];
+  bool _loadingSimilar = false;
 
   @override
   void initState() {
@@ -76,6 +79,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       if (item.type == 'Series') {
         await _loadSeasons(item.id);
       }
+      // 异步加载相似推荐（不阻塞主流程）
+      _loadSimilarItems(item.id);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -134,6 +139,35 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         setState(() {
           _episodes = const <MediaItem>[];
           _loadingEpisodes = false;
+        });
+      }
+    }
+  }
+
+  // 加载相似推荐
+  Future<void> _loadSimilarItems(String itemId) async {
+    setState(() {
+      _loadingSimilar = true;
+    });
+    try {
+      final auth = ref.read(authProvider);
+      final service = EmbytokService();
+      final items = await service.getSimilarItems(
+        itemId,
+        limit: 12,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+      if (!mounted) return;
+      setState(() {
+        _similarItems = items;
+        _loadingSimilar = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _similarItems = const <MediaItem>[];
+          _loadingSimilar = false;
         });
       }
     }
@@ -221,6 +255,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               _buildCast(item.people!, authState),
             // 集数区（仅 Series 类型）
             if (item.type == 'Series') _buildSeasonsAndEpisodes(authState),
+            // 相关推荐区
+            _buildSimilarItems(authState),
             const SizedBox(height: 32),
           ],
         ),
@@ -260,6 +296,13 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
     final rating = item.communityRating ?? item.rating;
+    // 导演：从 people 中过滤 type 为 Director 的人，取第一个
+    final director = item.people
+        ?.where((p) => p.type == 'Director')
+        .firstOrNull;
+    final hasDirector = director != null && director.name.isNotEmpty;
+    // 时长
+    final durationText = item.formattedDuration;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -275,7 +318,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             ),
           ),
           const SizedBox(height: 8),
-          // 类型标签 + 年份 + 评分
+          // 类型标签 + 年份 + 评分 + 导演 + 时长
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -286,6 +329,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 _buildInfoChip(year.toString()),
               if (rating != null && rating > 0)
                 _buildRatingChip(rating),
+              if (hasDirector)
+                _buildInfoChip('导演：${director!.name}'),
+              if (durationText.isNotEmpty)
+                _buildInfoChip(durationText),
             ],
           ),
           const SizedBox(height: 16),
@@ -602,6 +649,61 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
+  // 相关推荐区：横向滚动卡片列表
+  Widget _buildSimilarItems(AuthState authState) {
+    final scheme = Theme.of(context).colorScheme;
+    // 加载完成但无数据，不显示
+    if (!_loadingSimilar && _similarItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              '相关推荐',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 200,
+            child: _loadingSimilar
+                ? ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: 7,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (_, __) => _SimilarCardSkeleton(scheme: scheme),
+                  )
+                : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _similarItems.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) {
+                      final item = _similarItems[index];
+                      return _SimilarCard(
+                        key: Key(item.id),
+                        item: item,
+                        authState: authState,
+                        onTap: () => context.push('/item/${item.id}'),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // 错误视图
   Widget _buildErrorView(ColorScheme scheme) {
     return Center(
@@ -861,6 +963,126 @@ class _ThumbPlaceholder extends StatelessWidget {
       height: 72,
       color: scheme.surface,
       child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+    );
+  }
+}
+
+// 相似推荐卡片：竖屏海报 + 标题
+class _SimilarCard extends StatelessWidget {
+  final MediaItem item;
+  final AuthState authState;
+  final VoidCallback onTap;
+
+  const _SimilarCard({
+    super.key,
+    required this.item,
+    required this.authState,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final imageUrl = item.primaryUrl(
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
+      maxWidth: 300,
+    );
+    final headers = item.authHeaders(authState.token);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 100,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 竖屏海报（3:4 比例）
+            AspectRatio(
+              aspectRatio: 3 / 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: imageUrl != null && imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        cacheManager: AppImageCacheManager.thumbnail,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        httpHeaders: headers.isNotEmpty ? headers : null,
+                        memCacheWidth: 200,
+                        placeholder: (_, __) => _PosterPlaceholder(scheme: scheme),
+                        errorWidget: (_, __, ___) => _PosterPlaceholder(scheme: scheme),
+                      )
+                    : _PosterPlaceholder(scheme: scheme),
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 标题（1行截断）
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 海报占位图
+class _PosterPlaceholder extends StatelessWidget {
+  final ColorScheme scheme;
+  const _PosterPlaceholder({required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: scheme.surface,
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5), size: 32),
+    );
+  }
+}
+
+// 相似推荐卡片骨架屏
+class _SimilarCardSkeleton extends StatelessWidget {
+  final ColorScheme scheme;
+  const _SimilarCardSkeleton({required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 100,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 海报骨架
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: Container(
+              decoration: BoxDecoration(
+                color: scheme.onSurface.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          // 标题骨架
+          Container(
+            width: double.infinity,
+            height: 12,
+            decoration: BoxDecoration(
+              color: scheme.onSurface.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

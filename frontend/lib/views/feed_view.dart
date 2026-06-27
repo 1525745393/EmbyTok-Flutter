@@ -3,6 +3,7 @@
 
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -283,6 +284,29 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (!ref.read(videoPoolProvider).hasSession(nextItem.id)) {
         unawaited(
           ref.read(videoPoolProvider).preload(item: nextItem, serverUrl: embyServerUrl, token: token),
+        );
+      }
+    }
+  }
+
+  // 预加载相邻视频的封面图（上一条 + 下一条 + 下下条）
+  // 使用 precacheImage + CachedNetworkImageProvider，让切换视频时封面已缓存
+  void _preloadPosters(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
+    if (embyServerUrl == null || token == null) return;
+    // 需要预加载的索引列表：上一条、下一条、下下条
+    final targetIndices = <int>[];
+    if (index - 1 >= 0) targetIndices.add(index - 1);
+    if (index + 1 < items.length) targetIndices.add(index + 1);
+    if (index + 2 < items.length) targetIndices.add(index + 2);
+    // 逐个预加载封面图
+    for (final i in targetIndices) {
+      final item = items[i];
+      final posterUrl = item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token);
+      if (posterUrl != null && posterUrl.isNotEmpty) {
+        final headers = item.authHeaders(token);
+        precacheImage(
+          CachedNetworkImageProvider(posterUrl, headers: headers),
+          context,
         );
       }
     }
@@ -839,6 +863,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
         // 预加载上一条和下一条视频（走 VideoPoolService 降级链）
         _preloadNeighbors(index, videoState.items, embyServerUrl, token);
+        // 预加载相邻视频的封面图（上一条 + 下一条 + 下下条）
+        _preloadPosters(index, videoState.items, embyServerUrl, token);
         // 清理距离较远的预加载缓存（保留上一条 + 下一条）
         _evictFarPreloads(index, videoState.items);
       },
@@ -852,6 +878,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         // 首次构建时对相邻条目发起预加载
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
           _preloadNeighbors(0, videoState.items, embyServerUrl, token);
+          _preloadPosters(0, videoState.items, embyServerUrl, token);
         }
         return VideoPageItem(
           item: item,
