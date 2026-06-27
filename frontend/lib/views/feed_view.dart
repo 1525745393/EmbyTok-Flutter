@@ -66,19 +66,16 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 注册全局键盘监听
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
-        _saveCloudSyncIfNeeded(next);
-      });
-      // 监听视图模式变化：处理网格与视频流之间的切换
-      ref.listen<ViewMode>(viewModeProvider, (prev, next) {
-        if (prev == ViewMode.grid && next == ViewMode.feed) {
-          _handleGridToFeedTransition();
-        } else if (prev == ViewMode.feed && next == ViewMode.grid) {
-          _handleFeedToGridTransition();
-        }
-      });
+    ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
+      _saveCloudSyncIfNeeded(next);
+    });
+    // 监听视图模式变化：处理网格与视频流之间的切换
+    ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+      if (prev == ViewMode.grid && next == ViewMode.feed) {
+        _handleGridToFeedTransition();
+      } else if (prev == ViewMode.feed && next == ViewMode.grid) {
+        _handleFeedToGridTransition();
+      }
     });
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
     _checkCloudSyncOnStartup();
