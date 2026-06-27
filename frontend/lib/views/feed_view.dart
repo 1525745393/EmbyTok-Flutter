@@ -91,34 +91,17 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 从网格模式切换到视频流模式时的处理
   void _handleGridToFeedTransition() {
     final selectedItemId = ref.read(gridSelectedItemIdProvider);
-    final items = ref.read(videoListProvider).items;
-
-    // 计算目标索引
-    int targetIndex = _currentIndex; // 默认：当前位置
     if (selectedItemId != null && selectedItemId.isNotEmpty) {
-      final idx = items.indexWhere((item) => item.id == selectedItemId);
-      if (idx >= 0) {
-        targetIndex = idx;
-      }
+      // 复用 _buildVideoPageView 中已有的 _initialItemId 跳转逻辑
+      // 避免在此处使用 addPostFrameCallback 与 _restoreVideoIndex 竞争
+      _initialItemId = selectedItemId;
+      _hasScrolledToInitial = false;
+      // 标记已跳过 SharedPreferences 恢复，防止 _restoreVideoIndex 覆盖跳转
+      _hasRestoredScrollPosition = true;
+      AppLogger.debug('网格→视频流跳转', data: {'itemId': selectedItemId});
     }
-
-    // 标记已跳过 SharedPreferences 恢复，防止 _buildVideoPageView 中 _restoreVideoIndex 覆盖跳转
-    _hasRestoredScrollPosition = true;
-
-    // 在下一帧跳转到目标位置（确保 PageView 已构建完成）
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final totalItems = ref.read(videoListProvider).items.length;
-      if (_pageController.hasClients &&
-          targetIndex >= 0 &&
-          targetIndex < totalItems) {
-        _pageController.jumpToPage(targetIndex);
-        _currentIndex = targetIndex;
-        ref.read(currentIndexProvider.notifier).state = targetIndex;
-      }
-      // 跳转完成后再清理选中 ID（避免在 _buildVideoPageView 重建前被清空）
-      ref.read(gridSelectedItemIdProvider.notifier).state = null;
-    });
+    // 清理选中 ID（此时 _buildVideoPageView 已通过 _initialItemId 获取到目标）
+    ref.read(gridSelectedItemIdProvider.notifier).state = null;
   }
 
   // 从视频流模式切换到网格模式时的处理
@@ -822,7 +805,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       return EmptyStateCard.noVideos();
     }
 
-    // 初始播放位置（从其他页面跳转过来时使用）
+    // 初始播放位置（从其他页面跳转过来时使用，也用于网格→视频流跳转）
     if (_initialItemId != null && !_hasScrolledToInitial) {
       final initialIndex = videoState.items.indexWhere((item) => item.id == _initialItemId);
       if (initialIndex >= 0) {
@@ -830,6 +813,8 @@ class _FeedViewState extends ConsumerState<FeedView>
           if (mounted && _pageController.hasClients && !_hasScrolledToInitial) {
             _hasScrolledToInitial = true;
             _currentIndex = initialIndex;
+            // 同步更新 currentIndexProvider，供切回网格时 _tryScrollToCurrentVideo 使用
+            ref.read(currentIndexProvider.notifier).state = initialIndex;
             _pageController.jumpToPage(initialIndex);
           }
         });
