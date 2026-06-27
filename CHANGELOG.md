@@ -1,3 +1,10 @@
+## [1.105.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.4...v1.105.5) (2026-06-27)
+
+
+### Bug Fixes
+
+* 将 ref.listen 从 addPostFrameCallback 移到 initState 直接注册 ([27f5fcb](https://github.com/1525745393/EmbyTok-Flutter/commit/27f5fcb973e11d1e316b341c7e88f78b30b184b3))
+
 ## [1.105.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.3...v1.105.4) (2026-06-27)
 
 
