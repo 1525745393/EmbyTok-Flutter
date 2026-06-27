@@ -112,6 +112,66 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
   }
 
+  // 跟踪当前 widget.item.id，用于检测 item 切换
+  String? _currentItemId;
+
+  // didUpdateWidget：跟踪 widget.item.id 变化
+  // 场景：用户看 video-X 播到 30s → 切到"推荐"模式 → items 列表被替换
+  //   → video-X 被我们保留到 loadedItems[0]（见 video_list_provider._ensurePlayingItemFirst）
+  //   → PageView 重新 build 时可能给本 widget 传一个不同的 item（item.id != _currentItemId）
+  // 此时必须释放旧 controller，用新 item 重新初始化。
+  // 不然会出现"画面还在播旧视频，但元信息/封面是另一部"的鬼影 bug。
+  @override
+  void didUpdateWidget(VideoPlayerWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newItemId = widget.item.id;
+    if (_currentItemId == null) {
+      _currentItemId = newItemId;
+      return;
+    }
+    if (newItemId == _currentItemId) return; // 同一个视频，不重置
+    AppLogger.debug('VideoPlayerWidget item 切换，重建 controller', data: {
+      'oldItemId': _currentItemId,
+      'newItemId': newItemId,
+    });
+    _currentItemId = newItemId;
+    // 异步释放 + 重新初始化（fire-and-forget）
+    _reinitForNewItem();
+  }
+
+  // 释放旧 controller 并用新 widget.item 重新初始化
+  Future<void> _reinitForNewItem() async {
+    // 释放旧 controller
+    if (_controller != null) {
+      try {
+        _controller!.removeListener(_onControllerChanged);
+        await _controller!.dispose();
+      } catch (e) {
+        AppLogger.warn('释放旧 controller 失败', error: e);
+      }
+      _controller = null;
+    }
+    // 重置状态
+    if (!mounted) return;
+    setState(() {
+      _initialized = false;
+      _hasError = false;
+      _errorMessage = null;
+      _fallbackLevel = 0; // 重新从最高级（DirectPlay）开始尝试
+      _isFallbackInProgress = false;
+      _isUserSwitchInProgress = false;
+    });
+    // 重新初始化
+    if (_canPlayVideo) {
+      await _initVideo();
+    } else if (mounted) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = '无法获取播放地址';
+      });
+    }
+  }
+
   // 统一的控制器变化监听器（命名方法，便于 dispose 显式移除）
   // 处理：错误降级链触发、错误状态标记、位置变化（跨秒更新字幕）
   void _onControllerChanged() {
@@ -147,6 +207,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   //   2. 检查 mounted 避免在已释放的 widget 上 setState
   //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
   Future<void> _initVideo() async {
+    // 同步当前 item.id，供 didUpdateWidget 后续对比
+    _currentItemId = widget.item.id;
     // ---- 路径 1：有预加载控制器 ----
     if (widget.preloadedController != null) {
       try {
