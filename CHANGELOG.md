@@ -1,3 +1,10 @@
+## [1.105.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.1...v1.105.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格↔视频流双向跳转的两个竞态条件 ([527fb77](https://github.com/1525745393/EmbyTok-Flutter/commit/527fb776016ebc3114a45240c3a31ab038bc432d))
+
 ## [1.105.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.0...v1.105.1) (2026-06-27)
 
 
