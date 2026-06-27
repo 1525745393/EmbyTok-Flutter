@@ -74,9 +74,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   DateTime _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
   static const _progressReportMinSeconds = 4;
 
-  // 横屏全屏沉浸模式
-  bool _isFullscreen = false;
-
   // 底部信息面板展开/收起
   bool _isInfoExpanded = false;
 
@@ -155,9 +152,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _controlsHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
-    if (_isFullscreen) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    }
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
     final ctrl = ref.read(currentVideoControllerProvider);
     if (ctrl != null && identical(ctrl, _videoController)) {
@@ -173,6 +167,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   }
 
   // ===== 视频状态变化监听 =====
+  // 注意：每帧都会调用，避免重操作
   void _onVideoChanged() {
     if (!mounted) return;
     final controller = _videoController;
@@ -182,6 +177,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (ref.read(isPlayingProvider) != isPlaying) {
       ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
+    // 持续同步 position 到全局 store，供全屏页（FullscreenVideoPage）任意时刻可读
+    // 关键：全屏页不创建新 controller，需要从全局读到精确进度
+    // StateProvider 直接写不触发 watch 链重建，性能安全
+    ref.read(currentPositionProvider.notifier).state = controller.value.position;
     // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
     if (!_hasFiredPreload && widget.onPreloadThreshold != null) {
       final pos = controller.value.position;
@@ -385,16 +384,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   String? _authToken() => ref.read(authProvider).token;
 
   // ===== 全屏切换 =====
-  void _toggleFullscreen() {
-    setState(() => _isFullscreen = !_isFullscreen);
-    if (_isFullscreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      ref.read(toolbarVisibilityProvider.notifier).hide();
-    } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // 方案 A：进入全屏页（FullscreenVideoPage）
+  // - 全屏页不创建新 controller，复用 currentVideoControllerProvider
+  // - 进度 100% 不丢，零额外内存
+  // - 退出全屏用系统返回键，PopScope 自动处理
+  Future<void> _openFullscreenPage() async {
+    // 进入前隐藏工具栏（沉浸感）
+    ref.read(toolbarVisibilityProvider.notifier).hide();
+    // push 全屏页
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FullscreenVideoPage(),
+        fullscreenDialog: true,
+      ),
+    );
+    // 退出全屏后恢复工具栏
+    if (mounted) {
       ref.read(toolbarVisibilityProvider.notifier).show();
     }
   }
@@ -523,7 +528,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             controller: _videoController,
             item: widget.item,
             onSingleTap: () {
-              if (_isFullscreen || isAutoPlay) {
+              if (isAutoPlay) {
                 _toggleControls();
               } else {
                 _togglePlay();
@@ -568,7 +573,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
         if (_videoController != null &&
             _videoController!.value.isInitialized &&
-            (_isFullscreen || isAutoPlay) &&
+            (isAutoPlay) &&
             !_controlsVisible)
           Positioned(
             left: 0,
@@ -578,7 +583,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           ),
 
         // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
-        if (_videoController != null && _videoController!.value.isInitialized && (_isFullscreen || isAutoPlay))
+        if (_videoController != null && _videoController!.value.isInitialized && (isAutoPlay))
           Positioned(
             left: 0,
             right: 0,
@@ -593,15 +598,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   subtitleTracks: widget.item.subtitleTracks,
                   onPrevEpisode: widget.onPrevEpisode,
                   onNextEpisode: widget.onNextEpisode,
-                  onToggleFullscreen: _toggleFullscreen,
-                  isInFullscreen: _isFullscreen,
+                  onToggleFullscreen: _openFullscreenPage,
+                  isInFullscreen: false,
                 ),
               ),
             ),
           ),
 
         // 底部渐变 + 标题/简介/类型标签（非纯净模式）
-        if (!_isFullscreen && (_isInfoExpanded || !isAutoPlay))
+        if ((_isInfoExpanded || !isAutoPlay))
           Positioned(
             left: 0,
             right: 0,
@@ -641,7 +646,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: GestureDetector(
-                            onTap: _toggleFullscreen,
+                            onTap: _openFullscreenPage,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                               decoration: BoxDecoration(
@@ -716,7 +721,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           ),
 
         // 右侧操作按钮（非纯净模式）
-        if (!_isFullscreen && !isAutoPlay)
+        if (!isAutoPlay)
           Positioned(
             right: 0,
             top: 0,
@@ -747,7 +752,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       icon: Icons.fullscreen,
                       label: '全屏',
                       color: scheme.onSurface,
-                      onTap: _toggleFullscreen,
+                      onTap: _openFullscreenPage,
                     ),
                   SizedBox(height: rs(16, 1.5)),
                   const AutoPlayButton(),
@@ -811,7 +816,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
           ),
 
         // 纯净模式：可拖动按钮组
-        if (!_isFullscreen && isAutoPlay)
+        if (isAutoPlay)
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -856,22 +861,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       ],
     );
 
-    // 使用 PopScope 处理返回键：全屏模式下先退出全屏
-    // ⚠️ 关键：保持全屏/非全屏的 Widget 树结构完全一致，仅属性变化
-    // 如果子树深度或 Widget 类型随 _isFullscreen 变化，Flutter 会卸载重建
-    // 导致 VideoPlayerWidget State 被 dispose → 控制器重建 → 视频从头播放
+    // 使用 PopScope：保持 Widget 树结构稳定，仅属性变化
+    // 全屏现在由 FullscreenVideoPage 独立承载，本页 _isFullscreen 永远 false
     return PopScope(
-      canPop: !_isFullscreen,
-      onPopInvoked: (bool didPop) {
-        if (didPop) return;
-        if (_isFullscreen) {
-          _toggleFullscreen();
-        }
-      },
+      canPop: true,
       child: Semantics(
-        label: _isFullscreen ? '横屏全屏视频播放' : '视频播放区域，双击点赞此视频',
+        label: '视频播放区域，双击点赞此视频',
         child: Container(
-          color: _isFullscreen ? scheme.surface : null,
+          color: null,
           child: content,
         ),
       ),
