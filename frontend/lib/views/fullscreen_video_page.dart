@@ -61,8 +61,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
     );
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     // 标记全局全屏状态
+    // 注意：dispose() 内 ref 已无 mounted 属性；用 State.mounted 即可
     Future.microtask(() {
-      if (!ref.mounted) return;
+      if (!mounted) return;
       ref.read(isFullscreenProvider.notifier).state = false;
     });
     super.dispose();
