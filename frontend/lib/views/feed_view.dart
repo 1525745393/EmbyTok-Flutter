@@ -830,7 +830,13 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
 
     // 首次进入时从 SharedPreferences 恢复滚动位置
-    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
+    // 如果来自网格点击，跳过恢复（由 _handleGridToFeedTransition 控制跳转）
+    // 注意：_restoreVideoIndex 是 async 的，若不跳过会晚于网格跳转完成并覆盖正确位置
+    final gridSelectedId = ref.read(gridSelectedItemIdProvider);
+    if (_initialItemId == null &&
+        !_hasRestoredScrollPosition &&
+        (gridSelectedId == null || gridSelectedId.isEmpty) &&
+        videoState.items.isNotEmpty) {
       _hasRestoredScrollPosition = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
