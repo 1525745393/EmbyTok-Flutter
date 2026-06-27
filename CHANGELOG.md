@@ -1,3 +1,10 @@
+## [1.106.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.1...v1.106.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* 帧轮询机制彻底解决网格↔视频流跳转竞态问题 ([#46](https://github.com/1525745393/EmbyTok-Flutter/issues/46)) ([e7d64c9](https://github.com/1525745393/EmbyTok-Flutter/commit/e7d64c9d0eb76b74e742ceafe60e469b05942c91))
+
 ## [1.106.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.0...v1.106.1) (2026-06-27)
 
 
