@@ -397,7 +397,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         LibrarySelector.show(context);
         return true;
       case LogicalKeyboardKey.keyF:
-        _toggleFullscreen();
+        // F 键进入全屏页（复用全局 controller，进度不丢）
+        _openFullscreenPage();
         return true;
       case LogicalKeyboardKey.keyM:
         _toggleMute();
@@ -494,12 +495,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     _showModeToast(next);
   }
 
-  // 全屏切换
-  void _toggleFullscreen() {
-    if (MediaQuery.of(context).size.aspectRatio < 1) {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft]);
-    } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // 全屏切换：push 到 FullscreenVideoPage
+  // 复用全局 currentVideoControllerProvider，零额外内存，进度 100% 不丢
+  Future<void> _openFullscreenPage() async {
+    // 防御：仅在有 controller 时才进全屏
+    if (ref.read(currentVideoControllerProvider) == null) return;
+    ref.read(toolbarVisibilityProvider.notifier).hide();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FullscreenVideoPage(),
+        fullscreenDialog: true,
+      ),
+    );
+    if (mounted) {
+      ref.read(toolbarVisibilityProvider.notifier).show();
     }
   }
 
