@@ -1,3 +1,10 @@
+## [1.105.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.0...v1.105.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格点击视频跳转被 SharedPreferences 恢复覆盖的竞态条件 ([67f674a](https://github.com/1525745393/EmbyTok-Flutter/commit/67f674a6f51a451b6cdcdd7377644b0cf3fb9ccc))
+
 # [1.105.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.104.2...v1.105.0) (2026-06-27)
 
 
