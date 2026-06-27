@@ -1,3 +1,10 @@
+## [1.106.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.0...v1.106.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* 修复网格↔视频流切换跳转与位置同步 ([#45](https://github.com/1525745393/EmbyTok-Flutter/issues/45)) ([eff9da5](https://github.com/1525745393/EmbyTok-Flutter/commit/eff9da5f8d3f62b58a114e0a101bd3ee3eff0896))
+
 # [1.106.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.105.6...v1.106.0) (2026-06-27)
 
 
