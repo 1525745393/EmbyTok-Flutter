@@ -30,13 +30,14 @@ enum DeviceMode {
   }
 }
 
-// 浏览模式（最新/随机/收藏/继续观看/推荐）
+// 浏览模式（最新/随机/收藏/继续观看）
+// 注："推荐"已从 FeedType 移除，改为独立路由 /recommend + 独立数据源
+// 原因：与 video_list_provider/feed 共享会污染视频流；详见 PR #57
 enum FeedType {
   latest,
   random,
   favorites,
-  resume,
-  recommend;
+  resume;
 
   static FeedType fromString(String? s, {FeedType fallback = FeedType.latest}) {
     if (s == null || s.isEmpty) return fallback;
@@ -44,7 +45,6 @@ enum FeedType {
       kFeedTypeRandom => FeedType.random,
       kFeedTypeFavorites => FeedType.favorites,
       kFeedTypeResume => FeedType.resume,
-      kFeedTypeRecommend => FeedType.recommend,
       _ => FeedType.latest,
     };
   }
@@ -55,7 +55,6 @@ enum FeedType {
       FeedType.random => kFeedTypeRandom,
       FeedType.favorites => kFeedTypeFavorites,
       FeedType.resume => kFeedTypeResume,
-      FeedType.recommend => kFeedTypeRecommend,
     };
   }
 
@@ -65,7 +64,6 @@ enum FeedType {
       FeedType.random => '随机',
       FeedType.favorites => '收藏',
       FeedType.resume => '继续观看',
-      FeedType.recommend => '推荐',
     };
   }
 }

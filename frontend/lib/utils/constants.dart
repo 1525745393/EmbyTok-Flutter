@@ -13,11 +13,11 @@ const String kDeviceModeTv = 'tv';
 const String kDeviceModeStandard = 'standard';
 
 // 浏览模式
+// 注：kFeedTypeRecommend 已移除（PR #57），推荐改为独立路由 /recommend
 const String kFeedTypeLatest = 'latest';
 const String kFeedTypeRandom = 'random';
 const String kFeedTypeFavorites = 'favorites';
 const String kFeedTypeResume = 'resume';
-const String kFeedTypeRecommend = 'recommend';
 
 // 视图模式
 const String kViewModeFeed = 'feed';

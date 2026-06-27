@@ -347,69 +347,17 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           loadedItems = resp.items;
           loadedTotal = resp.items.length;
           canPaginate = false;
-
-        case FeedType.recommend:
-          final libIds = selectedIds;
-          if (libIds.isEmpty) {
-            state = state.copyWith(isLoading: false, hasMore: false);
-            return;
-          }
-          // 推荐模式：社区评分 + 个性化推荐混合，打乱排序，去重
-          final merged = <MediaItem>[];
-          int totalItems = 0;
-          final seenIds = <String>{}; // 去重用
-
-          // 1. 先尝试 Emby Suggestions 个性化推荐
-          try {
-            final suggestions = await _service.getSuggestions(
-              limit: state.limit,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-            );
-            for (final item in suggestions) {
-              if (seenIds.add(item.id)) {
-                merged.add(item);
-              }
-            }
-          } catch (e) {
-            AppLogger.error('加载个性化推荐失败，跳过', error: e);
-          }
-
-          // 2. 多库评分推荐：每个库独立 try-catch
-          for (final libId in libIds) {
-            try {
-              final resp = await _service.getRecommendations(
-                libraryId: libId,
-                limit: state.limit,
-                offset: 0,
-                serverUrl: auth.embyServerUrl!,
-                token: auth.token!,
-                userId: auth.user?.id,
-              );
-              totalItems += resp.total;
-              for (final item in resp.items) {
-                if (seenIds.add(item.id)) {
-                  merged.add(item);
-                }
-              }
-            } catch (e) {
-              AppLogger.error('加载库 $libId 推荐列表失败，跳过', error: e);
-            }
-          }
-
-          // 3. 打乱顺序让各库内容均匀分布
-          merged.shuffle();
-          loadedItems = merged;
-          loadedTotal = totalItems;
-          canPaginate = totalItems > merged.length; // 精确判断是否还有更多
+        // 注：FeedType.recommend 已从枚举移除（PR #57）。
+        // 推荐现在走独立路由 /recommend + 独立 recommend_provider。
+        // 不再与 feed 共享 video_list_provider 数据，避免污染视频流。
       }
 
       // ★ 关键：保留当前在播视频到 loadedItems 首位
-      // 解决"推荐"等浏览模式切换时与视频流的冲突：
-      //   - 用户在 video-X 播到 30s → 切到"推荐"模式 → loadedItems 被换成推荐列表
+      // 解决"浏览模式切换"时与视频流的冲突：
+      //   - 用户在 video-X 播到 30s → 切换浏览模式（latest/random/favorites/resume）→ loadedItems 被替换
       //   - video-X 不在 loadedItems 中 → PageView 仍在 index=N → 但 N 对应的视频变了
       // 解决：把 currentPlayingItem 插到 loadedItems[0]，保持"当前在播视频在列表首位"
+      // 注：推荐模式已独立（PR #57），不再走这个路径
       _ensurePlayingItemFirst(loadedItems, source: 'refresh/$currentFeedType');
 
       state = VideoListState(
@@ -434,13 +382,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 加载更多：仅在 latest 和 recommend 模式下生效，其它模式不分页
+  // 加载更多：仅在 latest 模式下生效，其它模式不分页
   // 多库模式下，对每个库从 offset/libIds.length 位置继续取 limit 条
   Future<void> loadMore() async {
     if (state.isLoading || !state.hasMore) return;
 
     final currentFeedType = state.feedType;
-    if (currentFeedType != FeedType.latest && currentFeedType != FeedType.recommend) {
+    if (currentFeedType != FeedType.latest) {
       state = state.copyWith(hasMore: false);
       return;
     }
@@ -469,32 +417,19 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       int totalAvailable = 0; // 累加各库 TotalRecordCount
       for (final libId in selectedIds) {
         try {
-          if (currentFeedType == FeedType.recommend) {
-            final resp = await _service.getRecommendations(
-              libraryId: libId,
-              limit: perLibLimit,
-              offset: state.offset,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-            );
-            merged.addAll(resp.items);
-            totalAvailable += resp.total;
-          } else {
-            final resp = await _service.getLibraryItems(
-              libId,
-              limit: perLibLimit,
-              offset: state.offset,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-              sortBy: state.sortBy,
-              sortOrder: state.sortOrder,
-              searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
-            );
-            merged.addAll(resp.items);
-            totalAvailable += resp.total;
-          }
+          final resp = await _service.getLibraryItems(
+            libId,
+            limit: perLibLimit,
+            offset: state.offset,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+            sortBy: state.sortBy,
+            sortOrder: state.sortOrder,
+            searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+          );
+          merged.addAll(resp.items);
+          totalAvailable += resp.total;
         } catch (e) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
