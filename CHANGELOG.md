@@ -1,3 +1,10 @@
+## [1.101.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.101.0...v1.101.1) (2026-06-27)
+
+
+### Performance Improvements
+
+* 优化网格滚动到当前视频为垂直居中，对齐 EmbyX 实现 ([772eb52](https://github.com/1525745393/EmbyTok-Flutter/commit/772eb52177d5fa4a4b5ea4626257a577c209d1c5))
+
 # [1.101.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.100.0...v1.101.0) (2026-06-25)
 
 
