@@ -83,7 +83,7 @@ class ActorsState {
 
 class ActorsNotifier extends StateNotifier<ActorsState> {
   final Ref _ref;
-  final EmbbytokService _service = EmbbytokService();
+  final EmbytokService _service = EmbytokService();
   Timer? _debounceTimer;
 
   static const int _pageSize = 50;
@@ -252,12 +252,14 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   // ---- 关注/取消关注 ----
 
   Future<void> toggleFavorite(Person actor) async {
-    final isFav = state.favoritedIds.contains(actor.id);
+    final actorId = actor.id;
+    if (actorId == null) return; // 无 ID 的演员无法操作关注状态
+    final isFav = state.favoritedIds.contains(actorId);
     final newIds = Set<String>.from(state.favoritedIds);
     if (isFav) {
-      newIds.remove(actor.id);
+      newIds.remove(actorId);
     } else {
-      newIds.add(actor.id);
+      newIds.add(actorId);
     }
     // 乐观更新
     state = state.copyWith(favoritedIds: newIds);
