@@ -17,35 +17,10 @@ import 'package:embbytok_flutter/utils/app_preferences.dart';
 
 void main() {
   group('功能一：网格→视频流跳转', () {
-    group('gridSelectedItemIdProvider', () {
-      late ProviderContainer container;
-
-      setUp(() {
-        container = ProviderContainer();
-      });
-
-      tearDown(() {
-        container.dispose();
-      });
-
-      test('初始值为 null', () {
-        final selectedId = container.read(gridSelectedItemIdProvider);
-        expect(selectedId, isNull);
-      });
-
-      test('设置后可以读取到正确的值', () {
-        container.read(gridSelectedItemIdProvider.notifier).state = 'item-5';
-        final selectedId = container.read(gridSelectedItemIdProvider);
-        expect(selectedId, 'item-5');
-      });
-
-      test('设置为 null 后可以清除', () {
-        container.read(gridSelectedItemIdProvider.notifier).state = 'item-5';
-        container.read(gridSelectedItemIdProvider.notifier).state = null;
-        final selectedId = container.read(gridSelectedItemIdProvider);
-        expect(selectedId, isNull);
-      });
-    });
+    // 注：gridSelectedItemIdProvider 已废弃。
+    // 网格 → 视频流跳转现在通过 GoRouter `/?initialId=<itemId>` 透传，
+    // FeedView 接收 widget.initialItemId 后调用 _waitForInitialItemToLoad → _jumpToPageWhenReady。
+    // 相关 provider 仅作"已被 @Deprecated 标记"的兼容性保留，无任何业务调用方。
 
     group('currentIndexProvider', () {
       // 注：currentIndexProvider 已删除。视频流自管 currentIndex（feed_view 的 _currentIndex），
@@ -90,6 +65,36 @@ void main() {
         expect(item, isNotNull);
         expect(item!.id, 'test-1');
         expect(item.title, '测试视频');
+      });
+    });
+
+    group('currentPlayingIdProvider（当前在播 session 状态）', () {
+      late ProviderContainer container;
+
+      setUp(() {
+        container = ProviderContainer();
+      });
+
+      tearDown(() {
+        container.dispose();
+      });
+
+      test('初始值为 null', () {
+        final id = container.read(currentPlayingIdProvider);
+        expect(id, isNull);
+      });
+
+      test('设置后可以读取到正确的值', () {
+        container.read(currentPlayingIdProvider.notifier).state = 'item-42';
+        final id = container.read(currentPlayingIdProvider);
+        expect(id, 'item-42');
+      });
+
+      test('清空后回到 null', () {
+        container.read(currentPlayingIdProvider.notifier).state = 'item-42';
+        container.read(currentPlayingIdProvider.notifier).state = null;
+        final id = container.read(currentPlayingIdProvider);
+        expect(id, isNull);
       });
     });
   });

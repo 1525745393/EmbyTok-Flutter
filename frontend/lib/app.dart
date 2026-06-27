@@ -53,9 +53,13 @@ class EmbyTokApp extends ConsumerWidget {
           builder: (context, state) => const LoginView(),
         ),
         // 首页（视频流 + 底部导航）
+        // 支持 ?initialId=<itemId>：从网格/搜索/演员详情等入口跳转到指定视频
         GoRoute(
           path: '/',
-          builder: (context, state) => const HomeScaffold(),
+          builder: (context, state) {
+            final initialId = state.uri.queryParameters['initialId'];
+            return HomeScaffold(initialItemId: initialId);
+          },
         ),
         // 搜索：独立路由（深层链接场景），按返回键跳回首页
         GoRoute(
