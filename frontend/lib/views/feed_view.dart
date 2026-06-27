@@ -45,6 +45,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   bool _hasScrolledToInitial = false; // 是否已滚动到初始位置
 
   // 滚动位置持久化相关
+  bool _hasRestoredScrollPosition = false;
   final ScrollController _gridScrollController = ScrollController();
   Timer? _gridScrollSaveTimer; // 网格滚动保存防抖计时器
 
@@ -149,6 +150,21 @@ class _FeedViewState extends ConsumerState<FeedView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyLastVideoIndex, index);
+    } catch (_) {}
+  }
+
+  // 从 SharedPreferences 恢复视频流滚动位置
+  Future<void> _restoreVideoIndex(int maxIndex) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastIndex = prefs.getInt(kStorageKeyLastVideoIndex);
+      if (lastIndex != null && lastIndex >= 0 && lastIndex <= maxIndex) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(lastIndex);
+          _currentIndex = lastIndex;
+          ref.read(currentIndexProvider.notifier).state = lastIndex;
+        }
+      }
     } catch (_) {}
   }
 
@@ -811,6 +827,16 @@ class _FeedViewState extends ConsumerState<FeedView>
           }
         });
       }
+    }
+
+    // 首次进入时从 SharedPreferences 恢复滚动位置
+    if (_initialItemId == null && !_hasRestoredScrollPosition && videoState.items.isNotEmpty) {
+      _hasRestoredScrollPosition = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _restoreVideoIndex(videoState.items.length - 1);
+        }
+      });
     }
 
     final auth = ref.read(authProvider);

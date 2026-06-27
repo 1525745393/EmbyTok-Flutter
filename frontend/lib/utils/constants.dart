@@ -43,6 +43,7 @@ const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
 const String kStorageKeyLastVideoIndex = 'embbytok_last_video_index';
 const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
+const String kStorageKeySelectedLibraryId = 'embbytok_selected_library_id';
 const String kStorageKeyActorsCache = 'embbytok_actors_cache';
 const String kStorageKeyActorsCacheTime = 'embbytok_actors_cache_time';
 const String kStorageKeyActorsCachePrefix = 'embbytok_actors_cache_';

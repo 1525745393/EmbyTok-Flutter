@@ -6,9 +6,11 @@
 // 4. selectedLibrariesProvider: 当前选中的所有 Library 对象
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
+import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
@@ -70,7 +72,9 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   final Ref _ref;
 
   SelectedLibraryNotifier(this._ref) : super(const <String>[]) {
-    // 监听媒体库列表变化，首次加载时自动选中第一个可见媒体库（单选模式，对齐 EmbyX）
+    // 从 SharedPreferences 恢复上次选中的媒体库
+    _loadSaved();
+    // 监听媒体库列表变化，首次加载时自动选中（优先恢复上次选择）
     _ref.listen<AsyncValue<List<Library>>>(
       libraryListProvider,
       (previous, next) {
@@ -79,14 +83,25 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
           final visible = libraries
               .where((lib) => !hiddenIds.contains(lib.id))
               .toList();
-          // 如果当前没有选择，自动选中第一个可见媒体库（单选模式）
-          if (state.isEmpty && visible.isNotEmpty) {
-            state = <String>[visible.first.id];
-          } else if (state.isNotEmpty) {
-            // 如果当前选择的媒体库中没有一个存在于可见列表中，重新选中第一个
-            final stillExists = visible.any((lib) => state.contains(lib.id));
-            if (!stillExists && visible.isNotEmpty) {
+          if (visible.isEmpty) return;
+          // 如果当前没有选择，优先恢复上次保存的，否则选第一个
+          if (state.isEmpty) {
+            final savedId = _savedLibraryId;
+            if (savedId != null && visible.any((lib) => lib.id == savedId)) {
+              state = <String>[savedId];
+            } else {
               state = <String>[visible.first.id];
+            }
+          } else {
+            // 如果当前选择的媒体库中没有一个存在于可见列表中，重新选择
+            final stillExists = visible.any((lib) => state.contains(lib.id));
+            if (!stillExists) {
+              final savedId = _savedLibraryId;
+              if (savedId != null && visible.any((lib) => lib.id == savedId)) {
+                state = <String>[savedId];
+              } else {
+                state = <String>[visible.first.id];
+              }
             }
           }
         });
@@ -109,11 +124,32 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   /// 手动设置为单个媒体库（用于 chips 单击快捷切换）
   void setLibrary(String libraryId) {
     state = <String>[libraryId];
+    _saveLibraryId(libraryId);
   }
 
   /// 设置为指定的 ID 列表
   void setLibraries(List<String> libraryIds) {
     state = libraryIds;
+    if (libraryIds.isNotEmpty) _saveLibraryId(libraryIds.first);
+  }
+
+  // ========== 持久化 ==========
+
+  String? _savedLibraryId;
+
+  Future<void> _loadSaved() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _savedLibraryId = prefs.getString(kStorageKeySelectedLibraryId);
+    } catch (_) {}
+  }
+
+  Future<void> _saveLibraryId(String id) async {
+    _savedLibraryId = id;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStorageKeySelectedLibraryId, id);
+    } catch (_) {}
   }
 
   /// 全选可见媒体库
