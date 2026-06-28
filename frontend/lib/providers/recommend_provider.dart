@@ -78,7 +78,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     state = state.copyWith(isLoading: true, error: null);
 
     final auth = _ref.read(authProvider);
-    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    // PR #66：推荐页改用独立的 recommendLibraryIdsProvider，
+    // 视频流和推荐可以分别设置媒体库
+    final selectedIds = _ref.read(recommendLibraryIdsProvider);
 
     if (!auth.isAuthenticated ||
         auth.embyServerUrl == null ||

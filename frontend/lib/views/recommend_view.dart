@@ -22,6 +22,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../widgets/library_selector.dart';
 
 /// 推荐页面
 class RecommendView extends ConsumerStatefulWidget {
@@ -32,6 +33,25 @@ class RecommendView extends ConsumerStatefulWidget {
 }
 
 class _RecommendViewState extends ConsumerState<RecommendView> {
+  @override
+  void initState() {
+    super.initState();
+    // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
+    // 监听 libraryListProvider 加载完成（不打断首帧）
+    ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
+      next.whenData((_) {
+        // 等到下一帧再弹，避免 build 期间触发 setState
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final configured = ref.read(recommendLibraryConfiguredProvider);
+          if (configured) return;
+          // 媒体库列表已加载但用户没配置过 → 弹 LibrarySelector
+          LibrarySelector.show(context, scope: LibraryScope.recommend);
+        });
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;

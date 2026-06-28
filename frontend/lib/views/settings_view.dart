@@ -4,8 +4,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show OrientationMode;
+import '../widgets/library_selector.dart';
 
 // ==================== 主页面 ====================
 
@@ -32,6 +34,16 @@ class SettingsView extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
+          // 媒体库设置（PR #66：视频流 / 推荐可分别设置）
+          _buildSection(
+            context,
+            ref,
+            '媒体库',
+            [
+              _buildFeedLibraryTile(context, ref),
+              _buildRecommendLibraryTile(context, ref),
+            ],
+          ),
           // 播放设置
           _buildSection(
             context,
@@ -159,6 +171,43 @@ class SettingsView extends ConsumerWidget {
   }
 
   // ==================== 设置项构建 ====================
+
+  // 媒体库 - 视频流使用（PR #66）
+  Widget _buildFeedLibraryTile(BuildContext context, WidgetRef ref) {
+    final selectedLibraries = ref.watch(selectedLibrariesProvider);
+    final subtitle = _libraryNamesSubtitle(selectedLibraries);
+    return _TapTile(
+      icon: Icons.video_library_outlined,
+      iconColor: Colors.deepPurple,
+      title: '视频流使用',
+      subtitle: subtitle,
+      onTap: () =>
+          LibrarySelector.show(context, scope: LibraryScope.feed),
+    );
+  }
+
+  // 媒体库 - 推荐使用（PR #66）
+  Widget _buildRecommendLibraryTile(BuildContext context, WidgetRef ref) {
+    final recommendLibraries = ref.watch(recommendLibrariesProvider);
+    final subtitle = _libraryNamesSubtitle(recommendLibraries);
+    return _TapTile(
+      icon: Icons.recommend_outlined,
+      iconColor: Colors.pink,
+      title: '推荐使用',
+      subtitle: subtitle,
+      onTap: () =>
+          LibrarySelector.show(context, scope: LibraryScope.recommend),
+    );
+  }
+
+  // 媒体库选择副标题：显示已选媒体库的名字（最多 3 个）
+  String _libraryNamesSubtitle(List<Library> libraries) {
+    if (libraries.isEmpty) return '未选择';
+    if (libraries.length <= 3) {
+      return libraries.map((l) => l.name).join('、');
+    }
+    return '${libraries.take(3).map((l) => l.name).join('、')} 等 ${libraries.length} 个';
+  }
 
   // 播放 - 自动播放
   Widget _buildAutoPlayTile(BuildContext context, WidgetRef ref) {

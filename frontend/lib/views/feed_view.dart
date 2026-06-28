@@ -103,6 +103,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     _checkCloudSyncOnStartup();
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
+    // PR #66：首次未配置视频流媒体库 → 强制弹 LibrarySelector 让用户选一次
+    // 监听 libraryListProvider 加载完成（不打断首帧）
+    ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
+      next.whenData((_) {
+        // 等到下一帧再弹，避免 build 期间触发 setState
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final configured = ref.read(feedLibraryConfiguredProvider);
+          if (configured) return;
+          // 媒体库列表已加载但用户没配置过 → 弹 LibrarySelector
+          LibrarySelector.show(context, scope: LibraryScope.feed);
+        });
+      });
+    });
   }
 
   // 已处理的初始播放项 ID（防止重复跳转）。见 build 中的初始 ID 处理。
