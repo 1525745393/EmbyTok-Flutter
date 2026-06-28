@@ -279,7 +279,6 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }
