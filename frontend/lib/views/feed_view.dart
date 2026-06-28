@@ -654,77 +654,95 @@ class _FeedViewState extends ConsumerState<FeedView>
     );
   }
 
-  // 视频流模式顶部栏：搜索 + 推荐 + 历史 + 媒体库 + 视图切换
+  // 视频流模式顶部栏：搜索 + 历史 + 推荐 + 视频流 + 视图切换
+  // 横向可滚动（PR #77）：用 SingleChildScrollView 包裹，按钮溢出时支持左右滑动
+  // 排序：搜索 → 历史 → 推荐 → 视频流 → 视图切换
   Widget _buildFeedTopBar(ColorScheme scheme, ViewMode viewMode) {
-    final feedType = ref.watch(feedTypeProvider);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // 左侧：搜索、推荐和历史按钮
-        Row(
-          children: [
-            // 搜索按钮
-            IconButton(
-              icon: Icon(
-                Icons.search,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      // 内容不足一屏时不滚动；溢出时启用弹性滚动
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 搜索按钮
+          _buildTopBarButton(
+            icon: Icons.search,
+            label: '搜索',
+            onTap: () => ref.read(pageNavigationNotifierProvider).goToSearch(),
+          ),
+          // 历史按钮
+          _buildTopBarButton(
+            icon: Icons.history,
+            label: '历史',
+            onTap: () => ref.read(pageNavigationNotifierProvider).goToHistory(),
+          ),
+          // 推荐按钮：跳到独立路由 /recommend（PR #57：与 FeedType 解耦）
+          _buildTopBarButton(
+            icon: Icons.auto_awesome,
+            label: '推荐',
+            onTap: () => context.push('/recommend'),
+          ),
+          // 视频流按钮：切到视频流模式（ViewMode.feed）
+          // 已经在视频流模式时不重复 setMode；可扩展为「回到第一个视频」
+          _buildTopBarButton(
+            icon: Icons.play_circle_outline,
+            label: '视频流',
+            onTap: () {
+              if (viewMode != ViewMode.feed) {
+                ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+              }
+            },
+          ),
+          // 视图切换按钮：feed ↔ grid
+          _buildTopBarButton(
+            icon: viewMode == ViewMode.feed
+                ? Icons.grid_view
+                : Icons.phone_android,
+            label: viewMode == ViewMode.feed ? '网格' : '视频流',
+            onTap: () {
+              ref.read(viewModeProvider.notifier).setMode(
+                    viewMode == ViewMode.feed
+                        ? ViewMode.grid
+                        : ViewMode.feed,
+                  );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 顶部栏统一按钮：图标 + 中文文字
+  // 设计：横向可滚动按钮组（PR #77），所有按钮统一样式
+  Widget _buildTopBarButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = scheme.onSurface.withOpacity(0.7);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(color: color, fontSize: 14),
               ),
-              onPressed: () {
-                ref.read(pageNavigationNotifierProvider).goToSearch();
-              },
-              tooltip: '搜索',
-            ),
-            // 推荐按钮：跳转到独立路由 /recommend
-            // 推荐已与 FeedType 解耦（PR #57），不再在视频流中切浏览模式
-            IconButton(
-              icon: Icon(
-                Icons.auto_awesome,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                // 独立入口：跳到 /recommend
-                // 推荐页有独立数据源（recommendProvider），不影响 feed 视频流
-                context.push('/recommend');
-              },
-              tooltip: '推荐',
-            ),
-            // 历史按钮
-            IconButton(
-              icon: Icon(
-                Icons.history,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(pageNavigationNotifierProvider).goToHistory();
-              },
-              tooltip: '历史',
-            ),
-          ],
+            ],
+          ),
         ),
-        // 右侧：视图切换按钮
-        // 注：PR #68 删除「媒体库管理」按钮，媒体库配置已搬到设置页
-        //     （设置 → 媒体库 → 「视频流使用」/「推荐使用」）
-        Row(
-          children: [
-            // 视图切换按钮
-            IconButton(
-              icon: Icon(
-                viewMode == ViewMode.feed ? Icons.grid_view : Icons.phone_android,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () {
-                ref.read(viewModeProvider.notifier).setMode(
-                  viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-                );
-              },
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 
