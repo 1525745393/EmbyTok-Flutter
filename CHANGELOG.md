@@ -1,3 +1,10 @@
+## [1.106.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.11...v1.106.12) (2026-06-28)
+
+
+### Bug Fixes
+
+* **recommend:** 推荐页点 video 改用独立播放页 ([#63](https://github.com/1525745393/EmbyTok-Flutter/issues/63)) ([7c36a79](https://github.com/1525745393/EmbyTok-Flutter/commit/7c36a7932f409aa1e19b000067b6d635396b40cb))
+
 ## [1.106.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.10...v1.106.11) (2026-06-28)
 
 
