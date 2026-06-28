@@ -46,6 +46,17 @@ final isFullscreenProvider = StateProvider<bool>((ref) => false);
 /// 在 [VideoPageItem] 初始化成功后写入，组件 dispose 时清空。
 final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((ref) => null);
 
+/// FeedView 外部跳页请求：全屏页（FullscreenVideoPage）等需要切换视频时设置目标 index
+///
+/// FullscreenVideoPage 中"上一集/下一集"按钮无法直接调用 FeedView 的 _pageController，
+/// 因此通过这个 Provider 通知 FeedView 跳转到指定 index。
+///
+/// 设计：
+/// - 设置为非 null 时触发跳转
+/// - FeedView 处理完成后立即 reset 为 null（避免重复触发）
+/// - 不传 pageController 引用，避免 widget 重建时引用错位
+final feedViewPageJumpRequestProvider = StateProvider<int?>((ref) => null);
+
 /// 播放降级等级 Notifier：0=DirectPlay，1=DirectStream，2=HLS 转码
 ///
 /// 等级越高代表越保守的播放策略，用于不同网速下的自适应降级。

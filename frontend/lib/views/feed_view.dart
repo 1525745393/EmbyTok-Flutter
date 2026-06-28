@@ -73,6 +73,17 @@ class _FeedViewState extends ConsumerState<FeedView>
     ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
       _saveCloudSyncIfNeeded(next);
     });
+    // 监听外部跳页请求：全屏页 FullscreenVideoPage 等设置后跳到指定 index（PR #62）
+    // 设计：FullscreenVideoPage 切"上一集/下一集"时不能直接调用 _pageController，
+    // 所以通过 feedViewPageJumpRequestProvider 通知 FeedView 跳转
+    ref.listen<int?>(feedViewPageJumpRequestProvider, (prev, next) {
+      if (next != null && next != prev) {
+        AppLogger.debug('外部请求跳页', data: {'index': next});
+        // 先重置避免重复触发
+        ref.read(feedViewPageJumpRequestProvider.notifier).state = null;
+        _jumpToPageWhenReady(next);
+      }
+    });
     // 监听视图模式变化：feed↔grid 切换时处理视频播放/暂停
     ref.listen<ViewMode>(viewModeProvider, (prev, next) {
       final controller = ref.read(currentVideoControllerProvider);
