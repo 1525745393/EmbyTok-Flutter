@@ -147,7 +147,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _controller!.removeListener(_onControllerChanged);
         await _controller!.dispose();
       } catch (e) {
-        AppLogger.warn('释放旧 controller 失败', error: e);
+        // warn 没有 error 命名参数；改用 error 传递异常对象
+        AppLogger.error('释放旧 controller 失败', error: e);
       }
       _controller = null;
     }
