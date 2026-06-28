@@ -1,3 +1,10 @@
+## [1.107.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.2...v1.107.3) (2026-06-28)
+
+
+### Bug Fixes
+
+* **clean-mode:** 纯净模式下按钮组自动隐藏（PR [#71](https://github.com/1525745393/EmbyTok-Flutter/issues/71)） ([55789c1](https://github.com/1525745393/EmbyTok-Flutter/commit/55789c112259fe8bf3b4540eee2c114fbb4c1ed7))
+
 ## [1.107.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.1...v1.107.2) (2026-06-28)
 
 
