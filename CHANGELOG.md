@@ -1,3 +1,10 @@
+## [1.107.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.4...v1.107.5) (2026-06-28)
+
+
+### Bug Fixes
+
+* **recommend/grid:** 修两个 bug ([#73](https://github.com/1525745393/EmbyTok-Flutter/issues/73)) ([f2ac7d5](https://github.com/1525745393/EmbyTok-Flutter/commit/f2ac7d5fbba64d3a2879c7cf4db4e6cf8308db02))
+
 ## [1.107.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.3...v1.107.4) (2026-06-28)
 
 
