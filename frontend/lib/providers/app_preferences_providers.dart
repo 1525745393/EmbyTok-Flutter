@@ -141,3 +141,86 @@ final hiddenLibraryIdsProvider =
 
 /// 注意：[isMutedProvider] 和 [isAutoPlayProvider] 在 `video_playback_controller.dart` 中定义，
 /// 避免重复定义导致编译错误。
+
+// ---------------- PR #78：推荐规则偏好 ----------------
+
+/// 推荐评分阈值（Emby 满分 10，0 表示不过滤）
+/// 默认 4.0，与 Emby 默认推荐质量一致
+class RecommendMinRatingNotifier extends StateNotifier<double> {
+  RecommendMinRatingNotifier() : super(4.0) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendMinRating;
+  }
+
+  Future<void> setRating(double rating) async {
+    // 限制范围 [0, 10]，0 表示不过滤
+    final clamped = rating.clamp(0.0, 10.0);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendMinRating: clamped),
+    );
+  }
+}
+
+final recommendMinRatingProvider =
+    StateNotifierProvider<RecommendMinRatingNotifier, double>(
+  (ref) => RecommendMinRatingNotifier(),
+);
+
+/// 推荐排除已观看开关（默认 true）
+class RecommendExcludePlayedNotifier extends StateNotifier<bool> {
+  RecommendExcludePlayedNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendExcludePlayed;
+  }
+
+  Future<void> setExclude(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendExcludePlayed: value),
+    );
+  }
+}
+
+final recommendExcludePlayedProvider =
+    StateNotifierProvider<RecommendExcludePlayedNotifier, bool>(
+  (ref) => RecommendExcludePlayedNotifier(),
+);
+
+/// 推荐最短时长过滤（秒，默认 30）
+/// 过滤测试片 / 预告片（< 30s）
+class RecommendMinRuntimeSecNotifier extends StateNotifier<int> {
+  RecommendMinRuntimeSecNotifier() : super(30) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendMinRuntimeSec;
+  }
+
+  Future<void> setMinRuntime(int seconds) async {
+    // 0 表示不过滤
+    final clamped = seconds.clamp(0, 3600);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendMinRuntimeSec: clamped),
+    );
+  }
+}
+
+final recommendMinRuntimeSecProvider =
+    StateNotifierProvider<RecommendMinRuntimeSecNotifier, int>(
+  (ref) => RecommendMinRuntimeSecNotifier(),
+);

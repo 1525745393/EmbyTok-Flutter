@@ -40,6 +40,14 @@ const String kStorageKeyDefaultPlaybackRate = 'embbytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_language';
 const String kStorageKeyVideoQuality = 'embbytok_video_quality';
 const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
+// PR #78：推荐规则偏好（评分阈值 / 时长过滤 / 排除已观看）
+const String kStorageKeyRecommendMinRating = 'embbytok_recommend_min_rating';
+const String kStorageKeyRecommendExcludePlayed = 'embbytok_recommend_exclude_played';
+const String kStorageKeyRecommendMinRuntimeSec = 'embbytok_recommend_min_runtime_sec';
+// PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
+const String kStorageKeyRecommendCache = 'embbytok_recommend_cache';
+const String kStorageKeyRecommendCacheTime = 'embbytok_recommend_cache_time';
+const int kRecommendCacheMaxAgeSec = 30 * 60; // 30 分钟
 const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
 const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
 const String kStorageKeySelectedLibraryId = 'embbytok_selected_library_id';

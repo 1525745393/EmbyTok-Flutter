@@ -44,6 +44,17 @@ class SettingsView extends ConsumerWidget {
               _buildRecommendLibraryTile(context, ref),
             ],
           ),
+          // 推荐设置（PR #78：推荐规则优化）
+          _buildSection(
+            context,
+            ref,
+            '推荐',
+            [
+              _buildRecommendMinRatingTile(context, ref),
+              _buildRecommendExcludePlayedTile(context, ref),
+              _buildRecommendMinRuntimeTile(context, ref),
+            ],
+          ),
           // 播放设置
           _buildSection(
             context,
@@ -207,6 +218,125 @@ class SettingsView extends ConsumerWidget {
       return libraries.map((l) => l.name).join('、');
     }
     return '${libraries.take(3).map((l) => l.name).join('、')} 等 ${libraries.length} 个';
+  }
+
+  // PR #78：推荐 - 评分阈值
+  Widget _buildRecommendMinRatingTile(BuildContext context, WidgetRef ref) {
+    final rating = ref.watch(recommendMinRatingProvider);
+    return _TapTile(
+      icon: Icons.star_outline,
+      iconColor: Colors.amber,
+      title: '评分阈值',
+      subtitle: rating == 0 ? '不过滤' : '≥ $rating',
+      onTap: () => _showRecommendRatingDialog(context, ref, rating),
+    );
+  }
+
+  // PR #78：推荐 - 排除已观看
+  Widget _buildRecommendExcludePlayedTile(BuildContext context, WidgetRef ref) {
+    final exclude = ref.watch(recommendExcludePlayedProvider);
+    return _SwitchTile(
+      icon: Icons.visibility_off_outlined,
+      iconColor: Colors.brown,
+      title: '排除已观看',
+      subtitle: exclude ? '不再推荐已看过的视频' : '已看过的也会推荐',
+      value: exclude,
+      onChanged: (value) {
+        ref.read(recommendExcludePlayedProvider.notifier).setExclude(value);
+      },
+    );
+  }
+
+  // PR #78：推荐 - 最短时长
+  Widget _buildRecommendMinRuntimeTile(BuildContext context, WidgetRef ref) {
+    final sec = ref.watch(recommendMinRuntimeSecProvider);
+    return _TapTile(
+      icon: Icons.timer_outlined,
+      iconColor: Colors.deepOrange,
+      title: '最短时长',
+      subtitle: sec == 0 ? '不过滤' : '$sec 秒以上',
+      onTap: () => _showRecommendRuntimeDialog(context, ref, sec),
+    );
+  }
+
+  // 推荐评分阈值对话框
+  void _showRecommendRatingDialog(
+      BuildContext context, WidgetRef ref, double current) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('评分阈值'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              current == 0 ? '不过滤' : '≥ ${current.toStringAsFixed(1)}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Slider(
+              min: 0,
+              max: 10,
+              divisions: 20,
+              value: current,
+              label: current == 0 ? '不过滤' : current.toStringAsFixed(1),
+              onChanged: (v) {
+                ref.read(recommendMinRatingProvider.notifier).setRating(v);
+              },
+            ),
+            const Text(
+              '0 = 不过滤；越高越严格（小众片变少）',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('完成'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 推荐最短时长对话框
+  void _showRecommendRuntimeDialog(
+      BuildContext context, WidgetRef ref, int current) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('最短时长'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              current == 0 ? '不过滤' : '$current 秒以上',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Slider(
+              min: 0,
+              max: 600,
+              divisions: 30,
+              value: current.toDouble().clamp(0, 600),
+              label: current == 0 ? '不过滤' : '${current}s',
+              onChanged: (v) {
+                ref.read(recommendMinRuntimeSecProvider.notifier).setMinRuntime(v.round());
+              },
+            ),
+            const Text(
+              '过滤测试片 / 预告片（默认 30s）',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('完成'),
+          ),
+        ],
+      ),
+    );
   }
 
   // 播放 - 自动播放
