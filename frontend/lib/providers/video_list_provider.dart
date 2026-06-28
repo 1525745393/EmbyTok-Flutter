@@ -594,6 +594,35 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     });
   }
 
+  // PR #76：grid 跳 feed 时同步跳到用户点的视频（解决换库后跳错 bug）
+  // 场景：
+  //   - 有正在播放：PageController 仍在旧 X1 位置
+  //   - 换库：state.items 变为 lib2 data，但 PageController 不会自动 reset
+  //   - grid 点 X2：setMode(feed) 后 PageView 渲染到 PageController 当前 page（= X1 位置）
+  //                 即 lib2[X1 位置]，不是 X2
+  //   - 之前 _waitForInitialItemToLoad 依赖 widget.initialItemId 变化触发，
+  //     但若 setMode(feed) 触发的 build 中 widget.initialItemId 还没更新（context.go 时序），
+  //     _processedInitialItemId == initialId 不会重新触发
+  // 解决：setItemsFromGrid(focusItemId) 同步触发 feedViewPageJumpRequestProvider，
+  //      FeedView.initState 中 listen 这个 provider，强制 _jumpToPageWhenReady(idx)
+  //      保证 PageController 跳到 X2 位置，不依赖 widget.initialItemId
+  void setItemsFromGridAndJumpTo(String focusItemId) {
+    setItemsFromGrid();
+    final idx = state.gridItems.indexWhere((item) => item.id == focusItemId);
+    if (idx < 0) {
+      AppLogger.warn('grid 跳 feed：focusItemId 不在 gridItems 中', data: {
+        'itemId': focusItemId,
+        'gridItemsCount': state.gridItems.length,
+      });
+      return;
+    }
+    AppLogger.debug('grid 跳 feed：请求跳页', data: {
+      'itemId': focusItemId,
+      'targetIndex': idx,
+    });
+    _ref.read(feedViewPageJumpRequestProvider.notifier).state = idx;
+  }
+
   // 清除当前错误状态（SnackBar 弹出后重置，避免重复弹出）
   void clearError() {
     state = state.copyWith(error: null);
