@@ -134,6 +134,13 @@ class AppPreferences {
   final String defaultSubtitleLanguage;
   final String videoQuality;
   final String subtitleSize;
+  // PR #78：推荐规则偏好
+  // - recommendMinRating: 评分阈值（Emby 满分 10），0 表示不过滤
+  // - recommendExcludePlayed: 排除已观看（默认 true）
+  // - recommendMinRuntimeSec: 最短时长（秒），过滤测试片/预告片，默认 30
+  final double recommendMinRating;
+  final bool recommendExcludePlayed;
+  final int recommendMinRuntimeSec;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -147,6 +154,9 @@ class AppPreferences {
     this.defaultSubtitleLanguage = '',
     this.videoQuality = 'auto',
     this.subtitleSize = 'medium',
+    this.recommendMinRating = 4.0,
+    this.recommendExcludePlayed = true,
+    this.recommendMinRuntimeSec = 30,
   });
 
   AppPreferences copyWith({
@@ -161,6 +171,9 @@ class AppPreferences {
     String? defaultSubtitleLanguage,
     String? videoQuality,
     String? subtitleSize,
+    double? recommendMinRating,
+    bool? recommendExcludePlayed,
+    int? recommendMinRuntimeSec,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -174,6 +187,9 @@ class AppPreferences {
       defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
       videoQuality: videoQuality ?? this.videoQuality,
       subtitleSize: subtitleSize ?? this.subtitleSize,
+      recommendMinRating: recommendMinRating ?? this.recommendMinRating,
+      recommendExcludePlayed: recommendExcludePlayed ?? this.recommendExcludePlayed,
+      recommendMinRuntimeSec: recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
     );
   }
 }
@@ -224,6 +240,11 @@ class AppPreferencesService {
     final videoQuality = prefs.getString(kStorageKeyVideoQuality) ?? 'auto';
     final subtitleSize = prefs.getString(kStorageKeySubtitleSize) ?? 'medium';
 
+    // PR #78：推荐规则偏好
+    final recommendMinRating = prefs.getDouble(kStorageKeyRecommendMinRating) ?? 4.0;
+    final recommendExcludePlayed = prefs.getBool(kStorageKeyRecommendExcludePlayed) ?? true;
+    final recommendMinRuntimeSec = prefs.getInt(kStorageKeyRecommendMinRuntimeSec) ?? 30;
+
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
       feedType: feedType,
@@ -236,6 +257,9 @@ class AppPreferencesService {
       defaultSubtitleLanguage: defaultSubtitleLanguage,
       videoQuality: videoQuality,
       subtitleSize: subtitleSize,
+      recommendMinRating: recommendMinRating,
+      recommendExcludePlayed: recommendExcludePlayed,
+      recommendMinRuntimeSec: recommendMinRuntimeSec,
     );
   }
 
@@ -254,6 +278,10 @@ class AppPreferencesService {
       prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
       prefs.setString(kStorageKeyVideoQuality, preferences.videoQuality),
       prefs.setString(kStorageKeySubtitleSize, preferences.subtitleSize),
+      // PR #78：推荐规则偏好
+      prefs.setDouble(kStorageKeyRecommendMinRating, preferences.recommendMinRating),
+      prefs.setBool(kStorageKeyRecommendExcludePlayed, preferences.recommendExcludePlayed),
+      prefs.setInt(kStorageKeyRecommendMinRuntimeSec, preferences.recommendMinRuntimeSec),
     ]);
   }
 

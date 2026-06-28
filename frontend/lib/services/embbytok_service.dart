@@ -294,6 +294,8 @@ class EmbytokService {
 
   // ============================
   // 推荐列表：按社区评分从高到低排序，评分阈值 4.0（满分 10）
+  // 默认排除已观看（IsPlayed=false），避免推已完结的视频
+  // 评分阈值可通过 minCommunityRating 参数覆盖（PR #78：推荐优化）
   // ============================
   Future<PaginatedResponse<MediaItem>> getRecommendations({
     int limit = 20,
@@ -302,6 +304,8 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
+    double minCommunityRating = 4.0,
+    bool excludePlayed = true,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -311,11 +315,14 @@ class EmbytokService {
       'Recursive': 'true',
       'SortBy': 'CommunityRating,SortName',
       'SortOrder': 'Descending',
-      'MinCommunityRating': '4.0',
+      'MinCommunityRating': minCommunityRating.toStringAsFixed(1),
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
+      // 过滤已观看视频（避免推荐已看完的影片）
+      // 注：Resume 列表不受此影响，由 getResumeItems 单独处理
+      if (excludePlayed) 'Filters': 'IsPlayed=false',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
