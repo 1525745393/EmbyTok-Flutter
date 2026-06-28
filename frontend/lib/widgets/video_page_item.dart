@@ -83,6 +83,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
+  // PR #71：纯净模式可拖动按钮组的 GlobalKey（用于外部触发 show/hide）
+  final GlobalKey<DraggableCleanActionsState> _draggableActionsKey =
+      GlobalKey<DraggableCleanActionsState>();
+
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -108,6 +112,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       } else {
         if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
       }
+      // PR #71：纯净模式下，播放状态变化时重新触发按钮组显示
+      // 暂停时立即显示（不重置 timer），恢复播放时按 autoHideAfter 重新调度
+      _draggableActionsKey.currentState?.show();
     });
   }
 
@@ -411,6 +418,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       _hideControls();
     } else {
       _showControls();
+      // PR #71：用户主动唤起控制条时，同步显示纯净模式按钮组
+      _draggableActionsKey.currentState?.show();
     }
   }
 
@@ -822,6 +831,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return DraggableCleanActions(
+                  // PR #71：GlobalKey 让父组件能调用 show() / hide()
+                  key: _draggableActionsKey,
                   containerSize: Size(constraints.maxWidth, constraints.maxHeight),
                   buttonWidth: rs(80, 2.0),
                   bottomSafeArea: bottomPadding + 80 + 16,

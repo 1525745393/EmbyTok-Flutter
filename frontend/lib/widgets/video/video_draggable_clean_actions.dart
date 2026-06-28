@@ -1,5 +1,12 @@
 // 纯净模式下的可拖动按钮区组件
 // 初始位置：屏幕右下角（受 bottomSafeArea 和 rightSafeArea 约束）
+//
+// PR #71：自动隐藏
+// - 视频开始播放 4 秒后自动隐藏，保持 UI 纯净
+// - 视频暂停 / 控制条显示 / 单击屏幕时重新显示
+// - 用户拖动按钮后保留显示（不再自动隐藏，让用户看清新位置）
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -9,6 +16,8 @@ class DraggableCleanActions extends StatefulWidget {
   final Widget buttons;
   final double bottomSafeArea; // 底部安全区（导航栏 + 手势条 + 边距）
   final double rightSafeArea; // 右侧安全区（边距）
+  /// 自动隐藏延迟。传 [Duration.zero] 禁用自动隐藏（永久可见）。
+  final Duration autoHideAfter;
 
   const DraggableCleanActions({
     super.key,
@@ -17,6 +26,7 @@ class DraggableCleanActions extends StatefulWidget {
     required this.buttons,
     this.bottomSafeArea = 100,
     this.rightSafeArea = 16,
+    this.autoHideAfter = const Duration(seconds: 4),
   });
 
   @override
@@ -29,7 +39,11 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
   Offset? _startOffset;
   bool _isDragging = false;
   double _dragDistance = 0.0;
-  double _opacity = 0.0;
+  // PR #71：auto-hide 状态
+  bool _isHidden = false;
+  // 用户是否已经拖动过；拖动后停止 auto-hide 让用户看清新位置
+  bool _userInteracted = false;
+  Timer? _autoHideTimer;
 
   static const double _kDragThreshold = 10.0;
   static const double _kScaleFactor = 1.1;
@@ -42,8 +56,10 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
       widget.containerSize.width - widget.buttonWidth - widget.rightSafeArea,
       widget.containerSize.height - _kHeightApprox - widget.bottomSafeArea,
     );
+    // 帧挂载后启动 auto-hide 定时器（先短暂显示，再隐藏）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _opacity = 1.0);
+      if (!mounted) return;
+      _scheduleAutoHide();
     });
   }
 
@@ -58,6 +74,51 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
         );
       });
     }
+    // autoHideAfter 配置变化时重启定时器
+    if (oldWidget.autoHideAfter != widget.autoHideAfter) {
+      _scheduleAutoHide();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoHideTimer?.cancel();
+    super.dispose();
+  }
+
+  /// 调度自动隐藏（PR #71）
+  ///
+  /// 规则：
+  /// - 拖动过的按钮组不再自动隐藏
+  /// - autoHideAfter = Duration.zero 表示禁用
+  void _scheduleAutoHide() {
+    _autoHideTimer?.cancel();
+    if (_userInteracted) return;
+    if (widget.autoHideAfter == Duration.zero) return;
+    _autoHideTimer = Timer(widget.autoHideAfter, () {
+      if (!mounted) return;
+      setState(() => _isHidden = true);
+    });
+  }
+
+  /// 外部触发显示（视频暂停 / 控制条显示 / 单击屏幕时调用）
+  ///
+  /// 显示后按当前 [autoHideAfter] 重新调度隐藏。
+  void show() {
+    if (!mounted) return;
+    if (_isHidden) {
+      setState(() => _isHidden = false);
+    }
+    _scheduleAutoHide();
+  }
+
+  /// 外部触发立即隐藏
+  void hide() {
+    if (!mounted) return;
+    _autoHideTimer?.cancel();
+    if (!_isHidden) {
+      setState(() => _isHidden = true);
+    }
   }
 
   @override
@@ -71,14 +132,21 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
           left: _offset.dx,
           top: _offset.dy,
           child: AnimatedOpacity(
-            opacity: _opacity,
-            duration: const Duration(milliseconds: 200),
+            // PR #71：用 _isHidden 控制淡入淡出
+            opacity: _isHidden ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
             child: Listener(
               onPointerDown: (event) {
                 _startPointer = event.localPosition;
                 _startOffset = _offset;
                 _dragDistance = 0.0;
+                // PR #71：用户开始交互，停止 auto-hide 并强制显示
+                _userInteracted = true;
+                _autoHideTimer?.cancel();
+                if (_isHidden) {
+                  setState(() => _isHidden = false);
+                }
               },
               onPointerMove: (event) {
                 if (_startPointer == null || _startOffset == null) return;
@@ -108,7 +176,8 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
                 _dragDistance = 0.0;
               },
               child: IgnorePointer(
-                ignoring: _isDragging,
+                // 隐藏时不接收点击，避免透明区域拦截手势
+                ignoring: _isDragging || _isHidden,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   transform: Matrix4.identity()
