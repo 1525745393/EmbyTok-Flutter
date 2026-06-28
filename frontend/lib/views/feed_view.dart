@@ -564,6 +564,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     final videoState = ref.watch(videoListProvider);
     final authState = ref.watch(authProvider);
     final viewMode = ref.watch(viewModeProvider);
+    // PR #72：监听工具栏可见性（纯净模式 / 全屏页面时隐藏）
+    final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final scheme = Theme.of(context).colorScheme;
 
     // 未登录时直接显示提示卡片，不进入视频列表逻辑
@@ -593,10 +595,23 @@ class _FeedViewState extends ConsumerState<FeedView>
               ),
 
             // 顶部：媒体库切换器 + 视图切换按钮（仅视频流模式显示，网格模式由 PosterGridView 自带 header）
+            // PR #72：包裹 toolbarVisible，纯净模式 / 全屏页面时同步隐藏
             if (viewMode == ViewMode.feed)
               Positioned(
                 left: 0, right: 0, top: 0,
-                child: _buildTopBar(viewMode),
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: kToolbarAnimMs),
+                  curve: Curves.easeOut,
+                  offset: toolbarVisible ? Offset.zero : const Offset(0, -1),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: kToolbarAnimMs),
+                    opacity: toolbarVisible ? 1.0 : 0.0,
+                    child: IgnorePointer(
+                      ignoring: !toolbarVisible,
+                      child: _buildTopBar(viewMode),
+                    ),
+                  ),
+                ),
               ),
 
             // 快捷键帮助面板

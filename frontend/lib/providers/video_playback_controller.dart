@@ -158,7 +158,9 @@ final isMutedProvider =
 ///
 /// 从本地持久化存储读取，切换后自动保存。
 class IsAutoPlayNotifier extends StateNotifier<bool> {
-  IsAutoPlayNotifier() : super(true) {
+  // PR #72：初始值与 AppPreferences.isAutoPlay 默认值保持一致（false），
+  // 避免 _load() 异步加载完成前短暂触发"纯净模式 → 工具栏隐藏"闪烁。
+  IsAutoPlayNotifier() : super(false) {
     _load();
   }
 

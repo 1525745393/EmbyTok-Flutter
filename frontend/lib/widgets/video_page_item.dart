@@ -116,6 +116,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       // 暂停时立即显示（不重置 timer），恢复播放时按 autoHideAfter 重新调度
       _draggableActionsKey.currentState?.show();
     });
+
+    // PR #72：监听纯净模式开关，同步工具栏可见性
+    // 进入纯净模式 → 顶部栏 + 底部导航栏持续隐藏
+    // 退出纯净模式 → 恢复显示（除非还在全屏页面）
+    ref.listenManual<bool>(
+      isAutoPlayProvider,
+      (previous, next) {
+        ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
+      },
+      fireImmediately: true,
+    );
   }
 
   // ===== 底部信息条 3 秒自动隐藏 =====
