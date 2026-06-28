@@ -1,3 +1,10 @@
+## [1.106.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.6...v1.106.7) (2026-06-28)
+
+
+### Bug Fixes
+
+* **build:** recommend_view 误用 AppImageCacheManager.instance ([#58](https://github.com/1525745393/EmbyTok-Flutter/issues/58)) ([d4689d5](https://github.com/1525745393/EmbyTok-Flutter/commit/d4689d55ca4939686a5aa0ee9f1a22fe26959804))
+
 ## [1.106.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.5...v1.106.6) (2026-06-27)
 
 
