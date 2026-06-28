@@ -166,7 +166,15 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
             child: Listener(
+              // PR #74：纯净模式下按钮持续隐藏
+              // onPointerDown 是 PR #71 设计的"用户主动操作按钮就强制显示"逻辑
+              // 但纯净模式下应该不响应 → 直接 return，不记录 pointer，不显示按钮
               onPointerDown: (event) {
+                if (_isAutoPlay) {
+                  // 纯净模式：保持隐藏，不响应任何被动 pointer 事件
+                  // （包括单指按压、双指按压等所有 onPointerDown）
+                  return;
+                }
                 _startPointer = event.localPosition;
                 _startOffset = _offset;
                 _dragDistance = 0.0;
