@@ -21,6 +21,12 @@ class GestureOverlay extends ConsumerStatefulWidget {
   final VideoPlayerController? controller;
   // 单击回调：用于切换控制层显示/隐藏（由父组件 VideoPageItem 提供）
   final VoidCallback? onSingleTap;
+  // 是否启用「长按倍速 / 水平拖动 seek」手势
+  //
+  // - true（默认）：全手势可用（小屏场景）
+  // - false：仅单击 / 双击可用，长按和水平拖动被禁用
+  //   用于全屏页控制层显示时，避免和控制层 Slider 抢手势
+  final bool enableGestures;
 
   const GestureOverlay({
     super.key,
@@ -28,6 +34,7 @@ class GestureOverlay extends ConsumerStatefulWidget {
     required this.item,
     required this.controller,
     this.onSingleTap,
+    this.enableGestures = true,
   });
 
   @override
@@ -279,13 +286,24 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
               _lastTapPosition = details.globalPosition;
             },
             onTap: _handleTap,
-            onLongPressStart: (_) => _onLongPressStart(),
-            onLongPressEnd: (_) => _onLongPressEnd(),
-            onLongPressCancel: _onLongPressEnd,
-            onHorizontalDragStart: _onHorizontalDragStart,
-            onHorizontalDragUpdate: _onHorizontalDragUpdate,
-            onHorizontalDragEnd: (_) => _onHorizontalDragEnd(),
-            onHorizontalDragCancel: _onHorizontalDragEnd,
+            // 仅在 enableGestures=true 时注册长按和水平拖动
+            // （全屏控制层显示时禁用，避免和 Slider 抢手势）
+            onLongPressStart: widget.enableGestures
+                ? (_) => _onLongPressStart()
+                : null,
+            onLongPressEnd:
+                widget.enableGestures ? (_) => _onLongPressEnd() : null,
+            onLongPressCancel:
+                widget.enableGestures ? _onLongPressEnd : null,
+            onHorizontalDragStart:
+                widget.enableGestures ? _onHorizontalDragStart : null,
+            onHorizontalDragUpdate:
+                widget.enableGestures ? _onHorizontalDragUpdate : null,
+            onHorizontalDragEnd: widget.enableGestures
+                ? (_) => _onHorizontalDragEnd()
+                : null,
+            onHorizontalDragCancel:
+                widget.enableGestures ? _onHorizontalDragEnd : null,
             child: Container(color: Colors.transparent),
           ),
         ),
