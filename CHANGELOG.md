@@ -1,3 +1,10 @@
+## [1.107.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.6...v1.107.7) (2026-06-28)
+
+
+### Bug Fixes
+
+* **clean-mode:** 修双指按压显示按钮（补 PR [#74](https://github.com/1525745393/EmbyTok-Flutter/issues/74)） ([#75](https://github.com/1525745393/EmbyTok-Flutter/issues/75)) ([fe0e9b9](https://github.com/1525745393/EmbyTok-Flutter/commit/fe0e9b96b512d944b66056451ef9e0391aac6e66))
+
 ## [1.107.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.5...v1.107.6) (2026-06-28)
 
 
