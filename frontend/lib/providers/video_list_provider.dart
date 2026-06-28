@@ -119,6 +119,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         final nextStr = next.join(',');
         if (next.isNotEmpty && nextStr != prevStr) {
           AppLogger.debug('媒体库变化：[$prevStr] -> [$nextStr]，刷新视频列表');
+          // ★ 清除上一个媒体库的 playingItem（PR #61 修复）
+          // 原因：换媒体库后旧视频不应再被 _ensurePlayingItemFirst 强制插入到新列表
+          // 之前 _ensurePlayingItemFirst 读到旧 currentPlayingIdProvider，
+          // 在新 lib 数据中找不到就插入到 [0]，导致 feed 显示旧视频、grid 标"播放中"
+          _ref.read(currentPlayingIdProvider.notifier).state = null;
+          _ref.read(currentPlayingItemProvider.notifier).state = null;
           refresh();
         }
       },
