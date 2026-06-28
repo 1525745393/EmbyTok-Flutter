@@ -459,11 +459,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // 换一批：使用 SortBy=Random 服务端随机排序，获取 150 条随机视频
   //
   // 关键设计（避免破坏 feed/grid 跨视图定位）：
-  // 1. **只改 gridItems，不动 items**：shuffleRandom 是 grid 模式下的"换一批"按钮，
-  //    feed 模式的 items 是 feed 的数据源，不应被"换一批"重置
-  // 2. **不动 feedType/sortBy/sortOrder**：这些是 feed 的配置，
-  //    grid 的换一批不应影响 feed 后续切换回来的浏览模式
-  // 3. **保留当前在播视频到 gridItems 首位**：保证 PosterGridView 的
+  // 1. **同步更新 items 和 gridItems**：shuffleRandom 是 grid 模式下的"换一批"按钮，
+  //    grid 选 video 跳 feed 时（context.go('/?initialId=$id')）通过 _waitForInitialItemToLoad
+  //    在 items 中查找目标。如果只改 gridItems 不改 items，新一批的 video 在 feed 中找不到
+  //    会触发 loadMore 循环直到超时（PR #60 修复）。
+  // 2. **保留当前在播视频到列表首位**：保证 PosterGridView 的
   //    _scrollToPlayingId 能找到目标，"播放中"卡片能高亮
   Future<void> shuffleRandom() async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
@@ -526,13 +526,19 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       // 解决：调 _ensurePlayingItemFirst 把当前在播视频插到首位（保证能找到）。
       _ensurePlayingItemFirst(merged, source: 'shuffleRandom');
 
-      // ★ 只更新 gridItems，不动 items/feedType/sortBy
+      // ★ 同时更新 items + gridItems（PR #60 修复）
+      // - 仅改 gridItems 会导致 grid 选 video 跳 feed 时
+      //   _waitForInitialItemToLoad 在 items 中找不到目标，loadMore 循环超时
+      // - items 和 gridItems 内容一致：用户从 grid 选 video 跳 feed 后能正确定位
+      // - 不修改 feedType/sortBy/sortOrder
       state = state.copyWith(
+        items: merged,
         gridItems: merged,
         gridStartIndex: 0,
         isLoading: false,
         hasMore: false,
         error: null,
+        offset: merged.length,
       );
       AppLogger.debug('换一批成功', data: {'count': merged.length});
     } catch (e) {
