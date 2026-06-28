@@ -391,6 +391,11 @@ class _PosterCard extends ConsumerWidget {
 
     return TvFocusable(
       onTap: () {
+        // PR #73：grid 跳 feed 之前先把 gridItems 同步到 items
+        // 原因：换媒体库后 gridItems 已刷新但 items 可能未及时更新，
+        //       FeedView 的 _waitForInitialItemToLoad 在 items 中找不到目标会 loadMore 循环超时，
+        //       导致跳到错误位置播放。先 setItemsFromGrid 保证 items 反映当前 grid。
+        ref.read(videoListProvider.notifier).setItemsFromGrid();
         // 点击海报：通过路由透传 initialId 跳转到目标视频
         // - 路由：context.go('/?initialId=$id') 会触发路由重建
         // - HomeScaffold 把 initialItemId 透传给 FeedView
