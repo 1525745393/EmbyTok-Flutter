@@ -1,3 +1,10 @@
+## [1.107.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.3...v1.107.4) (2026-06-28)
+
+
+### Bug Fixes
+
+* **clean-mode:** 纯净模式下隐藏顶部栏 + 底部导航栏（PR [#72](https://github.com/1525745393/EmbyTok-Flutter/issues/72)） ([9186927](https://github.com/1525745393/EmbyTok-Flutter/commit/91869274057ff42394ef96fcf1cb39b86b6df1ca))
+
 ## [1.107.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.2...v1.107.3) (2026-06-28)
 
 
