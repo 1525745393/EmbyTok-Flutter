@@ -5,12 +5,20 @@
 // - 视频开始播放 4 秒后自动隐藏，保持 UI 纯净
 // - 视频暂停 / 控制条显示 / 单击屏幕时重新显示
 // - 用户拖动按钮后保留显示（不再自动隐藏，让用户看清新位置）
+//
+// PR #74：纯净模式下按钮持续隐藏
+// - show() / hide() 是被动调用（isPlaying 变化、单击屏幕等）
+// - 纯净模式下这些被动调用不再显示按钮（继续 _isHidden = true）
+// - 用户主动操作按钮（onPointerDown）仍然能强制显示（直接 setState 绕过）
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class DraggableCleanActions extends StatefulWidget {
+import '../../providers/providers.dart';
+
+class DraggableCleanActions extends ConsumerStatefulWidget {
   final Size containerSize;
   final double buttonWidth;
   final Widget buttons;
@@ -33,7 +41,7 @@ class DraggableCleanActions extends StatefulWidget {
   DraggableCleanActionsState createState() => DraggableCleanActionsState();
 }
 
-class DraggableCleanActionsState extends State<DraggableCleanActions> {
+class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
   late Offset _offset;
   Offset? _startPointer;
   Offset? _startOffset;
@@ -44,6 +52,9 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
   // 用户是否已经拖动过；拖动后停止 auto-hide 让用户看清新位置
   bool _userInteracted = false;
   Timer? _autoHideTimer;
+  // PR #74：纯净模式缓存（由 ref.listen 在 build 中同步）
+  // 用缓存字段避免在 show()/hide() 中直接 ref.read（State 中拿 ref 不安全）
+  bool _isAutoPlay = false;
 
   static const double _kDragThreshold = 10.0;
   static const double _kScaleFactor = 1.1;
@@ -104,8 +115,18 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
   /// 外部触发显示（视频暂停 / 控制条显示 / 单击屏幕时调用）
   ///
   /// 显示后按当前 [autoHideAfter] 重新调度隐藏。
+  ///
+  /// PR #74：纯净模式下按钮持续隐藏
+  /// - 纯净模式设计意图是"按钮永不显示"，但 PR #71 留了几个 show() 入口
+  ///   （isPlaying 变化、控制条显示、单击屏幕等），这些入口在纯净模式下应该无效
+  /// - 这里直接 return，不改变 _isHidden，也不调度 timer
+  /// - 用户主动操作按钮的 onPointerDown 仍然能强制显示（不经过本方法）
   void show() {
     if (!mounted) return;
+    if (_isAutoPlay) {
+      // 纯净模式：保持隐藏，不响应被动 show() 调用
+      return;
+    }
     if (_isHidden) {
       setState(() => _isHidden = false);
     }
@@ -123,6 +144,14 @@ class DraggableCleanActionsState extends State<DraggableCleanActions> {
 
   @override
   Widget build(BuildContext context) {
+    // PR #74：纯净模式缓存同步
+    // - ref.listen：异步同步到本地字段，触发 setState 不需要
+    // - ref.watch：触发当前 build（如果 isAutoPlay 变化，DraggableCleanActions 会重建）
+    // 这样 show() 调 _isAutoPlay 时拿到最新值
+    ref.listen<bool>(isAutoPlayProvider, (prev, next) {
+      _isAutoPlay = next;
+    });
+    _isAutoPlay = ref.watch(isAutoPlayProvider);
     final scheme = Theme.of(context).colorScheme;
     return Stack(
       children: [
