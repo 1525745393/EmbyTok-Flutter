@@ -6,23 +6,57 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'tv_focusable.dart';
 
+/// 媒体库选择器作用域（PR #66）
+///
+/// 视频流和推荐可分别设置媒体库。
+enum LibraryScope {
+  /// 视频流：用于 feed（视频流页面）
+  feed,
+
+  /// 推荐：用于 recommend（推荐页面）
+  recommend,
+}
+
+extension on LibraryScope {
+  String get title {
+    switch (this) {
+      case LibraryScope.feed:
+        return '视频流';
+      case LibraryScope.recommend:
+        return '推荐';
+    }
+  }
+}
+
 /// 媒体库选择器：居中弹窗，2列网格布局，多选模式
 ///
 /// 参考 EmbyX 实现：
 /// - 居中 Dialog 弹窗
 /// - 2 列网格卡片布局
-/// - 收藏夹入口（特殊卡片）
+/// - 收藏夹入口（特殊卡片，仅视频流）
 /// - 媒体库分组
 /// - 多选模式：点击切换选中状态，确认后关闭弹窗
+///
+/// PR #66：通过 [scope] 区分视频流/推荐的媒体库
+/// - scope=feed：操作 selectedLibraryIdsProvider，标记 feedLibraryConfigured
+/// - scope=recommend：操作 recommendLibraryIdsProvider，标记 recommendLibraryConfigured
 class LibrarySelector extends ConsumerStatefulWidget {
-  const LibrarySelector({super.key});
+  const LibrarySelector({super.key, this.scope = LibraryScope.feed});
+
+  /// 当前作用域（视频流 / 推荐）
+  final LibraryScope scope;
 
   /// 显示媒体库选择器（居中弹窗）
-  static Future<void> show(BuildContext context) {
+  ///
+  /// [scope] 决定操作哪个媒体库 provider
+  static Future<void> show(
+    BuildContext context, {
+    LibraryScope scope = LibraryScope.feed,
+  }) {
     return showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.6),
-      builder: (_) => const LibrarySelector(),
+      builder: (_) => LibrarySelector(scope: scope),
     );
   }
 
@@ -39,11 +73,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
     final visibleLibraries = ref.watch(visibleLibraryListProvider);
-    final selectedIds = ref.watch(selectedLibraryIdsProvider);
+    // PR #66：根据 scope 选择当前读哪个 provider
+    final selectedIds = widget.scope == LibraryScope.feed
+        ? ref.watch(selectedLibraryIdsProvider)
+        : ref.watch(recommendLibraryIdsProvider);
     final currentFeedType = ref.watch(feedTypeProvider);
 
-    // 判断是否为收藏夹模式
-    final isFavoritesMode = currentFeedType == FeedType.favorites;
+    // 判断是否为收藏夹模式（仅视频流有收藏夹）
+    final isFavoritesMode =
+        widget.scope == LibraryScope.feed && currentFeedType == FeedType.favorites;
 
     // 初始化本地选中状态（仅首次打开弹窗时）
     if (_localSelectedIds.isEmpty && selectedIds.isNotEmpty) {
@@ -82,8 +120,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   const SizedBox(width: 10),
                   Text(
                     _localSelectedIds.isEmpty
-                        ? '选择媒体库'
-                        : '选择媒体库 (已选 ${_localSelectedIds.length} 个)',
+                        ? '选择媒体库 - ${widget.scope.title}'
+                        : '选择媒体库 - ${widget.scope.title} (已选 ${_localSelectedIds.length} 个)',
                     style: TextStyle(
                       color: scheme.onSurface,
                       fontSize: 18,
@@ -182,36 +220,40 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 收藏夹入口（特殊卡片）
-          _buildSectionTitle(scheme, '快捷入口'),
-          const SizedBox(height: 8),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.4,
-            children: [
-              _buildLibraryCard(
-                scheme: scheme,
-                icon: Icons.favorite,
-                name: '收藏夹',
-                count: null,
-                isSelected: favoritesSelected,
-                onTap: () {
-                  ref.read(feedTypeProvider.notifier).setType(FeedType.favorites);
-                  ref.read(videoListProvider.notifier).refresh();
-                  Navigator.of(context).pop();
-                },
-                gradientColors: [
-                  scheme.primary.withOpacity(0.6),
-                  scheme.primary.withOpacity(0.2),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+          // 收藏夹入口（特殊卡片，仅视频流显示，PR #66）
+          if (widget.scope == LibraryScope.feed) ...[
+            _buildSectionTitle(scheme, '快捷入口'),
+            const SizedBox(height: 8),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.4,
+              children: [
+                _buildLibraryCard(
+                  scheme: scheme,
+                  icon: Icons.favorite,
+                  name: '收藏夹',
+                  count: null,
+                  isSelected: favoritesSelected,
+                  onTap: () {
+                    ref.read(feedTypeProvider.notifier).setType(FeedType.favorites);
+                    ref.read(videoListProvider.notifier).refresh();
+                    // PR #66：标记视频流媒体库已配置（避免再次弹引导）
+                    ref.read(feedLibraryConfiguredProvider.notifier).set(true);
+                    Navigator.of(context).pop();
+                  },
+                  gradientColors: [
+                    scheme.primary.withOpacity(0.6),
+                    scheme.primary.withOpacity(0.2),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
           // 媒体库分组
           _buildSectionTitle(scheme, '媒体库'),
           const SizedBox(height: 8),
@@ -264,11 +306,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 onPressed: _localSelectedIds.isEmpty
                     ? null
                     : () {
-                        // 应用选择
-                        // 仅 setLibraries：selectedLibraryIdsProvider 监听器会自动触发 refresh
-                        // 不再手动调用 setType(latest) 和 refresh()，
-                        // 避免和监听器里的 refresh 重复触发导致 race condition（PR #60 修复）
-                        ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                        // PR #66：根据 scope 写到对应 provider
+                        // 仅 setLibraries：selectedLibraryIdsProvider / recommendLibraryIdsProvider
+                        // 监听器会自动触发 refresh（PR #60 修复过的逻辑）
+                        if (widget.scope == LibraryScope.feed) {
+                          ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                          ref.read(feedLibraryConfiguredProvider.notifier).set(true);
+                        } else {
+                          ref.read(recommendLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                          ref.read(recommendLibraryConfiguredProvider.notifier).set(true);
+                        }
                         Navigator.of(context).pop();
                       },
                 child: const Text('确认'),

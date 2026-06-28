@@ -43,6 +43,13 @@ const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
 const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
 const String kStorageKeySelectedLibraryId = 'embbytok_selected_library_id';
+// 媒体库选择：推荐页独立（PR #66：视频流 / 推荐可分别设置）
+const String kStorageKeySelectedLibraryIdForRecommend =
+    'embbytok_selected_library_id_for_recommend';
+// 媒体库首次配置标记（PR #66：未配置时进入对应页面自动弹 LibrarySelector）
+const String kStorageKeyFeedLibraryConfigured = 'embbytok_feed_library_configured';
+const String kStorageKeyRecommendLibraryConfigured =
+    'embbytok_recommend_library_configured';
 const String kStorageKeyActorsCache = 'embbytok_actors_cache';
 const String kStorageKeyActorsCacheTime = 'embbytok_actors_cache_time';
 const String kStorageKeyActorsCachePrefix = 'embbytok_actors_cache_';

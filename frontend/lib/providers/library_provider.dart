@@ -70,8 +70,12 @@ final selectedLibraryIdsProvider =
 
 class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   final Ref _ref;
+  // 持久化 key：默认视频流用原 key；推荐页传自定义 key（PR #66）
+  final String _storageKey;
 
-  SelectedLibraryNotifier(this._ref) : super(const <String>[]) {
+  SelectedLibraryNotifier(this._ref, {String? storageKey})
+      : _storageKey = storageKey ?? kStorageKeySelectedLibraryId,
+        super(const <String>[]) {
     // 从 SharedPreferences 恢复上次选中的媒体库
     _loadSaved();
     // 监听媒体库列表变化，首次加载时自动选中（优先恢复上次选择）
@@ -140,7 +144,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   Future<void> _loadSaved() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _savedLibraryId = prefs.getString(kStorageKeySelectedLibraryId);
+      _savedLibraryId = prefs.getString(_storageKey);
     } catch (_) {}
   }
 
@@ -148,7 +152,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
     _savedLibraryId = id;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(kStorageKeySelectedLibraryId, id);
+      await prefs.setString(_storageKey, id);
     } catch (_) {}
   }
 
@@ -180,3 +184,72 @@ final selectedLibrariesProvider = Provider<List<Library>>((ref) {
   if (selectedIds.isEmpty) return const <Library>[];
   return libraries.where((lib) => selectedIds.contains(lib.id)).toList();
 });
+
+// ==================== 推荐独立媒体库（PR #66 新增）====================
+//
+// 背景：之前视频流和推荐共用 selectedLibraryIdsProvider，
+//       但用户希望两者可以分别选媒体库（例如视频流用「电影」库，
+//       推荐用「全部」库混合评分推荐）。
+//
+// 设计：复用 SelectedLibraryNotifier，单独持久化 key。
+
+/// 推荐页选中的媒体库 ID 列表
+final recommendLibraryIdsProvider =
+    StateNotifierProvider<SelectedLibraryNotifier, List<String>>(
+  (ref) => SelectedLibraryNotifier(
+    ref,
+    storageKey: kStorageKeySelectedLibraryIdForRecommend,
+  ),
+);
+
+/// 推荐选中的所有 Library 对象
+final recommendLibrariesProvider = Provider<List<Library>>((ref) {
+  final libraries = ref.watch(visibleLibraryListProvider);
+  final selectedIds = ref.watch(recommendLibraryIdsProvider);
+  if (selectedIds.isEmpty) return const <Library>[];
+  return libraries.where((lib) => selectedIds.contains(lib.id)).toList();
+});
+
+// ==================== 首次配置标记（PR #66 新增）====================
+//
+// 设计：用户首次进入「视频流」/「推荐」页面时，如果对应媒体库还没配置过，
+//       自动弹 LibrarySelector 让用户必须选一次。点过「确认」就标记为已配置。
+//
+// 持久化：SharedPreferences bool 字段。
+//         - 老用户已用过视频流：feedLibraryConfigured = true（不弹）
+//         - 老用户可能没用过推荐：recommendLibraryConfigured = false（首次进推荐页会弹）
+
+class _BoolConfigNotifier extends StateNotifier<bool> {
+  _BoolConfigNotifier(this._storageKey) : super(false) {
+    _load();
+  }
+
+  final String _storageKey;
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      state = prefs.getBool(_storageKey) ?? false;
+    } catch (_) {}
+  }
+
+  Future<void> set(bool value) async {
+    state = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_storageKey, value);
+    } catch (_) {}
+  }
+}
+
+/// 视频流媒体库是否已配置（首次进入 /recommend /feed 前检测）
+final feedLibraryConfiguredProvider =
+    StateNotifierProvider<_BoolConfigNotifier, bool>(
+  (ref) => _BoolConfigNotifier(kStorageKeyFeedLibraryConfigured),
+);
+
+/// 推荐页媒体库是否已配置
+final recommendLibraryConfiguredProvider =
+    StateNotifierProvider<_BoolConfigNotifier, bool>(
+  (ref) => _BoolConfigNotifier(kStorageKeyRecommendLibraryConfigured),
+);
