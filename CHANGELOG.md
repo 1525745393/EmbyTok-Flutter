@@ -1,3 +1,10 @@
+## [1.106.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.8...v1.106.9) (2026-06-28)
+
+
+### Bug Fixes
+
+* **grid/feed:** 换一批同步 items + 移除换库重复 refresh ([#60](https://github.com/1525745393/EmbyTok-Flutter/issues/60)) ([9e5b5a2](https://github.com/1525745393/EmbyTok-Flutter/commit/9e5b5a2aacfb0f65cf56008b8988ad9248818859))
+
 ## [1.106.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.7...v1.106.8) (2026-06-28)
 
 
