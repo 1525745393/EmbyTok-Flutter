@@ -265,9 +265,10 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     ? null
                     : () {
                         // 应用选择
+                        // 仅 setLibraries：selectedLibraryIdsProvider 监听器会自动触发 refresh
+                        // 不再手动调用 setType(latest) 和 refresh()，
+                        // 避免和监听器里的 refresh 重复触发导致 race condition（PR #60 修复）
                         ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
-                        ref.read(feedTypeProvider.notifier).setType(FeedType.latest);
-                        ref.read(videoListProvider.notifier).refresh();
                         Navigator.of(context).pop();
                       },
                 child: const Text('确认'),
