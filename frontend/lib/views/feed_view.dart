@@ -670,19 +670,11 @@ class _FeedViewState extends ConsumerState<FeedView>
             ),
           ],
         ),
-        // 右侧：媒体库管理和视图切换按钮
+        // 右侧：视图切换按钮
+        // 注：PR #68 删除「媒体库管理」按钮，媒体库配置已搬到设置页
+        //     （设置 → 媒体库 → 「视频流使用」/「推荐使用」）
         Row(
           children: [
-            // 媒体库管理按钮（打开多选弹窗）
-            IconButton(
-              icon: Icon(
-                Icons.library_books,
-                color: scheme.onSurface.withOpacity(0.7),
-                size: 22,
-              ),
-              onPressed: () => LibrarySelector.show(context),
-              tooltip: '媒体库',
-            ),
             // 视图切换按钮
             IconButton(
               icon: Icon(
