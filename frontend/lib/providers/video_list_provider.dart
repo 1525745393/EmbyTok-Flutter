@@ -579,6 +579,21 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     });
   }
 
+  // PR #73：grid 跳 feed 时把 gridItems 同步到 items
+  // 场景：用户在 grid 视图选 video 跳到 feed（context.go('/?initialId=$id')），
+  //       FeedView 接收 initialId 后调 _waitForInitialItemToLoad 在 items 中查找。
+  //       但 grid 的 gridItems（已是新数据）跟 feed 的 items（可能未及时刷新）不一致，
+  //       就会找不到目标 → loadMore 循环载入旧/新库视频 → 超时跳到 index 0 → 播放错视频。
+  // 解决：在 onTap 中先调本方法，让 items 反映 gridItems，再 setMode(feed) + go，
+  //       _waitForInitialItemToLoad 必定能在 items 中找到用户点的视频。
+  void setItemsFromGrid() {
+    if (identical(state.items, state.gridItems)) return; // 已经一致，无需更新
+    state = state.copyWith(items: state.gridItems);
+    AppLogger.debug('grid 跳 feed：items 同步为 gridItems', data: {
+      'itemsCount': state.items.length,
+    });
+  }
+
   // 清除当前错误状态（SnackBar 弹出后重置，避免重复弹出）
   void clearError() {
     state = state.copyWith(error: null);

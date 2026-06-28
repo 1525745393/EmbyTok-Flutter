@@ -98,6 +98,17 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final seenIds = <String>{};
     final merged = <MediaItem>[];
 
+    // PR #73：过滤非视频类型 item
+    // 修复 Emby Suggestions API 返回 Tag/Genre 类型字段导致推荐页显示非视频的问题
+    const allowedTypes = <String>{
+      'Movie',
+      'Episode',
+      'Video',
+      'MusicVideo',
+      'Series',
+    };
+    bool isVideo(MediaItem item) => allowedTypes.contains(item.type);
+
     try {
       // 1. Emby Suggestions 个性化推荐
       try {
@@ -108,6 +119,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           userId: auth.user?.id,
         );
         for (final item in suggestions) {
+          if (!isVideo(item)) continue;
           if (seenIds.add(item.id)) merged.add(item);
         }
       } catch (e) {
@@ -126,6 +138,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             userId: auth.user?.id,
           );
           for (final item in resp.items) {
+            if (!isVideo(item)) continue;
             if (seenIds.add(item.id)) merged.add(item);
           }
         } catch (e) {
