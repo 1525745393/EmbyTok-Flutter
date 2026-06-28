@@ -1,3 +1,10 @@
+# [1.107.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.13...v1.107.0) (2026-06-28)
+
+
+### Features
+
+* **library:** 视频流和推荐可分别设置媒体库 ([#66](https://github.com/1525745393/EmbyTok-Flutter/issues/66)) ([4ac80b0](https://github.com/1525745393/EmbyTok-Flutter/commit/4ac80b0d1f33eab2c2fcc5cd3699a30292f76df1))
+
 ## [1.106.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.12...v1.106.13) (2026-06-28)
 
 
