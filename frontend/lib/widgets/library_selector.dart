@@ -69,6 +69,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   Set<String> _localSelectedIds = {};
 
   @override
+  void initState() {
+    super.initState();
+    // PR #67：打开弹窗时强制重载 libraryListProvider
+    // 背景：libraryListProvider 之前某次加载失败（网络/401 等）会留下 error 状态
+    //       且 Riverpod 不会自动重试 FutureProvider，导致 LibrarySelector
+    //       永远显示「加载失败」。这里 invalidate 强制重跑，error 时给「重试」按钮
+    ref.invalidate(libraryListProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
@@ -170,12 +180,52 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     child: CircularProgressIndicator(color: scheme.primary),
                   ),
                 ),
-                error: (_, __) => Center(
+                // PR #67：error 分支增强——显示具体错误 + 重试按钮
+                // 解决：libraryListProvider 之前失败后缓存 error 状态，
+                //       旧实现只显示「加载失败」让用户无解
+                error: (err, _) => Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      '加载失败',
-                      style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: scheme.onSurface.withOpacity(0.5),
+                          size: 48,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          '加载失败',
+                          style: TextStyle(
+                            color: scheme.onSurface,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          err?.toString() ?? '未知错误',
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurface.withOpacity(0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('重试'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.primary,
+                          ),
+                          // 重试 = 重新 invalidate，强制重跑 FutureProvider
+                          onPressed: () =>
+                              ref.invalidate(libraryListProvider),
+                        ),
+                      ],
                     ),
                   ),
                 ),
