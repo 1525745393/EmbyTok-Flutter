@@ -1,3 +1,10 @@
+## [1.107.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.1...v1.107.2) (2026-06-28)
+
+
+### Bug Fixes
+
+* **library:** 媒体库选择不持久化（PR [#70](https://github.com/1525745393/EmbyTok-Flutter/issues/70)） ([9f7dcad](https://github.com/1525745393/EmbyTok-Flutter/commit/9f7dcadf29a739931ca55582a7355e088ecba138))
+
 ## [1.107.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.0...v1.107.1) (2026-06-28)
 
 
