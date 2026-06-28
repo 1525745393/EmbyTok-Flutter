@@ -21,6 +21,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../widgets/gesture_overlay.dart';
 import '../widgets/video_controls.dart';
 
 /// 全屏视频播放页
@@ -179,25 +180,35 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
       // PopScope 拦截系统返回键，退出全屏
       body: PopScope(
         canPop: true,
-        child: GestureDetector(
-          // 点击屏幕切换控制层显隐
-          onTap: _toggleControls,
-          child: Stack(
-            children: [
-              // 居中显示视频：保持原 aspectRatio，黑色背景填剩余空间
-              if (controller != null && controller.value.isInitialized)
-                Center(
+        child: Stack(
+          children: [
+            // 居中显示视频：保持原 aspectRatio，黑色背景填剩余空间
+            // 外层包 GestureOverlay 启用完整手势（单击切换控制层 / 双击 ±10s /
+            // 长按 2x 倍速 / 水平拖动 seek）
+            //
+            // enableGestures 在控制层隐藏时启用，避免和控制层 Slider 抢手势
+            if (controller != null && controller.value.isInitialized)
+              GestureOverlay(
+                controller: controller,
+                // playingItem 通常非空（从 VideoPageItem 进入全屏时已设置）；
+                // 极端情况下为 null 时用空 MediaItem 兜底，双击点赞自然无效
+                item: playingItem ??
+                    const MediaItem(id: '', title: '', type: 'Unknown'),
+                onSingleTap: _toggleControls,
+                enableGestures: !_controlsVisible,
+                child: Center(
                   child: AspectRatio(
                     aspectRatio: controller.value.aspectRatio == 0
                         ? 16 / 9
                         : controller.value.aspectRatio,
                     child: VideoPlayer(controller),
                   ),
-                )
-              else
-                const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
                 ),
+              )
+            else
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
 
               // 顶部：标题 + 退出全屏按钮（控制层可见时显示）
               if (_controlsVisible)
