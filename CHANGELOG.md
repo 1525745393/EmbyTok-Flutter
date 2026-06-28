@@ -1,3 +1,10 @@
+## [1.107.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.0...v1.107.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* **library-selector:** 打开弹窗强制重载 + 加载失败加重试按钮 ([#67](https://github.com/1525745393/EmbyTok-Flutter/issues/67)) ([3c31681](https://github.com/1525745393/EmbyTok-Flutter/commit/3c3168151422649afaf081428c71063a0f4bd9bc))
+
 # [1.107.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.13...v1.107.0) (2026-06-28)
 
 
