@@ -148,18 +148,27 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     );
   }
 
-  // 跳转到视频流播放
+  // 跳转到独立播放页（/play/:itemId）
+  //
+  // PR #63 修复：之前 context.go('/?initialId=item.id') 跳到首页视频流，
+  // 但推荐页是独立数据源（Emby Suggestions + 多库评分推荐），推荐 video
+  // 不在 video_list.items 中 → FeedView._waitForInitialItemToLoad 找不到
+  // → loadMore 100 次（约 5 秒）超时 → 用户看到的不是推荐 video
+  //
+  // 现在改用 /play/:itemId 独立播放页（[PlaybackShell]），用推荐页的 items
+  // 作为滑动列表，用户在播放页可以左右滑动看其他推荐 video。
   void _playItem(
     BuildContext context,
     MediaItem item,
     List<MediaItem> items,
   ) {
-    // 推荐页 → 视频流：使用路由 `?initialId=` 模式
-    // 这样：
-    //   1. 进入视频流（HomeScaffold → FeedView）
-    //   2. FeedView 启动时通过 initialId 定位到该视频
-    //   3. 视频流与 grid 完全独立，推荐页本身不消耗 video_list_provider
-    context.go('/?initialId=${item.id}');
+    context.push(
+      '/play/${item.id}',
+      extra: <String, dynamic>{
+        'item': item,
+        'items': items,
+      },
+    );
   }
 }
 
