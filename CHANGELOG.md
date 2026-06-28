@@ -1,3 +1,10 @@
+## [1.106.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.9...v1.106.10) (2026-06-28)
+
+
+### Bug Fixes
+
+* **playback:** 换媒体库时清除上一个媒体库的 playingItem ([#61](https://github.com/1525745393/EmbyTok-Flutter/issues/61)) ([be0e3dc](https://github.com/1525745393/EmbyTok-Flutter/commit/be0e3dcb22156055919e56c5cddab0ea366fe686))
+
 ## [1.106.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.8...v1.106.9) (2026-06-28)
 
 
