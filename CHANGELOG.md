@@ -1,3 +1,10 @@
+# [1.109.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.108.0...v1.109.0) (2026-06-28)
+
+
+### Features
+
+* **recommend:** 推荐规则全面优化 (PR [#78](https://github.com/1525745393/EmbyTok-Flutter/issues/78)) ([#78](https://github.com/1525745393/EmbyTok-Flutter/issues/78)) ([a82493b](https://github.com/1525745393/EmbyTok-Flutter/commit/a82493b81b83b7b34cc1fe1e6217baa6da6bd2c6))
+
 # [1.108.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.8...v1.108.0) (2026-06-28)
 
 
