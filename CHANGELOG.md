@@ -1,3 +1,10 @@
+## [1.106.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.10...v1.106.11) (2026-06-28)
+
+
+### Bug Fixes
+
+* **fullscreen:** 全屏页补全播放控制 ([#62](https://github.com/1525745393/EmbyTok-Flutter/issues/62)) ([bbc431a](https://github.com/1525745393/EmbyTok-Flutter/commit/bbc431a373f9a4ca10544db7e6052be6527ebf98))
+
 ## [1.106.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.9...v1.106.10) (2026-06-28)
 
 
