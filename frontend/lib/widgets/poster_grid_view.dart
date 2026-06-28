@@ -30,6 +30,39 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   String? _lastScrolledPlayingId;
   // 上次滚动时的 gridItems 引用（用于检测 gridItems 是否被换了一批）
   List<MediaItem>? _lastScrolledGridItems;
+  // 上次 viewMode 是否为 grid（用于检测"hidden → visible"切换）
+  bool _wasGridVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 首帧后：若初始就是 grid 视图，强制触发一次定位滚动
+    // 原因：grid view 在 IndexedStack 中如果从一开始就是 visible，
+    // 第一次 build 时 _scrollToPlayingId 同步执行，controller 可能尚未 attach
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final viewMode = ref.read(viewModeProvider);
+      if (viewMode == ViewMode.grid) {
+        _wasGridVisible = true;
+        _resetAndTryScroll(reason: 'initState/postFrame');
+      }
+    });
+  }
+
+  // 重置去重状态并重试滚动
+  // 触发时机：grid view 从 hidden 变 visible 时（IndexedStack 切换）
+  // 原因：grid view 在 IndexedStack 中 hidden 时 GridView 不渲染，
+  // controller 没 attach，之前 _scrollToPlayingId 帧轮询 30 次后会放弃
+  // 切回 visible 时必须重新触发，否则用户看不到定位
+  void _resetAndTryScroll({required String reason}) {
+    _lastScrolledPlayingId = null;
+    _lastScrolledGridItems = null;
+    final playingId = ref.read(currentPlayingIdProvider);
+    if (playingId != null && playingId.isNotEmpty) {
+      AppLogger.debug('网格：重置去重并重试滚动', data: {'reason': reason, 'itemId': playingId});
+      _scrollToPlayingId(playingId);
+    }
+  }
 
   // 滚动到当前正在播放的视频位置
   // 设计：feed 切回 grid 时，gridItems 已包含 currentPlayingIdProvider 指示的当前在播视频。
@@ -127,6 +160,23 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
     // 全局"当前在播"信号源：用于定位 + 高亮回显
     final playingId = ref.watch(currentPlayingIdProvider);
+    // 视图模式：用于检测 grid view 从 hidden → visible
+    final viewMode = ref.watch(viewModeProvider);
+    final isGridVisible = viewMode == ViewMode.grid;
+
+    // ★ 关键：grid view 从 hidden 变 visible 时重置去重状态
+    // 原因：grid view 在 IndexedStack 中 hidden 时 GridView 不渲染，
+    // controller 没 attach，之前 _scrollToPlayingId 帧轮询 30 次后会放弃
+    // 切到 visible 时必须重新触发，否则用户看不到定位
+    if (isGridVisible && !_wasGridVisible) {
+      _wasGridVisible = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _resetAndTryScroll(reason: 'hidden→visible');
+      });
+    } else if (!isGridVisible && _wasGridVisible) {
+      _wasGridVisible = false;
+    }
 
     if (gridItems.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: scheme.primary));
