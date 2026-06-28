@@ -12,12 +12,16 @@
 // 配合：VideoPageItem._onVideoChanged 持续同步 position 到
 // currentPositionProvider，全局任意时刻可读到精确进度。
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import '../models/models.dart';
 import '../providers/providers.dart';
+import '../widgets/video_controls.dart';
 
 /// 全屏视频播放页
 ///
@@ -32,6 +36,11 @@ class FullscreenVideoPage extends ConsumerStatefulWidget {
 }
 
 class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
+  // 控制层（VideoControls）的显隐
+  bool _controlsVisible = true;
+  // 自动隐藏计时器
+  Timer? _hideTimer;
+
   @override
   void initState() {
     super.initState();
@@ -50,23 +59,108 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
         ref.read(isFullscreenProvider.notifier).state = true;
       }
     });
+    // 默认 4 秒后自动隐藏控制层
+    _startHideTimer();
   }
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     // 退出全屏：恢复竖屏 + 恢复系统 UI
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.edgeToEdge,
       overlays: SystemUiOverlay.values,
     );
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    // 标记全局全屏状态
-    // 注意：dispose() 内 ref 已无 mounted 属性；用 State.mounted 即可
-    Future.microtask(() {
-      if (!mounted) return;
-      ref.read(isFullscreenProvider.notifier).state = false;
-    });
+    // 直接写 isFullscreenProvider（不通过 Future.microtask：
+    // dispose 内 mounted 已为 false，Future.microtask 中 mounted 检查会让 state=false 永远不生效）
+    // 这是 PR #62 修复点
+    ref.read(isFullscreenProvider.notifier).state = false;
     super.dispose();
+  }
+
+  // 自动隐藏控制层（4 秒无操作）
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() => _controlsVisible = false);
+      }
+    });
+  }
+
+  // 切换控制层显隐
+  void _toggleControls() {
+    setState(() => _controlsVisible = !_controlsVisible);
+    if (_controlsVisible) {
+      _startHideTimer();
+    } else {
+      _hideTimer?.cancel();
+    }
+  }
+
+  // 退出全屏
+  void _exitFullscreen() {
+    Navigator.of(context).pop();
+  }
+
+  // 计算 onNextEpisode / onPrevEpisode：复用 FeedView._jumpToNextEpisode 逻辑
+  // 全屏页不能直接调用 FeedView 的 _pageController，通过 feedViewPageJumpRequestProvider 通信
+  VoidCallback? _computeOnNextEpisode(MediaItem? playingItem, List<MediaItem> items) {
+    if (playingItem == null) return null;
+    final currentIndex = items.indexWhere((i) => i.id == playingItem.id);
+    if (currentIndex < 0) return null;
+
+    // 剧集类内容：找同 series 的下一集（参考 FeedView._jumpToNextEpisode）
+    final series = playingItem.seriesName;
+    if (series != null && series.isNotEmpty) {
+      // 优先找同 series 的下一集
+      final nextSameSeries = items.indexWhere(
+        (i) =>
+            i.id != playingItem.id &&
+            i.seriesName == series &&
+            (i.indexNumber ?? 0) > (playingItem.indexNumber ?? 0),
+      );
+      if (nextSameSeries >= 0) {
+        return () {
+          ref.read(feedViewPageJumpRequestProvider.notifier).state = nextSameSeries;
+        };
+      }
+    }
+    // 否则切到 items 中的下一个
+    if (currentIndex + 1 < items.length) {
+      return () {
+        ref.read(feedViewPageJumpRequestProvider.notifier).state = currentIndex + 1;
+      };
+    }
+    return null;
+  }
+
+  VoidCallback? _computeOnPrevEpisode(MediaItem? playingItem, List<MediaItem> items) {
+    if (playingItem == null) return null;
+    final currentIndex = items.indexWhere((i) => i.id == playingItem.id);
+    if (currentIndex < 0) return null;
+
+    final series = playingItem.seriesName;
+    if (series != null && series.isNotEmpty) {
+      final prevSameSeries = items.lastIndexWhere(
+        (i) =>
+            i.id != playingItem.id &&
+            i.seriesName == series &&
+            (i.indexNumber ?? 0) < (playingItem.indexNumber ?? 0),
+      );
+      if (prevSameSeries >= 0) {
+        return () {
+          ref.read(feedViewPageJumpRequestProvider.notifier).state = prevSameSeries;
+        };
+      }
+    }
+    if (currentIndex - 1 >= 0) {
+      return () {
+        ref.read(feedViewPageJumpRequestProvider.notifier).state = currentIndex - 1;
+      };
+    }
+    return null;
   }
 
   @override
@@ -74,167 +168,106 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
     // ★ 关键：从全局 store 读取同一个 controller
     // 不要在这里创建新 controller！那是进度丢失的根源。
     final controller = ref.watch(currentVideoControllerProvider);
-    final item = ref.watch(currentPlayingItemProvider);
+    final playingItem = ref.watch(currentPlayingItemProvider);
+    final items = ref.watch(videoListProvider.select((s) => s.items));
+
+    final onNextEpisode = _computeOnNextEpisode(playingItem, items);
+    final onPrevEpisode = _computeOnPrevEpisode(playingItem, items);
 
     return Scaffold(
       backgroundColor: Colors.black,
       // PopScope 拦截系统返回键，退出全屏
       body: PopScope(
         canPop: true,
-        child: Stack(
-          children: [
-            // 居中显示视频：保持原 aspectRatio，黑色背景填剩余空间
-            if (controller != null && controller.value.isInitialized)
-              Center(
-                child: AspectRatio(
-                  aspectRatio: controller.value.aspectRatio == 0
-                      ? 16 / 9
-                      : controller.value.aspectRatio,
-                  child: VideoPlayer(controller),
+        child: GestureDetector(
+          // 点击屏幕切换控制层显隐
+          onTap: _toggleControls,
+          child: Stack(
+            children: [
+              // 居中显示视频：保持原 aspectRatio，黑色背景填剩余空间
+              if (controller != null && controller.value.isInitialized)
+                Center(
+                  child: AspectRatio(
+                    aspectRatio: controller.value.aspectRatio == 0
+                        ? 16 / 9
+                        : controller.value.aspectRatio,
+                    child: VideoPlayer(controller),
+                  ),
+                )
+              else
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 ),
-              )
-            else
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            // 顶部：标题 + 退出全屏按钮
-            Positioned(
-              left: 0, right: 0, top: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.fullscreen_exit,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip: '退出全屏',
-                    ),
-                    if (item != null)
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+
+              // 顶部：标题 + 退出全屏按钮（控制层可见时显示）
+              if (_controlsVisible)
+                Positioned(
+                  left: 0, right: 0, top: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: AnimatedOpacity(
+                      opacity: _controlsVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.fullscreen_exit,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: _exitFullscreen,
+                            tooltip: '退出全屏',
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          if (playingItem != null)
+                            Expanded(
+                              child: Text(
+                                playingItem.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 底部：复用小屏的 VideoControls（含 play/pause + 上一集/下一集 +
+              // 可拖动 seek 进度条 + 倍速 + 字幕 + 退出全屏按钮）
+              // 控制层可见时显示，隐藏时不显示
+              if (_controlsVisible && controller != null && controller.value.isInitialized)
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: AnimatedOpacity(
+                      opacity: _controlsVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: IgnorePointer(
+                        ignoring: !_controlsVisible,
+                        child: VideoControls(
+                          controller: controller,
+                          subtitleTracks: playingItem?.subtitleTracks ?? const <SubtitleTrack>[],
+                          onPrevEpisode: onPrevEpisode,
+                          onNextEpisode: onNextEpisode,
+                          // onToggleFullscreen 由 VideoControls 内部的"全屏"按钮调用，
+                          // 但我们已经处于全屏，禁用该按钮（不传）
+                          onToggleFullscreen: null,
+                          isInFullscreen: true,
                         ),
                       ),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            // 底部：进度条（从全局 controller 读取）
-            if (controller != null && controller.value.isInitialized)
-              Positioned(
-                left: 0, right: 0, bottom: 0,
-                child: SafeArea(
-                  top: false,
-                  child: _FullscreenProgressBar(controller: controller),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 全屏页底部进度条：读 controller 实时进度，点击可 seek
-class _FullscreenProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
-  const _FullscreenProgressBar({required this.controller});
-
-  @override
-  State<_FullscreenProgressBar> createState() => _FullscreenProgressBarState();
-}
-
-class _FullscreenProgressBarState extends State<_FullscreenProgressBar> {
-  // 监听 controller 变化，刷新进度条
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onControllerChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
-    super.dispose();
-  }
-
-  void _onControllerChanged() {
-    if (mounted) setState(() {});
-  }
-
-  String _fmt(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    final s = d.inSeconds.remainder(60);
-    if (h > 0) {
-      return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-    }
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final v = widget.controller.value;
-    final pos = v.position;
-    final dur = v.duration;
-    final progress = dur.inMilliseconds > 0
-        ? pos.inMilliseconds / dur.inMilliseconds
-        : 0.0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.black54],
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.white,
-              inactiveTrackColor: Colors.white24,
-              thumbColor: Colors.white,
-              overlayColor: Colors.white24,
-              trackHeight: 3,
-            ),
-            child: Slider(
-              value: progress.clamp(0.0, 1.0),
-              onChanged: (v) {
-                final target = Duration(
-                  milliseconds: (v * dur.inMilliseconds).round(),
-                );
-                widget.controller.seekTo(target);
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _fmt(pos),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-              Text(
-                _fmt(dur),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
