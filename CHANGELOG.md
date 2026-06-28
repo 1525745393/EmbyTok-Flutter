@@ -1,3 +1,10 @@
+# [1.108.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.8...v1.108.0) (2026-06-28)
+
+
+### Features
+
+* **feed/topbar:** 顶部栏添加视频流按钮 + 推荐中文 + 横向可滚动 (PR [#77](https://github.com/1525745393/EmbyTok-Flutter/issues/77)) ([#77](https://github.com/1525745393/EmbyTok-Flutter/issues/77)) ([c84e3e4](https://github.com/1525745393/EmbyTok-Flutter/commit/c84e3e48c9a0f2597a1f7601b83f27bd524fa3c6))
+
 ## [1.107.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.7...v1.107.8) (2026-06-28)
 
 
