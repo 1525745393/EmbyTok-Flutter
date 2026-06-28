@@ -391,16 +391,17 @@ class _PosterCard extends ConsumerWidget {
 
     return TvFocusable(
       onTap: () {
-        // PR #73：grid 跳 feed 之前先把 gridItems 同步到 items
-        // 原因：换媒体库后 gridItems 已刷新但 items 可能未及时更新，
-        //       FeedView 的 _waitForInitialItemToLoad 在 items 中找不到目标会 loadMore 循环超时，
-        //       导致跳到错误位置播放。先 setItemsFromGrid 保证 items 反映当前 grid。
-        ref.read(videoListProvider.notifier).setItemsFromGrid();
-        // 点击海报：通过路由透传 initialId 跳转到目标视频
-        // - 路由：context.go('/?initialId=$id') 会触发路由重建
-        // - HomeScaffold 把 initialItemId 透传给 FeedView
-        // - FeedView 接收后调用 _waitForInitialItemToLoad → _jumpToPageWhenReady
+        // PR #76：grid 跳 feed 时同步跳到用户点的视频
+        // 解决"有正在播放 + 换库 + grid 点 video"场景下跳错的 bug
+        // 之前 setItemsFromGrid + setMode(feed) + context.go 三步分开，
+        // 依赖 widget.initialItemId 变化触发 _waitForInitialItemToLoad，
+        // 但 setMode 触发的 build 中 initialId 可能还没更新（context.go 时序）
+        // 现在 setItemsFromGridAndJumpTo 显式触发 feedViewPageJumpRequestProvider，
+        // FeedView.initState 中 listen 这个 provider，强制 jumpToPage(targetIndex)
+        ref.read(videoListProvider.notifier).setItemsFromGridAndJumpTo(item.id);
+        // 切换到 feed 模式（让 PageView 渲染新 items）
         ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
+        // 路由透传 initialId（保持 _waitForInitialItemToLoad 逻辑一致）
         context.go('/?initialId=${Uri.encodeComponent(item.id)}');
       },
       borderRadius: 8,
