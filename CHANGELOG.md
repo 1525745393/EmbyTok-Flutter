@@ -1,3 +1,10 @@
+## [1.107.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.7...v1.107.8) (2026-06-28)
+
+
+### Bug Fixes
+
+* **feed/grid:** grid 跳 feed 时显式跳页（PR [#76](https://github.com/1525745393/EmbyTok-Flutter/issues/76)） ([#76](https://github.com/1525745393/EmbyTok-Flutter/issues/76)) ([a057ac7](https://github.com/1525745393/EmbyTok-Flutter/commit/a057ac7b00611916e2915a1a9b40e85a8b7f4791))
+
 ## [1.107.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.107.6...v1.107.7) (2026-06-28)
 
 
