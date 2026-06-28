@@ -1,3 +1,11 @@
+## [1.106.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.12...v1.106.13) (2026-06-28)
+
+
+### Bug Fixes
+
+* **fullscreen:** 修复 PR [#64](https://github.com/1525745393/EmbyTok-Flutter/issues/64) merge 后多余的右括号导致编译错误 ([#65](https://github.com/1525745393/EmbyTok-Flutter/issues/65)) ([3b5b6f3](https://github.com/1525745393/EmbyTok-Flutter/commit/3b5b6f342f258d33e452f404d794f713fbbbf8c4))
+* **fullscreen:** 全屏页补全手势（长按倍速 / 滑动拖动 / 双击 ±10s） ([#64](https://github.com/1525745393/EmbyTok-Flutter/issues/64)) ([4602f46](https://github.com/1525745393/EmbyTok-Flutter/commit/4602f469b08346140ce1e63b2570cb487cb067b1))
+
 ## [1.106.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.11...v1.106.12) (2026-06-28)
 
 
