@@ -76,41 +76,58 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   SelectedLibraryNotifier(this._ref, {String? storageKey})
       : _storageKey = storageKey ?? kStorageKeySelectedLibraryId,
         super(const <String>[]) {
-    // 从 SharedPreferences 恢复上次选中的媒体库
-    _loadSaved();
+    // 启动异步恢复流程：先从 SharedPreferences 读取 savedId，
+    // 完成后通过 _loadFuture 通知监听器（避免 race condition）
+    _loadFuture = _loadSaved();
     // 监听媒体库列表变化，首次加载时自动选中（优先恢复上次选择）
     _ref.listen<AsyncValue<List<Library>>>(
       libraryListProvider,
-      (previous, next) {
-        next.whenData((libraries) {
-          final hiddenIds = _ref.read(hiddenLibraryIdsProvider);
-          final visible = libraries
-              .where((lib) => !hiddenIds.contains(lib.id))
-              .toList();
-          if (visible.isEmpty) return;
-          // 如果当前没有选择，优先恢复上次保存的，否则选第一个
-          if (state.isEmpty) {
-            final savedId = _savedLibraryId;
-            if (savedId != null && visible.any((lib) => lib.id == savedId)) {
-              state = <String>[savedId];
-            } else {
-              state = <String>[visible.first.id];
-            }
-          } else {
-            // 如果当前选择的媒体库中没有一个存在于可见列表中，重新选择
-            final stillExists = visible.any((lib) => state.contains(lib.id));
-            if (!stillExists) {
-              final savedId = _savedLibraryId;
-              if (savedId != null && visible.any((lib) => lib.id == savedId)) {
-                state = <String>[savedId];
-              } else {
-                state = <String>[visible.first.id];
-              }
-            }
-          }
-        });
+      (previous, next) async {
+        // 关键：等待 _loadSaved() 完成后再读取 _savedLibraryId。
+        // 否则监听器可能比 _loadSaved() 先触发，拿到 null 后
+        // fallback 到 visible.first.id，导致用户上次选择丢失（PR #70）
+        await _loadFuture;
+        next.whenData(_onLibrariesLoaded);
       },
     );
+  }
+
+  /// 媒体库列表到达后的恢复/校验逻辑
+  ///
+  /// 提取为独立方法，便于 _loadSaved 完成后主动重放。
+  void _onLibrariesLoaded(List<Library> libraries) {
+    final hiddenIds = _ref.read(hiddenLibraryIdsProvider);
+    final visible = libraries
+        .where((lib) => !hiddenIds.contains(lib.id))
+        .toList();
+    if (visible.isEmpty) return;
+    // 如果当前没有选择，优先恢复上次保存的（PR #70：多选恢复整组 ID）
+    if (state.isEmpty) {
+      final savedIds = _savedLibraryIds;
+      // 只保留磁盘上仍可见的 ID
+      final restored = savedIds
+          .where((id) => visible.any((lib) => lib.id == id))
+          .toList();
+      if (restored.isNotEmpty) {
+        state = restored;
+      } else {
+        state = <String>[visible.first.id];
+      }
+    } else {
+      // 如果当前选择的媒体库中没有一个存在于可见列表中，重新选择
+      final stillExists = visible.any((lib) => state.contains(lib.id));
+      if (!stillExists) {
+        final savedIds = _savedLibraryIds;
+        final restored = savedIds
+            .where((id) => visible.any((lib) => lib.id == id))
+            .toList();
+        if (restored.isNotEmpty) {
+          state = restored;
+        } else {
+          state = <String>[visible.first.id];
+        }
+      }
+    }
   }
 
   /// 切换单个媒体库的选中状态
@@ -128,31 +145,54 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   /// 手动设置为单个媒体库（用于 chips 单击快捷切换）
   void setLibrary(String libraryId) {
     state = <String>[libraryId];
-    _saveLibraryId(libraryId);
+    _saveLibraries(<String>[libraryId]);
   }
 
   /// 设置为指定的 ID 列表
   void setLibraries(List<String> libraryIds) {
     state = libraryIds;
-    if (libraryIds.isNotEmpty) _saveLibraryId(libraryIds.first);
+    // PR #70：持久化完整列表，修复多选时只保存第一个 ID 的 bug
+    _saveLibraries(libraryIds);
   }
 
   // ========== 持久化 ==========
 
-  String? _savedLibraryId;
+  // 磁盘上保存的媒体库 ID 列表（PR #70：支持多选恢复整组 ID）
+  // - 新格式：SharedPreferences StringList
+  // - 老格式：SharedPreferences String（单选 ID），仅作向后兼容
+  List<String> _savedLibraryIds = const <String>[];
+  // 缓存 _loadSaved() 的 Future，确保 _ref.listen 回调能 await
+  // 同一个加载流程，避免每次都重新读盘
+  late Future<void> _loadFuture;
 
   Future<void> _loadSaved() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _savedLibraryId = prefs.getString(_storageKey);
+      // 优先用 StringList 读多选列表（PR #70 起的格式）
+      final list = prefs.getStringList(_storageKey);
+      if (list != null) {
+        _savedLibraryIds = list;
+        return;
+      }
+      // 兼容老格式：单选 ID
+      final single = prefs.getString(_storageKey);
+      if (single != null && single.isNotEmpty) {
+        _savedLibraryIds = <String>[single];
+      }
     } catch (_) {}
   }
 
-  Future<void> _saveLibraryId(String id) async {
-    _savedLibraryId = id;
+  /// 持久化整个 ID 列表（PR #70：多选不再丢）
+  Future<void> _saveLibraries(List<String> ids) async {
+    _savedLibraryIds = ids;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_storageKey, id);
+      if (ids.isEmpty) {
+        // 清空选择：删除 key 而非存空列表，避免下次启动恢复成空
+        await prefs.remove(_storageKey);
+      } else {
+        await prefs.setStringList(_storageKey, ids);
+      }
     } catch (_) {}
   }
 
