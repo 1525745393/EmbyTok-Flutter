@@ -1,3 +1,10 @@
+## [1.106.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.7...v1.106.8) (2026-06-28)
+
+
+### Bug Fixes
+
+* **grid:** 网格视图 hidden→visible 切换时重置去重并重试滚动 ([#59](https://github.com/1525745393/EmbyTok-Flutter/issues/59)) ([8f58e9c](https://github.com/1525745393/EmbyTok-Flutter/commit/8f58e9cf1ff117ba30bd578465d4de92517972e2))
+
 ## [1.106.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.106.6...v1.106.7) (2026-06-28)
 
 
