@@ -1,3 +1,16 @@
+# [1.117.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.116.0...v1.117.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **recommend:** 修复 PR [#89](https://github.com/1525745393/EmbyTok-Flutter/issues/89) loadMore 缺失 userRating 变量 ([09af49f](https://github.com/1525745393/EmbyTok-Flutter/commit/09af49fca29343364c414322daf5a16b851d4b82))
+
+
+### Features
+
+* **recommend:** 用户评分加权（Emby UserData.Rating） ([#89](https://github.com/1525745393/EmbyTok-Flutter/issues/89)) ([86b13b3](https://github.com/1525745393/EmbyTok-Flutter/commit/86b13b39e0f8574b68d1378ebc5bb2cd7cef7b4d))
+* **recommend:** 用户评分加权（Emby UserData.Rating） (PR [#89](https://github.com/1525745393/EmbyTok-Flutter/issues/89)) ([8a6a1ed](https://github.com/1525745393/EmbyTok-Flutter/commit/8a6a1edea0af279921fc966ec7007fccbe6d61e9))
+
 # [1.116.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.115.0...v1.116.0) (2026-06-29)
 
 
