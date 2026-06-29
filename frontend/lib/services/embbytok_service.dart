@@ -296,6 +296,7 @@ class EmbytokService {
   // 推荐列表：按社区评分从高到低排序，评分阈值 4.0（满分 10）
   // 默认排除已观看（IsPlayed=false），避免推已完结的视频
   // 评分阈值可通过 minCommunityRating 参数覆盖（PR #78：推荐优化）
+  // includeItemTypes 可控制推荐范围（PR #79：类型偏好）
   // ============================
   Future<PaginatedResponse<MediaItem>> getRecommendations({
     int limit = 20,
@@ -306,8 +307,11 @@ class EmbytokService {
     String? token,
     double minCommunityRating = 4.0,
     bool excludePlayed = true,
+    Set<String>? includeItemTypes,
   }) async {
     _ensureConfig(serverUrl, token);
+    final types = includeItemTypes ??
+        const <String>{'Movie', 'Episode', 'Video', 'MusicVideo', 'Series'};
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
@@ -318,7 +322,7 @@ class EmbytokService {
       'MinCommunityRating': minCommunityRating.toStringAsFixed(1),
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'IncludeItemTypes': types.join(','),
       'ExcludeItemTypes': 'Playlist',
       // 过滤已观看视频（避免推荐已看完的影片）
       // 注：Resume 列表不受此影响，由 getResumeItems 单独处理

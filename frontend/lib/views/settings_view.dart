@@ -53,6 +53,7 @@ class SettingsView extends ConsumerWidget {
               _buildRecommendMinRatingTile(context, ref),
               _buildRecommendExcludePlayedTile(context, ref),
               _buildRecommendMinRuntimeTile(context, ref),
+              _buildRecommendIncludeTypesTile(context, ref),
             ],
           ),
           // 播放设置
@@ -336,6 +337,77 @@ class SettingsView extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // PR #79：推荐 - 类型偏好
+  // 5 个可切换的类型（多选）
+  static const Map<String, String> _kRecommendTypeLabels = {
+    'Movie': '电影',
+    'Episode': '剧集',
+    'Video': '视频',
+    'MusicVideo': '音乐视频',
+    'Series': '电视剧',
+  };
+
+  Widget _buildRecommendIncludeTypesTile(BuildContext context, WidgetRef ref) {
+    final types = ref.watch(recommendIncludeTypesProvider);
+    return _TapTile(
+      icon: Icons.category_outlined,
+      iconColor: Colors.indigo,
+      title: '推荐类型',
+      subtitle: _formatTypes(types),
+      onTap: () => _showRecommendTypesDialog(context, ref, types),
+    );
+  }
+
+  String _formatTypes(Set<String> types) {
+    if (types.length == 5) return '全部类型';
+    return types
+        .map((t) => _kRecommendTypeLabels[t] ?? t)
+        .toList()
+        .join('、');
+  }
+
+  void _showRecommendTypesDialog(
+      BuildContext context, WidgetRef ref, Set<String> current) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: const Text('推荐类型'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _kRecommendTypeLabels.entries.map((entry) {
+                  final type = entry.key;
+                  final label = entry.value;
+                  final checked = current.contains(type);
+                  return CheckboxListTile(
+                    value: checked,
+                    onChanged: (_) async {
+                      await ref
+                          .read(recommendIncludeTypesProvider.notifier)
+                          .toggle(type);
+                      if (!context.mounted) return;
+                      setLocalState(() {});
+                    },
+                    title: Text(label),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('完成'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
