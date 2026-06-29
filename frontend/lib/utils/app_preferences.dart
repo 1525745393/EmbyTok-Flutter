@@ -143,6 +143,14 @@ class AppPreferences {
   final bool recommendExcludePlayed;
   final int recommendMinRuntimeSec;
   final Set<String> recommendIncludeTypes;
+  // PR #85：用户控制推荐门控
+  // - recommendUseWatchHistory: 是否用完播率优化推荐（false = 用默认信号，无门控）
+  // - recommendHalfLifeDays: 时间衰减半衰期（天）
+  //   - 0 = 不衰减（所有记录等权重）
+  //   - 14 = 默认 14 天衰减
+  //   - 范围 [0, 90]
+  final bool recommendUseWatchHistory;
+  final double recommendHalfLifeDays;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -166,6 +174,8 @@ class AppPreferences {
       'MusicVideo',
       'Series',
     },
+    this.recommendUseWatchHistory = true,
+    this.recommendHalfLifeDays = 14.0,
   });
 
   AppPreferences copyWith({
@@ -184,6 +194,8 @@ class AppPreferences {
     bool? recommendExcludePlayed,
     int? recommendMinRuntimeSec,
     Set<String>? recommendIncludeTypes,
+    bool? recommendUseWatchHistory,
+    double? recommendHalfLifeDays,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -202,6 +214,10 @@ class AppPreferences {
       recommendMinRuntimeSec: recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
       recommendIncludeTypes:
           recommendIncludeTypes ?? this.recommendIncludeTypes,
+      recommendUseWatchHistory:
+          recommendUseWatchHistory ?? this.recommendUseWatchHistory,
+      recommendHalfLifeDays:
+          recommendHalfLifeDays ?? this.recommendHalfLifeDays,
     );
   }
 }
@@ -269,6 +285,11 @@ class AppPreferencesService {
             'MusicVideo',
             'Series',
           };
+    // PR #85：用户控制推荐门控
+    final recommendUseWatchHistory =
+        prefs.getBool(kStorageKeyRecommendUseWatchHistory) ?? true;
+    final recommendHalfLifeDays =
+        prefs.getDouble(kStorageKeyRecommendHalfLifeDays) ?? 14.0;
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -286,6 +307,8 @@ class AppPreferencesService {
       recommendExcludePlayed: recommendExcludePlayed,
       recommendMinRuntimeSec: recommendMinRuntimeSec,
       recommendIncludeTypes: recommendIncludeTypes,
+      recommendUseWatchHistory: recommendUseWatchHistory,
+      recommendHalfLifeDays: recommendHalfLifeDays,
     );
   }
 
@@ -313,6 +336,11 @@ class AppPreferencesService {
         kStorageKeyRecommendIncludeTypes,
         preferences.recommendIncludeTypes.toList(growable: false),
       ),
+      // PR #85：用户控制推荐门控
+      prefs.setBool(
+          kStorageKeyRecommendUseWatchHistory, preferences.recommendUseWatchHistory),
+      prefs.setDouble(
+          kStorageKeyRecommendHalfLifeDays, preferences.recommendHalfLifeDays),
     ]);
   }
 

@@ -288,8 +288,15 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #83：计算用户行为信号（基于完播率历史）
     // - 冷启动（记录 < 5）使用默认信号
     // - 否则按 source 聚合完播率，计算权重 + 黑名单 + 高完播种子
+    // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     final stats = _ref.read(watchStatsProvider);
-    final signal = UserBehaviorSignalCalculator.compute(stats.records);
+    final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
+    final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
+    final signal = UserBehaviorSignalCalculator.compute(
+      stats.records,
+      useWatchHistory: useWatchHistory,
+      halfLifeDays: halfLifeDays,
+    );
     if (signal.strength != SignalStrength.weak) {
       AppLogger.debug('推荐：用户行为信号', data: {
         'strength': signal.strength.name,
@@ -416,8 +423,15 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final seenIds = state.items.map((i) => i.id).toSet();
 
     // PR #83：计算用户行为信号
+    // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     final stats = _ref.read(watchStatsProvider);
-    final signal = UserBehaviorSignalCalculator.compute(stats.records);
+    final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
+    final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
+    final signal = UserBehaviorSignalCalculator.compute(
+      stats.records,
+      useWatchHistory: useWatchHistory,
+      halfLifeDays: halfLifeDays,
+    );
 
     const allowedTypes = <String>{
       'Movie',

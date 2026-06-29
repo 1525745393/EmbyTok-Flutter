@@ -267,3 +267,60 @@ final recommendIncludeTypesProvider =
     StateNotifierProvider<RecommendIncludeTypesNotifier, Set<String>>(
   (ref) => RecommendIncludeTypesNotifier(),
 );
+
+// PR #85：用户控制推荐门控（完播率门控开关）
+// - true（默认）：用完播率历史计算用户行为信号（黑名单/权重/种子）
+// - false：使用默认信号（无门控，推荐结果完全由 Emby 服务器决定）
+class RecommendUseWatchHistoryNotifier extends StateNotifier<bool> {
+  RecommendUseWatchHistoryNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendUseWatchHistory;
+  }
+
+  Future<void> setUse(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendUseWatchHistory: value),
+    );
+  }
+}
+
+final recommendUseWatchHistoryProvider =
+    StateNotifierProvider<RecommendUseWatchHistoryNotifier, bool>(
+  (ref) => RecommendUseWatchHistoryNotifier(),
+);
+
+// PR #85：用户控制 - 时间衰减半衰期（天）
+// - 0 = 不衰减（所有记录等权重，与 PR #84 之前行为一致）
+// - 14 = 默认 14 天半衰期
+// - 范围 [0, 90]（3 个月为最大记忆窗口）
+class RecommendHalfLifeDaysNotifier extends StateNotifier<double> {
+  RecommendHalfLifeDaysNotifier() : super(14.0) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendHalfLifeDays;
+  }
+
+  Future<void> setDays(double days) async {
+    // 范围限制 [0, 90]
+    final clamped = days.clamp(0.0, 90.0);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendHalfLifeDays: clamped),
+    );
+  }
+}
+
+final recommendHalfLifeDaysProvider =
+    StateNotifierProvider<RecommendHalfLifeDaysNotifier, double>(
+  (ref) => RecommendHalfLifeDaysNotifier(),
+);

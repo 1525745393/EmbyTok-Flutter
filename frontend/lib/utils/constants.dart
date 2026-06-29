@@ -46,6 +46,11 @@ const String kStorageKeyRecommendExcludePlayed = 'embbytok_recommend_exclude_pla
 const String kStorageKeyRecommendMinRuntimeSec = 'embbytok_recommend_min_runtime_sec';
 // PR #79：推荐 - 类型偏好（Movie/Episode/Video/MusicVideo/Series 的子集）
 const String kStorageKeyRecommendIncludeTypes = 'embbytok_recommend_include_types';
+// PR #85：推荐 - 用户控制（完播率门控开关 + 时间衰减半衰期）
+const String kStorageKeyRecommendUseWatchHistory =
+    'embbytok_recommend_use_watch_history';
+const String kStorageKeyRecommendHalfLifeDays =
+    'embbytok_recommend_half_life_days';
 // PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
 const String kStorageKeyRecommendCache = 'embytok_recommend_cache';
 const String kStorageKeyRecommendCacheTime = 'embytok_recommend_cache_time';
