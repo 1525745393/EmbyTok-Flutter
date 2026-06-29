@@ -37,6 +37,13 @@ class UserBehaviorSignal {
   /// - 替换原"最近高分项"做相似推荐种子
   final List<String> highCompletionSeeds;
 
+  /// PR #86：收藏种子项（用户主动收藏的 itemId）
+  /// - 用户在 Emby 中收藏的 item 代表强烈兴趣
+  /// - 用于：
+  ///   1. 相似推荐种子（与高完播种子合并，收藏优先）
+  ///   2. 黑名单豁免（用户主动喜欢 > 系统推断不爱看）
+  final List<String> favoriteSeeds;
+
   /// 信号强度：用于日志和调试
   /// - weak = 记录数 < 5，使用默认信号
   /// - strong = 记录数 >= 20
@@ -46,6 +53,7 @@ class UserBehaviorSignal {
     required this.sourceWeights,
     required this.blacklist,
     required this.highCompletionSeeds,
+    required this.favoriteSeeds,
     required this.strength,
   });
 
@@ -64,6 +72,7 @@ class UserBehaviorSignal {
     },
     blacklist: <String>{},
     highCompletionSeeds: <String>[],
+    favoriteSeeds: <String>[],
     strength: SignalStrength.weak,
   );
 
@@ -130,18 +139,36 @@ class UserBehaviorSignalCalculator {
   /// - 可选 halfLifeDays：时间衰减半衰期（PR #85）
   ///   - 0 = 不衰减（所有记录等权重）
   ///   - 默认 14.0
+  /// - 可选 favoriteIds：用户收藏的 itemIds（PR #86）
+  ///   - 进入 favoriteSeeds
+  ///   - 黑名单豁免（用户主动喜欢 > 系统推断不爱看）
   static UserBehaviorSignal compute(
     List<WatchRecord> records, {
     DateTime? now,
     bool useWatchHistory = true,
     double halfLifeDays = _defaultHalfLifeDays,
+    Set<String> favoriteIds = const <String>{},
   }) {
     // PR #85：用户关闭完播率门控 → 直接返回默认信号
     if (!useWatchHistory) {
-      return UserBehaviorSignal.defaults;
+      return UserBehaviorSignal(
+        sourceWeights: UserBehaviorSignal.defaults.sourceWeights,
+        blacklist: UserBehaviorSignal.defaults.blacklist,
+        highCompletionSeeds: UserBehaviorSignal.defaults.highCompletionSeeds,
+        // PR #86：即使关闭门控，也保留收藏种子
+        favoriteSeeds: favoriteIds.toList(growable: false),
+        strength: SignalStrength.weak,
+      );
     }
     if (records.length < _minRecordsForSignal) {
-      return UserBehaviorSignal.defaults;
+      // 冷启动：仍保留收藏种子
+      return UserBehaviorSignal(
+        sourceWeights: UserBehaviorSignal.defaults.sourceWeights,
+        blacklist: UserBehaviorSignal.defaults.blacklist,
+        highCompletionSeeds: UserBehaviorSignal.defaults.highCompletionSeeds,
+        favoriteSeeds: favoriteIds.toList(growable: false),
+        strength: SignalStrength.weak,
+      );
     }
 
     final strength = records.length < 20
@@ -151,9 +178,11 @@ class UserBehaviorSignalCalculator {
 
     return UserBehaviorSignal(
       sourceWeights: _computeSourceWeights(records, reference, halfLifeDays),
-      // 黑名单和种子不使用时间衰减（避免反复进出）
-      blacklist: _computeBlacklist(records),
+      // PR #86：黑名单过滤 - 收藏项不进入黑名单（用户主动喜欢 > 系统推断不爱看）
+      blacklist: _computeBlacklist(records, favoriteIds: favoriteIds),
       highCompletionSeeds: _computeHighCompletionSeeds(records),
+      // PR #86：收藏种子直接来自收藏列表
+      favoriteSeeds: favoriteIds.toList(growable: false),
       strength: strength,
     );
   }
@@ -253,11 +282,17 @@ class UserBehaviorSignalCalculator {
   /// 计算黑名单（不使用时间衰减，避免反复进出）
   /// - 规则 1：同一 item 累计 3 次完播率 < 0.2 → 加入
   /// - 规则 2：任何 1 次完播率 < 0.1 → 立即加入
-  static Set<String> _computeBlacklist(List<WatchRecord> records) {
+  /// - PR #86：收藏项不进入黑名单（用户主动标记喜欢 > 系统推断不爱看）
+  static Set<String> _computeBlacklist(
+    List<WatchRecord> records, {
+    Set<String> favoriteIds = const <String>{},
+  }) {
     final lowRateByItem = <String, int>{}; // itemId -> 低完播次数
     final zeroByItem = <String>{}; // itemId -> 有 0.1 以下记录的
 
     for (final r in records) {
+      // PR #86：收藏项不参与黑名单统计
+      if (favoriteIds.contains(r.itemId)) continue;
       if (r.completionRate < _blacklistLowRate) {
         lowRateByItem[r.itemId] = (lowRateByItem[r.itemId] ?? 0) + 1;
       }

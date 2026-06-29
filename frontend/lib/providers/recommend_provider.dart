@@ -35,6 +35,7 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
+import 'favorites_provider.dart';
 import 'library_provider.dart';
 import 'recommend_signals.dart';
 import 'watch_stats_provider.dart';
@@ -289,13 +290,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // - 冷启动（记录 < 5）使用默认信号
     // - 否则按 source 聚合完播率，计算权重 + 黑名单 + 高完播种子
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
+    // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
+    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
       halfLifeDays: halfLifeDays,
+      favoriteIds: favoriteIds,
     );
     if (signal.strength != SignalStrength.weak) {
       AppLogger.debug('推荐：用户行为信号', data: {
@@ -424,13 +428,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     // PR #83：计算用户行为信号
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
+    // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
+    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
       halfLifeDays: halfLifeDays,
+      favoriteIds: favoriteIds,
     );
 
     const allowedTypes = <String>{
@@ -509,7 +516,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     };
 
     // PR #83：黑名单过滤辅助 - 已加入黑名单的 item 跳过
-    bool isBlacklisted(MediaItem item) => signal.blacklist.contains(item.id);
+    // PR #86：收藏项不应用黑名单（用户主动喜欢 > 系统推断不爱看）
+    bool isBlacklisted(MediaItem item) =>
+        signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
 
     Future<void> fetchNextUp() async {
       try {
@@ -569,6 +578,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
     // - signal.highCompletionSeeds 不为空：从中筛 communityRating >= 7.0 的项
     // - 为空：降级用"最近高分项"（与 PR #78 一致）
+    // PR #86：收藏项优先作为相似种子
+    // - 收藏种子从 watch history 中筛（确保有 communityRating 字段）
+    // - 合并顺序：收藏 > 完播 > 降级（去重）
     Future<void> fetchSimilarFromRecentHighRated() async {
       try {
         final history = await service.getWatchHistory(
@@ -577,26 +589,51 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           serverUrl: auth.embyServerUrl!,
           token: auth.token!,
         );
-        final List<MediaItem> seeds;
-        if (signal.highCompletionSeeds.isNotEmpty) {
-          // PR #83：完播率种子 + 高分二次过滤
-          final seedSet = signal.highCompletionSeeds.toSet();
-          seeds = history
-              .where((i) =>
-                  seedSet.contains(i.id) &&
-                  (i.communityRating ?? 0) >= _similarSeedMinRating)
-              .toList();
-        } else {
-          // 降级：原 PR #78 逻辑
-          seeds = history
-              .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
-              .toList();
+        // PR #86：合并相似种子 - 收藏 > 完播 > 降级
+        final seedByItemId = <String, MediaItem>{};
+
+        // 1. 收藏种子（PR #86）：用户主动标记喜欢的项
+        if (signal.favoriteSeeds.isNotEmpty) {
+          final favoriteSet = signal.favoriteSeeds.toSet();
+          for (final item in history) {
+            if (favoriteSet.contains(item.id)) {
+              seedByItemId[item.id] = item;
+            }
+          }
         }
-        final highRated = seeds.take(_similarSeedCount).toList();
-        if (highRated.isEmpty) {
+
+        // 2. 完播种子（PR #83）：用户在历史中完播率高的项
+        if (signal.highCompletionSeeds.isNotEmpty) {
+          final completionSet = signal.highCompletionSeeds.toSet();
+          for (final item in history) {
+            // 已存在的（来自收藏）跳过 - 保留收藏优先
+            if (seedByItemId.containsKey(item.id)) continue;
+            if (completionSet.contains(item.id)) {
+              seedByItemId[item.id] = item;
+            }
+          }
+        }
+
+        // 3. 降级：最近高分项（PR #78 行为，仅在种子不足时填充）
+        if (seedByItemId.isEmpty) {
+          for (final item in history) {
+            if ((item.communityRating ?? 0) >= _similarSeedMinRating) {
+              seedByItemId.putIfAbsent(item.id, () => item);
+            }
+          }
+        }
+
+        // 取 Top N 评分项
+        final highRated = seedByItemId.values
+            .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
+            .toList()
+          ..sort((a, b) =>
+              (b.communityRating ?? 0).compareTo(a.communityRating ?? 0));
+        final topSeeds = highRated.take(_similarSeedCount).toList();
+        if (topSeeds.isEmpty) {
           return;
         }
-        final similarLists = await Future.wait(highRated.map((seed) async {
+        final similarLists = await Future.wait(topSeeds.map((seed) async {
           try {
             return await service.getSimilarItems(
               seed.id,
