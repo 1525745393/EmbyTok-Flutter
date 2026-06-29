@@ -287,6 +287,12 @@ class MediaItem {
   // 有效评分：取 communityRating / rating 第一个有效值
   double? get displayRating => communityRating ?? rating;
 
+  // PR #89：用户对该 item 的评分（从 userData.rating 读取）
+  // - null = 用户未评分
+  // - 区别于 displayRating（社区评分）
+  // - 用法：推荐时按用户评分加权
+  double? get userRating => userData?.rating;
+
   // 加入日期（从 rawJson 读取 DateCreated）
   DateTime? get dateCreated {
     final raw = rawJson?['DateCreated'] as String?;

@@ -1,4 +1,4 @@
-// 用户数据模型：播放进度、收藏、已观看等状态
+// 用户数据模型：播放进度、收藏、已观看、用户评分等状态
 class UserData {
   final double playbackPositionTicks;  // 已播放时长（tick 单位）
   final bool isFavorite;                // 是否已收藏
@@ -6,6 +6,11 @@ class UserData {
   final int unplayedItemCount;          // 未看集数（用于剧集/季）
   final String? lastPlayedDate;         // 最后播放日期
   final int playCount;                  // 播放次数
+  // PR #89：用户对该 item 的评分（0-10，null = 未评分）
+  // - 来源：Emby `UserData.Rating`
+  // - 区别于 communityRating（社区评分）
+  // - 用法：推荐时按用户评分加权（高分优先）
+  final double? rating;
 
   const UserData({
     this.playbackPositionTicks = 0.0,
@@ -14,6 +19,7 @@ class UserData {
     this.unplayedItemCount = 0,
     this.lastPlayedDate,
     this.playCount = 0,
+    this.rating,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -22,6 +28,10 @@ class UserData {
         (json['playback_position_ticks'] as num?)?.toInt() ??
         (json['playbackPositionTicks'] as int?) ??
         0;
+    // PR #89：解析用户评分（Emby `UserData.Rating`，0-10）
+    final rating = (json['Rating'] as num?)?.toDouble() ??
+        (json['rating'] as num?)?.toDouble() ??
+        (json['user_rating'] as num?)?.toDouble();
     return UserData(
       playbackPositionTicks: posTicks.toDouble(),
       isFavorite: (json['IsFavorite'] as bool?) ??
@@ -40,6 +50,7 @@ class UserData {
           (json['play_count'] as int?) ??
           (json['playCount'] as int?) ??
           0,
+      rating: rating,
     );
   }
 
@@ -50,5 +61,6 @@ class UserData {
         'unplayed_item_count': unplayedItemCount,
         'last_played_date': lastPlayedDate,
         'play_count': playCount,
+        'rating': rating,
       };
 }

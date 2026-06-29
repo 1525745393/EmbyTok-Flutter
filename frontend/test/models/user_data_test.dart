@@ -50,6 +50,31 @@ void main() {
         expect(data.unplayedItemCount, 0);
         expect(data.lastPlayedDate, isNull);
       });
+
+      // ========== PR #89：用户评分（UserData.Rating） ==========
+      test('PR #89：解析 Emby PascalCase Rating', () {
+        final json = {
+          'IsFavorite': false,
+          'Played': true,
+          'Rating': 7.5,
+        };
+        final data = UserData.fromJson(json);
+        expect(data.rating, 7.5);
+      });
+
+      test('PR #89：解析 snake_case rating', () {
+        final json = {
+          'is_favorite': false,
+          'rating': 8.0,
+        };
+        final data = UserData.fromJson(json);
+        expect(data.rating, 8.0);
+      });
+
+      test('PR #89：未提供 rating 时为 null', () {
+        final data = UserData.fromJson(<String, dynamic>{});
+        expect(data.rating, isNull);
+      });
     });
 
     group('toJson', () {
@@ -67,6 +92,12 @@ void main() {
         expect(json['played'], true);
         expect(json['unplayed_item_count'], 3);
         expect(json['last_played_date'], '2024-01-10');
+      });
+
+      test('PR #89：toJson 包含 rating', () {
+        const data = UserData(rating: 6.5);
+        final json = data.toJson();
+        expect(json['rating'], 6.5);
       });
     });
   });
