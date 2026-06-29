@@ -171,6 +171,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _controlsHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
+    // PR #81：用户中途退出记录完播率（仅在未完整播放时记录，避免重复）
+    // - 视频完整播放时已在 _onVideoChanged 中记录 100%
+    if (!_hasNotifiedEnded && _hasStartedReported) {
+      final ctrl = _videoController;
+      if (ctrl != null && ctrl.value.isInitialized) {
+        final pos = ctrl.value.position;
+        final dur = ctrl.value.duration;
+        if (dur.inMilliseconds > 0) {
+          final rate = pos.inMilliseconds / dur.inMilliseconds;
+          ref.read(watchStatsProvider.notifier).recordWatch(
+                itemId: widget.item.id,
+                itemType: widget.item.type,
+                itemTitle: widget.item.title,
+                completionRate: rate,
+              );
+        }
+      }
+    }
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
     final ctrl = ref.read(currentVideoControllerProvider);
     if (ctrl != null && identical(ctrl, _videoController)) {
@@ -218,6 +236,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
         _reportPlaybackStopped();
+        // PR #81：完播率统计 - 视频完整播放（100%）
+        ref.read(watchStatsProvider.notifier).recordWatch(
+              itemId: widget.item.id,
+              itemType: widget.item.type,
+              itemTitle: widget.item.title,
+              completionRate: 1.0,
+            );
         unawaited(_service.markAsPlayed(
           widget.item.id,
           serverUrl: _authServerUrl(),

@@ -19,6 +19,8 @@ export 'recommend_provider.dart';
 export 'favorites_provider.dart';
 export 'favorites_service_provider.dart';
 export 'watch_history_provider.dart';
+// PR #81：完播率统计
+export 'watch_stats_provider.dart';
 
 // ---- 搜索 ----
 export 'search_provider.dart';

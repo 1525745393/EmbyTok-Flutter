@@ -97,6 +97,15 @@ class SettingsView extends ConsumerWidget {
               _buildCacheTile(context, ref),
             ],
           ),
+          // PR #81：观看统计
+          _buildSection(
+            context,
+            ref,
+            '统计',
+            [
+              _buildWatchStatsTile(context, ref),
+            ],
+          ),
           // 服务器设置
           _buildSection(
             context,
@@ -521,6 +530,23 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // PR #81：观看统计 tile
+  // - 显示总次数 + 平均完播率
+  // - 点击查看详情 + 清除按钮
+  Widget _buildWatchStatsTile(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(watchStatsProvider);
+    final avg = (stats.avgCompletion * 100).toStringAsFixed(0);
+    return _TapTile(
+      icon: Icons.analytics_outlined,
+      iconColor: Colors.deepPurple,
+      title: '观看统计',
+      subtitle: stats.totalCount == 0
+          ? '暂无数据'
+          : '总 ${stats.totalCount} 次 · 平均完播率 $avg%',
+      onTap: () => _showWatchStatsDialog(context, ref),
+    );
+  }
+
   // 服务器 - 服务器信息
   Widget _buildServerInfoTile(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
@@ -937,6 +963,162 @@ class SettingsView extends ConsumerWidget {
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('清除', style: TextStyle(color: scheme.onError)),
           ),
+        ],
+      ),
+    );
+  }
+
+  // PR #81：观看统计详情对话框
+  // - 显示总次数、平均完播率、最近 7 天统计、最近 10 条记录
+  // - 提供"清除统计"按钮
+  void _showWatchStatsDialog(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (_) => Consumer(builder: (context, ref, _) {
+        final stats = ref.watch(watchStatsProvider);
+        return AlertDialog(
+          backgroundColor: scheme.surface,
+          title: Text('观看统计', style: TextStyle(color: scheme.onSurface)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 概览
+                  _buildStatRow(scheme, '总观看次数', '${stats.totalCount}'),
+                  _buildStatRow(
+                    scheme,
+                    '平均完播率',
+                    '${(stats.avgCompletion * 100).toStringAsFixed(0)}%',
+                  ),
+                  _buildStatRow(
+                      scheme, '最近 7 天', '${stats.last7DaysCount} 次'),
+                  _buildStatRow(
+                    scheme,
+                    '近 7 天完播率',
+                    '${(stats.last7DaysAvgCompletion * 100).toStringAsFixed(0)}%',
+                  ),
+                  const SizedBox(height: 16),
+                  // 最近 10 条
+                  if (stats.records.isNotEmpty) ...[
+                    Text(
+                      '最近观看',
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...stats.records.take(10).map((r) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                r.itemTitle ?? r.itemId,
+                                style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${(r.completionRate * 100).toStringAsFixed(0)}%',
+                              style: TextStyle(
+                                color: r.completionRate >= 0.8
+                                    ? Colors.green
+                                    : scheme.onSurfaceVariant,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ] else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        '暂无观看记录。开始播放视频后这里会显示统计。',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
+            ),
+            if (stats.totalCount > 0)
+              TextButton(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      backgroundColor: scheme.surface,
+                      title: Text('清除统计',
+                          style: TextStyle(color: scheme.onSurface)),
+                      content: Text('确定要清除所有观看统计吗？',
+                          style: TextStyle(color: scheme.onSurfaceVariant)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: Text('取消',
+                              style: TextStyle(color: scheme.onSurfaceVariant)),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: scheme.error),
+                          child: Text('清除',
+                              style: TextStyle(color: scheme.onError)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await ref.read(watchStatsProvider.notifier).clear();
+                    if (context.mounted) Navigator.pop(context);
+                  }
+                },
+                child: Text('清除统计', style: TextStyle(color: scheme.error)),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  // 辅助：统计行
+  Widget _buildStatRow(ColorScheme scheme, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+          Text(value,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              )),
         ],
       ),
     );
