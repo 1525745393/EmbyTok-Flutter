@@ -1,3 +1,10 @@
+# [1.114.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.113.0...v1.114.0) (2026-06-29)
+
+
+### Features
+
+* **recommend:** 收藏加权 (PR [#86](https://github.com/1525745393/EmbyTok-Flutter/issues/86)) ([f83c00c](https://github.com/1525745393/EmbyTok-Flutter/commit/f83c00cbb9d82de798f59f89d6227dc75c80807d))
+
 # [1.113.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.112.0...v1.113.0) (2026-06-29)
 
 
