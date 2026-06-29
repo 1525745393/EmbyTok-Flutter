@@ -1,3 +1,10 @@
+# [1.111.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.110.0...v1.111.0) (2026-06-29)
+
+
+### Features
+
+* **recommend:** 完播率接入门控 (PR [#83](https://github.com/1525745393/EmbyTok-Flutter/issues/83)) ([#83](https://github.com/1525745393/EmbyTok-Flutter/issues/83)) ([3eb1214](https://github.com/1525745393/EmbyTok-Flutter/commit/3eb12145762956611664f2e90c7bc4cae4e4b1f5)), closes [#81](https://github.com/1525745393/EmbyTok-Flutter/issues/81)
+
 # [1.110.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.109.0...v1.110.0) (2026-06-29)
 
 
