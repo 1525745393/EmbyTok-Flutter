@@ -1,3 +1,10 @@
+# [1.112.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.111.0...v1.112.0) (2026-06-29)
+
+
+### Features
+
+* **recommend:** 完播率时间衰减（半衰期 14 天） (PR [#84](https://github.com/1525745393/EmbyTok-Flutter/issues/84)) ([4a78c9b](https://github.com/1525745393/EmbyTok-Flutter/commit/4a78c9bc247d1bcbad895f172317e183e249da87))
+
 # [1.111.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.110.0...v1.111.0) (2026-06-29)
 
 
