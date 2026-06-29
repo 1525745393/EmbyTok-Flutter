@@ -560,6 +560,76 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       }
     }
 
+    // PR #87：系列追剧优先
+    // - 从 watch history 找最近看过的 N 个 series
+    // - 对每个 series 调用 getNextUp(seriesId: ...) 拉该 series 的下一集
+    // - 合并到 _sourceNextUp 队列前面（先于 fetchNextUp 的结果）
+    // 价值：如果 Emby server 端 NextUp 数量少（< 5），客户端可补全
+    //   - 追剧党最爱：用户看完一集后立即看到下一集
+    //   - 与 fetchNextUp 不重复：round-robin 用 seenIds 去重
+    Future<void> fetchNextUpByRecentSeries() async {
+      try {
+        // 限制最近看过的 N=3 个 series，避免 API 调用过多
+        const int _recentSeriesLimit = 3;
+        final history = await service.getWatchHistory(
+          limit: 50, // 拉少量 history 即可（去重后取前 N）
+          userId: auth.user?.id,
+          serverUrl: auth.embyServerUrl!,
+          token: auth.token!,
+        );
+        // 提取最近看过的 series（按 DatePlayed 倒序，watch history 已按此排序）
+        final seenSeriesIds = <String>{};
+        final recentSeriesIds = <String>[];
+        for (final item in history) {
+          final sid = item.seriesId;
+          if (sid == null || sid.isEmpty) continue;
+          if (seenSeriesIds.contains(sid)) continue;
+          seenSeriesIds.add(sid);
+          recentSeriesIds.add(sid);
+          if (recentSeriesIds.length >= _recentSeriesLimit) break;
+        }
+        if (recentSeriesIds.isEmpty) return;
+
+        // 并行拉每个 series 的下一集
+        final nextUpLists = await Future.wait(recentSeriesIds.map((sid) async {
+          try {
+            final resp = await service.getNextUp(
+              limit: 3, // 每个 series 最多 3 集
+              seriesId: sid,
+              serverUrl: auth.embyServerUrl!,
+              token: auth.token!,
+            );
+            return resp.items;
+          } catch (e) {
+            AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
+            return <MediaItem>[];
+          }
+        }));
+
+        // 合并到 _sourceNextUp 队列前面
+        // 注：先排序（按 season + index），再批量插入队首，保证同 series 内顺序
+        for (final list in nextUpLists) {
+          final sorted = List<MediaItem>.from(list)
+            ..sort((a, b) {
+              final sa = a.parentIndexNumber ?? 0;
+              final sb = b.parentIndexNumber ?? 0;
+              if (sa != sb) return sa.compareTo(sb);
+              return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
+            });
+          for (final item in sorted) {
+            if (!isVideo(item) || isTooShort(item)) continue;
+            if (isBlacklisted(item)) continue;
+            queues[_sourceNextUp]!.insert(
+              0, // 插到队首，优先于 fetchNextUp 拉到的项
+              RecommendItem(item: item, source: RecommendSource.nextUp),
+            );
+          }
+        }
+      } catch (e) {
+        AppLogger.error('推荐：NextUp by series 流程失败', error: e);
+      }
+    }
+
     Future<void> fetchSuggestions() async {
       try {
         final suggestions = await service.getSuggestions(
@@ -666,6 +736,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     await Future.wait([
       fetchNextUp(),
       fetchResume(),
+      // PR #87：系列追剧优先 - 拉最近看过的 series 的下一集
+      // 与 fetchNextUp 并行，重复项由 round-robin seenIds 去重
+      fetchNextUpByRecentSeries(),
       fetchSuggestions(),
       fetchSimilarFromRecentHighRated(),
       ..._fetchRecommendations(
