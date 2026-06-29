@@ -11,7 +11,11 @@
 // 设计原则：
 // - 数据少时（< 5 条记录）使用默认信号（无门控），避免冷启动误判
 // - 系数区间 [0.3, 1.5]，避免过度倾斜
-// - 完播率聚合用「最近 30 天」窗口（时间衰减）
+// - 完播率聚合用「指数时间衰减」（半衰期 14 天，PR #84）
+//   - 越新的记录对权重影响越大
+//   - 避免老的偏好持续干扰新的兴趣
+
+import 'dart:math' as math;
 
 import '../models/models.dart';
 import 'recommend_provider.dart' show RecommendSource;
@@ -105,10 +109,24 @@ class UserBehaviorSignalCalculator {
   static const double _seedMinCompletion = 0.5;
   static const int _seedMaxCount = 5;
 
+  // PR #84：时间衰减半衰期（天）
+  // - 14 天前的记录权重衰减到 0.5
+  // - 28 天前的记录权重衰减到 0.25
+  // - 让用户最近的偏好对推荐影响更大
+  static const double _halfLifeDays = 14.0;
+
+  // PR #84：每个 source 最多纳入聚合的近期记录数（避免数据爆炸）
+  // 注意：这是按时间倒序取前 N 条，时间衰减再在内部应用
+  static const int _maxRecordsPerSource = 50;
+
   /// 从完播率记录计算用户行为信号
   /// - 输入：所有观看记录
   /// - 输出：UserBehaviorSignal
-  static UserBehaviorSignal compute(List<WatchRecord> records) {
+  /// - 可选 now：注入当前时间（用于测试），默认 DateTime.now()
+  static UserBehaviorSignal compute(
+    List<WatchRecord> records, {
+    DateTime? now,
+  }) {
     if (records.length < _minRecordsForSignal) {
       return UserBehaviorSignal.defaults;
     }
@@ -116,42 +134,80 @@ class UserBehaviorSignalCalculator {
     final strength = records.length < 20
         ? SignalStrength.medium
         : SignalStrength.strong;
+    final reference = now ?? DateTime.now();
 
     return UserBehaviorSignal(
-      sourceWeights: _computeSourceWeights(records),
+      sourceWeights: _computeSourceWeights(records, reference),
+      // 黑名单和种子不使用时间衰减（避免反复进出）
       blacklist: _computeBlacklist(records),
       highCompletionSeeds: _computeHighCompletionSeeds(records),
       strength: strength,
     );
   }
 
-  /// 计算 5 数据源的权重
-  /// - 聚合：每个 source 的最近 30 条平均完播率
-  /// - 映射：avg >= 0.8 → 1.5，0.3-0.8 → 1.0，< 0.3 → 0.3
+  /// 计算 5 数据源的权重（PR #84：时间加权平均）
+  /// - 聚合：每个 source 的最近 _maxRecordsPerSource 条记录
+  /// - 时间衰减：每条记录按年龄加权（半衰期 _halfLifeDays）
+  /// - 映射：加权 avg >= 0.8 → 1.5，0.3-0.8 → 1.0，< 0.3 → 0.3
   static Map<RecommendSource, double> _computeSourceWeights(
     List<WatchRecord> records,
+    DateTime now,
   ) {
-    final bySource = <RecommendSource, List<double>>{};
+    final bySource = <RecommendSource, List<WatchRecord>>{};
     for (final r in records) {
       final source = _sourceFromKey(r.source);
       if (source == null) continue;
-      bySource.putIfAbsent(source, () => <double>[]).add(r.completionRate);
+      bySource.putIfAbsent(source, () => <WatchRecord>[]).add(r);
     }
 
     final result = <RecommendSource, double>{};
     for (final source in RecommendSource.values) {
-      final rates = bySource[source];
-      if (rates == null || rates.isEmpty) {
+      final recs = bySource[source];
+      if (recs == null || recs.isEmpty) {
         // 该源无数据：保持中性
         result[source] = 1.0;
         continue;
       }
-      // 取最近 30 条均值
-      final sample = rates.length > 30 ? rates.sublist(0, 30) : rates;
-      final avg = sample.reduce((a, b) => a + b) / sample.length;
-      result[source] = _mapAvgToWeight(avg);
+      // 取最近 _maxRecordsPerSource 条（records 已是时间倒序）
+      final sample = recs.length > _maxRecordsPerSource
+          ? recs.sublist(0, _maxRecordsPerSource)
+          : recs;
+      final weightedAvg = _weightedAverage(sample, now);
+      result[source] = _mapAvgToWeight(weightedAvg);
     }
     return result;
+  }
+
+  /// 时间加权平均（PR #84）
+  /// - 公式：sum(timeWeight_i * rate_i) / sum(timeWeight_i)
+  /// - 越新的记录权重越大
+  static double _weightedAverage(List<WatchRecord> records, DateTime now) {
+    double weightedSum = 0.0;
+    double weightSum = 0.0;
+    for (final r in records) {
+      final w = _timeWeight(r.watchedAt, now);
+      weightedSum += w * r.completionRate;
+      weightSum += w;
+    }
+    return weightSum == 0 ? 0.0 : weightedSum / weightSum;
+  }
+
+  /// 时间衰减权重（PR #84）
+  /// - 公式：weight = exp(-Δdays / halfLife * ln(2))
+  /// - Δdays = 0 → weight = 1.0
+  /// - Δdays = halfLife → weight = 0.5
+  /// - Δdays = 2*halfLife → weight = 0.25
+  /// - Δdays 为负（未来）按 0 处理（避免权重爆炸）
+  /// - 半衰期越长，衰减越慢
+  static double _timeWeight(int watchedAtUnixSec, DateTime now) {
+    final watchedAt = DateTime.fromMillisecondsSinceEpoch(
+      watchedAtUnixSec * 1000,
+    );
+    final delta = now.difference(watchedAt);
+    final days = delta.inSeconds / 86400.0; // 一天 86400 秒
+    if (days <= 0) return 1.0; // 未来或刚发生：满权重
+    final decayFactor = days / _halfLifeDays;
+    return math.exp(-decayFactor * math.ln2);
   }
 
   /// 平均完播率 → 权重系数
@@ -166,7 +222,7 @@ class UserBehaviorSignalCalculator {
     return _minWeight + t * (_maxWeight - _minWeight);
   }
 
-  /// 计算黑名单
+  /// 计算黑名单（不使用时间衰减，避免反复进出）
   /// - 规则 1：同一 item 累计 3 次完播率 < 0.2 → 加入
   /// - 规则 2：任何 1 次完播率 < 0.1 → 立即加入
   static Set<String> _computeBlacklist(List<WatchRecord> records) {
@@ -194,10 +250,9 @@ class UserBehaviorSignalCalculator {
     return blacklist;
   }
 
-  /// 计算高完播种子（用于相似推荐）
+  /// 计算高完播种子（不使用时间衰减）
   /// - 聚合：每个 itemId 的平均完播率
-  /// - 筛选：communityRating >= 7.0 + avgCompletion >= 0.5
-  /// - 排序：按 (communityRating * avgCompletion) 降序
+  /// - 筛选：avgCompletion >= 0.5
   /// - 取 Top 5
   /// 注意：本方法只看 records 里有 title + communityRating 信息的项
   /// - 实际调用方应传入 MediaItem 列表来补全
@@ -213,7 +268,6 @@ class UserBehaviorSignalCalculator {
       avgByItem[id] = rates.reduce((a, b) => a + b) / rates.length;
     });
     // 筛选：avgCompletion >= _seedMinCompletion
-    // - 取 Top N（按 avgCompletion 降序）
     final sorted = avgByItem.entries
         .where((e) => e.value >= _seedMinCompletion)
         .toList()
