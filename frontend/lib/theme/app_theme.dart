@@ -9,6 +9,7 @@
 // API 兼容性说明：仅使用 Flutter 3.10+ 稳定 API，避免使用 3.22 后的新 token
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 主题种子色：粉色（保持与旧 primaryPink 一致的视觉风格）
 const Color _kSeedColor = Color(0xFFE91E63);
@@ -29,9 +30,45 @@ ColorScheme _buildLightColorScheme() {
   );
 }
 
+/// ---- 全面屏手势适配：状态栏 / 导航栏前景样式 ----
+/// 暗色主题：背景透明，文字/图标使用浅色（light）
+SystemUiOverlayStyle _darkSystemOverlayStyle() {
+  return const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarDividerColor: Colors.transparent,
+  );
+}
+
+/// 亮色主题：背景透明，文字/图标使用深色（dark）
+SystemUiOverlayStyle _lightSystemOverlayStyle() {
+  return const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+  );
+}
+
+/// ---- 工具：根据 brightness 选择 overlay style ----
+SystemUiOverlayStyle _overlayStyleFor(Brightness brightness) {
+  return brightness == Brightness.dark
+      ? _darkSystemOverlayStyle()
+      : _lightSystemOverlayStyle();
+}
+
 /// ---- 统一 ThemeData 构建器（共享配置） ----
 /// surfaceContainerHighest 在 Flutter 3.22 才引入，这里用 surface + 不透明度代替
-ThemeData _buildBaseTheme(ColorScheme colorScheme) {
+/// [systemOverlayStyle] 全面屏适配：根据主题 brightness 选 dark / light foreground
+ThemeData _buildBaseTheme(
+  ColorScheme colorScheme, {
+  required SystemUiOverlayStyle systemOverlayStyle,
+}) {
   final surfaceElevated = colorScheme.brightness == Brightness.dark
       ? colorScheme.surface.withOpacity(1.0) // 暗色模式下保持纯深色
       : colorScheme.surface.withOpacity(0.95); // 亮色模式下轻微加深
@@ -45,12 +82,20 @@ ThemeData _buildBaseTheme(ColorScheme colorScheme) {
     colorScheme: colorScheme,
     // 显式指定 scaffold 背景色（确保视频浏览页的背景与 colorScheme 对齐）
     scaffoldBackgroundColor: colorScheme.surface,
+    // 全面屏适配：默认系统栏样式（被 AnnotatedRegion 覆盖前生效）
+    // 配合 MainActivity 的 enableEdgeToEdge()，让 App 内容延伸到状态栏/导航栏
+    extensions: <ThemeExtension<dynamic>>[
+      // 使用 ThemeExtension 携带 overlay style，避免在 ThemeData 中无对应字段
+      _SystemOverlayStyleTheme(systemOverlayStyle),
+    ],
     // AppBar 统一风格
     appBarTheme: AppBarTheme(
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
       elevation: 0,
       centerTitle: false,
+      // 全面屏适配：AppBar 上方状态栏使用同一前景色
+      systemOverlayStyle: systemOverlayStyle,
     ),
     // 卡片统一风格
     cardTheme: CardTheme(
@@ -204,13 +249,19 @@ ThemeData _buildBaseTheme(ColorScheme colorScheme) {
 /// 亮色主题
 ThemeData buildLightTheme() {
   final colorScheme = _buildLightColorScheme();
-  return _buildBaseTheme(colorScheme);
+  return _buildBaseTheme(
+    colorScheme,
+    systemOverlayStyle: _lightSystemOverlayStyle(),
+  );
 }
 
 /// 暗色主题
 ThemeData buildDarkTheme() {
   final colorScheme = _buildDarkColorScheme();
-  return _buildBaseTheme(colorScheme);
+  return _buildBaseTheme(
+    colorScheme,
+    systemOverlayStyle: _darkSystemOverlayStyle(),
+  );
 }
 
 /// 根据字符串模式返回 ThemeMode 枚举（settings_view 使用）
@@ -224,4 +275,34 @@ ThemeMode parseThemeMode(String mode) {
     default:
       return ThemeMode.system;
   }
+}
+
+// ---- 全面屏手势适配 ----
+
+/// 用 ThemeExtension 包装 SystemUiOverlayStyle，让 buildLightTheme/buildDarkTheme
+/// 能把"系统栏前景色"作为 ThemeData 的一部分传出。
+/// AnnotatedRegion 只需要 ThemeData，就能拿到对应主题的 overlay style。
+class _SystemOverlayStyleTheme extends ThemeExtension<_SystemOverlayStyleTheme> {
+  final SystemUiOverlayStyle style;
+  const _SystemOverlayStyleTheme(this.style);
+
+  @override
+  _SystemOverlayStyleTheme copyWith({SystemUiOverlayStyle? style}) {
+    return _SystemOverlayStyleTheme(style ?? this.style);
+  }
+
+  @override
+  _SystemOverlayStyleTheme lerp(
+    ThemeExtension<_SystemOverlayStyleTheme>? other,
+    double t,
+  ) {
+    // SystemUiOverlayStyle 不支持插值，直接在 t < 0.5 时取 this
+    return this;
+  }
+}
+
+/// 公共读取入口：从 BuildContext 的 ThemeData 中拿到当前主题对应的 overlay style
+SystemUiOverlayStyle systemOverlayStyleOf(BuildContext context) {
+  final ext = Theme.of(context).extension<_SystemOverlayStyleTheme>();
+  return ext?.style ?? _lightSystemOverlayStyle();
 }

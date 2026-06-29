@@ -3,6 +3,7 @@
 // 阶段 2/3：后续逐步替换组件内硬编码颜色和尺寸 → colorScheme / theme tokens
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -217,6 +218,15 @@ class EmbyTokApp extends ConsumerWidget {
       // 根据用户选择自动切换（默认跟随系统）
       themeMode: parseThemeMode(themeMode),
       routerConfig: router,
+      // 全面屏手势适配：用 builder 把整个 router 包到 AnnotatedRegion 中，
+      // 让状态栏 / 导航栏前景色跟随当前主题的 brightness 切换。
+      // child 是 MaterialApp 内部构建的 Navigator + Router，Theme.of 在此已可用。
+      builder: (context, child) {
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: systemOverlayStyleOf(context),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

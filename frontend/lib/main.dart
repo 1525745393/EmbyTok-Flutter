@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 
@@ -16,6 +17,21 @@ void main() {
     PaintingBinding.instance.imageCache
       ..maximumSize = 50
       ..maximumSizeBytes = 30 * 1024 * 1024; // 30MB
+  }
+  // 全面屏手势适配：冷启动第一帧之前（AnnotatedRegion 还没挂上时），
+  // 先把系统栏背景设为透明、状态栏图标设为 light，避免启动闪黑/白。
+  // 真正的"跟随主题切换"由 app.dart 的 AnnotatedRegion 在首帧后接管。
+  if (!kIsWeb) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
   }
   runApp(const ProviderScope(child: EmbyTokApp()));
 }
