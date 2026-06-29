@@ -24,6 +24,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' show Random; // PR #83：随机化降权源配额
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +36,8 @@ import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'library_provider.dart';
+import 'recommend_signals.dart';
+import 'watch_stats_provider.dart';
 
 /// 推荐状态
 class RecommendState {
@@ -282,6 +285,21 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #79：分页 - 第一页从 0 开始
     final seenIds = <String>{}; // 去重用（首次加载全空）
 
+    // PR #83：计算用户行为信号（基于完播率历史）
+    // - 冷启动（记录 < 5）使用默认信号
+    // - 否则按 source 聚合完播率，计算权重 + 黑名单 + 高完播种子
+    final stats = _ref.read(watchStatsProvider);
+    final signal = UserBehaviorSignalCalculator.compute(stats.records);
+    if (signal.strength != SignalStrength.weak) {
+      AppLogger.debug('推荐：用户行为信号', data: {
+        'strength': signal.strength.name,
+        'weights': signal.sourceWeights
+            .map((k, v) => MapEntry(k.key, v.toStringAsFixed(2))),
+        'blacklistSize': signal.blacklist.length,
+        'seedsCount': signal.highCompletionSeeds.length,
+      });
+    }
+
     // PR #73：过滤非视频类型 item
     // 修复 Emby Suggestions API 返回 Tag/Genre 类型字段导致推荐页显示非视频的问题
     const allowedTypes = <String>{
@@ -302,6 +320,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     }
 
     // PR #79：抽离核心加载逻辑，支持分页
+    // PR #83：传入 signal 用于门控
     // 返回该页拉到的所有新项（去重后）
     final newItems = await _loadPage(
       service: service,
@@ -314,6 +333,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       isTooShort: isTooShort,
       isVideo: isVideo,
       seenIds: seenIds,
+      signal: signal,
     );
 
     // 冷启动判定：建议数据源 + Resume 都为空
@@ -335,6 +355,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         minRuntimeSec: minRuntimeSec,
         isTooShort: isTooShort,
         seenIds: seenIds,
+        signal: signal,
       );
       newItems.merged.addAll(degradedItems.map((r) => r.item));
       newItems.tagged.addAll(degradedItems);
@@ -394,6 +415,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #79：从已显示的 items 构建 seenIds（去重）
     final seenIds = state.items.map((i) => i.id).toSet();
 
+    // PR #83：计算用户行为信号
+    final stats = _ref.read(watchStatsProvider);
+    final signal = UserBehaviorSignalCalculator.compute(stats.records);
+
     const allowedTypes = <String>{
       'Movie',
       'Episode',
@@ -419,6 +444,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       isTooShort: isTooShort,
       isVideo: isVideo,
       seenIds: seenIds,
+      signal: signal,
     );
 
     final merged = [...state.items, ...newItems.merged];
@@ -442,6 +468,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
   // PR #79：抽离 - 拉一页（5 数据源 + round-robin）
   // PR #80：每个 item 带 source 标签（用于 UI 分类过滤）
+  // PR #83：完播率接入门控（黑名单 + source 权重 + 相似种子）
   // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
   // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
@@ -456,6 +483,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool Function(MediaItem) isTooShort,
     required bool Function(MediaItem) isVideo,
     required Set<String> seenIds,
+    required UserBehaviorSignal signal,
   }) async {
     // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
@@ -466,6 +494,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceSimilar: <RecommendItem>[],
     };
 
+    // PR #83：黑名单过滤辅助 - 已加入黑名单的 item 跳过
+    bool isBlacklisted(MediaItem item) => signal.blacklist.contains(item.id);
+
     Future<void> fetchNextUp() async {
       try {
         final resp = await service.getNextUp(
@@ -475,6 +506,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
+          if (isBlacklisted(item)) continue; // PR #83
           queues[_sourceNextUp]!
               .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
@@ -492,6 +524,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
+          if (isBlacklisted(item)) continue; // PR #83
           queues[_sourceResume]!
               .add(RecommendItem(item: item, source: RecommendSource.resume));
         }
@@ -510,6 +543,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in suggestions) {
           if (!isVideo(item) || isTooShort(item)) continue;
+          if (isBlacklisted(item)) continue; // PR #83
           queues[_sourceSuggestions]!.add(
               RecommendItem(item: item, source: RecommendSource.suggestions));
         }
@@ -518,18 +552,33 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       }
     }
 
+    // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
+    // - signal.highCompletionSeeds 不为空：从中筛 communityRating >= 7.0 的项
+    // - 为空：降级用"最近高分项"（与 PR #78 一致）
     Future<void> fetchSimilarFromRecentHighRated() async {
       try {
         final history = await service.getWatchHistory(
-          limit: 50,
+          limit: 200, // 拉多些，方便筛选
           userId: auth.user?.id,
           serverUrl: auth.embyServerUrl!,
           token: auth.token!,
         );
-        final highRated = history
-            .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
-            .take(_similarSeedCount)
-            .toList();
+        final List<MediaItem> seeds;
+        if (signal.highCompletionSeeds.isNotEmpty) {
+          // PR #83：完播率种子 + 高分二次过滤
+          final seedSet = signal.highCompletionSeeds.toSet();
+          seeds = history
+              .where((i) =>
+                  seedSet.contains(i.id) &&
+                  (i.communityRating ?? 0) >= _similarSeedMinRating)
+              .toList();
+        } else {
+          // 降级：原 PR #78 逻辑
+          seeds = history
+              .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
+              .toList();
+        }
+        final highRated = seeds.take(_similarSeedCount).toList();
         if (highRated.isEmpty) {
           return;
         }
@@ -549,6 +598,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         for (final list in similarLists) {
           for (final item in list) {
             if (!isVideo(item) || isTooShort(item)) continue;
+            if (isBlacklisted(item)) continue; // PR #83
             queues[_sourceSimilar]!
                 .add(RecommendItem(item: item, source: RecommendSource.similar));
           }
@@ -573,29 +623,46 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         isTooShort: isTooShort,
         seenIds: seenIds,
         queues: queues,
+        signal: signal,
       ),
     ]);
 
-    // round-robin
+    // round-robin（PR #83：按 source weight 调整每轮取几项）
     for (final list in queues.values) {
       list.shuffle();
     }
     // PR #79：在 round-robin 清空队列前记录原始项数（用于 load() 冷启动检测）
     final nextUpCount = queues[_sourceNextUp]!.length;
     final resumeCount = queues[_sourceResume]!.length;
-    final order = <String>[
-      _sourceNextUp,
-      _sourceResume,
-      _sourceSuggestions,
-      _sourceSimilar,
-      _sourceRecommendations,
+    // PR #83：按 source 顺序 + 权重配额
+    // - weight >= 0.7：每轮取 round(weight) 项（clamp 1-3）
+    // - weight < 0.7：50% 概率跳过这一轮（降权源少取）
+    final sourceOrder = <RecommendSource>[
+      RecommendSource.nextUp,
+      RecommendSource.resume,
+      RecommendSource.suggestions,
+      RecommendSource.similar,
+      RecommendSource.recommendations,
     ];
     final merged = <MediaItem>[];
     final tagged = <RecommendItem>[];
-    while (order.any((key) => queues[key]!.isNotEmpty)) {
-      for (final key in order) {
-        final q = queues[key]!;
-        if (q.isNotEmpty) {
+    final rng = Random(); // PR #83：降权源配额随机化
+    while (sourceOrder.any((s) => _queueOf(queues, s).isNotEmpty)) {
+      for (final source in sourceOrder) {
+        final q = _queueOf(queues, source);
+        if (q.isEmpty) continue;
+        final w = signal.weightFor(source);
+        // PR #83：权重配额
+        int take;
+        if (w < 0.7) {
+          // 低权重源：50% 概率跳过这一轮
+          if (!rng.nextBool()) continue;
+          take = 1;
+        } else {
+          // 中性 / 高权重源：每轮取 round(weight) 项
+          take = w.round().clamp(1, 3);
+        }
+        for (int i = 0; i < take && q.isNotEmpty; i++) {
           final r = q.removeAt(0);
           if (seenIds.add(r.item.id)) {
             merged.add(r.item);
@@ -612,8 +679,28 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     );
   }
 
+  // PR #83：从 queues Map 按 RecommendSource 查队列
+  List<RecommendItem> _queueOf(
+    Map<String, List<RecommendItem>> queues,
+    RecommendSource source,
+  ) {
+    switch (source) {
+      case RecommendSource.nextUp:
+        return queues[_sourceNextUp]!;
+      case RecommendSource.resume:
+        return queues[_sourceResume]!;
+      case RecommendSource.suggestions:
+        return queues[_sourceSuggestions]!;
+      case RecommendSource.similar:
+        return queues[_sourceSimilar]!;
+      case RecommendSource.recommendations:
+        return queues[_sourceRecommendations]!;
+    }
+  }
+
   // PR #79：抽离 - 多库评分推荐 future 列表
   // PR #80：queues 改为存 RecommendItem
+  // PR #83：黑名单过滤
   List<Future<void>> _fetchRecommendations({
     required EmbytokService service,
     required auth,
@@ -624,6 +711,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool Function(MediaItem) isTooShort,
     required Set<String> seenIds,
     required Map<String, List<RecommendItem>> queues,
+    required UserBehaviorSignal signal,
   }) {
     return selectedIds.map((libId) {
       return () async {
@@ -641,6 +729,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           );
           for (final item in resp.items) {
             if (isTooShort(item)) continue;
+            if (signal.blacklist.contains(item.id)) continue; // PR #83
             queues[_sourceRecommendations]!.add(RecommendItem(
                 item: item, source: RecommendSource.recommendations));
           }
@@ -653,6 +742,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
   // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
   // PR #80：返回带 source 标签的 RecommendItem 列表（source = recommendations）
+  // PR #83：黑名单过滤
   Future<List<RecommendItem>> _loadRecommendations({
     required EmbytokService service,
     required auth,
@@ -663,6 +753,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required int minRuntimeSec,
     required bool Function(MediaItem) isTooShort,
     required Set<String> seenIds,
+    required UserBehaviorSignal signal,
   }) async {
     final results = <RecommendItem>[];
     await Future.wait(selectedIds.map((libId) async {
@@ -680,6 +771,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (isTooShort(item)) continue;
+          if (signal.blacklist.contains(item.id)) continue; // PR #83
           if (seenIds.add(item.id)) {
             results.add(RecommendItem(
                 item: item, source: RecommendSource.recommendations));

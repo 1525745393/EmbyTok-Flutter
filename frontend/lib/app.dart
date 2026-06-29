@@ -183,12 +183,14 @@ class EmbyTokApp extends ConsumerWidget {
             final itemId = state.pathParameters['itemId'] ?? '';
             MediaItem item;
             List<MediaItem> items = [];
+            String source = 'feed'; // PR #83：完播率 source 标签
             // 支持两种 extra 格式：MediaItem（单视频）或 Map（含 items 列表）
             if (state.extra is Map<String, dynamic>) {
               final extra = state.extra as Map<String, dynamic>;
               item = extra['item'] as MediaItem? ??
                   MediaItem(id: itemId, title: '', type: 'Video');
               items = (extra['items'] as List<MediaItem>?) ?? [];
+              source = extra['source'] as String? ?? 'feed';
             } else if (state.extra is MediaItem) {
               item = state.extra as MediaItem;
             } else {
@@ -198,6 +200,7 @@ class EmbyTokApp extends ConsumerWidget {
               item: item,
               items: items,
               onBack: () => context.pop(),
+              source: source, // PR #83
             );
           },
         ),

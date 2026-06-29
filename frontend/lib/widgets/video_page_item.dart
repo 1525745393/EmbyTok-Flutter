@@ -36,6 +36,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final VoidCallback? onPrevEpisode;
   /// 播放进度达到预加载阈值时回调，用于触发下一个视频的预加载
   final VoidCallback? onPreloadThreshold;
+  // PR #83：完播率 source 标签（从推荐页进入时传具体 source）
+  final String source;
 
   const VideoPageItem({
     super.key,
@@ -46,6 +48,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.onNextEpisode,
     this.onPrevEpisode,
     this.onPreloadThreshold,
+    this.source = 'feed',
   });
 
   @override
@@ -173,6 +176,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     _nextUpTimer = null;
     // PR #81：用户中途退出记录完播率（仅在未完整播放时记录，避免重复）
     // - 视频完整播放时已在 _onVideoChanged 中记录 100%
+    // PR #83：传 source 标签用于推荐打分门控
     if (!_hasNotifiedEnded && _hasStartedReported) {
       final ctrl = _videoController;
       if (ctrl != null && ctrl.value.isInitialized) {
@@ -185,6 +189,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 itemType: widget.item.type,
                 itemTitle: widget.item.title,
                 completionRate: rate,
+                source: widget.source,
               );
         }
       }
@@ -237,11 +242,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         _hasNotifiedEnded = true;
         _reportPlaybackStopped();
         // PR #81：完播率统计 - 视频完整播放（100%）
+        // PR #83：传 source 标签（nextUp/resume/...）用于推荐打分门控
         ref.read(watchStatsProvider.notifier).recordWatch(
               itemId: widget.item.id,
               itemType: widget.item.type,
               itemTitle: widget.item.title,
               completionRate: 1.0,
+              source: widget.source,
             );
         unawaited(_service.markAsPlayed(
           widget.item.id,
@@ -955,12 +962,17 @@ class PlaybackShell extends ConsumerStatefulWidget {
   final MediaItem item; // 当前播放的视频
   final List<MediaItem> items; // 视频列表（可选）
   final VoidCallback onBack; // 返回回调
+  // PR #83：完播率 source 标签
+  // - 告诉 recordWatch 这个视频来自哪个 source（用于推荐打分门控）
+  // - 默认 'feed'，从推荐页进入时传具体 source（nextUp/resume/...）
+  final String source; // 数据源 key
 
   const PlaybackShell({
     super.key,
     required this.item,
     this.items = const [],
     required this.onBack,
+    this.source = 'feed',
   });
 
   @override
@@ -1059,6 +1071,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
               return VideoPageItem(
                 key: ValueKey(item.id),
                 item: item,
+                // PR #83：把 source 标签传给 VideoPageItem 用于完播率统计
+                source: widget.source,
                 onVideoEnded: index < _items.length - 1
                     ? () {
                         // 自动播放下一个

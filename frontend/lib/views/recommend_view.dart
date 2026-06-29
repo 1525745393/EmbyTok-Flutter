@@ -222,7 +222,13 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
                 final recommendItem = displayItems[index];
                 return _RecommendCard(
                   item: recommendItem.item,
-                  onTap: () => _playItem(context, recommendItem.item, mediaItems),
+                  // PR #83：传 source 标签用于完播率统计门控
+                  onTap: () => _playItem(
+                    context,
+                    recommendItem.item,
+                    mediaItems,
+                    recommendItem.source,
+                  ),
                 );
               },
             ),
@@ -347,16 +353,20 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   //
   // 现在改用 /play/:itemId 独立播放页（[PlaybackShell]），用推荐页的 items
   // 作为滑动列表，用户在播放页可以左右滑动看其他推荐 video。
+  //
+  // PR #83：传 source 标签（nextUp/resume/...）用于完播率统计门控
   void _playItem(
     BuildContext context,
     MediaItem item,
     List<MediaItem> items,
+    RecommendSource? source,
   ) {
     context.push(
       '/play/${item.id}',
       extra: <String, dynamic>{
         'item': item,
         'items': items,
+        'source': source?.key, // PR #83：完播率 source 标签
       },
     );
   }
