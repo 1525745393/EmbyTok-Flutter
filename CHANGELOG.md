@@ -1,3 +1,10 @@
+## [1.118.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.0...v1.118.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* **android:** 修复 MainActivity 编译错误 (PR [#91](https://github.com/1525745393/EmbyTok-Flutter/issues/91) 回归) ([#92](https://github.com/1525745393/EmbyTok-Flutter/issues/92)) ([17112f8](https://github.com/1525745393/EmbyTok-Flutter/commit/17112f880a92617ff5e8a1c09b3386fd9db35acd))
+
 # [1.118.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.117.1...v1.118.0) (2026-06-29)
 
 
