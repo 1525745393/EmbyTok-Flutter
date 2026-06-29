@@ -80,6 +80,19 @@ class RecommendState {
   }
 }
 
+/// PR #79：分页 - 单页加载结果
+/// 记录一页拉到的项 + 各数据源原始项数（用于 load() 冷启动检测）
+class _PageLoadResult {
+  final List<MediaItem> merged; // 去重 + round-robin 后的列表
+  final int nextUpCount; // NextUp 数据源原始项数
+  final int resumeCount; // Resume 数据源原始项数
+  const _PageLoadResult({
+    required this.merged,
+    required this.nextUpCount,
+    required this.resumeCount,
+  });
+}
+
 /// 推荐 Notifier
 class RecommendNotifier extends StateNotifier<RecommendState> {
   RecommendNotifier(this._ref) : super(const RecommendState()) {
@@ -181,6 +194,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final minRating = _ref.read(recommendMinRatingProvider);
     final excludePlayed = _ref.read(recommendExcludePlayedProvider);
     final minRuntimeSec = _ref.read(recommendMinRuntimeSecProvider);
+    // PR #79：类型偏好（空集合时不过滤）
+    final includeTypes = _ref.read(recommendIncludeTypesProvider);
     // 1 tick = 100ns，秒转 tick
     final minRuntimeTicks = minRuntimeSec * 10000000;
 
@@ -197,7 +212,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     }
 
     final service = EmbytokService();
-    final seenIds = <String>{};
+    // PR #79：分页 - 第一页从 0 开始
+    final seenIds = <String>{}; // 去重用（首次加载全空）
 
     // PR #73：过滤非视频类型 item
     // 修复 Emby Suggestions API 返回 Tag/Genre 类型字段导致推荐页显示非视频的问题
@@ -218,7 +234,155 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       return item.runtimeTicks! < minRuntimeTicks;
     }
 
-    // 各数据源结果队列（用于 round-robin 轮转）
+    // PR #79：抽离核心加载逻辑，支持分页
+    // 返回该页拉到的所有新项（去重后）
+    final newItems = await _loadPage(
+      service: service,
+      auth: auth,
+      selectedIds: selectedIds,
+      minRating: minRating,
+      excludePlayed: excludePlayed,
+      includeTypes: includeTypes,
+      minRuntimeSec: minRuntimeSec,
+      isTooShort: isTooShort,
+      isVideo: isVideo,
+      seenIds: seenIds,
+    );
+
+    // 冷启动判定：建议数据源 + Resume 都为空
+    final isColdStart = newItems.nextUpCount == 0 &&
+        newItems.resumeCount == 0;
+
+    // PR #79：首次加载启用冷启动降级
+    if (isColdStart) {
+      AppLogger.info('推荐：冷启动模式，评分阈值降级');
+      final degradedRating = minRating > 3.0 ? 3.0 : minRating;
+      // 把降级拉到的新项也并入 merged
+      final degradedItems = await _loadRecommendations(
+        service: service,
+        auth: auth,
+        selectedIds: selectedIds,
+        minCommunityRating: degradedRating,
+        excludePlayed: excludePlayed,
+        includeTypes: includeTypes,
+        minRuntimeSec: minRuntimeSec,
+        isTooShort: isTooShort,
+        seenIds: seenIds,
+      );
+      newItems.merged.addAll(degradedItems);
+    }
+
+    // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
+    final hasMore = newItems.merged.length >= _pageSize;
+
+    state = state.copyWith(
+      items: newItems.merged,
+      isLoading: false,
+      hasMore: hasMore,
+      offset: newItems.merged.length,
+      error: null,
+      isColdStart: isColdStart && newItems.merged.length < _pageSize ~/ 2,
+    );
+    // PR #78：写入本地缓存（下次启动 < 30 分钟直接用）
+    await _saveToCache(newItems.merged);
+    AppLogger.debug('推荐列表加载完成', data: {
+      'count': newItems.merged.length,
+      'minRating': minRating,
+      'excludePlayed': excludePlayed,
+      'minRuntimeSec': minRuntimeSec,
+      'includeTypes': includeTypes.toList(),
+      'isColdStart': isColdStart,
+      'hasMore': hasMore,
+    });
+  }
+
+  /// PR #79：分页加载下一页
+  /// 复用 5 数据源逻辑，结果去重后 append 到 state.items
+  Future<void> loadMore() async {
+    if (state.isLoadingMore || !state.hasMore) return;
+    state = state.copyWith(isLoadingMore: true);
+
+    final auth = _ref.read(authProvider);
+    final selectedIds = _ref.read(recommendLibraryIdsProvider);
+    final minRating = _ref.read(recommendMinRatingProvider);
+    final excludePlayed = _ref.read(recommendExcludePlayedProvider);
+    final minRuntimeSec = _ref.read(recommendMinRuntimeSecProvider);
+    final includeTypes = _ref.read(recommendIncludeTypesProvider);
+    final minRuntimeTicks = minRuntimeSec * 10000000;
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      state = state.copyWith(isLoadingMore: false, hasMore: false);
+      return;
+    }
+    if (selectedIds.isEmpty) {
+      state = state.copyWith(isLoadingMore: false, hasMore: false);
+      return;
+    }
+
+    final service = EmbytokService();
+    // PR #79：从已显示的 items 构建 seenIds（去重）
+    final seenIds = state.items.map((i) => i.id).toSet();
+
+    const allowedTypes = <String>{
+      'Movie',
+      'Episode',
+      'Video',
+      'MusicVideo',
+      'Series',
+    };
+    bool isVideo(MediaItem item) => allowedTypes.contains(item.type);
+    bool isTooShort(MediaItem item) {
+      if (minRuntimeSec == 0) return false;
+      if (item.runtimeTicks == null) return false;
+      return item.runtimeTicks! < minRuntimeTicks;
+    }
+
+    final newItems = await _loadPage(
+      service: service,
+      auth: auth,
+      selectedIds: selectedIds,
+      minRating: minRating,
+      excludePlayed: excludePlayed,
+      includeTypes: includeTypes,
+      minRuntimeSec: minRuntimeSec,
+      isTooShort: isTooShort,
+      isVideo: isVideo,
+      seenIds: seenIds,
+    );
+
+    final merged = [...state.items, ...newItems.merged];
+    // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
+    final hasMore = newItems.merged.length >= _pageSize;
+
+    state = state.copyWith(
+      items: merged,
+      isLoadingMore: false,
+      hasMore: hasMore,
+      offset: merged.length,
+    );
+    AppLogger.debug('推荐 loadMore 完成', data: {
+      'newCount': newItems.merged.length,
+      'total': merged.length,
+      'hasMore': hasMore,
+    });
+  }
+
+  // PR #79：抽离 - 拉一页（5 数据源 + round-robin）
+  // 返回 _PageLoadResult，包含 merged 列表和每个数据源的项数（供 load() 冷启动检测）
+  Future<_PageLoadResult> _loadPage({
+    required EmbytokService service,
+    required auth,
+    required List<String> selectedIds,
+    required double minRating,
+    required bool excludePlayed,
+    required Set<String> includeTypes,
+    required int minRuntimeSec,
+    required bool Function(MediaItem) isTooShort,
+    required bool Function(MediaItem) isVideo,
+    required Set<String> seenIds,
+  }) async {
     final queues = <String, List<MediaItem>>{
       _sourceNextUp: <MediaItem>[],
       _sourceResume: <MediaItem>[],
@@ -227,8 +391,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceSimilar: <MediaItem>[],
     };
 
-    // PR #78：并发请求所有数据源（替代 for 循环顺序）
-    // 每个 Future 内部 try-catch，单个失败不影响整体
     Future<void> fetchNextUp() async {
       try {
         final resp = await service.getNextUp(
@@ -278,29 +440,21 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       }
     }
 
-    // PR #78：相似推荐
-    // - 拉取用户最近观看历史，过滤 communityRating >= 7.0
-    // - 对每个高分项调用 /Items/{id}/Similar
-    // - 合并所有相似项（去重 + 过滤）
     Future<void> fetchSimilarFromRecentHighRated() async {
       try {
-        // 拉取最近 50 条观看历史
         final history = await service.getWatchHistory(
           limit: 50,
           userId: auth.user?.id,
           serverUrl: auth.embyServerUrl!,
           token: auth.token!,
         );
-        // 过滤高分项（communityRating >= 7.0）
         final highRated = history
             .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
             .take(_similarSeedCount)
             .toList();
         if (highRated.isEmpty) {
-          AppLogger.debug('推荐：无高分历史，跳过 Similar');
           return;
         }
-        // 并发拉取每个高分项的 Similar
         final similarLists = await Future.wait(highRated.map((seed) async {
           try {
             return await service.getSimilarItems(
@@ -325,133 +479,131 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       }
     }
 
-    // 多库评分推荐：每个库单独并发请求
-    // PR #78：传入用户配置的评分阈值和排除已观看开关
-    List<Future<void>> fetchRecommendationsFutures() {
-      return selectedIds.map((libId) {
-        return () async {
-          try {
-            final resp = await service.getRecommendations(
-              libraryId: libId,
-              limit: _pageSize,
-              offset: 0,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-              minCommunityRating: minRating,
-              excludePlayed: excludePlayed,
-            );
-            for (final item in resp.items) {
-              if (!isVideo(item) || isTooShort(item)) continue;
-              queues[_sourceRecommendations]!.add(item);
-            }
-          } catch (e) {
-            AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
-          }
-        }();
-      }).toList();
+    await Future.wait([
+      fetchNextUp(),
+      fetchResume(),
+      fetchSuggestions(),
+      fetchSimilarFromRecentHighRated(),
+      ..._fetchRecommendations(
+        service: service,
+        auth: auth,
+        selectedIds: selectedIds,
+        minCommunityRating: minRating,
+        excludePlayed: excludePlayed,
+        includeTypes: includeTypes,
+        isTooShort: isTooShort,
+        seenIds: seenIds,
+        queues: queues,
+      ),
+    ]);
+
+    // round-robin
+    for (final list in queues.values) {
+      list.shuffle();
     }
-
-    try {
-      // PR #78：所有数据源并发拉取（Future.wait）
-      await Future.wait([
-        fetchNextUp(),
-        fetchResume(),
-        fetchSuggestions(),
-        fetchSimilarFromRecentHighRated(),
-        ...fetchRecommendationsFutures(),
-      ]);
-
-      // PR #78：round-robin 轮转排序
-      // 替代原 shuffle()：保证每个数据源的内容都能被看到，避免高分库垄断
-      // 优先级：NextUp > Resume > Suggestions > Similar > Recommendations
-      final merged = <MediaItem>[];
-      // 每个源内部打乱一次（让同源内不同项随机）
-      for (final list in queues.values) {
-        list.shuffle();
-      }
-      // round-robin：每个队列头部取一个，直到所有队列都空
-      final order = <String>[
-        _sourceNextUp,
-        _sourceResume,
-        _sourceSuggestions,
-        _sourceSimilar,
-        _sourceRecommendations,
-      ];
-      while (order.any((key) => queues[key]!.isNotEmpty)) {
-        for (final key in order) {
-          final q = queues[key]!;
-          if (q.isNotEmpty) {
-            final item = q.removeAt(0);
-            if (seenIds.add(item.id)) {
-              merged.add(item);
-            }
+    // PR #79：在 round-robin 清空队列前记录原始项数（用于 load() 冷启动检测）
+    final nextUpCount = queues[_sourceNextUp]!.length;
+    final resumeCount = queues[_sourceResume]!.length;
+    final order = <String>[
+      _sourceNextUp,
+      _sourceResume,
+      _sourceSuggestions,
+      _sourceSimilar,
+      _sourceRecommendations,
+    ];
+    final merged = <MediaItem>[];
+    while (order.any((key) => queues[key]!.isNotEmpty)) {
+      for (final key in order) {
+        final q = queues[key]!;
+        if (q.isNotEmpty) {
+          final item = q.removeAt(0);
+          if (seenIds.add(item.id)) {
+            merged.add(item);
           }
         }
       }
-
-      // PR #78：冷启动检测
-      // - Suggestion 和 Resume 都为空：可能是新用户或无观看历史
-      // - 这种情况自动降级评分阈值（4.0 → 3.0）并补充评分推荐
-      final isColdStart = queues[_sourceSuggestions]!.isEmpty &&
-          queues[_sourceResume]!.isEmpty;
-
-      if (isColdStart) {
-        AppLogger.info('推荐：冷启动模式，评分阈值降级');
-        // 降低评分阈值到 3.0 拉一轮评分推荐
-        final degradedRating = minRating > 3.0 ? 3.0 : minRating;
-        await Future.wait(selectedIds.map((libId) async {
-          try {
-            final resp = await service.getRecommendations(
-              libraryId: libId,
-              limit: _pageSize,
-              offset: 0,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
-              userId: auth.user?.id,
-              minCommunityRating: degradedRating,
-              excludePlayed: excludePlayed,
-            );
-            for (final item in resp.items) {
-              if (!isVideo(item) || isTooShort(item)) continue;
-              if (seenIds.add(item.id)) {
-                queues[_sourceRecommendations]!.add(item);
-              }
-            }
-          } catch (e) {
-            AppLogger.error('推荐：冷启动降级加载失败', error: e);
-          }
-        }));
-        // 重新洗牌评分推荐（让新加的项也随机分布）
-        queues[_sourceRecommendations]!.shuffle();
-      }
-
-      state = state.copyWith(
-        items: merged,
-        isLoading: false,
-        hasMore: false, // 推荐模式不分页（与原 FeedType.recommend 行为一致）
-        offset: merged.length,
-        error: null,
-        isColdStart: isColdStart && merged.length < _pageSize ~/ 2,
-      );
-      // PR #78：写入本地缓存（下次启动 < 30 分钟直接用）
-      await _saveToCache(merged);
-      AppLogger.debug('推荐列表加载完成', data: {
-        'count': merged.length,
-        'minRating': minRating,
-        'excludePlayed': excludePlayed,
-        'minRuntimeSec': minRuntimeSec,
-        'isColdStart': isColdStart,
-        'nextUp': queues[_sourceNextUp]!.length,
-        'resume': queues[_sourceResume]!.length,
-        'suggestions': queues[_sourceSuggestions]!.length,
-        'similar': queues[_sourceSimilar]!.length,
-        'recommendations': queues[_sourceRecommendations]!.length,
-      });
-    } catch (e) {
-      AppLogger.error('推荐列表加载失败', error: e);
-      state = state.copyWith(isLoading: false, error: e.toString());
     }
+    return _PageLoadResult(
+      merged: merged,
+      nextUpCount: nextUpCount,
+      resumeCount: resumeCount,
+    );
+  }
+
+  // PR #79：抽离 - 多库评分推荐 future 列表
+  List<Future<void>> _fetchRecommendations({
+    required EmbytokService service,
+    required auth,
+    required List<String> selectedIds,
+    required double minCommunityRating,
+    required bool excludePlayed,
+    required Set<String> includeTypes,
+    required bool Function(MediaItem) isTooShort,
+    required Set<String> seenIds,
+    required Map<String, List<MediaItem>> queues,
+  }) {
+    return selectedIds.map((libId) {
+      return () async {
+        try {
+          final resp = await service.getRecommendations(
+            libraryId: libId,
+            limit: _pageSize,
+            offset: 0,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+            userId: auth.user?.id,
+            minCommunityRating: minCommunityRating,
+            excludePlayed: excludePlayed,
+            includeItemTypes: includeTypes,
+          );
+          for (final item in resp.items) {
+            if (isTooShort(item)) continue;
+            queues[_sourceRecommendations]!.add(item);
+          }
+        } catch (e) {
+          AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
+        }
+      }();
+    }).toList();
+  }
+
+  // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
+  Future<List<MediaItem>> _loadRecommendations({
+    required EmbytokService service,
+    required auth,
+    required List<String> selectedIds,
+    required double minCommunityRating,
+    required bool excludePlayed,
+    required Set<String> includeTypes,
+    required int minRuntimeSec,
+    required bool Function(MediaItem) isTooShort,
+    required Set<String> seenIds,
+  }) async {
+    final results = <MediaItem>[];
+    await Future.wait(selectedIds.map((libId) async {
+      try {
+        final resp = await service.getRecommendations(
+          libraryId: libId,
+          limit: _pageSize,
+          offset: 0,
+          serverUrl: auth.embyServerUrl!,
+          token: auth.token!,
+          userId: auth.user?.id,
+          minCommunityRating: minCommunityRating,
+          excludePlayed: excludePlayed,
+          includeItemTypes: includeTypes,
+        );
+        for (final item in resp.items) {
+          if (isTooShort(item)) continue;
+          if (seenIds.add(item.id)) {
+            results.add(item);
+          }
+        }
+      } catch (e) {
+        AppLogger.error('推荐：冷启动降级加载失败', error: e);
+      }
+    }));
+    return results;
   }
 
   /// 刷新（用户下拉刷新时调用）

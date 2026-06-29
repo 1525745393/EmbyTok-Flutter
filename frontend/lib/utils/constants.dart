@@ -44,6 +44,8 @@ const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 const String kStorageKeyRecommendMinRating = 'embbytok_recommend_min_rating';
 const String kStorageKeyRecommendExcludePlayed = 'embbytok_recommend_exclude_played';
 const String kStorageKeyRecommendMinRuntimeSec = 'embbytok_recommend_min_runtime_sec';
+// PR #79：推荐 - 类型偏好（Movie/Episode/Video/MusicVideo/Series 的子集）
+const String kStorageKeyRecommendIncludeTypes = 'embbytok_recommend_include_types';
 // PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
 const String kStorageKeyRecommendCache = 'embbytok_recommend_cache';
 const String kStorageKeyRecommendCacheTime = 'embbytok_recommend_cache_time';

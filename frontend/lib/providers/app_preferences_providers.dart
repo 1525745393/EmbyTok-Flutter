@@ -224,3 +224,45 @@ final recommendMinRuntimeSecProvider =
     StateNotifierProvider<RecommendMinRuntimeSecNotifier, int>(
   (ref) => RecommendMinRuntimeSecNotifier(),
 );
+
+/// PR #79：推荐 - 类型偏好（Set<String>）
+/// 默认：Movie, Episode, Video, MusicVideo, Series
+class RecommendIncludeTypesNotifier extends StateNotifier<Set<String>> {
+  RecommendIncludeTypesNotifier()
+      : super(const <String>{
+          'Movie',
+          'Episode',
+          'Video',
+          'MusicVideo',
+          'Series',
+        }) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendIncludeTypes;
+  }
+
+  /// 切换某个类型
+  Future<void> toggle(String type) async {
+    final next = state.contains(type)
+        ? (state.toSet()..remove(type))
+        : (state.toSet()..add(type));
+    // 至少保留一个类型（避免全空）
+    if (next.isEmpty) {
+      AppLogger.debug('推荐：类型偏好不能全空');
+      return;
+    }
+    state = next;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendIncludeTypes: next),
+    );
+  }
+}
+
+final recommendIncludeTypesProvider =
+    StateNotifierProvider<RecommendIncludeTypesNotifier, Set<String>>(
+  (ref) => RecommendIncludeTypesNotifier(),
+);

@@ -33,9 +33,13 @@ class RecommendView extends ConsumerStatefulWidget {
 }
 
 class _RecommendViewState extends ConsumerState<RecommendView> {
+  // PR #79：滚动监听 - 滚到底部自动 loadMore
+  late final ScrollController _scrollController;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
     ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
@@ -50,6 +54,27 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
         });
       });
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // PR #79：分页 - 距底 200px 时触发 loadMore
+  // 避免用户看到空白再加载，提升体验
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    // 距底 < 200px 时触发
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      final state = ref.read(recommendProvider);
+      if (state.hasMore && !state.isLoadingMore && !state.isLoading) {
+        ref.read(recommendProvider.notifier).loadMore();
+      }
+    }
   }
 
   @override
@@ -119,6 +144,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // 错误监听
     _maybeShowError(state.error);
 
+    // PR #79：冷启动 Banner（仅当 isColdStart=true 时显示）
+    // 提示用户"先观看几个视频，推荐会更准"
+    final showColdStartBanner = state.isColdStart && state.items.isNotEmpty;
+
     // 首次加载
     if (state.isLoading && state.items.isEmpty) {
       return const Center(
@@ -145,25 +174,76 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       );
     }
 
-    // 网格：3 列
-    return RefreshIndicator(
-      onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
-      child: GridView.builder(
-        padding: const EdgeInsets.all(8),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 9 / 16, // 竖屏海报
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
+    // 网格：3 列（PR #79：顶部加冷启动 Banner + 滚到底自动 loadMore）
+    // - 末尾多渲染一项作为「加载更多」指示器
+    // - hasMore=false 时不渲染指示器
+    final hasMoreSlot = state.hasMore;
+    return Column(
+      children: [
+        if (showColdStartBanner) _buildColdStartBanner(scheme),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
+            child: GridView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 9 / 16, // 竖屏海报
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
+              itemCount: state.items.length + (hasMoreSlot ? 1 : 0),
+              itemBuilder: (context, index) {
+                // PR #79：最后一项 = 加载更多指示器
+                if (index >= state.items.length) {
+                  return _LoadMoreIndicator(
+                    isLoading: state.isLoadingMore,
+                    hasMore: state.hasMore,
+                  );
+                }
+                final item = state.items[index];
+                return _RecommendCard(
+                  item: item,
+                  onTap: () => _playItem(context, item, state.items),
+                );
+              },
+            ),
+          ),
         ),
-        itemCount: state.items.length,
-        itemBuilder: (context, index) {
-          final item = state.items[index];
-          return _RecommendCard(
-            item: item,
-            onTap: () => _playItem(context, item, state.items),
-          );
-        },
+      ],
+    );
+  }
+
+  // PR #79：冷启动 Banner
+  // - 提示用户"先观看几个视频，推荐会更准"
+  // - 显示在推荐页顶部，仅 isColdStart=true 时出现
+  Widget _buildColdStartBanner(ColorScheme scheme) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.primary.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.tips_and_updates_outlined,
+              color: scheme.primary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '先观看几个视频，推荐会更准',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -266,5 +346,50 @@ class _RecommendCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// PR #79：分页加载指示器
+/// - 加载中：显示 CircularProgressIndicator
+/// - 加载完但 hasMore=false：显示「没有更多了」
+class _LoadMoreIndicator extends StatelessWidget {
+  final bool isLoading;
+  final bool hasMore;
+  const _LoadMoreIndicator({required this.isLoading, required this.hasMore});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    if (!hasMore) {
+      // 没有更多数据
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Text(
+            '没有更多了',
+            style: TextStyle(
+              fontSize: 12,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

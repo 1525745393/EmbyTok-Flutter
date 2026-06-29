@@ -138,9 +138,11 @@ class AppPreferences {
   // - recommendMinRating: 评分阈值（Emby 满分 10），0 表示不过滤
   // - recommendExcludePlayed: 排除已观看（默认 true）
   // - recommendMinRuntimeSec: 最短时长（秒），过滤测试片/预告片，默认 30
+  // - recommendIncludeTypes: 偏好类型（Movie/Episode/Video/MusicVideo/Series 的子集）
   final double recommendMinRating;
   final bool recommendExcludePlayed;
   final int recommendMinRuntimeSec;
+  final Set<String> recommendIncludeTypes;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -157,6 +159,13 @@ class AppPreferences {
     this.recommendMinRating = 4.0,
     this.recommendExcludePlayed = true,
     this.recommendMinRuntimeSec = 30,
+    this.recommendIncludeTypes = const <String>{
+      'Movie',
+      'Episode',
+      'Video',
+      'MusicVideo',
+      'Series',
+    },
   });
 
   AppPreferences copyWith({
@@ -174,6 +183,7 @@ class AppPreferences {
     double? recommendMinRating,
     bool? recommendExcludePlayed,
     int? recommendMinRuntimeSec,
+    Set<String>? recommendIncludeTypes,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -190,6 +200,8 @@ class AppPreferences {
       recommendMinRating: recommendMinRating ?? this.recommendMinRating,
       recommendExcludePlayed: recommendExcludePlayed ?? this.recommendExcludePlayed,
       recommendMinRuntimeSec: recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
+      recommendIncludeTypes:
+          recommendIncludeTypes ?? this.recommendIncludeTypes,
     );
   }
 }
@@ -244,6 +256,19 @@ class AppPreferencesService {
     final recommendMinRating = prefs.getDouble(kStorageKeyRecommendMinRating) ?? 4.0;
     final recommendExcludePlayed = prefs.getBool(kStorageKeyRecommendExcludePlayed) ?? true;
     final recommendMinRuntimeSec = prefs.getInt(kStorageKeyRecommendMinRuntimeSec) ?? 30;
+    // PR #79：类型偏好（默认全部）
+    final recommendIncludeTypesJson =
+        prefs.getStringList(kStorageKeyRecommendIncludeTypes);
+    final recommendIncludeTypes = recommendIncludeTypesJson != null &&
+            recommendIncludeTypesJson.isNotEmpty
+        ? recommendIncludeTypesJson.toSet()
+        : const <String>{
+            'Movie',
+            'Episode',
+            'Video',
+            'MusicVideo',
+            'Series',
+          };
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -260,6 +285,7 @@ class AppPreferencesService {
       recommendMinRating: recommendMinRating,
       recommendExcludePlayed: recommendExcludePlayed,
       recommendMinRuntimeSec: recommendMinRuntimeSec,
+      recommendIncludeTypes: recommendIncludeTypes,
     );
   }
 
@@ -282,6 +308,11 @@ class AppPreferencesService {
       prefs.setDouble(kStorageKeyRecommendMinRating, preferences.recommendMinRating),
       prefs.setBool(kStorageKeyRecommendExcludePlayed, preferences.recommendExcludePlayed),
       prefs.setInt(kStorageKeyRecommendMinRuntimeSec, preferences.recommendMinRuntimeSec),
+      // PR #79：类型偏好
+      prefs.setStringList(
+        kStorageKeyRecommendIncludeTypes,
+        preferences.recommendIncludeTypes.toList(growable: false),
+      ),
     ]);
   }
 
