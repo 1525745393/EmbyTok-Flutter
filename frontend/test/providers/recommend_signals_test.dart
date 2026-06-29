@@ -440,4 +440,115 @@ void main() {
       expect(w, lessThan(0.8));
     });
   });
+
+  // ========== PR #86 新增：收藏加权 ==========
+
+  group('收藏加权（PR #86）', () {
+    test('favoriteSeeds 包含传入的 favoriteIds', () {
+      final records = List.generate(
+        6,
+        (i) => _recordAgo(id: 'a', rate: 0.9, daysAgo: i + 1, source: 'nextUp'),
+      );
+      final favorites = <String>{'fav1', 'fav2', 'fav3'};
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        favoriteIds: favorites,
+      );
+      expect(signal.favoriteSeeds, containsAll(favorites));
+    });
+
+    test('收藏项即使多次低完播率也不进入黑名单', () {
+      // fav1 收藏但有 3 次低完播率（按规则应该进黑名单）
+      // 但因为是收藏项，应该豁免
+      final records = [
+        _recordAgo(id: 'fav1', rate: 0.1, daysAgo: 1, source: 'feed'),
+        _recordAgo(id: 'fav1', rate: 0.15, daysAgo: 2, source: 'feed'),
+        _recordAgo(id: 'fav1', rate: 0.18, daysAgo: 3, source: 'feed'),
+      ];
+      records.addAll(List.generate(
+          3, (i) => _recordAgo(id: 'b', rate: 0.5, daysAgo: i + 4, source: 'feed')));
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        favoriteIds: <String>{'fav1'},
+      );
+      // fav1 是收藏 → 不在黑名单
+      expect(signal.blacklist.contains('fav1'), false);
+    });
+
+    test('收藏项即使完播率 < 0.1 也不进入黑名单（豁免规则 2）', () {
+      final records = [
+        _recordAgo(id: 'fav1', rate: 0.05, daysAgo: 1, source: 'feed'),
+      ];
+      records.addAll(List.generate(
+          4, (i) => _recordAgo(id: 'b', rate: 0.5, daysAgo: i + 2, source: 'feed')));
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        favoriteIds: <String>{'fav1'},
+      );
+      // fav1 是收藏 → 不在黑名单（即使 0.05 完播率）
+      expect(signal.blacklist.contains('fav1'), false);
+    });
+
+    test('非收藏项仍正常进入黑名单', () {
+      final records = [
+        _recordAgo(id: 'bad1', rate: 0.1, daysAgo: 1, source: 'feed'),
+        _recordAgo(id: 'bad1', rate: 0.15, daysAgo: 2, source: 'feed'),
+        _recordAgo(id: 'bad1', rate: 0.18, daysAgo: 3, source: 'feed'),
+      ];
+      final favorites = <String>{'fav1'}; // bad1 不是收藏
+      records.addAll(List.generate(
+          3, (i) => _recordAgo(id: 'b', rate: 0.5, daysAgo: i + 4, source: 'feed')));
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        favoriteIds: favorites,
+      );
+      // bad1 不是收藏 → 进黑名单
+      expect(signal.blacklist.contains('bad1'), true);
+    });
+
+    test('关闭完播率门控时仍保留 favoriteSeeds', () {
+      final records = List.generate(
+        10,
+        (i) => _recordAgo(id: 'a', rate: 0.9, daysAgo: i + 1, source: 'nextUp'),
+      );
+      final favorites = <String>{'fav1'};
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        useWatchHistory: false, // 关闭门控
+        favoriteIds: favorites,
+      );
+      // 即使关闭门控，favoriteSeeds 仍保留
+      expect(signal.favoriteSeeds, contains('fav1'));
+      // 其他信号为默认
+      expect(signal.sourceWeights[RecommendSource.nextUp], 1.0);
+    });
+
+    test('冷启动时仍保留 favoriteSeeds', () {
+      // 记录数 < 5（冷启动）
+      final records = [
+        _recordAgo(id: 'a', rate: 0.9, daysAgo: 1, source: 'nextUp'),
+        _recordAgo(id: 'a', rate: 0.8, daysAgo: 2, source: 'nextUp'),
+        _recordAgo(id: 'a', rate: 0.7, daysAgo: 3, source: 'nextUp'),
+      ];
+      final favorites = <String>{'fav1'};
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        favoriteIds: favorites,
+      );
+      // 冷启动：仍保留 favoriteSeeds
+      expect(signal.favoriteSeeds, contains('fav1'));
+      // strength = weak（默认信号）
+      expect(signal.strength, SignalStrength.weak);
+    });
+
+    test('默认信号的 favoriteSeeds 为空', () {
+      expect(UserBehaviorSignal.defaults.favoriteSeeds.isEmpty, true);
+    });
+  });
 }
