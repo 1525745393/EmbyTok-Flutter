@@ -916,16 +916,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       ],
     );
 
-    // 使用 PopScope：保持 Widget 树结构稳定，仅属性变化
-    // 全屏现在由 FullscreenVideoPage 独立承载，本页 _isFullscreen 永远 false
-    return PopScope(
-      canPop: true,
-      child: Semantics(
-        label: '视频播放区域，双击点赞此视频',
-        child: Container(
-          color: null,
-          child: content,
-        ),
+    // 注意：不要在本 Widget 上套 PopScope！
+    // 原因：VideoPageItem 是 Feed 内的普通 Widget，不是独立 route。
+    // 套 PopScope(canPop: true) 会消费掉系统返回键事件，导致外层
+    // HomeScaffold 的退出确认弹窗永远不会被触发（用户按返回键直接退出 App）。
+    // 系统返回键由 HomeScaffold 的 PopScope 统一管理。
+    return Semantics(
+      label: '视频播放区域，双击点赞此视频',
+      child: Container(
+        color: null,
+        child: content,
       ),
     );
   }
