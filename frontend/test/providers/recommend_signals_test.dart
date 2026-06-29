@@ -339,4 +339,105 @@ void main() {
       expect(signal.sourceWeights[RecommendSource.nextUp], 1.5);
     });
   });
+
+  // ========== PR #85 新增：用户控制（完播率门控 + 时间衰减半衰期） ==========
+
+  group('用户控制 - 完播率门控（PR #85）', () {
+    test('useWatchHistory=false → 直接返回默认信号（无门控）', () {
+      // 即使有大量高完播率记录，关闭后应该不应用门控
+      final records = List.generate(
+        10,
+        (i) => _recordAgo(id: 'a', rate: 0.9, daysAgo: i + 1, source: 'nextUp'),
+      );
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        useWatchHistory: false,
+      );
+      // 默认信号：所有 source 权重 = 1.0
+      expect(signal.sourceWeights[RecommendSource.nextUp], 1.0);
+      expect(signal.blacklist.isEmpty, true);
+      expect(signal.highCompletionSeeds.isEmpty, true);
+      expect(signal.strength, SignalStrength.weak);
+    });
+
+    test('useWatchHistory=true（默认）→ 应用门控', () {
+      final records = List.generate(
+        10,
+        (i) => _recordAgo(id: 'a', rate: 0.9, daysAgo: i + 1, source: 'nextUp'),
+      );
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        useWatchHistory: true,
+      );
+      // 高完播率 → 强正向 → weight 1.5
+      expect(signal.sourceWeights[RecommendSource.nextUp], 1.5);
+      expect(signal.strength, SignalStrength.medium);
+    });
+  });
+
+  group('用户控制 - 时间衰减半衰期（PR #85）', () {
+    test('halfLifeDays=0 → 不衰减（所有记录等权重）', () {
+      // 5 条 30 天前 rate 1.0 + 5 条今天 rate 0.0
+      // 不衰减 → 普通平均 = 0.5 → 0.78
+      // 衰减（默认 14）→ 加权平均 ≈ 0.185 → 0.3
+      final records = <WatchRecord>[
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'o', rate: 1.0, daysAgo: 30, source: 'nextUp')),
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'n', rate: 0.0, daysAgo: 0, source: 'nextUp')),
+      ];
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        halfLifeDays: 0,
+      );
+      // 普通平均 0.5 → 0.78
+      expect(
+        signal.sourceWeights[RecommendSource.nextUp],
+        closeTo(0.78, 0.01),
+      );
+    });
+
+    test('halfLifeDays=3 → 衰减快（旧记录影响小）', () {
+      // 5 条 30 天前 rate 1.0（30 天 / 3 = 10 个半衰期 → weight 2^-10 ≈ 0.001）
+      // 5 条今天 rate 0.0（weight 1.0）
+      // 加权平均 ≈ (0.001*1 + 1*0) / (0.001 + 1) ≈ 0.001 → 0.3
+      final records = <WatchRecord>[
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'o', rate: 1.0, daysAgo: 30, source: 'nextUp')),
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'n', rate: 0.0, daysAgo: 0, source: 'nextUp')),
+      ];
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        halfLifeDays: 3,
+      );
+      // 衰减非常快，加权平均趋近 0 → 弱负向 → weight 0.3
+      expect(signal.sourceWeights[RecommendSource.nextUp], 0.3);
+    });
+
+    test('halfLifeDays=90 → 衰减慢（所有记录权重接近）', () {
+      // 5 条 30 天前 rate 1.0（30 / 90 = 0.333 个半衰期 → weight 2^-0.333 ≈ 0.794）
+      // 5 条今天 rate 0.0（weight 1.0）
+      // 加权平均 ≈ (0.794*1 + 1*0) / (0.794 + 1) ≈ 0.443 → 0.3+0.286*1.2=0.64
+      final records = <WatchRecord>[
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'o', rate: 1.0, daysAgo: 30, source: 'nextUp')),
+        ...List.generate(
+            5, (i) => _recordAgo(id: 'n', rate: 0.0, daysAgo: 0, source: 'nextUp')),
+      ];
+      final signal = UserBehaviorSignalCalculator.compute(
+        records,
+        now: _refNow,
+        halfLifeDays: 90,
+      );
+      // 加权平均应该在 0.4-0.5 之间，weight 在 0.5-0.7 之间
+      final w = signal.sourceWeights[RecommendSource.nextUp];
+      expect(w, greaterThan(0.5));
+      expect(w, lessThan(0.8));
+    });
+  });
 }

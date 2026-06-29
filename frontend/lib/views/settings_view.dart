@@ -54,6 +54,9 @@ class SettingsView extends ConsumerWidget {
               _buildRecommendExcludePlayedTile(context, ref),
               _buildRecommendMinRuntimeTile(context, ref),
               _buildRecommendIncludeTypesTile(context, ref),
+              // PR #85：用户控制 - 完播率门控开关 + 时间衰减半衰期
+              _buildRecommendUseWatchHistoryTile(context, ref),
+              _buildRecommendHalfLifeDaysTile(context, ref),
             ],
           ),
           // 播放设置
@@ -415,6 +418,96 @@ class SettingsView extends ConsumerWidget {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  // PR #85：完播率门控开关
+  // - 关闭：推荐结果完全由 Emby 服务器决定（不应用黑名单/权重/种子）
+  // - 开启：根据你的完播率历史优化推荐（默认）
+  Widget _buildRecommendUseWatchHistoryTile(
+      BuildContext context, WidgetRef ref) {
+    final useWatchHistory = ref.watch(recommendUseWatchHistoryProvider);
+    return _SwitchTile(
+      icon: Icons.history_toggle_off_outlined,
+      iconColor: Colors.deepPurple,
+      title: '使用观看历史优化推荐',
+      subtitle: useWatchHistory
+          ? '已开启：黑名单、源权重、相似种子生效'
+          : '已关闭：推荐结果仅由 Emby 服务器决定',
+      value: useWatchHistory,
+      onChanged: (value) {
+        ref.read(recommendUseWatchHistoryProvider.notifier).setUse(value);
+      },
+    );
+  }
+
+  // PR #85：时间衰减半衰期（天）
+  // - 0 天 = 不衰减（所有完播记录等权重）
+  // - 14 天 = 默认（14 天前的记录权重衰减到 0.5）
+  // - 范围 0-90 天
+  Widget _buildRecommendHalfLifeDaysTile(
+      BuildContext context, WidgetRef ref) {
+    final halfLifeDays = ref.watch(recommendHalfLifeDaysProvider);
+    return _TapTile(
+      icon: Icons.timelapse_outlined,
+      iconColor: Colors.brown,
+      title: '记忆半衰期（天）',
+      subtitle: halfLifeDays == 0
+          ? '不衰减，所有记录等权重'
+          : '$halfLifeDays 天前的记录权重衰减到 0.5',
+      onTap: () => _showHalfLifeDaysDialog(context, ref, halfLifeDays),
+    );
+  }
+
+  void _showHalfLifeDaysDialog(
+      BuildContext context, WidgetRef ref, double current) {
+    // 预设值：0, 3, 7, 14, 30, 60, 90
+    final options = <double>[0, 3, 7, 14, 30, 60, 90];
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('记忆半衰期'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '越短 = 推荐越关注最近的偏好；越长 = 老的偏好也会影响推荐。\n0 = 不衰减',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              ...options.map((days) {
+                final selected = current == days;
+                return RadioListTile<double>(
+                  value: days,
+                  groupValue: current,
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await ref
+                        .read(recommendHalfLifeDaysProvider.notifier)
+                        .setDays(v);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                  },
+                  title: Text(days == 0
+                      ? '不衰减 (0 天)'
+                      : '$days 天'),
+                  dense: true,
+                  selected: selected,
+                );
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+          ],
         );
       },
     );

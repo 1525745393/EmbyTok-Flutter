@@ -109,11 +109,12 @@ class UserBehaviorSignalCalculator {
   static const double _seedMinCompletion = 0.5;
   static const int _seedMaxCount = 5;
 
-  // PR #84：时间衰减半衰期（天）
+  // PR #84：时间衰减半衰期（天）- 默认值
+  // 实际值由 compute() 的 halfLifeDays 参数传入（来自用户设置）
   // - 14 天前的记录权重衰减到 0.5
   // - 28 天前的记录权重衰减到 0.25
   // - 让用户最近的偏好对推荐影响更大
-  static const double _halfLifeDays = 14.0;
+  static const double _defaultHalfLifeDays = 14.0;
 
   // PR #84：每个 source 最多纳入聚合的近期记录数（避免数据爆炸）
   // 注意：这是按时间倒序取前 N 条，时间衰减再在内部应用
@@ -123,10 +124,22 @@ class UserBehaviorSignalCalculator {
   /// - 输入：所有观看记录
   /// - 输出：UserBehaviorSignal
   /// - 可选 now：注入当前时间（用于测试），默认 DateTime.now()
+  /// - 可选 useWatchHistory：是否使用完播率历史（PR #85）
+  ///   - false：直接返回默认信号，无门控
+  ///   - true（默认）：按完播率历史计算
+  /// - 可选 halfLifeDays：时间衰减半衰期（PR #85）
+  ///   - 0 = 不衰减（所有记录等权重）
+  ///   - 默认 14.0
   static UserBehaviorSignal compute(
     List<WatchRecord> records, {
     DateTime? now,
+    bool useWatchHistory = true,
+    double halfLifeDays = _defaultHalfLifeDays,
   }) {
+    // PR #85：用户关闭完播率门控 → 直接返回默认信号
+    if (!useWatchHistory) {
+      return UserBehaviorSignal.defaults;
+    }
     if (records.length < _minRecordsForSignal) {
       return UserBehaviorSignal.defaults;
     }
@@ -137,7 +150,7 @@ class UserBehaviorSignalCalculator {
     final reference = now ?? DateTime.now();
 
     return UserBehaviorSignal(
-      sourceWeights: _computeSourceWeights(records, reference),
+      sourceWeights: _computeSourceWeights(records, reference, halfLifeDays),
       // 黑名单和种子不使用时间衰减（避免反复进出）
       blacklist: _computeBlacklist(records),
       highCompletionSeeds: _computeHighCompletionSeeds(records),
@@ -147,11 +160,12 @@ class UserBehaviorSignalCalculator {
 
   /// 计算 5 数据源的权重（PR #84：时间加权平均）
   /// - 聚合：每个 source 的最近 _maxRecordsPerSource 条记录
-  /// - 时间衰减：每条记录按年龄加权（半衰期 _halfLifeDays）
+  /// - 时间衰减：每条记录按年龄加权（半衰期 halfLifeDays）
   /// - 映射：加权 avg >= 0.8 → 1.5，0.3-0.8 → 1.0，< 0.3 → 0.3
   static Map<RecommendSource, double> _computeSourceWeights(
     List<WatchRecord> records,
     DateTime now,
+    double halfLifeDays,
   ) {
     final bySource = <RecommendSource, List<WatchRecord>>{};
     for (final r in records) {
@@ -172,7 +186,7 @@ class UserBehaviorSignalCalculator {
       final sample = recs.length > _maxRecordsPerSource
           ? recs.sublist(0, _maxRecordsPerSource)
           : recs;
-      final weightedAvg = _weightedAverage(sample, now);
+      final weightedAvg = _weightedAverage(sample, now, halfLifeDays);
       result[source] = _mapAvgToWeight(weightedAvg);
     }
     return result;
@@ -181,11 +195,21 @@ class UserBehaviorSignalCalculator {
   /// 时间加权平均（PR #84）
   /// - 公式：sum(timeWeight_i * rate_i) / sum(timeWeight_i)
   /// - 越新的记录权重越大
-  static double _weightedAverage(List<WatchRecord> records, DateTime now) {
+  /// - halfLifeDays = 0 → 所有记录等权重（退化为普通平均）
+  static double _weightedAverage(
+    List<WatchRecord> records,
+    DateTime now,
+    double halfLifeDays,
+  ) {
+    // PR #85：halfLifeDays <= 0 → 不衰减，普通平均
+    if (halfLifeDays <= 0) {
+      final total = records.fold<double>(0.0, (s, r) => s + r.completionRate);
+      return total / records.length;
+    }
     double weightedSum = 0.0;
     double weightSum = 0.0;
     for (final r in records) {
-      final w = _timeWeight(r.watchedAt, now);
+      final w = _timeWeight(r.watchedAt, now, halfLifeDays);
       weightedSum += w * r.completionRate;
       weightSum += w;
     }
@@ -199,14 +223,18 @@ class UserBehaviorSignalCalculator {
   /// - Δdays = 2*halfLife → weight = 0.25
   /// - Δdays 为负（未来）按 0 处理（避免权重爆炸）
   /// - 半衰期越长，衰减越慢
-  static double _timeWeight(int watchedAtUnixSec, DateTime now) {
+  static double _timeWeight(
+    int watchedAtUnixSec,
+    DateTime now,
+    double halfLifeDays,
+  ) {
     final watchedAt = DateTime.fromMillisecondsSinceEpoch(
       watchedAtUnixSec * 1000,
     );
     final delta = now.difference(watchedAt);
     final days = delta.inSeconds / 86400.0; // 一天 86400 秒
     if (days <= 0) return 1.0; // 未来或刚发生：满权重
-    final decayFactor = days / _halfLifeDays;
+    final decayFactor = days / halfLifeDays;
     return math.exp(-decayFactor * math.ln2);
   }
 
