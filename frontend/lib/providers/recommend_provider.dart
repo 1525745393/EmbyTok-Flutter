@@ -38,7 +38,14 @@ import 'library_provider.dart';
 
 /// 推荐状态
 class RecommendState {
+  // PR #79：原 MediaItem 列表（用于兼容历史逻辑，缓存、loadMore）
   final List<MediaItem> items;
+  // PR #80：带数据源标签的推荐项（用于标签分类 UI）
+  // - 与 items 一一对应，但额外标注来自哪个数据源
+  // - 标签切换时只过滤 taggedItems，不影响 items
+  final List<RecommendItem> taggedItems;
+  // PR #80：当前选中的标签（null=全部）
+  final String? selectedTag;
   final bool isLoading;
   final bool isLoadingMore;
   final String? error;
@@ -51,6 +58,8 @@ class RecommendState {
 
   const RecommendState({
     this.items = const [],
+    this.taggedItems = const [],
+    this.selectedTag,
     this.isLoading = false,
     this.isLoadingMore = false,
     this.error,
@@ -61,6 +70,8 @@ class RecommendState {
 
   RecommendState copyWith({
     List<MediaItem>? items,
+    List<RecommendItem>? taggedItems,
+    String? selectedTag,
     bool? isLoading,
     bool? isLoadingMore,
     String? error,
@@ -70,6 +81,8 @@ class RecommendState {
   }) {
     return RecommendState(
       items: items ?? this.items,
+      taggedItems: taggedItems ?? this.taggedItems,
+      selectedTag: selectedTag ?? this.selectedTag,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
@@ -80,14 +93,67 @@ class RecommendState {
   }
 }
 
+/// PR #80：推荐项 = MediaItem + 数据源标签
+/// - 用于标签分类 UI：UI 可按 source 过滤显示
+class RecommendItem {
+  final MediaItem item;
+  final RecommendSource source; // 数据源
+  const RecommendItem({required this.item, required this.source});
+}
+
+/// PR #80：5 个数据源枚举 + 中文标签
+enum RecommendSource {
+  nextUp, // 追剧
+  resume, // 续看
+  suggestions, // 为你推荐
+  similar, // 相似
+  recommendations, // 高分
+}
+
+extension RecommendSourceLabel on RecommendSource {
+  String get key {
+    switch (this) {
+      case RecommendSource.nextUp:
+        return 'nextUp';
+      case RecommendSource.resume:
+        return 'resume';
+      case RecommendSource.suggestions:
+        return 'suggestions';
+      case RecommendSource.similar:
+        return 'similar';
+      case RecommendSource.recommendations:
+        return 'recommendations';
+    }
+  }
+
+  // 中文标签（UI 显示用）
+  String get label {
+    switch (this) {
+      case RecommendSource.nextUp:
+        return '追剧';
+      case RecommendSource.resume:
+        return '续看';
+      case RecommendSource.suggestions:
+        return '为你推荐';
+      case RecommendSource.similar:
+        return '相似';
+      case RecommendSource.recommendations:
+        return '高分';
+    }
+  }
+}
+
 /// PR #79：分页 - 单页加载结果
 /// 记录一页拉到的项 + 各数据源原始项数（用于 load() 冷启动检测）
+/// PR #80：增加 tagged 字段（带 source 标签的列表）
 class _PageLoadResult {
   final List<MediaItem> merged; // 去重 + round-robin 后的列表
+  final List<RecommendItem> tagged; // 与 merged 一一对应，带 source 标签
   final int nextUpCount; // NextUp 数据源原始项数
   final int resumeCount; // Resume 数据源原始项数
   const _PageLoadResult({
     required this.merged,
+    required this.tagged,
     required this.nextUpCount,
     required this.resumeCount,
   });
@@ -139,7 +205,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       if (items.isEmpty) return;
 
       // 立即用缓存渲染（isLoading=true 会被 load() 切换）
-      state = state.copyWith(items: items, isColdStart: false);
+      // PR #80：缓存不含 source 信息，taggedItems 设为空（待 load() 重新填充）
+      state = state.copyWith(items: items, taggedItems: const [], isColdStart: false);
       AppLogger.debug('推荐：使用本地缓存', data: {'count': items.length, 'ageSec': age});
     } catch (e) {
       AppLogger.debug('推荐：读缓存失败', data: {'error': e.toString()});
@@ -257,7 +324,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     if (isColdStart) {
       AppLogger.info('推荐：冷启动模式，评分阈值降级');
       final degradedRating = minRating > 3.0 ? 3.0 : minRating;
-      // 把降级拉到的新项也并入 merged
+      // 把降级拉到的新项也并入 merged（PR #80：同时合并 tagged）
       final degradedItems = await _loadRecommendations(
         service: service,
         auth: auth,
@@ -269,7 +336,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         isTooShort: isTooShort,
         seenIds: seenIds,
       );
-      newItems.merged.addAll(degradedItems);
+      newItems.merged.addAll(degradedItems.map((r) => r.item));
+      newItems.tagged.addAll(degradedItems);
     }
 
     // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
@@ -277,6 +345,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     state = state.copyWith(
       items: newItems.merged,
+      taggedItems: newItems.tagged,
       isLoading: false,
       hasMore: hasMore,
       offset: newItems.merged.length,
@@ -353,11 +422,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     );
 
     final merged = [...state.items, ...newItems.merged];
+    final taggedMerged = [...state.taggedItems, ...newItems.tagged];
     // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
     final hasMore = newItems.merged.length >= _pageSize;
 
     state = state.copyWith(
       items: merged,
+      taggedItems: taggedMerged,
       isLoadingMore: false,
       hasMore: hasMore,
       offset: merged.length,
@@ -370,7 +441,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // PR #79：抽离 - 拉一页（5 数据源 + round-robin）
-  // 返回 _PageLoadResult，包含 merged 列表和每个数据源的项数（供 load() 冷启动检测）
+  // PR #80：每个 item 带 source 标签（用于 UI 分类过滤）
+  // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
+  // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
+  // + 各数据源原始项数（供 load() 冷启动检测）
   Future<_PageLoadResult> _loadPage({
     required EmbytokService service,
     required auth,
@@ -383,12 +457,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool Function(MediaItem) isVideo,
     required Set<String> seenIds,
   }) async {
-    final queues = <String, List<MediaItem>>{
-      _sourceNextUp: <MediaItem>[],
-      _sourceResume: <MediaItem>[],
-      _sourceSuggestions: <MediaItem>[],
-      _sourceRecommendations: <MediaItem>[],
-      _sourceSimilar: <MediaItem>[],
+    // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
+    final queues = <String, List<RecommendItem>>{
+      _sourceNextUp: <RecommendItem>[],
+      _sourceResume: <RecommendItem>[],
+      _sourceSuggestions: <RecommendItem>[],
+      _sourceRecommendations: <RecommendItem>[],
+      _sourceSimilar: <RecommendItem>[],
     };
 
     Future<void> fetchNextUp() async {
@@ -400,7 +475,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          queues[_sourceNextUp]!.add(item);
+          queues[_sourceNextUp]!
+              .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
       } catch (e) {
         AppLogger.error('推荐：加载 NextUp 失败', error: e);
@@ -416,7 +492,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          queues[_sourceResume]!.add(item);
+          queues[_sourceResume]!
+              .add(RecommendItem(item: item, source: RecommendSource.resume));
         }
       } catch (e) {
         AppLogger.error('推荐：加载 Resume 失败', error: e);
@@ -433,7 +510,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in suggestions) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          queues[_sourceSuggestions]!.add(item);
+          queues[_sourceSuggestions]!.add(
+              RecommendItem(item: item, source: RecommendSource.suggestions));
         }
       } catch (e) {
         AppLogger.error('推荐：加载个性化推荐失败', error: e);
@@ -471,7 +549,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         for (final list in similarLists) {
           for (final item in list) {
             if (!isVideo(item) || isTooShort(item)) continue;
-            queues[_sourceSimilar]!.add(item);
+            queues[_sourceSimilar]!
+                .add(RecommendItem(item: item, source: RecommendSource.similar));
           }
         }
       } catch (e) {
@@ -512,25 +591,29 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceRecommendations,
     ];
     final merged = <MediaItem>[];
+    final tagged = <RecommendItem>[];
     while (order.any((key) => queues[key]!.isNotEmpty)) {
       for (final key in order) {
         final q = queues[key]!;
         if (q.isNotEmpty) {
-          final item = q.removeAt(0);
-          if (seenIds.add(item.id)) {
-            merged.add(item);
+          final r = q.removeAt(0);
+          if (seenIds.add(r.item.id)) {
+            merged.add(r.item);
+            tagged.add(r);
           }
         }
       }
     }
     return _PageLoadResult(
       merged: merged,
+      tagged: tagged,
       nextUpCount: nextUpCount,
       resumeCount: resumeCount,
     );
   }
 
   // PR #79：抽离 - 多库评分推荐 future 列表
+  // PR #80：queues 改为存 RecommendItem
   List<Future<void>> _fetchRecommendations({
     required EmbytokService service,
     required auth,
@@ -540,7 +623,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Set<String> includeTypes,
     required bool Function(MediaItem) isTooShort,
     required Set<String> seenIds,
-    required Map<String, List<MediaItem>> queues,
+    required Map<String, List<RecommendItem>> queues,
   }) {
     return selectedIds.map((libId) {
       return () async {
@@ -558,7 +641,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           );
           for (final item in resp.items) {
             if (isTooShort(item)) continue;
-            queues[_sourceRecommendations]!.add(item);
+            queues[_sourceRecommendations]!.add(RecommendItem(
+                item: item, source: RecommendSource.recommendations));
           }
         } catch (e) {
           AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
@@ -568,7 +652,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
-  Future<List<MediaItem>> _loadRecommendations({
+  // PR #80：返回带 source 标签的 RecommendItem 列表（source = recommendations）
+  Future<List<RecommendItem>> _loadRecommendations({
     required EmbytokService service,
     required auth,
     required List<String> selectedIds,
@@ -579,7 +664,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool Function(MediaItem) isTooShort,
     required Set<String> seenIds,
   }) async {
-    final results = <MediaItem>[];
+    final results = <RecommendItem>[];
     await Future.wait(selectedIds.map((libId) async {
       try {
         final resp = await service.getRecommendations(
@@ -596,7 +681,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         for (final item in resp.items) {
           if (isTooShort(item)) continue;
           if (seenIds.add(item.id)) {
-            results.add(item);
+            results.add(RecommendItem(
+                item: item, source: RecommendSource.recommendations));
           }
         }
       } catch (e) {
@@ -609,6 +695,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   /// 刷新（用户下拉刷新时调用）
   Future<void> refresh() async {
     await load();
+  }
+
+  /// PR #80：选择标签（切换数据源分类）
+  /// - tag=null 表示「全部」
+  /// - 仅影响 view 渲染（view 按 taggedItems.filter(...).item 渲染）
+  void selectTag(String? tag) {
+    state = state.copyWith(selectedTag: tag);
   }
 
   /// 清除错误（SnackBar 弹出后重置，避免重复弹出）

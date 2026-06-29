@@ -174,13 +174,29 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       );
     }
 
-    // 网格：3 列（PR #79：顶部加冷启动 Banner + 滚到底自动 loadMore）
-    // - 末尾多渲染一项作为「加载更多」指示器
-    // - hasMore=false 时不渲染指示器
+    // PR #80：标签分类 - 根据 selectedTag 过滤 taggedItems
+    // - selectedTag=null → 显示全部
+    // - selectedTag=xxx → 只显示对应 source 的项
+    final filteredItems = state.selectedTag == null
+        ? state.taggedItems
+        : state.taggedItems
+            .where((r) => r.source.key == state.selectedTag)
+            .toList();
+    // PR #80：选中分类下的子集用于渲染
+    final displayItems =
+        filteredItems.isEmpty ? state.taggedItems : filteredItems;
+    // PR #80：playItem 播放列表（避免在 itemBuilder 中每次重建）
+    final mediaItems =
+        displayItems.map((r) => r.item).toList(growable: false);
+    // PR #80：分页 - hasMoreSlot 用全量判断（数据源还有内容即可继续）
     final hasMoreSlot = state.hasMore;
+
+    // 网格：3 列（PR #79：顶部加冷启动 Banner + PR #80：标签栏 + 滚到底自动 loadMore）
     return Column(
       children: [
         if (showColdStartBanner) _buildColdStartBanner(scheme),
+        // PR #80：标签分类栏（横向可滚动 + 选中高亮）
+        _buildTagBar(state, scheme),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
@@ -193,25 +209,99 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
               ),
-              itemCount: state.items.length + (hasMoreSlot ? 1 : 0),
+              itemCount: displayItems.length + (hasMoreSlot ? 1 : 0),
               itemBuilder: (context, index) {
                 // PR #79：最后一项 = 加载更多指示器
-                if (index >= state.items.length) {
+                if (index >= displayItems.length) {
                   return _LoadMoreIndicator(
                     isLoading: state.isLoadingMore,
                     hasMore: state.hasMore,
                   );
                 }
-                final item = state.items[index];
+                // PR #80：displayItems 是 RecommendItem 列表，渲染时取 .item
+                final recommendItem = displayItems[index];
                 return _RecommendCard(
-                  item: item,
-                  onTap: () => _playItem(context, item, state.items),
+                  item: recommendItem.item,
+                  onTap: () => _playItem(context, recommendItem.item, mediaItems),
                 );
               },
             ),
           ),
         ),
       ],
+    );
+  }
+
+  // PR #80：横向标签分类栏
+  // - 显示 6 个标签：全部 / 追剧 / 续看 / 为你推荐 / 相似 / 高分
+  // - 选中时高亮（scheme.primary 背景）
+  // - 横向可滚动（不溢出）
+  // - 点击切换 → state.selectedTag 变化 → view 自动 rebuild
+  Widget _buildTagBar(RecommendState state, ColorScheme scheme) {
+    // 计算每个标签的项数（用于显示徽标）
+    int countFor(RecommendSource? s) {
+      if (s == null) return state.taggedItems.length;
+      return state.taggedItems.where((r) => r.source == s).length;
+    }
+
+    final tags = <_RecommendTagInfo>[
+      _RecommendTagInfo(label: '全部', sourceKey: null, count: countFor(null)),
+      _RecommendTagInfo(
+          label: RecommendSource.nextUp.label,
+          sourceKey: RecommendSource.nextUp.key,
+          count: countFor(RecommendSource.nextUp)),
+      _RecommendTagInfo(
+          label: RecommendSource.resume.label,
+          sourceKey: RecommendSource.resume.key,
+          count: countFor(RecommendSource.resume)),
+      _RecommendTagInfo(
+          label: RecommendSource.suggestions.label,
+          sourceKey: RecommendSource.suggestions.key,
+          count: countFor(RecommendSource.suggestions)),
+      _RecommendTagInfo(
+          label: RecommendSource.similar.label,
+          sourceKey: RecommendSource.similar.key,
+          count: countFor(RecommendSource.similar)),
+      _RecommendTagInfo(
+          label: RecommendSource.recommendations.label,
+          sourceKey: RecommendSource.recommendations.key,
+          count: countFor(RecommendSource.recommendations)),
+    ];
+
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.only(top: 4, bottom: 4),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: tags.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final tag = tags[i];
+          final isSelected = state.selectedTag == tag.sourceKey;
+          return ChoiceChip(
+            label: Text('${tag.label} (${tag.count})'),
+            selected: isSelected,
+            onSelected: (_) {
+              ref.read(recommendProvider.notifier).selectTag(tag.sourceKey);
+            },
+            selectedColor: scheme.primary,
+            backgroundColor: scheme.surfaceContainerHighest,
+            labelStyle: TextStyle(
+              color: isSelected ? scheme.onPrimary : scheme.onSurface,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            ),
+            side: BorderSide(
+              color: isSelected
+                  ? scheme.primary
+                  : scheme.outlineVariant.withOpacity(0.3),
+              width: 1,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+          );
+        },
+      ),
     );
   }
 
@@ -270,6 +360,18 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       },
     );
   }
+}
+
+/// PR #80：标签分类 - 单个标签的信息（label + sourceKey + count）
+class _RecommendTagInfo {
+  final String label;
+  final String? sourceKey; // null = 全部
+  final int count;
+  const _RecommendTagInfo({
+    required this.label,
+    required this.sourceKey,
+    required this.count,
+  });
 }
 
 /// 推荐卡片：竖屏海报 + 标题
