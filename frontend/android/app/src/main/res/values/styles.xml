@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+        启动主题（LaunchTheme）：用于 Android 系统启动 Activity 时的占位窗口。
+        全面屏手势适配：
+        - windowBackground 与 NormalTheme 保持一致（黑色），避免从启动图到首帧
+          出现"白屏 → 黑屏 → 视频"的颜色闪烁。
+        - android:windowDrawsSystemBarBackgrounds=true 让状态栏 / 导航栏由 App 自己绘制。
+        - 状态栏 / 导航栏背景设为透明，配合 MainActivity.enableEdgeToEdge() 让
+          App 内容延伸到系统栏背后。
+        - statusBarColor / navigationBarColor 在 Android 15+ 强制 edge-to-edge 时无效，
+          保留仅为兼容 Android < 15 设备。
+    -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+    <!--
+        运行时主题（NormalTheme）：Flutter 首帧渲染时使用。
+        保持纯黑背景，与 App 默认深色主题一致，避免黑→白→暗的闪烁。
+    -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
-        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 </resources>

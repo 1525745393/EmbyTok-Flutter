@@ -54,6 +54,20 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    // 全面屏手势适配：全屏视频是黑底，必须把状态栏 / 导航栏图标改为浅色，
+    // 否则 white-on-white 不可见；同时背景透明让黑底透出。
+    // 退出全屏时不再主动恢复——app.dart 顶层 AnnotatedRegion 会自动接管，
+    // 恢复为当前主题对应的 overlay style。
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
     // 标记全局全屏状态
     Future.microtask(() {
       if (mounted) {
