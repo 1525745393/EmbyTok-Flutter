@@ -1,3 +1,10 @@
+# [1.118.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.117.1...v1.118.0) (2026-06-29)
+
+
+### Features
+
+* **android:** 适配全面屏手势导航 (edge-to-edge) ([#91](https://github.com/1525745393/EmbyTok-Flutter/issues/91)) ([e1b7296](https://github.com/1525745393/EmbyTok-Flutter/commit/e1b7296fd131dda08b457119ec95727b8168141e))
+
 ## [1.117.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.117.0...v1.117.1) (2026-06-29)
 
 
