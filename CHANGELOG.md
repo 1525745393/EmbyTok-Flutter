@@ -1,3 +1,16 @@
+# [1.116.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.115.0...v1.116.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **recommend:** 修复 PR [#88](https://github.com/1525745393/EmbyTok-Flutter/issues/88) 编译错误 ([e67c1f4](https://github.com/1525745393/EmbyTok-Flutter/commit/e67c1f4dcd0cc8c48f11042ecf6de0c2c0e22fff))
+
+
+### Features
+
+* **recommend:** 反推荐疲劳（X 天内不重推） ([#88](https://github.com/1525745393/EmbyTok-Flutter/issues/88)) ([014840c](https://github.com/1525745393/EmbyTok-Flutter/commit/014840c5ea85a8c56126eb94e18b3baa21a37f6a))
+* **recommend:** 反推荐疲劳（X 天内不重推） (PR [#88](https://github.com/1525745393/EmbyTok-Flutter/issues/88)) ([e1d04ec](https://github.com/1525745393/EmbyTok-Flutter/commit/e1d04ec270281e089edc80d0759591dfa6289f6e))
+
 # [1.115.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.114.0...v1.115.0) (2026-06-29)
 
 
