@@ -1,3 +1,10 @@
+## [1.117.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.117.0...v1.117.1) (2026-06-29)
+
+
+### Bug Fixes
+
+* **feed:** 修复首页 (Feed Tab) 按返回键不弹退出确认 ([#90](https://github.com/1525745393/EmbyTok-Flutter/issues/90)) ([b09c220](https://github.com/1525745393/EmbyTok-Flutter/commit/b09c22000c883f692e66929ec650db4f650f170d))
+
 # [1.117.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.116.0...v1.117.0) (2026-06-29)
 
 
