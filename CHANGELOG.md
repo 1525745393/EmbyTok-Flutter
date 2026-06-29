@@ -1,3 +1,17 @@
+# [1.110.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.109.0...v1.110.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **preferences:** 补回 logger 导入 (PR [#82](https://github.com/1525745393/EmbyTok-Flutter/issues/82)) ([#82](https://github.com/1525745393/EmbyTok-Flutter/issues/82)) ([8e4e69b](https://github.com/1525745393/EmbyTok-Flutter/commit/8e4e69bde5419f9629d4ddbd262f228ff60a871a)), closes [#79](https://github.com/1525745393/EmbyTok-Flutter/issues/79)
+
+
+### Features
+
+* **recommend:** 冷启动 Banner + 类型偏好 + 分页 loadMore (PR [#79](https://github.com/1525745393/EmbyTok-Flutter/issues/79)) ([#79](https://github.com/1525745393/EmbyTok-Flutter/issues/79)) ([2bb7700](https://github.com/1525745393/EmbyTok-Flutter/commit/2bb770093790d827f12516e5526035ee4dd937db))
+* **recommend:** 标签分类 UI - 追剧/续看/为你推荐/相似/高分 (PR [#80](https://github.com/1525745393/EmbyTok-Flutter/issues/80)) ([#80](https://github.com/1525745393/EmbyTok-Flutter/issues/80)) ([96a367e](https://github.com/1525745393/EmbyTok-Flutter/commit/96a367efe9fb8938eb3828c012a9133a372e147f)), closes [#79](https://github.com/1525745393/EmbyTok-Flutter/issues/79)
+* **stats:** 完播率统计 Provider + 设置页 (PR [#81](https://github.com/1525745393/EmbyTok-Flutter/issues/81)) ([#81](https://github.com/1525745393/EmbyTok-Flutter/issues/81)) ([7a792fa](https://github.com/1525745393/EmbyTok-Flutter/commit/7a792fa4e5932a90a9231ba1a4afe2fdca23f543))
+
 # [1.109.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.108.0...v1.109.0) (2026-06-28)
 
 
