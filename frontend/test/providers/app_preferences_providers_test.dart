@@ -354,4 +354,63 @@ void main() {
       expect(state.contains('item-599'), true);
     });
   });
+
+  // ============== PR #89：用户控制（用户评分加权） ==============
+  group('RecommendUserRatingEnabledNotifier (PR #89)', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      container = ProviderContainer();
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('初始状态为 true', () {
+      final state = container.read(recommendUserRatingEnabledProvider);
+      expect(state, true);
+    });
+
+    test('setEnabled 切换到 false', () async {
+      final notifier = container.read(recommendUserRatingEnabledProvider.notifier);
+      await notifier.setEnabled(false);
+      final state = container.read(recommendUserRatingEnabledProvider);
+      expect(state, false);
+    });
+  });
+
+  group('RecommendUserRatingMinNotifier (PR #89)', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      container = ProviderContainer();
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('初始状态为 4.0', () {
+      final state = container.read(recommendUserRatingMinProvider);
+      expect(state, 4.0);
+    });
+
+    test('setMin 接受合法值', () async {
+      final notifier = container.read(recommendUserRatingMinProvider.notifier);
+      await notifier.setMin(6.5);
+      final state = container.read(recommendUserRatingMinProvider);
+      expect(state, 6.5);
+    });
+
+    test('setMin 限制在 [0, 10]', () async {
+      final notifier = container.read(recommendUserRatingMinProvider.notifier);
+      await notifier.setMin(20.0);
+      expect(container.read(recommendUserRatingMinProvider), 10.0);
+      await notifier.setMin(-5.0);
+      expect(container.read(recommendUserRatingMinProvider), 0.0);
+    });
+  });
 }

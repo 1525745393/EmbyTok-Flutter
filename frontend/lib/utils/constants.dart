@@ -58,6 +58,13 @@ const String kStorageKeyRecommendAntiFatigueDays =
     'embbytok_recommend_anti_fatigue_days';
 const String kStorageKeyRecentlyShownItemIds =
     'embbytok_recently_shown_item_ids';
+// PR #89：推荐 - 用户评分加权（Emby UserData.Rating 0-10）
+// - 开启时：用户评分 < 阈值的 item 跳过（除非收藏）
+// - 关闭时：仅按 communityRating 过滤（已有逻辑）
+const String kStorageKeyRecommendUserRatingEnabled =
+    'embbytok_recommend_user_rating_enabled';
+const String kStorageKeyRecommendUserRatingMin =
+    'embbytok_recommend_user_rating_min';
 // PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
 const String kStorageKeyRecommendCache = 'embytok_recommend_cache';
 const String kStorageKeyRecommendCacheTime = 'embytok_recommend_cache_time';

@@ -60,6 +60,9 @@ class SettingsView extends ConsumerWidget {
               // PR #88：用户控制 - 反推荐疲劳（X 天内不重推）
               _buildRecommendAntiFatigueEnabledTile(context, ref),
               _buildRecommendAntiFatigueDaysTile(context, ref),
+              // PR #89：用户控制 - 用户评分加权
+              _buildRecommendUserRatingEnabledTile(context, ref),
+              _buildRecommendUserRatingMinTile(context, ref),
             ],
           ),
           // 播放设置
@@ -582,6 +585,91 @@ class SettingsView extends ConsumerWidget {
                     Navigator.of(context).pop();
                   },
                   title: Text('$d 天'),
+                  dense: true,
+                  selected: selected,
+                );
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // PR #89：用户评分加权开关
+  // - 关闭：仅按 communityRating 过滤（已有逻辑）
+  // - 开启：用户评分 < 阈值的 item 也跳过（除非收藏）
+  Widget _buildRecommendUserRatingEnabledTile(
+      BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(recommendUserRatingEnabledProvider);
+    return _SwitchTile(
+      icon: Icons.star_rate_outlined,
+      iconColor: Colors.purple,
+      title: '用户评分加权',
+      subtitle: enabled
+          ? '已开启：跳过用户评分 < ${ref.read(recommendUserRatingMinProvider).toStringAsFixed(1)} 的 item（收藏项豁免）'
+          : '已关闭：仅按社区评分过滤',
+      value: enabled,
+      onChanged: (value) {
+        ref.read(recommendUserRatingEnabledProvider.notifier).setEnabled(value);
+      },
+    );
+  }
+
+  // PR #89：用户评分最低阈值（0-10，默认 4.0）
+  Widget _buildRecommendUserRatingMinTile(
+      BuildContext context, WidgetRef ref) {
+    final minRating = ref.watch(recommendUserRatingMinProvider);
+    return _TapTile(
+      icon: Icons.star_half,
+      iconColor: Colors.deepPurple,
+      title: '最低用户评分',
+      subtitle: minRating == 0
+          ? '不过滤'
+          : '≥ $minRating（0-10）',
+      onTap: () => _showUserRatingMinDialog(context, ref, minRating),
+    );
+  }
+
+  void _showUserRatingMinDialog(
+      BuildContext context, WidgetRef ref, double current) {
+    // 预设值：0（关闭）/ 3.0 / 4.0 / 5.0 / 6.0 / 7.0 / 8.0
+    final options = <double>[0, 3, 4, 5, 6, 7, 8];
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('最低用户评分'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '用户评分 < 阈值的 item 不再推荐（收藏项豁免）。0 = 关闭该过滤。',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              ...options.map((d) {
+                final selected = (current - d).abs() < 0.01;
+                return RadioListTile<double>(
+                  value: d,
+                  groupValue: current,
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await ref
+                        .read(recommendUserRatingMinProvider.notifier)
+                        .setMin(v);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                  },
+                  title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
                   dense: true,
                   selected: selected,
                 );

@@ -292,6 +292,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
     // PR #88：读取用户控制 - 反推荐疲劳（开关 + 已展示 itemIds）
+    // PR #89：读取用户控制 - 用户评分加权（开关 + 最低阈值）
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
@@ -300,6 +301,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #88：取最近展示记录（注意：days 用于按期过期判断，本 PR 暂未在 AppPreferences
     // 保存时间戳，统一用 Set<String> 简化；后续可扩展为 Map<itemId, shownAt>）
     final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
+    // PR #89：用户评分加权 - 关闭时不应用用户评分过滤
+    final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
+    final userRatingMin = _ref.read(recommendUserRatingMinProvider);
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
@@ -353,6 +357,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       favoriteIds: favoriteIds, // PR #86
       antiFatigueEnabled: antiFatigueEnabled, // PR #88
       recentlyShownIds: recentlyShownIds, // PR #88
+      userRatingEnabled: userRatingEnabled, // PR #89
+      userRatingMin: userRatingMin, // PR #89
     );
 
     // 冷启动判定：建议数据源 + Resume 都为空
@@ -489,6 +495,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       favoriteIds: favoriteIds, // PR #86
       antiFatigueEnabled: antiFatigueEnabled, // PR #88
       recentlyShownIds: recentlyShownIds, // PR #88
+      userRatingEnabled: userRatingEnabled, // PR #89
+      userRatingMin: userRatingMin, // PR #89
     );
 
     final merged = [...state.items, ...newItems.merged];
@@ -521,6 +529,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #83：完播率接入门控（黑名单 + source 权重 + 相似种子）
   // PR #86：favoriteIds 传入 - 黑名单跳过收藏
   // PR #88：antiFatigueEnabled + recentlyShownIds 传入 - X 天内不重推
+  // PR #89：userRatingEnabled + userRatingMin 传入 - 用户评分 < 阈值跳过
   // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
   // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
@@ -539,6 +548,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Set<String> favoriteIds, // PR #86
     required bool antiFatigueEnabled, // PR #88
     required Set<String> recentlyShownIds, // PR #88
+    required bool userRatingEnabled, // PR #89
+    required double userRatingMin, // PR #89
   }) async {
     // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
@@ -563,9 +574,22 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         recentlyShownIds.contains(item.id) &&
         !favoriteIds.contains(item.id);
 
-    // 合并过滤：黑名单 + 最近展示
+    // PR #89：用户评分加权 - 用户评分 < 阈值的 item 跳过
+    // - 仅对"用户有评分"的 item 应用（null = 用户未评分，按原逻辑走）
+    // - 收藏项不受影响（用户主动喜欢 > 用户评分低）
+    // - userRatingMin == 0 时关闭该过滤
+    bool isUserRatingLow(MediaItem item) {
+      if (!userRatingEnabled) return false;
+      if (userRatingMin <= 0) return false;
+      if (favoriteIds.contains(item.id)) return false;
+      final ur = item.userRating;
+      if (ur == null) return false; // 用户未评分 = 不过滤
+      return ur < userRatingMin;
+    }
+
+    // 合并过滤：黑名单 + 最近展示 + 用户评分低
     bool shouldSkip(MediaItem item) =>
-        isBlacklisted(item) || isRecentlyShown(item);
+        isBlacklisted(item) || isRecentlyShown(item) || isUserRatingLow(item);
 
     Future<void> fetchNextUp() async {
       try {

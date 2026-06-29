@@ -426,3 +426,59 @@ final recentlyShownItemIdsProvider =
     StateNotifierProvider<RecentlyShownItemIdsNotifier, Set<String>>(
   (ref) => RecentlyShownItemIdsNotifier(),
 );
+
+// PR #89：用户控制 - 用户评分加权开关
+// - true（默认）：用户评分 < recommendUserRatingMin 的 item 跳过（除非收藏）
+// - false：仅按 communityRating 过滤
+class RecommendUserRatingEnabledNotifier extends StateNotifier<bool> {
+  RecommendUserRatingEnabledNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendUserRatingEnabled;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendUserRatingEnabled: value),
+    );
+  }
+}
+
+final recommendUserRatingEnabledProvider =
+    StateNotifierProvider<RecommendUserRatingEnabledNotifier, bool>(
+  (ref) => RecommendUserRatingEnabledNotifier(),
+);
+
+// PR #89：用户控制 - 最低用户评分阈值（0-10，默认 4.0）
+// - 范围 [0.0, 10.0]
+// - 0 = 不过滤（仅按 communityRating）
+class RecommendUserRatingMinNotifier extends StateNotifier<double> {
+  RecommendUserRatingMinNotifier() : super(4.0) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendUserRatingMin;
+  }
+
+  Future<void> setMin(double value) async {
+    // 范围 [0, 10]
+    final clamped = value.clamp(0.0, 10.0);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendUserRatingMin: clamped),
+    );
+  }
+}
+
+final recommendUserRatingMinProvider =
+    StateNotifierProvider<RecommendUserRatingMinNotifier, double>(
+  (ref) => RecommendUserRatingMinNotifier(),
+);

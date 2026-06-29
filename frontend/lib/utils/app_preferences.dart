@@ -157,6 +157,15 @@ class AppPreferences {
   //   - 范围 [1, 90]
   final bool recommendAntiFatigueEnabled;
   final int recommendAntiFatigueDays;
+  // PR #89：用户评分加权（Emby UserData.Rating 0-10）
+  // - recommendUserRatingEnabled: 是否启用"用户评分 < 阈值"的过滤
+  //   - true（默认）：用户评分低于 recommendUserRatingMin 的 item 不推荐
+  //   - false：仅按 communityRating 过滤（已有逻辑）
+  // - recommendUserRatingMin: 最低用户评分阈值（0-10，默认 4.0）
+  //   - null = 不过滤
+  //   - 收藏项豁免（用户主动喜欢 > 用户评分低）
+  final bool recommendUserRatingEnabled;
+  final double recommendUserRatingMin;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -184,6 +193,8 @@ class AppPreferences {
     this.recommendHalfLifeDays = 14.0,
     this.recommendAntiFatigueEnabled = true,
     this.recommendAntiFatigueDays = 30,
+    this.recommendUserRatingEnabled = true,
+    this.recommendUserRatingMin = 4.0,
   });
 
   AppPreferences copyWith({
@@ -206,6 +217,8 @@ class AppPreferences {
     double? recommendHalfLifeDays,
     bool? recommendAntiFatigueEnabled,
     int? recommendAntiFatigueDays,
+    bool? recommendUserRatingEnabled,
+    double? recommendUserRatingMin,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -232,6 +245,10 @@ class AppPreferences {
           recommendAntiFatigueEnabled ?? this.recommendAntiFatigueEnabled,
       recommendAntiFatigueDays:
           recommendAntiFatigueDays ?? this.recommendAntiFatigueDays,
+      recommendUserRatingEnabled:
+          recommendUserRatingEnabled ?? this.recommendUserRatingEnabled,
+      recommendUserRatingMin:
+          recommendUserRatingMin ?? this.recommendUserRatingMin,
     );
   }
 }
@@ -309,6 +326,11 @@ class AppPreferencesService {
         prefs.getBool(kStorageKeyRecommendAntiFatigueEnabled) ?? true;
     final recommendAntiFatigueDays =
         prefs.getInt(kStorageKeyRecommendAntiFatigueDays) ?? 30;
+    // PR #89：用户评分加权
+    final recommendUserRatingEnabled =
+        prefs.getBool(kStorageKeyRecommendUserRatingEnabled) ?? true;
+    final recommendUserRatingMin =
+        prefs.getDouble(kStorageKeyRecommendUserRatingMin) ?? 4.0;
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -330,6 +352,8 @@ class AppPreferencesService {
       recommendHalfLifeDays: recommendHalfLifeDays,
       recommendAntiFatigueEnabled: recommendAntiFatigueEnabled,
       recommendAntiFatigueDays: recommendAntiFatigueDays,
+      recommendUserRatingEnabled: recommendUserRatingEnabled,
+      recommendUserRatingMin: recommendUserRatingMin,
     );
   }
 
@@ -367,6 +391,11 @@ class AppPreferencesService {
           preferences.recommendAntiFatigueEnabled),
       prefs.setInt(kStorageKeyRecommendAntiFatigueDays,
           preferences.recommendAntiFatigueDays),
+      // PR #89：用户评分加权
+      prefs.setBool(kStorageKeyRecommendUserRatingEnabled,
+          preferences.recommendUserRatingEnabled),
+      prefs.setDouble(kStorageKeyRecommendUserRatingMin,
+          preferences.recommendUserRatingMin),
     ]);
   }
 
