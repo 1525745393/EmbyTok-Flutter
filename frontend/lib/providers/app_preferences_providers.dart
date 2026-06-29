@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_preferences.dart';
+import '../utils/constants.dart';
 import '../utils/logger.dart';
 
 // ---------------- 设备模式（standard / tv） ----------------

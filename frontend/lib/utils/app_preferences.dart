@@ -182,6 +182,8 @@ class AppPreferences {
     },
     this.recommendUseWatchHistory = true,
     this.recommendHalfLifeDays = 14.0,
+    this.recommendAntiFatigueEnabled = true,
+    this.recommendAntiFatigueDays = 30,
   });
 
   AppPreferences copyWith({
