@@ -291,10 +291,15 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // - 否则按 source 聚合完播率，计算权重 + 黑名单 + 高完播种子
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
+    // PR #88：读取用户控制 - 反推荐疲劳（开关 + 已展示 itemIds）
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
     final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+    final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
+    // PR #88：取最近展示记录（注意：days 用于按期过期判断，本 PR 暂未在 AppPreferences
+    // 保存时间戳，统一用 Set<String> 简化；后续可扩展为 Map<itemId, shownAt>）
+    final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
@@ -346,6 +351,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       seenIds: seenIds,
       signal: signal,
       favoriteIds: favoriteIds, // PR #86
+      antiFatigueEnabled: antiFatigueEnabled, // PR #88
+      recentlyShownIds: recentlyShownIds, // PR #88
     );
 
     // 冷启动判定：建议数据源 + Resume 都为空
@@ -385,6 +392,15 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       error: null,
       isColdStart: isColdStart && newItems.merged.length < _pageSize ~/ 2,
     );
+    // PR #88：记录展示过的 itemId（用于反推荐疲劳）
+    // - 反疲劳开启时记录
+    // - 不阻塞主流程
+    if (antiFatigueEnabled && newItems.merged.isNotEmpty) {
+      // 异步记录（不 await）
+      unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(
+            newItems.merged.map((i) => i.id),
+          ));
+    }
     // PR #78：写入本地缓存（下次启动 < 30 分钟直接用）
     await _saveToCache(newItems.merged);
     AppLogger.debug('推荐列表加载完成', data: {
@@ -430,10 +446,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #83：计算用户行为信号
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
+    // PR #88：读取反推荐疲劳（开关 + 已展示 itemIds）
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
     final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+    final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
+    final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
@@ -468,6 +487,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       seenIds: seenIds,
       signal: signal,
       favoriteIds: favoriteIds, // PR #86
+      antiFatigueEnabled: antiFatigueEnabled, // PR #88
+      recentlyShownIds: recentlyShownIds, // PR #88
     );
 
     final merged = [...state.items, ...newItems.merged];
@@ -482,6 +503,12 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       hasMore: hasMore,
       offset: merged.length,
     );
+    // PR #88：记录新展示的 itemId
+    if (antiFatigueEnabled && newItems.merged.isNotEmpty) {
+      unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(
+            newItems.merged.map((i) => i.id),
+          ));
+    }
     AppLogger.debug('推荐 loadMore 完成', data: {
       'newCount': newItems.merged.length,
       'total': merged.length,
@@ -493,6 +520,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #80：每个 item 带 source 标签（用于 UI 分类过滤）
   // PR #83：完播率接入门控（黑名单 + source 权重 + 相似种子）
   // PR #86：favoriteIds 传入 - 黑名单跳过收藏
+  // PR #88：antiFatigueEnabled + recentlyShownIds 传入 - X 天内不重推
   // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
   // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
@@ -509,6 +537,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Set<String> seenIds,
     required UserBehaviorSignal signal,
     required Set<String> favoriteIds, // PR #86
+    required bool antiFatigueEnabled, // PR #88
+    required Set<String> recentlyShownIds, // PR #88
   }) async {
     // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
@@ -521,8 +551,21 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     // PR #83：黑名单过滤辅助 - 已加入黑名单的 item 跳过
     // PR #86：收藏项不应用黑名单（用户主动喜欢 > 系统推断不爱看）
+    // PR #88：最近展示过的 itemId 跳过（X 天内不重推）
     bool isBlacklisted(MediaItem item) =>
         signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
+
+    // PR #88：反推荐疲劳 - X 天内展示过的 item 跳过
+    // - 关闭时不跳过
+    // - 收藏项不受反推荐疲劳影响（用户主动喜欢 > 防疲劳）
+    bool isRecentlyShown(MediaItem item) =>
+        antiFatigueEnabled &&
+        recentlyShownIds.contains(item.id) &&
+        !favoriteIds.contains(item.id);
+
+    // 合并过滤：黑名单 + 最近展示
+    bool shouldSkip(MediaItem item) =>
+        isBlacklisted(item) || isRecentlyShown(item);
 
     Future<void> fetchNextUp() async {
       try {
@@ -533,7 +576,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          if (isBlacklisted(item)) continue; // PR #83
+          if (shouldSkip(item)) continue; // PR #83+#88
           queues[_sourceNextUp]!
               .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
@@ -551,7 +594,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          if (isBlacklisted(item)) continue; // PR #83
+          if (shouldSkip(item)) continue; // PR #83+#88
           queues[_sourceResume]!
               .add(RecommendItem(item: item, source: RecommendSource.resume));
         }
@@ -618,7 +661,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             });
           for (final item in sorted) {
             if (!isVideo(item) || isTooShort(item)) continue;
-            if (isBlacklisted(item)) continue;
+            if (shouldSkip(item)) continue; // PR #83+#88
             queues[_sourceNextUp]!.insert(
               0, // 插到队首，优先于 fetchNextUp 拉到的项
               RecommendItem(item: item, source: RecommendSource.nextUp),
@@ -640,7 +683,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         );
         for (final item in suggestions) {
           if (!isVideo(item) || isTooShort(item)) continue;
-          if (isBlacklisted(item)) continue; // PR #83
+          if (shouldSkip(item)) continue; // PR #83+#88
           queues[_sourceSuggestions]!.add(
               RecommendItem(item: item, source: RecommendSource.suggestions));
         }
@@ -723,7 +766,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         for (final list in similarLists) {
           for (final item in list) {
             if (!isVideo(item) || isTooShort(item)) continue;
-            if (isBlacklisted(item)) continue; // PR #83
+            if (shouldSkip(item)) continue; // PR #83+#88
             queues[_sourceSimilar]!
                 .add(RecommendItem(item: item, source: RecommendSource.similar));
           }

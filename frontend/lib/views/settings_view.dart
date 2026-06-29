@@ -57,6 +57,9 @@ class SettingsView extends ConsumerWidget {
               // PR #85：用户控制 - 完播率门控开关 + 时间衰减半衰期
               _buildRecommendUseWatchHistoryTile(context, ref),
               _buildRecommendHalfLifeDaysTile(context, ref),
+              // PR #88：用户控制 - 反推荐疲劳（X 天内不重推）
+              _buildRecommendAntiFatigueEnabledTile(context, ref),
+              _buildRecommendAntiFatigueDaysTile(context, ref),
             ],
           ),
           // 播放设置
@@ -496,6 +499,89 @@ class SettingsView extends ConsumerWidget {
                   title: Text(days == 0
                       ? '不衰减 (0 天)'
                       : '$days 天'),
+                  dense: true,
+                  selected: selected,
+                );
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // PR #88：反推荐疲劳开关
+  // - 关闭：所有展示过的 item 也会被重推
+  // - 开启：X 天内展示过的 item 不再推荐
+  Widget _buildRecommendAntiFatigueEnabledTile(
+      BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(recommendAntiFatigueEnabledProvider);
+    return _SwitchTile(
+      icon: Icons.repeat_on_outlined,
+      iconColor: Colors.indigo,
+      title: '避免重复推荐',
+      subtitle: enabled
+          ? '已开启：$ref.read(recommendAntiFatigueDaysProvider) 天内不重推'
+          : '已关闭：所有 item 都可能被推荐',
+      value: enabled,
+      onChanged: (value) {
+        ref.read(recommendAntiFatigueEnabledProvider.notifier).setEnabled(value);
+      },
+    );
+  }
+
+  // PR #88：反推荐疲劳天数（默认 30，范围 1-90）
+  Widget _buildRecommendAntiFatigueDaysTile(
+      BuildContext context, WidgetRef ref) {
+    final days = ref.watch(recommendAntiFatigueDaysProvider);
+    return _TapTile(
+      icon: Icons.history_toggle_off,
+      iconColor: Colors.deepOrange,
+      title: '不重推天数',
+      subtitle: '$days 天内展示过的 item 不再推荐',
+      onTap: () => _showAntiFatigueDaysDialog(context, ref, days),
+    );
+  }
+
+  void _showAntiFatigueDaysDialog(
+      BuildContext context, WidgetRef ref, int current) {
+    // 预设值：1, 3, 7, 14, 30, 60, 90
+    final options = <int>[1, 3, 7, 14, 30, 60, 90];
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('不重推天数'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '越长 = 越不容易看到重复内容；越短 = 推荐变化越快。',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              ...options.map((d) {
+                final selected = current == d;
+                return RadioListTile<int>(
+                  value: d,
+                  groupValue: current,
+                  onChanged: (v) async {
+                    if (v == null) return;
+                    await ref
+                        .read(recommendAntiFatigueDaysProvider.notifier)
+                        .setDays(v);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                  },
+                  title: Text('$d 天'),
                   dense: true,
                   selected: selected,
                 );

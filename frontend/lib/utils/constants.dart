@@ -51,6 +51,13 @@ const String kStorageKeyRecommendUseWatchHistory =
     'embbytok_recommend_use_watch_history';
 const String kStorageKeyRecommendHalfLifeDays =
     'embbytok_recommend_half_life_days';
+// PR #88：推荐 - 反推荐疲劳（30 天内不重推）
+const String kStorageKeyRecommendAntiFatigueEnabled =
+    'embbytok_recommend_anti_fatigue_enabled';
+const String kStorageKeyRecommendAntiFatigueDays =
+    'embbytok_recommend_anti_fatigue_days';
+const String kStorageKeyRecentlyShownItemIds =
+    'embbytok_recently_shown_item_ids';
 // PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
 const String kStorageKeyRecommendCache = 'embytok_recommend_cache';
 const String kStorageKeyRecommendCacheTime = 'embytok_recommend_cache_time';

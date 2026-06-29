@@ -4,6 +4,7 @@
 /// 所有状态变化时自动持久化到 SharedPreferences。
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_preferences.dart';
 import '../utils/logger.dart';
@@ -323,4 +324,104 @@ class RecommendHalfLifeDaysNotifier extends StateNotifier<double> {
 final recommendHalfLifeDaysProvider =
     StateNotifierProvider<RecommendHalfLifeDaysNotifier, double>(
   (ref) => RecommendHalfLifeDaysNotifier(),
+);
+
+// PR #88：用户控制 - 反推荐疲劳（30 天内不重推）开关
+class RecommendAntiFatigueEnabledNotifier extends StateNotifier<bool> {
+  RecommendAntiFatigueEnabledNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendAntiFatigueEnabled;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendAntiFatigueEnabled: value),
+    );
+  }
+}
+
+final recommendAntiFatigueEnabledProvider =
+    StateNotifierProvider<RecommendAntiFatigueEnabledNotifier, bool>(
+  (ref) => RecommendAntiFatigueEnabledNotifier(),
+);
+
+// PR #88：用户控制 - 反推荐疲劳天数（默认 30）
+class RecommendAntiFatigueDaysNotifier extends StateNotifier<int> {
+  RecommendAntiFatigueDaysNotifier() : super(30) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendAntiFatigueDays;
+  }
+
+  Future<void> setDays(int days) async {
+    // 范围限制 [1, 90]
+    final clamped = days.clamp(1, 90);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(recommendAntiFatigueDays: clamped),
+    );
+  }
+}
+
+final recommendAntiFatigueDaysProvider =
+    StateNotifierProvider<RecommendAntiFatigueDaysNotifier, int>(
+  (ref) => RecommendAntiFatigueDaysNotifier(),
+);
+
+// PR #88：最近展示过的 itemId 列表（用于反推荐疲劳）
+// - Set<String> 表示 itemId
+// - 持久化到 SharedPreferences
+// - 最多保留 500 个（FIFO 清理）
+class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
+  RecentlyShownItemIdsNotifier() : super(<String>{}) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(kStorageKeyRecentlyShownItemIds) ??
+        const <String>[];
+    state = list.toSet();
+  }
+
+  Future<void> addAll(Iterable<String> itemIds) async {
+    if (itemIds.isEmpty) return;
+    final next = <String>{...state, ...itemIds};
+    // 容量限制 500，超过则删除最早的部分（FIFO 通过 List 维护）
+    const int maxCount = 500;
+    if (next.length > maxCount) {
+      // 转换为 list 保留插入顺序，删除最前面的
+      final ordered = <String>[...next];
+      state = ordered.sublist(ordered.length - maxCount).toSet();
+    } else {
+      state = next;
+    }
+    await _persist();
+  }
+
+  Future<void> clear() async {
+    state = <String>{};
+    await _persist();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+        kStorageKeyRecentlyShownItemIds, state.toList(growable: false));
+  }
+}
+
+final recentlyShownItemIdsProvider =
+    StateNotifierProvider<RecentlyShownItemIdsNotifier, Set<String>>(
+  (ref) => RecentlyShownItemIdsNotifier(),
 );
