@@ -151,6 +151,12 @@ class AppPreferences {
   //   - 范围 [0, 90]
   final bool recommendUseWatchHistory;
   final double recommendHalfLifeDays;
+  // PR #88：用户控制反推荐疲劳
+  // - recommendAntiFatigueEnabled: 是否启用"X 天内不重推"过滤
+  // - recommendAntiFatigueDays: 不重推的天数（默认 30）
+  //   - 范围 [1, 90]
+  final bool recommendAntiFatigueEnabled;
+  final int recommendAntiFatigueDays;
 
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
@@ -196,6 +202,8 @@ class AppPreferences {
     Set<String>? recommendIncludeTypes,
     bool? recommendUseWatchHistory,
     double? recommendHalfLifeDays,
+    bool? recommendAntiFatigueEnabled,
+    int? recommendAntiFatigueDays,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -218,6 +226,10 @@ class AppPreferences {
           recommendUseWatchHistory ?? this.recommendUseWatchHistory,
       recommendHalfLifeDays:
           recommendHalfLifeDays ?? this.recommendHalfLifeDays,
+      recommendAntiFatigueEnabled:
+          recommendAntiFatigueEnabled ?? this.recommendAntiFatigueEnabled,
+      recommendAntiFatigueDays:
+          recommendAntiFatigueDays ?? this.recommendAntiFatigueDays,
     );
   }
 }
@@ -290,6 +302,11 @@ class AppPreferencesService {
         prefs.getBool(kStorageKeyRecommendUseWatchHistory) ?? true;
     final recommendHalfLifeDays =
         prefs.getDouble(kStorageKeyRecommendHalfLifeDays) ?? 14.0;
+    // PR #88：用户控制反推荐疲劳
+    final recommendAntiFatigueEnabled =
+        prefs.getBool(kStorageKeyRecommendAntiFatigueEnabled) ?? true;
+    final recommendAntiFatigueDays =
+        prefs.getInt(kStorageKeyRecommendAntiFatigueDays) ?? 30;
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -309,6 +326,8 @@ class AppPreferencesService {
       recommendIncludeTypes: recommendIncludeTypes,
       recommendUseWatchHistory: recommendUseWatchHistory,
       recommendHalfLifeDays: recommendHalfLifeDays,
+      recommendAntiFatigueEnabled: recommendAntiFatigueEnabled,
+      recommendAntiFatigueDays: recommendAntiFatigueDays,
     );
   }
 
@@ -341,6 +360,11 @@ class AppPreferencesService {
           kStorageKeyRecommendUseWatchHistory, preferences.recommendUseWatchHistory),
       prefs.setDouble(
           kStorageKeyRecommendHalfLifeDays, preferences.recommendHalfLifeDays),
+      // PR #88：用户控制反推荐疲劳
+      prefs.setBool(kStorageKeyRecommendAntiFatigueEnabled,
+          preferences.recommendAntiFatigueEnabled),
+      prefs.setInt(kStorageKeyRecommendAntiFatigueDays,
+          preferences.recommendAntiFatigueDays),
     ]);
   }
 
