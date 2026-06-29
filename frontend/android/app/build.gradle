@@ -96,8 +96,6 @@ flutter {
     source '../..'
 }
 
-// 显式锁定 androidx.activity 版本，确保 enableEdgeToEdge() API 可用。
-// 1.8.0 起才提供 enableEdgeToEdge() 扩展函数；Flutter 默认传递依赖 1.7.x 不足。
-dependencies {
-    implementation "androidx.activity:activity-ktx:1.8.2"
-}
+// 不需要显式声明 androidx 依赖：WindowCompat 来自 androidx.core:core，
+// 由 Flutter embedding 隐式传递。FlutterActivity 直接继承 android.app.Activity
+// 不继承 ComponentActivity，所以无法使用 androidx.activity.enableEdgeToEdge()。
