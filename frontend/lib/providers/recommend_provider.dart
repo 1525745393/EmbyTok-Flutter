@@ -453,12 +453,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
     // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
     // PR #88：读取反推荐疲劳（开关 + 已展示 itemIds）
+    // PR #89：读取用户评分加权（开关 + 最低阈值）
     final stats = _ref.read(watchStatsProvider);
     final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
     final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
     final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
     final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
     final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
+    // PR #89：用户评分加权 - 关闭时不应用用户评分过滤
+    final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
+    final userRatingMin = _ref.read(recommendUserRatingMinProvider);
     final signal = UserBehaviorSignalCalculator.compute(
       stats.records,
       useWatchHistory: useWatchHistory,
