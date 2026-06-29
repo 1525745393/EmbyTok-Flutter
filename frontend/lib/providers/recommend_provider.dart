@@ -345,6 +345,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       isVideo: isVideo,
       seenIds: seenIds,
       signal: signal,
+      favoriteIds: favoriteIds, // PR #86
     );
 
     // 冷启动判定：建议数据源 + Resume 都为空
@@ -466,6 +467,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       isVideo: isVideo,
       seenIds: seenIds,
       signal: signal,
+      favoriteIds: favoriteIds, // PR #86
     );
 
     final merged = [...state.items, ...newItems.merged];
@@ -490,6 +492,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #79：抽离 - 拉一页（5 数据源 + round-robin）
   // PR #80：每个 item 带 source 标签（用于 UI 分类过滤）
   // PR #83：完播率接入门控（黑名单 + source 权重 + 相似种子）
+  // PR #86：favoriteIds 传入 - 黑名单跳过收藏
   // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
   // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
@@ -505,6 +508,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool Function(MediaItem) isVideo,
     required Set<String> seenIds,
     required UserBehaviorSignal signal,
+    required Set<String> favoriteIds, // PR #86
   }) async {
     // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
