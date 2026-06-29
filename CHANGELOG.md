@@ -1,3 +1,10 @@
+# [1.113.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.112.0...v1.113.0) (2026-06-29)
+
+
+### Features
+
+* **recommend:** 用户控制 - 完播率门控开关 + 时间衰减半衰期 (PR [#85](https://github.com/1525745393/EmbyTok-Flutter/issues/85)) ([d4b65f2](https://github.com/1525745393/EmbyTok-Flutter/commit/d4b65f24de038ab719c0c1e7457607cad91b82e6))
+
 # [1.112.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.111.0...v1.112.0) (2026-06-29)
 
 
