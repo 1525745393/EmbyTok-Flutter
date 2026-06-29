@@ -1,3 +1,10 @@
+# [1.115.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.114.0...v1.115.0) (2026-06-29)
+
+
+### Features
+
+* **recommend:** 系列追剧优先 (PR [#87](https://github.com/1525745393/EmbyTok-Flutter/issues/87)) ([822bf4c](https://github.com/1525745393/EmbyTok-Flutter/commit/822bf4c28d345329d9ab71220cd68e103bd2defc))
+
 # [1.114.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.113.0...v1.114.0) (2026-06-29)
 
 
