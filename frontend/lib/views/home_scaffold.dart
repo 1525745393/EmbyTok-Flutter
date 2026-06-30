@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import '../services/video_pool_service.dart';
@@ -37,6 +38,45 @@ class HomeScaffold extends ConsumerStatefulWidget {
 }
 
 class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
+  // Feed Tab 当前是否处于"用户可见 + 未被覆盖层遮挡"状态
+  //
+  // 背景：HomeScaffold 用 IndexedStack 同时保持 Feed / Favorites / Actors / Settings
+  // 四个 Tab 视图存活，切换 Tab 时不会触发 deactivate/activate。
+  // Feed 中的 VideoPlayerController 一直是同一个实例，即使切到其他 Tab
+  // 也会继续后台播放。
+  //
+  // 修复：在 _HomeScaffoldState 中监听 pageNavigationProvider 变化，
+  // 当 Feed 刚被隐藏时主动 controller.pause()，重新可见时如果用户
+  // 原本"想播放"（isPlayingProvider=true）则 controller.play()，
+  // 既保证切到其他 Tab 时视频不会继续播放/消耗流量/发热，也保留
+  // 用户的"主动暂停"意图（切回不会自动恢复）。
+  @override
+  void initState() {
+    super.initState();
+    // 延迟到第一帧后注册 listen，避免在 build 期间触发 state 修改
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.listenManual<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
+    });
+  }
+
+  /// 监听页面导航变化，处理 Feed Tab 可见性切换时的视频暂停/恢复
+  void _onPageNavChanged(
+    PageNavigationState? prev,
+    PageNavigationState next,
+  ) {
+    if (prev == null) return;
+    if (!mounted) return;
+
+    final controller = ref.read(currentVideoControllerProvider);
+    final userWantsToPlay = ref.read(isPlayingProvider);
+    applyFeedVisibilityChange(
+      prev: prev,
+      next: next,
+      controller: controller,
+      userWantsToPlay: userWantsToPlay,
+    );
+  }
   @override
   Widget build(BuildContext context) {
     // 监听页面导航状态
@@ -224,5 +264,43 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
         ),
       ),
     );
+  }
+}
+
+/// 处理 Feed Tab 可见性切换时的视频播放控制（纯函数，便于单元测试）
+///
+/// 设计原则：
+/// 1. Feed 刚被隐藏（切到 Favorites/Actors/Settings）→ 主动 pause 防止后台播放
+/// 2. Feed 刚重新可见（切回首页）→ 仅当用户"原本想播放"（isPlayingProvider=true）才 play
+///    - 避免覆盖用户主动暂停的意图
+/// 3. 搜索/历史覆盖层（isOverlayPage=true）→ isFeedVisible 仍为 true，
+///    不会触发 pause，让用户在弹层中浏览时视频继续播放
+///
+/// 入参：
+/// - [prev] / [next]：前后两次导航状态
+/// - [controller]：当前 VideoPlayerController（可能为 null）
+/// - [userWantsToPlay]：用户播放意图（isPlayingProvider），用于切回 Feed 时决定是否恢复
+void applyFeedVisibilityChange({
+  required PageNavigationState prev,
+  required PageNavigationState next,
+  required VideoPlayerController? controller,
+  required bool userWantsToPlay,
+}) {
+  // 1. 可见性没有变化 → 不处理
+  if (prev.isFeedVisible == next.isFeedVisible) return;
+  // 2. controller 不存在或未初始化 → 不处理
+  if (controller == null) return;
+  if (!controller.value.isInitialized) return;
+
+  if (!next.isFeedVisible) {
+    // Feed 刚被隐藏（切到其他 Tab）：暂停
+    if (controller.value.isPlaying) {
+      controller.pause();
+    }
+  } else {
+    // Feed 刚重新可见：恢复（仅当用户原本"想播放"）
+    if (userWantsToPlay && !controller.value.isPlaying) {
+      controller.play();
+    }
   }
 }
