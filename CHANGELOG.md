@@ -1,3 +1,10 @@
+## [1.118.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.1...v1.118.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **feed:** 切到其他 Tab 时自动暂停 Feed 视频播放 ([#93](https://github.com/1525745393/EmbyTok-Flutter/issues/93)) ([9813072](https://github.com/1525745393/EmbyTok-Flutter/commit/98130729e3c9269b58eebac13281ac4d183703bb))
+
 ## [1.118.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.0...v1.118.1) (2026-06-29)
 
 
