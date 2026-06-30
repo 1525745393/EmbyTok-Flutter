@@ -9,6 +9,11 @@
 //
 // 路由透传：HomeScaffold 接受 initialItemId（来自 GoRouter `?initialId=` 参数），
 // 透传给 FeedView 作为"目标播放项"。
+//
+// App 生命周期处理：HomeScaffold 混入 WidgetsBindingObserver，
+// 当 App 切到后台时（resumed → inactive/paused/hidden）暂停 Feed 中的视频，
+// 回到前台时（paused/inactive → resumed）仅当 Feed 可见 + 用户原本想播放
+// 才自动恢复。避免后台继续消耗流量 / 电池 / 发热，同时尊重用户主动暂停意图。
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +42,8 @@ class HomeScaffold extends ConsumerStatefulWidget {
   ConsumerState<HomeScaffold> createState() => _HomeScaffoldState();
 }
 
-class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
+class _HomeScaffoldState extends ConsumerState<HomeScaffold>
+    with WidgetsBindingObserver {
   // Feed Tab 当前是否处于"用户可见 + 未被覆盖层遮挡"状态
   //
   // 背景：HomeScaffold 用 IndexedStack 同时保持 Feed / Favorites / Actors / Settings
@@ -50,14 +56,57 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
   // 原本"想播放"（isPlayingProvider=true）则 controller.play()，
   // 既保证切到其他 Tab 时视频不会继续播放/消耗流量/发热，也保留
   // 用户的"主动暂停"意图（切回不会自动恢复）。
+  //
+  // 同样的逻辑也用在 App 生命周期变化上（WidgetsBindingObserver）：
+  // - 切后台（resumed → inactive/paused）→ 暂停（无论 Feed 可见否）
+  // - 回前台（paused/inactive → resumed）→ 仅当 Feed 可见 + 想播 才恢复
+  // 决策逻辑统一在 [applyLifecyclePlaybackChange] 顶层纯函数中。
+
+  // 上一次的 AppLifecycleState：用于在 didChangeAppLifecycleState
+  // 中判断"刚离开前台"或"刚回到前台"
+  AppLifecycleState? _lastLifecycleState;
+
   @override
   void initState() {
     super.initState();
+    // 记录初始 lifecycle（通常是 resumed）
+    _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
+    // 注册 WidgetsBindingObserver 以监听 App 前后台切换
+    WidgetsBinding.instance.addObserver(this);
     // 延迟到第一帧后注册 listen，避免在 build 期间触发 state 修改
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.listenManual<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
     });
+  }
+
+  @override
+  void dispose() {
+    // 注销 observer，避免内存泄漏
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (!mounted) return;
+
+    final prev = _lastLifecycleState;
+    _lastLifecycleState = state;
+    if (prev == null) return;
+
+    final controller = ref.read(currentVideoControllerProvider);
+    final userWantsToPlay = ref.read(isPlayingProvider);
+    // 仅当 Feed 当前可见时才在回前台时恢复播放
+    final navState = ref.read(pageNavigationProvider);
+    applyLifecyclePlaybackChange(
+      prev: prev,
+      next: state,
+      isFeedVisible: navState.isFeedVisible,
+      controller: controller,
+      userWantsToPlay: userWantsToPlay,
+    );
   }
 
   /// 监听页面导航变化，处理 Feed Tab 可见性切换时的视频暂停/恢复
@@ -267,6 +316,29 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold> {
   }
 }
 
+/// 底层工具：仅在 controller 正在播放时 pause（防止重复 pause）
+void _pauseIfPlaying(VideoPlayerController? controller) {
+  if (controller == null) return;
+  if (!controller.value.isInitialized) return;
+  if (controller.value.isPlaying) {
+    controller.pause();
+  }
+}
+
+/// 底层工具：仅在 userWantsToPlay=true 且 controller 已暂停时 play
+///
+/// 不覆盖用户的"主动暂停"意图——只有当用户原本就想播放时才恢复。
+void _playIfWantedAndPaused(
+  VideoPlayerController? controller,
+  bool userWantsToPlay,
+) {
+  if (controller == null) return;
+  if (!controller.value.isInitialized) return;
+  if (userWantsToPlay && !controller.value.isPlaying) {
+    controller.play();
+  }
+}
+
 /// 处理 Feed Tab 可见性切换时的视频播放控制（纯函数，便于单元测试）
 ///
 /// 设计原则：
@@ -288,19 +360,55 @@ void applyFeedVisibilityChange({
 }) {
   // 1. 可见性没有变化 → 不处理
   if (prev.isFeedVisible == next.isFeedVisible) return;
-  // 2. controller 不存在或未初始化 → 不处理
-  if (controller == null) return;
-  if (!controller.value.isInitialized) return;
 
   if (!next.isFeedVisible) {
     // Feed 刚被隐藏（切到其他 Tab）：暂停
-    if (controller.value.isPlaying) {
-      controller.pause();
-    }
+    _pauseIfPlaying(controller);
   } else {
     // Feed 刚重新可见：恢复（仅当用户原本"想播放"）
-    if (userWantsToPlay && !controller.value.isPlaying) {
-      controller.play();
+    _playIfWantedAndPaused(controller, userWantsToPlay);
+  }
+}
+
+/// 处理 App 生命周期变化的视频播放控制（纯函数，便于单元测试）
+///
+/// 设计原则：
+/// 1. App 切到后台（resumed → inactive/paused/hidden）→ 主动 pause
+///    - 无论 Feed 是否可见都暂停（节省流量 / 电池 / 发热）
+/// 2. App 回到前台（inactive/paused → resumed）→ 仅当
+///    - Feed 可见（isFeedVisible=true）
+///    - 用户原本想播放（userWantsToPlay=true）
+///    才自动恢复播放
+/// 3. inactive 内部状态变化（如 resumed → inactive → paused）只在
+///    "刚离开前台" / "刚回到前台" 两个边界触发，中间过渡态 noop
+///
+/// 入参：
+/// - [prev] / [next]：前后两次 AppLifecycleState（prev 可能为 null 表示首次）
+/// - [isFeedVisible]：回前台时 Feed Tab 是否可见（决定是否恢复播放）
+/// - [controller]：当前 VideoPlayerController（可能为 null）
+/// - [userWantsToPlay]：用户播放意图
+void applyLifecyclePlaybackChange({
+  required AppLifecycleState? prev,
+  required AppLifecycleState next,
+  required bool isFeedVisible,
+  required VideoPlayerController? controller,
+  required bool userWantsToPlay,
+}) {
+  // 首次回调（prev 为 null）：不做处理
+  if (prev == null) return;
+
+  final wasForeground = prev == AppLifecycleState.resumed;
+  final isForeground = next == AppLifecycleState.resumed;
+
+  if (wasForeground && !isForeground) {
+    // 刚离开前台：无论 Feed 是否可见都暂停（节省资源）
+    _pauseIfPlaying(controller);
+  } else if (!wasForeground && isForeground) {
+    // 刚回到前台：仅当 Feed 可见 + 用户原本想播放 才恢复
+    if (isFeedVisible) {
+      _playIfWantedAndPaused(controller, userWantsToPlay);
     }
   }
+  // 中间过渡态（resumed → inactive → paused 或反向）由边界触发，
+  // 内部 inactive 状态不重复调用 pause/play。
 }
