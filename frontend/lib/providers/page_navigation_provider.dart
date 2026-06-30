@@ -34,6 +34,15 @@ class PageNavigationState {
       isOverlayPage: isOverlayPage ?? this.isOverlayPage,
     );
   }
+
+  /// 当前导航状态下 Feed Tab 是否对用户"实际可见"
+  ///
+  /// 覆盖层页面（搜索/历史）显示在 Feed 之上，主体 IndexedStack 仍展示
+  /// Feed（currentIndex=feed），所以 isOverlayPage=true 时 Feed 仍视为可见。
+  /// 真正的"Feed 不可见"是切到 Favorites/Actors/Settings 等其他 Tab。
+  ///
+  /// HomeScaffold 用此判定是否需要暂停 Feed 中的视频播放。
+  bool get isFeedVisible => currentIndex == PageIndices.feed;
 }
 
 // 页面导航 Notifier
