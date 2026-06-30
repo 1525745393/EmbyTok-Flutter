@@ -1,3 +1,10 @@
+## [1.118.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.2...v1.118.3) (2026-06-30)
+
+
+### Bug Fixes
+
+* **lifecycle:** App 切后台时自动暂停 Feed 视频播放 ([#94](https://github.com/1525745393/EmbyTok-Flutter/issues/94)) ([b8f5078](https://github.com/1525745393/EmbyTok-Flutter/commit/b8f507845e0e0b844347194317a5dcb4c5dadc23)), closes [#93](https://github.com/1525745393/EmbyTok-Flutter/issues/93) [#93](https://github.com/1525745393/EmbyTok-Flutter/issues/93)
+
 ## [1.118.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.1...v1.118.2) (2026-06-30)
 
 
