@@ -103,6 +103,10 @@ class VideoListState {
 /// - [feedTypeProvider] 浏览模式变化（latest/random/favorites/resume）
 /// - [gridSearchQueryProvider] 网格搜索变化
 /// - [viewModeProvider] 视图模式变化（切回feed时重置搜索）
+///
+/// 内存管理：
+/// - [_searchDebounceTimer] 在 [dispose] 中显式 cancel，防止 StateNotifier 销毁后 Timer 继续运行
+///   Timer 闭包持有 `_ref`（ProviderContainer 引用），若不 cancel 会导致整个依赖链无法释放
 class VideoListNotifier extends StateNotifier<VideoListState> {
   final Ref _ref;
   final EmbytokService _service;
@@ -738,6 +742,17 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     final newItems = List<MediaItem>.from(items)..removeAt(idx);
     state = state.copyWith(items: newItems);
     AppLogger.debug('已从 resume 列表移除播放完毕条目', data: {'itemId': itemId});
+  }
+
+  /// 释放资源：cancel 未完成的防抖 Timer
+  ///
+  /// Riverpod 的 StateNotifier 在 Provider 被销毁时（如应用退出、登录切换）
+  /// 会调用此方法。若不 cancel Timer，Timer 闭包持有 `_ref` 引用，
+  /// 间接持有整个 ProviderContainer 依赖链，导致大量对象无法释放。
+  @override
+  void dispose() {
+    _searchDebounceTimer?.cancel();
+    super.dispose();
   }
 }
 
