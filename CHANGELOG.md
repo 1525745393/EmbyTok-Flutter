@@ -1,3 +1,11 @@
+## [1.119.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.119.0...v1.119.1) (2026-07-01)
+
+
+### Performance Improvements
+
+* 播放器性能优化 - 渲染降频/预加载静音/封面图自适应 ([a66dbe1](https://github.com/1525745393/EmbyTok-Flutter/commit/a66dbe1849e4541690010c3c51e19d20a917ce14))
+* 播放器深度优化 - 轻量预加载/池化统一/并发限流 ([d557522](https://github.com/1525745393/EmbyTok-Flutter/commit/d5575229c2c1966f3954c6a8b035efee85c36e0d))
+
 # [1.119.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.6...v1.119.0) (2026-07-01)
 
 
