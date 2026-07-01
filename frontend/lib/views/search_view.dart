@@ -225,10 +225,11 @@ class _SearchViewState extends ConsumerState<SearchView>
       );
     }
     // 错误
-    if (state.error != null && state.results.isEmpty) {
+    final error = state.error;
+    if (error != null && state.results.isEmpty) {
       return _Centered(
         child: ErrorStateCard(
-          title: state.error!,
+          title: error,
           actionLabel: '重试',
           onAction: () {
             ref.read(searchProvider.notifier).search(state.query);
@@ -270,13 +271,17 @@ class _SearchViewState extends ConsumerState<SearchView>
             hint.name,
             style: TextStyle(color: scheme.onSurface, fontSize: 15),
           ),
-          subtitle: hint.seriesName != null && hint.seriesName!.isNotEmpty
-              ? Text(
-                  hint.seriesName!,
-                  style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
-                )
-              : null,
+          subtitle: () {
+            final seriesName = hint.seriesName;
+            if (seriesName != null && seriesName.isNotEmpty) {
+              return Text(
+                seriesName,
+                style: TextStyle(
+                    color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
+              );
+            }
+            return null;
+          }(),
           trailing: hint.year != null
               ? Text(
                   hint.year.toString(),
@@ -310,31 +315,35 @@ class _SearchViewState extends ConsumerState<SearchView>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: _mediaTypes
-                  .map((item) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(item['label']!),
-                          selected: _selectedType == item['type'],
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedType =
-                                  selected ? item['type'] : null;
-                            });
-                          },
-                          selectedColor: scheme.primary,
-                          labelStyle: TextStyle(
-                            color: _selectedType == item['type']
-                                ? scheme.onPrimary
-                                : scheme.onSurface.withOpacity(0.7),
-                            fontSize: 13,
-                          ),
-                          backgroundColor:
-                              scheme.onSurface.withOpacity(0.05),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                  .map((item) {
+                    final label = item['label'] ?? '';
+                    final type = item['type'];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(label),
+                        selected: _selectedType == type,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedType =
+                                selected ? type : null;
+                          });
+                        },
+                        selectedColor: scheme.primary,
+                        labelStyle: TextStyle(
+                          color: _selectedType == type
+                              ? scheme.onPrimary
+                              : scheme.onSurface.withOpacity(0.7),
+                          fontSize: 13,
                         ),
-                      ))
+                        backgroundColor:
+                            scheme.onSurface.withOpacity(0.05),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    );
+                  })
                   .toList(),
             ),
           ),

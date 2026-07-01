@@ -156,10 +156,11 @@ class MediaItem {
     final imageTagsDynamic = json['ImageTags'] as Map<String, dynamic>? ??
         json['image_tags'] as Map<String, dynamic>?;
     if (imageTagsDynamic != null && imageTagsDynamic.isNotEmpty) {
-      imageTags = <String, String>{};
+      final tags = <String, String>{};
       imageTagsDynamic.forEach((key, value) {
-        imageTags![key] = value.toString();
+        tags[key] = value.toString();
       });
+      imageTags = tags;
     }
 
     // 背景图 tag 列表
@@ -260,7 +261,8 @@ class MediaItem {
 
   // 统一的时长读取（秒）：优先 runtimeTicks，其次 durationSeconds
   double get durationSec {
-    if (runtimeTicks != null) return runtimeTicks! / 10000000.0;
+    final ticks = runtimeTicks;
+    if (ticks != null) return ticks / 10000000.0;
     return durationSeconds ?? 0.0;
   }
 
@@ -318,8 +320,9 @@ class MediaItem {
 
   // 主媒体源（第一个媒体源）
   MediaSource? get primaryMediaSource {
-    if (mediaSources == null || mediaSources!.isEmpty) return null;
-    return mediaSources!.first;
+    final sources = mediaSources;
+    if (sources == null || sources.isEmpty) return null;
+    return sources.first;
   }
 
   // 视频宽度（主媒体源）
@@ -354,29 +357,37 @@ class MediaItem {
     return DateTime.tryParse(raw);
   }
 
-  bool get hasImage =>
-      imageTags != null && imageTags!.isNotEmpty;
+  bool get hasImage {
+    final tags = imageTags;
+    return tags != null && tags.isNotEmpty;
+  }
 
-  bool get hasBackdrop =>
-      backdropImageTags != null && backdropImageTags!.isNotEmpty;
+  bool get hasBackdrop {
+    final tags = backdropImageTags;
+    return tags != null && tags.isNotEmpty;
+  }
 
-  bool get hasProgress =>
-      userData != null && userData!.playbackPositionTicks > 0;
+  bool get hasProgress {
+    final data = userData;
+    return data != null && data.playbackPositionTicks > 0;
+  }
 
   // 播放进度百分比（0.0 ~ 1.0），统一进度计算逻辑
   double get progressPercent {
-    if (userData == null || userData!.playbackPositionTicks <= 0) return 0.0;
+    final data = userData;
+    if (data == null || data.playbackPositionTicks <= 0) return 0.0;
     final durSec = durationSec;
     if (durSec <= 0) return 0.0;
-    return (userData!.playbackPositionTicks / 10000000.0 / durSec).clamp(0.0, 1.0);
+    return (data.playbackPositionTicks / 10000000.0 / durSec).clamp(0.0, 1.0);
   }
 
   bool get isWatched => userData?.played ?? false;
 
   // 判断是否为横屏视频（根据媒体源的宽高）
   bool get isLandscape {
-    if (mediaSources == null || mediaSources!.isEmpty) return true; // 默认显示为横屏
-    for (final source in mediaSources!) {
+    final sources = mediaSources;
+    if (sources == null || sources.isEmpty) return true; // 默认显示为横屏
+    for (final source in sources) {
       if (source.isLandscape) return true;
       if (source.isPortrait) return false;
     }
@@ -385,8 +396,9 @@ class MediaItem {
 
   // 判断是否为竖屏视频（根据媒体源的宽高）
   bool get isPortrait {
-    if (mediaSources == null || mediaSources!.isEmpty) return false;
-    for (final source in mediaSources!) {
+    final sources = mediaSources;
+    if (sources == null || sources.isEmpty) return false;
+    for (final source in sources) {
       if (source.isPortrait) return true;
       if (source.isLandscape) return false;
     }
@@ -395,11 +407,12 @@ class MediaItem {
 
   // 获取所有字幕轨道（从 mediaSources 的 subtitleStreams 提取）
   List<SubtitleTrack> get subtitleTracks {
-    if (mediaSources == null || mediaSources!.isEmpty) {
+    final sources = mediaSources;
+    if (sources == null || sources.isEmpty) {
       return const <SubtitleTrack>[];
     }
     final tracks = <SubtitleTrack>[];
-    for (final source in mediaSources!) {
+    for (final source in sources) {
       for (final stream in source.subtitleStreams) {
         tracks.add(SubtitleTrack(
           id: stream.index.toString(),
@@ -440,8 +453,10 @@ class MediaItem {
   }) {
     final url = embyServerUrl;
     if (url == null || url.isEmpty) return thumbnailUrl;
-    if (imageTags == null || !imageTags!.containsKey(type)) return null;
-    final tag = imageTags![type]!;
+    final tags = imageTags;
+    if (tags == null || !tags.containsKey(type)) return null;
+    final tag = tags[type];
+    if (tag == null) return null;
     final key = apiKey ?? '';
     final tagParam = Uri.encodeQueryComponent(tag);
     return '$url/Items/$id/Images/$type?MaxWidth=$maxWidth&Tag=$tagParam&Format=jpg${key.isNotEmpty ? '&api_key=$key' : ''}';
@@ -472,7 +487,8 @@ class MediaItem {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
     if (token == null || token.isEmpty) return null;
     final encodedToken = Uri.encodeQueryComponent(token);
-    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
+    final sources = mediaSources;
+    final mediaSourceId = sources != null && sources.isNotEmpty ? sources.first.id : null;
     final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
     return '$embyServerUrl/Videos/$id/stream.mp4?api_key=$encodedToken'
         '&VideoCodec=h264,hevc,av1&AudioCodec=aac,mp3,ac3'
@@ -484,7 +500,8 @@ class MediaItem {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
     if (token == null || token.isEmpty) return null;
     final encodedToken = Uri.encodeQueryComponent(token);
-    final mediaSourceId = mediaSources?.isNotEmpty == true ? mediaSources!.first.id : null;
+    final sources = mediaSources;
+    final mediaSourceId = sources != null && sources.isNotEmpty ? sources.first.id : null;
     final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
     final sessionParam = playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
     return '$embyServerUrl/Videos/$id/master.m3u8?api_key=$encodedToken'

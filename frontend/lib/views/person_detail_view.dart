@@ -175,39 +175,42 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Text(
-                          person.title,
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '演员/导演',
-                          style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
-                        ),
-                        if (person.overview != null &&
-                            person.overview!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _ExpandableText(
-                            text: person.overview!,
-                            maxLines: 6,
+                    child: () {
+                      final overview = person.overview;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            person.title,
                             style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.7),
-                              fontSize: 13,
-                              height: 1.4,
+                              color: scheme.onSurface,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '演员/导演',
+                            style: TextStyle(
+                                color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
+                          ),
+                          if (overview != null &&
+                              overview.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            _ExpandableText(
+                              text: overview,
+                              maxLines: 6,
+                              style: TextStyle(
+                                color: scheme.onSurface.withOpacity(0.7),
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
+                      );
+                    }(),
                   ),
                 ],
               ),
@@ -268,11 +271,12 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           maxWidth: 200,
                         ),
                   );
-                  final itemWithActor = item.people == null || item.people!.isEmpty
+                  final people = item.people;
+                  final itemWithActor = people == null || people.isEmpty
                       ? item.copyWith(people: [currentActor])
                       : item.copyWith(people: [
                           currentActor,
-                          ...item.people!
+                          ...people
                               .where((p) => p.id != currentActor.id)
                         ]);
                   return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);

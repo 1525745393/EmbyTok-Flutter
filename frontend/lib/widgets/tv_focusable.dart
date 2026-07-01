@@ -100,6 +100,7 @@ class _TvFocusableState extends State<TvFocusable> {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = widget.borderColor;
     return Focus(
       focusNode: _focusNode,
       autofocus: widget.autofocus,
@@ -117,20 +118,20 @@ class _TvFocusableState extends State<TvFocusable> {
           child: AnimatedContainer(
             duration: widget.duration,
             // 始终预留 borderWidth 空间，避免未聚焦/无 borderColor 时尺寸跳变
-            padding: EdgeInsets.all(_isFocused || widget.borderColor != null
+            padding: EdgeInsets.all(_isFocused || borderColor != null
                 ? widget.borderWidth
                 : 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _isFocused
                   ? Border.all(
-                      color: widget.borderColor ??
+                      color: borderColor ??
                           Theme.of(context).colorScheme.primary,
                       width: widget.borderWidth,
                     )
-                  : widget.borderColor != null
+                  : borderColor != null
                       ? Border.all(
-                          color: widget.borderColor!,
+                          color: borderColor,
                           width: widget.borderWidth,
                         )
                       : null,

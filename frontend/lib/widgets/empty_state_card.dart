@@ -76,6 +76,7 @@ class EmptyStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final subtitleText = subtitle;
     return Container(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -98,10 +99,10 @@ class EmptyStateCard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            if (subtitle != null && subtitle!.isNotEmpty) ...[
+            if (subtitleText != null && subtitleText.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                subtitle!,
+                subtitleText,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontSize: 14,

@@ -29,10 +29,18 @@ class MediaSource {
   });
 
   // 判断是否为横屏视频（宽度大于高度）
-  bool get isLandscape => width != null && height != null && width! > height!;
+  bool get isLandscape {
+    final w = width;
+    final h = height;
+    return w != null && h != null && w > h;
+  }
 
   // 判断是否为竖屏视频（高度大于宽度）
-  bool get isPortrait => width != null && height != null && height! > width!;
+  bool get isPortrait {
+    final w = width;
+    final h = height;
+    return w != null && h != null && h > w;
+  }
 
   factory MediaSource.fromJson(Map<String, dynamic> json) {
     final streamsDynamic = json['MediaStreams'] as List<dynamic>? ??

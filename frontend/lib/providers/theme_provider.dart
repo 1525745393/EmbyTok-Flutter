@@ -23,7 +23,7 @@ class ThemeModeNotifier extends StateNotifier<String> {
       final prefs = await SharedPreferences.getInstance();
       final value = prefs.getString(_kStorageKeyTheme);
       if (value == 'dark' || value == 'light' || value == 'system') {
-        state = value!;
+        state = value;
       }
     } catch (_) {}
   }

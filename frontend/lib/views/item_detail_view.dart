@@ -63,9 +63,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
+      final currentItem = _item;
       MediaItem item;
-      if (_item != null && _item!.id == widget.itemId) {
-        item = _item!;
+      if (currentItem != null && currentItem.id == widget.itemId) {
+        item = currentItem;
       } else {
         item = await _service.getItemDetail(
           widget.itemId,
@@ -110,8 +111,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         // 默认选中第一季（如果有）
         _selectedSeasonId = seasons.isNotEmpty ? seasons.first.id : null;
       });
-      if (_selectedSeasonId != null) {
-        await _loadEpisodes(seriesId, _selectedSeasonId!);
+      final seasonId = _selectedSeasonId;
+      if (seasonId != null) {
+        await _loadEpisodes(seriesId, seasonId);
       }
     } catch (_) {
       // 季列表加载失败不阻塞详情页展示
@@ -180,8 +182,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     setState(() {
       _selectedSeasonId = seasonId;
     });
-    if (_item != null) {
-      _loadEpisodes(_item!.id, seasonId);
+    final item = _item;
+    if (item != null) {
+      _loadEpisodes(item.id, seasonId);
     }
   }
 
@@ -204,8 +207,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    final favorited = _item != null &&
-        ref.watch(favoritesProvider).favoriteIds.contains(_item!.id);
+    final currentItem = _item;
+    final favorited = currentItem != null &&
+        ref.watch(favoritesProvider).favoriteIds.contains(currentItem.id);
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -230,12 +234,14 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     if (_error != null) {
       return _buildErrorView(scheme);
     }
-    if (_item == null) {
+    final item = _item;
+    if (item == null) {
       return Center(
         child: Text('未找到内容', style: TextStyle(color: scheme.onSurfaceVariant)),
       );
     }
-    final item = _item!;
+    final overview = item.overview;
+    final people = item.people;
     return RefreshIndicator(
       color: scheme.primary,
       onRefresh: _loadDetail,
@@ -249,11 +255,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             // 主信息区 + 操作栏
             _buildMainInfo(item, favorited),
             // 简介区（可展开折叠）
-            if (item.overview != null && item.overview!.isNotEmpty)
-              _buildOverview(item.overview!),
+            if (overview != null && overview.isNotEmpty)
+              _buildOverview(overview),
             // 演员区
-            if (item.people != null && item.people!.isNotEmpty)
-              _buildCast(item.people!, authState),
+            if (people != null && people.isNotEmpty)
+              _buildCast(people, authState),
             // 集数区（仅 Series 类型）
             if (item.type == 'Series') _buildSeasonsAndEpisodes(authState),
             // 相关推荐区
@@ -301,7 +307,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final director = item.people
         ?.where((p) => p.type == 'Director')
         .firstOrNull;
-    final hasDirector = director != null && director.name.isNotEmpty;
+    final directorName = director?.name;
     // 时长
     final durationText = item.formattedDuration;
     return Padding(
@@ -330,8 +336,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 _buildInfoChip(year.toString()),
               if (rating != null && rating > 0)
                 _buildRatingChip(rating),
-              if (hasDirector)
-                _buildInfoChip('导演：${director!.name}'),
+              if (directorName != null && directorName.isNotEmpty)
+                _buildInfoChip('导演：$directorName'),
               if (durationText.isNotEmpty)
                 _buildInfoChip(durationText),
             ],
@@ -778,6 +784,8 @@ class _CastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final imageUrl = person.imageUrl;
+    final role = person.role;
     return SizedBox(
       width: 80,
       child: Column(
@@ -791,9 +799,9 @@ class _CastCard extends StatelessWidget {
               color: scheme.surface,
             ),
             child: ClipOval(
-              child: person.imageUrl != null && person.imageUrl!.isNotEmpty
+              child: imageUrl != null && imageUrl.isNotEmpty
                   ? CachedNetworkImage(
-                      imageUrl: person.imageUrl!,
+                      imageUrl: imageUrl,
                       cacheManager: AppImageCacheManager.thumbnail,
                       fit: BoxFit.cover,
                       memCacheWidth: 144,
@@ -817,11 +825,11 @@ class _CastCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           // 角色名（如果有）
-          if (person.role != null && person.role!.isNotEmpty)
+          if (role != null && role.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                person.role!,
+                role,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -876,6 +884,7 @@ class _EpisodeTile extends StatelessWidget {
             episode.indexNumber != null)
         ? 'S${episode.parentIndexNumber}E${episode.indexNumber}'
         : null;
+    final overview = episode.overview;
 
     return InkWell(
       onTap: onTap,
@@ -931,12 +940,11 @@ class _EpisodeTile extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (episode.overview != null &&
-                      episode.overview!.isNotEmpty)
+                  if (overview != null && overview.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        episode.overview!,
+                        overview,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

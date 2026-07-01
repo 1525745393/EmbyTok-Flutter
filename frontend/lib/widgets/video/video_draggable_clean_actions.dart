@@ -186,8 +186,10 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                 }
               },
               onPointerMove: (event) {
-                if (_startPointer == null || _startOffset == null) return;
-                final delta = event.localPosition - _startPointer!;
+                final startPointer = _startPointer;
+                final startOffset = _startOffset;
+                if (startPointer == null || startOffset == null) return;
+                final delta = event.localPosition - startPointer;
                 _dragDistance = delta.distance;
 
                 if (!_isDragging && _dragDistance > _kDragThreshold) {
@@ -196,8 +198,8 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
 
                 if (_isDragging) {
                   setState(() {
-                    double newX = _startOffset!.dx + delta.dx;
-                    double newY = _startOffset!.dy + delta.dy;
+                    double newX = startOffset.dx + delta.dx;
+                    double newY = startOffset.dy + delta.dy;
                     newX = newX.clamp(
                         0.0, widget.containerSize.width - widget.buttonWidth);
                     newY = newY

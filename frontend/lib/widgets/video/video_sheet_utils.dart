@@ -228,8 +228,9 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
   final overview = item.overview;
   final people = item.people;
   final scheme = Theme.of(context).colorScheme;
+  final seriesName = item.seriesName;
   final isEpisode = type == 'Episode' ||
-      (item.seriesName != null && item.seriesName!.isNotEmpty);
+      (seriesName != null && seriesName.isNotEmpty);
 
   List<Person>? actors;
   List<Person>? directors;
@@ -369,14 +370,15 @@ class _VideoInfoSubtitle extends StatelessWidget {
     }
 
     if (isEpisode) {
-      if (seriesName != null && seriesName!.isNotEmpty) {
+      final name = seriesName;
+      if (name != null && name.isNotEmpty) {
         children.addAll([
           const SizedBox(width: 8),
           Text('·',
               style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(seriesName!,
+            child: Text(name,
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis),
@@ -418,15 +420,17 @@ class _VideoInfoRowItems extends StatelessWidget {
     if (duration.isNotEmpty) {
       widgets.add(_VideoInfoChip(label: '时长', value: duration));
     }
-    if (rating != null && rating! > 0) {
+    final r = rating;
+    if (r != null && r > 0) {
       widgets.add(_VideoInfoChip(
-          label: '评分', value: '★ ${rating!.toStringAsFixed(1)}', highlight: true));
+          label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
       widgets.add(_VideoInfoChip(label: '类型', value: genres.take(3).join(' / ')));
     }
-    if (studios != null && studios!.isNotEmpty) {
-      widgets.add(_VideoInfoChip(label: '出品', value: studios!.first));
+    final s = studios;
+    if (s != null && s.isNotEmpty) {
+      widgets.add(_VideoInfoChip(label: '出品', value: s.first));
     }
     if (widgets.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 12, runSpacing: 10, children: widgets);
@@ -509,9 +513,10 @@ class _PersonChipList extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: people.map((p) {
+        final role = p.role;
         final display =
-            p.role != null && p.role!.isNotEmpty && p.role != p.name
-                ? '${p.name} (${p.role})'
+            role != null && role.isNotEmpty && role != p.name
+                ? '${p.name} ($role)'
                 : p.name;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

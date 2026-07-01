@@ -666,10 +666,12 @@ class _ActorCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     String? imageUrl;
-    if (actor.imageUrl != null && actor.imageUrl!.isNotEmpty) {
-      imageUrl = actor.imageUrl;
-    } else if (actor.id != null && actor.id!.isNotEmpty && embyServerUrl != null) {
-      imageUrl = '$embyServerUrl/Items/${actor.id!}/Images/Primary?MaxWidth=200'
+    final actorImageUrl = actor.imageUrl;
+    final actorId = actor.id;
+    if (actorImageUrl != null && actorImageUrl.isNotEmpty) {
+      imageUrl = actorImageUrl;
+    } else if (actorId != null && actorId.isNotEmpty && embyServerUrl != null) {
+      imageUrl = '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200'
           '${token != null ? '&api_key=$token' : ''}';
     }
 
@@ -692,8 +694,8 @@ class _ActorCard extends StatelessWidget {
                             imageUrl: imageUrl,
                             cacheManager: AppImageCacheManager.thumbnail,
                             fit: BoxFit.cover,
-                            httpHeaders: token != null && token!.isNotEmpty
-                                ? {'X-Emby-Token': token!}
+                            httpHeaders: token != null && token.isNotEmpty
+                                ? {'X-Emby-Token': token}
                                 : null,
                             placeholder: (_, __) => Center(
                               child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),

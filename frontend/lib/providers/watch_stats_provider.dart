@@ -127,8 +127,9 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
   Future<void> _init() async {
     try {
       final auth = _ref.read(authProvider);
-      if (auth.user?.id == null) return;
-      final cacheKey = '$kStorageKeyWatchStats:${auth.user!.id}';
+      final userId = auth.user?.id;
+      if (userId == null) return;
+      final cacheKey = '$kStorageKeyWatchStats:$userId';
 
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(cacheKey);
@@ -200,8 +201,9 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
     state = const WatchStatsState();
     try {
       final auth = _ref.read(authProvider);
-      if (auth.user?.id == null) return;
-      final cacheKey = '$kStorageKeyWatchStats:${auth.user!.id}';
+      final userId = auth.user?.id;
+      if (userId == null) return;
+      final cacheKey = '$kStorageKeyWatchStats:$userId';
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(cacheKey);
       AppLogger.info('完播率统计：已清除');
@@ -213,8 +215,9 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
   Future<void> _saveToCache(List<WatchRecord> records) async {
     try {
       final auth = _ref.read(authProvider);
-      if (auth.user?.id == null) return;
-      final cacheKey = '$kStorageKeyWatchStats:${auth.user!.id}';
+      final userId = auth.user?.id;
+      if (userId == null) return;
+      final cacheKey = '$kStorageKeyWatchStats:$userId';
       final prefs = await SharedPreferences.getInstance();
       final encoded = json.encode(records.map((r) => r.toJson()).toList());
       await prefs.setString(cacheKey, encoded);

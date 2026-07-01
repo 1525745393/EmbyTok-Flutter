@@ -121,9 +121,10 @@ class _HistoryViewState extends ConsumerState<HistoryView>
         child: CircularProgressIndicator(color: scheme.primary),
       );
     }
-    if (state.error != null && state.items.isEmpty) {
+    final error = state.error;
+    if (error != null && state.items.isEmpty) {
       return ErrorStateCard(
-        title: state.error!,
+        title: error,
         subtitle: '点击重试重新从 Emby 服务器加载',
         actionLabel: '重试',
         onAction: () {
@@ -204,63 +205,66 @@ class _HistoryTile extends ConsumerWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+              child: () {
+                final lastPlayedDate = item.userData?.lastPlayedDate;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.type,
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontSize: 12,
+                    const SizedBox(height: 4),
+                    Text(
+                      item.type,
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 进度条
-                  if (progressPct > 0) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: progressPct,
-                              backgroundColor: scheme.onSurface.withOpacity(0.08),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                scheme.primary,
+                    const SizedBox(height: 8),
+                    // 进度条
+                    if (progressPct > 0) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: progressPct,
+                                backgroundColor: scheme.onSurface.withOpacity(0.08),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scheme.primary,
+                                ),
+                                minHeight: 4,
                               ),
-                              minHeight: 4,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${(progressPct * 100).toInt()}%',
-                          style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(progressPct * 100).toInt()}%',
+                            style: TextStyle(
+                                color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    if (lastPlayedDate != null)
+                      Text(
+                        '上次观看：${lastPlayedDate.split('T').first}',
+                        style: TextStyle(
+                            color: scheme.onSurface.withOpacity(0.4), fontSize: 11),
+                      ),
                   ],
-                  if (item.userData?.lastPlayedDate != null)
-                    Text(
-                      '上次观看：${item.userData!.lastPlayedDate!.split('T').first}',
-                      style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.4), fontSize: 11),
-                    ),
-                ],
-              ),
+                );
+              }(),
             ),
           ],
         ),

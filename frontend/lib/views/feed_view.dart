@@ -287,14 +287,14 @@ class _FeedViewState extends ConsumerState<FeedView>
   Future<void> _checkCloudSyncOnStartup() async {
     try {
       final auth = ref.read(authProvider);
-      if (!auth.isAuthenticated ||
-          auth.embyServerUrl == null ||
-          auth.token == null) {
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      if (!auth.isAuthenticated || serverUrl == null || token == null) {
         return;
       }
       final data = await _cloudService.checkCloudSync(
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
+        serverUrl: serverUrl,
+        token: token,
       );
       if (data == null || data.isEmpty) return;
       final lastId = data['lastId'] as String?;
@@ -326,9 +326,9 @@ class _FeedViewState extends ConsumerState<FeedView>
   void _saveCloudSyncIfNeeded(MediaItem? newItem) {
     if (!mounted) return;
     final auth = ref.read(authProvider);
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) return;
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) return;
     final oldItem = _lastReportedItem;
     _lastReportedItem = newItem;
     if (oldItem == null) return;
@@ -339,8 +339,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         itemId: oldItem.id,
         libraryId: _currentLibraryId(),
         libraryType: '',
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
+        serverUrl: serverUrl,
+        token: token,
       ),
     );
   }
@@ -349,11 +349,12 @@ class _FeedViewState extends ConsumerState<FeedView>
   String _currentLibraryId() {
     try {
       final libs = ref.read(libraryListProvider);
-      if (!libs.hasValue || libs.value!.isEmpty) return '';
+      final libValue = libs.value;
+      if (!libs.hasValue || libValue == null || libValue.isEmpty) return '';
       final selectedIds = ref.read(selectedLibraryIdsProvider);
       return selectedIds.isNotEmpty
           ? selectedIds.first
-          : libs.value!.first.id;
+          : libValue.first.id;
     } catch (_) {
       return '';
     }
@@ -754,12 +755,13 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 构建视频流 PageView：支持相邻条目预加载、自动连播、resume 模式
   // 起始播放项由 build 中读取 widget.initialItemId 决定（路由透传）
   Widget _buildVideoPageView(VideoListState videoState) {
+    final errorMsg = videoState.error;
     if (videoState.items.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
     }
-    if (videoState.items.isEmpty && videoState.error != null) {
+    if (videoState.items.isEmpty && errorMsg != null) {
       return ErrorStateCard(
-        title: videoState.error!,
+        title: errorMsg,
         actionLabel: '重试',
         onAction: () {
           ref.read(videoListProvider.notifier).refresh();
@@ -767,12 +769,13 @@ class _FeedViewState extends ConsumerState<FeedView>
       );
     }
     // 追加失败时用 SnackBar 提示，不清除已有数据
-    if (videoState.items.isNotEmpty && videoState.error != null) {
+    if (videoState.items.isNotEmpty && errorMsg != null) {
+      final msg = errorMsg;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(videoState.error!),
+              content: Text(msg),
               action: SnackBarAction(
                 label: '重试',
                 onPressed: () {

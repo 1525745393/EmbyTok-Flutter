@@ -93,12 +93,13 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     }
 
     // 错误
-    if (state.error != null &&
+    final errorMsg = state.error;
+    if (errorMsg != null &&
         state.movies.isEmpty &&
         state.boxSets.isEmpty &&
         state.people.isEmpty) {
       return ErrorStateCard(
-        title: state.error!,
+        title: errorMsg,
         actionLabel: '重试',
         onAction: () {
           ref.read(favoritesProvider.notifier).loadFavorites();

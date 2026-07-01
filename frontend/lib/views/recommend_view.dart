@@ -156,10 +156,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     }
 
     // 错误（无数据 + 错误信息）
-    if (state.items.isEmpty && state.error != null) {
+    final errorMsg = state.error;
+    if (state.items.isEmpty && errorMsg != null) {
       return ErrorStateCard(
         title: '加载推荐失败',
-        subtitle: state.error!,
+        subtitle: errorMsg,
         actionLabel: '重试',
         onAction: () => ref.read(recommendProvider.notifier).refresh(),
       );

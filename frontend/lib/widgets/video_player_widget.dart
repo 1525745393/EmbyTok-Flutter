@@ -73,8 +73,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
     // 优先使用预置的 playbackUrl
-    if (widget.item.playbackUrl != null && widget.item.playbackUrl!.isNotEmpty) {
-      return widget.item.playbackUrl;
+    final url = widget.item.playbackUrl;
+    if (url != null && url.isNotEmpty) {
+      return url;
     }
     // 尝试动态构造 Emby 视频流 URL
     return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
@@ -143,10 +144,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 释放旧 controller 并用新 widget.item 重新初始化
   Future<void> _reinitForNewItem() async {
     // 释放旧 controller
-    if (_controller != null) {
+    final c = _controller;
+    if (c != null) {
       try {
-        _controller!.removeListener(_onControllerChanged);
-        await _controller!.dispose();
+        c.removeListener(_onControllerChanged);
+        await c.dispose();
       } catch (e) {
         // warn 没有 error 命名参数；改用 error 传递异常对象
         AppLogger.error('释放旧 controller 失败', error: e);
@@ -214,36 +216,38 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // ---- 路径 1：有预加载控制器 ----
     if (widget.preloadedController != null) {
       try {
-        _controller = widget.preloadedController;
+        final c = widget.preloadedController;
+        _controller = c;
         // 同步预加载等级：保证 reportPlaybackStart/progress 使用正确的播放方法
-        if (widget.preloadedPlaybackLevel != null) {
-          _fallbackLevel = widget.preloadedPlaybackLevel!;
+        final preloadLevel = widget.preloadedPlaybackLevel;
+        if (preloadLevel != null) {
+          _fallbackLevel = preloadLevel;
           ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
         }
         // addListener 监听错误和位置（跨秒时更新字幕）
-        _controller!.addListener(_onControllerChanged);
+        c.addListener(_onControllerChanged);
         // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
-        if (!_controller!.value.isInitialized) {
-          await _controller!.initialize().timeout(
+        if (!c.value.isInitialized) {
+          await c.initialize().timeout(
             const Duration(seconds: 15),
             onTimeout: () {
               throw TimeoutException('视频初始化超时');
             },
           );
         }
-        _controller!.setLooping(widget.loop);
+        c.setLooping(widget.loop);
         if (mounted) {
           setState(() {
             _initialized = true;
             _hasError = false;
           });
-          widget.onControllerReady?.call(_controller!);
+          widget.onControllerReady?.call(c);
           _autoLoadDefaultSubtitle();
           // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
           await _seekToResumePosition();
           if (widget.autoPlay) {
             try {
-              await _controller!.play();
+              await c.play();
             } catch (e) {
               debugPrint('autoPlay error: $e');
             }
@@ -271,16 +275,17 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       final headers = widget.item.authHeaders(widget.token);
 
-      _controller = VideoPlayerController.networkUrl(
+      final c = VideoPlayerController.networkUrl(
         Uri.parse(url),
         httpHeaders: headers,
       );
+      _controller = c;
 
       // 监听器：运行时 error 触发降级链，否则仅标记错误状态
-      _controller!.addListener(_onControllerChanged);
+      c.addListener(_onControllerChanged);
 
-      _controller!.setLooping(widget.loop);
-      await _controller!.initialize().timeout(
+      c.setLooping(widget.loop);
+      await c.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           throw TimeoutException('视频初始化超时');
@@ -293,13 +298,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _initialized = true;
           _hasError = false;
         });
-        widget.onControllerReady?.call(_controller!);
+        widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
         if (widget.autoPlay) {
           try {
-            await _controller!.play();
+            await c.play();
           } catch (e) {
             debugPrint('autoPlay error: $e');
           }
@@ -340,8 +345,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 记录当前播放进度，降级成功后 seek 回相同位置
     int positionSeconds = 0;
     try {
-      if (_controller != null && _controller!.value.isInitialized) {
-        positionSeconds = _controller!.value.position.inSeconds;
+      final c = _controller;
+      if (c != null && c.value.isInitialized) {
+        positionSeconds = c.value.position.inSeconds;
       }
     } catch (_) {}
 
@@ -369,15 +375,16 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
     try {
       final headers = widget.item.authHeaders(widget.token);
-      _controller = VideoPlayerController.networkUrl(
+      final c = VideoPlayerController.networkUrl(
         Uri.parse(newUrl),
         httpHeaders: headers,
       );
+      _controller = c;
       // 新 controller 也注册降级监听器（再失败则继续降级）
-      _controller!.addListener(_onControllerChanged);
+      c.addListener(_onControllerChanged);
 
-      _controller!.setLooping(widget.loop);
-      await _controller!.initialize().timeout(
+      c.setLooping(widget.loop);
+      await c.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () => throw TimeoutException('视频降级初始化超时'),
       );
@@ -386,7 +393,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       // seek 回到失败前的播放位置，减少用户感知
       if (positionSeconds > 0) {
         try {
-          await _controller!.seekTo(Duration(seconds: positionSeconds));
+          await c.seekTo(Duration(seconds: positionSeconds));
         } catch (_) {}
       }
       if (mounted) {
@@ -395,11 +402,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
           _isFallbackInProgress = false;
         });
-        widget.onControllerReady?.call(_controller!);
+        widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
-            await _controller!.play();
+            await c.play();
           } catch (e) {
             debugPrint('fallback autoPlay error: $e');
           }
@@ -431,8 +438,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 记录当前播放进度，切换成功后 seek 回相同位置
     int positionSeconds = 0;
     try {
-      if (_controller != null && _controller!.value.isInitialized) {
-        positionSeconds = _controller!.value.position.inSeconds;
+      final c = _controller;
+      if (c != null && c.value.isInitialized) {
+        positionSeconds = c.value.position.inSeconds;
       }
     } catch (_) {}
 
@@ -458,14 +466,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       final headers = widget.item.authHeaders(widget.token);
 
-      _controller = VideoPlayerController.networkUrl(
+      final c = VideoPlayerController.networkUrl(
         Uri.parse(newUrl),
         httpHeaders: headers,
       );
-      _controller!.addListener(_onControllerChanged);
+      _controller = c;
+      c.addListener(_onControllerChanged);
 
-      _controller!.setLooping(widget.loop);
-      await _controller!.initialize().timeout(
+      c.setLooping(widget.loop);
+      await c.initialize().timeout(
         const Duration(seconds: 15),
         onTimeout: () {
           throw TimeoutException('播放模式切换初始化超时');
@@ -476,7 +485,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       // seek 回到切换前的播放位置，减少用户感知
       if (positionSeconds > 0) {
         try {
-          await _controller!.seekTo(Duration(seconds: positionSeconds));
+          await c.seekTo(Duration(seconds: positionSeconds));
         } catch (_) {}
       }
       if (mounted) {
@@ -485,11 +494,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
           _isUserSwitchInProgress = false;
         });
-        widget.onControllerReady?.call(_controller!);
+        widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
           try {
-            await _controller!.play();
+            await c.play();
           } catch (e) {
             debugPrint('playMode switch play error: $e');
           }
@@ -538,12 +547,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 在 _initVideo() 中 play 之前调用，避免竞态条件
   Future<void> _seekToResumePosition() async {
     if (!widget.startFromResumePosition) return;
+    final c = _controller;
+    if (c == null) return;
     final posTicks = widget.item.userData?.playbackPositionTicks ?? 0.0;
     if (posTicks <= 0.0) return;
     final posMs = (posTicks / 10000.0).round();
     if (posMs <= 0) return;
     try {
-      await _controller!.seekTo(Duration(milliseconds: posMs));
+      await c.seekTo(Duration(milliseconds: posMs));
       debugPrint('续播 seek 到 ${posMs}ms');
     } catch (e) {
       debugPrint('续播 seek 失败: $e');
@@ -577,6 +588,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final vc = _controller;
     // 监听播放模式切换（用户手动点击按钮触发）
     ref.listen<int>(playbackLevelProvider, (previous, next) {
       // 只有当外部设置等级变化后才响应；且非自己内部 setLevel 设置的不响应
@@ -600,7 +612,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
 
     // 场景 2：视频正在初始化，显示加载指示器
-    if (_controller == null || !_initialized) {
+    if (vc == null || !_initialized) {
       return Center(
         child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       );
@@ -624,9 +636,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           FittedBox(
             fit: isLandscape ? BoxFit.contain : BoxFit.cover,
             child: SizedBox(
-              width: _controller!.value.size.width,
-              height: _controller!.value.size.height,
-              child: VideoPlayer(_controller!),
+              width: vc.value.size.width,
+              height: vc.value.size.height,
+              child: VideoPlayer(vc),
             ),
           ),
           if (displayCues.isNotEmpty && selectedSubId != null)
@@ -654,9 +666,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       });
       return;
     }
+    final sources = widget.item.mediaSources;
     final mediaSourceId =
-        widget.item.mediaSources?.isNotEmpty == true
-            ? widget.item.mediaSources!.first.id
+        (sources != null && sources.isNotEmpty)
+            ? sources.first.id
             : null;
     if (mediaSourceId == null || mediaSourceId.isEmpty) {
       return;
@@ -683,10 +696,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final embService = ref.read(embbytokServiceProvider);
     // 注入当前认证信息（确保字幕请求头包含 Token）
     final authState = ref.read(authProvider);
-    if (authState.embyServerUrl != null && authState.token != null) {
+    final serverUrl = authState.embyServerUrl;
+    final token = authState.token;
+    if (serverUrl != null && token != null) {
       embService.setupAuth(
-        embyServerUrl: authState.embyServerUrl!,
-        apiKey: authState.token!,
+        embyServerUrl: serverUrl,
+        apiKey: token,
         userId: authState.user?.id,
       );
     }
@@ -726,6 +741,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 获取认证头用于图片请求
     final headers = widget.item.authHeaders(widget.token);
     final scheme = Theme.of(context).colorScheme;
+    final errMsg = _errorMessage;
 
     return Stack(
       fit: StackFit.expand,
@@ -758,10 +774,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.movie_outlined, size: 64, color: scheme.onSurface.withOpacity(0.4)),
-                  if (_hasError && _errorMessage != null) ...[
+                  if (_hasError && errMsg != null) ...[
                     const SizedBox(height: 8),
                     Text(
-                      _errorMessage!,
+                      errMsg,
                       style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
                     ),
                   ],

@@ -104,42 +104,45 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
             ),
 
             // 标题和信息
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.item.title,
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _subtitleText,
-                    style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.5),
-                      fontSize: 13,
-                    ),
-                  ),
-                  if (widget.item.overview != null &&
-                      widget.item.overview!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
+            () {
+              final overview = widget.item.overview;
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      widget.item.overview!,
+                      widget.item.title,
                       style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.7),
-                        fontSize: 14,
-                        height: 1.4,
+                        color: scheme.onSurface,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _subtitleText,
+                      style: TextStyle(
+                        color: scheme.onSurface.withOpacity(0.5),
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (overview != null &&
+                        overview.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        overview,
+                        style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.7),
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            ),
+                ),
+              );
+            }(),
 
             // 包含的影片列表
             Padding(

@@ -28,6 +28,7 @@ class VideoGridCard extends ConsumerWidget {
 
     final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 400);
     final progress = item.progressPercent;
+    final duration = item.durationSeconds;
 
     return GestureDetector(
       onTap: onTap,
@@ -45,11 +46,11 @@ class VideoGridCard extends ConsumerWidget {
                 fit: StackFit.expand,
                 children: [
                   _buildCoverImage(imageUrl, scheme),
-                  if (item.durationSeconds != null)
+                  if (duration != null)
                     Positioned(
                       right: 6,
                       bottom: 6,
-                      child: _buildDurationBadge(item.durationSeconds!, scheme),
+                      child: _buildDurationBadge(duration, scheme),
                     ),
                   if (progress > 0)
                     Positioned(

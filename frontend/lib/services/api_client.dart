@@ -48,8 +48,9 @@ class ApiClient {
         onRequest: (options, handler) {
           options.headers['X-Emby-Authorization'] = _clientAuthorization;
           options.headers['Accept'] = 'application/json';
-          if (_token != null && _token!.isNotEmpty) {
-            options.headers['X-Emby-Token'] = _token!;
+          final token = _token;
+          if (token != null && token.isNotEmpty) {
+            options.headers['X-Emby-Token'] = token;
           }
           return handler.next(options);
         },
