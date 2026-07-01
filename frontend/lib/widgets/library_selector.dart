@@ -264,116 +264,117 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     // 收藏夹是否选中
     final favoritesSelected = isFavoritesMode;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 收藏夹入口（特殊卡片，仅视频流显示，PR #66）
-          if (widget.scope == LibraryScope.feed) ...[
-            _buildSectionTitle(scheme, '快捷入口'),
-            const SizedBox(height: 8),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.4,
-              children: [
-                _buildLibraryCard(
-                  scheme: scheme,
-                  icon: Icons.favorite,
-                  name: '收藏夹',
-                  count: null,
-                  isSelected: favoritesSelected,
-                  onTap: () {
-                    ref.read(feedTypeProvider.notifier).setType(FeedType.favorites);
-                    ref.read(videoListProvider.notifier).refresh();
-                    // PR #66：标记视频流媒体库已配置（避免再次弹引导）
-                    ref.read(feedLibraryConfiguredProvider.notifier).set(true);
-                    Navigator.of(context).pop();
-                  },
-                  gradientColors: [
-                    scheme.primary.withOpacity(0.6),
-                    scheme.primary.withOpacity(0.2),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-          ],
-          // 媒体库分组
-          _buildSectionTitle(scheme, '媒体库'),
-          const SizedBox(height: 8),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+    // 使用 CustomScrollView + Slivers 替代 SingleChildScrollView + Column + GridView(shrinkWrap:true)
+    // 网格使用 SliverGrid 懒加载，虽然媒体库数量通常不多，但保持一致的最佳实践
+    final slivers = <Widget>[
+      // 收藏夹入口（特殊卡片，仅视频流显示，PR #66）
+      if (widget.scope == LibraryScope.feed) ...[
+        SliverToBoxAdapter(child: _buildSectionTitle(scheme, '快捷入口')),
+        const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        SliverGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             childAspectRatio: 1.4,
-            children: libraries.map((lib) {
-              final isSelected = !isFavoritesMode && _localSelectedIds.contains(lib.id);
-              return _buildLibraryCard(
-                scheme: scheme,
-                icon: _getLibraryIcon(lib.type),
-                name: lib.name,
-                count: lib.itemCount,
-                isSelected: isSelected,
-                onTap: () {
-                  // 多选模式：切换该库的选中状态，不关闭弹窗
-                  setState(() {
-                    if (_localSelectedIds.contains(lib.id)) {
-                      _localSelectedIds.remove(lib.id);
-                      // 确保至少保留一个
-                      if (_localSelectedIds.isEmpty) {
-                        _localSelectedIds.add(lib.id);
-                      }
-                    } else {
+          ),
+          delegate: SliverChildListDelegate([
+            _buildLibraryCard(
+              scheme: scheme,
+              icon: Icons.favorite,
+              name: '收藏夹',
+              count: null,
+              isSelected: favoritesSelected,
+              onTap: () {
+                ref.read(feedTypeProvider.notifier).setType(FeedType.favorites);
+                ref.read(videoListProvider.notifier).refresh();
+                ref.read(feedLibraryConfiguredProvider.notifier).set(true);
+                Navigator.of(context).pop();
+              },
+              gradientColors: [
+                scheme.primary.withOpacity(0.6),
+                scheme.primary.withOpacity(0.2),
+              ],
+            ),
+          ]),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+      ],
+      // 媒体库分组
+      SliverToBoxAdapter(child: _buildSectionTitle(scheme, '媒体库')),
+      const SliverToBoxAdapter(child: SizedBox(height: 8)),
+      // SliverGrid 懒加载媒体库网格
+      SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.4,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final lib = libraries[index];
+            final isSelected = !isFavoritesMode && _localSelectedIds.contains(lib.id);
+            return _buildLibraryCard(
+              scheme: scheme,
+              icon: _getLibraryIcon(lib.type),
+              name: lib.name,
+              count: lib.itemCount,
+              isSelected: isSelected,
+              onTap: () {
+                setState(() {
+                  if (_localSelectedIds.contains(lib.id)) {
+                    _localSelectedIds.remove(lib.id);
+                    if (_localSelectedIds.isEmpty) {
                       _localSelectedIds.add(lib.id);
                     }
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 16),
-          // 确认/取消按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(
-                  '取消',
-                  style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton(
-                onPressed: _localSelectedIds.isEmpty
-                    ? null
-                    : () {
-                        // PR #66：根据 scope 写到对应 provider
-                        // 仅 setLibraries：selectedLibraryIdsProvider / recommendLibraryIdsProvider
-                        // 监听器会自动触发 refresh（PR #60 修复过的逻辑）
-                        if (widget.scope == LibraryScope.feed) {
-                          ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
-                          ref.read(feedLibraryConfiguredProvider.notifier).set(true);
-                        } else {
-                          ref.read(recommendLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
-                          ref.read(recommendLibraryConfiguredProvider.notifier).set(true);
-                        }
-                        Navigator.of(context).pop();
-                      },
-                child: const Text('确认'),
-              ),
-            ],
-          ),
-        ],
+                  } else {
+                    _localSelectedIds.add(lib.id);
+                  }
+                });
+              },
+            );
+          },
+          childCount: libraries.length,
+        ),
       ),
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+      // 确认/取消按钮
+      SliverToBoxAdapter(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                '取消',
+                style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton(
+              onPressed: _localSelectedIds.isEmpty
+                  ? null
+                  : () {
+                      if (widget.scope == LibraryScope.feed) {
+                        ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                        ref.read(feedLibraryConfiguredProvider.notifier).set(true);
+                      } else {
+                        ref.read(recommendLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
+                        ref.read(recommendLibraryConfiguredProvider.notifier).set(true);
+                      }
+                      Navigator.of(context).pop();
+                    },
+              child: const Text('确认'),
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    return CustomScrollView(
+      padding: const EdgeInsets.all(16),
+      slivers: slivers,
     );
   }
 

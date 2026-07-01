@@ -236,31 +236,31 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       );
     }
     final item = _item!;
+    // 使用 CustomScrollView 组合多个 Sliver，支持懒加载长列表
+    // 替代 SingleChildScrollView + Column + ListView(shrinkWrap:true) 结构
+    final slivers = <Widget>[
+      // 顶部大图（横屏海报）
+      SliverToBoxAdapter(child: _buildBackdrop(item, authState)),
+      // 主信息区 + 操作栏
+      SliverToBoxAdapter(child: _buildMainInfo(item, favorited)),
+      // 简介区（可展开折叠）
+      if (item.overview != null && item.overview!.isNotEmpty)
+        SliverToBoxAdapter(child: _buildOverview(item.overview!)),
+      // 演员区
+      if (item.people != null && item.people!.isNotEmpty)
+        SliverToBoxAdapter(child: _buildCast(item.people!, authState)),
+      // 集数区（仅 Series 类型）- 返回 Sliver 列表，含懒加载的集数列表
+      if (item.type == 'Series') ..._buildSeasonsAndEpisodesSlivers(authState),
+      // 相关推荐区
+      SliverToBoxAdapter(child: _buildSimilarItems(authState)),
+      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+    ];
     return RefreshIndicator(
       color: scheme.primary,
       onRefresh: _loadDetail,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 顶部大图（横屏海报）
-            _buildBackdrop(item, authState),
-            // 主信息区 + 操作栏
-            _buildMainInfo(item, favorited),
-            // 简介区（可展开折叠）
-            if (item.overview != null && item.overview!.isNotEmpty)
-              _buildOverview(item.overview!),
-            // 演员区
-            if (item.people != null && item.people!.isNotEmpty)
-              _buildCast(item.people!, authState),
-            // 集数区（仅 Series 类型）
-            if (item.type == 'Series') _buildSeasonsAndEpisodes(authState),
-            // 相关推荐区
-            _buildSimilarItems(authState),
-            const SizedBox(height: 32),
-          ],
-        ),
+        slivers: slivers,
       ),
     );
   }
@@ -547,108 +547,119 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
-  // 季列表 + 集数列表
-  Widget _buildSeasonsAndEpisodes(AuthState authState) {
+  // 季列表 + 集数列表（Sliver 版本，集数列表懒加载）
+  List<Widget> _buildSeasonsAndEpisodesSlivers(AuthState authState) {
     final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 季选择器（横向滚动）
-          if (_seasons.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                '分集',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 40,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
+    final slivers = <Widget>[];
+
+    // 季选择器（横向滚动）
+    if (_seasons.isNotEmpty) {
+      slivers.add(SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _seasons.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final season = _seasons[index];
-                  final isSelected = season.id == _selectedSeasonId;
-                  return GestureDetector(
-                    onTap: () => _selectSeason(season.id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? scheme.primary
-                            : scheme.onSurface.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isSelected ? scheme.primary : scheme.outlineVariant,
-                        ),
-                      ),
-                      child: Text(
-                        season.title,
-                        style: TextStyle(
-                          color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          // 集数列表
-          if (_loadingEpisodes)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Center(
-                child: CircularProgressIndicator(color: scheme.primary),
-              ),
-            )
-          else if (_episodes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Center(
                 child: Text(
-                  '暂无集数',
-                  style: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7), fontSize: 14),
+                  '分集',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _episodes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final ep = _episodes[index];
-                return _EpisodeTile(
-                  key: Key(ep.id),
-                  episode: ep,
-                  authState: authState,
-                  onTap: () => _playItem(ep),
-                );
-              },
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 40,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _seasons.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final season = _seasons[index];
+                    final isSelected = season.id == _selectedSeasonId;
+                    return GestureDetector(
+                      onTap: () => _selectSeason(season.id),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? scheme.primary
+                              : scheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? scheme.primary : scheme.outlineVariant,
+                          ),
+                        ),
+                        child: Text(
+                          season.title,
+                          style: TextStyle(
+                            color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ));
+    }
+
+    // 集数列表状态
+    if (_loadingEpisodes) {
+      slivers.add(const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ));
+    } else if (_episodes.isEmpty) {
+      slivers.add(SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Text(
+              '暂无集数',
+              style: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7), fontSize: 14),
             ),
-        ],
-      ),
-    );
+          ),
+        ),
+      ));
+    } else {
+      // 使用 SliverList.separated 实现懒加载，仅构建视口内可见项
+      // 替代原 ListView.separated(shrinkWrap:true) 避免一次性构建所有集数
+      slivers.add(SliverList.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _episodes.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final ep = _episodes[index];
+          return _EpisodeTile(
+            key: Key(ep.id),
+            episode: ep,
+            authState: authState,
+            onTap: () => _playItem(ep),
+          );
+        },
+      ));
+    }
+
+    return slivers;
   }
+
 
   // 相关推荐区：横向滚动卡片列表
   Widget _buildSimilarItems(AuthState authState) {

@@ -83,82 +83,85 @@ class SubtitleSelector extends ConsumerWidget {
 
             Divider(color: scheme.outlineVariant, height: 1),
 
-            // 字幕列表
+            // 字幕列表（使用 CustomScrollView + SliverList 替代 ListView(shrinkWrap:true)）
+            // 字幕数量通常不多，但保持最佳实践一致性
             ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.4,
               ),
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  // 关闭字幕选项
-                  _buildOption(
-                    context: context,
-                    ref: ref,
-                    title: '关闭字幕',
-                    subtitle: '不显示字幕',
-                    isSelected: currentLanguage.isEmpty,
-                    onTap: () {
-                      ref.read(subtitleSettingsProvider.notifier).setLanguage('');
-                      onSelected?.call(null);
-                      onClose?.call();
-                    },
-                  ),
-
-                  // 分隔线
-                  if (tracks.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Divider(color: scheme.outlineVariant, height: 1),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                      child: Text(
-                        '可用字幕 (${tracks.length})',
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant.withOpacity(0.7),
-                          fontSize: 12,
-                        ),
+              child: CustomScrollView(
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      // 关闭字幕选项
+                      _buildOption(
+                        context: context,
+                        ref: ref,
+                        title: '关闭字幕',
+                        subtitle: '不显示字幕',
+                        isSelected: currentLanguage.isEmpty,
+                        onTap: () {
+                          ref.read(subtitleSettingsProvider.notifier).setLanguage('');
+                          onSelected?.call(null);
+                          onClose?.call();
+                        },
                       ),
-                    ),
-                  ],
 
-                  // 字幕轨道列表
-                  ...tracks.map((track) => _buildTrackOption(
-                    context: context,
-                    ref: ref,
-                    track: track,
-                    isSelected: currentLanguage == track.id,
-                    onTap: () {
-                      ref.read(subtitleSettingsProvider.notifier).setLanguage(track.id);
-                      onSelected?.call(track);
-                      onClose?.call();
-                    },
-                  )),
-
-                  // 无字幕提示
-                  if (tracks.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.subtitles_off,
-                            size: 48,
-                            color: scheme.onSurface.withOpacity(0.12),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '当前视频没有可用字幕',
+                      // 分隔线
+                      if (tracks.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          child: Divider(color: scheme.outlineVariant, height: 1),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                          child: Text(
+                            '可用字幕 (${tracks.length})',
                             style: TextStyle(
                               color: scheme.onSurfaceVariant.withOpacity(0.7),
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      ],
+
+                      // 字幕轨道列表
+                      ...tracks.map((track) => _buildTrackOption(
+                        context: context,
+                        ref: ref,
+                        track: track,
+                        isSelected: currentLanguage == track.id,
+                        onTap: () {
+                          ref.read(subtitleSettingsProvider.notifier).setLanguage(track.id);
+                          onSelected?.call(track);
+                          onClose?.call();
+                        },
+                      )),
+
+                      // 无字幕提示
+                      if (tracks.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.subtitles_off,
+                                size: 48,
+                                color: scheme.onSurface.withOpacity(0.12),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '当前视频没有可用字幕',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant.withOpacity(0.7),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ]),
+                  ),
                 ],
               ),
             ),
