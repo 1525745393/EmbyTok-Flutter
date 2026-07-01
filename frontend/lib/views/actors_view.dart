@@ -665,13 +665,20 @@ class _ActorCard extends StatelessWidget {
   /// 单独抽方法便于处理空安全（Dart 不会跨方法对字段做类型提升）
   Widget _buildAvatarImage(ColorScheme scheme) {
     final actorImageUrl = actor.imageUrl;
-    final actorId = actor.id;
+    final rawId = actor.id; // String?，不能直接 isNotEmpty
+    final rawServer = embyServerUrl; // String?，不能直接 isNotEmpty
     String? url;
     if (actorImageUrl != null && actorImageUrl.isNotEmpty) {
       url = actorImageUrl;
-    } else if (actorId.isNotEmpty && embyServerUrl != null) {
+    } else if (rawId != null &&
+        rawId.isNotEmpty &&
+        rawServer != null &&
+        rawServer.isNotEmpty) {
+      // 在已校验非空后再提取一次到 final 局部变量，触发 Dart 类型提升
+      final id = rawId;
+      final server = rawServer;
       final tk = token;
-      url = '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200'
+      url = '$server/Items/$id/Images/Primary?MaxWidth=200'
           '${tk != null ? '&api_key=$tk' : ''}';
     }
     if (url == null || url.isEmpty) {
