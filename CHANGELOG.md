@@ -1,3 +1,10 @@
+## [1.118.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.3...v1.118.4) (2026-07-01)
+
+
+### Bug Fixes
+
+* **memory:** VideoListNotifier dispose 时 cancel Timer 防止内存泄漏 ([#95](https://github.com/1525745393/EmbyTok-Flutter/issues/95)) ([5e56d7f](https://github.com/1525745393/EmbyTok-Flutter/commit/5e56d7fe1a218f2d62b43c59a87e32962999c79f))
+
 ## [1.118.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.2...v1.118.3) (2026-06-30)
 
 
