@@ -72,6 +72,8 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   final Ref _ref;
   // 持久化 key：默认视频流用原 key；推荐页传自定义 key（PR #66）
   final String _storageKey;
+  // ProviderSubscription：显式保存并在 dispose 时取消
+  ProviderSubscription<AsyncValue<List<Library>>>? _librarySubscription;
 
   SelectedLibraryNotifier(this._ref, {String? storageKey})
       : _storageKey = storageKey ?? kStorageKeySelectedLibraryId,
@@ -80,7 +82,8 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
     // 完成后通过 _loadFuture 通知监听器（避免 race condition）
     _loadFuture = _loadSaved();
     // 监听媒体库列表变化，首次加载时自动选中（优先恢复上次选择）
-    _ref.listen<AsyncValue<List<Library>>>(
+    // 保存 subscription 以便 dispose 时显式取消（最佳实践）
+    _librarySubscription = _ref.listen<AsyncValue<List<Library>>>(
       libraryListProvider,
       (previous, next) async {
         // 关键：等待 _loadSaved() 完成后再读取 _savedLibraryId。
@@ -204,6 +207,17 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   /// 清空选择
   void clear() {
     state = const <String>[];
+  }
+
+  /// 释放资源：显式取消 ProviderSubscription
+  ///
+  /// Riverpod 的 ref.listen 返回 ProviderSubscription，
+  /// 虽然 Riverpod 会自动管理订阅生命周期，但最佳实践是显式取消，
+  /// 明确表达"Notifier 销毁时订阅也随之结束"的意图。
+  @override
+  void dispose() {
+    _librarySubscription?.close();
+    super.dispose();
   }
 }
 
