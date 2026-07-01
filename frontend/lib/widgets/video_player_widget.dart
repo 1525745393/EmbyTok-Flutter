@@ -214,9 +214,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
     // ---- 路径 1：有预加载控制器 ----
-    if (widget.preloadedController != null) {
+    final preloaded = widget.preloadedController;
+    if (preloaded != null) {
       try {
-        final c = widget.preloadedController;
+        final c = preloaded;
         _controller = c;
         // 同步预加载等级：保证 reportPlaybackStart/progress 使用正确的播放方法
         final preloadLevel = widget.preloadedPlaybackLevel;
