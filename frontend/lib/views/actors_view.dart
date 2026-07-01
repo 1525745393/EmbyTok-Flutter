@@ -690,20 +690,27 @@ class _ActorCard extends StatelessWidget {
                     width: double.infinity,
                     color: scheme.surface.withOpacity(0.3),
                     child: imageUrl != null && imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            cacheManager: AppImageCacheManager.thumbnail,
-                            fit: BoxFit.cover,
-                            httpHeaders: token != null && token.isNotEmpty
-                                ? {'X-Emby-Token': token}
-                                : null,
-                            placeholder: (_, __) => Center(
-                              child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
-                            ),
-                            errorWidget: (_, __, ___) => Center(
-                              child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
-                            ),
-                          )
+                        ? () {
+                            // 提取 token 局部变量，确保 Dart 类型提升生效
+                            final tk = token;
+                            return CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              cacheManager: AppImageCacheManager.thumbnail,
+                              fit: BoxFit.cover,
+                              httpHeaders:
+                                  tk != null && tk.isNotEmpty
+                                      ? <String, String>{'X-Emby-Token': tk}
+                                      : null,
+                              placeholder: (_, __) => Center(
+                                child: Icon(Icons.person,
+                                    color: scheme.onSurface.withOpacity(0.5)),
+                              ),
+                              errorWidget: (_, __, ___) => Center(
+                                child: Icon(Icons.person,
+                                    color: scheme.onSurface.withOpacity(0.5)),
+                              ),
+                            );
+                          }()
                         : Center(
                             child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
                           ),

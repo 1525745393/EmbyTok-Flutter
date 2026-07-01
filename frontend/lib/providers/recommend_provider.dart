@@ -632,11 +632,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           serverUrl: serverUrl,
           token: token,
         );
+        final nextUpQueue = queues[_sourceNextUp];
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceNextUp]
-              .add(RecommendItem(item: item, source: RecommendSource.nextUp));
+          nextUpQueue?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
       } catch (e) {
         AppLogger.error('推荐：加载 NextUp 失败', error: e);
@@ -650,11 +650,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           serverUrl: serverUrl,
           token: token,
         );
+        final resumeQueue = queues[_sourceResume];
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceResume]
-              .add(RecommendItem(item: item, source: RecommendSource.resume));
+          resumeQueue?.add(RecommendItem(item: item, source: RecommendSource.resume));
         }
       } catch (e) {
         AppLogger.error('推荐：加载 Resume 失败', error: e);
@@ -717,10 +717,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
               if (sa != sb) return sa.compareTo(sb);
               return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
             });
+          final nextUpQueueForInsert = queues[_sourceNextUp];
           for (final item in sorted) {
             if (!isVideo(item) || isTooShort(item)) continue;
             if (shouldSkip(item)) continue; // PR #83+#88
-            queues[_sourceNextUp].insert(
+            nextUpQueueForInsert?.insert(
               0, // 插到队首，优先于 fetchNextUp 拉到的项
               RecommendItem(item: item, source: RecommendSource.nextUp),
             );
@@ -739,10 +740,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           token: token,
           userId: userId,
         );
+        final suggestionsQueue = queues[_sourceSuggestions];
         for (final item in suggestions) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceSuggestions].add(
+          suggestionsQueue?.add(
               RecommendItem(item: item, source: RecommendSource.suggestions));
         }
       } catch (e) {
@@ -822,11 +824,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           }
         }));
         for (final list in similarLists) {
+          final similarQueue = queues[_sourceSimilar];
           for (final item in list) {
             if (!isVideo(item) || isTooShort(item)) continue;
             if (shouldSkip(item)) continue; // PR #83+#88
-            queues[_sourceSimilar]
-                .add(RecommendItem(item: item, source: RecommendSource.similar));
+            similarQueue?.add(RecommendItem(item: item, source: RecommendSource.similar));
           }
         }
       } catch (e) {
