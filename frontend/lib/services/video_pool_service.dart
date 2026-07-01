@@ -133,6 +133,8 @@ class VideoPoolService {
           Uri.parse(url),
           httpHeaders: headers,
         );
+        // 预加载阶段默认静音，防止意外触发播放时突然发声
+        await controller.setVolume(0);
         await controller.initialize().timeout(
           const Duration(seconds: 10),
           onTimeout: () {

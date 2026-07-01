@@ -239,22 +239,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
         c.setLooping(widget.loop);
         if (mounted) {
-          setState(() {
-            _initialized = true;
-            _hasError = false;
-          });
-          widget.onControllerReady?.call(c);
-          _autoLoadDefaultSubtitle();
-          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
-          await _seekToResumePosition();
-          if (widget.autoPlay) {
-            try {
-              await c.play();
-            } catch (e) {
-              debugPrint('autoPlay error: $e');
+            setState(() {
+              _initialized = true;
+              _hasError = false;
+            });
+            _applyInitialVolume(c);
+            widget.onControllerReady?.call(c);
+            _autoLoadDefaultSubtitle();
+            // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+            await _seekToResumePosition();
+            if (widget.autoPlay) {
+              try {
+                await c.play();
+              } catch (e) {
+                debugPrint('autoPlay error: $e');
+              }
             }
           }
-        }
       }
 
       try {
@@ -309,6 +310,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _initialized = true;
           _hasError = false;
         });
+        _applyInitialVolume(c);
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
@@ -413,6 +415,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
           _isFallbackInProgress = false;
         });
+        _applyInitialVolume(c);
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
@@ -505,6 +508,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _hasError = false;
           _isUserSwitchInProgress = false;
         });
+        _applyInitialVolume(c);
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         if (widget.autoPlay) {
@@ -644,24 +648,28 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          FittedBox(
-            fit: isLandscape ? BoxFit.contain : BoxFit.cover,
-            child: SizedBox(
-              width: vc.value.size.width,
-              height: vc.value.size.height,
-              child: VideoPlayer(vc),
+          RepaintBoundary(
+            child: FittedBox(
+              fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+              child: SizedBox(
+                width: vc.value.size.width,
+                height: vc.value.size.height,
+                child: VideoPlayer(vc),
+              ),
             ),
           ),
           if (displayCues.isNotEmpty && selectedSubId != null)
-            ValueListenableBuilder<int>(
-              valueListenable: _positionSeconds,
-              builder: (_, seconds, __) {
-                return SubtitleRenderer(
-                  position: Duration(seconds: seconds),
-                  cues: displayCues,
-                  enabled: true,
-                );
-              },
+            RepaintBoundary(
+              child: ValueListenableBuilder<int>(
+                valueListenable: _positionSeconds,
+                builder: (_, seconds, __) {
+                  return SubtitleRenderer(
+                    position: Duration(seconds: seconds),
+                    cues: displayCues,
+                    enabled: true,
+                  );
+                },
+              ),
             ),
         ],
       ),
@@ -745,6 +753,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // _loadSubtitle 会通过 ref.listen 自动触发
   }
 
+  // 应用初始音量：根据 isMutedProvider 和 widget.autoPlay 决定音量
+  // 预加载池中的 controller 默认 volume=0，取出播放时需要恢复
+  void _applyInitialVolume(VideoPlayerController c) {
+    final isMuted = ref.read(isMutedProvider);
+    // 非自动播放场景默认有声；自动播放场景根据静音开关决定
+    final shouldMute = widget.autoPlay && isMuted;
+    c.setVolume(shouldMute ? 0.0 : 1.0);
+  }
+
   // 缩略图占位：web 环境或无播放地址时使用
   Widget _buildThumbnailPlaceholder(BuildContext context) {
     // 优先使用带认证信息的缩略图 URL
@@ -753,6 +770,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final headers = widget.item.authHeaders(widget.token);
     final scheme = Theme.of(context).colorScheme;
     final errMsg = _errorMessage;
+
+    // 根据屏幕像素密度动态计算缓存宽度，避免解码过大图片浪费内存
+    final mq = MediaQuery.of(context);
+    final cacheWidth =
+        (mq.size.width * mq.devicePixelRatio).round().clamp(400, 1080);
 
     return Stack(
       fit: StackFit.expand,
@@ -763,7 +785,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             cacheManager: AppImageCacheManager.thumbnail,
             fit: BoxFit.cover,
             httpHeaders: headers.isNotEmpty ? headers : null,
-            memCacheWidth: 800,
+            memCacheWidth: cacheWidth,
             placeholder: (_, __) => Container(
               color: scheme.surface.withOpacity(0.3),
               child: Center(
