@@ -1,3 +1,18 @@
+# [1.119.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.6...v1.119.0) (2026-07-01)
+
+
+### Bug Fixes
+
+* 修复 CI 空安全编译错误 ([20beb3b](https://github.com/1525745393/EmbyTok-Flutter/commit/20beb3bf52ba856afb470f89891d9c5bcea0d568))
+* 修复 CI 编译错误 ([afbd245](https://github.com/1525745393/EmbyTok-Flutter/commit/afbd245bda566b7bddbef0ef34aadcfb12f2229b))
+* 修复 Person.id 可空字段在 else-if 条件中未判空 ([9a127d1](https://github.com/1525745393/EmbyTok-Flutter/commit/9a127d140806c35d54bafeecf44cb9e4fdb0db77))
+* 修复 video_player_widget 路径1 类型提升问题 ([75874cb](https://github.com/1525745393/EmbyTok-Flutter/commit/75874cb9d153f0dc128a903e5f7c2d51ecdedea2))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([2d30f0e](https://github.com/1525745393/EmbyTok-Flutter/commit/2d30f0e80decb3cd10009e13592840d22aa61bd7))
+
 ## [1.118.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.5...v1.118.6) (2026-07-01)
 
 
