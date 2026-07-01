@@ -22,6 +22,9 @@ class PlaybackSession {
   final String playSessionId;
   final int playbackLevel; // 0=DirectPlay, 1=DirectStream, 2=HLS
   final DateTime createdAt;
+  /// 是否为轻量预加载（仅创建 controller，未执行 initialize）
+  /// 取出播放时需由 VideoPlayerWidget 负责初始化
+  final bool isLightPreload;
   bool _isDisposed = false;
 
   PlaybackSession({
@@ -29,10 +32,11 @@ class PlaybackSession {
     required this.controller,
     required this.playSessionId,
     required this.playbackLevel,
+    this.isLightPreload = false,
   }) : createdAt = DateTime.now();
 
   bool get isInitialized =>
-      !_isDisposed && controller.value.isInitialized;
+      !_isDisposed && !isLightPreload && controller.value.isInitialized;
 
   void dispose() {
     if (_isDisposed) return;
@@ -51,11 +55,18 @@ class PlaybackSession {
 /// - `evictExcept()`: 清理距离当前索引较远的会话
 /// - `invalidate()`: Token 变更或退出登录时清理全部
 class VideoPoolService {
-  VideoPoolService({this.maxSize = 2})
+  VideoPoolService({this.maxSize = 4})
       : assert(maxSize >= 1, 'maxSize must be >= 1');
 
   /// 池中最多同时活跃的控制器数量（不含当前正在播放的那个）
+  /// 注意：默认 4 是配合轻量预加载模式的容量。
+  /// 轻量模式下仅创建 controller 不初始化，不占用解码器资源，
+  /// 因此可以缓存更多条目以提高滑动命中率。
   final int maxSize;
+
+  /// 最大并发预加载数：防止快速滑动时短时间内大量创建 controller
+  static const int maxPendingPreloads = 1;
+  int _pendingPreloads = 0;
 
   /// 主要缓存：key = itemId，value = 会话对象
   final Map<String, PlaybackSession> _sessions = <String, PlaybackSession>{};
@@ -87,18 +98,21 @@ class VideoPoolService {
 
   /// 预加载一个媒体条目
   ///
-  /// - 返回 Future<PlaybackSession?>：控制器初始化完成后 resolve
+  /// - 返回 Future<PlaybackSession?>：控制器创建/初始化完成后 resolve
   /// - 如已存在则直接返回现有会话
   /// - 如池已满则先淘汰最旧的会话
+  /// - [light]：轻量模式（默认 true），仅创建 controller + 设置静音，
+  ///   不执行 initialize()，不占用解码器资源，由 VideoPlayerWidget
+  ///   取出播放时才初始化。
   Future<PlaybackSession?> preload({
     required MediaItem item,
     required String serverUrl,
     required String token,
+    bool light = true,
   }) async {
-    if (kIsWeb) return null; // Web 环境下不预加载
+    if (kIsWeb) return null;
     if (item.id.isEmpty || serverUrl.isEmpty || token.isEmpty) return null;
 
-    // Token 检查：如已变更则重新记录
     updateAuth(serverUrl: serverUrl, token: token);
 
     // 已有会话：直接返回
@@ -108,58 +122,82 @@ class VideoPoolService {
       return existing;
     }
 
-    // 池已满：淘汰最久未访问的会话
-    if (_sessions.length >= maxSize) {
-      final oldest = _accessOrder.first;
-      _remove(oldest);
+    // 并发限流：避免快速滑动时短时间内大量创建 controller
+    if (_pendingPreloads >= maxPendingPreloads) {
+      debugPrint('VideoPoolService: too many pending preloads '
+          '($_pendingPreloads), skip ${item.id}');
+      return null;
     }
+    _pendingPreloads++;
 
-    // 降级链：DirectPlay → DirectStream → HLS
-    final urls = <int, String?>{
-      0: item.computePlaybackUrl(serverUrl, token),
-      1: item.computeDirectStreamUrl(serverUrl, token),
-      2: item.computeHlsUrl(serverUrl, token,
-          playSessionId: _generatePlaySessionId()),
-    };
-    final headers = item.authHeaders(token);
-
-    PlaybackSession? created;
-    for (int level = 0; level < 3; level++) {
-      final url = urls[level];
-      if (url == null || url.isEmpty) continue;
-      VideoPlayerController? controller;
-      try {
-        controller = VideoPlayerController.networkUrl(
-          Uri.parse(url),
-          httpHeaders: headers,
-        );
-        // 预加载阶段默认静音，防止意外触发播放时突然发声
-        await controller.setVolume(0);
-        await controller.initialize().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            throw TimeoutException('preload initialize timeout');
-          },
-        );
-        created = PlaybackSession(
-          itemId: item.id,
-          controller: controller,
-          playSessionId: _generatePlaySessionId(),
-          playbackLevel: level,
-        );
-        _sessions[item.id] = created;
-        _accessOrder.add(item.id);
-        return created;
-      } catch (e) {
-        debugPrint('VideoPoolService preload level=$level failed: $e');
-        // 释放失败的控制器，避免 native 资源泄漏
-        try {
-          controller?.dispose();
-        } catch (_) {}
+    try {
+      // 池已满：淘汰最久未访问的会话
+      if (_sessions.length >= maxSize) {
+        final oldest = _accessOrder.first;
+        _remove(oldest);
       }
-    }
 
-    return created; // 可能为 null（全部失败）
+      // 降级链：DirectPlay → DirectStream → HLS
+      final urls = <int, String?>{
+        0: item.computePlaybackUrl(serverUrl, token),
+        1: item.computeDirectStreamUrl(serverUrl, token),
+        2: item.computeHlsUrl(serverUrl, token,
+            playSessionId: _generatePlaySessionId()),
+      };
+      final headers = item.authHeaders(token);
+
+      PlaybackSession? created;
+      for (int level = 0; level < 3; level++) {
+        final url = urls[level];
+        if (url == null || url.isEmpty) continue;
+        VideoPlayerController? controller;
+        try {
+          controller = VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            httpHeaders: headers,
+          );
+          // 预加载阶段默认静音，防止意外触发播放时突然发声
+          await controller.setVolume(0);
+
+          if (light) {
+            // 轻量模式：不 initialize，不占用解码器资源
+            created = PlaybackSession(
+              itemId: item.id,
+              controller: controller,
+              playSessionId: _generatePlaySessionId(),
+              playbackLevel: level,
+              isLightPreload: true,
+            );
+          } else {
+            // 全量模式：完整 initialize，解码首帧（占用解码器资源）
+            await controller.initialize().timeout(
+              const Duration(seconds: 10),
+              onTimeout: () => throw TimeoutException('preload initialize timeout'),
+            );
+            created = PlaybackSession(
+              itemId: item.id,
+              controller: controller,
+              playSessionId: _generatePlaySessionId(),
+              playbackLevel: level,
+              isLightPreload: false,
+            );
+          }
+          _sessions[item.id] = created;
+          _accessOrder.add(item.id);
+          return created;
+        } catch (e) {
+          debugPrint(
+              'VideoPoolService preload level=$level light=$light failed: $e');
+          try {
+            controller?.dispose();
+          } catch (_) {}
+        }
+      }
+
+      return created; // 可能为 null（全部失败）
+    } finally {
+      _pendingPreloads--;
+    }
   }
 
   /// 取出一个会话（从池中移除，所有权交给调用方）
