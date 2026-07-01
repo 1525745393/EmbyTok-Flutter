@@ -29,6 +29,10 @@ class ItemDetailView extends ConsumerStatefulWidget {
 }
 
 class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
+  // 复用 EmbytokService 实例，避免每次调用方法都创建新实例
+  // EmbytokService 内部可能持有 HTTP client，频繁创建会浪费资源
+  late final EmbytokService _service;
+
   MediaItem? _item;
   bool _loading = true;
   String? _error;
@@ -46,6 +50,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   @override
   void initState() {
     super.initState();
+    _service = EmbytokService();
     _item = widget.initialItem;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDetail());
   }
@@ -58,12 +63,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
       MediaItem item;
       if (_item != null && _item!.id == widget.itemId) {
         item = _item!;
       } else {
-        item = await service.getItemDetail(
+        item = await _service.getItemDetail(
           widget.itemId,
           serverUrl: auth.embyServerUrl,
           token: auth.token,
@@ -95,8 +99,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Future<void> _loadSeasons(String seriesId) async {
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final seasons = await service.getSeasons(
+      final seasons = await _service.getSeasons(
         seriesId,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
@@ -122,8 +125,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final resp = await service.getEpisodes(
+      final resp = await _service.getEpisodes(
         seriesId,
         seasonId: seasonId,
         serverUrl: auth.embyServerUrl,
@@ -151,8 +153,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final items = await service.getSimilarItems(
+      final items = await _service.getSimilarItems(
         itemId,
         limit: 12,
         serverUrl: auth.embyServerUrl,
