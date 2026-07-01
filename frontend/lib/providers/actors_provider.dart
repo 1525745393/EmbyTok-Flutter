@@ -179,10 +179,14 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   Future<void> _loadFavorites() async {
     try {
       final auth = _ref.read(authProvider);
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      final userId = auth.user?.id;
+      if (serverUrl == null || token == null) return;
       final items = await _service.getFavoritePeople(
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
       );
       final ids = items.map((e) => e.id).toSet();
       if (ids.isNotEmpty) {
@@ -194,7 +198,10 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   }
 
   /// 一次性从服务器分页拉取全部演员
-  Future<List<Person>> _fetchAllFromServer(authState) async {
+  Future<List<Person>> _fetchAllFromServer(AuthState authState) async {
+    final serverUrl = authState.embyServerUrl;
+    final token = authState.token;
+    if (serverUrl == null || token == null) return [];
     final all = <Person>[];
     int startIndex = 0;
     while (true) {
@@ -202,8 +209,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         limit: _pageSize,
         startIndex: startIndex,
         personTypes: _personTypesParam(),
-        serverUrl: authState.embyServerUrl!,
-        token: authState.token!,
+        serverUrl: serverUrl,
+        token: token,
       );
       all.addAll(resp.items);
       if (resp.items.length < _pageSize) break;
@@ -235,13 +242,19 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       state = state.copyWith(searchQuery: q, isSearching: true);
       try {
         final auth = _ref.read(authProvider);
+        final serverUrl = auth.embyServerUrl;
+        final token = auth.token;
+        if (serverUrl == null || token == null) {
+          state = state.copyWith(isSearching: false);
+          return;
+        }
         final resp = await _service.getPeople(
           limit: 50,
           startIndex: 0,
           personTypes: _personTypesParam(),
           searchTerm: q,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
+          serverUrl: serverUrl,
+          token: token,
         );
         state = state.copyWith(searchResults: resp.items, isSearching: false);
       } catch (e) {
@@ -287,12 +300,16 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 
     try {
       final auth = _ref.read(authProvider);
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      final userId = auth.user?.id;
+      if (serverUrl == null || token == null) return;
       await _service.toggleFavorite(
         itemId: actorId,
         isFavorite: !isFav,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
       );
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);

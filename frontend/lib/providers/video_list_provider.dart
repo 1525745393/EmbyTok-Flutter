@@ -182,10 +182,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   Future<void> _refreshGridOnly(String searchTerm) async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
     final auth = _auth;
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
 
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       return;
     }
 
@@ -205,9 +206,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             libId,
             limit: kGridPageSize,
             offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: searchTerm.isEmpty ? null : searchTerm,
@@ -255,9 +256,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     );
 
     final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(
         isLoading: false,
         error: '尚未登录',
@@ -291,9 +293,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 libId,
                 limit: state.limit,
                 offset: 0,
-                serverUrl: auth.embyServerUrl!,
-                token: auth.token!,
-                userId: auth.user?.id,
+                serverUrl: serverUrl,
+                token: token,
+                userId: userId,
                 sortBy: state.sortBy,
                 sortOrder: state.sortOrder,
                 searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
@@ -322,9 +324,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 libId,
                 limit: (80 / libIds.length).ceil(),
                 offset: 0,
-                serverUrl: auth.embyServerUrl!,
-                token: auth.token!,
-                userId: auth.user?.id,
+                serverUrl: serverUrl,
+                token: token,
+                userId: userId,
               );
               merged.addAll(resp.items);
             } catch (e) {
@@ -339,9 +341,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
         case FeedType.favorites:
           final favList = await _service.getFavoriteMovies(
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
           );
           loadedItems = favList;
           loadedTotal = favList.length;
@@ -351,8 +353,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           final resp = await _service.getResumeItems(
             limit: 50,
             offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
+            serverUrl: serverUrl,
+            token: token,
           );
           loadedItems = resp.items;
           loadedTotal = resp.items.length;
@@ -412,9 +414,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     state = state.copyWith(isLoading: true, error: null);
 
     final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
@@ -431,9 +434,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             libId,
             limit: perLibLimit,
             offset: state.offset,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
@@ -478,10 +481,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   Future<void> shuffleRandom() async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
     final auth = _auth;
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
 
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(
         isLoading: false,
         error: '尚未登录',
@@ -507,9 +511,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             libId,
             limit: 10000, // 不限制数量，取全部
             offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
             sortBy: 'Random',
             sortOrder: 'Ascending',
           );
@@ -675,10 +679,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   Future<void> _loadPageAt(int offset) async {
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
     final auth = _auth;
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
 
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(
         isLoading: false,
         error: '尚未登录',
@@ -704,9 +709,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             libId,
             limit: kGridPageSize,
             offset: offset,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,

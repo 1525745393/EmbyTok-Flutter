@@ -137,9 +137,14 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     try {
       // 并行请求三栏数据
-      final serverUrl = auth.embyServerUrl!;
-      final token = auth.token!;
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
       final userId = auth.user?.id;
+      if (serverUrl == null || token == null) {
+        _isLoading = false;
+        state = state.copyWith(isLoading: false, error: '尚未登录');
+        return;
+      }
       final results = await Future.wait<List<MediaItem>>([
         _service.getFavoriteMovies(serverUrl: serverUrl, token: token, userId: userId),
         _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token, userId: userId),
@@ -240,12 +245,16 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     // 3. 真正同步到服务器
     try {
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      final userId = auth.user?.id;
+      if (serverUrl == null || token == null) return;
       await _service.toggleFavorite(
         itemId: item.id,
         isFavorite: newIsFavorite,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
       );
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态

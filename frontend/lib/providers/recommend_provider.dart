@@ -198,10 +198,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   Future<void> _loadFromCache() async {
     try {
       final auth = _ref.read(authProvider);
-      if (auth.user?.id == null) return;
+      final userId = auth.user?.id;
+      if (userId == null) return;
       // 缓存按 userId 分键（避免不同账号混用）
-      final cacheKey = '$kStorageKeyRecommendCache:${auth.user!.id}';
-      final timeKey = '$kStorageKeyRecommendCacheTime:${auth.user!.id}';
+      final cacheKey = '$kStorageKeyRecommendCache:$userId';
+      final timeKey = '$kStorageKeyRecommendCacheTime:$userId';
 
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(cacheKey);
@@ -236,9 +237,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     if (items.isEmpty) return;
     try {
       final auth = _ref.read(authProvider);
-      if (auth.user?.id == null) return;
-      final cacheKey = '$kStorageKeyRecommendCache:${auth.user!.id}';
-      final timeKey = '$kStorageKeyRecommendCacheTime:${auth.user!.id}';
+      final userId = auth.user?.id;
+      if (userId == null) return;
+      final cacheKey = '$kStorageKeyRecommendCache:$userId';
+      final timeKey = '$kStorageKeyRecommendCacheTime:$userId';
 
       final prefs = await SharedPreferences.getInstance();
       final encoded = json.encode(items.map((e) => e.toJson()).toList());
@@ -349,8 +351,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // 0 表示不过滤
     bool isTooShort(MediaItem item) {
       if (minRuntimeSec == 0) return false;
-      if (item.runtimeTicks == null) return false; // 无时长信息：保留
-      return item.runtimeTicks! < minRuntimeTicks;
+      final ticks = item.runtimeTicks;
+      if (ticks == null) return false; // 无时长信息：保留
+      return ticks < minRuntimeTicks;
     }
 
     // PR #79：抽离核心加载逻辑，支持分页
@@ -494,8 +497,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     bool isVideo(MediaItem item) => allowedTypes.contains(item.type);
     bool isTooShort(MediaItem item) {
       if (minRuntimeSec == 0) return false;
-      if (item.runtimeTicks == null) return false;
-      return item.runtimeTicks! < minRuntimeTicks;
+      final ticks = item.runtimeTicks;
+      if (ticks == null) return false;
+      return ticks < minRuntimeTicks;
     }
 
     final newItems = await _loadPage(
@@ -553,7 +557,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // + 各数据源原始项数（供 load() 冷启动检测）
   Future<_PageLoadResult> _loadPage({
     required EmbytokService service,
-    required auth,
+    required AuthState auth,
     required List<String> selectedIds,
     required double minRating,
     required bool excludePlayed,
@@ -569,6 +573,18 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required bool userRatingEnabled, // PR #89
     required double userRatingMin, // PR #89
   }) async {
+    // 提前提取非空值，避免方法内反复使用 !
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (serverUrl == null || token == null) {
+      return const _PageLoadResult(
+        merged: [],
+        tagged: [],
+        nextUpCount: 0,
+        resumeCount: 0,
+      );
+    }
     // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
       _sourceNextUp: <RecommendItem>[],
@@ -613,13 +629,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       try {
         final resp = await service.getNextUp(
           limit: _pageSize,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
+          serverUrl: serverUrl,
+          token: token,
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceNextUp]!
+          queues[_sourceNextUp]
               .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
       } catch (e) {
@@ -631,13 +647,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       try {
         final resp = await service.getResumeItems(
           limit: _pageSize,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
+          serverUrl: serverUrl,
+          token: token,
         );
         for (final item in resp.items) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceResume]!
+          queues[_sourceResume]
               .add(RecommendItem(item: item, source: RecommendSource.resume));
         }
       } catch (e) {
@@ -658,9 +674,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         const int _recentSeriesLimit = 3;
         final history = await service.getWatchHistory(
           limit: 50, // 拉少量 history 即可（去重后取前 N）
-          userId: auth.user?.id,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
+          userId: userId,
+          serverUrl: serverUrl,
+          token: token,
         );
         // 提取最近看过的 series（按 DatePlayed 倒序，watch history 已按此排序）
         final seenSeriesIds = <String>{};
@@ -681,8 +697,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             final resp = await service.getNextUp(
               limit: 3, // 每个 series 最多 3 集
               seriesId: sid,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
+              serverUrl: serverUrl,
+              token: token,
             );
             return resp.items;
           } catch (e) {
@@ -704,7 +720,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           for (final item in sorted) {
             if (!isVideo(item) || isTooShort(item)) continue;
             if (shouldSkip(item)) continue; // PR #83+#88
-            queues[_sourceNextUp]!.insert(
+            queues[_sourceNextUp].insert(
               0, // 插到队首，优先于 fetchNextUp 拉到的项
               RecommendItem(item: item, source: RecommendSource.nextUp),
             );
@@ -719,14 +735,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       try {
         final suggestions = await service.getSuggestions(
           limit: _pageSize,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
-          userId: auth.user?.id,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
         );
         for (final item in suggestions) {
           if (!isVideo(item) || isTooShort(item)) continue;
           if (shouldSkip(item)) continue; // PR #83+#88
-          queues[_sourceSuggestions]!.add(
+          queues[_sourceSuggestions].add(
               RecommendItem(item: item, source: RecommendSource.suggestions));
         }
       } catch (e) {
@@ -744,9 +760,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       try {
         final history = await service.getWatchHistory(
           limit: 200, // 拉多些，方便筛选
-          userId: auth.user?.id,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
+          userId: userId,
+          serverUrl: serverUrl,
+          token: token,
         );
         // PR #86：合并相似种子 - 收藏 > 完播 > 降级
         final seedByItemId = <String, MediaItem>{};
@@ -797,8 +813,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             return await service.getSimilarItems(
               seed.id,
               limit: _similarPerSeed,
-              serverUrl: auth.embyServerUrl!,
-              token: auth.token!,
+              serverUrl: serverUrl,
+              token: token,
             );
           } catch (e) {
             AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
@@ -809,7 +825,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           for (final item in list) {
             if (!isVideo(item) || isTooShort(item)) continue;
             if (shouldSkip(item)) continue; // PR #83+#88
-            queues[_sourceSimilar]!
+            queues[_sourceSimilar]
                 .add(RecommendItem(item: item, source: RecommendSource.similar));
           }
         }
@@ -845,8 +861,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       list.shuffle();
     }
     // PR #79：在 round-robin 清空队列前记录原始项数（用于 load() 冷启动检测）
-    final nextUpCount = queues[_sourceNextUp]!.length;
-    final resumeCount = queues[_sourceResume]!.length;
+    final nextUpCount = queues[_sourceNextUp]?.length ?? 0;
+    final resumeCount = queues[_sourceResume]?.length ?? 0;
     // PR #83：按 source 顺序 + 权重配额
     // - weight >= 0.7：每轮取 round(weight) 项（clamp 1-3）
     // - weight < 0.7：50% 概率跳过这一轮（降权源少取）
@@ -899,15 +915,15 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   ) {
     switch (source) {
       case RecommendSource.nextUp:
-        return queues[_sourceNextUp]!;
+        return queues[_sourceNextUp] ?? const [];
       case RecommendSource.resume:
-        return queues[_sourceResume]!;
+        return queues[_sourceResume] ?? const [];
       case RecommendSource.suggestions:
-        return queues[_sourceSuggestions]!;
+        return queues[_sourceSuggestions] ?? const [];
       case RecommendSource.similar:
-        return queues[_sourceSimilar]!;
+        return queues[_sourceSimilar] ?? const [];
       case RecommendSource.recommendations:
-        return queues[_sourceRecommendations]!;
+        return queues[_sourceRecommendations] ?? const [];
     }
   }
 
@@ -916,7 +932,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #83：黑名单过滤
   List<Future<void>> _fetchRecommendations({
     required EmbytokService service,
-    required auth,
+    required AuthState auth,
     required List<String> selectedIds,
     required double minCommunityRating,
     required bool excludePlayed,
@@ -926,6 +942,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Map<String, List<RecommendItem>> queues,
     required UserBehaviorSignal signal,
   }) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (serverUrl == null || token == null) return [];
     return selectedIds.map((libId) {
       return () async {
         try {
@@ -933,9 +953,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             libraryId: libId,
             limit: _pageSize,
             offset: 0,
-            serverUrl: auth.embyServerUrl!,
-            token: auth.token!,
-            userId: auth.user?.id,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
             minCommunityRating: minCommunityRating,
             excludePlayed: excludePlayed,
             includeItemTypes: includeTypes,
@@ -943,7 +963,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           for (final item in resp.items) {
             if (isTooShort(item)) continue;
             if (signal.blacklist.contains(item.id)) continue; // PR #83
-            queues[_sourceRecommendations]!.add(RecommendItem(
+            queues[_sourceRecommendations]?.add(RecommendItem(
                 item: item, source: RecommendSource.recommendations));
           }
         } catch (e) {
@@ -958,7 +978,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #83：黑名单过滤
   Future<List<RecommendItem>> _loadRecommendations({
     required EmbytokService service,
-    required auth,
+    required AuthState auth,
     required List<String> selectedIds,
     required double minCommunityRating,
     required bool excludePlayed,
@@ -968,6 +988,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Set<String> seenIds,
     required UserBehaviorSignal signal,
   }) async {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (serverUrl == null || token == null) return [];
     final results = <RecommendItem>[];
     await Future.wait(selectedIds.map((libId) async {
       try {
@@ -975,9 +999,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           libraryId: libId,
           limit: _pageSize,
           offset: 0,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
-          userId: auth.user?.id,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
           minCommunityRating: minCommunityRating,
           excludePlayed: excludePlayed,
           includeItemTypes: includeTypes,

@@ -176,8 +176,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   // 关键优化：拖动过程中只更新预览位置 + 震动反馈，不调用 seekTo
   //          只在拖动结束后执行一次 seek，避免高频调用 MediaCodec 导致崩溃
   void _onHorizontalDragStart(DragStartDetails d) {
-    if (!_controllerReady) return;
-    final c = widget.controller!;
+    final c = widget.controller;
+    if (c == null || !c.value.isInitialized) return;
     _isDragging = true;
     _dragStartX = d.globalPosition.dx;
     _dragStartPosition = c.value.position;
@@ -190,8 +190,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   void _onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!_isDragging) return;
-    if (!_controllerReady) return;
-    final c = widget.controller!;
+    final c = widget.controller;
+    if (c == null || !c.value.isInitialized) return;
 
     // 计算水平偏移 -> 目标进度（毫秒）
     final dx = d.globalPosition.dx - _dragStartX;
@@ -268,11 +268,13 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final duration = _controllerReady
-        ? widget.controller!.value.duration
+    final c = widget.controller;
+    final duration = (c != null && c.value.isInitialized)
+        ? c.value.duration
         : Duration.zero;
-    final currentPosition =
-        _isDragging ? _previewPosition : (_controllerReady ? widget.controller!.value.position : Duration.zero);
+    final currentPosition = _isDragging
+        ? _previewPosition
+        : (c != null && c.value.isInitialized ? c.value.position : Duration.zero);
 
     return Stack(
       alignment: Alignment.center,

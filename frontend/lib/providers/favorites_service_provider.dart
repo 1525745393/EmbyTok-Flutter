@@ -28,34 +28,41 @@ class FavoritesService {
   /// 获取指定库的收藏项 ID 集合
   Future<Set<String>> getFavoriteIds(String libraryName) async {
     if (!isAuthenticated) return <String>{};
+    final serverUrl = _auth.embyServerUrl;
+    final token = _auth.token;
+    final userId = _auth.user?.id;
+    if (serverUrl == null || token == null) return <String>{};
     final playlist = _playlistName(libraryName);
     final results = await _service.searchItems(
       playlist,
       includeTypes: ['Playlist'],
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
-      userId: _auth.user?.id,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
       limit: 10,
     );
     if (results.items.isEmpty) return <String>{};
     final playlistItem = results.items.first;
     final children = await _service.getChildren(
       playlistItem.id,
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
+      serverUrl: serverUrl,
+      token: token,
     );
     return children.map((e) => e.id).toSet();
   }
 
   /// 创建一个新的 Playlist 并返回其 ID
   Future<String> _createPlaylist(String libraryName) async {
+    final serverUrl = _auth.embyServerUrl;
+    final token = _auth.token;
+    if (serverUrl == null || token == null) return '';
     final name = Uri.encodeQueryComponent(_playlistName(libraryName));
     final userId = _auth.user?.id ?? '';
     final response = await _service.postRaw(
       '/Playlists',
       queryParameters: {'Name': name, 'UserId': userId},
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
+      serverUrl: serverUrl,
+      token: token,
     );
     if (response is Map<String, dynamic>) {
       return (response['Id'] as String?) ?? '';
@@ -66,28 +73,34 @@ class FavoritesService {
   /// 将指定 item 加入指定库的收藏
   Future<void> addToFavorites(String itemId, String libraryName) async {
     if (!isAuthenticated) return;
+    final serverUrl = _auth.embyServerUrl;
+    final token = _auth.token;
+    if (serverUrl == null || token == null) return;
     final id = await _getOrCreatePlaylistId(libraryName);
     if (id.isEmpty) return;
     final userId = _auth.user?.id ?? '';
     await _service.postRaw(
       '/Playlists/$id/Items',
       queryParameters: {'Ids': itemId, 'UserId': userId},
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
   /// 将指定 item 从收藏中移除
   Future<void> removeFromFavorites(String itemId, String libraryName) async {
     if (!isAuthenticated) return;
+    final serverUrl = _auth.embyServerUrl;
+    final token = _auth.token;
+    if (serverUrl == null || token == null) return;
     final playlistId = await _getOrCreatePlaylistId(libraryName);
     if (playlistId.isEmpty) return;
 
     // Emby Playlist 中的每个子项都有一个 PlaylistItemId（不同于 Item.Id）
     final children = await _service.getChildren(
       playlistId,
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
+      serverUrl: serverUrl,
+      token: token,
     );
     final entry = children.firstWhere(
       (e) => e.id == itemId,
@@ -105,20 +118,24 @@ class FavoritesService {
     await _service.deleteRaw(
       '/Playlists/$playlistId/Items',
       queryParameters: {'EntryIds': entryId, 'UserId': userId},
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
   /// 获取或创建指定媒体库对应的 Playlist ID
   Future<String> _getOrCreatePlaylistId(String libraryName) async {
     if (!isAuthenticated) return '';
+    final serverUrl = _auth.embyServerUrl;
+    final token = _auth.token;
+    final userId = _auth.user?.id;
+    if (serverUrl == null || token == null) return '';
     final results = await _service.searchItems(
       _playlistName(libraryName),
       includeTypes: ['Playlist'],
-      serverUrl: _auth.embyServerUrl!,
-      token: _auth.token!,
-      userId: _auth.user?.id,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
       limit: 5,
     );
     if (results.items.isNotEmpty) {

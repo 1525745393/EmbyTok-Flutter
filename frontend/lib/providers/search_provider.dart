@@ -80,9 +80,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
     );
 
     final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
@@ -92,9 +93,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
         query,
         limit: state.limit,
         offset: 0,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
       );
       final hasMore = resp.offset + resp.items.length < resp.total;
       state = SearchState(
@@ -123,9 +124,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
     state = state.copyWith(isLoading: true, error: null);
 
     final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
@@ -135,9 +137,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
         state.query,
         limit: state.limit,
         offset: state.offset,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-        userId: auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
       );
       final newItems = <MediaItem>[...state.results, ...resp.items];
       final hasMore = state.offset + resp.items.length < resp.total;

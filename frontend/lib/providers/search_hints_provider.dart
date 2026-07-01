@@ -62,9 +62,9 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
     );
 
     final auth = _auth;
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
@@ -73,8 +73,8 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
       final hints = await _service.searchHints(
         query,
         limit: 10,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
+        serverUrl: serverUrl,
+        token: token,
       );
       state = SearchHintsState(
         hints: hints,
