@@ -1031,6 +1031,15 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   @override
   void dispose() {
     _pageController.dispose();
+    // 页面销毁时清理本列表相关的预加载会话，释放 native 解码资源
+    // 注意：不调用 evictAll，避免影响 FeedView 等其他页面的预加载（共享全局池）
+    final keepIds = _items.map((e) => e.id).toSet();
+    // 但当前播放的那个已经被 VideoPageItem take 走了，不在池中
+    // 所以清理所有在池中且属于本列表的即可
+    final pool = ref.read(videoPoolProvider);
+    for (final id in keepIds) {
+      pool.evict(id);
+    }
     super.dispose();
   }
 
@@ -1049,6 +1058,10 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
           }
         });
       }
+      // 首帧后预加载邻居
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _preloadNeighbors(_currentIndex);
+      });
     } else {
       // 从 playbackListProvider 获取播放列表
       final playbackState = ref.read(playbackListProvider);
@@ -1064,6 +1077,10 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             }
           });
         }
+        // 首帧后预加载邻居
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _preloadNeighbors(_currentIndex);
+        });
       } else {
         // 如果列表为空，只播放当前视频
         _items = [widget.item];
@@ -1073,10 +1090,54 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     }
   }
 
+  // 预加载当前索引的上下邻居视频
+  void _preloadNeighbors(int index) {
+    final authState = ref.read(authProvider);
+    final serverUrl = authState.embyServerUrl;
+    final token = authState.token;
+    if (serverUrl == null || token == null) return;
+    final pool = ref.read(videoPoolProvider);
+    // 上一条
+    if (index - 1 >= 0) {
+      final prev = _items[index - 1];
+      if (!pool.hasSession(prev.id)) {
+        unawaited(pool.preload(item: prev, serverUrl: serverUrl, token: token));
+      }
+    }
+    // 下一条
+    if (index + 1 < _items.length) {
+      final next = _items[index + 1];
+      if (!pool.hasSession(next.id)) {
+        unawaited(pool.preload(item: next, serverUrl: serverUrl, token: token));
+      }
+    }
+  }
+
+  // 清理距离较远的预加载缓存（只保留上一条 + 下一条）
+  void _evictFarPreloads(int currentIndex) {
+    final keepIds = <String>[];
+    if (currentIndex - 1 >= 0) keepIds.add(_items[currentIndex - 1].id);
+    if (currentIndex + 1 < _items.length) keepIds.add(_items[currentIndex + 1].id);
+    ref.read(videoPoolProvider).evictExcept(keepIds);
+  }
+
+  // 从池中取预加载会话（所有权转移给 VideoPageItem）
+  PlaybackSession? _takePreloaded(String itemId) =>
+      ref.read(videoPoolProvider).take(itemId);
+
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
     });
+    // 同步当前播放条目
+    if (index < _items.length) {
+      ref.read(currentPlayingIdProvider.notifier).state = _items[index].id;
+      ref.read(currentPlayingItemProvider.notifier).state = _items[index];
+    }
+    // 预加载新的邻居
+    _preloadNeighbors(index);
+    // 清理远距离缓存
+    _evictFarPreloads(index);
   }
 
   @override
@@ -1104,9 +1165,12 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             onPageChanged: _onPageChanged,
             itemBuilder: (context, index) {
               final item = _items[index];
+              // 从 VideoPoolService 取出预加载的会话（如存在）
+              final preloadedSession = _takePreloaded(item.id);
               return VideoPageItem(
                 key: ValueKey(item.id),
                 item: item,
+                preloadedSession: preloadedSession,
                 // PR #83：把 source 标签传给 VideoPageItem 用于完播率统计
                 source: widget.source,
                 onVideoEnded: index < _items.length - 1
@@ -1119,6 +1183,23 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
                       }
                     : null,
                 startFromResumePosition: item.hasProgress,
+                // 播放进度阈值：触发下一条预加载
+                onPreloadThreshold: () {
+                  if (index + 1 < _items.length) {
+                    final auth = ref.read(authProvider);
+                    final srv = auth.embyServerUrl;
+                    final tkn = auth.token;
+                    if (srv != null && tkn != null) {
+                      unawaited(
+                        ref.read(videoPoolProvider).preload(
+                              item: _items[index + 1],
+                              serverUrl: srv,
+                              token: tkn,
+                            ),
+                      );
+                    }
+                  }
+                },
               );
             },
           ),
