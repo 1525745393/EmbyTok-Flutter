@@ -174,21 +174,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       );
     }
 
-    // PR #80：标签分类 - 根据 selectedTag 过滤 taggedItems
-    // - selectedTag=null → 显示全部
-    // - selectedTag=xxx → 只显示对应 source 的项
-    final filteredItems = state.selectedTag == null
-        ? state.taggedItems
-        : state.taggedItems
-            .where((r) => r.source.key == state.selectedTag)
-            .toList();
-    // PR #80：选中分类下的子集用于渲染
-    final displayItems =
-        filteredItems.isEmpty ? state.taggedItems : filteredItems;
-    // PR #80：playItem 播放列表（避免在 itemBuilder 中每次重建）
+    // 性能优化：displayItems 和 tagCounts 由 Provider 预计算
+    // 避免在 build 中同步执行 where + map + length（O(n) × 7 次）
+    final displayItems = state.displayItems;
     final mediaItems =
         displayItems.map((r) => r.item).toList(growable: false);
-    // PR #80：分页 - hasMoreSlot 用全量判断（数据源还有内容即可继续）
     final hasMoreSlot = state.hasMore;
 
     // 网格：3 列（PR #79：顶部加冷启动 Banner + PR #80：标签栏 + 滚到底自动 loadMore）
@@ -244,10 +234,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   // - 横向可滚动（不溢出）
   // - 点击切换 → state.selectedTag 变化 → view 自动 rebuild
   Widget _buildTagBar(RecommendState state, ColorScheme scheme) {
-    // 计算每个标签的项数（用于显示徽标）
+    // 性能优化：用预计算的 tagCounts 替代 where.length
+    // O(1) Map 查找替代 O(n) 全量遍历
     int countFor(RecommendSource? s) {
       if (s == null) return state.taggedItems.length;
-      return state.taggedItems.where((r) => r.source == s).length;
+      return state.tagCounts[s.key] ?? 0;
     }
 
     final tags = <_RecommendTagInfo>[

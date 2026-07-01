@@ -60,6 +60,14 @@ class RecommendState {
   // - UI 可以显示"先观看几个视频"提示
   final bool isColdStart;
 
+  // 性能优化：预计算的 derived 字段（由 Notifier._withDerived 填充）
+  // - 避免在 build 方法中同步做 where + map + length 计算
+  // - taggedItems 或 selectedTag 变化时由 Notifier 重新计算
+  /// 根据 selectedTag 过滤后的展示列表（空则回退到 taggedItems）
+  final List<RecommendItem> displayItems;
+  /// 各标签的计数（key = RecommendSource.key）
+  final Map<String, int> tagCounts;
+
   const RecommendState({
     this.items = const [],
     this.taggedItems = const [],
@@ -70,6 +78,8 @@ class RecommendState {
     this.offset = 0,
     this.hasMore = true,
     this.isColdStart = false,
+    this.displayItems = const [],
+    this.tagCounts = const {},
   });
 
   RecommendState copyWith({
@@ -82,6 +92,8 @@ class RecommendState {
     int? offset,
     bool? hasMore,
     bool? isColdStart,
+    List<RecommendItem>? displayItems,
+    Map<String, int>? tagCounts,
   }) {
     return RecommendState(
       items: items ?? this.items,
@@ -93,6 +105,8 @@ class RecommendState {
       offset: offset ?? this.offset,
       hasMore: hasMore ?? this.hasMore,
       isColdStart: isColdStart ?? this.isColdStart,
+      displayItems: displayItems ?? this.displayItems,
+      tagCounts: tagCounts ?? this.tagCounts,
     );
   }
 }
@@ -389,7 +403,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
     final hasMore = newItems.merged.length >= _pageSize;
 
-    state = state.copyWith(
+    state = _withDerived(state.copyWith(
       items: newItems.merged,
       taggedItems: newItems.tagged,
       isLoading: false,
@@ -397,7 +411,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       offset: newItems.merged.length,
       error: null,
       isColdStart: isColdStart && newItems.merged.length < _pageSize ~/ 2,
-    );
+    ));
     // PR #88：记录展示过的 itemId（用于反推荐疲劳）
     // - 反疲劳开启时记录
     // - 不阻塞主流程
@@ -508,13 +522,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
     final hasMore = newItems.merged.length >= _pageSize;
 
-    state = state.copyWith(
+    state = _withDerived(state.copyWith(
       items: merged,
       taggedItems: taggedMerged,
       isLoadingMore: false,
       hasMore: hasMore,
       offset: merged.length,
-    );
+    ));
     // PR #88：记录新展示的 itemId
     if (antiFatigueEnabled && newItems.merged.isNotEmpty) {
       unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(
@@ -988,11 +1002,41 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     await load();
   }
 
+  /// 性能优化：为 state 补充预计算的 derived 字段
+  ///
+  /// 把 build 方法中的同步过滤 + 计数逻辑提前到 Provider 层：
+  /// - [displayItems]：按 selectedTag 过滤后的列表（空则回退全量）
+  /// - [tagCounts]：各数据源标签的项数（用于标签栏徽标）
+  ///
+  /// 在 taggedItems 或 selectedTag 变化时调用，避免每次 widget rebuild
+  /// 都重复执行 O(n) 的 where + map + length 操作。
+  RecommendState _withDerived(RecommendState s) {
+    final tag = s.selectedTag;
+    final filtered = tag == null
+        ? s.taggedItems
+        : s.taggedItems
+            .where((r) => r.source.key == tag)
+            .toList(growable: false);
+    final displayItems =
+        filtered.isEmpty ? s.taggedItems : filtered;
+
+    final tagCounts = <String, int>{};
+    for (final item in s.taggedItems) {
+      final key = item.source.key;
+      tagCounts[key] = (tagCounts[key] ?? 0) + 1;
+    }
+
+    return s.copyWith(
+      displayItems: displayItems,
+      tagCounts: tagCounts,
+    );
+  }
+
   /// PR #80：选择标签（切换数据源分类）
   /// - tag=null 表示「全部」
   /// - 仅影响 view 渲染（view 按 taggedItems.filter(...).item 渲染）
   void selectTag(String? tag) {
-    state = state.copyWith(selectedTag: tag);
+    state = _withDerived(state.copyWith(selectedTag: tag));
   }
 
   /// 清除错误（SnackBar 弹出后重置，避免重复弹出）

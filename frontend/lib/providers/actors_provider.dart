@@ -7,6 +7,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +15,26 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
+
+// ============================================================
+// 后台 isolate 函数：JSON 批量编解码（避免阻塞 UI 线程）
+// ============================================================
+
+/// 在后台 isolate 中批量 JSON 编码演员缓存数据
+/// - 输入：可序列化的 List<Map>（主线程已完成 Person → Map 转换）
+/// - 输出：List<String>（每条 JSON 字符串）
+List<String> _encodeActorsCache(List<Map<String, dynamic>> actorsData) {
+  return actorsData.map((a) => jsonEncode(a)).toList();
+}
+
+/// 在后台 isolate 中批量 JSON 解码演员缓存数据
+/// - 输入：List<String>（SharedPreferences 中读取的 JSON 字符串列表）
+/// - 输出：List<Map>（主线程再从 Map 构建 Person 对象）
+List<Map<String, dynamic>> _decodeActorsCache(List<String> jsonList) {
+  return jsonList
+      .map((s) => jsonDecode(s) as Map<String, dynamic>)
+      .toList(growable: false);
+}
 
 // ============================================================
 // 状态
@@ -284,13 +305,18 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 
   Future<void> _saveToCache(List<Person> actors) async {
     try {
+      // 主线程：Person → Map（轻量字段访问，不涉及字符串解析）
+      final actorsData = actors
+          .map((a) => <String, dynamic>{
+                'id': a.id,
+                'name': a.name,
+                'type': a.type,
+                'imageUrl': a.imageUrl ?? '',
+              })
+          .toList(growable: false);
+      // 后台 isolate：批量 JSON 编码（避免大量 jsonEncode 阻塞 UI）
+      final json = await compute(_encodeActorsCache, actorsData);
       final prefs = await SharedPreferences.getInstance();
-      final json = actors.map((a) => jsonEncode({
-        'id': a.id,
-        'name': a.name,
-        'type': a.type,
-        'imageUrl': a.imageUrl ?? '',
-      })).toList();
       await prefs.setStringList(_cacheKey, json);
       await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
     } catch (e) {
@@ -309,17 +335,19 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       if (age.inHours >= _cacheExpiryHours) return null;
       final jsonList = prefs.getStringList(_cacheKey);
       if (jsonList == null || jsonList.isEmpty) return null;
-      return jsonList.map((s) {
-        final map = jsonDecode(s) as Map<String, dynamic>;
-        return Person(
-          id: map['id'] as String? ?? '',
-          name: map['name'] as String? ?? '',
-          type: map['type'] as String? ?? 'Actor',
-          imageUrl: (map['imageUrl'] as String?)?.isNotEmpty == true
-              ? map['imageUrl'] as String
-              : null,
-        );
-      }).toList();
+      // 后台 isolate：批量 JSON 解码（避免大量 jsonDecode 阻塞 UI）
+      final decoded = await compute(_decodeActorsCache, jsonList);
+      // 主线程：Map → Person（轻量构造）
+      return decoded
+          .map((map) => Person(
+                id: map['id'] as String? ?? '',
+                name: map['name'] as String? ?? '',
+                type: map['type'] as String? ?? 'Actor',
+                imageUrl: (map['imageUrl'] as String?)?.isNotEmpty == true
+                    ? map['imageUrl'] as String
+                    : null,
+              ))
+          .toList(growable: false);
     } catch (e) {
       AppLogger.error('读取演员缓存失败', error: e);
       return null;
