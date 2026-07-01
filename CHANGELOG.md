@@ -1,3 +1,10 @@
+## [1.118.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.5...v1.118.6) (2026-07-01)
+
+
+### Performance Improvements
+
+* build 方法性能优化（预计算 + compute + memCacheWidth） ([#97](https://github.com/1525745393/EmbyTok-Flutter/issues/97)) ([6a7eb4e](https://github.com/1525745393/EmbyTok-Flutter/commit/6a7eb4eee61910503a944f20bb0aa7c4c0720080))
+
 ## [1.118.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.4...v1.118.5) (2026-07-01)
 
 
