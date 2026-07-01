@@ -86,6 +86,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
+  // _onVideoChanged 降频时间戳（避免每帧写 Provider / 计算完播）
+  int _lastPositionSyncMs = 0;
+  int _lastEndCheckMs = 0;
+  static const int _positionSyncIntervalMs = 250;
+  static const int _endCheckIntervalMs = 500;
+
   // PR #71：纯净模式可拖动按钮组的 GlobalKey（用于外部触发 show/hide）
   final GlobalKey<DraggableCleanActionsState> _draggableActionsKey =
       GlobalKey<DraggableCleanActionsState>();
@@ -219,10 +225,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (ref.read(isPlayingProvider) != isPlaying) {
       ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
-    // 持续同步 position 到全局 store，供全屏页（FullscreenVideoPage）任意时刻可读
-    // 关键：全屏页不创建新 controller，需要从全局读到精确进度
-    // StateProvider 直接写不触发 watch 链重建，性能安全
-    ref.read(currentPositionProvider.notifier).state = controller.value.position;
+    // 位置同步降频：每 250ms 写一次全局 store（4fps 足够进度条显示）
+    // 避免每帧 60 次 Provider 写入触发潜在重建
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastPositionSyncMs >= _positionSyncIntervalMs) {
+      _lastPositionSyncMs = now;
+      ref.read(currentPositionProvider.notifier).state = controller.value.position;
+    }
     // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
     final onPreloadThreshold = widget.onPreloadThreshold;
     if (!_hasFiredPreload && onPreloadThreshold != null) {
@@ -236,7 +245,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         }
       }
     }
-    if (!_hasNotifiedEnded) {
+    // 完播检查降频：每 500ms 检查一次（不需要每帧都计算差值）
+    if (!_hasNotifiedEnded &&
+        now - _lastEndCheckMs >= _endCheckIntervalMs) {
+      _lastEndCheckMs = now;
       final pos = controller.value.position;
       final dur = controller.value.duration;
       if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
@@ -571,55 +583,61 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final content = Stack(
       fit: StackFit.expand,
       children: [
-        // 骨架占位：视频未 ready 时显示渐变色块
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isReady
-                  ? [Colors.transparent, Colors.transparent]
-                  : [scheme.surface.withOpacity(0.7), scheme.surface],
-            ),
+        // 视频播放区（Gestures + VideoPlayer）
+        // 常驻底层，不包裹 AnimatedOpacity，避免视频帧走离屏渲染
+        GestureOverlay(
+          controller: _videoController,
+          item: widget.item,
+          onSingleTap: () {
+            if (isAutoPlay) {
+              _toggleControls();
+            } else {
+              _togglePlay();
+            }
+          },
+          child: VideoPlayerWidget(
+            item: widget.item,
+            embyServerUrl: embyServerUrl,
+            token: token,
+            preloadedController: widget.preloadedSession?.controller,
+            preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
+            startFromResumePosition: widget.startFromResumePosition,
+            onControllerReady: (c) {
+              setState(() => _videoController = c);
+              ref.read(currentVideoControllerProvider.notifier).state = c;
+              ref.read(isPlayingProvider.notifier).state = true;
+              ref.read(currentPlayingItemProvider.notifier).state = widget.item;
+              ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+              _resetInfoHideTimer();
+              _ensureCapabilitiesReported();
+              _reportPlaybackStart();
+              _startProgressTimer();
+              c.addListener(_onVideoChanged);
+              c.addListener(_onVideoChangedForReport);
+            },
           ),
         ),
 
-        // 视频播放区（Gestures + VideoPlayer）
+        // 骨架占位：视频未 ready 时显示渐变色块
+        // 用 AnimatedOpacity 包裹静态渐变层，isReady 后淡出
+        // （静态层走离屏渲染开销远小于视频纹理层）
         AnimatedOpacity(
-          opacity: isReady ? 1.0 : 0.0,
+          opacity: isReady ? 0.0 : 1.0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
-          child: GestureOverlay(
-            controller: _videoController,
-            item: widget.item,
-            onSingleTap: () {
-              if (isAutoPlay) {
-                _toggleControls();
-              } else {
-                _togglePlay();
-              }
-            },
-            child: VideoPlayerWidget(
-              item: widget.item,
-              embyServerUrl: embyServerUrl,
-              token: token,
-              preloadedController: widget.preloadedSession?.controller,
-              preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
-              startFromResumePosition: widget.startFromResumePosition,
-              onControllerReady: (c) {
-                setState(() => _videoController = c);
-                ref.read(currentVideoControllerProvider.notifier).state = c;
-                ref.read(isPlayingProvider.notifier).state = true;
-                ref.read(currentPlayingItemProvider.notifier).state = widget.item;
-                ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-                _resetInfoHideTimer();
-                _ensureCapabilitiesReported();
-                _reportPlaybackStart();
-                _startProgressTimer();
-                c.addListener(_onVideoChanged);
-                c.addListener(_onVideoChangedForReport);
-              },
+          // 淡出后忽略指针事件，不遮挡视频层的手势
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    scheme.surface.withOpacity(0.7),
+                    scheme.surface,
+                  ],
+                ),
+              ),
             ),
           ),
         ),
