@@ -214,49 +214,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
     // ---- 路径 1：有预加载控制器 ----
+    // 由于 widget.preloadedController 是字段，Dart 流分析不会对其判空后续访问做类型提升。
+    // 解决方式：在 if 块内用本地 lambda 包装，让 preloaded 作为非空参数传入，
+    // lambda 内部对 c 即为非空 VideoPlayerController，可正常调用方法。
     final preloaded = widget.preloadedController;
     if (preloaded != null) {
       try {
-        // 由于 widget.preloadedController 是字段，Dart 不会提升。
-        // 将 _controller 直接赋为 preloaded，后续统一通过 _controller 访问。
-        // _controller 字段本身是 VideoPlayerController?，使用前已判空。
-        _controller = preloaded;
-        // 同步预加载等级：保证 reportPlaybackStart/progress 使用正确的播放方法
-        final preloadLevel = widget.preloadedPlaybackLevel;
-        if (preloadLevel != null) {
-          _fallbackLevel = preloadLevel;
-          ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
-        }
-        // 在 if 块内直接使用 preloaded（已被 if 判空）
-        preloaded.addListener(_onControllerChanged);
-        // 预加载控制器可能还未初始化（如果预加载还没完成），等待初始化
-        if (!preloaded.value.isInitialized) {
-          await preloaded.initialize().timeout(
-            const Duration(seconds: 15),
-            onTimeout: () {
-              throw TimeoutException('视频初始化超时');
-            },
-          );
-        }
-        preloaded.setLooping(widget.loop);
-        if (mounted) {
-          setState(() {
-            _initialized = true;
-            _hasError = false;
-          });
-          widget.onControllerReady?.call(preloaded);
-          _autoLoadDefaultSubtitle();
-          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
-          await _seekToResumePosition();
-          if (widget.autoPlay) {
-            try {
-              await preloaded.play();
-            } catch (e) {
-              debugPrint('autoPlay error: $e');
-            }
-          }
-        }
-        return;
+        await _initFromPreloaded(preloaded);
       } catch (e) {
         debugPrint('VideoPlayer preloaded init error: $e，回退到动态创建');
         // 预加载失败，回退到动态创建
