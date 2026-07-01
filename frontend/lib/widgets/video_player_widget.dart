@@ -213,19 +213,63 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Future<void> _initVideo() async {
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
+
     // ---- 路径 1：有预加载控制器 ----
     // 由于 widget.preloadedController 是字段，Dart 流分析不会对其判空后续访问做类型提升。
     // 解决方式：在 if 块内用本地 lambda 包装，让 preloaded 作为非空参数传入，
     // lambda 内部对 c 即为非空 VideoPlayerController，可正常调用方法。
     final preloaded = widget.preloadedController;
+    bool preloadedInitSucceeded = false;
     if (preloaded != null) {
+      // IIFE：把非空参数传入，函数体内 Dart 会把形参 c 视为非空
+      Future<void> usePreloaded(VideoPlayerController c) async {
+        _controller = c;
+        // 同步预加载时的播放等级，供播放上报 PlayMethod 一致
+        final preloadLevel = widget.preloadedPlaybackLevel;
+        if (preloadLevel != null) {
+          _fallbackLevel = preloadLevel;
+          ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
+        }
+        c.addListener(_onControllerChanged);
+        if (!c.value.isInitialized) {
+          await c.initialize().timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException('视频初始化超时'),
+          );
+        }
+        c.setLooping(widget.loop);
+        if (mounted) {
+          setState(() {
+            _initialized = true;
+            _hasError = false;
+          });
+          widget.onControllerReady?.call(c);
+          _autoLoadDefaultSubtitle();
+          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+          await _seekToResumePosition();
+          if (widget.autoPlay) {
+            try {
+              await c.play();
+            } catch (e) {
+              debugPrint('autoPlay error: $e');
+            }
+          }
+        }
+      }
+
       try {
-        await _initFromPreloaded(preloaded);
+        await usePreloaded(preloaded);
+        preloadedInitSucceeded = true;
       } catch (e) {
         debugPrint('VideoPlayer preloaded init error: $e，回退到动态创建');
-        // 预加载失败，回退到动态创建
+        // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
+        try {
+          await _controller?.dispose();
+        } catch (_) {}
+        _controller = null;
       }
     }
+    if (preloadedInitSucceeded) return;
 
     // ---- 路径 2：动态创建控制器 ----
     final url = _getUrlForFallbackLevel(_fallbackLevel);

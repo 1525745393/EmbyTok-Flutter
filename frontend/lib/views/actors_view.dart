@@ -661,19 +661,45 @@ class _ActorCard extends StatelessWidget {
     required this.onTap,
   });
 
+  /// 构建头像图片：合并 actor.imageUrl 和 embyServerUrl/token 拼装逻辑，
+  /// 单独抽方法便于处理空安全（Dart 不会跨方法对字段做类型提升）
+  Widget _buildAvatarImage(ColorScheme scheme) {
+    final actorImageUrl = actor.imageUrl;
+    final actorId = actor.id;
+    String? url;
+    if (actorImageUrl != null && actorImageUrl.isNotEmpty) {
+      url = actorImageUrl;
+    } else if (actorId.isNotEmpty && embyServerUrl != null) {
+      final tk = token;
+      url = '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200'
+          '${tk != null ? '&api_key=$tk' : ''}';
+    }
+    if (url == null || url.isEmpty) {
+      return Center(
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
+      );
+    }
+    final img = url;
+    final tk = token;
+    return CachedNetworkImage(
+      imageUrl: img,
+      cacheManager: AppImageCacheManager.thumbnail,
+      fit: BoxFit.cover,
+      httpHeaders: tk != null && tk.isNotEmpty
+          ? <String, String>{'X-Emby-Token': tk}
+          : null,
+      placeholder: (_, __) => Center(
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
+      ),
+      errorWidget: (_, __, ___) => Center(
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-
-    String? imageUrl;
-    final actorImageUrl = actor.imageUrl;
-    final actorId = actor.id;
-    if (actorImageUrl != null && actorImageUrl.isNotEmpty) {
-      imageUrl = actorImageUrl;
-    } else if (actorId != null && actorId.isNotEmpty && embyServerUrl != null) {
-      imageUrl = '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200'
-          '${token != null ? '&api_key=$token' : ''}';
-    }
 
     return GestureDetector(
       onTap: onTap,
@@ -689,31 +715,7 @@ class _ActorCard extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     color: scheme.surface.withOpacity(0.3),
-                    child: imageUrl != null && imageUrl.isNotEmpty
-                        ? () {
-                            // 提取 token 局部变量，确保 Dart 类型提升生效
-                            final tk = token;
-                            return CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              cacheManager: AppImageCacheManager.thumbnail,
-                              fit: BoxFit.cover,
-                              httpHeaders:
-                                  tk != null && tk.isNotEmpty
-                                      ? <String, String>{'X-Emby-Token': tk}
-                                      : null,
-                              placeholder: (_, __) => Center(
-                                child: Icon(Icons.person,
-                                    color: scheme.onSurface.withOpacity(0.5)),
-                              ),
-                              errorWidget: (_, __, ___) => Center(
-                                child: Icon(Icons.person,
-                                    color: scheme.onSurface.withOpacity(0.5)),
-                              ),
-                            );
-                          }()
-                        : Center(
-                            child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
-                          ),
+                    child: _buildAvatarImage(scheme),
                   ),
                 ),
                 // 增大关注按钮点击区域至 44x44
