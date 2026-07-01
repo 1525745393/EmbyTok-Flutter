@@ -1,3 +1,10 @@
+## [1.118.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.4...v1.118.5) (2026-07-01)
+
+
+### Bug Fixes
+
+* **memory:** 修复中危内存泄漏隐患 ([#96](https://github.com/1525745393/EmbyTok-Flutter/issues/96)) ([5dcf207](https://github.com/1525745393/EmbyTok-Flutter/commit/5dcf20793e6668ee0ec37bb4ace8f9d868c3212b))
+
 ## [1.118.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.118.3...v1.118.4) (2026-07-01)
 
 
