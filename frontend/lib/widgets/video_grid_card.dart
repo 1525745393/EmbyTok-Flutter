@@ -89,6 +89,10 @@ class VideoGridCard extends ConsumerWidget {
       imageUrl: imageUrl,
       cacheManager: AppImageCacheManager.thumbnail,
       fit: BoxFit.cover,
+      // 性能优化：限制内存中解码的图片宽度
+      // 网格 3 列，每列约 120px，2x 像素密度 = 240px
+      // 限制为 300 避免解码原图（可能 1000px+）浪费内存和 CPU
+      memCacheWidth: 300,
       placeholder: (context, url) => _buildPlaceholder(scheme),
       errorWidget: (context, url, error) => _buildPlaceholder(scheme),
     );
