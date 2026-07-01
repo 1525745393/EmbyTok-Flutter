@@ -73,6 +73,112 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
     );
     final headers = widget.item.authHeaders(authState.token);
 
+    // 使用 CustomScrollView + Slivers 替代 SingleChildScrollView + Column + ListView(shrinkWrap:true)
+    // 影片列表使用 SliverList 懒加载，避免一次性构建所有影片项
+    final slivers = <Widget>[
+      // 海报区域
+      SliverToBoxAdapter(
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: imageUrl != null && imageUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  cacheManager: AppImageCacheManager.largeImage,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  httpHeaders: headers.isNotEmpty ? headers : null,
+                  memCacheWidth: 1000,
+                  placeholder: (_, __) =>
+                      Container(color: scheme.surface.withOpacity(0.3)),
+                  errorWidget: (_, __, ___) => const _CoverPlaceholder(),
+                )
+              : const _CoverPlaceholder(),
+        ),
+      ),
+      // 标题和信息
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.item.title,
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _subtitleText,
+                style: TextStyle(
+                  color: scheme.onSurface.withOpacity(0.5),
+                  fontSize: 13,
+                ),
+              ),
+              if (widget.item.overview != null &&
+                  widget.item.overview!.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  widget.item.overview!,
+                  style: TextStyle(
+                    color: scheme.onSurface.withOpacity(0.7),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      // 包含的影片列表标题
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Text(
+            '包含的影片 (${_children.length})',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+      // 加载/错误/空状态或影片列表
+      if (_loading)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        )
+      else if (_error != null)
+        SliverToBoxAdapter(child: _buildError(scheme))
+      else if (_children.isEmpty)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('暂无影片')),
+          ),
+        )
+      else
+        // SliverList.separated 懒加载影片列表，仅构建视口内可见项
+        SliverList.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: _children.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final child = _children[index];
+            return _ChildTile(key: Key(child.id), item: child, allItems: _children);
+          },
+        ),
+      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+    ];
+
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
@@ -80,115 +186,9 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
         foregroundColor: scheme.onSurface,
         title: Text(widget.item.title, style: const TextStyle(fontSize: 16)),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 海报区域
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      cacheManager: AppImageCacheManager.largeImage,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      httpHeaders: headers.isNotEmpty ? headers : null,
-                      memCacheWidth: 1000,
-                      placeholder: (_, __) =>
-                          Container(color: scheme.surface.withOpacity(0.3)),
-                      errorWidget: (_, __, ___) =>
-                          const _CoverPlaceholder(),
-                    )
-                  : const _CoverPlaceholder(),
-            ),
-
-            // 标题和信息
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.item.title,
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _subtitleText,
-                    style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.5),
-                      fontSize: 13,
-                    ),
-                  ),
-                  if (widget.item.overview != null &&
-                      widget.item.overview!.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.item.overview!,
-                      style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.7),
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // 包含的影片列表
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Text(
-                '包含的影片 (${_children.length})',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-
-            if (_loading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: scheme.primary),
-                ),
-              )
-            else if (_error != null)
-              _buildError(scheme)
-            else if (_children.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    '暂无影片',
-                    style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
-                  ),
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _children.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final child = _children[index];
-                  return _ChildTile(key: Key(child.id), item: child, allItems: _children);
-                },
-              ),
-            const SizedBox(height: 32),
-          ],
-        ),
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: slivers,
       ),
     );
   }

@@ -123,10 +123,10 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    
+
     // 使用加载的详情数据，fallback 到原始 person
     final person = _personDetail ?? widget.person;
-    
+
     // 演员使用 thumbnailUrl（已构建完整URL），避免 imageTag 格式问题
     final imageUrl = person.thumbnailUrl ??
         person.primaryUrl(
@@ -136,6 +136,145 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
         );
     final headers = person.authHeaders(authState.token);
 
+    // 使用 CustomScrollView + Slivers 替代 SingleChildScrollView + Column + ListView(shrinkWrap:true)
+    // 作品列表使用 SliverList 懒加载，避免一次性构建所有作品项
+    final slivers = <Widget>[
+      // 人员头像/信息区域
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 120,
+                  height: 160,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          cacheManager: AppImageCacheManager.largeImage,
+                          fit: BoxFit.cover,
+                          httpHeaders: headers.isNotEmpty ? headers : null,
+                          memCacheWidth: 240,
+                          placeholder: (_, __) => const _AvatarPlaceholder(),
+                          errorWidget: (_, __, ___) => const _AvatarPlaceholder(),
+                        )
+                      : const _AvatarPlaceholder(),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    Text(
+                      person.title,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '演员/导演',
+                      style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
+                    ),
+                    if (person.overview != null && person.overview!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _ExpandableText(
+                        text: person.overview!,
+                        maxLines: 6,
+                        style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.7),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      // 出演的作品列表标题
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Text(
+            '出演的作品 (${_works.length})',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+      // 加载/错误/空状态或作品列表
+      if (_loading)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        )
+      else if (_error != null)
+        SliverToBoxAdapter(child: _buildError(scheme))
+      else if (_works.isEmpty)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: Text('暂无作品')),
+          ),
+        )
+      else
+        // SliverList.separated 懒加载作品列表，仅构建视口内可见项
+        SliverList.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: _works.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = _works[index];
+            // 将当前演员信息注入作品，以便播放页显示正确的演员头像
+            final currentPerson = _personDetail ?? widget.person;
+            final currentActor = Person(
+              id: currentPerson.id,
+              name: currentPerson.title,
+              type: 'Actor',
+              imageUrl: currentPerson.thumbnailUrl ??
+                  currentPerson.primaryUrl(
+                    embyServerUrl: authState.embyServerUrl,
+                    apiKey: authState.token,
+                    maxWidth: 200,
+                  ),
+            );
+            final itemWithActor = item.people == null || item.people!.isEmpty
+                ? item.copyWith(people: [currentActor])
+                : item.copyWith(people: [
+                    currentActor,
+                    ...item.people!.where((p) => p.id != currentActor.id)
+                  ]);
+            return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);
+          },
+        ),
+      // 加载更多指示器
+      if (_isLoadingMore)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      const SliverToBoxAdapter(child: SizedBox(height: 32)),
+    ];
+
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
@@ -143,149 +282,10 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
         foregroundColor: scheme.onSurface,
         title: Text(person.title, style: const TextStyle(fontSize: 16)),
       ),
-      body: SingleChildScrollView(
+      body: CustomScrollView(
         controller: _scrollController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 人员头像/信息区域
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 120,
-                      height: 160,
-                      child: imageUrl != null && imageUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              cacheManager: AppImageCacheManager.largeImage,
-                              fit: BoxFit.cover,
-                              httpHeaders: headers.isNotEmpty ? headers : null,
-                              memCacheWidth: 240,
-                              placeholder: (_, __) => const _AvatarPlaceholder(),
-                              errorWidget: (_, __, ___) =>
-                                  const _AvatarPlaceholder(),
-                            )
-                          : const _AvatarPlaceholder(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Text(
-                          person.title,
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '演员/导演',
-                          style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
-                        ),
-                        if (person.overview != null &&
-                            person.overview!.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _ExpandableText(
-                            text: person.overview!,
-                            maxLines: 6,
-                            style: TextStyle(
-                              color: scheme.onSurface.withOpacity(0.7),
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 出演的作品列表
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Text(
-                '出演的作品 (${_works.length})',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-
-            if (_loading)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: scheme.primary),
-                ),
-              )
-            else if (_error != null)
-              _buildError(scheme)
-            else if (_works.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    '暂无作品',
-                    style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
-                  ),
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _works.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final item = _works[index];
-                  // 将当前演员信息注入作品，以便播放页显示正确的演员头像
-                  final currentPerson = _personDetail ?? widget.person;
-                  final currentActor = Person(
-                    id: currentPerson.id,
-                    name: currentPerson.title,
-                    type: 'Actor',
-                    imageUrl: currentPerson.thumbnailUrl ??
-                        currentPerson.primaryUrl(
-                          embyServerUrl: authState.embyServerUrl,
-                          apiKey: authState.token,
-                          maxWidth: 200,
-                        ),
-                  );
-                  final itemWithActor = item.people == null || item.people!.isEmpty
-                      ? item.copyWith(people: [currentActor])
-                      : item.copyWith(people: [
-                          currentActor,
-                          ...item.people!
-                              .where((p) => p.id != currentActor.id)
-                        ]);
-                  return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);
-                },
-              ),
-            if (_isLoadingMore)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            const SizedBox(height: 32),
-          ],
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: slivers,
       ),
     );
   }
