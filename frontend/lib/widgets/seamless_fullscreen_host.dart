@@ -52,7 +52,7 @@ class _SeamlessFullscreenHostState
   // 2 = 全屏播放中（显示完整控制层）
   // 3 = 退出动画中（控制层淡出 + 视频缩放回小窗）
   int _phase = 0;
-  bool _isLandscape = true;
+  final bool _isLandscape = true;
   String? _currentItemId;
   // 保存小窗原始 rect（退出动画用）
   Rect? _cachedSourceRect;
