@@ -855,7 +855,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
         // 避免重复为 index=0 创建 controller（VideoPlayerWidget 已在动态创建路径中创建）
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
-          if (1 < videoState.items.length) {
+          if (1 < videoState.items.length && embyServerUrl != null && token != null) {
             final nextItem = videoState.items[1];
             final pool = ref.read(videoPoolProvider);
             unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));

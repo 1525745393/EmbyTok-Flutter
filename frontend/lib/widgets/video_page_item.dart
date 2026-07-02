@@ -1050,7 +1050,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   Future<void> _evictAsync(VideoPoolService pool, List<String> ids) async {
     for (final id in ids) {
       pool.evict(id);
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
     }
   }
 

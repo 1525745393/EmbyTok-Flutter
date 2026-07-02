@@ -243,7 +243,7 @@ class VideoPoolService {
       // 每个 dispose 后让出主线程，给 GC 和 native texture 回收时间
       // 避免连续 dispose 多个已初始化 controller 时造成短暂的 MediaCodec 资源竞争
       if (i < sessions.length - 1) {
-        await Future.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
       }
     }
   }
