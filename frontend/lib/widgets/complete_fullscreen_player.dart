@@ -88,6 +88,80 @@ class _CompleteFullscreenPlayerState
   // 进入全屏前的原始亮度，退出时恢复
   double? _originalBrightness;
 
+  // ==== 功耗优化：状态缓存，避免每帧 rebuild ====
+  // 缓冲状态专用 ValueNotifier：仅在 isBuffering 变化时通知，不跟随视频帧刷新
+  final ValueNotifier<bool> _bufferingNotifier = ValueNotifier<bool>(false);
+  // 播放状态缓存：用于检测 controller 状态变化，避免每帧 setState
+  bool _lastIsPlaying = false;
+  bool _lastHasError = false;
+  bool _wasControllerReady = false;
+  VideoPlayerController? _watchedController;
+
+  void _setupControllerListener(VideoPlayerController? controller) {
+    if (_watchedController == controller) return;
+    _watchedController?.removeListener(_onControllerTick);
+    _watchedController = controller;
+    if (controller != null) {
+      controller.addListener(_onControllerTick);
+      // 初始化缓存状态
+      final v = controller.value;
+      _lastIsPlaying = v.isPlaying;
+      _lastHasError = v.hasError;
+      _bufferingNotifier.value = v.isBuffering;
+      _wasControllerReady = v.isInitialized && !v.hasError;
+    } else {
+      // controller 置空时重置缓存状态
+      _lastIsPlaying = false;
+      _lastHasError = false;
+      _bufferingNotifier.value = false;
+      _wasControllerReady = false;
+    }
+  }
+
+  // 轻量级帧回调：只在关键状态变化时触发 setState/更新 notifier，不做每帧 setState
+  void _onControllerTick() {
+    if (!mounted) return;
+    final c = _watchedController;
+    if (c == null) return;
+    final v = c.value;
+
+    bool needsRebuild = false;
+
+    // 缓冲状态变化 → 更新 notifier（驱动缓冲指示器显示/隐藏）
+    if (v.isBuffering != _bufferingNotifier.value) {
+      _bufferingNotifier.value = v.isBuffering;
+    }
+
+    // 错误状态变化 → 需要 rebuild（显示错误 UI）
+    if (v.hasError != _lastHasError) {
+      _lastHasError = v.hasError;
+      needsRebuild = true;
+    }
+
+    // 播放状态变化 → 需要 rebuild（播放/暂停按钮图标变化已通过 ValueListenableBuilder 处理，
+    // 此处仅处理全屏特有的逻辑，如停止隐藏计时器）
+    if (v.isPlaying != _lastIsPlaying) {
+      _lastIsPlaying = v.isPlaying;
+      // 暂停时不自动隐藏控制栏；播放时重启隐藏计时器
+      if (v.isPlaying && _controlsVisible && !_isScreenLocked && !_showSettingsPanel) {
+        _startHideTimer();
+      } else {
+        _hideTimer?.cancel();
+      }
+    }
+
+    // 初始化完成 → 需要 rebuild（切换视频渲染层）
+    final isReady = v.isInitialized && !v.hasError;
+    if (isReady != _wasControllerReady) {
+      _wasControllerReady = isReady;
+      needsRebuild = true;
+    }
+
+    if (needsRebuild && mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -288,6 +362,8 @@ class _CompleteFullscreenPlayerState
     _networkToastTimer?.cancel();
     _connectivitySub?.cancel();
     _rotateEndTimer?.cancel();
+    _watchedController?.removeListener(_onControllerTick);
+    _bufferingNotifier.dispose();
 
     // 恢复进入全屏前的系统亮度
     if (_originalBrightness != null) {
@@ -489,20 +565,32 @@ class _CompleteFullscreenPlayerState
     final onNextEpisode = _computeOnNextEpisode(playingItem, items);
     final onPrevEpisode = _computeOnPrevEpisode(playingItem, items);
 
-    final isControllerReady =
-        controller != null && controller.value.isInitialized;
-    final hasError = controller != null && controller.value.hasError;
+    // 功耗优化：订阅 controller 变化，仅在关键状态变化时触发 rebuild
+    // 首次挂载或 controller 切换时，同步读取初始状态（避免一帧加载中闪烁）
+    final controllerChanged = _watchedController != controller;
+    _setupControllerListener(controller);
+
+    // 从缓存读取状态（避免每帧访问 controller.value 触发额外开销）
+    bool isControllerReady;
+    bool hasError;
+    if (controllerChanged && controller != null) {
+      // controller 刚切换，直接读取最新状态
+      final v = controller.value;
+      isControllerReady = v.isInitialized && !v.hasError;
+      hasError = v.hasError;
+    } else {
+      isControllerReady = _wasControllerReady && controller != null;
+      hasError = _lastHasError && controller != null;
+    }
 
     // 从 MediaQuery 获取当前实际方向（自动响应系统旋转，不依赖本地布尔值）
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
 
+    // 锁屏时隐藏视频渲染（用户看不到画面但音频继续播放），降低 GPU 渲染功耗
+    final videoVisible = !_isScreenLocked;
+
     // 用 OrientationBuilder 包裹，使子树能在方向变化时自然重建
-    // 关键优化：
-    // 1. 视频层 Positioned.fill 始终保留在树中，仅内部内容随状态变化
-    // 2. VideoPlayer 一旦初始化完成进入树后，通过 Offstage 控制可见性而不是条件移除，
-    //    避免因 if-else 切换导致 Texture widget 被临时 unmount（消除旋转黑屏/闪烁的核心）
-    // 3. RepaintBoundary 隔离视频纹理重绘边界，旋转时 UI 重绘不影响视频纹理
     Widget buildStack(Orientation orientation) {
       return Stack(
         key: const ValueKey('fs-stack'),
@@ -513,14 +601,15 @@ class _CompleteFullscreenPlayerState
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 黑底背景（视频加载/错误时也有黑色背景）
+                  // 黑底背景（视频加载/错误/锁屏时显示）
                   const ColoredBox(color: Colors.black),
 
-                  // 视频画面 + 手势层：只有 controller ready 后才挂载 VideoPlayer
+                  // 视频画面 + 手势层：只有 controller ready 且未锁屏才显示
                   // 挂载后通过 Offstage 隐藏（而非移除），保持 Texture 连接不断开
+                  // 锁屏时 Offstage=true → Texture 留在 GPU 但不参与合成，降低功耗
                   if (isControllerReady)
                     Offstage(
-                      offstage: hasError,
+                      offstage: hasError || !videoVisible,
                       child: IgnorePointer(
                         ignoring: _isScreenLocked,
                         child: _PlayerGestureLayer(
@@ -566,24 +655,23 @@ class _CompleteFullscreenPlayerState
                       child: CircularProgressIndicator(color: Colors.white),
                     ),
 
-                  // 缓冲指示器（视频 ready 时叠加）
+                  // 缓冲指示器（功耗优化：使用专用 _bufferingNotifier，
+                  // 仅在 isBuffering 变化时 rebuild，不跟随视频帧每帧刷新）
                   if (isControllerReady && !hasError)
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: controller!,
-                      builder: (context, value, child) {
-                        if (value.isBuffering) {
-                          return const Center(
-                            child: SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: CircularProgressIndicator(
-                                color: Colors.white70,
-                                strokeWidth: 2.5,
-                              ),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _bufferingNotifier,
+                      builder: (context, isBuffering, child) {
+                        if (!isBuffering) return const SizedBox.shrink();
+                        return const Center(
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: CircularProgressIndicator(
+                              color: Colors.white70,
+                              strokeWidth: 2.5,
                             ),
-                          );
-                        }
-                        return const SizedBox.shrink();
+                          ),
+                        );
                       },
                     ),
                 ],
@@ -1311,18 +1399,22 @@ class _PlayerGestureLayerState extends ConsumerState<_PlayerGestureLayer> {
           debugPrint('seekTo error: $e');
         }
       }
+      // 功耗优化：800ms 后精确重置预览位置而非空 setState，避免无效 rebuild
       _dragHideTimer?.cancel();
       _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {
+          _previewPosition = Duration.zero;
+          _dragStartPosition = Duration.zero;
+        });
       });
     } else if (_dragAxis == 'v') {
       _verticalHideTimer = Timer(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          setState(() {
-            _showBrightnessUI = false;
-            _showVolumeUI = false;
-          });
-        }
+        if (!mounted) return;
+        setState(() {
+          _showBrightnessUI = false;
+          _showVolumeUI = false;
+        });
       });
     }
 
@@ -1412,10 +1504,8 @@ class _PlayerGestureLayerState extends ConsumerState<_PlayerGestureLayer> {
             child: Container(color: Colors.transparent),
           ),
         ),
-        if ((_isDragging && _dragAxis == 'h') ||
-            (_dragHideTimer?.isActive == true &&
-                _dragAxis == null &&
-                _previewPosition != Duration.zero))
+        // 功耗优化：只在拖动中或拖动结束后预览位置有效时显示 SeekPreviewBar
+        if (_isDragging && _dragAxis == 'h')
           Positioned(
             top: 48,
             left: 32,
@@ -1424,6 +1514,17 @@ class _PlayerGestureLayerState extends ConsumerState<_PlayerGestureLayer> {
               current: currentPosition,
               total: duration,
               offset: _previewPosition - _dragStartPosition,
+            ),
+          ),
+        if (!_isDragging && _previewPosition != Duration.zero)
+          Positioned(
+            top: 48,
+            left: 32,
+            right: 32,
+            child: _SeekPreviewBar(
+              current: _previewPosition,
+              total: duration,
+              offset: Duration.zero,
             ),
           ),
         if (_showBrightnessUI && _isBrightnessSide && _dragAxis == 'v')
