@@ -225,6 +225,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (ref.read(isPlayingProvider) != isPlaying) {
       ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
+    // 首次真正开始播放时触发上报（isPlaying 从 false→true），确保上报时机准确
+    if (isPlaying && !_hasStartedReported) {
+      _hasStartedReported = true;
+      _ensureCapabilitiesReported();
+      _reportPlaybackStart();
+    }
     // 位置同步降频：每 250ms 写一次全局 store（4fps 足够进度条显示）
     // 避免每帧 60 次 Provider 写入触发潜在重建
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -571,6 +577,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final scheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    // 是否为当前可见页面：监听 currentPlayingIdProvider，
+    // 非当前页 VideoPlayerWidget 会自动暂停+静音，从根本上避免并发播放
+    final isCurrentPage = ref.watch(
+        currentPlayingIdProvider.select((id) => id == widget.item.id));
 
     final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
 
@@ -602,18 +612,30 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             preloadedController: widget.preloadedSession?.controller,
             preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
             startFromResumePosition: widget.startFromResumePosition,
+            isCurrentPage: isCurrentPage,
             onControllerReady: (c) {
               setState(() => _videoController = c);
-              ref.read(currentVideoControllerProvider.notifier).state = c;
-              ref.read(isPlayingProvider.notifier).state = true;
-              ref.read(currentPlayingItemProvider.notifier).state = widget.item;
-              ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-              _resetInfoHideTimer();
-              _ensureCapabilitiesReported();
-              _reportPlaybackStart();
-              _startProgressTimer();
               c.addListener(_onVideoChanged);
               c.addListener(_onVideoChangedForReport);
+              // 记录预加载会话的 playSessionId，保证上报链一致
+              final preloaded = widget.preloadedSession;
+              if (preloaded != null) {
+                _playSessionId = preloaded.playSessionId;
+              }
+              // 只有当前页才设置全局播放状态，避免相邻页面覆盖
+              final currentId = ref.read(currentPlayingIdProvider);
+              if (currentId == widget.item.id || currentId == null) {
+                ref.read(currentVideoControllerProvider.notifier).state = c;
+                ref.read(isPlayingProvider.notifier).state = true;
+                ref.read(currentPlayingItemProvider.notifier).state = widget.item;
+                ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                _resetInfoHideTimer();
+                _startProgressTimer();
+              } else {
+                // 非当前页：确保暂停+静音（双重保险）
+                try { c.pause(); } catch (_) {}
+                try { c.setVolume(0.0); } catch (_) {}
+              }
             },
           ),
         ),
@@ -1061,6 +1083,14 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
       final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
       _currentIndex = initialIndex >= 0 ? initialIndex : 0;
       _isLoading = false;
+      // 初始化当前播放 ID（首次加载设置，避免 VideoPageItem 间竞态）
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && ref.read(currentPlayingIdProvider) == null) {
+          final initialItem = _items[_currentIndex];
+          ref.read(currentPlayingIdProvider.notifier).state = initialItem.id;
+          ref.read(currentPlayingItemProvider.notifier).state = initialItem;
+        }
+      });
       // 如果初始索引不是 0，滚动到对应位置
       if (initialIndex > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1081,6 +1111,14 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
         final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
         _currentIndex = initialIndex >= 0 ? initialIndex : 0;
         _isLoading = false;
+        // 初始化当前播放 ID（首次加载设置，避免 VideoPageItem 间竞态）
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && ref.read(currentPlayingIdProvider) == null) {
+            final initialItem = _items[_currentIndex];
+            ref.read(currentPlayingIdProvider.notifier).state = initialItem.id;
+            ref.read(currentPlayingItemProvider.notifier).state = initialItem;
+          }
+        });
         if (initialIndex > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _pageController.hasClients) {
@@ -1097,6 +1135,13 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
         _items = [widget.item];
         _currentIndex = 0;
         _isLoading = false;
+        // 单视频模式：直接设置为当前播放项
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && ref.read(currentPlayingIdProvider) == null) {
+            ref.read(currentPlayingIdProvider.notifier).state = widget.item.id;
+            ref.read(currentPlayingItemProvider.notifier).state = widget.item;
+          }
+        });
       }
     }
   }

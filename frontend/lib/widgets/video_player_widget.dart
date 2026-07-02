@@ -35,6 +35,8 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final bool loop;
   // 是否从续播位置开始播放（Emby 服务器同步的播放进度）
   final bool startFromResumePosition;
+  // 是否为当前可见页面（非当前页初始化后暂停+静音，避免并发播放/解码）
+  final bool isCurrentPage;
 
   const VideoPlayerWidget({
     super.key,
@@ -47,6 +49,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.autoPlay = true,
     this.loop = true,
     this.startFromResumePosition = false,
+    this.isCurrentPage = true,
   });
 
   @override
@@ -130,6 +133,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (_currentItemId == null) {
       _currentItemId = newItemId;
       return;
+    }
+    // isCurrentPage 变化：同步播放/暂停状态和音量
+    // 场景：PageView 滑动后，旧页变为非当前页（需暂停），新页变为当前页（需恢复播放）
+    if (oldWidget.isCurrentPage != widget.isCurrentPage) {
+      final c = _controller;
+      if (c != null && c.value.isInitialized) {
+        _syncPlaybackState(c);
+      }
     }
     if (newItemId == _currentItemId) return; // 同一个视频，不重置
     AppLogger.debug('VideoPlayerWidget item 切换，重建 controller', data: {
@@ -248,13 +259,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _autoLoadDefaultSubtitle();
             // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
             await _seekToResumePosition();
-            if (widget.autoPlay) {
-              try {
-                await c.play();
-              } catch (e) {
-                debugPrint('autoPlay error: $e');
-              }
-            }
+            // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
+            _syncPlaybackState(c);
           }
       }
 
@@ -315,16 +321,22 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
-        if (widget.autoPlay) {
-          try {
-            await c.play();
-          } catch (e) {
-            debugPrint('autoPlay error: $e');
-          }
-        }
+        // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
+        _syncPlaybackState(c);
       }
     } catch (e) {
       debugPrint('VideoPlayer initialization error: $e');
+      // 非当前页不做降级重试，直接显示错误占位（避免浪费带宽和解码资源）
+      if (!widget.isCurrentPage) {
+        if (mounted) {
+          setState(() {
+            _initialized = false;
+            _hasError = true;
+            _errorMessage = '视频加载失败';
+          });
+        }
+        return;
+      }
       if (_fallbackLevel < 2) {
         _fallbackLevel++;
         debugPrint('降级到 level $_fallbackLevel 重试播放');
@@ -418,13 +430,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _applyInitialVolume(c);
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
-        if (widget.autoPlay) {
-          try {
-            await c.play();
-          } catch (e) {
-            debugPrint('fallback autoPlay error: $e');
-          }
-        }
+        _syncPlaybackState(c);
       }
     } catch (e) {
       debugPrint('运行时降级失败: $e');
@@ -511,13 +517,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _applyInitialVolume(c);
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
-        if (widget.autoPlay) {
-          try {
-            await c.play();
-          } catch (e) {
-            debugPrint('playMode switch play error: $e');
-          }
-        }
+        _syncPlaybackState(c);
       }
     } catch (e) {
       debugPrint('播放模式切换失败: $e');
@@ -753,13 +753,32 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // _loadSubtitle 会通过 ref.listen 自动触发
   }
 
-  // 应用初始音量：根据 isMutedProvider 和 widget.autoPlay 决定音量
+  // 应用初始音量：根据 isMutedProvider、autoPlay 和 isCurrentPage 决定音量
   // 预加载池中的 controller 默认 volume=0，取出播放时需要恢复
+  // 非当前页始终静音，避免并发播放时双音
   void _applyInitialVolume(VideoPlayerController c) {
     final isMuted = ref.read(isMutedProvider);
+    if (!widget.isCurrentPage) {
+      c.setVolume(0.0);
+      return;
+    }
     // 非自动播放场景默认有声；自动播放场景根据静音开关决定
     final shouldMute = widget.autoPlay && isMuted;
     c.setVolume(shouldMute ? 0.0 : 1.0);
+  }
+
+  // 根据 isCurrentPage 状态同步播放/暂停和音量
+  void _syncPlaybackState(VideoPlayerController c) {
+    if (!c.value.isInitialized) return;
+    if (widget.isCurrentPage) {
+      _applyInitialVolume(c);
+      if (widget.autoPlay) {
+        try { c.play(); } catch (_) {}
+      }
+    } else {
+      try { c.pause(); } catch (_) {}
+      try { c.setVolume(0.0); } catch (_) {}
+    }
   }
 
   // 缩略图占位：web 环境或无播放地址时使用

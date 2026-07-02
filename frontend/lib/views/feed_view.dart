@@ -817,6 +817,19 @@ class _FeedViewState extends ConsumerState<FeedView>
     final embyServerUrl = auth.embyServerUrl;
     final token = auth.token;
 
+    // 首次加载：items 可用但 currentPlayingId 尚未初始化时，设置第一个 item 为当前播放项
+    // 避免 PageView 首次构建时相邻页面的 VideoPlayerWidget 先初始化导致的竞态（从第二个视频开始播放）
+    // 使用 addPostFrameCallback 避免 build 期间修改 provider 状态
+    if (videoState.items.isNotEmpty && ref.read(currentPlayingIdProvider) == null) {
+      final firstItem = videoState.items[0];
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && ref.read(currentPlayingIdProvider) == null) {
+          ref.read(currentPlayingIdProvider.notifier).state = firstItem.id;
+          ref.read(currentPlayingItemProvider.notifier).state = firstItem;
+        }
+      });
+    }
+
     return PageView.builder(
       controller: _pageController,
       scrollDirection: Axis.vertical,
