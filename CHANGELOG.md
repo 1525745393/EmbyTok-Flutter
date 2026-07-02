@@ -1,3 +1,10 @@
+## [1.122.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.122.0...v1.122.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **ui:** 完善全屏播放页交互完整性 ([5796a28](https://github.com/1525745393/EmbyTok-Flutter/commit/5796a28b73d68b7e7192ad704a553b841b35ca15))
+
 # [1.122.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.121.0...v1.122.0) (2026-07-02)
 
 
