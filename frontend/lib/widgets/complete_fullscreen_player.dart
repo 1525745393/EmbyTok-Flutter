@@ -42,7 +42,16 @@ import '../utils/constants.dart';
 // ============================================================================
 
 class CompleteFullscreenPlayer extends ConsumerStatefulWidget {
-  const CompleteFullscreenPlayer({super.key});
+  // 是否为无缝模式（在 Overlay 层中使用，不管理 Navigator/SystemChrome）
+  final bool seamlessMode;
+  // 无缝模式下的退出回调
+  final VoidCallback? onSeamlessExit;
+
+  const CompleteFullscreenPlayer({
+    super.key,
+    this.seamlessMode = false,
+    this.onSeamlessExit,
+  });
 
   @override
   ConsumerState<CompleteFullscreenPlayer> createState() =>
@@ -78,16 +87,20 @@ class _CompleteFullscreenPlayerState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _applyOrientations();
-    _applySystemUI();
+    if (!widget.seamlessMode) {
+      _applyOrientations();
+      _applySystemUI();
+    }
     _initConnectivity();
     _initBrightness();
 
-    Future.microtask(() {
-      if (mounted) {
-        ref.read(isFullscreenProvider.notifier).state = true;
-      }
-    });
+    if (!widget.seamlessMode) {
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(isFullscreenProvider.notifier).state = true;
+        }
+      });
+    }
 
     _startHideTimer();
   }
@@ -209,12 +222,14 @@ class _CompleteFullscreenPlayerState
       } catch (_) {}
     }
 
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-      overlays: SystemUiOverlay.values,
-    );
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    ref.read(isFullscreenProvider.notifier).state = false;
+    if (!widget.seamlessMode) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.edgeToEdge,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      ref.read(isFullscreenProvider.notifier).state = false;
+    }
 
     super.dispose();
   }
@@ -244,7 +259,11 @@ class _CompleteFullscreenPlayerState
   }
 
   void _exitFullscreen() {
-    Navigator.of(context).pop();
+    if (widget.seamlessMode) {
+      widget.onSeamlessExit?.call();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   void _toggleOrientation() {
@@ -405,59 +424,55 @@ class _CompleteFullscreenPlayerState
         controller != null && controller.value.isInitialized;
     final hasError = controller != null && controller.value.hasError;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: PopScope(
-        canPop: true,
-        child: Stack(
-          children: [
-            // 视频渲染层 + 手势层
-            if (isControllerReady)
-              IgnorePointer(
-                ignoring: _isScreenLocked,
-                child: _PlayerGestureLayer(
-                  key: ValueKey('gesture_$_retryKey'),
-                  controller: controller,
-                  item: playingItem ??
-                      const MediaItem(
-                          id: '', title: '', type: 'Unknown'),
-                  onSingleTap: _toggleControls,
-                  enableGestures: !_controlsVisible &&
-                      !_isScreenLocked &&
-                      !_showSettingsPanel,
-                  enableVerticalDrag: true,
-                  initialBrightness: _brightnessValue,
-                  onBrightnessChanged: (v) {
-                    setState(() => _brightnessValue = v);
-                    _setSystemBrightness(v);
-                  },
-                  child: Center(
-                    child: AspectRatio(
-                      aspectRatio: _resolveAspectRatio(controller),
-                      child: FittedBox(
-                        fit: _getBoxFit(),
-                        child: SizedBox(
-                          width: controller.value.size.width,
-                          height: controller.value.size.height,
-                          child: VideoPlayer(controller),
-                        ),
-                      ),
+    final content = Stack(
+      children: [
+        // 视频渲染层 + 手势层
+        if (isControllerReady)
+          IgnorePointer(
+            ignoring: _isScreenLocked,
+            child: _PlayerGestureLayer(
+              key: ValueKey('gesture_$_retryKey'),
+              controller: controller,
+              item: playingItem ??
+                  const MediaItem(
+                      id: '', title: '', type: 'Unknown'),
+              onSingleTap: _toggleControls,
+              enableGestures: !_controlsVisible &&
+                  !_isScreenLocked &&
+                  !_showSettingsPanel,
+              enableVerticalDrag: true,
+              initialBrightness: _brightnessValue,
+              onBrightnessChanged: (v) {
+                setState(() => _brightnessValue = v);
+                _setSystemBrightness(v);
+              },
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: _resolveAspectRatio(controller),
+                  child: FittedBox(
+                    fit: _getBoxFit(),
+                    child: SizedBox(
+                      width: controller.value.size.width,
+                      height: controller.value.size.height,
+                      child: VideoPlayer(controller),
                     ),
                   ),
                 ),
-              )
-            else if (hasError)
-              _buildErrorState(controller)
-            else
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
               ),
+            ),
+          )
+        else if (hasError)
+          _buildErrorState(controller)
+        else
+          const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
 
-            // 缓冲指示器
-            if (isControllerReady && !hasError)
-              ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: controller!,
-                builder: (context, value, child) {
+        // 缓冲指示器
+        if (isControllerReady && !hasError)
+          ValueListenableBuilder<VideoPlayerValue>(
+            valueListenable: controller!,
+            builder: (context, value, child) {
                   if (value.isBuffering) {
                     return const Center(
                       child: SizedBox(
@@ -493,7 +508,19 @@ class _CompleteFullscreenPlayerState
             if (_networkToastMessage != null)
               _buildNetworkToast(),
           ],
-        ),
+        );
+
+    // seamless 模式：直接返回 Stack（不包裹 Scaffold/PopScope，由 Host 管理）
+    if (widget.seamlessMode) {
+      return ColoredBox(color: Colors.black, child: content);
+    }
+
+    // 路由模式：使用 Scaffold + PopScope
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: PopScope(
+        canPop: true,
+        child: content,
       ),
     );
   }

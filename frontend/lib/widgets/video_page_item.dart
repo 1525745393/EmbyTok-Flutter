@@ -97,6 +97,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   final GlobalKey<DraggableCleanActionsState> _draggableActionsKey =
       GlobalKey<DraggableCleanActionsState>();
 
+  // 无缝全屏切换：用于测量小窗视频区域在屏幕上的 Rect
+  final GlobalKey _videoAreaKey = GlobalKey();
+
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -136,6 +139,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
       },
       fireImmediately: true,
+    );
+
+    // 监听无缝全屏退出，恢复工具栏显示
+    ref.listenManual<SeamlessFullscreenState>(
+      seamlessFullscreenProvider,
+      (prev, next) {
+        final wasFs = prev?.isFullscreen ?? false;
+        if (wasFs && !next.isFullscreen && mounted) {
+          ref.read(toolbarVisibilityProvider.notifier).show();
+        }
+      },
     );
   }
 
@@ -472,22 +486,30 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   // ===== 全屏切换 =====
   // 方案 A：进入全屏页（FullscreenVideoPage）
   // - 全屏页不创建新 controller，复用 currentVideoControllerProvider
-  // - 进度 100% 不丢，零额外内存
-  // - 退出全屏用系统返回键，PopScope 自动处理
+  // 进入全屏：使用无缝切换（不 push 新路由）
+  // 核心原理：
+  // 1. 测量当前小窗视频区域在屏幕上的 Rect
+  // 2. 通知 seamlessFullscreenProvider.enter(itemId, sourceRect)
+  // 3. 同一 VideoPlayerController 由全屏层的 VideoPlayer widget 接管
+  // 4. 小窗 VideoPlayerWidget 收到 renderVideo=false 后渲染黑底占位（State/controller 不销毁）
+  // 5. SeamlessFullscreenHost 驱动 Rect 动画从小窗位置平滑缩放到全屏
+  // 全程不重新初始化、不 seek、不暂停，音画不中断
   Future<void> _openFullscreenPage() async {
+    // 测量视频区域的屏幕坐标
+    final renderBox = _videoAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final sourceRect = offset & renderBox.size;
+
     // 进入前隐藏工具栏（沉浸感）
     ref.read(toolbarVisibilityProvider.notifier).hide();
-    // push 全屏页
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FullscreenVideoPage(),
-        fullscreenDialog: true,
-      ),
+    ref.read(isFullscreenProvider.notifier).state = true;
+
+    // 触发无缝全屏切换（SeamlessFullscreenHost 监听此状态变化启动动画）
+    ref.read(seamlessFullscreenProvider.notifier).enter(
+      sourceItemId: widget.item.id,
+      sourceRect: sourceRect,
     );
-    // 退出全屏后恢复工具栏
-    if (mounted) {
-      ref.read(toolbarVisibilityProvider.notifier).show();
-    }
   }
 
   // ===== 控制层显示/隐藏 =====
@@ -608,6 +630,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         // 视频播放区（Gestures + VideoPlayer）
         // 常驻底层，不包裹 AnimatedOpacity，避免视频帧走离屏渲染
         GestureOverlay(
+          key: _videoAreaKey,
           controller: _videoController,
           item: widget.item,
           onSingleTap: () {
@@ -625,6 +648,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
             startFromResumePosition: widget.startFromResumePosition,
             isCurrentPage: isCurrentPage,
+            // 无缝全屏切换期间，此 widget 不渲染 VideoPlayer（画面由全屏层接管）
+            // 但 State/controller 保持存活，退出后立即恢复渲染
+            renderVideo: !ref.watch(shouldHideVideoForItemProvider(widget.item.id)),
             onControllerReady: (c) {
               // 先移除旧 controller 上的 listener（防止降级/重建 controller 时 listener 泄漏）
               final oldCtrl = _listenersAttachedTo;

@@ -25,6 +25,7 @@ import 'package:video_player/video_player.dart';
 import '../providers/providers.dart';
 import '../services/video_pool_service.dart';
 import '../utils/constants.dart';
+import '../widgets/seamless_fullscreen_host.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
@@ -320,8 +321,11 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                       ),
                     ),
                   ),
-                ),
               ),
+            ),
+            // 无缝全屏切换宿主：监听全屏状态，驱动从小窗→全屏的平滑缩放动画
+            // 放在 Stack 最顶层，动画期间覆盖所有内容（底部栏、覆盖层页面等）
+            const SeamlessFullscreenHost(),
           ],
         ),
       ),
