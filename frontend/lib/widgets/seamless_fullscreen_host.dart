@@ -157,9 +157,10 @@ class _SeamlessFullscreenHostState
     _animController?.dispose();
 
     // 退出动画策略：
-    // 由于进入时方向从竖屏切换到横屏，退出时坐标系不一致，无法精确缩回到小窗原始位置。
-    // 采用：控制层快速淡出 → 视频画面缩放（1.0→0.0 中心缩小）+ 淡出 → 恢复方向和 UI
-    // 动画结束后 markExited() 让小窗 VideoPlayer 恢复渲染（同一个 controller，画面无缝续上）
+    // 控制层快速淡出 → 视频画面中心缩放（1.0→0.85）+ 淡出 → 移除全屏层 → 恢复方向 → 小窗恢复渲染
+    // 关键时序：动画结束后，先移除全屏层中的 VideoPlayer（用黑底占位），下一帧再 markExited()
+    // 让小窗 VideoPlayer 进入树，确保任何时刻树中最多只有一个 VideoPlayer widget
+    // （避免两个 Texture widget 共用同一 textureId 导致闪烁/黑屏）
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -178,26 +179,30 @@ class _SeamlessFullscreenHostState
 
     _animController!.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        // 动画完成：先恢复方向/系统 UI，让 MediaQuery 回到竖屏尺寸
+        // 第一帧：移除视频渲染（显示黑底），恢复方向和系统 UI
+        // 此时全屏层还在树中，但不再渲染 VideoPlayer widget
+        setState(() {
+          _phase = 4; // 退出完成中：仅黑底
+        });
         _restoreSystemUI();
-        // 等一帧让方向切换生效
-        await Future.delayed(Duration.zero);
-        if (!mounted) return;
-        // 通知小窗可以恢复渲染 VideoPlayer 了（controller 从未销毁，画面立即出现）
-        ref.read(seamlessFullscreenProvider.notifier).markExited();
-        // 再等一帧，让小窗 build 完成，再移除全屏层
-        await Future.delayed(Duration.zero);
-        if (mounted) {
+
+        // 下一帧：标记退出，让小窗 VideoPlayer 开始恢复渲染；同时移除全屏层
+        // 这一帧 build 中：全屏层黑底、小窗 VideoPlayer 开始挂载 VideoPlayer
+        // 但小窗挂载 VideoPlayer 与全屏层移除黑底可以同帧完成，无 Texture 竞争
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.read(seamlessFullscreenProvider.notifier).markExited();
           setState(() {
             _phase = 0;
             _currentItemId = null;
             _cachedSourceRect = null;
+            _exitScaleAnim = null;
+            _exitFadeAnim = null;
           });
-        }
+        });
       }
     });
 
-    // 保存动画引用供 build 使用（通过 AnimatedBuilder 读取 controller.value）
     _exitScaleAnim = scaleAnim;
     _exitFadeAnim = fadeAnim;
 
@@ -220,8 +225,8 @@ class _SeamlessFullscreenHostState
     final controllerReady =
         controller != null && controller.value.isInitialized;
 
-    // 动画中（phase 1/3）或全屏中（phase 2）
-    final isAnimating = _phase == 1 || _phase == 3;
+    // 动画中（phase 1/3）、全屏中（phase 2）或退出过渡中（phase 4）
+    final isAnimating = _phase == 1 || _phase == 3 || _phase == 4;
     final showControls = _phase == 2;
 
     return Positioned.fill(
@@ -229,11 +234,14 @@ class _SeamlessFullscreenHostState
         behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
-            // 背景黑色层（动画期间覆盖底部栏）
+            // 背景黑色层（动画/过渡期间覆盖底部栏）
             if (isAnimating)
               const Positioned.fill(
                 child: ColoredBox(color: Colors.black),
               ),
+
+            // phase 4：退出过渡中，仅黑底，不渲染任何 VideoPlayer（释放 Texture 给小窗）
+            if (_phase == 4) const SizedBox.shrink(),
 
             // 进入动画阶段（phase 1）：纯视频画面，用 RectTween 做位置+大小动画
             if (_phase == 1 && controllerReady && _rectAnim != null)
@@ -273,6 +281,7 @@ class _SeamlessFullscreenHostState
               ),
 
             // 全屏完整播放器（动画完成后显示，退出时通过 opacity 淡出）
+            // phase 4 时 CompleteFullscreenPlayer 仍在树中但不响应手势（黑底已覆盖）
             if (showControls || _phase == 3)
               Positioned.fill(
                 child: IgnorePointer(

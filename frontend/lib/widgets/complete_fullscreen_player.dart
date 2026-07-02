@@ -65,7 +65,8 @@ class _CompleteFullscreenPlayerState
   Timer? _hideTimer;
 
   bool _isScreenLocked = false;
-  bool _isLandscape = true;
+  // 方向偏好：landscape（锁定横屏）/ portrait（锁定竖屏）/ sensor（跟随系统）
+  _OrientationPref _orientationPref = _OrientationPref.landscape;
   _AspectRatioMode _aspectMode = _AspectRatioMode.auto;
 
   bool _showSettingsPanel = false;
@@ -78,6 +79,10 @@ class _CompleteFullscreenPlayerState
 
   int _retryKey = 0;
 
+  // 旋转状态跟踪：true 表示正在旋转中（Metrics 持续变化），用于防抖
+  bool _isRotating = false;
+  Timer? _rotateEndTimer;
+
   // 系统亮度值（通过 screen_brightness 实现全局调节）
   double _brightnessValue = 1.0;
   // 进入全屏前的原始亮度，退出时恢复
@@ -87,20 +92,32 @@ class _CompleteFullscreenPlayerState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // 根据当前视频比例智能决定初始方向偏好
+    // 横屏视频 → 默认锁定横屏；竖屏视频 → 默认跟随系统（sensor）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctrl = ref.read(currentVideoControllerProvider);
+      if (ctrl != null && ctrl.value.isInitialized) {
+        final size = ctrl.value.size;
+        final isLandscapeVideo = size.width >= size.height;
+        _orientationPref = isLandscapeVideo
+            ? _OrientationPref.landscape
+            : _OrientationPref.sensor;
+      }
+      if (!widget.seamlessMode) {
+        _applyOrientations();
+        _applySystemUI();
+        ref.read(isFullscreenProvider.notifier).state = true;
+      }
+    });
+
     if (!widget.seamlessMode) {
-      _applyOrientations();
+      // 先立即设置 UI 模式和方向（避免首帧闪烁），后续 postFrame 再根据视频调整
       _applySystemUI();
+      _applyOrientations();
     }
     _initConnectivity();
     _initBrightness();
-
-    if (!widget.seamlessMode) {
-      Future.microtask(() {
-        if (mounted) {
-          ref.read(isFullscreenProvider.notifier).state = true;
-        }
-      });
-    }
 
     _startHideTimer();
   }
@@ -150,14 +167,70 @@ class _CompleteFullscreenPlayerState
   }
 
   void _applyOrientations() {
-    if (_isLandscape) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-    } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    switch (_orientationPref) {
+      case _OrientationPref.landscape:
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        break;
+      case _OrientationPref.portrait:
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        break;
+      case _OrientationPref.sensor:
+        // 跟随系统：不锁定任何方向，允许设备传感器自动旋转
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+          DeviceOrientation.portraitDown,
+        ]);
+        break;
     }
+  }
+
+  // 方向切换按钮循环：横屏锁定 → 竖屏锁定 → 跟随系统 → 横屏锁定
+  void _toggleOrientation() {
+    setState(() {
+      switch (_orientationPref) {
+        case _OrientationPref.landscape:
+          _orientationPref = _OrientationPref.portrait;
+          break;
+        case _OrientationPref.portrait:
+          _orientationPref = _OrientationPref.sensor;
+          break;
+        case _OrientationPref.sensor:
+          _orientationPref = _OrientationPref.landscape;
+          break;
+      }
+    });
+    _applyOrientations();
+    // 切换方向时不重置控制层隐藏计时器，保持用户操作连贯性
+    HapticFeedback.selectionClick();
+  }
+
+  // 监听系统屏幕尺寸变化（旋转动画开始/进行中/结束）
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // 系统旋转过程中 Metrics 会持续更新，用防抖标记旋转状态
+    if (!_isRotating && mounted) {
+      _isRotating = true;
+      // 旋转中可以暂停控制层自动隐藏计时器，避免旋转中误隐藏
+      _hideTimer?.cancel();
+    }
+    _rotateEndTimer?.cancel();
+    // 300ms 内没有新的 Metrics 变化，认为旋转结束
+    _rotateEndTimer = Timer(const Duration(milliseconds: 350), () {
+      _isRotating = false;
+      if (mounted) {
+        // 旋转结束后重启控制层自动隐藏计时器
+        if (_controlsVisible && !_isScreenLocked && !_showSettingsPanel) {
+          _startHideTimer();
+        }
+        setState(() {}); // 刷新方向依赖的 UI（如图标）
+      }
+    });
   }
 
   void _applySystemUI() {
@@ -214,6 +287,7 @@ class _CompleteFullscreenPlayerState
     _hideTimer?.cancel();
     _networkToastTimer?.cancel();
     _connectivitySub?.cancel();
+    _rotateEndTimer?.cancel();
 
     // 恢复进入全屏前的系统亮度
     if (_originalBrightness != null) {
@@ -264,11 +338,6 @@ class _CompleteFullscreenPlayerState
     } else {
       Navigator.of(context).pop();
     }
-  }
-
-  void _toggleOrientation() {
-    setState(() => _isLandscape = !_isLandscape);
-    _applyOrientations();
   }
 
   void _lockScreen() {
@@ -424,93 +493,131 @@ class _CompleteFullscreenPlayerState
         controller != null && controller.value.isInitialized;
     final hasError = controller != null && controller.value.hasError;
 
-    final content = Stack(
-      children: [
-        // 视频渲染层 + 手势层
-        if (isControllerReady)
-          IgnorePointer(
-            ignoring: _isScreenLocked,
-            child: _PlayerGestureLayer(
-              key: ValueKey('gesture_$_retryKey'),
-              controller: controller,
-              item: playingItem ??
-                  const MediaItem(
-                      id: '', title: '', type: 'Unknown'),
-              onSingleTap: _toggleControls,
-              enableGestures: !_controlsVisible &&
-                  !_isScreenLocked &&
-                  !_showSettingsPanel,
-              enableVerticalDrag: true,
-              initialBrightness: _brightnessValue,
-              onBrightnessChanged: (v) {
-                setState(() => _brightnessValue = v);
-                _setSystemBrightness(v);
-              },
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: _resolveAspectRatio(controller),
-                  child: FittedBox(
-                    fit: _getBoxFit(),
-                    child: SizedBox(
-                      width: controller.value.size.width,
-                      height: controller.value.size.height,
-                      child: VideoPlayer(controller),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          )
-        else if (hasError)
-          _buildErrorState(controller)
-        else
-          const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          ),
+    // 从 MediaQuery 获取当前实际方向（自动响应系统旋转，不依赖本地布尔值）
+    final mediaOrientation = MediaQuery.orientationOf(context);
+    final isActuallyLandscape = mediaOrientation == Orientation.landscape;
 
-        // 缓冲指示器
-        if (isControllerReady && !hasError)
-          ValueListenableBuilder<VideoPlayerValue>(
-            valueListenable: controller!,
-            builder: (context, value, child) {
-                  if (value.isBuffering) {
-                    return const Center(
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: CircularProgressIndicator(
-                          color: Colors.white70,
-                          strokeWidth: 2.5,
+    // 用 OrientationBuilder 包裹，使子树能在方向变化时自然重建
+    // 关键优化：
+    // 1. 视频层 Positioned.fill 始终保留在树中，仅内部内容随状态变化
+    // 2. VideoPlayer 一旦初始化完成进入树后，通过 Offstage 控制可见性而不是条件移除，
+    //    避免因 if-else 切换导致 Texture widget 被临时 unmount（消除旋转黑屏/闪烁的核心）
+    // 3. RepaintBoundary 隔离视频纹理重绘边界，旋转时 UI 重绘不影响视频纹理
+    Widget buildStack(Orientation orientation) {
+      return Stack(
+        key: const ValueKey('fs-stack'),
+        children: [
+          // ===== 视频渲染层（始终占据全屏）=====
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // 黑底背景（视频加载/错误时也有黑色背景）
+                  const ColoredBox(color: Colors.black),
+
+                  // 视频画面 + 手势层：只有 controller ready 后才挂载 VideoPlayer
+                  // 挂载后通过 Offstage 隐藏（而非移除），保持 Texture 连接不断开
+                  if (isControllerReady)
+                    Offstage(
+                      offstage: hasError,
+                      child: IgnorePointer(
+                        ignoring: _isScreenLocked,
+                        child: _PlayerGestureLayer(
+                          key: ValueKey('gesture_$_retryKey'),
+                          controller: controller!,
+                          item: playingItem ??
+                              const MediaItem(
+                                  id: '', title: '', type: 'Unknown'),
+                          onSingleTap: _toggleControls,
+                          enableGestures: !_controlsVisible &&
+                              !_isScreenLocked &&
+                              !_showSettingsPanel,
+                          enableVerticalDrag: true,
+                          initialBrightness: _brightnessValue,
+                          onBrightnessChanged: (v) {
+                            setState(() => _brightnessValue = v);
+                            _setSystemBrightness(v);
+                          },
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: _resolveAspectRatio(controller!),
+                              child: FittedBox(
+                                fit: _getBoxFit(),
+                                child: SizedBox(
+                                  width: controller!.value.size.width,
+                                  height: controller!.value.size.height,
+                                  child: VideoPlayer(controller!),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
+                    ),
+
+                  // 错误状态
+                  if (hasError && controller != null)
+                    _buildErrorState(controller),
+
+                  // 加载中
+                  if (!isControllerReady && !hasError)
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+
+                  // 缓冲指示器（视频 ready 时叠加）
+                  if (isControllerReady && !hasError)
+                    ValueListenableBuilder<VideoPlayerValue>(
+                      valueListenable: controller!,
+                      builder: (context, value, child) {
+                        if (value.isBuffering) {
+                          return const Center(
+                            child: SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: CircularProgressIndicator(
+                                color: Colors.white70,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                ],
               ),
+            ),
+          ),
 
-            // 顶部控制栏
-            if (_controlsVisible && !_isScreenLocked)
-              _buildTopBar(playingItem),
+          // 顶部控制栏
+          if (_controlsVisible && !_isScreenLocked)
+            _buildTopBar(playingItem, isActuallyLandscape),
 
-            // 底部控制栏
-            if (_controlsVisible && isControllerReady && !_isScreenLocked)
-              _buildBottomBar(controller, playingItem, onPrevEpisode, onNextEpisode),
+          // 底部控制栏
+          if (_controlsVisible && isControllerReady && !_isScreenLocked)
+            _buildBottomBar(controller, playingItem, onPrevEpisode, onNextEpisode,
+                isActuallyLandscape),
 
-            // 设置面板
-            if (_showSettingsPanel && isControllerReady && !_isScreenLocked)
-              _buildSettingsPanel(controller),
+          // 设置面板
+          if (_showSettingsPanel && isControllerReady && !_isScreenLocked)
+            _buildSettingsPanel(controller),
 
-            // 锁屏 UI
-            if (_isScreenLocked) _buildLockUI(),
+          // 锁屏 UI
+          if (_isScreenLocked) _buildLockUI(),
 
-            // 网络状态 Toast
-            if (_networkToastMessage != null)
-              _buildNetworkToast(),
-          ],
-        );
+          // 网络状态 Toast
+          if (_networkToastMessage != null) _buildNetworkToast(),
+        ],
+      );
+    }
 
-    // seamless 模式：直接返回 Stack（不包裹 Scaffold/PopScope，由 Host 管理）
+    final content = OrientationBuilder(
+      builder: (context, orientation) => buildStack(orientation),
+    );
+
+    // seamless 模式：直接返回内容（不包裹 Scaffold/PopScope，由 Host 管理）
     if (widget.seamlessMode) {
       return ColoredBox(color: Colors.black, child: content);
     }
@@ -561,7 +668,24 @@ class _CompleteFullscreenPlayerState
     );
   }
 
-  Widget _buildTopBar(MediaItem? playingItem) {
+  Widget _buildTopBar(MediaItem? playingItem, bool isActuallyLandscape) {
+    // 根据用户方向偏好决定按钮图标和 tooltip
+    final IconData orientIcon;
+    final String orientTooltip;
+    switch (_orientationPref) {
+      case _OrientationPref.landscape:
+        orientIcon = Icons.screen_lock_portrait;
+        orientTooltip = '切换竖屏';
+        break;
+      case _OrientationPref.portrait:
+        orientIcon = Icons.screen_rotation;
+        orientTooltip = '跟随系统';
+        break;
+      case _OrientationPref.sensor:
+        orientIcon = Icons.screen_lock_landscape;
+        orientTooltip = '锁定横屏';
+        break;
+    }
     return Positioned(
       left: 0,
       right: 0,
@@ -606,14 +730,12 @@ class _CompleteFullscreenPlayerState
                   ),
                 IconButton(
                   icon: Icon(
-                    _isLandscape
-                        ? Icons.screen_lock_portrait
-                        : Icons.screen_lock_landscape,
+                    orientIcon,
                     color: Colors.white,
                     size: 24,
                   ),
                   onPressed: _toggleOrientation,
-                  tooltip: _isLandscape ? '切换竖屏' : '切换横屏',
+                  tooltip: orientTooltip,
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings, color: Colors.white, size: 24),
@@ -638,6 +760,7 @@ class _CompleteFullscreenPlayerState
     MediaItem? playingItem,
     VoidCallback? onPrev,
     VoidCallback? onNext,
+    bool isActuallyLandscape,
   ) {
     return Positioned(
       left: 0,
@@ -1939,6 +2062,12 @@ class _SettingsListItem extends StatelessWidget {
 
 enum _SettingsTab { speed, quality, ratio }
 enum _AspectRatioMode { auto, contain, cover, fill, sixteenNine, fourThree }
+
+// 方向偏好模式
+// landscape: 锁定横屏（左右两个方向均可）
+// portrait:  锁定竖屏
+// sensor:    跟随系统（不锁定，由设备传感器自动旋转）
+enum _OrientationPref { landscape, portrait, sensor }
 
 class _QualityOption {
   final int level;
