@@ -57,6 +57,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
 
 class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProviderStateMixin {
   VideoPlayerController? _videoController;
+  // 跟踪 listener 注册在哪个 controller 上，用于 controller 切换时清理
+  VideoPlayerController? _listenersAttachedTo;
   bool _hasNotifiedEnded = false;
   // 是否已触发预加载回调（每个视频只触发一次）
   bool _hasFiredPreload = false;
@@ -69,8 +71,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _infoHideTimer;
   bool _isInfoVisible = true;
 
-  // 播放上报相关
-  final EmbytokService _service = EmbytokService();
+  // 播放上报相关（使用全局 provider 管理的 service，避免每个 item 独立创建 Dio 实例）
   Timer? _progressTimer;
   String? _playSessionId;
   bool _hasStartedReported = false;
@@ -172,14 +173,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void dispose() {
     _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
-    _videoController?.removeListener(_onVideoChanged);
-    _videoController?.removeListener(_onVideoChangedForReport);
-    _progressTimer?.cancel();
-    _progressTimer = null;
-    if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
+    _progressTimer?.cancel();
+    _progressTimer = null;
+    // 确保从正确的 controller 上移除 listener（使用 _listenersAttachedTo 跟踪）
+    final ctrlWithListeners = _listenersAttachedTo ?? _videoController;
+    if (ctrlWithListeners != null) {
+      try { ctrlWithListeners.removeListener(_onVideoChanged); } catch (_) {}
+      try { ctrlWithListeners.removeListener(_onVideoChangedForReport); } catch (_) {}
+    }
+    if (_hasStartedReported) _reportPlaybackStopped();
     // PR #81：用户中途退出记录完播率（仅在未完整播放时记录，避免重复）
     // - 视频完整播放时已在 _onVideoChanged 中记录 100%
     // PR #83：传 source 标签用于推荐打分门控
@@ -207,6 +212,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
     // ⚠️ _videoController 由内部 VideoPlayerWidget 负责 dispose，这里只清空引用
     _videoController = null;
+    _listenersAttachedTo = null;
     _capabilitiesReported = false;
     _hasStartedReported = false;
     _playSessionId = null;
@@ -269,7 +275,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               completionRate: 1.0,
               source: widget.source,
             );
-        unawaited(_service.markAsPlayed(
+        unawaited(ref.read(embbytokServiceProvider).markAsPlayed(
           widget.item.id,
           serverUrl: _authServerUrl(),
           token: _authToken(),
@@ -301,7 +307,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       return;
     }
     try {
-      final resp = await _service.getNextUp(
+      final service = ref.read(embbytokServiceProvider);
+      final resp = await service.getNextUp(
         seriesId: seriesId,
         limit: 1,
         serverUrl: _authServerUrl(),
@@ -369,7 +376,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _ensureCapabilitiesReported() {
     if (_capabilitiesReported) return;
     _capabilitiesReported = true;
-    unawaited(_service.reportCapabilities(
+    final service = ref.read(embbytokServiceProvider);
+    unawaited(service.reportCapabilities(
       serverUrl: _authServerUrl(),
       token: _authToken(),
     ));
@@ -389,7 +397,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final method = _playMethodFromLevel(level);
     final playSessionId = _playSessionId;
     if (playSessionId == null) return;
-    unawaited(_service.reportPlaybackStart(
+    final service = ref.read(embbytokServiceProvider);
+    unawaited(service.reportPlaybackStart(
       itemId: widget.item.id,
       mediaSourceId: widget.item.id,
       playSessionId: playSessionId,
@@ -414,7 +423,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final volumeLevel = volume != null ? (volume * 100).round() : null;
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
-    unawaited(_service.reportPlaybackPosition(
+    final service = ref.read(embbytokServiceProvider);
+    unawaited(service.reportPlaybackPosition(
       itemId: widget.item.id,
       positionTicks: positionTicks,
       mediaSourceId: widget.item.id,
@@ -432,7 +442,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final controller = _videoController;
     final position = controller?.value.position;
     final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
-    unawaited(_service.reportPlaybackStopped(
+    final service = ref.read(embbytokServiceProvider);
+    unawaited(service.reportPlaybackStopped(
       itemId: widget.item.id,
       positionTicks: positionTicks,
       mediaSourceId: widget.item.id,
@@ -522,7 +533,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final token = _authToken();
     if (serverUrl == null || token == null) return;
     try {
-      await _service.deleteItem(
+      final service = ref.read(embbytokServiceProvider);
+      await service.deleteItem(
         itemId: widget.item.id,
         serverUrl: serverUrl,
         token: token,
@@ -614,9 +626,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             startFromResumePosition: widget.startFromResumePosition,
             isCurrentPage: isCurrentPage,
             onControllerReady: (c) {
+              // 先移除旧 controller 上的 listener（防止降级/重建 controller 时 listener 泄漏）
+              final oldCtrl = _listenersAttachedTo;
+              if (oldCtrl != null && oldCtrl != c) {
+                try { oldCtrl.removeListener(_onVideoChanged); } catch (_) {}
+                try { oldCtrl.removeListener(_onVideoChangedForReport); } catch (_) {}
+              }
               setState(() => _videoController = c);
               c.addListener(_onVideoChanged);
               c.addListener(_onVideoChangedForReport);
+              _listenersAttachedTo = c;
               // 记录预加载会话的 playSessionId，保证上报链一致
               final preloaded = widget.preloadedSession;
               if (preloaded != null) {

@@ -96,10 +96,21 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     _lastLifecycleState = state;
     if (prev == null) return;
 
+    final wasForeground = prev == AppLifecycleState.resumed;
+    final isForeground = state == AppLifecycleState.resumed;
+
     final controller = ref.read(currentVideoControllerProvider);
     final userWantsToPlay = ref.read(isPlayingProvider);
     // 仅当 Feed 当前可见时才在回前台时恢复播放
     final navState = ref.read(pageNavigationProvider);
+
+    // 切后台时清理预加载池，释放网络和解码资源
+    if (wasForeground && !isForeground) {
+      try {
+        unawaited(ref.read(videoPoolProvider).disposeAll());
+      } catch (_) {}
+    }
+
     applyLifecyclePlaybackChange(
       prev: prev,
       next: state,

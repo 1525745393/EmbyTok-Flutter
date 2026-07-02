@@ -72,6 +72,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _isFallbackInProgress = false;
   // 标记是否正在执行用户发起的播放模式切换（区别于自动降级）
   bool _isUserSwitchInProgress = false;
+  // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
+  bool _isDisposed = false;
+  // 降级延迟计时器（网络错误时延迟重试，避免资源风暴）
+  Timer? _fallbackTimer;
+  // 非当前页延迟释放计时器（5秒后释放 controller 节省解码资源）
+  Timer? _backgroundReleaseTimer;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -140,6 +146,31 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       final c = _controller;
       if (c != null && c.value.isInitialized) {
         _syncPlaybackState(c);
+        if (!widget.isCurrentPage) {
+          // 非当前页：启动 5 秒延迟释放计时器，超时后仍非当前页则释放 controller 节省解码资源
+          _backgroundReleaseTimer?.cancel();
+          _backgroundReleaseTimer = Timer(const Duration(seconds: 5), () {
+            if (_isDisposed || !mounted) return;
+            if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
+              debugPrint('非当前页超时，释放 controller 资源: ${widget.item.id}');
+              _releaseCurrentController();
+              if (mounted) {
+                setState(() {
+                  _initialized = false;
+                });
+              }
+            }
+          });
+        } else {
+          // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
+          _backgroundReleaseTimer?.cancel();
+          if (_controller == null || !_controller!.value.isInitialized) {
+            _initialized = false;
+            _hasError = false;
+            _fallbackLevel = 0;
+            _initVideo();
+          }
+        }
       }
     }
     if (newItemId == _currentItemId) return; // 同一个视频，不重置
@@ -152,22 +183,27 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _reinitForNewItem();
   }
 
-  // 释放旧 controller 并用新 widget.item 重新初始化
-  Future<void> _reinitForNewItem() async {
-    // 释放旧 controller
+  // 释放当前 controller 的资源（统一方法，避免重复代码）
+  void _releaseCurrentController() {
     final c = _controller;
     if (c != null) {
-      try {
-        c.removeListener(_onControllerChanged);
-        await c.dispose();
-      } catch (e) {
-        // warn 没有 error 命名参数；改用 error 传递异常对象
-        AppLogger.error('释放旧 controller 失败', error: e);
-      }
-      _controller = null;
+      try { c.removeListener(_onControllerChanged); } catch (_) {}
+      try { c.pause(); } catch (_) {}
+      try { c.dispose(); } catch (_) {}
     }
+    _controller = null;
+  }
+
+  // 释放旧 controller 并用新 widget.item 重新初始化
+  Future<void> _reinitForNewItem() async {
+    if (_isDisposed) return;
+    // 取消所有待执行的计时器
+    _fallbackTimer?.cancel();
+    _backgroundReleaseTimer?.cancel();
+    // 释放旧 controller
+    _releaseCurrentController();
     // 重置状态
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
     setState(() {
       _initialized = false;
       _hasError = false;
@@ -179,7 +215,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 重新初始化
     if (_canPlayVideo) {
       await _initVideo();
-    } else if (mounted) {
+    } else if (mounted && !_isDisposed) {
       setState(() {
         _hasError = true;
         _errorMessage = '无法获取播放地址';
@@ -222,6 +258,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   //   2. 检查 mounted 避免在已释放的 widget 上 setState
   //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
   Future<void> _initVideo() async {
+    if (_isDisposed) return;
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
 
@@ -248,8 +285,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             onTimeout: () => throw TimeoutException('视频初始化超时'),
           );
         }
+        if (_isDisposed) {
+          try { c.dispose(); } catch (_) {}
+          return;
+        }
         c.setLooping(widget.loop);
-        if (mounted) {
+        if (mounted && !_isDisposed) {
             setState(() {
               _initialized = true;
               _hasError = false;
@@ -266,22 +307,22 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
       try {
         await usePreloaded(preloaded);
-        preloadedInitSucceeded = true;
+        if (!_isDisposed) {
+          preloadedInitSucceeded = true;
+        }
       } catch (e) {
         debugPrint('VideoPlayer preloaded init error: $e，回退到动态创建');
         // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
-        try {
-          await _controller?.dispose();
-        } catch (_) {}
-        _controller = null;
+        _releaseCurrentController();
       }
     }
     if (preloadedInitSucceeded) return;
+    if (_isDisposed) return;
 
     // ---- 路径 2：动态创建控制器 ----
     final url = _getUrlForFallbackLevel(_fallbackLevel);
     if (url == null) {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
           _errorMessage = '无法获取播放地址';
@@ -309,9 +350,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           throw TimeoutException('视频初始化超时');
         },
       );
+      if (_isDisposed) {
+        try { c.dispose(); } catch (_) {}
+        return;
+      }
       // 初始化成功：同步降级等级到 provider（供播放上报判断 PlayMethod）
       ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _initialized = true;
           _hasError = false;
@@ -326,9 +371,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       }
     } catch (e) {
       debugPrint('VideoPlayer initialization error: $e');
+      if (_isDisposed) return;
       // 非当前页不做降级重试，直接显示错误占位（避免浪费带宽和解码资源）
       if (!widget.isCurrentPage) {
-        if (mounted) {
+        if (mounted && !_isDisposed) {
           setState(() {
             _initialized = false;
             _hasError = true;
@@ -340,18 +386,19 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (_fallbackLevel < 2) {
         _fallbackLevel++;
         debugPrint('降级到 level $_fallbackLevel 重试播放');
-        try {
-          await _controller?.dispose();
-        } catch (_) {}
-        _controller = null;
-        if (mounted) {
-          await _initVideo();
+        _releaseCurrentController();
+        if (mounted && !_isDisposed) {
+          // 添加短暂延迟避免快速递归造成资源风暴
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          if (!_isDisposed && mounted) {
+            await _initVideo();
+          }
         }
         return;
       }
       // 三级降级都失败：标记最终错误状态
       ref.read(playbackLevelProvider.notifier).setLevel(2);
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _initialized = false;
           _hasError = true;
@@ -363,6 +410,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   // 运行时降级：初始化成功但播放过程中发生 error（解码失败、网络抖动等）
   Future<void> _triggerRuntimeFallback() async {
+    if (_isDisposed) return;
     if (_isFallbackInProgress) return;
     if (_fallbackLevel >= 2) return;
     _isFallbackInProgress = true;
@@ -380,15 +428,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     debugPrint('运行时降级 $_fallbackLevel → $nextLevel (item=${widget.item.id})');
 
     // 释放当前失败的 controller
-    try {
-      await _controller?.dispose();
-    } catch (_) {}
-    _controller = null;
+    _releaseCurrentController();
     _fallbackLevel = nextLevel;
+    if (_isDisposed) return;
 
     final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
     if (newUrl == null || newUrl.isEmpty) {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
           _errorMessage = '无法获取播放地址';
@@ -413,6 +459,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         const Duration(seconds: 15),
         onTimeout: () => throw TimeoutException('视频降级初始化超时'),
       );
+      if (_isDisposed) {
+        try { c.dispose(); } catch (_) {}
+        return;
+      }
       // 降级成功：同步新的降级等级
       ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       // seek 回到失败前的播放位置，减少用户感知
@@ -421,7 +471,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           await c.seekTo(Duration(seconds: positionSeconds));
         } catch (_) {}
       }
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _initialized = true;
           _hasError = false;
@@ -434,12 +484,19 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       }
     } catch (e) {
       debugPrint('运行时降级失败: $e');
+      if (_isDisposed) return;
       if (_fallbackLevel < 2) {
         _isFallbackInProgress = false;
-        _triggerRuntimeFallback();
+        // 添加延迟避免快速递归造成资源风暴，让出主线程
+        _fallbackTimer?.cancel();
+        _fallbackTimer = Timer(const Duration(milliseconds: 100), () {
+          if (!_isDisposed && mounted && !_isFallbackInProgress) {
+            _triggerRuntimeFallback();
+          }
+        });
       } else {
         ref.read(playbackLevelProvider.notifier).setLevel(2);
-        if (mounted) {
+        if (mounted && !_isDisposed) {
           setState(() {
             _initialized = false;
             _hasError = true;
@@ -453,8 +510,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   // 用户手动切换播放模式（Direct/Transcode/Fbk）：用新的播放 URL 重新初始化播放器
   Future<void> _userInitiatedReinit(int newLevel) async {
+    if (_isDisposed) return;
     if (_isUserSwitchInProgress) return;
     _isUserSwitchInProgress = true;
+    // 取消待执行的计时器
+    _fallbackTimer?.cancel();
+    _backgroundReleaseTimer?.cancel();
     // 记录当前播放进度，切换成功后 seek 回相同位置
     int positionSeconds = 0;
     try {
@@ -464,16 +525,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       }
     } catch (_) {}
 
-    // 释放当前失败的 controller
-    try {
-      await _controller?.dispose();
-    } catch (_) {}
-    _controller = null;
+    // 释放当前 controller
+    _releaseCurrentController();
     _fallbackLevel = newLevel;
+    if (_isDisposed) return;
 
     final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
     if (newUrl == null || newUrl.isEmpty) {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
           _errorMessage = '无法获取播放地址';
@@ -500,6 +559,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           throw TimeoutException('播放模式切换初始化超时');
         },
       );
+      if (_isDisposed) {
+        try { c.dispose(); } catch (_) {}
+        return;
+      }
       // 切换成功：同步新的降级等级
       ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       // seek 回到切换前的播放位置，减少用户感知
@@ -508,7 +571,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           await c.seekTo(Duration(seconds: positionSeconds));
         } catch (_) {}
       }
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _initialized = true;
           _hasError = false;
@@ -521,7 +584,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       }
     } catch (e) {
       debugPrint('播放模式切换失败: $e');
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
           _errorMessage = '切换失败';
@@ -587,17 +650,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _fallbackTimer?.cancel();
+    _backgroundReleaseTimer?.cancel();
     _positionSeconds.dispose();
-    // 显式移除命名 listener，保证监听器与控制器生命周期解耦
-    _controller?.removeListener(_onControllerChanged);
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
-    try {
-      _controller?.pause();
-    } catch (_) {}
-    try {
-      _controller?.dispose();
-    } catch (_) {}
-    _controller = null;
+    _releaseCurrentController();
     super.dispose();
   }
 
