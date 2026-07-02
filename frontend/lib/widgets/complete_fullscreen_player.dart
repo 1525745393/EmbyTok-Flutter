@@ -73,7 +73,7 @@ class _CompleteFullscreenPlayerState
   _SettingsTab _settingsTab = _SettingsTab.speed;
 
   AppLifecycleState? _lastLifecycleState;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<ConnectivityResult>? _connectivitySub;
   String? _networkToastMessage;
   Timer? _networkToastTimer;
 
@@ -599,6 +599,9 @@ class _CompleteFullscreenPlayerState
 
     // 用 OrientationBuilder 包裹，使子树能在方向变化时自然重建
     Widget buildStack(Orientation orientation) {
+      // 在局部函数内创建局部副本，确保类型提升能在条件检查后生效
+      final ctrl = controller;
+
       return Stack(
         key: const ValueKey('fs-stack'),
         children: [
@@ -614,14 +617,14 @@ class _CompleteFullscreenPlayerState
                   // 视频画面 + 手势层：只有 controller ready 且未锁屏才显示
                   // 挂载后通过 Offstage 隐藏（而非移除），保持 Texture 连接不断开
                   // 锁屏时 Offstage=true → Texture 留在 GPU 但不参与合成，降低功耗
-                  if (isControllerReady && controller != null)
+                  if (isControllerReady && ctrl != null)
                     Offstage(
                       offstage: hasError || !videoVisible,
                       child: IgnorePointer(
                         ignoring: _isScreenLocked,
                         child: _PlayerGestureLayer(
                           key: ValueKey('gesture_$_retryKey'),
-                          controller: controller,
+                          controller: ctrl,
                           item: playingItem ??
                               const MediaItem(
                                   id: '', title: '', type: 'Unknown'),
@@ -637,13 +640,13 @@ class _CompleteFullscreenPlayerState
                           },
                           child: Center(
                             child: AspectRatio(
-                              aspectRatio: _resolveAspectRatio(controller),
+                              aspectRatio: _resolveAspectRatio(ctrl),
                               child: FittedBox(
                                 fit: _getBoxFit(),
                                 child: SizedBox(
-                                  width: controller.value.size.width,
-                                  height: controller.value.size.height,
-                                  child: VideoPlayer(controller),
+                                  width: ctrl.value.size.width,
+                                  height: ctrl.value.size.height,
+                                  child: VideoPlayer(ctrl),
                                 ),
                               ),
                             ),
@@ -653,8 +656,8 @@ class _CompleteFullscreenPlayerState
                     ),
 
                   // 错误状态
-                  if (hasError && controller != null)
-                    _buildErrorState(controller),
+                  if (hasError && ctrl != null)
+                    _buildErrorState(ctrl),
 
                   // 加载中
                   if (!isControllerReady && !hasError)
@@ -691,13 +694,13 @@ class _CompleteFullscreenPlayerState
             _buildTopBar(playingItem, isActuallyLandscape),
 
           // 底部控制栏
-          if (_controlsVisible && isControllerReady && controller != null && !_isScreenLocked)
-            _buildBottomBar(controller, playingItem, onPrevEpisode, onNextEpisode,
+          if (_controlsVisible && isControllerReady && ctrl != null && !_isScreenLocked)
+            _buildBottomBar(ctrl, playingItem, onPrevEpisode, onNextEpisode,
                 isActuallyLandscape),
 
           // 设置面板
-          if (_showSettingsPanel && isControllerReady && controller != null && !_isScreenLocked)
-            _buildSettingsPanel(controller),
+          if (_showSettingsPanel && isControllerReady && ctrl != null && !_isScreenLocked)
+            _buildSettingsPanel(ctrl),
 
           // 锁屏 UI
           if (_isScreenLocked) _buildLockUI(),
@@ -1268,7 +1271,6 @@ class _PlayerGestureLayerState extends ConsumerState<_PlayerGestureLayer> {
   }
 
   void _onPanStart(DragStartDetails d) {
-    final c = widget.controller;
     if (!_controllerReady) return;
     _dragStartX = d.globalPosition.dx;
     _dragStartY = d.globalPosition.dy;
@@ -1779,7 +1781,7 @@ class _FullscreenControlsState
       return;
     }
     final selectedSubId = ref.read(selectedSubtitleProvider);
-    await showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.black.withOpacity(0.9),
       builder: (context) => SafeArea(
