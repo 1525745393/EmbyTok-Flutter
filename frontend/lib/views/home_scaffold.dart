@@ -15,6 +15,8 @@
 // 回到前台时（paused/inactive → resumed）仅当 Feed 可见 + 用户原本想播放
 // 才自动恢复。避免后台继续消耗流量 / 电池 / 发热，同时尊重用户主动暂停意图。
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
