@@ -244,7 +244,7 @@ class _SeamlessFullscreenHostState
             if (_phase == 4) const SizedBox.shrink(),
 
             // 进入动画阶段（phase 1）：纯视频画面，用 RectTween 做位置+大小动画
-            if (_phase == 1 && controllerReady && _rectAnim != null)
+            if (_phase == 1 && controllerReady && controller != null && _rectAnim != null)
               AnimatedBuilder(
                 animation: _animController!,
                 builder: (context, child) {
@@ -261,7 +261,7 @@ class _SeamlessFullscreenHostState
               ),
 
             // 退出动画阶段（phase 3）：纯视频画面，用中心缩放+淡出
-            if (_phase == 3 && controllerReady)
+            if (_phase == 3 && controllerReady && controller != null)
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _animController!,

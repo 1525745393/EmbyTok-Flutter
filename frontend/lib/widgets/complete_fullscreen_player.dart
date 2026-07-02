@@ -217,18 +217,25 @@ class _CompleteFullscreenPlayerState
   }
 
   void _initConnectivity() {
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
-      _onConnectivityChanged(results);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
+      _onConnectivityChanged(result);
     });
   }
 
-  void _onConnectivityChanged(List<ConnectivityResult> results) {
-    if (results.contains(ConnectivityResult.none)) {
-      _showNetworkToast('网络已断开');
-    } else if (results.contains(ConnectivityResult.wifi)) {
-      _showNetworkToast('已切换到 WiFi');
-    } else if (results.contains(ConnectivityResult.mobile)) {
-      _showNetworkToast('已切换到移动网络');
+  void _onConnectivityChanged(ConnectivityResult result) {
+    // 功耗优化：仅在状态变化时显示 toast，避免每帧触发
+    switch (result) {
+      case ConnectivityResult.none:
+        _showNetworkToast('网络已断开');
+        break;
+      case ConnectivityResult.wifi:
+        _showNetworkToast('已切换到 WiFi');
+        break;
+      case ConnectivityResult.mobile:
+        _showNetworkToast('已切换到移动网络');
+        break;
+      default:
+        break;
     }
   }
 
@@ -607,14 +614,14 @@ class _CompleteFullscreenPlayerState
                   // 视频画面 + 手势层：只有 controller ready 且未锁屏才显示
                   // 挂载后通过 Offstage 隐藏（而非移除），保持 Texture 连接不断开
                   // 锁屏时 Offstage=true → Texture 留在 GPU 但不参与合成，降低功耗
-                  if (isControllerReady)
+                  if (isControllerReady && controller != null)
                     Offstage(
                       offstage: hasError || !videoVisible,
                       child: IgnorePointer(
                         ignoring: _isScreenLocked,
                         child: _PlayerGestureLayer(
                           key: ValueKey('gesture_$_retryKey'),
-                          controller: controller!,
+                          controller: controller,
                           item: playingItem ??
                               const MediaItem(
                                   id: '', title: '', type: 'Unknown'),
@@ -630,13 +637,13 @@ class _CompleteFullscreenPlayerState
                           },
                           child: Center(
                             child: AspectRatio(
-                              aspectRatio: _resolveAspectRatio(controller!),
+                              aspectRatio: _resolveAspectRatio(controller),
                               child: FittedBox(
                                 fit: _getBoxFit(),
                                 child: SizedBox(
-                                  width: controller!.value.size.width,
-                                  height: controller!.value.size.height,
-                                  child: VideoPlayer(controller!),
+                                  width: controller.value.size.width,
+                                  height: controller.value.size.height,
+                                  child: VideoPlayer(controller),
                                 ),
                               ),
                             ),
@@ -684,12 +691,12 @@ class _CompleteFullscreenPlayerState
             _buildTopBar(playingItem, isActuallyLandscape),
 
           // 底部控制栏
-          if (_controlsVisible && isControllerReady && !_isScreenLocked)
+          if (_controlsVisible && isControllerReady && controller != null && !_isScreenLocked)
             _buildBottomBar(controller, playingItem, onPrevEpisode, onNextEpisode,
                 isActuallyLandscape),
 
           // 设置面板
-          if (_showSettingsPanel && isControllerReady && !_isScreenLocked)
+          if (_showSettingsPanel && isControllerReady && controller != null && !_isScreenLocked)
             _buildSettingsPanel(controller),
 
           // 锁屏 UI
