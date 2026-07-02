@@ -2,11 +2,12 @@
 //
 // 核心特性：
 // 1. 基础交互：播放暂停、进度拖动、退出全屏、控制栏自动显隐、横竖屏切换
-// 2. 标准手势：左侧调亮度、右侧调音量、左右滑动快进快退、长按倍速、双击步进
+// 2. 标准手势：左侧调亮度（系统级）、右侧调音量、左右滑动快进快退、长按倍速、双击步进
 // 3. 设置面板：倍速切换、清晰度切换（DirectPlay/DirectStream/HLS）、画面比例设置
 // 4. 系统适配：沉浸式状态栏、安全区、前后台切换、网络切换提醒
 // 5. 状态反馈：缓冲、失败、手势操作的完整视觉反馈
 // 6. 无缝衔接：复用外部 VideoPlayerController，不重新初始化
+// 7. 系统亮度：使用 screen_brightness 实现全局亮度调节，退出时恢复原始亮度
 //
 // 接入方式：
 // ```dart
@@ -19,11 +20,9 @@
 // );
 // ```
 //
-// 可选依赖（添加后可获得系统级亮度调节能力）：
-// dependencies:
-//   screen_brightness: ^0.2.2+1
-//   （添加后取消 _ScreenBrightness 类中对应代码的注释即可启用）
-//   connectivity_plus: ^5.0.0（项目已存在）
+// 依赖：
+// - screen_brightness: ^0.2.2+1（系统级亮度调节）
+// - connectivity_plus: ^5.0.0（项目已存在）
 
 import 'dart:async';
 
@@ -31,6 +30,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
@@ -69,8 +69,10 @@ class _CompleteFullscreenPlayerState
 
   int _retryKey = 0;
 
-  // 亮度值（通过遮罩层实现，0=最暗，1=最亮）
+  // 系统亮度值（通过 screen_brightness 实现全局调节）
   double _brightnessValue = 1.0;
+  // 进入全屏前的原始亮度，退出时恢复
+  double? _originalBrightness;
 
   @override
   void initState() {
@@ -79,6 +81,7 @@ class _CompleteFullscreenPlayerState
     _applyOrientations();
     _applySystemUI();
     _initConnectivity();
+    _initBrightness();
 
     Future.microtask(() {
       if (mounted) {
@@ -87,6 +90,26 @@ class _CompleteFullscreenPlayerState
     });
 
     _startHideTimer();
+  }
+
+  Future<void> _initBrightness() async {
+    try {
+      // 读取并保存当前系统亮度
+      _originalBrightness = await ScreenBrightness().current;
+      _brightnessValue = _originalBrightness ?? 1.0;
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Failed to read screen brightness: $e');
+      _brightnessValue = 1.0;
+    }
+  }
+
+  Future<void> _setSystemBrightness(double value) async {
+    try {
+      await ScreenBrightness().setScreenBrightness(value);
+    } catch (e) {
+      debugPrint('Failed to set screen brightness: $e');
+    }
   }
 
   void _initConnectivity() {
@@ -178,6 +201,13 @@ class _CompleteFullscreenPlayerState
     _hideTimer?.cancel();
     _networkToastTimer?.cancel();
     _connectivitySub?.cancel();
+
+    // 恢复进入全屏前的系统亮度
+    if (_originalBrightness != null) {
+      try {
+        ScreenBrightness().resetScreenBrightness();
+      } catch (_) {}
+    }
 
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.edgeToEdge,
@@ -385,44 +415,35 @@ class _CompleteFullscreenPlayerState
             if (isControllerReady)
               IgnorePointer(
                 ignoring: _isScreenLocked,
-                child: Stack(
-                  children: [
-                    _PlayerGestureLayer(
-                      key: ValueKey('gesture_$_retryKey'),
-                      controller: controller,
-                      item: playingItem ??
-                          const MediaItem(
-                              id: '', title: '', type: 'Unknown'),
-                      onSingleTap: _toggleControls,
-                      enableGestures: !_controlsVisible &&
-                          !_isScreenLocked &&
-                          !_showSettingsPanel,
-                      enableVerticalDrag: true,
-                      initialBrightness: _brightnessValue,
-                      onBrightnessChanged: (v) {
-                        setState(() => _brightnessValue = v);
-                      },
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: _resolveAspectRatio(controller),
-                          child: FittedBox(
-                            fit: _getBoxFit(),
-                            child: SizedBox(
-                              width: controller.value.size.width,
-                              height: controller.value.size.height,
-                              child: VideoPlayer(controller),
-                            ),
-                          ),
+                child: _PlayerGestureLayer(
+                  key: ValueKey('gesture_$_retryKey'),
+                  controller: controller,
+                  item: playingItem ??
+                      const MediaItem(
+                          id: '', title: '', type: 'Unknown'),
+                  onSingleTap: _toggleControls,
+                  enableGestures: !_controlsVisible &&
+                      !_isScreenLocked &&
+                      !_showSettingsPanel,
+                  enableVerticalDrag: true,
+                  initialBrightness: _brightnessValue,
+                  onBrightnessChanged: (v) {
+                    setState(() => _brightnessValue = v);
+                    _setSystemBrightness(v);
+                  },
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: _resolveAspectRatio(controller),
+                      child: FittedBox(
+                        fit: _getBoxFit(),
+                        child: SizedBox(
+                          width: controller.value.size.width,
+                          height: controller.value.size.height,
+                          child: VideoPlayer(controller),
                         ),
                       ),
                     ),
-                    // 亮度遮罩层（通过黑色半透明遮罩模拟亮度调节）
-                    IgnorePointer(
-                      child: Container(
-                        color: Colors.black.withOpacity((1.0 - _brightnessValue).clamp(0.0, 0.8)),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               )
             else if (hasError)
