@@ -2,6 +2,7 @@
 // TikTok 风格半透明控制层，接入 isPlayingProvider 同步播放状态
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -23,6 +24,9 @@ class VideoControls extends ConsumerStatefulWidget {
   final VoidCallback? onToggleFullscreen;
   // 是否已经在全屏模式（用于切换图标）
   final bool isInFullscreen;
+  // Slider 拖动开始/结束回调（用于外部暂停控制层自动隐藏计时器）
+  final VoidCallback? onSeekStart;
+  final VoidCallback? onSeekEnd;
 
   const VideoControls({
     super.key,
@@ -33,6 +37,8 @@ class VideoControls extends ConsumerStatefulWidget {
     this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
     this.onToggleFullscreen,
     this.isInFullscreen = false,
+    this.onSeekStart,
+    this.onSeekEnd,
   });
 
   @override
@@ -43,6 +49,9 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   // 记录上一次的播放状态，仅在 isPlaying 实际变化时才写入 Provider，
   // 避免播放时每帧重复写入 isPlayingProvider
   late bool _lastIsPlaying;
+  // Slider 拖动状态：拖动中只更新预览位置，不调用 seekTo
+  bool _isSeeking = false;
+  Duration? _previewPosition;
 
   @override
   void initState() {
@@ -70,8 +79,14 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     }
   }
 
-  // 格式化 Duration 为 "mm:ss"
+  // 格式化 Duration 为 "mm:ss" 或 "h:mm:ss"
   String _formatDuration(Duration d) {
+    if (d.inHours > 0) {
+      final hours = d.inHours;
+      final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+      final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+      return '$hours:$minutes:$seconds';
+    }
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
@@ -184,7 +199,10 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
               child: ValueListenableBuilder<VideoPlayerValue>(
                 valueListenable: controller,
                 builder: (context, value, child) {
-                  final position = value.position;
+                  // 拖动中使用预览位置，否则使用真实位置
+                  final position = _isSeeking
+                      ? (_previewPosition ?? value.position)
+                      : value.position;
                   final duration = value.duration;
                   final progress = duration.inMilliseconds > 0
                       ? position.inMilliseconds / duration.inMilliseconds
@@ -194,18 +212,46 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                       Text(
                         '${_formatDuration(position)} / ${_formatDuration(duration)}',
                         style:
-                            TextStyle(color: scheme.onSurface, fontSize: 14),
+                            TextStyle(color: scheme.onSurface, fontSize: 13),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Slider(
                           value: progress.clamp(0.0, 1.0),
+                          onChangeStart: (v) {
+                            setState(() {
+                              _isSeeking = true;
+                              _previewPosition = Duration(
+                                milliseconds:
+                                    (v * duration.inMilliseconds).toInt(),
+                              );
+                            });
+                            widget.onSeekStart?.call();
+                            HapticFeedback.selectionClick();
+                          },
                           onChanged: (v) {
+                            // 拖动过程中只更新预览位置，不实际 seekTo
+                            // 避免高频调用 MediaCodec 导致崩溃
+                            setState(() {
+                              _previewPosition = Duration(
+                                milliseconds:
+                                    (v * duration.inMilliseconds).toInt(),
+                              );
+                            });
+                          },
+                          onChangeEnd: (v) {
+                            // 松手时执行一次 seek —— 这是正确的做法
                             final target = Duration(
                               milliseconds:
                                   (v * duration.inMilliseconds).toInt(),
                             );
                             controller.seekTo(target);
+                            setState(() {
+                              _isSeeking = false;
+                              _previewPosition = null;
+                            });
+                            widget.onSeekEnd?.call();
+                            HapticFeedback.lightImpact();
                           },
                           activeColor: scheme.primary,
                           inactiveColor: scheme.onSurfaceVariant,
