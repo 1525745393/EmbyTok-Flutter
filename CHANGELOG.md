@@ -1,3 +1,15 @@
+# [1.122.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.121.0...v1.122.0) (2026-07-02)
+
+
+### Bug Fixes
+
+* import dart:async for unawaited() in home_scaffold ([31fc152](https://github.com/1525745393/EmbyTok-Flutter/commit/31fc1528231097fd8baf159d00fc6fbcd794059d))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([779eb0a](https://github.com/1525745393/EmbyTok-Flutter/commit/779eb0ab91553285ba512bba2bfb21b9c024c837))
+
 # [1.121.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.120.0...v1.121.0) (2026-07-02)
 
 
