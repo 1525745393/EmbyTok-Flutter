@@ -26,7 +26,7 @@ class VideoGridCard extends ConsumerWidget {
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
 
-    final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 400);
+    final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 300);
     final progress = item.progressPercent;
     final duration = item.durationSeconds;
 

@@ -42,6 +42,9 @@ class PlaybackSession {
     if (_isDisposed) return;
     _isDisposed = true;
     try {
+      controller.pause();
+    } catch (_) {}
+    try {
       controller.dispose();
     } catch (_) {}
   }
@@ -227,22 +230,19 @@ class VideoPoolService {
 
   /// 清理所有会话（如退出登录、切换服务器）
   ///
-  /// 分批释放以避免同步批量 dispose VideoPlayerController 时内存峰值过高
-  /// 导致的 OOM 崩溃（特别是在退出应用时）。
+  /// 逐个释放并在每个 dispose 后让出主线程，避免同步批量 dispose
+  /// VideoPlayerController 时内存峰值过高导致的 OOM 崩溃
+  /// （特别是在退出应用时）。
   Future<void> disposeAll() async {
-    // 分批释放：每批处理 2 个，批次间让事件循环有机会触发 GC
     final sessions = List<PlaybackSession>.from(_sessions.values);
     _sessions.clear();
     _accessOrder.clear();
 
-    const batchSize = 2;
-    for (var i = 0; i < sessions.length; i += batchSize) {
-      final end = (i + batchSize < sessions.length) ? i + batchSize : sessions.length;
-      for (var j = i; j < end; j++) {
-        sessions[j].dispose();
-      }
-      // 批次之间让出主线程，给 GC 和 native texture 回收时间
-      if (i + batchSize < sessions.length) {
+    for (var i = 0; i < sessions.length; i++) {
+      sessions[i].dispose();
+      // 每个 dispose 后让出主线程，给 GC 和 native texture 回收时间
+      // 避免连续 dispose 多个已初始化 controller 时造成短暂的 MediaCodec 资源竞争
+      if (i < sessions.length - 1) {
         await Future.delayed(Duration.zero);
       }
     }

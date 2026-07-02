@@ -1020,6 +1020,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   int _currentIndex = 0;
   late List<MediaItem> _items;
   bool _isLoading = true;
+  Timer? _pageChangeDebounce;
 
   @override
   void initState() {
@@ -1030,17 +1031,27 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
   @override
   void dispose() {
+    _pageChangeDebounce?.cancel();
     _pageController.dispose();
     // 页面销毁时清理本列表相关的预加载会话，释放 native 解码资源
     // 注意：不调用 evictAll，避免影响 FeedView 等其他页面的预加载（共享全局池）
-    final keepIds = _items.map((e) => e.id).toSet();
-    // 但当前播放的那个已经被 VideoPageItem take 走了，不在池中
-    // 所以清理所有在池中且属于本列表的即可
-    final pool = ref.read(videoPoolProvider);
-    for (final id in keepIds) {
-      pool.evict(id);
+    // try-catch 包裹：Provider 可能已被销毁（退出登录/账号切换场景）
+    try {
+      final pool = ref.read(videoPoolProvider);
+      final idsToEvict = _items.map((e) => e.id).toList();
+      // 异步分批释放：避免同步连续 dispose 多个 controller 阻塞主线程
+      unawaited(_evictAsync(pool, idsToEvict));
+    } catch (_) {
+      // Provider 已销毁，忽略
     }
     super.dispose();
+  }
+
+  Future<void> _evictAsync(VideoPoolService pool, List<String> ids) async {
+    for (final id in ids) {
+      pool.evict(id);
+      await Future.delayed(Duration.zero);
+    }
   }
 
   void _initItems() {
@@ -1129,15 +1140,18 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     setState(() {
       _currentIndex = index;
     });
-    // 同步当前播放条目
+    // 同步当前播放条目（立即执行，保证 UI 状态正确）
     if (index < _items.length) {
       ref.read(currentPlayingIdProvider.notifier).state = _items[index].id;
       ref.read(currentPlayingItemProvider.notifier).state = _items[index];
     }
-    // 预加载新的邻居
-    _preloadNeighbors(index);
-    // 清理远距离缓存
-    _evictFarPreloads(index);
+    // 防抖：快速滑动时只在最后静止 100ms 后执行预加载和清理
+    // 避免连续滑动时"创建-销毁-重建"的资源浪费循环
+    _pageChangeDebounce?.cancel();
+    _pageChangeDebounce = Timer(const Duration(milliseconds: 100), () {
+      _preloadNeighbors(index);
+      _evictFarPreloads(index);
+    });
   }
 
   @override

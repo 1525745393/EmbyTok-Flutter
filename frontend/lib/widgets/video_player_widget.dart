@@ -764,17 +764,21 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   // 缩略图占位：web 环境或无播放地址时使用
   Widget _buildThumbnailPlaceholder(BuildContext context) {
-    // 优先使用带认证信息的缩略图 URL
-    final url = widget.item.thumbnailUrlWithAuth(widget.embyServerUrl, widget.token);
-    // 获取认证头用于图片请求
-    final headers = widget.item.authHeaders(widget.token);
-    final scheme = Theme.of(context).colorScheme;
-    final errMsg = _errorMessage;
-
     // 根据屏幕像素密度动态计算缓存宽度，避免解码过大图片浪费内存
     final mq = MediaQuery.of(context);
     final cacheWidth =
         (mq.size.width * mq.devicePixelRatio).round().clamp(400, 1080);
+
+    // 优先使用带认证信息的缩略图 URL，maxWidth 与 memCacheWidth 对齐，
+    // 让服务端也缩放到对应尺寸，减少网络传输量
+    final url = widget.item.thumbnailUrlWithAuth(
+      widget.embyServerUrl, widget.token,
+      maxWidth: cacheWidth,
+    );
+    // 获取认证头用于图片请求
+    final headers = widget.item.authHeaders(widget.token);
+    final scheme = Theme.of(context).colorScheme;
+    final errMsg = _errorMessage;
 
     return Stack(
       fit: StackFit.expand,

@@ -211,11 +211,13 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
                 onSingleTap: _toggleControls,
                 enableGestures: !_controlsVisible,
                 child: Center(
-                  child: AspectRatio(
-                    aspectRatio: controller.value.aspectRatio == 0
-                        ? 16 / 9
-                        : controller.value.aspectRatio,
-                    child: VideoPlayer(controller),
+                  child: RepaintBoundary(
+                    child: AspectRatio(
+                      aspectRatio: controller.value.aspectRatio == 0
+                          ? 16 / 9
+                          : controller.value.aspectRatio,
+                      child: VideoPlayer(controller),
+                    ),
                   ),
                 ),
               )

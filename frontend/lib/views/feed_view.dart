@@ -60,6 +60,9 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 已处理的初始播放项 ID（防止重复跳转）
   String? _processedInitialItemId;
 
+  // 页面切换防抖：快速滑动时只在静止后执行预加载和清理
+  Timer? _pageChangeDebounce;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -190,6 +193,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _pageChangeDebounce?.cancel();
     _pageController.dispose();
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
@@ -827,17 +831,19 @@ class _FeedViewState extends ConsumerState<FeedView>
           ref.read(currentPlayingIdProvider.notifier).state = playingItem.id;
           ref.read(currentPlayingItemProvider.notifier).state = playingItem;
         }
+        // 分页加载：接近末尾时立即触发，不防抖（数据加载需要及时）
         if (videoState.hasMore && index >= videoState.items.length - 2) {
-          // 使用 ref.read 读取最新状态，避免闭包捕获过期值
           final latestState = ref.read(videoListProvider);
           if (!latestState.isLoading) {
             ref.read(videoListProvider.notifier).loadMore();
           }
         }
-        // 预加载上一条和下一条视频（走 VideoPoolService 降级链）
-        _preloadNeighbors(index, videoState.items, embyServerUrl, token);
-        // 清理距离较远的预加载缓存（保留上一条 + 下一条）
-        _evictFarPreloads(index, videoState.items);
+        // 预加载和清理：防抖 100ms，快速滑动时避免"创建-销毁-重建"的资源浪费
+        _pageChangeDebounce?.cancel();
+        _pageChangeDebounce = Timer(const Duration(milliseconds: 100), () {
+          _preloadNeighbors(index, videoState.items, embyServerUrl, token);
+          _evictFarPreloads(index, videoState.items);
+        });
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
@@ -846,9 +852,14 @@ class _FeedViewState extends ConsumerState<FeedView>
         final item = videoState.items[index];
         // 从 VideoPoolService 取出预加载的会话（如存在）
         final preloadedSession = _takePreloadedSession(item.id);
-        // 首次构建时对相邻条目发起预加载
+        // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
+        // 避免重复为 index=0 创建 controller（VideoPlayerWidget 已在动态创建路径中创建）
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
-          _preloadNeighbors(0, videoState.items, embyServerUrl, token);
+          if (1 < videoState.items.length) {
+            final nextItem = videoState.items[1];
+            final pool = ref.read(videoPoolProvider);
+            unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));
+          }
         }
         return VideoPageItem(
           item: item,
