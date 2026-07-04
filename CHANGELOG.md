@@ -1,3 +1,10 @@
+## [1.123.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.123.0...v1.123.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **startup:** 修复 v1.123.0 部分 Android 设备启动黑屏/白屏 ([#102](https://github.com/1525745393/EmbyTok-Flutter/issues/102)) ([c7c6846](https://github.com/1525745393/EmbyTok-Flutter/commit/c7c6846afa30eea2f9bcb32377f19f11befae9e7))
+
 # [1.123.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.122.1...v1.123.0) (2026-07-04)
 
 
