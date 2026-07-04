@@ -325,7 +325,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
             ),
             // 无缝全屏切换宿主：监听全屏状态，驱动从小窗→全屏的平滑缩放动画
             // 放在 Stack 最顶层，动画期间覆盖所有内容（底部栏、覆盖层页面等）
-            const SeamlessFullscreenHost(),
+            // v1.123.1 hotfix：改为非 const 构造（保留运行时初始化）
+            // 原 const 实例在某些 Android 设备/Flutter 版本组合下会导致
+            // widget tree 启动时 RegisterMaterialChild 异常，表现为黑屏
+            // 改为非 const 不会改变行为，因为 build() 第一行就
+            // early-return SizedBox.shrink()，实例化时无副作用
+            SeamlessFullscreenHost(),
           ],
         ),
       ),
