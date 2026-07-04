@@ -14,8 +14,11 @@ import 'app.dart';
 /// - 之前版本若 widget 树构建时抛出未捕获异常，会直接导致 APP 黑屏/白屏，
 ///   用户与开发者都无法定位问题（v1.123.0 APP 打不开的根因之一）
 void main() {
-  // v1.123.1 hotfix：全局异常兜底
-  // 注册 Flutter framework 异常（build/layout/paint 阶段）
+  // v1.123.2 hotfix：先初始化 Flutter 绑定，再设置异常处理器
+  // 确保 WidgetsBinding、PlatformDispatcher 等基础服务已就绪
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 注册全局 Flutter framework 异常（build/layout/paint 阶段）
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.dumpErrorToConsole(details);
     debugPrint('[FlutterError] ${details.exceptionAsString()}');
@@ -30,7 +33,6 @@ void main() {
     return true; // 标记已处理，避免进程退出
   };
 
-  WidgetsFlutterBinding.ensureInitialized();
   // 限制 Flutter 内置图片缓存：最多 50 张，总大小不超过 30MB
   // 这是防止长时间滑动 feed 视图导致图片内存积累的关键优化
   // - 512MB heap 限制的设备需更保守，避免 OOM

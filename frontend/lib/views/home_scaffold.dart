@@ -76,11 +76,6 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
     // 注册 WidgetsBindingObserver 以监听 App 前后台切换
     WidgetsBinding.instance.addObserver(this);
-    // 延迟到第一帧后注册 listen，避免在 build 期间触发 state 修改
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.listenManual<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
-    });
   }
 
   @override
@@ -142,6 +137,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
   }
   @override
   Widget build(BuildContext context) {
+    // 在 build 中监听页面导航状态变化：ConsumerState 自动管理订阅生命周期
+    ref.listen<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
+
     // 监听页面导航状态
     final pageNavState = ref.watch(pageNavigationProvider);
     // 监听工具栏可见性：用于驱动底部导航栏的折叠动画

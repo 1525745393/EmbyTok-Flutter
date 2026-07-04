@@ -51,6 +51,7 @@ class _SeamlessFullscreenHostState
   // 1 = 进入动画中（纯视频缩放）
   // 2 = 全屏播放中（显示完整控制层）
   // 3 = 退出动画中（控制层淡出 + 视频缩放回小窗）
+  // 4 = 退出过渡中（仅黑底，释放Texture给小窗）
   int _phase = 0;
   final bool _isLandscape = true;
   String? _currentItemId;
@@ -61,13 +62,6 @@ class _SeamlessFullscreenHostState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listenManual<SeamlessFullscreenState>(
-        seamlessFullscreenProvider,
-        _onStateChanged,
-        fireImmediately: true,
-      );
-    });
   }
 
   @override
@@ -219,6 +213,13 @@ class _SeamlessFullscreenHostState
 
   @override
   Widget build(BuildContext context) {
+    // 在 build 中调用 ref.listen：ConsumerState 自动管理订阅生命周期，
+    // dispose 时自动取消，无需手动处理。初始状态 isFullscreen=false 不需要触发动画。
+    ref.listen<SeamlessFullscreenState>(
+      seamlessFullscreenProvider,
+      _onStateChanged,
+    );
+
     if (_phase == 0) return const SizedBox.shrink();
 
     final controller = ref.watch(currentVideoControllerProvider);

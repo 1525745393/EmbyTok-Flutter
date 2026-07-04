@@ -83,8 +83,13 @@ android {
             shrinkResources false
         }
         release {
-            minifyEnabled true
-            shrinkResources true
+            // v1.123.2 hotfix：临时禁用代码混淆/压缩
+            // v1.123.0/1 发布后用户反馈 Release APK 启动黑屏/白屏无法打开，
+            // Debug 包可正常运行，高度怀疑是 R8 混淆误删了某个插件或类导致启动崩溃。
+            // 先临时禁用 minify 和 shrinkResources 验证问题根因，
+            // 确认后再逐步恢复混淆并通过 keep 规则精确保护必要类。
+            minifyEnabled false
+            shrinkResources false
             // 优先使用 release 签名配置（如果 key.properties 存在），否则回退到 debug 签名
             signingConfig signingConfigs.release ?: signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
