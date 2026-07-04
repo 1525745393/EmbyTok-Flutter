@@ -1,3 +1,24 @@
+# [1.123.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.122.1...v1.123.0) (2026-07-04)
+
+
+### Bug Fixes
+
+* **playback:** 修复 complete_fullscreen_player 编译错误 ([d441a9a](https://github.com/1525745393/EmbyTok-Flutter/commit/d441a9a98f3ebac56a1b567cb84f0a1d03a400c5))
+* 修复CI静态分析4个error编译错误 ([#101](https://github.com/1525745393/EmbyTok-Flutter/issues/101)) ([a6bbcd4](https://github.com/1525745393/EmbyTok-Flutter/commit/a6bbcd4e05c01be7fd4f291781cf64a03ee3c2c2))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([9e685e0](https://github.com/1525745393/EmbyTok-Flutter/commit/9e685e0322d86a52781022705bcb02f2cd320c36))
+* **playback:** 优化全屏横竖屏切换逻辑，消除旋转卡顿/黑屏/布局抖动 ([a2462d9](https://github.com/1525745393/EmbyTok-Flutter/commit/a2462d905fd057ac7bf4c717e945eea5b39d5234))
+* **playback:** 实现小窗到全屏无缝无黑屏切换 ([e64e82f](https://github.com/1525745393/EmbyTok-Flutter/commit/e64e82fde66f482917874f46db5591dee6a11898))
+* **ui:** 使用 screen_brightness 实现系统级亮度调节 ([f3de170](https://github.com/1525745393/EmbyTok-Flutter/commit/f3de17010273a5c358dbad9c989008bb88d94f18))
+
+
+### Performance Improvements
+
+* **playback:** 全屏播放功耗与发热专项优化 ([9c97024](https://github.com/1525745393/EmbyTok-Flutter/commit/9c97024f19b0a2df5ecdecf1be21604c4b8bcadc))
+
 ## [1.122.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.122.0...v1.122.1) (2026-07-02)
 
 
