@@ -1,3 +1,10 @@
+## [1.124.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.0...v1.124.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **startup:** 修复登录后跳转首页白屏 ([ea5677a](https://github.com/1525745393/EmbyTok-Flutter/commit/ea5677ae0cd289a946d80fada35c136dbc447b30))
+
 # [1.124.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.123.1...v1.124.0) (2026-07-04)
 
 
