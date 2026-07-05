@@ -1,3 +1,15 @@
+## [1.124.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.2...v1.124.3) (2026-07-05)
+
+
+### Bug Fixes
+
+* 修复 CI 编译错误 ([88c510f](https://github.com/1525745393/EmbyTok-Flutter/commit/88c510f4106bcc63b09a587b68da26cbcda8c465))
+
+
+### Performance Improvements
+
+* **fullscreen:** 全屏播放功耗优化 ([e99edcf](https://github.com/1525745393/EmbyTok-Flutter/commit/e99edcfa40d383bbbd7765520373382812485a42))
+
 ## [1.124.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.1...v1.124.2) (2026-07-05)
 
 
