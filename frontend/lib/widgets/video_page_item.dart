@@ -24,7 +24,6 @@ import 'video/video_control_buttons.dart';
 import 'video/video_progress_bars.dart';
 import 'video/video_sheet_utils.dart' as sheet_utils;
 import 'video/video_draggable_clean_actions.dart';
-import '../views/fullscreen_video_page.dart';
 
 /// 单个视频页：TikTok 卡片样式
 class VideoPageItem extends ConsumerStatefulWidget {
@@ -36,8 +35,6 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final VoidCallback? onPrevEpisode;
   /// 播放进度达到预加载阈值时回调，用于触发下一个视频的预加载
   final VoidCallback? onPreloadThreshold;
-  // PR #83：完播率 source 标签（从推荐页进入时传具体 source）
-  final String source;
 
   const VideoPageItem({
     super.key,
@@ -48,17 +45,15 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.onNextEpisode,
     this.onPrevEpisode,
     this.onPreloadThreshold,
-    this.source = 'feed',
   });
 
   @override
   ConsumerState<VideoPageItem> createState() => _VideoPageItemState();
 }
 
-class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProviderStateMixin {
+class _VideoPageItemState extends ConsumerState<VideoPageItem>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoController;
-  // 跟踪 listener 注册在哪个 controller 上，用于 controller 切换时清理
-  VideoPlayerController? _listenersAttachedTo;
   bool _hasNotifiedEnded = false;
   // 是否已触发预加载回调（每个视频只触发一次）
   bool _hasFiredPreload = false;
@@ -71,7 +66,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _infoHideTimer;
   bool _isInfoVisible = true;
 
-  // 播放上报相关（使用全局 provider 管理的 service，避免每个 item 独立创建 Dio 实例）
+  // 播放上报相关
+  final EmbytokService _service = EmbytokService();
   Timer? _progressTimer;
   String? _playSessionId;
   bool _hasStartedReported = false;
@@ -87,16 +83,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
-  // _onVideoChanged 降频时间戳（避免每帧写 Provider / 计算完播）
-  int _lastPositionSyncMs = 0;
-  int _lastEndCheckMs = 0;
-  static const int _positionSyncIntervalMs = 250;
-  static const int _endCheckIntervalMs = 500;
-
-  // PR #71：纯净模式可拖动按钮组的 GlobalKey（用于外部触发 show/hide）
-  final GlobalKey<DraggableCleanActionsState> _draggableActionsKey =
-      GlobalKey<DraggableCleanActionsState>();
-
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -104,9 +90,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   Timer? _nextUpTimer;
   static const int _nextUpCountdownSeconds = 5;
 
+  // 功耗优化：上一次报告的播放位置秒数，用于跨秒节流 Provider 写入
+  int _lastPositionSecond = -1;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _discRotationCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -122,21 +112,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       } else {
         if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
       }
-      // PR #71：纯净模式下，播放状态变化时重新触发按钮组显示
-      // 暂停时立即显示（不重置 timer），恢复播放时按 autoHideAfter 重新调度
-      _draggableActionsKey.currentState?.show();
     });
+  }
 
-    // PR #72：监听纯净模式开关，同步工具栏可见性
-    // 进入纯净模式 → 顶部栏 + 底部导航栏持续隐藏
-    // 退出纯净模式 → 恢复显示（除非还在全屏页面）
-    ref.listenManual<bool>(
-      isAutoPlayProvider,
-      (previous, next) {
-        ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
-      },
-      fireImmediately: true,
-    );
+  // 功耗优化：App 进入后台/不可见时暂停唱片旋转动画，减少 GPU 合成开销
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _discRotationCtrl.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_videoController != null &&
+          _videoController!.value.isPlaying &&
+          !_discRotationCtrl.isAnimating) {
+        _discRotationCtrl.repeat();
+      }
+    }
   }
 
   // ===== 底部信息条 3 秒自动隐藏 =====
@@ -171,40 +162,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
+    _videoController?.removeListener(_onVideoChanged);
+    _progressTimer?.cancel();
+    _progressTimer = null;
+    if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
-    _progressTimer?.cancel();
-    _progressTimer = null;
-    // 确保从正确的 controller 上移除 listener（使用 _listenersAttachedTo 跟踪）
-    final ctrlWithListeners = _listenersAttachedTo ?? _videoController;
-    if (ctrlWithListeners != null) {
-      try { ctrlWithListeners.removeListener(_onVideoChanged); } catch (_) {}
-      try { ctrlWithListeners.removeListener(_onVideoChangedForReport); } catch (_) {}
-    }
-    if (_hasStartedReported) _reportPlaybackStopped();
-    // PR #81：用户中途退出记录完播率（仅在未完整播放时记录，避免重复）
-    // - 视频完整播放时已在 _onVideoChanged 中记录 100%
-    // PR #83：传 source 标签用于推荐打分门控
-    if (!_hasNotifiedEnded && _hasStartedReported) {
-      final ctrl = _videoController;
-      if (ctrl != null && ctrl.value.isInitialized) {
-        final pos = ctrl.value.position;
-        final dur = ctrl.value.duration;
-        if (dur.inMilliseconds > 0) {
-          final rate = pos.inMilliseconds / dur.inMilliseconds;
-          ref.read(watchStatsProvider.notifier).recordWatch(
-                itemId: widget.item.id,
-                itemType: widget.item.type,
-                itemTitle: widget.item.title,
-                completionRate: rate,
-                source: widget.source,
-              );
-        }
-      }
-    }
     ref.read(videoReadyProvider.notifier).clear(widget.item.id);
     final ctrl = ref.read(currentVideoControllerProvider);
     if (ctrl != null && identical(ctrl, _videoController)) {
@@ -212,7 +179,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
     // ⚠️ _videoController 由内部 VideoPlayerWidget 负责 dispose，这里只清空引用
     _videoController = null;
-    _listenersAttachedTo = null;
     _capabilitiesReported = false;
     _hasStartedReported = false;
     _playSessionId = null;
@@ -221,61 +187,47 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   }
 
   // ===== 视频状态变化监听 =====
-  // 注意：每帧都会调用，避免重操作
+  // 功耗优化：合并 _onVideoChangedForReport 逻辑，减少 controller listener 数量。
+  // 位置写入 Provider 仅在跨秒时触发，避免每帧无效 Notifier 通知。
   void _onVideoChanged() {
     if (!mounted) return;
     final controller = _videoController;
     if (controller == null) return;
-    // 同步播放状态到 Provider，确保中央按钮和控制条状态一致
+    // 播放状态：仅在变化时同步 Provider（避免每帧 setState 等效操作）
     final isPlaying = controller.value.isPlaying;
     if (ref.read(isPlayingProvider) != isPlaying) {
       ref.read(isPlayingProvider.notifier).state = isPlaying;
+      // 播放状态变化时触发暂停上报（原 _onVideoChangedForReport 逻辑）
+      if (!isPlaying) _reportPlaybackProgress(isPauseEvent: true);
     }
-    // 首次真正开始播放时触发上报（isPlaying 从 false→true），确保上报时机准确
-    if (isPlaying && !_hasStartedReported) {
-      _hasStartedReported = true;
-      _ensureCapabilitiesReported();
-      _reportPlaybackStart();
+    // 位置：仅在跨秒时写入 Provider，减少级联重建
+    final posSec = controller.value.position.inSeconds;
+    if (posSec != _lastPositionSecond) {
+      _lastPositionSecond = posSec;
+      ref.read(currentPositionProvider.notifier).state =
+          controller.value.position;
     }
-    // 位置同步降频：每 250ms 写一次全局 store（4fps 足够进度条显示）
-    // 避免每帧 60 次 Provider 写入触发潜在重建
-    final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - _lastPositionSyncMs >= _positionSyncIntervalMs) {
-      _lastPositionSyncMs = now;
-      ref.read(currentPositionProvider.notifier).state = controller.value.position;
-    }
+    // 信息条重置：仅在不可见时触发（原 _onVideoChangedForReport 逻辑）
+    if (!_isInfoVisible) _resetInfoHideTimer();
     // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
-    final onPreloadThreshold = widget.onPreloadThreshold;
-    if (!_hasFiredPreload && onPreloadThreshold != null) {
+    if (!_hasFiredPreload && widget.onPreloadThreshold != null) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
       if (dur.inMilliseconds > 0) {
         final progress = pos.inMilliseconds / dur.inMilliseconds;
         if (progress >= ref.read(preloadThresholdProvider)) {
           _hasFiredPreload = true;
-          onPreloadThreshold.call();
+          widget.onPreloadThreshold!.call();
         }
       }
     }
-    // 完播检查降频：每 500ms 检查一次（不需要每帧都计算差值）
-    if (!_hasNotifiedEnded &&
-        now - _lastEndCheckMs >= _endCheckIntervalMs) {
-      _lastEndCheckMs = now;
+    if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
       if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
         _reportPlaybackStopped();
-        // PR #81：完播率统计 - 视频完整播放（100%）
-        // PR #83：传 source 标签（nextUp/resume/...）用于推荐打分门控
-        ref.read(watchStatsProvider.notifier).recordWatch(
-              itemId: widget.item.id,
-              itemType: widget.item.type,
-              itemTitle: widget.item.title,
-              completionRate: 1.0,
-              source: widget.source,
-            );
-        unawaited(ref.read(embbytokServiceProvider).markAsPlayed(
+        unawaited(_service.markAsPlayed(
           widget.item.id,
           serverUrl: _authServerUrl(),
           token: _authToken(),
@@ -286,29 +238,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     }
   }
 
-  // 暂停事件上报与信息条计时器重置（命名 listener，便于 dispose 显式移除）
-  void _onVideoChangedForReport() {
-    if (!mounted) return;
-    final c = _videoController;
-    if (c == null) return;
-    if (!c.value.isPlaying) _reportPlaybackProgress(isPauseEvent: true);
-    // 仅在信息条不可见时重置，避免每帧无意义 setState
-    if (!_isInfoVisible) _resetInfoHideTimer();
-  }
-
   // ===== NextUp 下一集查询与倒计时 =====
   Future<void> _queryNextUp() async {
     final seriesId = widget.item.seriesId;
-    final seriesName = widget.item.seriesName;
     final isEpisode = widget.item.type == 'Episode' ||
-        (seriesName != null && seriesName.isNotEmpty);
+        (widget.item.seriesName != null && widget.item.seriesName!.isNotEmpty);
     if (!isEpisode) {
       _fallbackAutoPlay();
       return;
     }
     try {
-      final service = ref.read(embbytokServiceProvider);
-      final resp = await service.getNextUp(
+      final resp = await _service.getNextUp(
         seriesId: seriesId,
         limit: 1,
         serverUrl: _authServerUrl(),
@@ -348,10 +288,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _playNextUp() {
     _nextUpTimer?.cancel();
     if (!mounted) return;
-    final onNextEpisode = widget.onNextEpisode;
-    if (onNextEpisode != null) {
+    if (widget.onNextEpisode != null) {
       setState(() => _showNextUpBanner = false);
-      onNextEpisode.call();
+      widget.onNextEpisode!.call();
     } else {
       _fallbackAutoPlay();
     }
@@ -376,8 +315,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   void _ensureCapabilitiesReported() {
     if (_capabilitiesReported) return;
     _capabilitiesReported = true;
-    final service = ref.read(embbytokServiceProvider);
-    unawaited(service.reportCapabilities(
+    unawaited(_service.reportCapabilities(
       serverUrl: _authServerUrl(),
       token: _authToken(),
     ));
@@ -387,21 +325,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     if (_hasStartedReported) return;
     _hasStartedReported = true;
     // 如果来自预加载会话，则复用其 playSessionId，保证预加载和播放使用同一个会话
-    final session = widget.preloadedSession;
-    _playSessionId = session?.playSessionId ?? _newPlaySessionId();
+    _playSessionId = widget.preloadedSession?.playSessionId ?? _newPlaySessionId();
     // 如果来自预加载会话，同步播放等级到 provider（保证 reportPlaybackProgress 正确）
-    if (session != null) {
-      ref.read(playbackLevelProvider.notifier).setLevel(session.playbackLevel);
+    if (widget.preloadedSession != null) {
+      ref.read(playbackLevelProvider.notifier).setLevel(widget.preloadedSession!.playbackLevel);
     }
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
-    final playSessionId = _playSessionId;
-    if (playSessionId == null) return;
-    final service = ref.read(embbytokServiceProvider);
-    unawaited(service.reportPlaybackStart(
+    unawaited(_service.reportPlaybackStart(
       itemId: widget.item.id,
       mediaSourceId: widget.item.id,
-      playSessionId: playSessionId,
+      playSessionId: _playSessionId!,
       playMethod: method,
       serverUrl: _authServerUrl(),
       token: _authToken(),
@@ -423,8 +357,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final volumeLevel = volume != null ? (volume * 100).round() : null;
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
-    final service = ref.read(embbytokServiceProvider);
-    unawaited(service.reportPlaybackPosition(
+    unawaited(_service.reportPlaybackPosition(
       itemId: widget.item.id,
       positionTicks: positionTicks,
       mediaSourceId: widget.item.id,
@@ -442,8 +375,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final controller = _videoController;
     final position = controller?.value.position;
     final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
-    final service = ref.read(embbytokServiceProvider);
-    unawaited(service.reportPlaybackStopped(
+    unawaited(_service.reportPlaybackStopped(
       itemId: widget.item.id,
       positionTicks: positionTicks,
       mediaSourceId: widget.item.id,
@@ -496,8 +428,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
       _hideControls();
     } else {
       _showControls();
-      // PR #71：用户主动唤起控制条时，同步显示纯净模式按钮组
-      _draggableActionsKey.currentState?.show();
     }
   }
 
@@ -514,13 +444,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
 
   // ===== 播放/暂停切换 =====
   void _togglePlay() {
-    final c = _videoController;
-    if (c == null) return;
-    if (c.value.isPlaying) {
-      c.pause();
+    if (_videoController == null) return;
+    if (_videoController!.value.isPlaying) {
+      _videoController!.pause();
       ref.read(isPlayingProvider.notifier).state = false;
     } else {
-      c.play();
+      _videoController!.play();
       ref.read(isPlayingProvider.notifier).state = true;
     }
   }
@@ -528,27 +457,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
   // ===== 删除确认 =====
   Future<void> _showDeleteConfirmDialog() async {
     final confirmed = await sheet_utils.showDeleteConfirmDialog(context, widget.item.title);
-    if (!confirmed) return;
-    final serverUrl = _authServerUrl();
-    final token = _authToken();
-    if (serverUrl == null || token == null) return;
-    try {
-      final service = ref.read(embbytokServiceProvider);
-      await service.deleteItem(
-        itemId: widget.item.id,
-        serverUrl: serverUrl,
-        token: token,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('已删除'), duration: Duration(seconds: 2)));
-        widget.onVideoEnded?.call();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('删除失败: $e'), duration: const Duration(seconds: 2)),
+    if (confirmed) {
+      try {
+        await _service.deleteItem(
+          itemId: widget.item.id,
+          serverUrl: _authServerUrl()!,
+          token: _authToken()!,
         );
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('已删除'), duration: Duration(seconds: 2)));
+          widget.onVideoEnded?.call();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('删除失败: $e'), duration: const Duration(seconds: 2)),
+          );
+        }
       }
     }
   }
@@ -575,10 +501,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    final vc = _videoController;
-    final item = widget.item;
-    final displayRating = item.displayRating;
-    final overview = item.overview;
     // 使用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化时触发重建
     final favorited = ref.watch(
         favoritesProvider.select((s) => s.favoriteIds.contains(widget.item.id)));
@@ -589,10 +511,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
     final scheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    // 是否为当前可见页面：监听 currentPlayingIdProvider，
-    // 非当前页 VideoPlayerWidget 会自动暂停+静音，从根本上避免并发播放
-    final isCurrentPage = ref.watch(
-        currentPlayingIdProvider.select((id) => id == widget.item.id));
 
     final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
 
@@ -605,80 +523,54 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
     final content = Stack(
       fit: StackFit.expand,
       children: [
+        // 骨架占位：视频未 ready 时显示渐变色块
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isReady
+                  ? [Colors.transparent, Colors.transparent]
+                  : [scheme.surface.withOpacity(0.7), scheme.surface],
+            ),
+          ),
+        ),
+
         // 视频播放区（Gestures + VideoPlayer）
-        // 常驻底层，不包裹 AnimatedOpacity，避免视频帧走离屏渲染
-        GestureOverlay(
-          controller: _videoController,
-          item: widget.item,
-          onSingleTap: () {
-            if (isAutoPlay) {
-              _toggleControls();
-            } else {
-              _togglePlay();
-            }
-          },
-          child: VideoPlayerWidget(
+        AnimatedOpacity(
+          opacity: isReady ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: GestureOverlay(
+            controller: _videoController,
             item: widget.item,
-            embyServerUrl: embyServerUrl,
-            token: token,
-            preloadedController: widget.preloadedSession?.controller,
-            preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
-            startFromResumePosition: widget.startFromResumePosition,
-            isCurrentPage: isCurrentPage,
-            onControllerReady: (c) {
-              // 先移除旧 controller 上的 listener（防止降级/重建 controller 时 listener 泄漏）
-              final oldCtrl = _listenersAttachedTo;
-              if (oldCtrl != null && oldCtrl != c) {
-                try { oldCtrl.removeListener(_onVideoChanged); } catch (_) {}
-                try { oldCtrl.removeListener(_onVideoChangedForReport); } catch (_) {}
+            onSingleTap: () {
+              if (isAutoPlay) {
+                _toggleControls();
+              } else {
+                _togglePlay();
               }
-              setState(() => _videoController = c);
-              c.addListener(_onVideoChanged);
-              c.addListener(_onVideoChangedForReport);
-              _listenersAttachedTo = c;
-              // 记录预加载会话的 playSessionId，保证上报链一致
-              final preloaded = widget.preloadedSession;
-              if (preloaded != null) {
-                _playSessionId = preloaded.playSessionId;
-              }
-              // 只有当前页才设置全局播放状态，避免相邻页面覆盖
-              final currentId = ref.read(currentPlayingIdProvider);
-              if (currentId == widget.item.id || currentId == null) {
+            },
+            child: VideoPlayerWidget(
+              item: widget.item,
+              embyServerUrl: embyServerUrl,
+              token: token,
+              preloadedController: widget.preloadedSession?.controller,
+              preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
+              startFromResumePosition: widget.startFromResumePosition,
+              onControllerReady: (c) {
+                setState(() => _videoController = c);
                 ref.read(currentVideoControllerProvider.notifier).state = c;
                 ref.read(isPlayingProvider.notifier).state = true;
                 ref.read(currentPlayingItemProvider.notifier).state = widget.item;
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 _resetInfoHideTimer();
+                _ensureCapabilitiesReported();
+                _reportPlaybackStart();
                 _startProgressTimer();
-              } else {
-                // 非当前页：确保暂停+静音（双重保险）
-                try { c.pause(); } catch (_) {}
-                try { c.setVolume(0.0); } catch (_) {}
-              }
-            },
-          ),
-        ),
-
-        // 骨架占位：视频未 ready 时显示渐变色块
-        // 用 AnimatedOpacity 包裹静态渐变层，isReady 后淡出
-        // （静态层走离屏渲染开销远小于视频纹理层）
-        AnimatedOpacity(
-          opacity: isReady ? 0.0 : 1.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          // 淡出后忽略指针事件，不遮挡视频层的手势
-          child: IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    scheme.surface.withOpacity(0.7),
-                    scheme.surface,
-                  ],
-                ),
-              ),
+                c.addListener(_onVideoChanged);
+              },
             ),
           ),
         ),
@@ -690,25 +582,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         ),
 
         // 倍速状态徽章
-        if (vc != null &&
-            vc.value.isInitialized &&
-            vc.value.playbackSpeed > 1.0)
-          SpeedBadge(speed: vc.value.playbackSpeed),
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
+            _videoController!.value.playbackSpeed > 1.0)
+          SpeedBadge(speed: _videoController!.value.playbackSpeed),
 
         // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
-        if (vc != null &&
-            vc.value.isInitialized &&
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
             (isAutoPlay) &&
             !_controlsVisible)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: ThinProgressBar(controller: vc),
+            child: ThinProgressBar(controller: _videoController!),
           ),
 
         // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
-        if (vc != null && vc.value.isInitialized && (isAutoPlay))
+        if (_videoController != null && _videoController!.value.isInitialized && (isAutoPlay))
           Positioned(
             left: 0,
             right: 0,
@@ -719,7 +611,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
               child: IgnorePointer(
                 ignoring: !_controlsVisible,
                 child: VideoControls(
-                  controller: vc,
+                  controller: _videoController!,
                   subtitleTracks: widget.item.subtitleTracks,
                   onPrevEpisode: widget.onPrevEpisode,
                   onNextEpisode: widget.onNextEpisode,
@@ -764,9 +656,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 横屏视频：居中显示「全屏观看」按钮
-                    if (vc != null &&
-                        vc.value.isInitialized &&
-                        vc.value.size.width > vc.value.size.height)
+                    if (_videoController != null &&
+                        _videoController!.value.isInitialized &&
+                        _videoController!.value.size.width > _videoController!.value.size.height)
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -817,8 +709,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                                   fontWeight: FontWeight.w700)),
                         ),
                         const SizedBox(width: 12),
-                        if (displayRating != null && displayRating > 0)
-                          Text('★ ${displayRating.toStringAsFixed(1)}',
+                        if (widget.item.displayRating != null && widget.item.displayRating! > 0)
+                          Text('★ ${widget.item.displayRating!.toStringAsFixed(1)}',
                               style: TextStyle(
                                   color: scheme.primary,
                                   fontSize: 14,
@@ -826,16 +718,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                       ],
                     ),
                     const SizedBox(height: 6),
-                    if (overview != null && overview.isNotEmpty)
-                      Text(overview,
+                    if (widget.item.overview != null && widget.item.overview!.isNotEmpty)
+                      Text(widget.item.overview!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
-                    if (vc != null && vc.value.isInitialized)
+                    if (_videoController != null && _videoController!.value.isInitialized)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: SeekableProgressBar(
-                          controller: vc,
+                          controller: _videoController!,
                           formatDuration: _formatDuration,
                         ),
                       ),
@@ -870,9 +762,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
-                  if (vc == null ||
-                      !vc.value.isInitialized ||
-                      vc.value.size.width <= vc.value.size.height)
+                  if (_videoController == null ||
+                      !_videoController!.value.isInitialized ||
+                      _videoController!.value.size.width <= _videoController!.value.size.height)
                     PressableActionButton(
                       icon: Icons.fullscreen,
                       label: '全屏',
@@ -946,8 +838,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return DraggableCleanActions(
-                  // PR #71：GlobalKey 让父组件能调用 show() / hide()
-                  key: _draggableActionsKey,
                   containerSize: Size(constraints.maxWidth, constraints.maxHeight),
                   buttonWidth: rs(80, 2.0),
                   bottomSafeArea: bottomPadding + 80 + 16,
@@ -978,30 +868,26 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem> with TickerProvid
         // 顶部操作区：全屏模式下控制条已有退出按钮，无需额外入口
 
         // NextUp 下一集提示条
-        if (_showNextUpBanner)
-          () {
-            final nextUp = _nextUpItem;
-            if (nextUp == null) return const SizedBox.shrink();
-            return NextUpBanner(
-              nextItem: nextUp,
-              countdown: _nextUpCountdown,
-              onPlay: _playNextUp,
-              onCancel: _cancelNextUp,
-            );
-          }(),
+        if (_showNextUpBanner && _nextUpItem != null)
+          NextUpBanner(
+            nextItem: _nextUpItem!,
+            countdown: _nextUpCountdown,
+            onPlay: _playNextUp,
+            onCancel: _cancelNextUp,
+          ),
       ],
     );
 
-    // 注意：不要在本 Widget 上套 PopScope！
-    // 原因：VideoPageItem 是 Feed 内的普通 Widget，不是独立 route。
-    // 套 PopScope(canPop: true) 会消费掉系统返回键事件，导致外层
-    // HomeScaffold 的退出确认弹窗永远不会被触发（用户按返回键直接退出 App）。
-    // 系统返回键由 HomeScaffold 的 PopScope 统一管理。
-    return Semantics(
-      label: '视频播放区域，双击点赞此视频',
-      child: Container(
-        color: null,
-        child: content,
+    // 使用 PopScope：保持 Widget 树结构稳定，仅属性变化
+    // 全屏现在由 FullscreenVideoPage 独立承载，本页 _isFullscreen 永远 false
+    return PopScope(
+      canPop: true,
+      child: Semantics(
+        label: '视频播放区域，双击点赞此视频',
+        child: Container(
+          color: null,
+          child: content,
+        ),
       ),
     );
   }
@@ -1023,9 +909,8 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPlaying = ref.watch(isPlayingProvider);
-    final ctrl = controller;
     // 仅在控制器已初始化且非播放状态时显示中央播放按钮
-    if (ctrl != null && ctrl.value.isInitialized && !isPlaying) {
+    if (controller != null && controller!.value.isInitialized && !isPlaying) {
       return CenterPlayButton(onPlay: onPlay);
     }
     return const SizedBox.shrink();
@@ -1039,17 +924,12 @@ class PlaybackShell extends ConsumerStatefulWidget {
   final MediaItem item; // 当前播放的视频
   final List<MediaItem> items; // 视频列表（可选）
   final VoidCallback onBack; // 返回回调
-  // PR #83：完播率 source 标签
-  // - 告诉 recordWatch 这个视频来自哪个 source（用于推荐打分门控）
-  // - 默认 'feed'，从推荐页进入时传具体 source（nextUp/resume/...）
-  final String source; // 数据源 key
 
   const PlaybackShell({
     super.key,
     required this.item,
     this.items = const [],
     required this.onBack,
-    this.source = 'feed',
   });
 
   @override
@@ -1061,7 +941,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   int _currentIndex = 0;
   late List<MediaItem> _items;
   bool _isLoading = true;
-  Timer? _pageChangeDebounce;
 
   @override
   void initState() {
@@ -1072,27 +951,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
   @override
   void dispose() {
-    _pageChangeDebounce?.cancel();
     _pageController.dispose();
-    // 页面销毁时清理本列表相关的预加载会话，释放 native 解码资源
-    // 注意：不调用 evictAll，避免影响 FeedView 等其他页面的预加载（共享全局池）
-    // try-catch 包裹：Provider 可能已被销毁（退出登录/账号切换场景）
-    try {
-      final pool = ref.read(videoPoolProvider);
-      final idsToEvict = _items.map((e) => e.id).toList();
-      // 异步分批释放：避免同步连续 dispose 多个 controller 阻塞主线程
-      unawaited(_evictAsync(pool, idsToEvict));
-    } catch (_) {
-      // Provider 已销毁，忽略
-    }
     super.dispose();
-  }
-
-  Future<void> _evictAsync(VideoPoolService pool, List<String> ids) async {
-    for (final id in ids) {
-      pool.evict(id);
-      await Future<void>.delayed(Duration.zero);
-    }
   }
 
   void _initItems() {
@@ -1102,14 +962,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
       final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
       _currentIndex = initialIndex >= 0 ? initialIndex : 0;
       _isLoading = false;
-      // 初始化当前播放 ID（首次加载设置，避免 VideoPageItem 间竞态）
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && ref.read(currentPlayingIdProvider) == null) {
-          final initialItem = _items[_currentIndex];
-          ref.read(currentPlayingIdProvider.notifier).state = initialItem.id;
-          ref.read(currentPlayingItemProvider.notifier).state = initialItem;
-        }
-      });
       // 如果初始索引不是 0，滚动到对应位置
       if (initialIndex > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1118,10 +970,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
           }
         });
       }
-      // 首帧后预加载邻居
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _preloadNeighbors(_currentIndex);
-      });
     } else {
       // 从 playbackListProvider 获取播放列表
       final playbackState = ref.read(playbackListProvider);
@@ -1130,14 +978,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
         final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
         _currentIndex = initialIndex >= 0 ? initialIndex : 0;
         _isLoading = false;
-        // 初始化当前播放 ID（首次加载设置，避免 VideoPageItem 间竞态）
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && ref.read(currentPlayingIdProvider) == null) {
-            final initialItem = _items[_currentIndex];
-            ref.read(currentPlayingIdProvider.notifier).state = initialItem.id;
-            ref.read(currentPlayingItemProvider.notifier).state = initialItem;
-          }
-        });
         if (initialIndex > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _pageController.hasClients) {
@@ -1145,76 +985,18 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             }
           });
         }
-        // 首帧后预加载邻居
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _preloadNeighbors(_currentIndex);
-        });
       } else {
         // 如果列表为空，只播放当前视频
         _items = [widget.item];
         _currentIndex = 0;
         _isLoading = false;
-        // 单视频模式：直接设置为当前播放项
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && ref.read(currentPlayingIdProvider) == null) {
-            ref.read(currentPlayingIdProvider.notifier).state = widget.item.id;
-            ref.read(currentPlayingItemProvider.notifier).state = widget.item;
-          }
-        });
       }
     }
   }
-
-  // 预加载当前索引的上下邻居视频
-  void _preloadNeighbors(int index) {
-    final authState = ref.read(authProvider);
-    final serverUrl = authState.embyServerUrl;
-    final token = authState.token;
-    if (serverUrl == null || token == null) return;
-    final pool = ref.read(videoPoolProvider);
-    // 上一条
-    if (index - 1 >= 0) {
-      final prev = _items[index - 1];
-      if (!pool.hasSession(prev.id)) {
-        unawaited(pool.preload(item: prev, serverUrl: serverUrl, token: token));
-      }
-    }
-    // 下一条
-    if (index + 1 < _items.length) {
-      final next = _items[index + 1];
-      if (!pool.hasSession(next.id)) {
-        unawaited(pool.preload(item: next, serverUrl: serverUrl, token: token));
-      }
-    }
-  }
-
-  // 清理距离较远的预加载缓存（只保留上一条 + 下一条）
-  void _evictFarPreloads(int currentIndex) {
-    final keepIds = <String>[];
-    if (currentIndex - 1 >= 0) keepIds.add(_items[currentIndex - 1].id);
-    if (currentIndex + 1 < _items.length) keepIds.add(_items[currentIndex + 1].id);
-    ref.read(videoPoolProvider).evictExcept(keepIds);
-  }
-
-  // 从池中取预加载会话（所有权转移给 VideoPageItem）
-  PlaybackSession? _takePreloaded(String itemId) =>
-      ref.read(videoPoolProvider).take(itemId);
 
   void _onPageChanged(int index) {
     setState(() {
       _currentIndex = index;
-    });
-    // 同步当前播放条目（立即执行，保证 UI 状态正确）
-    if (index < _items.length) {
-      ref.read(currentPlayingIdProvider.notifier).state = _items[index].id;
-      ref.read(currentPlayingItemProvider.notifier).state = _items[index];
-    }
-    // 防抖：快速滑动时只在最后静止 100ms 后执行预加载和清理
-    // 避免连续滑动时"创建-销毁-重建"的资源浪费循环
-    _pageChangeDebounce?.cancel();
-    _pageChangeDebounce = Timer(const Duration(milliseconds: 100), () {
-      _preloadNeighbors(index);
-      _evictFarPreloads(index);
     });
   }
 
@@ -1243,14 +1025,9 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             onPageChanged: _onPageChanged,
             itemBuilder: (context, index) {
               final item = _items[index];
-              // 从 VideoPoolService 取出预加载的会话（如存在）
-              final preloadedSession = _takePreloaded(item.id);
               return VideoPageItem(
                 key: ValueKey(item.id),
                 item: item,
-                preloadedSession: preloadedSession,
-                // PR #83：把 source 标签传给 VideoPageItem 用于完播率统计
-                source: widget.source,
                 onVideoEnded: index < _items.length - 1
                     ? () {
                         // 自动播放下一个
@@ -1261,23 +1038,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
                       }
                     : null,
                 startFromResumePosition: item.hasProgress,
-                // 播放进度阈值：触发下一条预加载
-                onPreloadThreshold: () {
-                  if (index + 1 < _items.length) {
-                    final auth = ref.read(authProvider);
-                    final srv = auth.embyServerUrl;
-                    final tkn = auth.token;
-                    if (srv != null && tkn != null) {
-                      unawaited(
-                        ref.read(videoPoolProvider).preload(
-                              item: _items[index + 1],
-                              serverUrl: srv,
-                              token: tkn,
-                            ),
-                      );
-                    }
-                  }
-                },
               );
             },
           ),
