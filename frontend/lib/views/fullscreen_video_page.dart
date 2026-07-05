@@ -62,7 +62,6 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage> {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     // 标记全局全屏状态
     Future.microtask(() {
-      if (!ref.mounted) return;
       ref.read(isFullscreenProvider.notifier).state = false;
     });
     super.dispose();

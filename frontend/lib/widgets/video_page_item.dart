@@ -14,6 +14,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
+import '../views/fullscreen_video_page.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
