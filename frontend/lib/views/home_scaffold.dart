@@ -25,7 +25,6 @@ import 'package:video_player/video_player.dart';
 import '../providers/providers.dart';
 import '../services/video_pool_service.dart';
 import '../utils/constants.dart';
-import '../widgets/seamless_fullscreen_host.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
@@ -76,6 +75,11 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
     // 注册 WidgetsBindingObserver 以监听 App 前后台切换
     WidgetsBinding.instance.addObserver(this);
+    // 延迟到第一帧后注册 listen，避免在 build 期间触发 state 修改
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.listenManual<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
+    });
   }
 
   @override
@@ -137,9 +141,6 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
   }
   @override
   Widget build(BuildContext context) {
-    // 在 build 中监听页面导航状态变化：ConsumerState 自动管理订阅生命周期
-    ref.listen<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
-
     // 监听页面导航状态
     final pageNavState = ref.watch(pageNavigationProvider);
     // 监听工具栏可见性：用于驱动底部导航栏的折叠动画
@@ -319,16 +320,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                       ),
                     ),
                   ),
+                ),
               ),
-            ),
-            // 无缝全屏切换宿主：监听全屏状态，驱动从小窗→全屏的平滑缩放动画
-            // 放在 Stack 最顶层，动画期间覆盖所有内容（底部栏、覆盖层页面等）
-            // v1.123.1 hotfix：改为非 const 构造（保留运行时初始化）
-            // 原 const 实例在某些 Android 设备/Flutter 版本组合下会导致
-            // widget tree 启动时 RegisterMaterialChild 异常，表现为黑屏
-            // 改为非 const 不会改变行为，因为 build() 第一行就
-            // early-return SizedBox.shrink()，实例化时无副作用
-            SeamlessFullscreenHost(),
           ],
         ),
       ),

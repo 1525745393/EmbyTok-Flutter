@@ -37,9 +37,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final bool startFromResumePosition;
   // 是否为当前可见页面（非当前页初始化后暂停+静音，避免并发播放/解码）
   final bool isCurrentPage;
-  // 是否实际渲染 VideoPlayer widget；无缝全屏切换期间设为 false
-  // (false 时渲染黑底占位但 State 不销毁，controller 不释放，画面由全屏层接管)
-  final bool renderVideo;
 
   const VideoPlayerWidget({
     super.key,
@@ -53,7 +50,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.loop = true,
     this.startFromResumePosition = false,
     this.isCurrentPage = true,
-    this.renderVideo = true,
   });
 
   @override
@@ -682,12 +678,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _loadSubtitle(next);
       }
     });
-
-    // 无缝全屏切换期间：不渲染 VideoPlayer widget（画面由全屏层接管）
-    // 但 State 仍存活，controller 不 dispose，返回小窗时立刻恢复
-    if (!widget.renderVideo) {
-      return const ColoredBox(color: Colors.black);
-    }
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {

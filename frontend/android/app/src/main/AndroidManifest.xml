@@ -1,16 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <!-- v1.123.0 新增 screen_brightness 插件，部分 Android 设备/版本上
-         系统级亮度调节需要 WRITE_SETTINGS 权限。
-         即使只用 application brightness，某些 ROM（如 MIUI/EMUI）也会
-         在 init 阶段检查该权限，缺失时直接抛异常导致 APP 启动黑屏。
-         加上此权限是无害的（仅在主动调用 setSystemScreenBrightness 时需要） -->
-    <uses-permission
-        android:name="android.permission.WRITE_SETTINGS"
-        tools:ignore="ProtectedPermissions"/>
     <uses-feature android:name="android.hardware.wifi" android:required="false"/>
     <application
         android:label="EmbyTok"
