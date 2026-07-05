@@ -1,3 +1,15 @@
+## [1.124.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.1...v1.124.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* **ci:** 删除v1.123.0新增的3个文件以彻底完成回退 ([c2237a3](https://github.com/1525745393/EmbyTok-Flutter/commit/c2237a3b4850f667bed12f58c531cd334b874fa2))
+
+
+### Reverts
+
+* 回退到v1.122.1代码状态（发布为v1.125.0） ([b3028ce](https://github.com/1525745393/EmbyTok-Flutter/commit/b3028ce40b575e52efbbb1a6a4e43080b4201a69))
+
 ## [1.122.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.122.0...v1.122.1) (2026-07-02)
 
 
