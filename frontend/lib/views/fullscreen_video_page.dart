@@ -179,6 +179,7 @@ class _FullscreenVideoPageState
         _orientationPref =
             isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
       }
+      _setupControllerListener(ctrl);
       _applyOrientations();
       _applySystemUI();
       ref.read(isFullscreenProvider.notifier).state = true;
