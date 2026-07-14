@@ -526,6 +526,54 @@ class _FullscreenVideoPageState
     }
   }
 
+  // 视频渲染表面：根据画面比例模式正确显示
+  Widget _buildVideoSurface(VideoPlayerController controller) {
+    final videoSize = controller.value.size;
+    if (videoSize.isEmpty) return const SizedBox.shrink();
+
+    switch (_aspectMode) {
+      case _AspectRatioMode.auto:
+        final isPortraitVideo = videoSize.height > videoSize.width;
+        return FittedBox(
+          fit: isPortraitVideo ? BoxFit.cover : BoxFit.contain,
+          child: SizedBox(
+            width: videoSize.width,
+            height: videoSize.height,
+            child: VideoPlayer(controller),
+          ),
+        );
+      case _AspectRatioMode.contain:
+      case _AspectRatioMode.cover:
+      case _AspectRatioMode.fill:
+        return FittedBox(
+          fit: _getBoxFit(),
+          child: SizedBox(
+            width: videoSize.width,
+            height: videoSize.height,
+            child: VideoPlayer(controller),
+          ),
+        );
+      case _AspectRatioMode.sixteenNine:
+      case _AspectRatioMode.fourThree:
+        // 固定比例模式：外层按指定比例布局，内层裁剪/拉伸由 fit 决定
+        final targetRatio =
+            _aspectMode == _AspectRatioMode.sixteenNine ? 16 / 9 : 4 / 3;
+        return Center(
+          child: AspectRatio(
+            aspectRatio: targetRatio,
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: videoSize.width,
+                height: videoSize.height,
+                child: VideoPlayer(controller),
+              ),
+            ),
+          ),
+        );
+    }
+  }
+
   BoxFit _getBoxFit() {
     switch (_aspectMode) {
       case _AspectRatioMode.auto:
@@ -902,19 +950,7 @@ class _FullscreenVideoPageState
                   if (isControllerReady && controller != null)
                     Offstage(
                       offstage: hasError || !videoVisible,
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: _resolveAspectRatio(controller),
-                          child: FittedBox(
-                            fit: _getBoxFit(),
-                            child: SizedBox(
-                              width: controller.value.size.width,
-                              height: controller.value.size.height,
-                              child: VideoPlayer(controller),
-                            ),
-                          ),
-                        ),
-                      ),
+                      child: _buildVideoSurface(controller),
                     ),
 
                   if (hasError && controller != null)
