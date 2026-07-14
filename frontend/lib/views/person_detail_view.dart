@@ -12,8 +12,10 @@ import '../utils/image_cache_manager.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
   final MediaItem person;
+  /// 演员类型（Actor/Director/Writer），从导航来源传递，用于显示类型标签
+  final String? personType;
 
-  const PersonDetailView({super.key, required this.person});
+  const PersonDetailView({super.key, required this.person, this.personType});
 
   @override
   ConsumerState<PersonDetailView> createState() => _PersonDetailViewState();
@@ -40,6 +42,20 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// 根据 personType 返回中文类型标签
+  String get _personTypeLabel {
+    switch (widget.personType) {
+      case 'Actor':
+        return '演员';
+      case 'Director':
+        return '导演';
+      case 'Writer':
+        return '编剧';
+      default:
+        return '人物';
+    }
   }
 
   /// 滚动监听：距底部 200px 时触发加载更多
@@ -191,7 +207,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '演员/导演',
+                            _personTypeLabel,
                             style: TextStyle(
                                 color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
                           ),

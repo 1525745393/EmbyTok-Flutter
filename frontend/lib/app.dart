@@ -151,15 +151,20 @@ class EmbyTokApp extends ConsumerWidget {
           path: '/person/:personId',
           builder: (context, state) {
             final personId = state.pathParameters['personId'] ?? '';
-            // 支持通过 extra 传入已加载的 MediaItem
-            final person = state.extra is MediaItem
-                ? state.extra as MediaItem
-                : MediaItem(
-                    id: personId,
-                    title: '',
-                    type: 'Person',
-                  );
-            return PersonDetailView(person: person);
+            // 支持通过 extra 传入已加载的 MediaItem 或 Map（含 personType）
+            MediaItem person;
+            String? personType;
+            final extra = state.extra;
+            if (extra is Map) {
+              person = extra['item'] as MediaItem? ??
+                  MediaItem(id: personId, title: '', type: 'Person');
+              personType = extra['personType'] as String?;
+            } else if (extra is MediaItem) {
+              person = extra;
+            } else {
+              person = MediaItem(id: personId, title: '', type: 'Person');
+            }
+            return PersonDetailView(person: person, personType: personType);
           },
         ),
         // 合集/剧集详情页：/boxset/:boxsetId

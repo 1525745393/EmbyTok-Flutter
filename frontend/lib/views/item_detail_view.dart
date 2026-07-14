@@ -544,7 +544,23 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final person = people[index];
-                return _CastCard(key: Key(person.id ?? person.name), person: person);
+                return _CastCard(
+                  key: Key(person.id ?? person.name),
+                  person: person,
+                  onTap: () {
+                    final pid = person.id;
+                    if (pid == null || pid.isEmpty) return;
+                    context.push('/person/$pid', extra: {
+                      'item': MediaItem(
+                        id: pid,
+                        title: person.name,
+                        type: 'Person',
+                        thumbnailUrl: person.imageUrl,
+                      ),
+                      'personType': person.type,
+                    });
+                  },
+                );
               },
             ),
           ),
@@ -779,67 +795,75 @@ class _BackdropPlaceholder extends StatelessWidget {
 // 演员卡片：圆形头像 + 名称 + 角色
 class _CastCard extends StatelessWidget {
   final Person person;
-  const _CastCard({super.key, required this.person});
+  final VoidCallback? onTap;
+  const _CastCard({super.key, required this.person, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final imageUrl = person.imageUrl;
     final role = person.role;
-    return SizedBox(
-      width: 80,
-      child: Column(
-        children: [
-          // 圆形头像
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: scheme.surface,
-            ),
-            child: ClipOval(
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      cacheManager: AppImageCacheManager.thumbnail,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 144,
-                      placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
-                      errorWidget: (_, __, ___) => _AvatarPlaceholder(scheme: scheme),
-                    )
-                  : _AvatarPlaceholder(scheme: scheme),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 名称
-          Text(
-            person.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          // 角色名（如果有）
-          if (role != null && role.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                role,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant.withOpacity(0.7),
-                  fontSize: 11,
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 80,
+        child: Column(
+          children: [
+            // 圆形头像
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: scheme.surface,
+                border: Border.all(
+                  color: scheme.onSurface.withOpacity(0.1),
+                  width: 0.5,
                 ),
-                textAlign: TextAlign.center,
+              ),
+              child: ClipOval(
+                child: imageUrl != null && imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        cacheManager: AppImageCacheManager.thumbnail,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 144,
+                        placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
+                        errorWidget: (_, __, ___) => _AvatarPlaceholder(scheme: scheme),
+                      )
+                    : _AvatarPlaceholder(scheme: scheme),
               ),
             ),
-        ],
+            const SizedBox(height: 6),
+            // 名称
+            Text(
+              person.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            // 角色名（如果有）
+            if (role != null && role.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  role,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant.withOpacity(0.7),
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -80,31 +80,6 @@ final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
 });
 
 // ============================
-// 人员（演员/导演）列表
-// ============================
-
-final peopleListProvider = FutureProvider<List<Person>>((ref) async {
-  final auth = ref.watch(authProvider);
-  if (!auth.isAuthenticated) return <Person>[];
-  final service = _authService(ref, auth);
-  final response = await service.getPeople();
-  return response.items;
-});
-
-// ============================
-// 某演员出演的作品
-// ============================
-
-final personItemsProvider =
-    FutureProvider.family<List<MediaItem>, String>((ref, personId) async {
-  final auth = ref.watch(authProvider);
-  if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getPersonItems(personId);
-  return result.items;
-});
-
-// ============================
 // 类型（Genres）列表
 // ============================
 

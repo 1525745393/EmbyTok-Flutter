@@ -158,7 +158,10 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       type: 'Person',
       thumbnailUrl: actor.imageUrl,
     );
-    context.push('/person/${actor.id}', extra: mediaItem);
+    context.push('/person/${actor.id}', extra: {
+      'item': mediaItem,
+      'personType': actor.type,
+    });
   }
 
   // 构建类型筛选芯片
