@@ -1,3 +1,10 @@
+## [1.126.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.4...v1.126.5) (2026-07-14)
+
+
+### Bug Fixes
+
+* 修复全屏播放黑屏 - 移除视频层 RepaintBoundary ([ad017a5](https://github.com/1525745393/EmbyTok-Flutter/commit/ad017a5efec9c76232b011b8731679ed6d4729d5))
+
 ## [1.126.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.3...v1.126.4) (2026-07-14)
 
 
