@@ -1,3 +1,10 @@
+## [1.126.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.6...v1.126.7) (2026-07-14)
+
+
+### Bug Fixes
+
+* **search:** 修复搜索页面8项问题 ([d3cb1f5](https://github.com/1525745393/EmbyTok-Flutter/commit/d3cb1f5932de6a422183d683c13d4b095fc41bbe))
+
 ## [1.126.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.5...v1.126.6) (2026-07-14)
 
 
