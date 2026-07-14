@@ -45,7 +45,7 @@ class _FullscreenVideoPageState
   _SettingsTab _settingsTab = _SettingsTab.speed;
 
   AppLifecycleState? _lastLifecycleState;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<ConnectivityResult>? _connectivitySub;
   String? _networkToastMessage;
   Timer? _networkToastTimer;
 
@@ -197,9 +197,7 @@ class _FullscreenVideoPageState
   void _initConnectivity() {
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen((result) {
-      if (result.isNotEmpty) {
-        _onConnectivityChanged(result.first);
-      }
+      _onConnectivityChanged(result);
     });
   }
 
