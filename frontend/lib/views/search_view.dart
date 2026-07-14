@@ -12,12 +12,10 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/constants.dart';
 import '../utils/formatters.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
-import '../widgets/video_page_item.dart';
 
 class SearchView extends ConsumerStatefulWidget {
   final bool useScaffold;
@@ -31,7 +29,9 @@ class _SearchViewState extends ConsumerState<SearchView>
     with AutomaticKeepAliveClientMixin<SearchView> {
   late final TextEditingController _controller;
   Timer? _debounce;
+  Timer? _hintDebounce;
   final FocusNode _focusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   String? _selectedType;
 
   // Emby 支持的媒体类型
@@ -39,7 +39,7 @@ class _SearchViewState extends ConsumerState<SearchView>
     {'type': '', 'label': '全部'},
     {'type': 'Movie', 'label': '电影'},
     {'type': 'Series', 'label': '剧集'},
-    {'type': 'Episode', 'label': '剧集'},
+    {'type': 'Episode', 'label': '单集'},
     {'type': 'MusicAlbum', 'label': '音乐专辑'},
     {'type': 'MusicArtist', 'label': '艺术家'},
     {'type': 'Audio', 'label': '音频'},
@@ -51,40 +51,77 @@ class _SearchViewState extends ConsumerState<SearchView>
     super.initState();
     _controller = TextEditingController();
     _focusNode.requestFocus();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _debounce?.cancel();
+    _hintDebounce?.cancel();
     _focusNode.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   bool get wantKeepAlive => true;
 
+  /// 滚动到底部时自动加载更多
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (maxScroll - currentScroll < 200) {
+      final state = ref.read(searchProvider);
+      if (state.hasMore && !state.isLoading && state.query.isNotEmpty) {
+        ref.read(searchProvider.notifier).loadMore();
+      }
+    }
+  }
+
+  /// 输入变化：防抖触发搜索建议 + 搜索
   void _onQueryChanged(String value) {
     _debounce?.cancel();
+    _hintDebounce?.cancel();
+
     if (value.isEmpty) {
       ref.read(searchProvider.notifier).search('');
       ref.read(searchHintsStateProvider.notifier).clear();
       return;
     }
+
+    // 150ms 防抖获取搜索建议（比搜索更快，提供即时反馈）
+    _hintDebounce = Timer(const Duration(milliseconds: 150), () {
+      ref.read(searchHintsStateProvider.notifier).fetchHints(value);
+    });
+
     // 300ms 防抖后执行搜索
     _debounce = Timer(const Duration(milliseconds: 300), () {
       _doSearch(value);
     });
   }
 
+  /// 获取当前选中的媒体类型列表
+  List<String>? get _currentIncludeTypes {
+    if (_selectedType == null || _selectedType!.isEmpty) return null;
+    return [_selectedType!];
+  }
+
   void _doSearch(String value) {
-    ref.read(searchProvider.notifier).search(value);
-    ref.read(searchHistoryProvider.notifier).add(value);
+    ref.read(searchProvider.notifier).search(value, includeTypes: _currentIncludeTypes);
+    if (value.isNotEmpty) {
+      ref.read(searchHistoryProvider.notifier).add(value);
+    }
     ref.read(searchHintsStateProvider.notifier).clear();
   }
 
   void _selectHint(SearchHint hint) {
     _controller.text = hint.name;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: hint.name.length),
+    );
     _doSearch(hint.name);
   }
 
@@ -100,6 +137,19 @@ class _SearchViewState extends ConsumerState<SearchView>
         },
       ),
     );
+  }
+
+  /// 切换媒体类型筛选后，如果已有搜索词则重新搜索
+  void _onTypeChanged(String? type) {
+    setState(() {
+      _selectedType = type;
+    });
+    if (_controller.text.isNotEmpty) {
+      ref.read(searchProvider.notifier).search(
+        _controller.text,
+        includeTypes: _currentIncludeTypes,
+      );
+    }
   }
 
   @override
@@ -135,38 +185,45 @@ class _SearchViewState extends ConsumerState<SearchView>
               ],
             ),
           ),
+        // 搜索框：用 ValueListenableBuilder 驱动 suffixIcon 更新
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            onChanged: _onQueryChanged,
-            onSubmitted: _doSearch,
-            style: TextStyle(color: scheme.onSurface, fontSize: 16),
-            decoration: InputDecoration(
-              hintText: '输入关键词搜索...',
-              hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
-              prefixIcon: Icon(Icons.search,
-                  color: scheme.onSurface.withOpacity(0.6)),
-              suffixIcon: _controller.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear,
-                          color: scheme.onSurface.withOpacity(0.6)),
-                      onPressed: () {
-                        _controller.clear();
-                        _onQueryChanged('');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: scheme.onSurface.withOpacity(0.05),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(28),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _controller,
+            builder: (context, value, _) {
+              return TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                onChanged: _onQueryChanged,
+                onSubmitted: _doSearch,
+                textInputAction: TextInputAction.search,
+                style: TextStyle(color: scheme.onSurface, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: '输入关键词搜索...',
+                  hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                  prefixIcon: Icon(Icons.search,
+                      color: scheme.onSurface.withOpacity(0.6)),
+                  suffixIcon: value.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear,
+                              color: scheme.onSurface.withOpacity(0.6)),
+                          onPressed: () {
+                            _controller.clear();
+                            _onQueryChanged('');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: scheme.onSurface.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              );
+            },
           ),
         ),
         Expanded(
@@ -199,7 +256,7 @@ class _SearchViewState extends ConsumerState<SearchView>
 
   Widget _buildBody(
       SearchState state, SearchHintsState hintsState, List<String> history) {
-    // 显示搜索建议（输入时显示）
+    // 显示搜索建议（输入时、尚未提交搜索前显示）
     if (hintsState.query.isNotEmpty &&
         hintsState.hints.isNotEmpty &&
         state.query.isEmpty) {
@@ -232,7 +289,12 @@ class _SearchViewState extends ConsumerState<SearchView>
           title: error,
           actionLabel: '重试',
           onAction: () {
-            ref.read(searchProvider.notifier).search(state.query);
+            ref.read(searchProvider.notifier).search(
+              state.query,
+              includeTypes: state.includeTypes.isNotEmpty
+                  ? state.includeTypes
+                  : null,
+            );
           },
         ),
       );
@@ -245,15 +307,52 @@ class _SearchViewState extends ConsumerState<SearchView>
     }
     // 正常结果列表
     final scheme = Theme.of(context).colorScheme;
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: state.results.length,
-      separatorBuilder: (_, __) =>
-          Divider(color: scheme.onSurface.withOpacity(0.1), height: 1),
-      itemBuilder: (context, index) {
-        final item = state.results[index];
-        return _SearchResultTile(key: Key(item.id), item: item);
-      },
+    return Column(
+      children: [
+        // 搜索结果计数
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '共找到 ${state.total} 条结果',
+              style: TextStyle(
+                color: scheme.onSurface.withOpacity(0.6),
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: state.results.length + (state.hasMore ? 1 : 0),
+            separatorBuilder: (_, __) =>
+                Divider(color: scheme.onSurface.withOpacity(0.1), height: 1),
+            itemBuilder: (context, index) {
+              // 底部加载更多指示器
+              if (index == state.results.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final item = state.results[index];
+              return _SearchResultTile(key: Key(item.id), item: item);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -324,10 +423,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                         label: Text(label),
                         selected: _selectedType == type,
                         onSelected: (selected) {
-                          setState(() {
-                            _selectedType =
-                                selected ? type : null;
-                          });
+                          _onTypeChanged(selected ? type : null);
                         },
                         selectedColor: scheme.primary,
                         labelStyle: TextStyle(
@@ -544,26 +640,6 @@ class _ConfirmDialog extends StatelessWidget {
           child: Text('确定', style: TextStyle(color: scheme.onPrimary)),
         ),
       ],
-    );
-  }
-}
-
-class _VideoPlayPage extends StatelessWidget {
-  final MediaItem item;
-  const _VideoPlayPage({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(item.title,
-            style: TextStyle(color: scheme.onSurface, fontSize: 16)),
-      ),
-      body: VideoPageItem(item: item),
     );
   }
 }

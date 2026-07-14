@@ -17,6 +17,8 @@ class SearchState {
   final String? error;
   final int offset;
   final int limit;
+  final int total;
+  final List<String> includeTypes;
 
   const SearchState({
     this.results = const <MediaItem>[],
@@ -26,6 +28,8 @@ class SearchState {
     this.error,
     this.offset = 0,
     this.limit = kDefaultPageLimit,
+    this.total = 0,
+    this.includeTypes = const [],
   });
 
   SearchState copyWith({
@@ -36,6 +40,8 @@ class SearchState {
     String? error,
     int? offset,
     int? limit,
+    int? total,
+    List<String>? includeTypes,
   }) {
     return SearchState(
       results: results ?? this.results,
@@ -45,6 +51,8 @@ class SearchState {
       error: error ?? this.error,
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
+      total: total ?? this.total,
+      includeTypes: includeTypes ?? this.includeTypes,
     );
   }
 }
@@ -61,13 +69,13 @@ class SearchNotifier extends StateNotifier<SearchState> {
   AuthState get _auth => _ref.read(authProvider);
 
   // 发起一次新搜索（重置状态）
-  Future<void> search(String query) async {
+  Future<void> search(String query, {List<String>? includeTypes}) async {
     if (query.isEmpty) {
       state = const SearchState();
       return;
     }
 
-    AppLogger.info('开始搜索', data: {'query': query});
+    AppLogger.info('开始搜索', data: {'query': query, 'includeTypes': includeTypes});
 
     state = SearchState(
       results: const <MediaItem>[],
@@ -77,6 +85,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
       error: null,
       offset: 0,
       limit: state.limit,
+      includeTypes: includeTypes ?? const [],
     );
 
     final auth = _auth;
@@ -93,6 +102,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
         query,
         limit: state.limit,
         offset: 0,
+        includeTypes: includeTypes,
         serverUrl: serverUrl,
         token: token,
         userId: userId,
@@ -106,6 +116,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
         error: null,
         offset: resp.items.length,
         limit: state.limit,
+        total: resp.total,
+        includeTypes: includeTypes ?? const [],
       );
       AppLogger.debug('搜索完成', data: {'results': resp.items.length, 'total': resp.total});
     } catch (e) {
@@ -137,6 +149,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
         state.query,
         limit: state.limit,
         offset: state.offset,
+        includeTypes: state.includeTypes.isNotEmpty ? state.includeTypes : null,
         serverUrl: serverUrl,
         token: token,
         userId: userId,
@@ -151,6 +164,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
         error: null,
         offset: state.offset + resp.items.length,
         limit: state.limit,
+        total: resp.total,
+        includeTypes: state.includeTypes,
       );
       AppLogger.debug('加载更多成功', data: {'newCount': resp.items.length});
     } catch (e) {
