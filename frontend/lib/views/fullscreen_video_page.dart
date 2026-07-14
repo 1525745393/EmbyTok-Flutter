@@ -947,9 +947,7 @@ class _FullscreenVideoPageState
                   if (isControllerReady && controller != null)
                     Offstage(
                       offstage: hasError || !videoVisible,
-                      child: RepaintBoundary(
-                        child: _buildVideoSurface(controller),
-                      ),
+                      child: _buildVideoSurface(controller),
                     ),
 
                   if (hasError && controller != null)
