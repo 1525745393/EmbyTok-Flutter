@@ -1,3 +1,10 @@
+## [1.126.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.1...v1.126.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* 修复演员界面三个问题 ([cdddd1f](https://github.com/1525745393/EmbyTok-Flutter/commit/cdddd1fa625d7a91f47dba1c6d6a161882ea6083))
+
 ## [1.126.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.0...v1.126.1) (2026-07-14)
 
 
