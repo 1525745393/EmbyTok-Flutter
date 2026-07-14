@@ -145,6 +145,33 @@ final hiddenLibraryIdsProvider =
 /// 注意：[isMutedProvider] 和 [isAutoPlayProvider] 在 `video_playback_controller.dart` 中定义，
 /// 避免重复定义导致编译错误。
 
+// ---------------- 视频流排除已观看 ----------------
+
+/// 视频流排除已观看开关（默认 false）
+class FeedExcludePlayedNotifier extends StateNotifier<bool> {
+  FeedExcludePlayedNotifier() : super(false) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.feedExcludePlayed;
+  }
+
+  Future<void> setExclude(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(feedExcludePlayed: value),
+    );
+  }
+}
+
+final feedExcludePlayedProvider =
+    StateNotifierProvider<FeedExcludePlayedNotifier, bool>(
+  (ref) => FeedExcludePlayedNotifier(),
+);
+
 // ---------------- PR #78：推荐规则偏好 ----------------
 
 /// 推荐评分阈值（Emby 满分 10，0 表示不过滤）

@@ -41,6 +41,7 @@ class SettingsView extends ConsumerWidget {
             '媒体库',
             [
               _buildFeedLibraryTile(context, ref),
+              _buildFeedExcludePlayedTile(context, ref),
               _buildRecommendLibraryTile(context, ref),
             ],
           ),
@@ -213,6 +214,21 @@ class SettingsView extends ConsumerWidget {
       subtitle: subtitle,
       onTap: () =>
           LibrarySelector.show(context, scope: LibraryScope.feed),
+    );
+  }
+
+  // 媒体库 - 视频流排除已观看
+  Widget _buildFeedExcludePlayedTile(BuildContext context, WidgetRef ref) {
+    final exclude = ref.watch(feedExcludePlayedProvider);
+    return _SwitchTile(
+      icon: Icons.visibility_off_outlined,
+      iconColor: Colors.teal,
+      title: '排除已观看',
+      subtitle: exclude ? '视频流不显示已看过的视频' : '已看过的也会显示',
+      value: exclude,
+      onChanged: (value) {
+        ref.read(feedExcludePlayedProvider.notifier).setExclude(value);
+      },
     );
   }
 

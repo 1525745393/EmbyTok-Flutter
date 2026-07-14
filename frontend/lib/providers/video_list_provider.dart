@@ -143,6 +143,16 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
+    // 监听 feedExcludePlayedProvider 变化：排除已观看切换时自动刷新
+    _ref.listen<bool>(
+      feedExcludePlayedProvider,
+      (previous, next) {
+        if (next != previous) {
+          AppLogger.debug('视频流排除已观看变化：$previous -> $next，刷新视频列表');
+          refresh();
+        }
+      },
+    );
     // 监听 gridSearchQueryProvider 变化：网格搜索只影响 gridItems，不影响 feed 的 items
     // 设计原则：feed 和 grid 数据隔离。搜索是 grid 的本地行为，feed 始终是未过滤的视频流。
     _ref.listen<String>(
@@ -212,6 +222,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: searchTerm.isEmpty ? null : searchTerm,
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
           merged.addAll(resp.items);
           totalAvailable += resp.total;
@@ -299,6 +310,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 sortBy: state.sortBy,
                 sortOrder: state.sortOrder,
                 searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+                excludePlayed: _ref.read(feedExcludePlayedProvider),
               );
               merged.addAll(resp.items);
               totalItems += resp.total; // 累加每个库的总视频数
@@ -327,6 +339,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 serverUrl: serverUrl,
                 token: token,
                 userId: userId,
+                excludePlayed: _ref.read(feedExcludePlayedProvider),
               );
               merged.addAll(resp.items);
             } catch (e) {
@@ -440,6 +453,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
           merged.addAll(resp.items);
           totalAvailable += resp.total;
@@ -516,6 +530,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: userId,
             sortBy: 'Random',
             sortOrder: 'Ascending',
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
           merged.addAll(resp.items);
         } catch (e) {
@@ -715,6 +730,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             sortBy: state.sortBy,
             sortOrder: state.sortOrder,
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
           merged.addAll(resp.items);
         } catch (e) {

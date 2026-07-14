@@ -134,6 +134,8 @@ class AppPreferences {
   final String defaultSubtitleLanguage;
   final String videoQuality;
   final String subtitleSize;
+  // 视频流排除已观看（默认 false）
+  final bool feedExcludePlayed;
   // PR #78：推荐规则偏好
   // - recommendMinRating: 评分阈值（Emby 满分 10），0 表示不过滤
   // - recommendExcludePlayed: 排除已观看（默认 true）
@@ -179,6 +181,7 @@ class AppPreferences {
     this.defaultSubtitleLanguage = '',
     this.videoQuality = 'auto',
     this.subtitleSize = 'medium',
+    this.feedExcludePlayed = false,
     this.recommendMinRating = 4.0,
     this.recommendExcludePlayed = true,
     this.recommendMinRuntimeSec = 30,
@@ -209,6 +212,7 @@ class AppPreferences {
     String? defaultSubtitleLanguage,
     String? videoQuality,
     String? subtitleSize,
+    bool? feedExcludePlayed,
     double? recommendMinRating,
     bool? recommendExcludePlayed,
     int? recommendMinRuntimeSec,
@@ -232,6 +236,7 @@ class AppPreferences {
       defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
       videoQuality: videoQuality ?? this.videoQuality,
       subtitleSize: subtitleSize ?? this.subtitleSize,
+      feedExcludePlayed: feedExcludePlayed ?? this.feedExcludePlayed,
       recommendMinRating: recommendMinRating ?? this.recommendMinRating,
       recommendExcludePlayed: recommendExcludePlayed ?? this.recommendExcludePlayed,
       recommendMinRuntimeSec: recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
@@ -299,6 +304,9 @@ class AppPreferencesService {
     final videoQuality = prefs.getString(kStorageKeyVideoQuality) ?? 'auto';
     final subtitleSize = prefs.getString(kStorageKeySubtitleSize) ?? 'medium';
 
+    // 视频流排除已观看（默认 false）
+    final feedExcludePlayed = prefs.getBool(kStorageKeyFeedExcludePlayed) ?? false;
+
     // PR #78：推荐规则偏好
     final recommendMinRating = prefs.getDouble(kStorageKeyRecommendMinRating) ?? 4.0;
     final recommendExcludePlayed = prefs.getBool(kStorageKeyRecommendExcludePlayed) ?? true;
@@ -344,6 +352,7 @@ class AppPreferencesService {
       defaultSubtitleLanguage: defaultSubtitleLanguage,
       videoQuality: videoQuality,
       subtitleSize: subtitleSize,
+      feedExcludePlayed: feedExcludePlayed,
       recommendMinRating: recommendMinRating,
       recommendExcludePlayed: recommendExcludePlayed,
       recommendMinRuntimeSec: recommendMinRuntimeSec,
@@ -372,6 +381,8 @@ class AppPreferencesService {
       prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
       prefs.setString(kStorageKeyVideoQuality, preferences.videoQuality),
       prefs.setString(kStorageKeySubtitleSize, preferences.subtitleSize),
+      // 视频流排除已观看
+      prefs.setBool(kStorageKeyFeedExcludePlayed, preferences.feedExcludePlayed),
       // PR #78：推荐规则偏好
       prefs.setDouble(kStorageKeyRecommendMinRating, preferences.recommendMinRating),
       prefs.setBool(kStorageKeyRecommendExcludePlayed, preferences.recommendExcludePlayed),

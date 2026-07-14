@@ -194,6 +194,7 @@ class EmbytokService {
     String sortBy = 'DateCreated,SortName',
     String sortOrder = 'Descending',
     String? searchTerm,
+    bool excludePlayed = false,
   }) async {
     AppLogger.debug('请求视频列表', data: {
       'libraryId': libraryId,
@@ -202,6 +203,7 @@ class EmbytokService {
       'sortBy': sortBy,
       'sortOrder': sortOrder,
       if (searchTerm != null) 'searchTerm': searchTerm,
+      'excludePlayed': excludePlayed,
     });
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -216,6 +218,7 @@ class EmbytokService {
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
+      if (excludePlayed) 'Filters': 'IsPlayed=false',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
