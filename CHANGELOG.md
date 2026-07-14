@@ -1,3 +1,10 @@
+## [1.126.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.5...v1.126.6) (2026-07-14)
+
+
+### Bug Fixes
+
+* 回退全屏播放页到 v1.125.3 正常版本 ([215754d](https://github.com/1525745393/EmbyTok-Flutter/commit/215754dc06778bd9b435652a51985e8c37ae4a90))
+
 ## [1.126.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.4...v1.126.5) (2026-07-14)
 
 
