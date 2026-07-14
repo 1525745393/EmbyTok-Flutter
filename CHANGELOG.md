@@ -1,3 +1,10 @@
+## [1.125.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.2...v1.125.3) (2026-07-14)
+
+
+### Bug Fixes
+
+* **fullscreen:** 修复手势功能丢失 ([54780a5](https://github.com/1525745393/EmbyTok-Flutter/commit/54780a584e7d34df793639d6c74318f5e504ee4c))
+
 ## [1.125.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.1...v1.125.2) (2026-07-14)
 
 
