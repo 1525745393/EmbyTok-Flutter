@@ -1,3 +1,15 @@
+# [1.125.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.3...v1.125.0) (2026-07-14)
+
+
+### Bug Fixes
+
+* 修复 connectivity_plus 类型不匹配 ([bdf0c73](https://github.com/1525745393/EmbyTok-Flutter/commit/bdf0c7303ae5a8486b0b1b950c898070a467e5c8))
+
+
+### Features
+
+* **fullscreen:** 补全全屏播放器完整功能 ([5e99a9a](https://github.com/1525745393/EmbyTok-Flutter/commit/5e99a9a66b54440b9484fff3b121e102df2c5a91))
+
 ## [1.124.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.2...v1.124.3) (2026-07-05)
 
 
