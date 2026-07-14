@@ -170,9 +170,6 @@ class _FullscreenVideoPageState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // 提前标记全屏，避免非全屏 VideoPlayer 与全屏 VideoPlayer 同时渲染导致黑屏
-    ref.read(isFullscreenProvider.notifier).state = true;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = ref.read(currentVideoControllerProvider);
       if (ctrl != null && ctrl.value.isInitialized) {
@@ -184,6 +181,7 @@ class _FullscreenVideoPageState
       _setupControllerListener(ctrl);
       _applyOrientations();
       _applySystemUI();
+      ref.read(isFullscreenProvider.notifier).state = true;
     });
 
     _applySystemUI();
@@ -909,6 +907,7 @@ class _FullscreenVideoPageState
 
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
+    final videoVisible = !_isScreenLocked;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -945,8 +944,13 @@ class _FullscreenVideoPageState
                 children: [
                   const ColoredBox(color: Colors.black),
 
-                  if (isControllerReady && controller != null && !hasError)
-                    _buildVideoSurface(controller),
+                  if (isControllerReady && controller != null)
+                    Offstage(
+                      offstage: hasError || !videoVisible,
+                      child: RepaintBoundary(
+                        child: _buildVideoSurface(controller),
+                      ),
+                    ),
 
                   if (hasError && controller != null)
                     _buildErrorState(controller),
