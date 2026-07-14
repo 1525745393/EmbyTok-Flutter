@@ -1,3 +1,10 @@
+## [1.125.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.0...v1.125.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **fullscreen:** 修复全屏播放器缺失功能 ([c217b07](https://github.com/1525745393/EmbyTok-Flutter/commit/c217b07686841191918730f84e89fe93583bd6b7))
+
 # [1.125.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.124.3...v1.125.0) (2026-07-14)
 
 
