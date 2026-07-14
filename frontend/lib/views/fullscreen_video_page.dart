@@ -63,8 +63,6 @@ class _FullscreenVideoPageState
   // 功耗优化：状态缓存
   final ValueNotifier<bool> _bufferingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<int> _positionSecondsNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<bool> _showSeekFeedbackNotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> _isSeekForwardNotifier = ValueNotifier<bool>(false);
   bool _lastIsPlaying = false;
   bool _lastHasError = false;
   bool _wasControllerReady = false;
@@ -93,11 +91,14 @@ class _FullscreenVideoPageState
   Timer? _dragHideTimer;
   Timer? _verticalHideTimer;
   Offset? _lastTapPosition;
+  bool _showSeekFeedback = false;
+  bool _isSeekForward = false;
   bool _showSpeedBadge = false;
   bool _isLongPressing = false;
   double _originalRate = 1.0;
   bool _pendingSingleTap = false;
   Timer? _singleTapTimer;
+  bool _showHeart = false;
 
   void _setupControllerListener(VideoPlayerController? controller) {
     if (_watchedController == controller) return;
@@ -444,8 +445,6 @@ class _FullscreenVideoPageState
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
     _positionSecondsNotifier.dispose();
-    _showSeekFeedbackNotifier.dispose();
-    _isSeekForwardNotifier.dispose();
 
     if (_originalBrightness != null) {
       try {
@@ -759,14 +758,18 @@ class _FullscreenVideoPageState
       }
     }
 
-    // 中间双击：播放/暂停切换
-    if (controller != null && controller.value.isInitialized) {
-      if (controller.value.isPlaying) {
-        controller.pause();
-      } else {
-        controller.play();
+    // 中间双击：点赞
+    setState(() => _showHeart = true);
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _showHeart = false);
+    });
+    final item = ref.read(currentPlayingItemProvider);
+    if (item != null) {
+      try {
+        unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(item));
+      } catch (e) {
+        debugPrint('toggleFavorite error: $e');
       }
-      HapticFeedback.lightImpact();
     }
   }
 
@@ -784,11 +787,12 @@ class _FullscreenVideoPageState
     } catch (e) {
       debugPrint('seek error: $e');
     }
-    // 用 ValueNotifier 驱动 UI，避免 setState 触发整页重建
-    _isSeekForwardNotifier.value = seconds > 0;
-    _showSeekFeedbackNotifier.value = true;
+    setState(() {
+      _isSeekForward = seconds > 0;
+      _showSeekFeedback = true;
+    });
     Future.delayed(const Duration(milliseconds: 600), () {
-      _showSeekFeedbackNotifier.value = false;
+      if (mounted) setState(() => _showSeekFeedback = false);
     });
   }
 
@@ -1071,65 +1075,56 @@ class _FullscreenVideoPageState
               ),
             ),
 
-          // 双击快进快退反馈（ValueNotifier 驱动，不触发 setState）
-          ValueListenableBuilder<bool>(
-            valueListenable: _showSeekFeedbackNotifier,
-            builder: (context, showFeedback, _) {
-              if (!showFeedback) return const SizedBox.shrink();
-              return ValueListenableBuilder<bool>(
-                valueListenable: _isSeekForwardNotifier,
-                builder: (context, isForward, _) {
-                  return IgnorePointer(
-                    child: Positioned(
-                      top: 0,
-                      bottom: 0,
-                      left: isForward ? null : 0,
-                      right: isForward ? 0 : null,
-                      width: MediaQuery.of(context).size.width / 3,
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: isForward
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            end: isForward
-                                ? Alignment.centerLeft
-                                : Alignment.centerRight,
-                            colors: [
-                              Colors.white.withOpacity(0.15),
-                              Colors.transparent
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isForward
-                                  ? Icons.fast_forward
-                                  : Icons.fast_rewind,
-                              color: Colors.white,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              isForward ? '+10s' : '-10s',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+          if (_showHeart) const IgnorePointer(child: _FlyingHeart()),
+
+          if (_showSeekFeedback)
+            IgnorePointer(
+              child: Positioned(
+                top: 0,
+                bottom: 0,
+                left: _isSeekForward ? null : 0,
+                right: _isSeekForward ? 0 : null,
+                width: MediaQuery.of(context).size.width / 3,
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: _isSeekForward
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      end: _isSeekForward
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
+                      colors: [
+                        Colors.white.withOpacity(0.15),
+                        Colors.transparent
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _isSeekForward
+                            ? Icons.fast_forward
+                            : Icons.fast_rewind,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _isSeekForward ? '+10s' : '-10s',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1803,6 +1798,62 @@ class _SeekPreviewBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FlyingHeart extends StatefulWidget {
+  const _FlyingHeart();
+
+  @override
+  State<_FlyingHeart> createState() => _FlyingHeartState();
+}
+
+class _FlyingHeartState extends State<_FlyingHeart>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+    _scale = Tween<double>(begin: 0.6, end: 2.8).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.scale(
+            scale: _scale.value,
+            child: Icon(
+              Icons.favorite,
+              color: Theme.of(context).colorScheme.primary,
+              size: 96,
+            ),
+          ),
+        );
+      },
     );
   }
 }
