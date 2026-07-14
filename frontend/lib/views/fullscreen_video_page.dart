@@ -907,7 +907,6 @@ class _FullscreenVideoPageState
 
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
-    final videoVisible = !_isScreenLocked;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -944,12 +943,9 @@ class _FullscreenVideoPageState
                 children: [
                   const ColoredBox(color: Colors.black),
 
-                  if (isControllerReady && controller != null)
-                    Offstage(
-                      offstage: hasError || !videoVisible,
-                      child: RepaintBoundary(
-                        child: _buildVideoSurface(controller),
-                      ),
+                  if (isControllerReady && controller != null && !hasError)
+                    RepaintBoundary(
+                      child: _buildVideoSurface(controller),
                     ),
 
                   if (hasError && controller != null)

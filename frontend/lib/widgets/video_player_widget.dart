@@ -679,13 +679,12 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       }
     });
 
-    // 监听全屏状态：进入全屏时暂停渲染 VideoPlayer 组件，避免两个 VideoPlayer 绑定同一控制器导致黑屏
+    // 监听全屏状态：进入全屏时取消后台释放定时器，避免 controller 被释放
     ref.listen<bool>(isFullscreenProvider, (previous, next) {
       if (next) {
         _backgroundReleaseTimer?.cancel();
       }
     });
-    final isFullscreen = ref.watch(isFullscreenProvider);
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
@@ -699,12 +698,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：进入全屏时暂停渲染 VideoPlayer，由全屏页负责渲染
-    if (isFullscreen) {
-      return const ColoredBox(color: Colors.black);
-    }
-
-    // 场景 4：正常播放视频（带字幕叠加）
+    // 场景 3：正常播放视频（带字幕叠加）
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
