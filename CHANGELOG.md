@@ -1,3 +1,10 @@
+## [1.126.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.2...v1.126.3) (2026-07-14)
+
+
+### Bug Fixes
+
+* 修复全屏播放黑屏问题 ([41a472c](https://github.com/1525745393/EmbyTok-Flutter/commit/41a472ca4a650c99b4205e9f0bc9035417efc618))
+
 ## [1.126.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.1...v1.126.2) (2026-07-14)
 
 
