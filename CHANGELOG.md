@@ -1,3 +1,10 @@
+## [1.125.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.1...v1.125.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* **fullscreen:** 修复画面比例切换逻辑 ([c3ef9f5](https://github.com/1525745393/EmbyTok-Flutter/commit/c3ef9f5eabf78618b60cc5ab1677076fad663edc))
+
 ## [1.125.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.0...v1.125.1) (2026-07-14)
 
 
