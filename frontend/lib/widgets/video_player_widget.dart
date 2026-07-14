@@ -685,6 +685,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _backgroundReleaseTimer?.cancel();
       }
     });
+    final isFullscreen = ref.watch(isFullscreenProvider);
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
@@ -698,7 +699,23 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
 
-    // 场景 3：正常播放视频（带字幕叠加）
+    // 场景 3：进入全屏时用 Offstage 隐藏 VideoPlayer（保留在树中维持 texture，避免全屏页重建 texture 导致黑屏）
+    if (isFullscreen) {
+      return Offstage(
+        child: RepaintBoundary(
+          child: FittedBox(
+            fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+            child: SizedBox(
+              width: vc.value.size.width,
+              height: vc.value.size.height,
+              child: VideoPlayer(vc),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 场景 4：正常播放视频（带字幕叠加）
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
