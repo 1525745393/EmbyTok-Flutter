@@ -1,3 +1,11 @@
+## [1.125.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.3...v1.125.4) (2026-07-14)
+
+
+### Bug Fixes
+
+* **fullscreen:** 修复双击白屏问题 ([57478ba](https://github.com/1525745393/EmbyTok-Flutter/commit/57478ba681edfd06327efaeef245f45d9adb131e))
+* 移除重复定义 _showSpeedBadge ([7da4984](https://github.com/1525745393/EmbyTok-Flutter/commit/7da4984a98d0cfd796c2de65e4c3f20d849386ff))
+
 ## [1.125.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.125.2...v1.125.3) (2026-07-14)
 
 
