@@ -98,7 +98,6 @@ class _FullscreenVideoPageState
   double _originalRate = 1.0;
   bool _pendingSingleTap = false;
   Timer? _singleTapTimer;
-  bool _showSpeedBadge = false;
 
   void _setupControllerListener(VideoPlayerController? controller) {
     if (_watchedController == controller) return;
