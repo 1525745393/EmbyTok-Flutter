@@ -19,8 +19,11 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
+import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
+import '../widgets/subtitle_renderer.dart';
 
 /// 全屏视频播放页
 class FullscreenVideoPage extends ConsumerStatefulWidget {
@@ -59,10 +62,16 @@ class _FullscreenVideoPageState
 
   // 功耗优化：状态缓存
   final ValueNotifier<bool> _bufferingNotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<int> _positionSecondsNotifier = ValueNotifier<int>(0);
   bool _lastIsPlaying = false;
   bool _lastHasError = false;
   bool _wasControllerReady = false;
   VideoPlayerController? _watchedController;
+  int _lastPositionSec = -1;
+
+  // 字幕
+  List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
+  bool _isLoadingSubtitle = false;
 
   // 手势状态
   bool _isDragging = false;
@@ -143,6 +152,13 @@ class _FullscreenVideoPageState
     if (isReady != _wasControllerReady) {
       _wasControllerReady = isReady;
       needsRebuild = true;
+    }
+
+    // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
+    final sec = v.position.inSeconds;
+    if (sec != _lastPositionSec) {
+      _lastPositionSec = sec;
+      _positionSecondsNotifier.value = sec;
     }
 
     if (needsRebuild && mounted) {
@@ -332,6 +348,89 @@ class _FullscreenVideoPageState
     }
   }
 
+  // 异步加载字幕
+  Future<void> _loadSubtitle(String? selectedTrackId) async {
+    if (!mounted) return;
+    if (selectedTrackId == null) {
+      setState(() {
+        _subtitleCues = const <SubtitleCue>[];
+      });
+      return;
+    }
+    final item = ref.read(currentPlayingItemProvider);
+    if (item == null) return;
+    final sources = item.mediaSources;
+    final mediaSourceId =
+        (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+    if (mediaSourceId == null || mediaSourceId.isEmpty) return;
+
+    final tracks = item.subtitleTracks;
+    int? trackIndex;
+    for (int i = 0; i < tracks.length; i++) {
+      if (tracks[i].id == selectedTrackId) {
+        final maybeIndex = int.tryParse(tracks[i].id);
+        if (maybeIndex != null) {
+          trackIndex = maybeIndex;
+          break;
+        }
+        trackIndex = i;
+        break;
+      }
+    }
+    trackIndex ??= int.tryParse(selectedTrackId);
+    if (trackIndex == null) return;
+
+    setState(() => _isLoadingSubtitle = true);
+    try {
+      final embService = ref.read(embbytokServiceProvider);
+      final authState = ref.read(authProvider);
+      final serverUrl = authState.embyServerUrl;
+      final token = authState.token;
+      if (serverUrl != null && token != null) {
+        embService.setupAuth(
+          embyServerUrl: serverUrl,
+          apiKey: token,
+          userId: authState.user?.id,
+        );
+      }
+      final cues = await embService.getSubtitleCues(
+        itemId: item.id,
+        mediaSourceId: mediaSourceId,
+        index: trackIndex,
+      );
+      if (mounted) {
+        setState(() {
+          _subtitleCues = cues;
+          _isLoadingSubtitle = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSubtitle = false;
+          _subtitleCues = const <SubtitleCue>[];
+        });
+      }
+      debugPrint('Load subtitle error: $e');
+    }
+  }
+
+  // 清晰度变化时触发重新初始化（交由外部重新创建 controller）
+  void _onPlaybackLevelChanged(int level) {
+    final item = ref.read(currentPlayingItemProvider);
+    if (item == null) return;
+    // 释放当前 controller，外部会重新创建
+    final oldController = ref.read(currentVideoControllerProvider);
+    if (oldController != null) {
+      try {
+        oldController.dispose();
+      } catch (_) {}
+    }
+    ref.read(currentVideoControllerProvider.notifier).state = null;
+    // 触发重试 key 更新来触发重建
+    setState(() => _retryKey++);
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -344,6 +443,7 @@ class _FullscreenVideoPageState
     _singleTapTimer?.cancel();
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
+    _positionSecondsNotifier.dispose();
 
     if (_originalBrightness != null) {
       try {
@@ -687,24 +787,77 @@ class _FullscreenVideoPageState
     return '$m:$s';
   }
 
+  int? _getCurrentIndex() {
+    final items = ref.read(videoListProvider).items;
+    final current = ref.read(currentPlayingItemProvider);
+    if (current == null) return null;
+    for (int i = 0; i < items.length; i++) {
+      if (items[i].id == current.id) return i;
+    }
+    return null;
+  }
+
+  bool _hasPrevious() {
+    final idx = _getCurrentIndex();
+    return idx != null && idx > 0;
+  }
+
+  bool _hasNext() {
+    final idx = _getCurrentIndex();
+    final items = ref.read(videoListProvider).items;
+    return idx != null && idx < items.length - 1;
+  }
+
+  void _jumpToPrevious() {
+    final idx = _getCurrentIndex();
+    if (idx == null || idx <= 0) return;
+    ref.read(feedViewPageJumpRequestProvider.notifier).state = idx - 1;
+  }
+
+  void _jumpToNext() {
+    final idx = _getCurrentIndex();
+    if (idx == null) return;
+    final items = ref.read(videoListProvider).items;
+    if (idx >= items.length - 1) return;
+    ref.read(feedViewPageJumpRequestProvider.notifier).state = idx + 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(currentVideoControllerProvider);
     final playingItem = ref.watch(currentPlayingItemProvider);
     final items = ref.watch(videoListProvider.select((s) => s.items));
 
-    final controllerChanged = _watchedController != controller;
-    _setupControllerListener(controller);
+    // 监听 controller 变化，安全注册 listener
+    ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
+        (prev, next) {
+      _setupControllerListener(next);
+      if (mounted) setState(() {});
+    });
+
+    // 监听字幕选择变化，异步加载字幕
+    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
+      if (next != previous) {
+        _loadSubtitle(next);
+      }
+    });
+
+    // 清晰度变化时触发重新初始化
+    ref.listen<int>(playbackLevelProvider, (previous, next) {
+      if (previous != next && previous != null) {
+        _onPlaybackLevelChanged(next);
+      }
+    });
 
     bool isControllerReady;
     bool hasError;
-    if (controllerChanged && controller != null) {
+    if (controller != null) {
       final v = controller.value;
       isControllerReady = v.isInitialized && !v.hasError;
       hasError = v.hasError;
     } else {
-      isControllerReady = _wasControllerReady && controller != null;
-      hasError = _lastHasError && controller != null;
+      isControllerReady = false;
+      hasError = false;
     }
 
     final mediaOrientation = MediaQuery.orientationOf(context);
@@ -788,6 +941,29 @@ class _FullscreenVideoPageState
                           ),
                         );
                       },
+                    ),
+
+                  // 字幕渲染层
+                  if (isControllerReady &&
+                      !hasError &&
+                      _subtitleCues.isNotEmpty &&
+                      ref.watch(selectedSubtitleProvider) != null)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 60,
+                      child: RepaintBoundary(
+                        child: ValueListenableBuilder<int>(
+                          valueListenable: _positionSecondsNotifier,
+                          builder: (_, seconds, __) {
+                            return SubtitleRenderer(
+                              position: Duration(seconds: seconds),
+                              cues: _subtitleCues,
+                              enabled: true,
+                            );
+                          },
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -1110,7 +1286,7 @@ class _FullscreenVideoPageState
                   children: [
                     IconButton(
                       icon: const Icon(Icons.skip_previous, color: Colors.white),
-                      onPressed: null, // 上一集由外部控制
+                      onPressed: _hasPrevious() ? _jumpToPrevious : null,
                     ),
                     ValueListenableBuilder<VideoPlayerValue>(
                       valueListenable: controller,
@@ -1135,7 +1311,7 @@ class _FullscreenVideoPageState
                     ),
                     IconButton(
                       icon: const Icon(Icons.skip_next, color: Colors.white),
-                      onPressed: null, // 下一集由外部控制
+                      onPressed: _hasNext() ? _jumpToNext : null,
                     ),
                     const Spacer(),
                     IconButton(
