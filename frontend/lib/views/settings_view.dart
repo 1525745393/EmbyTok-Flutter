@@ -1,6 +1,7 @@
 // 设置页面：主题、播放、字幕、存储、账户、关于等
 // 优化：组件提取、配置化、UI 优化、新增功能
 
+import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
