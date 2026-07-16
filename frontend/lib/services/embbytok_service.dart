@@ -599,13 +599,12 @@ class EmbytokService {
     final params = <String, dynamic>{
       'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
     };
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items/$personId'
-        : '/Items/$personId';
+    if (userId != null && userId.isNotEmpty) {
+      params['UserId'] = userId;
+    }
     try {
       final resp = await _apiClient.get<dynamic>(
-        path,
+        '/Items/$personId',
         queryParameters: params,
       );
       if (resp.data is Map<String, dynamic>) {
