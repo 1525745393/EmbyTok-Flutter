@@ -1,3 +1,10 @@
+## [1.128.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.128.0...v1.128.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **nav:** NavigationBar 移除不支持的 selectedItemColor/unselectedItemColor ([2526697](https://github.com/1525745393/EmbyTok-Flutter/commit/252669748f0720348bb633a05a898e67544a86f2))
+
 # [1.128.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.127.0...v1.128.0) (2026-07-16)
 
 
