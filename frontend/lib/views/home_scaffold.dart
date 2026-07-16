@@ -1,5 +1,5 @@
 // 主骨架页：底部导航栏 + 页面切换
-// 底部导航栏简化为3个标签：首页、收藏、设置
+// 底部导航栏4个标签：首页、收藏、演员、设置
 // 搜索和历史通过 FeedView 顶部操作栏的图标按钮访问（覆盖层页面）
 //
 // 系统返回键拦截：HomeScaffold 的 PopScope 拦截系统返回键。
@@ -278,39 +278,37 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                           ),
                           child: Padding(
                             padding: EdgeInsets.only(bottom: bottomPadding),
-                            child: BottomNavigationBar(
-                              currentIndex: currentIndex,
-                              type: BottomNavigationBarType.fixed,
+                          child: NavigationBar(
+                              selectedIndex: currentIndex,
                               backgroundColor: Colors.transparent,
                               elevation: 0,
+                              indicatorColor: scheme.primary.withOpacity(0.15),
                               selectedItemColor: scheme.primary,
                               unselectedItemColor: scheme.onSurfaceVariant,
-                              selectedFontSize: 12,
-                              unselectedFontSize: 12,
-                              showSelectedLabels: true,
-                              showUnselectedLabels: true,
-                              onTap: (index) {
+                              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                              height: kBottomNavHeight,
+                              onDestinationSelected: (index) {
                                 ref.read(pageNavigationNotifierProvider).goToPage(index);
                               },
-                              items: const [
-                                BottomNavigationBarItem(
+                              destinations: const [
+                                NavigationDestination(
                                   icon: Icon(Icons.home_outlined),
-                                  activeIcon: Icon(Icons.home),
+                                  selectedIcon: Icon(Icons.home),
                                   label: '首页',
                                 ),
-                                BottomNavigationBarItem(
+                                NavigationDestination(
                                   icon: Icon(Icons.favorite_border),
-                                  activeIcon: Icon(Icons.favorite),
+                                  selectedIcon: Icon(Icons.favorite),
                                   label: '收藏',
                                 ),
-                                BottomNavigationBarItem(
+                                NavigationDestination(
                                   icon: Icon(Icons.person_outline),
-                                  activeIcon: Icon(Icons.person),
+                                  selectedIcon: Icon(Icons.person),
                                   label: '演员',
                                 ),
-                                BottomNavigationBarItem(
+                                NavigationDestination(
                                   icon: Icon(Icons.settings_outlined),
-                                  activeIcon: Icon(Icons.settings),
+                                  selectedIcon: Icon(Icons.settings),
                                   label: '设置',
                                 ),
                               ],
