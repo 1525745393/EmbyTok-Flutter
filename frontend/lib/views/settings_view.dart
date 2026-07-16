@@ -39,6 +39,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '媒体库',
+            Icons.video_library_outlined,
+            Colors.deepPurple,
             [
               _buildFeedLibraryTile(context, ref),
               _buildFeedExcludePlayedTile(context, ref),
@@ -50,6 +52,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '推荐',
+            Icons.recommend_outlined,
+            Colors.pink,
             [
               _buildRecommendMinRatingTile(context, ref),
               _buildRecommendExcludePlayedTile(context, ref),
@@ -71,6 +75,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '播放',
+            Icons.play_circle_outline,
+            Colors.green,
             [
               _buildAutoPlayTile(context, ref),
               _buildPlaybackRateTile(context, ref),
@@ -83,6 +89,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '字幕',
+            Icons.closed_caption_outlined,
+            Colors.teal,
             [
               _buildSubtitleLanguageTile(context, ref),
               _buildSubtitleSizeTile(context, ref),
@@ -93,6 +101,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '外观',
+            Icons.palette_outlined,
+            Colors.indigo,
             [
               _buildThemeTile(context, ref),
               _buildOrientationTile(context, ref),
@@ -103,6 +113,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '存储',
+            Icons.storage_outlined,
+            Colors.grey,
             [
               _buildCacheTile(context, ref),
             ],
@@ -112,6 +124,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '统计',
+            Icons.analytics_outlined,
+            Colors.deepPurple,
             [
               _buildWatchStatsTile(context, ref),
             ],
@@ -121,6 +135,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '服务器',
+            Icons.cloud_outlined,
+            Colors.blue,
             [
               _buildServerInfoTile(context, ref),
             ],
@@ -130,6 +146,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '关于',
+            Icons.info_outline,
+            Colors.blueGrey,
             [
               _buildAboutTile(context),
               _buildVersionTile(context),
@@ -140,6 +158,8 @@ class SettingsView extends ConsumerWidget {
             context,
             ref,
             '账户',
+            Icons.account_circle_outlined,
+            Colors.blue,
             [
               _buildProfileTile(context, ref),
             ],
@@ -158,29 +178,51 @@ class SettingsView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String title,
+    IconData sectionIcon,
+    Color sectionColor,
     List<Widget> children,
   ) {
     final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 分组标题：图标 + 文字，增加视觉层次
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-          child: Text(
-            title,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.8,
-            ),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: sectionColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: Icon(sectionIcon, color: sectionColor, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
         ),
+        // 卡片容器：圆角 + 阴影 + 边框
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: scheme.onSurface.withOpacity(0.06),
+              width: 0.5,
+            ),
           ),
           child: Column(
             children: _buildItemList(children),
