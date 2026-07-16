@@ -37,6 +37,7 @@ async def search_post(
             query=body.query,
             limit=body.limit,
             offset=body.offset,
+            include_types=body.types,
         )
         items = data.get("Items", []) if isinstance(data, dict) else []
         total = data.get("TotalRecordCount", len(items)) if isinstance(data, dict) else len(items)
@@ -49,6 +50,7 @@ async def search_get(
     q: str = Query(..., description="搜索关键字"),
     limit: int = Query(default=20, description="每页条数"),
     offset: int = Query(default=0, description="起始偏移"),
+    types: Optional[str] = Query(default=None, description="媒体类型过滤，逗号分隔"),
     emby_server_url: str = Depends(get_emby_server_url),
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
@@ -58,8 +60,27 @@ async def search_get(
         raise APIError(BAD_REQUEST, "q 参数不能为空")
     async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
         client.user_id = user_id
-        data = await client.search(query=q, limit=limit, offset=offset)
+        include_types = types.split(",") if types else None
+        data = await client.search(query=q, limit=limit, offset=offset, include_types=include_types)
         items = data.get("Items", []) if isinstance(data, dict) else []
         total = data.get("TotalRecordCount", len(items)) if isinstance(data, dict) else len(items)
         converted = [media_item_from_emby(item, emby_server_url) for item in items]
         return paginate_from_items(converted, total=total, limit=limit, offset=offset)
+
+
+@router.get("/persons", response_model=List[dict], summary="搜索人物")
+async def search_persons(
+    q: str = Query(..., description="搜索关键字"),
+    limit: int = Query(default=20, description="返回条数"),
+    emby_server_url: str = Depends(get_emby_server_url),
+    emby_token: str = Depends(get_emby_token),
+    user_id: str = Depends(get_user_id),
+) -> List[dict]:
+    """搜索人物（演员/导演/编剧）"""
+    if not q:
+        raise APIError(BAD_REQUEST, "q 参数不能为空")
+    async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
+        client.user_id = user_id
+        data = await client.search_persons(query=q, limit=limit)
+        items = data.get("Items", []) if isinstance(data, dict) else []
+        return items

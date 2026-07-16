@@ -1,4 +1,4 @@
-// 搜索页：关键词输入 + 搜索建议 + 搜索结果列表 + 搜索历史
+// 搜索页：关键词输入 + 搜索建议 + 分组搜索结果 + 搜索历史
 // 支持两种模式：
 //   useScaffold=true: 独立路由模式（含 Scaffold + AppBar，通过 GoRouter 路由访问）
 //   useScaffold=false: 覆盖层模式（仅内容，通过 HomeScaffold Stack 渲染，Provider 管理返回）
@@ -32,19 +32,7 @@ class _SearchViewState extends ConsumerState<SearchView>
   Timer? _hintDebounce;
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  String? _selectedType;
-
-  // Emby 支持的媒体类型
-  static const List<Map<String, String>> _mediaTypes = [
-    {'type': '', 'label': '全部'},
-    {'type': 'Movie', 'label': '电影'},
-    {'type': 'Series', 'label': '剧集'},
-    {'type': 'Episode', 'label': '单集'},
-    {'type': 'MusicAlbum', 'label': '音乐专辑'},
-    {'type': 'MusicArtist', 'label': '艺术家'},
-    {'type': 'Audio', 'label': '音频'},
-    {'type': 'BoxSet', 'label': '合集'},
-  ];
+  SearchCategory _selectedCategory = SearchCategory.all;
 
   @override
   void initState() {
@@ -103,18 +91,22 @@ class _SearchViewState extends ConsumerState<SearchView>
     });
   }
 
-  /// 获取当前选中的媒体类型列表
-  List<String>? get _currentIncludeTypes {
-    if (_selectedType == null || _selectedType!.isEmpty) return null;
-    return [_selectedType!];
-  }
-
   void _doSearch(String value) {
-    ref.read(searchProvider.notifier).search(value, includeTypes: _currentIncludeTypes);
+    ref.read(searchProvider.notifier).search(value, category: _selectedCategory);
     if (value.isNotEmpty) {
       ref.read(searchHistoryProvider.notifier).add(value);
     }
     ref.read(searchHintsStateProvider.notifier).clear();
+  }
+
+  /// 切换搜索分组
+  void _onCategoryChanged(SearchCategory category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+    if (_controller.text.isNotEmpty) {
+      ref.read(searchProvider.notifier).search(_controller.text, category: category);
+    }
   }
 
   void _selectHint(SearchHint hint) {
@@ -137,19 +129,6 @@ class _SearchViewState extends ConsumerState<SearchView>
         },
       ),
     );
-  }
-
-  /// 切换媒体类型筛选后，如果已有搜索词则重新搜索
-  void _onTypeChanged(String? type) {
-    setState(() {
-      _selectedType = type;
-    });
-    if (_controller.text.isNotEmpty) {
-      ref.read(searchProvider.notifier).search(
-        _controller.text,
-        includeTypes: _currentIncludeTypes,
-      );
-    }
   }
 
   @override
@@ -226,6 +205,42 @@ class _SearchViewState extends ConsumerState<SearchView>
             },
           ),
         ),
+        // 分组标签（搜索时显示）
+        if (state.query.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: searchCategories.map((item) {
+                  final category = item['category'] as SearchCategory;
+                  final label = item['label'] as String;
+                  final isSelected = _selectedCategory == category;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(label),
+                      selected: isSelected,
+                      onSelected: (_) => _onCategoryChanged(category),
+                      selectedColor: scheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? scheme.onPrimary
+                            : scheme.onSurface.withOpacity(0.7),
+                        fontSize: 13,
+                      ),
+                      backgroundColor:
+                          scheme.onSurface.withOpacity(0.05),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
         Expanded(
           child: _buildBody(state, hintsState, history),
         ),
@@ -262,12 +277,12 @@ class _SearchViewState extends ConsumerState<SearchView>
         state.query.isEmpty) {
       return _buildHints(hintsState);
     }
-    // 空查询：显示历史和分类筛选
+    // 空查询：显示历史
     if (state.query.isEmpty) {
-      return _buildHistoryAndFilters(history);
+      return _buildHistory(history);
     }
     // 加载中
-    if (state.isLoading && state.results.isEmpty) {
+    if ((state.isLoading || state.isLoadingPersons) && state.results.isEmpty && state.persons.isEmpty) {
       final scheme = Theme.of(context).colorScheme;
       return _Centered(
         child: Column(
@@ -283,29 +298,50 @@ class _SearchViewState extends ConsumerState<SearchView>
     }
     // 错误
     final error = state.error;
-    if (error != null && state.results.isEmpty) {
+    if (error != null && state.results.isEmpty && state.persons.isEmpty) {
       return _Centered(
         child: ErrorStateCard(
           title: error,
           actionLabel: '重试',
           onAction: () {
-            ref.read(searchProvider.notifier).search(
-              state.query,
-              includeTypes: state.includeTypes.isNotEmpty
-                  ? state.includeTypes
-                  : null,
-            );
+            ref.read(searchProvider.notifier).search(state.query, category: state.category);
           },
         ),
       );
     }
     // 空结果
-    if (state.results.isEmpty) {
+    if (state.results.isEmpty && state.persons.isEmpty) {
       return _Centered(
         child: EmptyStateCard.noSearchResults(),
       );
     }
-    // 正常结果列表
+    // 人物搜索结果
+    if (state.category == SearchCategory.persons) {
+      return _buildPersonResults(state);
+    }
+    // 媒体搜索结果（影片、视频、全部）
+    return _buildMediaResults(state);
+  }
+
+  Widget _buildPersonResults(SearchState state) {
+    final scheme = Theme.of(context).colorScheme;
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.8,
+      ),
+      itemCount: state.persons.length,
+      itemBuilder: (context, index) {
+        final person = state.persons[index];
+        return _PersonCard(person: person);
+      },
+    );
+  }
+
+  Widget _buildMediaResults(SearchState state) {
     final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
@@ -393,57 +429,13 @@ class _SearchViewState extends ConsumerState<SearchView>
     );
   }
 
-  Widget _buildHistoryAndFilters(List<String> history) {
+  Widget _buildHistory(List<String> history) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // 分类筛选
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('媒体类型',
-                  style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _mediaTypes
-                  .map((item) {
-                    final label = item['label'] ?? '';
-                    final type = item['type'];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(label),
-                        selected: _selectedType == type,
-                        onSelected: (selected) {
-                          _onTypeChanged(selected ? type : null);
-                        },
-                        selectedColor: scheme.primary,
-                        labelStyle: TextStyle(
-                          color: _selectedType == type
-                              ? scheme.onPrimary
-                              : scheme.onSurface.withOpacity(0.7),
-                          fontSize: 13,
-                        ),
-                        backgroundColor:
-                            scheme.onSurface.withOpacity(0.05),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                    );
-                  })
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: 20),
           // 搜索历史
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -571,6 +563,54 @@ class _SearchResultTile extends ConsumerWidget {
         color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
         child: Icon(Icons.movie_outlined,
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+      );
+}
+
+class _PersonCard extends ConsumerWidget {
+  final SearchPerson person;
+  const _PersonCard({required this.person});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: () {
+        context.push('/person/${person.id}', extra: {'personId': person.id, 'personName': person.name});
+      },
+      child: Column(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: person.imageUrl != null && person.imageUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: person.imageUrl!,
+                      cacheManager: AppImageCacheManager.thumbnail,
+                      fit: BoxFit.cover,
+                      placeholder: (ctx, __) => _personPlaceholder(ctx),
+                      errorWidget: (ctx, ___, __) => _personPlaceholder(ctx),
+                    )
+                  : _personPlaceholder(context),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            person.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                color: scheme.onSurface, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _personPlaceholder(BuildContext context) => Container(
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
+        child: Icon(Icons.person_outline,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), size: 32),
       );
 }
 

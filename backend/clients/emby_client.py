@@ -178,11 +178,11 @@ class EmbyClient:
         query: str,
         limit: int = 20,
         offset: int = 0,
+        include_types: Optional[List[str]] = None,
     ) -> dict:
-        """搜索媒体项（与前端字段集保持一致）"""
+        """搜索媒体项（支持类型过滤）"""
         params: Dict[str, Any] = {
             "SearchTerm": query,
-            "IncludeItemTypes": "Movie,Episode,Video",
             "Recursive": "true",
             "Fields": (
                 "Overview,Genres,People,CommunityRating,ProductionYear,"
@@ -191,9 +191,30 @@ class EmbyClient:
             "StartIndex": offset,
             "Limit": limit,
         }
+        if include_types:
+            params["IncludeItemTypes"] = ",".join(include_types)
+        else:
+            params["IncludeItemTypes"] = "Movie,Episode,Video"
         if self.user_id:
             params["UserId"] = self.user_id
         return await self._request("GET", "/Items", params=params)
+
+    async def search_persons(
+        self,
+        query: str,
+        limit: int = 20,
+    ) -> dict:
+        """搜索人物（演员/导演/编剧）"""
+        params: Dict[str, Any] = {
+            "SearchTerm": query,
+            "Limit": limit,
+            "Fields": (
+                "Overview,ImageTags,Name"
+            ),
+        }
+        if self.user_id:
+            params["UserId"] = self.user_id
+        return await self._request("GET", "/Persons", params=params)
 
     async def get_subtitles(self, item_id: str) -> List[dict]:
         """获取字幕轨道 GET /Items/{item_id}/PlaybackInfo"""
