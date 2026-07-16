@@ -1,3 +1,15 @@
+# [1.130.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.129.1...v1.130.0) (2026-07-16)
+
+
+### Bug Fixes
+
+* **ci:** 修复 AppLogger.warn/debug error 参数不存在（改为 data 参数） ([3bd9c54](https://github.com/1525745393/EmbyTok-Flutter/commit/3bd9c540d3d75a3727a4b28804db457a5de1984d))
+
+
+### Features
+
+* **feed:** 视频流优化（分页修复/去重/上报重试/删除同步） ([5ac3698](https://github.com/1525745393/EmbyTok-Flutter/commit/5ac36985025736fe8c83c59a65a447d59b5257b7))
+
 ## [1.129.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.129.0...v1.129.1) (2026-07-16)
 
 
