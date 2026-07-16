@@ -21,6 +21,7 @@ dependencies:
   video_player: ^2.8.0
   screen_brightness: ^0.2.2+1
   package_info_plus: ^8.0.0
+  url_launcher: ^6.2.0
 
 dev_dependencies:
   flutter_test:

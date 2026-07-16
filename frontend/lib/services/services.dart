@@ -2,3 +2,4 @@
 
 export 'api_client.dart';
 export 'embbytok_service.dart';
+export 'update_check_service.dart';

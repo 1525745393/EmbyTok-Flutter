@@ -3,10 +3,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/services.dart';
 import '../utils/app_preferences.dart' show AppPreferencesService, OrientationMode;
+import '../utils/logger.dart';
 import '../widgets/library_selector.dart';
 
 // ==================== 主页面 ====================
@@ -162,6 +165,7 @@ class SettingsView extends ConsumerWidget {
             Colors.blueGrey,
             [
               _buildAboutTile(context, ref),
+              _buildCheckUpdateTile(context, ref),
               _buildVersionTile(context, ref),
             ],
           ),
@@ -920,6 +924,17 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 关于 - 检查更新
+  Widget _buildCheckUpdateTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.system_update_outlined,
+      iconColor: Colors.green,
+      title: '检查更新',
+      subtitle: '检查是否有新版本',
+      onTap: () => _checkForUpdate(context, ref),
+    );
+  }
+
   // 关于 - 版本信息（动态读取，避免硬编码）
   Widget _buildVersionTile(BuildContext context, WidgetRef ref) {
     final versionAsync = ref.watch(appVersionProvider);
@@ -1163,6 +1178,12 @@ class SettingsView extends ConsumerWidget {
         section: '关于',
         keywords: '关于 about embytok',
         onTap: (ctx) => _showAboutDialog(ctx, ref),
+      ),
+      _SettingEntry(
+        title: '检查更新',
+        section: '关于',
+        keywords: '检查更新 update 升级 版本',
+        onTap: (ctx) => _checkForUpdate(ctx, ref),
       ),
     ];
   }
@@ -1777,6 +1798,170 @@ class SettingsView extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  // 检查更新：调 GitHub Releases API 对比版本号
+  Future<void> _checkForUpdate(BuildContext context, WidgetRef ref) async {
+    final scheme = Theme.of(context).colorScheme;
+
+    // 1. 读取当前版本号
+    final versionAsync = ref.read(appVersionProvider);
+    final currentVersion = versionAsync.maybeWhen(
+      data: (v) => v,
+      orElse: () => '0.0.0',
+    );
+    // 去掉 buildNumber，只保留 x.y.z
+    var currentVer = currentVersion;
+    final plusIdx = currentVer.indexOf('+');
+    if (plusIdx > 0) currentVer = currentVer.substring(0, plusIdx);
+
+    // 2. 显示加载对话框
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(width: 20),
+            Text('正在检查更新…',
+                style: TextStyle(color: scheme.onSurface, fontSize: 15)),
+          ],
+        ),
+      ),
+    );
+
+    // 3. 调用 GitHub API 检查
+    final updateService = ref.read(updateCheckServiceProvider);
+    final result = await updateService.checkForUpdate(currentVer);
+
+    // 关闭加载对话框
+    if (context.mounted) Navigator.pop(context);
+
+    if (!context.mounted) return;
+
+    // 4. 展示结果
+    if (result.latestRelease == null) {
+      // 无法获取 Release 信息（网络错误或无 Release）
+      _showUpdateResultDialog(
+        context,
+        icon: Icons.cloud_off,
+        title: '检查失败',
+        message: '无法获取更新信息，请检查网络连接后重试。',
+        actionText: '关闭',
+        onAction: null,
+        secondaryActionText: '前往 GitHub',
+        onSecondaryAction: () => _launchUrl(updateService.releasePageUrl),
+      );
+    } else if (result.hasUpdate) {
+      // 有新版本
+      final release = result.latestRelease!;
+      // 查找 APK 下载链接
+      final apkAsset = release.assets.where((a) => a.isApk).toList();
+      _showUpdateResultDialog(
+        context,
+        icon: Icons.system_update,
+        title: '发现新版本',
+        message: '当前版本：$currentVer\n最新版本：${release.version}\n\n'
+            '${release.body.isNotEmpty ? release.body : release.name}',
+        actionText: apkAsset.isNotEmpty ? '下载 APK' : '前往下载',
+        onAction: () {
+          final url = apkAsset.isNotEmpty
+              ? apkAsset.first.downloadUrl
+              : release.htmlUrl;
+          _launchUrl(url);
+        },
+        secondaryActionText: '稍后再说',
+        onSecondaryAction: null,
+      );
+    } else {
+      // 已是最新版本
+      _showUpdateResultDialog(
+        context,
+        icon: Icons.check_circle,
+        title: '已是最新版本',
+        message: '当前版本：$currentVer\n您使用的是最新版本。',
+        actionText: '关闭',
+        onAction: null,
+        secondaryActionText: null,
+        onSecondaryAction: null,
+      );
+    }
+  }
+
+  // 显示更新结果对话框
+  void _showUpdateResultDialog(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String message,
+    required String actionText,
+    VoidCallback? onAction,
+    String? secondaryActionText,
+    VoidCallback? onSecondaryAction,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: scheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (secondaryActionText != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onSecondaryAction?.call();
+              },
+              child: Text(secondaryActionText),
+            ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onAction?.call();
+            },
+            child: Text(actionText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 打开外部 URL
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      AppLogger.error('打开链接失败', error: e);
+    }
   }
 
   void _showAboutDialog(BuildContext context, WidgetRef ref) {
