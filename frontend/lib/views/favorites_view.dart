@@ -324,6 +324,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
             itemType: _CardType.movie,
             error: _searchQuery.isEmpty ? state.moviesError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
+            hasMore: state.hasMoreMovies && _searchQuery.isEmpty,
+            onLoadMore: () => ref
+                .read(favoritesProvider.notifier)
+                .loadMore(FavoritesCategory.movie),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -342,6 +346,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
             itemType: _CardType.boxSet,
             error: _searchQuery.isEmpty ? state.boxSetsError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
+            hasMore: state.hasMoreBoxSets && _searchQuery.isEmpty,
+            onLoadMore: () => ref
+                .read(favoritesProvider.notifier)
+                .loadMore(FavoritesCategory.boxSet),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -360,6 +368,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
             itemType: _CardType.person,
             error: _searchQuery.isEmpty ? state.peopleError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
+            hasMore: state.hasMorePeople && _searchQuery.isEmpty,
+            onLoadMore: () => ref
+                .read(favoritesProvider.notifier)
+                .loadMore(FavoritesCategory.person),
           ),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -372,6 +384,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     required _CardType itemType,
     String? error,
     VoidCallback? onRetry,
+    bool hasMore = false,
+    VoidCallback? onLoadMore,
   }) {
     // 该栏加载失败：显示错误提示 + 重试按钮
     if (error != null && items.isEmpty) {
@@ -413,34 +427,66 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       );
     }
 
+    final scheme = Theme.of(context).colorScheme;
     final double cardWidth = itemType == _CardType.person ? 100 : 120;
     final double cardHeight = itemType == _CardType.person ? 140 : 180;
 
     return SizedBox(
       height: cardHeight + 50,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: items.length,
-        // 限制预渲染范围，减少横向滚动时的图片内存占用
-        cacheExtent: cardWidth * 2,
-        addAutomaticKeepAlives: false,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index < items.length - 1 ? 12 : 0,
-            ),
-            child: _FavoriteCard(
-              key: Key(item.id),
-              item: item,
-              itemType: itemType,
-              width: cardWidth,
-              height: cardHeight,
-              allItems: items,
-            ),
-          );
+      child: NotificationListener<ScrollNotification>(
+        // 滚动接近末尾时自动触发加载更多
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification &&
+              hasMore &&
+              onLoadMore != null) {
+            final metrics = notification.metrics;
+            if (metrics.pixels >= metrics.maxScrollExtent - 200) {
+              onLoadMore();
+            }
+          }
+          return false;
         },
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: items.length + (hasMore ? 1 : 0),
+          // 限制预渲染范围，减少横向滚动时的图片内存占用
+          cacheExtent: cardWidth * 2,
+          addAutomaticKeepAlives: false,
+          itemBuilder: (context, index) {
+            // 末尾加载更多指示器
+            if (hasMore && index == items.length) {
+              return Container(
+                width: cardWidth,
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+              );
+            }
+            final item = items[index];
+            return Padding(
+              padding: EdgeInsets.only(
+                right: index < items.length - 1 ? 12 : 0,
+              ),
+              child: _FavoriteCard(
+                key: Key(item.id),
+                item: item,
+                itemType: itemType,
+                width: cardWidth,
+                height: cardHeight,
+                allItems: items,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -764,7 +810,7 @@ class _FavoritePlayPage extends StatelessWidget {
 /// 收藏分类详情页：展示某一类收藏的全屏网格
 ///
 /// 通过 [category] 区分影片 / 合集 / 人物
-enum FavoritesCategory { movie, boxSet, person }
+/// FavoritesCategory 枚举定义在 favorites_provider.dart 中
 
 class FavoritesCategoryView extends ConsumerStatefulWidget {
   final FavoritesCategory category;
@@ -777,6 +823,50 @@ class FavoritesCategoryView extends ConsumerStatefulWidget {
 
 class _FavoritesCategoryViewState
     extends ConsumerState<FavoritesCategoryView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(favoritesProvider.notifier).ensureLoaded();
+    });
+    // 滚动接近底部时自动加载更多
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final offset = _scrollController.position.pixels;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    // 距离底部 300px 时触发加载
+    if (offset >= maxExtent - 300) {
+      final state = ref.read(favoritesProvider);
+      bool hasMore;
+      switch (widget.category) {
+        case FavoritesCategory.movie:
+          hasMore = state.hasMoreMovies;
+          break;
+        case FavoritesCategory.boxSet:
+          hasMore = state.hasMoreBoxSets;
+          break;
+        case FavoritesCategory.person:
+          hasMore = state.hasMorePeople;
+          break;
+      }
+      if (hasMore && !state.isLoadingMore) {
+        ref.read(favoritesProvider.notifier).loadMore(widget.category);
+      }
+    }
+  }
+
   String get _title {
     switch (widget.category) {
       case FavoritesCategory.movie:
@@ -810,12 +900,15 @@ class _FavoritesCategoryViewState
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(favoritesProvider.notifier).ensureLoaded();
-    });
+  bool _hasMore(FavoritesState state) {
+    switch (widget.category) {
+      case FavoritesCategory.movie:
+        return state.hasMoreMovies;
+      case FavoritesCategory.boxSet:
+        return state.hasMoreBoxSets;
+      case FavoritesCategory.person:
+        return state.hasMorePeople;
+    }
   }
 
   @override
@@ -893,8 +986,10 @@ class _FavoritesCategoryViewState
     // 人物用宽一些的网格，影片/合集用海报网格
     final crossAxisCount = widget.category == FavoritesCategory.person ? 4 : 3;
     final aspectRatio = widget.category == FavoritesCategory.person ? 0.7 : 0.65;
+    final hasMore = _hasMore(state);
 
     return GridView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
@@ -902,8 +997,21 @@ class _FavoritesCategoryViewState
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
-      itemCount: items.length,
+      itemCount: items.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
+        // 末尾加载更多指示器
+        if (hasMore && index == items.length) {
+          return Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: scheme.primary,
+              ),
+            ),
+          );
+        }
         final item = items[index];
         return _GridCard(
           key: Key(item.id),

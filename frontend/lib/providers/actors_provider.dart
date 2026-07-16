@@ -183,12 +183,12 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       final token = auth.token;
       final userId = auth.user?.id;
       if (serverUrl == null || token == null) return;
-      final items = await _service.getFavoritePeople(
+      final result = await _service.getFavoritePeople(
         serverUrl: serverUrl,
         token: token,
         userId: userId,
       );
-      final ids = items.map((e) => e.id).toSet();
+      final ids = result.items.map((e) => e.id).toSet();
       if (ids.isNotEmpty) {
         state = state.copyWith(favoritedIds: ids);
       }

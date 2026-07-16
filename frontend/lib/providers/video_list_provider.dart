@@ -376,13 +376,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           canPaginate = false;
 
         case FeedType.favorites:
-          final favList = await _service.getFavoriteMovies(
+          final favResult = await _service.getFavoriteMovies(
             serverUrl: serverUrl,
             token: token,
             userId: userId,
           );
-          loadedItems = favList;
-          loadedTotal = favList.length;
+          loadedItems = favResult.items;
+          loadedTotal = favResult.items.length;
           canPaginate = false;
 
         case FeedType.resume:

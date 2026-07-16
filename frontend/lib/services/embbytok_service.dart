@@ -10,6 +10,16 @@ import '../models/models.dart';
 import '../utils/logger.dart';
 import 'api_client.dart';
 
+/// 收藏分页结果：包含条目列表和总数（用于判断是否还有更多）
+class FavoritesPageResult {
+  final List<MediaItem> items;
+  final int totalCount;
+
+  const FavoritesPageResult({required this.items, required this.totalCount});
+
+  bool get hasMore => items.length < totalCount;
+}
+
 class EmbytokService {
   static final EmbytokService _instance = EmbytokService._internal();
 
@@ -751,8 +761,8 @@ class EmbytokService {
   // ============================
   // 收藏影片（按类型：电影/剧集/音乐视频/单集，使用用户视图路径，与 EmbyX 对齐）
   // ============================
-  Future<List<MediaItem>> getFavoriteMovies({
-    int limit = 100,
+  Future<FavoritesPageResult> getFavoriteMovies({
+    int limit = 50,
     int offset = 0,
     String? userId,
     String? serverUrl,
@@ -781,20 +791,27 @@ class EmbytokService {
       path,
       queryParameters: params,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
+    final data = resp.data;
+    final items = data is List
+        ? data as List<dynamic>
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
   }
 
   // ============================
   // 收藏合集（BoxSet，使用用户视图路径，与 EmbyX 对齐）
   // ============================
-  Future<List<MediaItem>> getFavoriteBoxSets({
-    int limit = 100,
+  Future<FavoritesPageResult> getFavoriteBoxSets({
+    int limit = 50,
     int offset = 0,
     String? userId,
     String? serverUrl,
@@ -822,20 +839,27 @@ class EmbytokService {
       path,
       queryParameters: params,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
+    final data = resp.data;
+    final items = data is List
+        ? data as List<dynamic>
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
   }
 
   // ============================
   // 收藏人物（Person，使用用户视图路径，与 EmbyX 对齐）
   // ============================
-  Future<List<MediaItem>> getFavoritePeople({
-    int limit = 100,
+  Future<FavoritesPageResult> getFavoritePeople({
+    int limit = 50,
     int offset = 0,
     String? userId,
     String? serverUrl,
@@ -863,13 +887,20 @@ class EmbytokService {
       path,
       queryParameters: params,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
+    final data = resp.data;
+    final items = data is List
+        ? data as List<dynamic>
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
   }
 
   // ============================

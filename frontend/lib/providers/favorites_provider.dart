@@ -3,13 +3,23 @@
 // - toggleFavorite 采用乐观更新 + 失败回滚，提供即时 UI 反馈
 // - 同一 itemId 的并发 toggleFavorite 自动合并（_pendingToggles 去重）
 // - 网络层去重：_hasLoaded + _isLoading 标志避免重复 loadFavorites
+// - 分页加载：每栏独立 offset + hasMore，loadMore 追加数据
+// - 本地缓存：SharedPreferences 缓存 JSON，进入页面先展示缓存再后台刷新
+
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
+
+// 每页拉取数量
+const int _kFavoritesPageSize = 50;
+// 本地缓存 key 前缀
+const String _kCacheKeyPrefix = 'favorites_cache_';
 
 /// 收藏状态：影片 / 合集 / 人物 三栏独立列表 + O(1) 快速查询的 favoriteIds
 ///
@@ -19,27 +29,38 @@ import 'auth_provider.dart';
 /// - [people] 收藏的人物（导演 / 演员）列表
 /// - [favoriteIds] 所有已收藏条目的 ID 集合（用于快速判定收藏状态）
 /// - [moviesError]/[boxSetsError]/[peopleError] 各栏独立的错误信息（部分失败时使用）
+/// - [hasMoreMovies]/[hasMoreBoxSets]/[hasMorePeople] 各栏是否还有更多数据
 class FavoritesState {
   final List<MediaItem> movies;
   final List<MediaItem> boxSets;
   final List<MediaItem> people;
   final bool isLoading;
+  final bool isLoadingMore; // 加载更多中
   final String? error;
   final String? moviesError;
   final String? boxSetsError;
   final String? peopleError;
   final Set<String> favoriteIds;
+  final bool hasMoreMovies;
+  final bool hasMoreBoxSets;
+  final bool hasMorePeople;
+  final bool fromCache; // 当前数据是否来自本地缓存
 
   const FavoritesState({
     this.movies = const <MediaItem>[],
     this.boxSets = const <MediaItem>[],
     this.people = const <MediaItem>[],
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
     this.moviesError,
     this.boxSetsError,
     this.peopleError,
     this.favoriteIds = const <String>{},
+    this.hasMoreMovies = false,
+    this.hasMoreBoxSets = false,
+    this.hasMorePeople = false,
+    this.fromCache = false,
   });
 
   FavoritesState copyWith({
@@ -47,22 +68,32 @@ class FavoritesState {
     List<MediaItem>? boxSets,
     List<MediaItem>? people,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
     String? moviesError,
     String? boxSetsError,
     String? peopleError,
     Set<String>? favoriteIds,
+    bool? hasMoreMovies,
+    bool? hasMoreBoxSets,
+    bool? hasMorePeople,
+    bool? fromCache,
   }) {
     return FavoritesState(
       movies: movies ?? this.movies,
       boxSets: boxSets ?? this.boxSets,
       people: people ?? this.people,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error ?? this.error,
       moviesError: moviesError ?? this.moviesError,
       boxSetsError: boxSetsError ?? this.boxSetsError,
       peopleError: peopleError ?? this.peopleError,
       favoriteIds: favoriteIds ?? this.favoriteIds,
+      hasMoreMovies: hasMoreMovies ?? this.hasMoreMovies,
+      hasMoreBoxSets: hasMoreBoxSets ?? this.hasMoreBoxSets,
+      hasMorePeople: hasMorePeople ?? this.hasMorePeople,
+      fromCache: fromCache ?? this.fromCache,
     );
   }
 }
@@ -86,20 +117,30 @@ Set<String> _mergeIds(
   return ids;
 }
 
-/// 收藏 Notifier：管理整个应用的三栏收藏状态（乐观更新 + 并发去重）
+/// 收藏分类枚举（用于 loadMore）
+enum FavoritesCategory { movie, boxSet, person }
+
+/// 收藏 Notifier：管理整个应用的三栏收藏状态（乐观更新 + 并发去重 + 分页 + 本地缓存）
 ///
 /// 核心功能：
 /// - 登录后自动从 Emby 服务器拉取三栏收藏数据
 /// - 登出后自动清空本地缓存
 /// - toggleFavorite 采用乐观更新 + 失败回滚
 /// - 同一 itemId 的并发 toggleFavorite 调用会自动合并（去重）
+/// - 分页加载：每栏独立 offset，支持 loadMore 追加
+/// - 本地缓存：SharedPreferences 缓存 JSON，先展示缓存再后台刷新
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
   final Ref _ref;
   final EmbytokService _service;
 
   bool _hasLoaded = false;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   final Set<String> _pendingToggles = <String>{};
+  // 每栏已加载的数量（用于分页 offset）
+  int _moviesLoaded = 0;
+  int _boxSetsLoaded = 0;
+  int _peopleLoaded = 0;
 
   FavoritesNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
@@ -132,10 +173,88 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     await loadFavorites();
   }
 
-  /// 从 Emby 服务器并行拉取三栏收藏
+  /// 从本地缓存加载收藏数据（快速展示，不等待网络）
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = _auth.user?.id ?? 'default';
+
+      final moviesJson = prefs.getString('$_kCacheKeyPrefix${userId}_movies');
+      final boxSetsJson = prefs.getString('$_kCacheKeyPrefix${userId}_boxSets');
+      final peopleJson = prefs.getString('$_kCacheKeyPrefix${userId}_people');
+
+      final movies = _parseCache(moviesJson);
+      final boxSets = _parseCache(boxSetsJson);
+      final people = _parseCache(peopleJson);
+
+      if (movies.isNotEmpty || boxSets.isNotEmpty || people.isNotEmpty) {
+        final ids = _mergeIds(movies, boxSets, people);
+        state = FavoritesState(
+          movies: movies,
+          boxSets: boxSets,
+          people: people,
+          favoriteIds: ids,
+          fromCache: true,
+        );
+        AppLogger.info('从本地缓存加载收藏', data: {
+          'movies': movies.length,
+          'boxSets': boxSets.length,
+          'people': people.length,
+        });
+      }
+    } catch (e) {
+      AppLogger.error('读取收藏缓存失败', error: e);
+    }
+  }
+
+  List<MediaItem> _parseCache(String? json) {
+    if (json == null || json.isEmpty) return [];
+    try {
+      final list = jsonDecode(json) as List<dynamic>;
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList();
+    } catch (e) {
+      AppLogger.error('解析收藏缓存失败', error: e);
+      return [];
+    }
+  }
+
+  /// 保存收藏数据到本地缓存
+  Future<void> _saveToCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = _auth.user?.id ?? 'default';
+
+      await prefs.setString(
+        '$_kCacheKeyPrefix${userId}_movies',
+        jsonEncode(state.movies.map((e) => e.toJson()).toList()),
+      );
+      await prefs.setString(
+        '$_kCacheKeyPrefix${userId}_boxSets',
+        jsonEncode(state.boxSets.map((e) => e.toJson()).toList()),
+      );
+      await prefs.setString(
+        '$_kCacheKeyPrefix${userId}_people',
+        jsonEncode(state.people.map((e) => e.toJson()).toList()),
+      );
+    } catch (e) {
+      AppLogger.error('保存收藏缓存失败', error: e);
+    }
+  }
+
+  /// 从 Emby 服务器并行拉取三栏收藏（首页，每栏 _kFavoritesPageSize 条）
   /// 每栏独立 try-catch：某一栏失败不影响其他栏展示
+  /// 先尝试加载本地缓存，再后台刷新
   Future<void> loadFavorites() async {
     if (_isLoading) return;
+
+    // 先从缓存加载（快速展示）
+    if (!_hasLoaded) {
+      await _loadFromCache();
+    }
+
     _isLoading = true;
     state = state.copyWith(
       isLoading: true,
@@ -143,6 +262,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       moviesError: null,
       boxSetsError: null,
       peopleError: null,
+      fromCache: false,
     );
     AppLogger.info('加载收藏列表（三栏）');
 
@@ -171,16 +291,23 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     String? moviesError;
     String? boxSetsError;
     String? peopleError;
+    int moviesTotal = 0;
+    int boxSetsTotal = 0;
+    int peopleTotal = 0;
 
     await Future.wait<void>([
       // 收藏影片
       () async {
         try {
-          movies = await _service.getFavoriteMovies(
+          final result = await _service.getFavoriteMovies(
+            limit: _kFavoritesPageSize,
+            offset: 0,
             serverUrl: serverUrl,
             token: token,
             userId: userId,
           );
+          movies = result.items;
+          moviesTotal = result.totalCount;
         } catch (e) {
           moviesError = e is String ? e : '加载失败：$e';
           AppLogger.error('加载收藏影片失败', error: e);
@@ -189,11 +316,15 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏合集
       () async {
         try {
-          boxSets = await _service.getFavoriteBoxSets(
+          final result = await _service.getFavoriteBoxSets(
+            limit: _kFavoritesPageSize,
+            offset: 0,
             serverUrl: serverUrl,
             token: token,
             userId: userId,
           );
+          boxSets = result.items;
+          boxSetsTotal = result.totalCount;
         } catch (e) {
           boxSetsError = e is String ? e : '加载失败：$e';
           AppLogger.error('加载收藏合集失败', error: e);
@@ -202,11 +333,15 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏人物
       () async {
         try {
-          people = await _service.getFavoritePeople(
+          final result = await _service.getFavoritePeople(
+            limit: _kFavoritesPageSize,
+            offset: 0,
             serverUrl: serverUrl,
             token: token,
             userId: userId,
           );
+          people = result.items;
+          peopleTotal = result.totalCount;
         } catch (e) {
           peopleError = e is String ? e : '加载失败：$e';
           AppLogger.error('加载收藏人物失败', error: e);
@@ -214,7 +349,12 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       }(),
     ], eagerError: false);
 
-    // 合并 favoriteIds（只合并成功加载的栏）
+    // 更新分页计数
+    _moviesLoaded = movies.length;
+    _boxSetsLoaded = boxSets.length;
+    _peopleLoaded = people.length;
+
+    // 合并 favoriteIds
     final ids = _mergeIds(movies, boxSets, people);
 
     // 全部失败才设置全局 error
@@ -231,17 +371,129 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       boxSetsError: boxSetsError,
       peopleError: peopleError,
       favoriteIds: ids,
+      hasMoreMovies: moviesTotal > movies.length,
+      hasMoreBoxSets: boxSetsTotal > boxSets.length,
+      hasMorePeople: peopleTotal > people.length,
     );
     _hasLoaded = true;
     AppLogger.info('收藏列表加载完成', data: {
-      'movies': movies.length,
-      'moviesError': moviesError,
-      'boxSets': boxSets.length,
-      'boxSetsError': boxSetsError,
-      'people': people.length,
-      'peopleError': peopleError,
+      'movies': '${movies.length}/$moviesTotal',
+      'boxSets': '${boxSets.length}/$boxSetsTotal',
+      'people': '${people.length}/$peopleTotal',
     });
     _isLoading = false;
+
+    // 保存到本地缓存
+    _saveToCache();
+  }
+
+  /// 加载更多（分页追加）
+  /// [category] 指定加载哪一栏
+  Future<void> loadMore(FavoritesCategory category) async {
+    if (_isLoadingMore) return;
+
+    final auth = _auth;
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      return;
+    }
+
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (serverUrl == null || token == null) return;
+
+    // 检查该栏是否还有更多
+    bool hasMore;
+    int offset;
+    switch (category) {
+      case FavoritesCategory.movie:
+        hasMore = state.hasMoreMovies;
+        offset = _moviesLoaded;
+        break;
+      case FavoritesCategory.boxSet:
+        hasMore = state.hasMoreBoxSets;
+        offset = _boxSetsLoaded;
+        break;
+      case FavoritesCategory.person:
+        hasMore = state.hasMorePeople;
+        offset = _peopleLoaded;
+        break;
+    }
+    if (!hasMore) return;
+
+    _isLoadingMore = true;
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      FavoritesPageResult result;
+      switch (category) {
+        case FavoritesCategory.movie:
+          result = await _service.getFavoriteMovies(
+            limit: _kFavoritesPageSize,
+            offset: offset,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+          _moviesLoaded += result.items.length;
+          final newMovies = [...state.movies, ...result.items];
+          final newIds = _mergeIds(newMovies, state.boxSets, state.people);
+          state = state.copyWith(
+            movies: newMovies,
+            favoriteIds: newIds,
+            hasMoreMovies: result.totalCount > newMovies.length,
+            isLoadingMore: false,
+          );
+          break;
+        case FavoritesCategory.boxSet:
+          result = await _service.getFavoriteBoxSets(
+            limit: _kFavoritesPageSize,
+            offset: offset,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+          _boxSetsLoaded += result.items.length;
+          final newBoxSets = [...state.boxSets, ...result.items];
+          final newIds = _mergeIds(state.movies, newBoxSets, state.people);
+          state = state.copyWith(
+            boxSets: newBoxSets,
+            favoriteIds: newIds,
+            hasMoreBoxSets: result.totalCount > newBoxSets.length,
+            isLoadingMore: false,
+          );
+          break;
+        case FavoritesCategory.person:
+          result = await _service.getFavoritePeople(
+            limit: _kFavoritesPageSize,
+            offset: offset,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+          _peopleLoaded += result.items.length;
+          final newPeople = [...state.people, ...result.items];
+          final newIds = _mergeIds(state.movies, state.boxSets, newPeople);
+          state = state.copyWith(
+            people: newPeople,
+            favoriteIds: newIds,
+            hasMorePeople: result.totalCount > newPeople.length,
+            isLoadingMore: false,
+          );
+          break;
+      }
+      AppLogger.info('收藏分页加载更多', data: {
+        'category': category.name,
+        'newItems': result.items.length,
+      });
+    } catch (e) {
+      AppLogger.error('收藏分页加载失败', error: e);
+      state = state.copyWith(isLoadingMore: false);
+    } finally {
+      _isLoadingMore = false;
+    }
   }
 
   /// 切换某条目的收藏状态
@@ -319,6 +571,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         token: token,
         userId: userId,
       );
+      // 同步成功后更新本地缓存
+      _saveToCache();
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态
       final rollbackIds = Set<String>.from(state.favoriteIds);
@@ -363,14 +617,28 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   }
 
   /// 登出/切换账号时清除所有本地缓存（下一次使用会重新拉取）
-  void reset() {
+  Future<void> reset() async {
     _hasLoaded = false;
+    _moviesLoaded = 0;
+    _boxSetsLoaded = 0;
+    _peopleLoaded = 0;
     _pendingToggles.clear();
     state = const FavoritesState();
+
+    // 清除本地缓存
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = _auth.user?.id ?? 'default';
+      await prefs.remove('$_kCacheKeyPrefix${userId}_movies');
+      await prefs.remove('$_kCacheKeyPrefix${userId}_boxSets');
+      await prefs.remove('$_kCacheKeyPrefix${userId}_people');
+    } catch (e) {
+      AppLogger.error('清除收藏缓存失败', error: e);
+    }
   }
 }
 
-/// 顶层 Provider：整个 app 共享同一份收藏状态
+/// 顶层 Provider：整个 app 共享一份收藏状态
 final favoritesProvider =
     StateNotifierProvider<FavoritesNotifier, FavoritesState>((ref) {
   return FavoritesNotifier(ref);
