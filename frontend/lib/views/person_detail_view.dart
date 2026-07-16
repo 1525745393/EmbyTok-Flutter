@@ -74,18 +74,22 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     try {
       final auth = ref.read(authProvider);
       final service = EmbytokService();
+      final serverUrl = auth.embyServerUrl;
+      final token = auth.token;
+      final userId = auth.user?.id;
 
       // 并行加载：演员详情和出演作品
       final results = await Future.wait([
         service.getPersonDetail(
           widget.person.id,
-          serverUrl: auth.embyServerUrl,
-          token: auth.token,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
         ),
         service.getPersonItems(
           widget.person.id,
-          serverUrl: auth.embyServerUrl,
-          token: auth.token,
+          serverUrl: serverUrl,
+          token: token,
         ),
       ]);
 
