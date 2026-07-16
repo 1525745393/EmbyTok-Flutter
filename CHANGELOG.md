@@ -1,3 +1,10 @@
+## [1.139.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.0...v1.139.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **person-detail:** 回退 getPersonDetail 路径改动，恢复 /Items/{id} 避免破坏作品列表 ([adc6c82](https://github.com/1525745393/EmbyTok-Flutter/commit/adc6c8228ec84265da49dd5387dcff5bfb37eeb7))
+
 # [1.139.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.138.0...v1.139.0) (2026-07-16)
 
 
