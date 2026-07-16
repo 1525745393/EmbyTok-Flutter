@@ -1332,6 +1332,38 @@ class EmbytokService {
   }
 
   // ============================
+  // 搜索人物（演员/导演/编剧）
+  // ============================
+  Future<List<Map<String, dynamic>>> searchPersons(
+    String query, {
+    int limit = 20,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    if (query.isEmpty) return [];
+
+    final params = <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'Fields': 'Overview,ImageTags,Name',
+    };
+
+    final resp = await _apiClient.get<dynamic>(
+      '/Persons',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    if (data is Map<String, dynamic>) {
+      final items = data['Items'];
+      if (items is List) {
+        return items.cast<Map<String, dynamic>>();
+      }
+    }
+    return [];
+  }
+
+  // ============================
   // 获取子项（孩子节点）
   // ============================
   Future<List<MediaItem>> getChildren(

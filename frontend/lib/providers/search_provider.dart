@@ -232,16 +232,13 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   // 搜索人物
   Future<void> _searchPersons(String query, String serverUrl, String token) async {
-    final resp = await _service.apiClient.get<dynamic>(
-      '/api/search/persons',
-      queryParameters: {
-        'q': query,
-        'limit': '20',
-      },
+    final items = await _service.searchPersons(
+      query,
+      limit: 20,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List ? resp.data as List<dynamic> : [];
     final persons = items
-        .whereType<Map<String, dynamic>>()
         .map((e) => SearchPerson.fromJson(e, serverUrl, token))
         .toList();
     state = SearchState(
