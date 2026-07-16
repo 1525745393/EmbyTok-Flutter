@@ -91,6 +91,10 @@ const String kStorageKeyActorsSelectedTab = 'embbytok_actors_selected_tab';
 const String kStorageKeyActorsSearchQuery = 'embbytok_actors_search_query';
 const String kStorageKeyActorsScrollOffset = 'embbytok_actors_scroll_offset';
 
+// 登录页：服务器历史 & 记住凭据
+const String kStorageKeyServerHistory = 'embbytok_server_history';
+const String kStorageKeySavedCredentials = 'embbytok_saved_credentials';
+
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
 const double kLongPressPlaybackRate = 2.0;
