@@ -484,7 +484,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       spacing: 8,
       runSpacing: 4,
       children: _serverHistory.map((url) {
-        return ActionChip(
+        return InputChip(
           label: Text(
             url,
             style: TextStyle(
