@@ -145,12 +145,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
   @override
   Widget build(BuildContext context) {
     // PR #74：纯净模式缓存同步
-    // - ref.listen：异步同步到本地字段，触发 setState 不需要
-    // - ref.watch：触发当前 build（如果 isAutoPlay 变化，DraggableCleanActions 会重建）
-    // 这样 show() 调 _isAutoPlay 时拿到最新值
-    ref.listen<bool>(isAutoPlayProvider, (prev, next) {
-      _isAutoPlay = next;
-    });
+    // ref.watch 触发当前 build 并返回最新值，无需额外 ref.listen
     _isAutoPlay = ref.watch(isAutoPlayProvider);
     final scheme = Theme.of(context).colorScheme;
     return Stack(

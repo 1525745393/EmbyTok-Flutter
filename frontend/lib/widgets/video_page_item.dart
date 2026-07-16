@@ -114,6 +114,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
       }
     });
+
+    // PR #72：监听纯净模式（isAutoPlay）变化，同步到工具栏可见性
+    // - isAutoPlay=true → setAutoPlayActive(true)，顶部工具栏 + 底部导航栏持续隐藏
+    // - isAutoPlay=false → setAutoPlayActive(false)，工具栏恢复显示（除非全屏引用计数>0）
+    // fireImmediately: true 确保初始值同步（避免页面切换后纯净模式状态丢失）
+    ref.listenManual<bool>(isAutoPlayProvider, (prev, next) {
+      ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
+    }, fireImmediately: true);
   }
 
   // 功耗优化：App 进入后台/不可见时暂停唱片旋转动画，减少 GPU 合成开销
