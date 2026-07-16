@@ -1,3 +1,10 @@
+# [1.132.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.131.0...v1.132.0) (2026-07-16)
+
+
+### Features
+
+* **favorites:** 收藏页优化（搜索/排序/空状态引导/内存优化/副标题增强） ([23f572e](https://github.com/1525745393/EmbyTok-Flutter/commit/23f572e0f35489b2919b4a50c5cbe0699679d1a8))
+
 # [1.131.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.130.0...v1.131.0) (2026-07-16)
 
 
