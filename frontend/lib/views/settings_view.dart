@@ -2278,6 +2278,34 @@ class SettingsView extends ConsumerWidget {
               const SizedBox(height: 20),
               const Divider(height: 1),
               const SizedBox(height: 12),
+              // GitHub 仓库入口：点击跳转到项目仓库
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.code, size: 16, color: scheme.primary),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'GitHub 仓库',
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.open_in_new, size: 14, color: scheme.primary),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               // 版权
               Text(
                 '© $copyrightYear EmbyTok  contributors',
