@@ -1,3 +1,10 @@
+# [1.137.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.2...v1.137.0) (2026-07-16)
+
+
+### Features
+
+* **update:** 检查更新支持应用内下载 APK 并安装 ([dfa6072](https://github.com/1525745393/EmbyTok-Flutter/commit/dfa6072de86a2c846edd2a34db002d5196dc5e9c))
+
 ## [1.136.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.1...v1.136.2) (2026-07-16)
 
 
