@@ -589,24 +589,45 @@ class _FavoriteCard extends ConsumerWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        cacheManager: AppImageCacheManager.thumbnail,
-                        fit: BoxFit.cover,
-                        httpHeaders: headers.isNotEmpty ? headers : null,
-                        memCacheWidth: 400,
-                        placeholder: (_, __) => Container(
-                          color: scheme.surface.withOpacity(0.25),
-                          child: Center(
-                            child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    imageUrl != null && imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            cacheManager: AppImageCacheManager.thumbnail,
+                            fit: BoxFit.cover,
+                            httpHeaders: headers.isNotEmpty ? headers : null,
+                            memCacheWidth: 400,
+                            placeholder: (_, __) => Container(
+                              color: scheme.surface.withOpacity(0.25),
+                              child: Center(
+                                child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
+                              ),
+                            ),
+                            errorWidget: (_, __, ___) => _PlaceholderIcon(
+                              itemType: itemType,
+                            ),
+                          )
+                        : _PlaceholderIcon(itemType: itemType),
+                    // 心形角标：右上角
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Icon(
+                        Icons.favorite,
+                        color: scheme.primary,
+                        size: 18,
+                        shadows: [
+                          Shadow(
+                            color: scheme.onSurface.withOpacity(0.3),
+                            blurRadius: 4,
                           ),
-                        ),
-                        errorWidget: (_, __, ___) => _PlaceholderIcon(
-                          itemType: itemType,
-                        ),
-                      )
-                    : _PlaceholderIcon(itemType: itemType),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
