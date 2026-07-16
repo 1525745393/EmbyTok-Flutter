@@ -1,3 +1,10 @@
+# [1.129.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.128.1...v1.129.0) (2026-07-16)
+
+
+### Features
+
+* **settings:** 设置页优化（版本号动态/手势说明/高级折叠/搜索/重置） ([eb0d279](https://github.com/1525745393/EmbyTok-Flutter/commit/eb0d279322298af0ac8470b3bc904aef82d9b473))
+
 ## [1.128.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.128.0...v1.128.1) (2026-07-16)
 
 
