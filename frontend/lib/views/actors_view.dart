@@ -442,8 +442,13 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       );
     }
 
-    // 已关注/未关注 Tab：简单的网格显示
-    return _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive);
+    // 已关注/未关注 Tab：自定义滚动视图包裹 Sliver 网格
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive),
+      ],
+    );
   }
 
   // 构建优化的加载动画
