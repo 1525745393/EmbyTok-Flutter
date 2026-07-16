@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show OrientationMode;
+import '../utils/app_preferences.dart' show AppPreferencesService, OrientationMode;
 import '../widgets/library_selector.dart';
 
 // ==================== 主页面 ====================
@@ -30,6 +30,14 @@ class SettingsView extends ConsumerWidget {
             const Text('设置'),
           ],
         ),
+        // 搜索入口：快速定位 25+ 设置项
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '搜索设置',
+            onPressed: () => _showSettingsSearch(context, ref),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -48,6 +56,7 @@ class SettingsView extends ConsumerWidget {
             ],
           ),
           // 推荐设置（PR #78：推荐规则优化）
+          // 高级选项默认折叠，避免一次性展示 10 项造成视觉负担
           _buildSection(
             context,
             ref,
@@ -59,15 +68,17 @@ class SettingsView extends ConsumerWidget {
               _buildRecommendExcludePlayedTile(context, ref),
               _buildRecommendMinRuntimeTile(context, ref),
               _buildRecommendIncludeTypesTile(context, ref),
-              // PR #85：用户控制 - 完播率门控开关 + 时间衰减半衰期
-              _buildRecommendUseWatchHistoryTile(context, ref),
-              _buildRecommendHalfLifeDaysTile(context, ref),
-              // PR #88：用户控制 - 反推荐疲劳（X 天内不重推）
-              _buildRecommendAntiFatigueEnabledTile(context, ref),
-              _buildRecommendAntiFatigueDaysTile(context, ref),
-              // PR #89：用户控制 - 用户评分加权
-              _buildRecommendUserRatingEnabledTile(context, ref),
-              _buildRecommendUserRatingMinTile(context, ref),
+              // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
+              _RecommendAdvancedTile(
+                advancedTilesBuilder: () => [
+                  _buildRecommendUseWatchHistoryTile(context, ref),
+                  _buildRecommendHalfLifeDaysTile(context, ref),
+                  _buildRecommendAntiFatigueEnabledTile(context, ref),
+                  _buildRecommendAntiFatigueDaysTile(context, ref),
+                  _buildRecommendUserRatingEnabledTile(context, ref),
+                  _buildRecommendUserRatingMinTile(context, ref),
+                ],
+              ),
             ],
           ),
           // 播放设置
@@ -117,6 +128,7 @@ class SettingsView extends ConsumerWidget {
             Colors.grey,
             [
               _buildCacheTile(context, ref),
+              _buildResetSettingsTile(context, ref),
             ],
           ),
           // PR #81：观看统计
@@ -149,8 +161,8 @@ class SettingsView extends ConsumerWidget {
             Icons.info_outline,
             Colors.blueGrey,
             [
-              _buildAboutTile(context),
-              _buildVersionTile(context),
+              _buildAboutTile(context, ref),
+              _buildVersionTile(context, ref),
             ],
           ),
           // 账户
@@ -587,8 +599,9 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.repeat_on_outlined,
       iconColor: Colors.indigo,
       title: '避免重复推荐',
+      // 同时 watch 天数 provider，使 subtitle 随天数变化实时更新
       subtitle: enabled
-          ? '已开启：$ref.read(recommendAntiFatigueDaysProvider) 天内不重推'
+          ? '已开启：${ref.watch(recommendAntiFatigueDaysProvider)} 天内不重推'
           : '已关闭：所有 item 都可能被推荐',
       value: enabled,
       onChanged: (value) {
@@ -670,8 +683,9 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.star_rate_outlined,
       iconColor: Colors.purple,
       title: '用户评分加权',
+      // 同时 watch 阈值 provider，使 subtitle 随阈值变化实时更新
       subtitle: enabled
-          ? '已开启：跳过用户评分 < ${ref.read(recommendUserRatingMinProvider).toStringAsFixed(1)} 的 item（收藏项豁免）'
+          ? '已开启：跳过用户评分 < ${ref.watch(recommendUserRatingMinProvider).toStringAsFixed(1)} 的 item（收藏项豁免）'
           : '已关闭：仅按社区评分过滤',
       value: enabled,
       onChanged: (value) {
@@ -855,6 +869,18 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 存储 - 重置所有偏好设置到默认值
+  // 仅清除"设置类"偏好，不影响登录信息、观看历史、收藏等用户数据
+  Widget _buildResetSettingsTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.restore,
+      iconColor: Colors.deepOrange,
+      title: '重置设置',
+      subtitle: '恢复所有偏好为默认值（不影响登录/历史/收藏）',
+      onTap: () => _showResetSettingsDialog(context, ref),
+    );
+  }
+
   // PR #81：观看统计 tile
   // - 显示总次数 + 平均完播率
   // - 点击查看详情 + 清除按钮
@@ -884,23 +910,29 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 关于 - 应用信息
-  Widget _buildAboutTile(BuildContext context) {
+  Widget _buildAboutTile(BuildContext context, WidgetRef ref) {
     return _TapTile(
       icon: Icons.info_outline,
       iconColor: Colors.blueGrey,
       title: '关于 EmbyTok',
       subtitle: '了解更多关于应用的信息',
-      onTap: () => _showAboutDialog(context),
+      onTap: () => _showAboutDialog(context, ref),
     );
   }
 
-  // 关于 - 版本信息
-  Widget _buildVersionTile(BuildContext context) {
+  // 关于 - 版本信息（动态读取，避免硬编码）
+  Widget _buildVersionTile(BuildContext context, WidgetRef ref) {
+    final versionAsync = ref.watch(appVersionProvider);
+    final subtitle = versionAsync.when(
+      data: (v) => v,
+      loading: () => '加载中…',
+      error: (_, __) => '未知',
+    );
     return _InfoTile(
       icon: Icons.new_releases_outlined,
       iconColor: Colors.blueGrey,
       title: '版本',
-      subtitle: '1.82.0',
+      subtitle: subtitle,
     );
   }
 
@@ -939,6 +971,211 @@ class SettingsView extends ConsumerWidget {
           onPressed: () => _showLogoutDialog(context, ref),
         ),
       ),
+    );
+  }
+
+  // ==================== 设置搜索 ====================
+
+  // 构建设置项搜索索引：每个入口包含标题、分组、关键词、点击回调
+  // 点击回调捕获当前 context 和 ref，确保搜索结果可直接执行操作
+  List<_SettingEntry> _buildSearchIndex(BuildContext context, WidgetRef ref) {
+    return <_SettingEntry>[
+      // 媒体库
+      _SettingEntry(
+        title: '视频流使用',
+        section: '媒体库',
+        keywords: '视频流 媒体库 feed library',
+        onTap: (ctx) => LibrarySelector.show(ctx, scope: LibraryScope.feed),
+      ),
+      _SettingEntry(
+        title: '排除已观看',
+        section: '媒体库',
+        keywords: '视频流 排除 已观看 played',
+        onTap: (ctx) {
+          final value = ref.read(feedExcludePlayedProvider);
+          ref.read(feedExcludePlayedProvider.notifier).setExclude(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '推荐使用',
+        section: '媒体库',
+        keywords: '推荐 媒体库 recommend library',
+        onTap: (ctx) => LibrarySelector.show(ctx, scope: LibraryScope.recommend),
+      ),
+      // 推荐
+      _SettingEntry(
+        title: '评分阈值',
+        section: '推荐',
+        keywords: '推荐 评分 阈值 rating',
+        onTap: (ctx) =>
+            _showRecommendRatingDialog(ctx, ref, ref.read(recommendMinRatingProvider)),
+      ),
+      _SettingEntry(
+        title: '排除已观看',
+        section: '推荐',
+        keywords: '推荐 排除 已观看 played',
+        onTap: (ctx) {
+          final value = ref.read(recommendExcludePlayedProvider);
+          ref.read(recommendExcludePlayedProvider.notifier).setExclude(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '最短时长',
+        section: '推荐',
+        keywords: '推荐 最短 时长 runtime',
+        onTap: (ctx) =>
+            _showRecommendRuntimeDialog(ctx, ref, ref.read(recommendMinRuntimeSecProvider)),
+      ),
+      _SettingEntry(
+        title: '推荐类型',
+        section: '推荐',
+        keywords: '推荐 类型 movie episode video musicvideo series',
+        onTap: (ctx) =>
+            _showRecommendTypesDialog(ctx, ref, ref.read(recommendIncludeTypesProvider)),
+      ),
+      _SettingEntry(
+        title: '使用观看历史优化推荐',
+        section: '推荐',
+        keywords: '推荐 观看历史 完播率 门控 watch history',
+        onTap: (ctx) {
+          final value = ref.read(recommendUseWatchHistoryProvider);
+          ref.read(recommendUseWatchHistoryProvider.notifier).setUse(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '记忆半衰期',
+        section: '推荐',
+        keywords: '推荐 半衰期 衰减 halflife',
+        onTap: (ctx) =>
+            _showHalfLifeDaysDialog(ctx, ref, ref.read(recommendHalfLifeDaysProvider)),
+      ),
+      _SettingEntry(
+        title: '避免重复推荐',
+        section: '推荐',
+        keywords: '推荐 反疲劳 重复 anti fatigue',
+        onTap: (ctx) {
+          final value = ref.read(recommendAntiFatigueEnabledProvider);
+          ref.read(recommendAntiFatigueEnabledProvider.notifier).setEnabled(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '不重推天数',
+        section: '推荐',
+        keywords: '推荐 反疲劳 天数 days',
+        onTap: (ctx) =>
+            _showAntiFatigueDaysDialog(ctx, ref, ref.read(recommendAntiFatigueDaysProvider)),
+      ),
+      _SettingEntry(
+        title: '用户评分加权',
+        section: '推荐',
+        keywords: '推荐 用户评分 加权 rating',
+        onTap: (ctx) {
+          final value = ref.read(recommendUserRatingEnabledProvider);
+          ref.read(recommendUserRatingEnabledProvider.notifier).setEnabled(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '最低用户评分',
+        section: '推荐',
+        keywords: '推荐 最低 用户评分 min rating',
+        onTap: (ctx) =>
+            _showUserRatingMinDialog(ctx, ref, ref.read(recommendUserRatingMinProvider)),
+      ),
+      // 播放
+      _SettingEntry(
+        title: '自动播放',
+        section: '播放',
+        keywords: '播放 自动 autoplay',
+        onTap: (ctx) {
+          final value = ref.read(isAutoPlayProvider);
+          ref.read(isAutoPlayProvider.notifier).setEnabled(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '默认播放倍速',
+        section: '播放',
+        keywords: '播放 倍速 rate speed',
+        onTap: (ctx) =>
+            _showPlaybackRateDialog(ctx, ref, ref.read(defaultPlaybackRateProvider)),
+      ),
+      _SettingEntry(
+        title: '画质偏好',
+        section: '播放',
+        keywords: '播放 画质 quality 1080p 720p',
+        onTap: (ctx) =>
+            _showVideoQualityDialog(ctx, ref, ref.read(videoQualityProvider)),
+      ),
+      _SettingEntry(
+        title: '手势控制',
+        section: '播放',
+        keywords: '播放 手势 gesture 滑动 双击 长按',
+        onTap: (ctx) => _showGestureControlDialog(ctx),
+      ),
+      // 字幕
+      _SettingEntry(
+        title: '默认字幕语言',
+        section: '字幕',
+        keywords: '字幕 语言 subtitle 中英日韩',
+        onTap: (ctx) => _showSubtitleDialog(ctx, ref, ref.read(defaultSubtitleLanguageProvider)),
+      ),
+      _SettingEntry(
+        title: '字幕大小',
+        section: '字幕',
+        keywords: '字幕 大小 size small medium large',
+        onTap: (ctx) => _showSubtitleSizeDialog(ctx, ref, ref.read(subtitleSizeProvider)),
+      ),
+      // 外观
+      _SettingEntry(
+        title: '主题',
+        section: '外观',
+        keywords: '外观 主题 深色 浅色 theme dark light',
+        onTap: (ctx) => _showThemeDialog(ctx, ref, ref.read(themeModeProvider)),
+      ),
+      _SettingEntry(
+        title: '视频方向',
+        section: '外观',
+        keywords: '外观 方向 竖屏 横屏 orientation',
+        onTap: (ctx) => _showOrientationDialog(ctx, ref, ref.read(orientationModeProvider)),
+      ),
+      // 存储
+      _SettingEntry(
+        title: '清除缓存',
+        section: '存储',
+        keywords: '存储 缓存 清除 cache',
+        onTap: (ctx) => _showClearCacheDialog(ctx, ref),
+      ),
+      _SettingEntry(
+        title: '重置设置',
+        section: '存储',
+        keywords: '存储 重置 设置 reset restore 默认',
+        onTap: (ctx) => _showResetSettingsDialog(ctx, ref),
+      ),
+      // 统计
+      _SettingEntry(
+        title: '观看统计',
+        section: '统计',
+        keywords: '统计 观看 完播率 stats',
+        onTap: (ctx) => _showWatchStatsDialog(ctx, ref),
+      ),
+      // 关于
+      _SettingEntry(
+        title: '关于 EmbyTok',
+        section: '关于',
+        keywords: '关于 about embytok',
+        onTap: (ctx) => _showAboutDialog(ctx, ref),
+      ),
+    ];
+  }
+
+  // 显示设置搜索对话框
+  void _showSettingsSearch(BuildContext context, WidgetRef ref) {
+    final entries = _buildSearchIndex(context, ref);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => _SettingsSearchSheet(entries: entries),
     );
   }
 
@@ -1124,6 +1361,12 @@ class SettingsView extends ConsumerWidget {
 
   void _showGestureControlDialog(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // 手势说明与 fullscreen_video_page.dart 中实际实现保持一致：
+    // - 单击：切换控制栏显隐（非播放/暂停）
+    // - 双击左右 1/3：快进/快退 10 秒；双击中间 1/3：点赞（收藏）
+    // - 长按：2x 倍速播放（松开恢复）
+    // - 上下滑动：左半屏调亮度，右半屏调音量
+    // - 左右滑动：拖动进度条（每像素 100ms）
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
@@ -1134,27 +1377,45 @@ class SettingsView extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _GestureItem(
-              icon: Icons.swipe,
-              title: '上下滑动',
-              description: '调节音量/亮度',
-            ),
-            const SizedBox(height: 12),
-            _GestureItem(
               icon: Icons.touch_app,
-              title: '左右滑动',
-              description: '快进/快退 10 秒',
+              title: '单击',
+              description: '显示/隐藏控制栏',
             ),
             const SizedBox(height: 12),
             _GestureItem(
               icon: Icons.double_arrow,
               title: '双击左右侧',
-              description: '快进/快退 10 秒',
+              description: '快退 / 快进 10 秒',
             ),
             const SizedBox(height: 12),
             _GestureItem(
-              icon: Icons.pause,
-              title: '单击',
-              description: '播放/暂停',
+              icon: Icons.favorite,
+              title: '双击中间',
+              description: '点赞（加入收藏）',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.fast_forward,
+              title: '长按',
+              description: '2x 倍速播放，松开恢复',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.swipe_up,
+              title: '上下滑动（左半屏）',
+              description: '调节屏幕亮度',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.volume_up,
+              title: '上下滑动（右半屏）',
+              description: '调节音量',
+            ),
+            const SizedBox(height: 12),
+            _GestureItem(
+              icon: Icons.swipe,
+              title: '左右滑动',
+              description: '拖动进度条定位',
             ),
           ],
         ),
@@ -1287,6 +1548,46 @@ class SettingsView extends ConsumerWidget {
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('清除', style: TextStyle(color: scheme.onError)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 重置设置对话框：清除所有偏好设置，提示用户重启生效
+  void _showResetSettingsDialog(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: Text('重置设置', style: TextStyle(color: scheme.onSurface)),
+        content: Text(
+          '将所有偏好设置恢复为默认值，包括：播放、字幕、外观、推荐、媒体库等。\n\n'
+          '不影响：登录信息、观看历史、搜索历史、收藏。\n\n'
+          '重置后需要重启应用以完全生效。',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await const AppPreferencesService().resetAllSettings();
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('设置已重置，请重启应用以完全生效'),
+                  backgroundColor: scheme.primary,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
+            child: Text('重置', style: TextStyle(color: scheme.onError)),
           ),
         ],
       ),
@@ -1478,12 +1779,24 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
+  void _showAboutDialog(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    // 动态读取版本号，避免硬编码
+    final versionAsync = ref.read(appVersionProvider);
+    final version = versionAsync.maybeWhen(
+      data: (v) => v,
+      orElse: () => 'unknown',
+    );
+    // 版权年份动态：显示起始年份到当前年份
+    const startYear = 2024;
+    final currentYear = DateTime.now().year;
+    final copyrightYear = currentYear > startYear
+        ? '$startYear-$currentYear'
+        : '$startYear';
     showAboutDialog(
       context: context,
       applicationName: 'EmbyTok',
-      applicationVersion: '1.82.0',
+      applicationVersion: version,
       applicationIcon: Container(
         width: 64,
         height: 64,
@@ -1497,7 +1810,7 @@ class SettingsView extends ConsumerWidget {
         const SizedBox(height: 16),
         const Text('EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验。'),
         const SizedBox(height: 16),
-        const Text('© 2024 EmbyTok'),
+        Text('© $copyrightYear EmbyTok'),
       ],
     );
   }
@@ -1564,6 +1877,62 @@ class SettingsView extends ConsumerWidget {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+// ==================== 推荐高级选项折叠组件 ====================
+
+/// 推荐高级选项折叠 tile
+///
+/// 基础推荐设置始终显示；高级选项（完播率门控、时间衰减、反疲劳、用户评分）
+/// 默认折叠，点击"高级选项"后展开。展开状态为局部 state，页面重建后重置为折叠。
+class _RecommendAdvancedTile extends StatefulWidget {
+  /// 高级选项 tile 构建器：每次 build 时调用，确保 ref.watch 生效
+  final List<Widget> Function() advancedTilesBuilder;
+
+  const _RecommendAdvancedTile({required this.advancedTilesBuilder});
+
+  @override
+  State<_RecommendAdvancedTile> createState() => _RecommendAdvancedTileState();
+}
+
+class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        ListTile(
+          leading: SettingsView._IconContainer(
+            icon: Icons.tune,
+            color: Colors.pink,
+          ),
+          title: Text(
+            '高级选项',
+            style: TextStyle(color: scheme.onSurface, fontSize: 15),
+          ),
+          subtitle: Text(
+            '完播率门控、时间衰减、反疲劳、用户评分',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant.withOpacity(0.8),
+              fontSize: 13,
+            ),
+          ),
+          trailing: Icon(
+            _expanded ? Icons.expand_less : Icons.expand_more,
+            color: scheme.onSurfaceVariant,
+          ),
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+        // 仅在展开时构建高级 tiles，避免折叠状态下触发不必要的 ref.watch
+        if (_expanded) ...[
+          const Divider(height: 1, indent: 56),
+          ...widget.advancedTilesBuilder().expand((tile) => [tile, const Divider(height: 1, indent: 56)]).toList()..removeLast(),
+        ],
+      ],
+    );
   }
 }
 
@@ -1659,6 +2028,140 @@ class _OptionDialog<T> extends StatelessWidget {
           child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
         ),
       ],
+    );
+  }
+}
+
+// ==================== 设置搜索 ====================
+
+/// 单个可搜索的设置入口
+class _SettingEntry {
+  final String title;
+  final String section;
+  final String keywords;
+  final void Function(BuildContext context) onTap;
+
+  const _SettingEntry({
+    required this.title,
+    required this.section,
+    required this.keywords,
+    required this.onTap,
+  });
+
+  /// 判断该入口是否匹配搜索词（标题、分组、关键词任一命中即可）
+  bool matches(String query) {
+    final q = query.toLowerCase();
+    return title.toLowerCase().contains(q) ||
+        section.toLowerCase().contains(q) ||
+        keywords.toLowerCase().contains(q);
+  }
+}
+
+/// 设置搜索底部表单：实时过滤设置项，点击后执行对应操作并关闭
+class _SettingsSearchSheet extends StatefulWidget {
+  final List<_SettingEntry> entries;
+
+  const _SettingsSearchSheet({required this.entries});
+
+  @override
+  State<_SettingsSearchSheet> createState() => _SettingsSearchSheetState();
+}
+
+class _SettingsSearchSheetState extends State<_SettingsSearchSheet> {
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<_SettingEntry> get _filtered {
+    if (_query.isEmpty) return widget.entries;
+    return widget.entries.where((e) => e.matches(_query)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final results = _filtered;
+    // 设置为屏幕高度的 70%，确保 Expanded 有明确的高度约束
+    final sheetHeight = MediaQuery.of(context).size.height * 0.7;
+    return SizedBox(
+      height: sheetHeight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          children: [
+            // 搜索框
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: TextField(
+                controller: _controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '搜索设置项…',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _query = '');
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: scheme.outline),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: scheme.primary, width: 2),
+                  ),
+                ),
+                onChanged: (value) => setState(() => _query = value),
+              ),
+            ),
+            // 搜索结果列表
+            Expanded(
+              child: results.isEmpty
+                  ? Center(
+                      child: Text(
+                        '未找到匹配的设置项',
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: results.length,
+                      itemBuilder: (context, index) {
+                        final entry = results[index];
+                        return ListTile(
+                          leading: Icon(Icons.settings_outlined,
+                              color: scheme.primary),
+                          title: Text(entry.title),
+                          subtitle: Text(
+                            entry.section,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.pop(context);
+                            entry.onTap(context);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

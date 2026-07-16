@@ -4,11 +4,18 @@
 /// 所有状态变化时自动持久化到 SharedPreferences。
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_preferences.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+
+/// 应用版本信息 Provider（动态读取，避免硬编码）
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version}+${info.buildNumber}';
+});
 
 // ---------------- 设备模式（standard / tv） ----------------
 

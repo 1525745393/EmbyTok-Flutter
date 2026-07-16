@@ -410,6 +410,43 @@ class AppPreferencesService {
     ]);
   }
 
+  /// 重置所有偏好设置到默认值
+  ///
+  /// 仅清除"设置类"偏好（播放、字幕、外观、推荐、媒体库等），
+  /// 不影响用户数据（登录信息、观看历史、搜索历史、收藏、缓存等）。
+  /// 清除后各 Notifier 的 _load() 会读到 null，自动回退到默认值。
+  Future<void> resetAllSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    // 需要重置的偏好 key 列表（与 save() 中的 key 保持一致）
+    const keysToRemove = <String>[
+      kStorageKeyForceDeviceMode,
+      kStorageKeyFeedType,
+      kStorageKeyViewMode,
+      kStorageKeyOrientationMode,
+      kStorageKeyIsMuted,
+      kStorageKeyIsAutoPlay,
+      kStorageKeyHiddenLibraryIds,
+      kStorageKeyDefaultPlaybackRate,
+      kStorageKeyDefaultSubtitleLanguage,
+      kStorageKeyVideoQuality,
+      kStorageKeySubtitleSize,
+      kStorageKeyFeedExcludePlayed,
+      kStorageKeyRecommendMinRating,
+      kStorageKeyRecommendExcludePlayed,
+      kStorageKeyRecommendMinRuntimeSec,
+      kStorageKeyRecommendIncludeTypes,
+      kStorageKeyRecommendUseWatchHistory,
+      kStorageKeyRecommendHalfLifeDays,
+      kStorageKeyRecommendAntiFatigueEnabled,
+      kStorageKeyRecommendAntiFatigueDays,
+      kStorageKeyRecommendUserRatingEnabled,
+      kStorageKeyRecommendUserRatingMin,
+    ];
+    await Future.wait(
+      keysToRemove.map((key) => prefs.remove(key)),
+    );
+  }
+
   // 单独更新设备模式
   Future<void> setForceDeviceMode(DeviceMode mode) async {
     final prefs = await SharedPreferences.getInstance();
