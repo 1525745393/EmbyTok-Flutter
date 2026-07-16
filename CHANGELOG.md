@@ -1,3 +1,11 @@
+# [1.133.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.132.0...v1.133.0) (2026-07-16)
+
+
+### Features
+
+* **favorites:** 收藏分页加载 + 本地缓存 ([f53e9e8](https://github.com/1525745393/EmbyTok-Flutter/commit/f53e9e81c3ba102e586d0aa648ba03a419201392))
+* **favorites:** 横向卡片添加心形角标 ([f75d535](https://github.com/1525745393/EmbyTok-Flutter/commit/f75d5357f157134306be5ad522fa3d6e20faf22e))
+
 # [1.132.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.131.0...v1.132.0) (2026-07-16)
 
 
