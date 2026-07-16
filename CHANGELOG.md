@@ -1,3 +1,15 @@
+# [1.128.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.127.0...v1.128.0) (2026-07-16)
+
+
+### Bug Fixes
+
+* **login:** ActionChip 改为 InputChip 修复 onDeleted 编译错误 ([69ba93e](https://github.com/1525745393/EmbyTok-Flutter/commit/69ba93e78fa3383875b3acd870780b8f376cf666))
+
+
+### Features
+
+* **login:** 优化登录界面，提升用户体验 ([ce225ce](https://github.com/1525745393/EmbyTok-Flutter/commit/ce225ce375e748b61b5774f3618993c48b95e296))
+
 # [1.127.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.7...v1.127.0) (2026-07-16)
 
 
