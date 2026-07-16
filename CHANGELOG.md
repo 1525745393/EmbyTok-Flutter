@@ -1,3 +1,10 @@
+# [1.135.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.134.0...v1.135.0) (2026-07-16)
+
+
+### Features
+
+* **settings:** 添加检查更新功能 ([b9cd252](https://github.com/1525745393/EmbyTok-Flutter/commit/b9cd252ca848a1868682eb5ccaefe9ee55da0071))
+
 # [1.134.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.133.0...v1.134.0) (2026-07-16)
 
 
