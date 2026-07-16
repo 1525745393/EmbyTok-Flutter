@@ -78,28 +78,43 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       final token = auth.token;
       final userId = auth.user?.id;
 
-      // 并行加载：演员详情和出演作品
-      final results = await Future.wait([
-        service.getPersonDetail(
-          widget.person.id,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-        ),
-        service.getPersonItems(
-          widget.person.id,
-          serverUrl: serverUrl,
-          token: token,
-        ),
-      ]);
+      // 作品列表优先加载：先显示作品，再等详情
+      // 避免 getPersonDetail 超时/失败阻塞整个页面
+      final worksFuture = service.getPersonItems(
+        widget.person.id,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final detailFuture = service.getPersonDetail(
+        widget.person.id,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+      );
 
-      if (mounted) {
+      // 作品列表加载完成后先渲染（减少白屏时间）
+      worksFuture.then((worksResponse) {
+        if (mounted) {
+          setState(() {
+            _works = worksResponse.items;
+            _total = worksResponse.total;
+            _loading = false;
+          });
+        }
+      }).catchError((e) {
+        if (mounted) {
+          setState(() {
+            _error = e.toString();
+            _loading = false;
+          });
+        }
+      });
+
+      // 详情稍后更新（不阻塞作品列表）
+      final detail = await detailFuture;
+      if (mounted && detail != null) {
         setState(() {
-          _personDetail = results[0] as MediaItem?;
-          final worksResponse = results[1] as PaginatedResponse<MediaItem>;
-          _works = worksResponse.items;
-          _total = worksResponse.total;
-          _loading = false;
+          _personDetail = detail;
         });
       }
     } catch (e) {
@@ -225,6 +240,16 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                                 color: scheme.onSurface.withOpacity(0.7),
                                 fontSize: 13,
                                 height: 1.4,
+                              ),
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              '暂无简介',
+                              style: TextStyle(
+                                color: scheme.onSurface.withOpacity(0.4),
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
                               ),
                             ),
                           ],
