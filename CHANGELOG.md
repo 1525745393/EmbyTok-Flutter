@@ -1,3 +1,10 @@
+# [1.138.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.137.0...v1.138.0) (2026-07-16)
+
+
+### Features
+
+* **about:** 关于对话框新增 GitHub 仓库跳转入口 ([580d11e](https://github.com/1525745393/EmbyTok-Flutter/commit/580d11e62cb15f81dcf59a0ca352dc812cfdcaa1))
+
 # [1.137.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.2...v1.137.0) (2026-07-16)
 
 
