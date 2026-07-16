@@ -588,6 +588,10 @@ class EmbytokService {
 
   // ============================
   // 获取单个演员详情（包含 overview）
+  //
+  // 注意：Emby 的 /Items/{id} 端点对 Person 类型可能不返回 Overview，
+  // 但 /Users/{userId}/Items 列表端点会返回。因此使用列表端点 + Ids 参数
+  // 获取单条记录，保证 Overview 字段。
   // ============================
   Future<MediaItem?> getPersonDetail(
     String personId, {
@@ -597,18 +601,25 @@ class EmbytokService {
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
+      'Ids': personId,
+      'Recursive': 'true',
       'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
     };
-    if (userId != null && userId.isNotEmpty) {
-      params['UserId'] = userId;
-    }
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
     try {
       final resp = await _apiClient.get<dynamic>(
-        '/Items/$personId',
+        path,
         queryParameters: params,
       );
-      if (resp.data is Map<String, dynamic>) {
-        return MediaItem.fromJson(resp.data);
+      final data = resp.data;
+      final items = data is List
+          ? data as List<dynamic>
+          : (data['Items'] as List<dynamic>?) ?? [];
+      if (items.isNotEmpty && items.first is Map<String, dynamic>) {
+        return MediaItem.fromJson(items.first as Map<String, dynamic>);
       }
       return null;
     } catch (e) {
