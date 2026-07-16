@@ -171,6 +171,7 @@ class SettingsView extends ConsumerWidget {
             [
               _buildAboutTile(context, ref),
               _buildCheckUpdateTile(context, ref),
+              _buildDonateTile(context, ref),
               _buildVersionTile(context, ref),
             ],
           ),
@@ -940,6 +941,17 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 关于 - 打赏支持
+  Widget _buildDonateTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.volunteer_activism_outlined,
+      iconColor: Colors.red,
+      title: '打赏支持',
+      subtitle: '请作者喝杯咖啡',
+      onTap: () => _showDonateDialog(context),
+    );
+  }
+
   // 关于 - 版本信息（动态读取，避免硬编码）
   Widget _buildVersionTile(BuildContext context, WidgetRef ref) {
     final versionAsync = ref.watch(appVersionProvider);
@@ -1189,6 +1201,12 @@ class SettingsView extends ConsumerWidget {
         section: '关于',
         keywords: '检查更新 update 升级 版本',
         onTap: (ctx) => _checkForUpdate(ctx, ref),
+      ),
+      _SettingEntry(
+        title: '打赏支持',
+        section: '关于',
+        keywords: '打赏 赞赏 捐款 赞助 donate 咖啡',
+        onTap: (ctx) => _showDonateDialog(ctx),
       ),
     ];
   }
@@ -2194,6 +2212,131 @@ class SettingsView extends ConsumerWidget {
     }
   }
 
+  /// 打赏支持对话框
+  ///
+  /// 组合方式：展示微信/支付宝收款码（如已提供），并提供外部打赏链接。
+  /// 收款码图片放置在 assets/images/ 下，文件名固定为：
+  /// - donate_wechat.png（微信收款码）
+  /// - donate_alipay.png（支付宝收款码）
+  /// 如未提供图片，则显示占位提示 + 跳转链接。
+  void _showDonateDialog(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 标题图标
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.volunteer_activism,
+                    color: Colors.red, size: 32),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '打赏支持',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '如果这个应用对你有帮助，\n可以请作者喝杯咖啡 ☕',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              // 收款码区域：用 errorBuilder 处理图片缺失
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/donate_wechat.png',
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _DonatePlaceholder(
+                    icon: Icons.chat_outlined,
+                    label: '微信收款码',
+                    hint: '尚未提供，敬请期待',
+                    color: const Color(0xFF07C160),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // 支付宝收款码
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/donate_alipay.png',
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _DonatePlaceholder(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: '支付宝收款码',
+                    hint: '尚未提供，敬请期待',
+                    color: const Color(0xFF1677FF),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 外部打赏链接（如爱发电等）
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.open_in_new,
+                          size: 14, color: scheme.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '前往 GitHub 仓库',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAboutDialog(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     // 动态读取版本号
@@ -2425,6 +2568,57 @@ class SettingsView extends ConsumerWidget {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+// 打赏收款码占位组件：尚未提供图片时显示提示
+class _DonatePlaceholder extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String hint;
+  final Color color;
+
+  const _DonatePlaceholder({
+    required this.icon,
+    required this.label,
+    required this.hint,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 200,
+      height: 200,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: color),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            hint,
+            style: TextStyle(
+              color: color.withOpacity(0.6),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
