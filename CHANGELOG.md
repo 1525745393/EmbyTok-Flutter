@@ -1,3 +1,10 @@
+# [1.131.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.130.0...v1.131.0) (2026-07-16)
+
+
+### Features
+
+* **favorites:** 收藏页优化（部分失败/长按菜单/撤销/查看全部/类型统一） ([a56fda8](https://github.com/1525745393/EmbyTok-Flutter/commit/a56fda81537e59352152778949308aa03bde970a))
+
 # [1.130.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.129.1...v1.130.0) (2026-07-16)
 
 
