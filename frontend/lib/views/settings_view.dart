@@ -1781,37 +1781,136 @@ class SettingsView extends ConsumerWidget {
 
   void _showAboutDialog(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    // 动态读取版本号，避免硬编码
+    // 动态读取版本号
     final versionAsync = ref.read(appVersionProvider);
     final version = versionAsync.maybeWhen(
       data: (v) => v,
       orElse: () => 'unknown',
     );
-    // 版权年份动态：显示起始年份到当前年份
+    // 版权年份动态
     const startYear = 2024;
     final currentYear = DateTime.now().year;
     final copyrightYear = currentYear > startYear
         ? '$startYear-$currentYear'
         : '$startYear';
-    showAboutDialog(
+
+    showDialog<void>(
       context: context,
-      applicationName: 'EmbyTok',
-      applicationVersion: version,
-      applicationIcon: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: scheme.primary,
-          borderRadius: BorderRadius.circular(12),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 图标
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.play_circle_filled,
+                    color: Colors.white, size: 44),
+              ),
+              const SizedBox(height: 12),
+              // 应用名
+              Text(
+                'EmbyTok',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              // 版本号
+              Text(
+                '版本 $version',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 应用介绍
+              Text(
+                'EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的上下滑动体验，让你以更现代、便捷的方式浏览个人媒体库。',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // 功能亮点
+              _AboutFeatureRow(
+                icon: Icons.swipe_vertical,
+                text: '上下滑动，沉浸式刷片体验',
+              ),
+              const SizedBox(height: 10),
+              _AboutFeatureRow(
+                icon: Icons.favorite_border,
+                text: '收藏管理，快速访问心仪内容',
+              ),
+              const SizedBox(height: 10),
+              _AboutFeatureRow(
+                icon: Icons.tv,
+                text: '支持 Emby / Plex 媒体服务器',
+              ),
+              const SizedBox(height: 20),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              // 版权
+              Text(
+                '© $copyrightYear EmbyTok  contributors',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '本软件基于开源协议发布',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withOpacity(0.7),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
-        child: const Icon(Icons.play_circle_filled, color: Colors.white, size: 40),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // 打开许可证页面
+              showLicensePage(
+                context: context,
+                applicationName: 'EmbyTok',
+                applicationVersion: version,
+                applicationIcon: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.play_circle_filled,
+                      color: Colors.white, size: 30),
+                ),
+              );
+            },
+            child: const Text('开源许可证'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+        ],
       ),
-      children: [
-        const SizedBox(height: 16),
-        const Text('EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的体验。'),
-        const SizedBox(height: 16),
-        Text('© $copyrightYear EmbyTok'),
-      ],
     );
   }
 
@@ -1877,6 +1976,34 @@ class SettingsView extends ConsumerWidget {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+}
+
+// 关于页的功能亮点行
+class _AboutFeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _AboutFeatureRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: scheme.primary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
