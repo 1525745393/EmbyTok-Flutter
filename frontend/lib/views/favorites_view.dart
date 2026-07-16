@@ -12,6 +12,14 @@ import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/video_page_item.dart';
 
+/// 收藏排序方式
+enum FavoritesSortMode {
+  defaultOrder, // 服务端返回顺序（按添加时间）
+  nameAsc, // 名称 A→Z
+  yearDesc, // 年份 新→旧
+  ratingDesc, // 评分 高→低
+}
+
 class FavoritesView extends ConsumerStatefulWidget {
   const FavoritesView({super.key});
 
@@ -24,6 +32,13 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   @override
   bool get wantKeepAlive => true;
 
+  // 搜索状态
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  // 排序方式
+  FavoritesSortMode _sortMode = FavoritesSortMode.defaultOrder;
+
   @override
   void initState() {
     super.initState();
@@ -33,31 +48,146 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // 按关键词过滤列表
+  List<MediaItem> _filter(List<MediaItem> items) {
+    var result = items;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result.where((item) => item.title.toLowerCase().contains(q)).toList();
+    }
+    return _sort(result);
+  }
+
+  // 按排序方式排列
+  List<MediaItem> _sort(List<MediaItem> items) {
+    if (_sortMode == FavoritesSortMode.defaultOrder) return items;
+    final sorted = List<MediaItem>.from(items);
+    switch (_sortMode) {
+      case FavoritesSortMode.nameAsc:
+        sorted.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        break;
+      case FavoritesSortMode.yearDesc:
+        sorted.sort((a, b) {
+          final ya = a.productionYear ?? a.year ?? 0;
+          final yb = b.productionYear ?? b.year ?? 0;
+          return yb.compareTo(ya);
+        });
+        break;
+      case FavoritesSortMode.ratingDesc:
+        sorted.sort((a, b) {
+          final ra = a.displayRating ?? 0;
+          final rb = b.displayRating ?? 0;
+          return rb.compareTo(ra);
+        });
+        break;
+      case FavoritesSortMode.defaultOrder:
+        break;
+    }
+    return sorted;
+  }
+
+  // 排序按钮显示文案
+  String get _sortLabel {
+    switch (_sortMode) {
+      case FavoritesSortMode.defaultOrder:
+        return '默认';
+      case FavoritesSortMode.nameAsc:
+        return '名称';
+      case FavoritesSortMode.yearDesc:
+        return '年份';
+      case FavoritesSortMode.ratingDesc:
+        return '评分';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(favoritesProvider);
+    final totalCount =
+        state.movies.length + state.boxSets.length + state.people.length;
+    // 过滤后的列表
+    final filteredMovies = _filter(state.movies);
+    final filteredBoxSets = _filter(state.boxSets);
+    final filteredPeople = _filter(state.people);
+    final filteredCount =
+        filteredMovies.length + filteredBoxSets.length + filteredPeople.length;
 
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        title: Row(
-          children: [
-            Icon(Icons.favorite, color: scheme.primary, size: 24),
-            const SizedBox(width: 8),
-            const Text('我的收藏'),
-            const SizedBox(width: 12),
-            Text(
-              '${state.movies.length + state.boxSets.length + state.people.length}',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '搜索收藏...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+                style: TextStyle(color: scheme.onSurface, fontSize: 16),
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+              )
+            : Row(
+                children: [
+                  Icon(Icons.favorite, color: scheme.primary, size: 24),
+                  const SizedBox(width: 8),
+                  const Text('我的收藏'),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$totalCount',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              icon: Icon(Icons.close, color: scheme.onSurfaceVariant, size: 22),
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+              },
+              tooltip: '取消搜索',
+            )
+          else ...[
+            // 排序按钮
+            PopupMenuButton<FavoritesSortMode>(
+              icon: Icon(Icons.sort,
+                  color: scheme.onSurfaceVariant, size: 22),
+              tooltip: '排序',
+              onSelected: (mode) => setState(() => _sortMode = mode),
+              itemBuilder: (ctx) => [
+                _sortMenuItem(FavoritesSortMode.defaultOrder, '默认顺序'),
+                _sortMenuItem(FavoritesSortMode.nameAsc, '名称 A-Z'),
+                _sortMenuItem(FavoritesSortMode.yearDesc, '年份 新-旧'),
+                _sortMenuItem(FavoritesSortMode.ratingDesc, '评分 高-低'),
+              ],
             ),
-            const Spacer(),
+            IconButton(
+              icon: Icon(Icons.search, color: scheme.onSurfaceVariant, size: 22),
+              onPressed: totalCount > 0
+                  ? () => setState(() => _isSearching = true)
+                  : null,
+              tooltip: '搜索',
+            ),
             IconButton(
               icon: state.isLoading
                   ? SizedBox(
@@ -68,20 +198,54 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                         color: scheme.onSurfaceVariant,
                       ),
                     )
-                  : Icon(Icons.refresh, color: scheme.onSurfaceVariant, size: 22),
+                  : Icon(Icons.refresh,
+                      color: scheme.onSurfaceVariant, size: 22),
               onPressed: state.isLoading
                   ? null
                   : () => ref.read(favoritesProvider.notifier).loadFavorites(),
               tooltip: '刷新',
             ),
           ],
-        ),
+        ],
       ),
-      body: _buildBody(state, scheme),
+      body: _buildBody(
+        state,
+        scheme,
+        filteredMovies,
+        filteredBoxSets,
+        filteredPeople,
+        filteredCount,
+      ),
     );
   }
 
-  Widget _buildBody(FavoritesState state, ColorScheme scheme) {
+  // 排序菜单项
+  PopupMenuItem<FavoritesSortMode> _sortMenuItem(
+      FavoritesSortMode mode, String label) {
+    return PopupMenuItem<FavoritesSortMode>(
+      value: mode,
+      child: Row(
+        children: [
+          if (_sortMode == mode)
+            Icon(Icons.check, size: 18,
+                color: Theme.of(context).colorScheme.primary)
+          else
+            const SizedBox(width: 18),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    FavoritesState state,
+    ColorScheme scheme,
+    List<MediaItem> filteredMovies,
+    List<MediaItem> filteredBoxSets,
+    List<MediaItem> filteredPeople,
+    int filteredCount,
+  ) {
     // 加载中
     if (state.isLoading &&
         state.movies.isEmpty &&
@@ -115,26 +279,50 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         state.boxSetsError == null &&
         state.peopleError == null &&
         state.error == null) {
-      return EmptyStateCard.noFavorites();
+      return EmptyStateCard(
+        icon: Icons.favorite_border,
+        title: '还没有收藏',
+        subtitle: '双击视频即可收藏',
+        actionLabel: '去逛逛',
+        onAction: () => context.go('/'),
+      );
     }
 
-    // 三栏布局
+    // 搜索无结果
+    if (_searchQuery.isNotEmpty && filteredCount == 0) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off,
+                color: scheme.onSurfaceVariant, size: 64),
+            const SizedBox(height: 12),
+            Text(
+              '没有找到「$_searchQuery」',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 15),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 三栏布局（搜索时使用过滤后的列表）
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: _SectionHeader(
             title: '收藏影片',
-            count: state.movies.length,
-            onViewAll: state.movies.isNotEmpty
+            count: filteredMovies.length,
+            onViewAll: filteredMovies.isNotEmpty && _searchQuery.isEmpty
                 ? () => context.push('/favorites/category/movie')
                 : null,
           ),
         ),
         SliverToBoxAdapter(
           child: _buildHorizontalCardList(
-            items: state.movies,
+            items: filteredMovies,
             itemType: _CardType.movie,
-            error: state.moviesError,
+            error: _searchQuery.isEmpty ? state.moviesError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
           ),
         ),
@@ -142,17 +330,17 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         SliverToBoxAdapter(
           child: _SectionHeader(
             title: '收藏合集',
-            count: state.boxSets.length,
-            onViewAll: state.boxSets.isNotEmpty
+            count: filteredBoxSets.length,
+            onViewAll: filteredBoxSets.isNotEmpty && _searchQuery.isEmpty
                 ? () => context.push('/favorites/category/boxset')
                 : null,
           ),
         ),
         SliverToBoxAdapter(
           child: _buildHorizontalCardList(
-            items: state.boxSets,
+            items: filteredBoxSets,
             itemType: _CardType.boxSet,
-            error: state.boxSetsError,
+            error: _searchQuery.isEmpty ? state.boxSetsError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
           ),
         ),
@@ -160,17 +348,17 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         SliverToBoxAdapter(
           child: _SectionHeader(
             title: '收藏人物',
-            count: state.people.length,
-            onViewAll: state.people.isNotEmpty
+            count: filteredPeople.length,
+            onViewAll: filteredPeople.isNotEmpty && _searchQuery.isEmpty
                 ? () => context.push('/favorites/category/person')
                 : null,
           ),
         ),
         SliverToBoxAdapter(
           child: _buildHorizontalCardList(
-            items: state.people,
+            items: filteredPeople,
             itemType: _CardType.person,
-            error: state.peopleError,
+            error: _searchQuery.isEmpty ? state.peopleError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
           ),
         ),
@@ -234,6 +422,9 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
+        // 限制预渲染范围，减少横向滚动时的图片内存占用
+        cacheExtent: cardWidth * 2,
+        addAutomaticKeepAlives: false,
         itemBuilder: (context, index) {
           final item = items[index];
           return Padding(
@@ -398,11 +589,16 @@ class _FavoriteCard extends ConsumerWidget {
     if (itemType == _CardType.person) {
       return '演员';
     }
+    // 影片/合集：年份 + 评分
+    final parts = <String>[];
     final year = item.productionYear ?? item.year;
-    if (year != null) {
-      return year.toString();
+    if (year != null) parts.add(year.toString());
+    final rating = item.displayRating;
+    if (rating != null && rating > 0) {
+      parts.add('★ ${rating.toStringAsFixed(1)}');
     }
-    return item.type;
+    if (parts.isEmpty) return item.type;
+    return parts.join(' · ');
   }
 
   void _navigateTo(BuildContext context, WidgetRef ref) {
@@ -855,9 +1051,16 @@ class _GridCard extends ConsumerWidget {
 
   String _subtitle(MediaItem item) {
     if (category == FavoritesCategory.person) return '演员';
+    // 影片/合集：年份 + 评分
+    final parts = <String>[];
     final year = item.productionYear ?? item.year;
-    if (year != null) return year.toString();
-    return item.type;
+    if (year != null) parts.add(year.toString());
+    final rating = item.displayRating;
+    if (rating != null && rating > 0) {
+      parts.add('★ ${rating.toStringAsFixed(1)}');
+    }
+    if (parts.isEmpty) return item.type;
+    return parts.join(' · ');
   }
 
   void _navigateTo(BuildContext context, WidgetRef ref) {

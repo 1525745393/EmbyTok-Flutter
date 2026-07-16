@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// 空状态卡片
 ///
 /// 统一展示无内容的友好提示。
-/// 支持自定义图标、标题、副标题。
+/// 支持自定义图标、标题、副标题、可选操作按钮。
 class EmptyStateCard extends StatelessWidget {
   /// 空状态图标
   final IconData icon;
@@ -20,12 +20,20 @@ class EmptyStateCard extends StatelessWidget {
   /// 图标颜色，默认使用主题 onSurfaceVariant
   final Color? iconColor;
 
+  /// 操作按钮文案（可选）
+  final String? actionLabel;
+
+  /// 操作按钮回调（可选）
+  final VoidCallback? onAction;
+
   const EmptyStateCard({
     super.key,
     this.icon = Icons.inbox_outlined,
     required this.title,
     this.subtitle,
     this.iconColor,
+    this.actionLabel,
+    this.onAction,
   });
 
   // 无收藏快捷构造
@@ -109,6 +117,13 @@ class EmptyStateCard extends StatelessWidget {
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
+              ),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 20),
+              FilledButton.tonal(
+                onPressed: onAction,
+                child: Text(actionLabel!),
               ),
             ],
           ],
