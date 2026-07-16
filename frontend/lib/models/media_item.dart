@@ -383,6 +383,14 @@ class MediaItem {
 
   bool get isWatched => userData?.played ?? false;
 
+  // 类型判断：统一封装 type 字符串比较，避免分散的 toLowerCase() 硬编码
+  bool get isMovie => type.toLowerCase() == 'movie';
+  bool get isSeries => type.toLowerCase() == 'series';
+  bool get isEpisode => type.toLowerCase() == 'episode';
+  bool get isBoxSet => type.toLowerCase() == 'boxset';
+  bool get isPerson => type.toLowerCase() == 'person';
+  bool get isMusicVideo => type.toLowerCase() == 'musicvideo';
+
   // 判断是否为横屏视频（根据媒体源的宽高）
   bool get isLandscape {
     final sources = mediaSources;

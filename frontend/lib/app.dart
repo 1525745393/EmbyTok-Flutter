@@ -131,6 +131,20 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           child: const FavoritesView(),
         ),
       ),
+      // 收藏分类详情
+      GoRoute(
+        path: '/favorites/category/:type',
+        builder: (context, state) {
+          final type = state.pathParameters['type'] ?? 'movie';
+          final category = switch (type) {
+            'movie' => FavoritesCategory.movie,
+            'boxset' => FavoritesCategory.boxSet,
+            'person' => FavoritesCategory.person,
+            _ => FavoritesCategory.movie,
+          };
+          return FavoritesCategoryView(category: category);
+        },
+      ),
       // 历史
       GoRoute(
         path: '/history',

@@ -18,12 +18,16 @@ import 'auth_provider.dart';
 /// - [boxsets] 收藏的合集（BoxSet）列表
 /// - [people] 收藏的人物（导演 / 演员）列表
 /// - [favoriteIds] 所有已收藏条目的 ID 集合（用于快速判定收藏状态）
+/// - [moviesError]/[boxSetsError]/[peopleError] 各栏独立的错误信息（部分失败时使用）
 class FavoritesState {
   final List<MediaItem> movies;
   final List<MediaItem> boxSets;
   final List<MediaItem> people;
   final bool isLoading;
   final String? error;
+  final String? moviesError;
+  final String? boxSetsError;
+  final String? peopleError;
   final Set<String> favoriteIds;
 
   const FavoritesState({
@@ -32,6 +36,9 @@ class FavoritesState {
     this.people = const <MediaItem>[],
     this.isLoading = false,
     this.error,
+    this.moviesError,
+    this.boxSetsError,
+    this.peopleError,
     this.favoriteIds = const <String>{},
   });
 
@@ -41,6 +48,9 @@ class FavoritesState {
     List<MediaItem>? people,
     bool? isLoading,
     String? error,
+    String? moviesError,
+    String? boxSetsError,
+    String? peopleError,
     Set<String>? favoriteIds,
   }) {
     return FavoritesState(
@@ -49,6 +59,9 @@ class FavoritesState {
       people: people ?? this.people,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
+      moviesError: moviesError ?? this.moviesError,
+      boxSetsError: boxSetsError ?? this.boxSetsError,
+      peopleError: peopleError ?? this.peopleError,
       favoriteIds: favoriteIds ?? this.favoriteIds,
     );
   }
@@ -120,10 +133,17 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   }
 
   /// 从 Emby 服务器并行拉取三栏收藏
+  /// 每栏独立 try-catch：某一栏失败不影响其他栏展示
   Future<void> loadFavorites() async {
     if (_isLoading) return;
     _isLoading = true;
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      moviesError: null,
+      boxSetsError: null,
+      peopleError: null,
+    );
     AppLogger.info('加载收藏列表（三栏）');
 
     final auth = _auth;
@@ -135,49 +155,93 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       return;
     }
 
-    try {
-      // 并行请求三栏数据
-      final serverUrl = auth.embyServerUrl;
-      final token = auth.token;
-      final userId = auth.user?.id;
-      if (serverUrl == null || token == null) {
-        _isLoading = false;
-        state = state.copyWith(isLoading: false, error: '尚未登录');
-        return;
-      }
-      final results = await Future.wait<List<MediaItem>>([
-        _service.getFavoriteMovies(serverUrl: serverUrl, token: token, userId: userId),
-        _service.getFavoriteBoxSets(serverUrl: serverUrl, token: token, userId: userId),
-        _service.getFavoritePeople(serverUrl: serverUrl, token: token, userId: userId),
-      ], eagerError: false);
-
-      final movies = results[0];
-      final boxSets = results[1];
-      final people = results[2];
-
-      // 合并 favoriteIds
-      final ids = _mergeIds(movies, boxSets, people);
-
-      state = FavoritesState(
-        movies: movies,
-        boxSets: boxSets,
-        people: people,
-        isLoading: false,
-        favoriteIds: ids,
-      );
-      _hasLoaded = true;
-      AppLogger.info('收藏列表加载成功', data: {
-        'movies': movies.length,
-        'boxSets': boxSets.length,
-        'people': people.length,
-      });
-    } catch (e) {
-      final message = e is String ? e : '加载收藏失败：$e';
-      state = state.copyWith(isLoading: false, error: message);
-      AppLogger.error('加载收藏失败', error: e);
-    } finally {
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    final userId = auth.user?.id;
+    if (serverUrl == null || token == null) {
       _isLoading = false;
+      state = state.copyWith(isLoading: false, error: '尚未登录');
+      return;
     }
+
+    // 三栏独立 try-catch，部分失败不影响整体
+    List<MediaItem> movies = [];
+    List<MediaItem> boxSets = [];
+    List<MediaItem> people = [];
+    String? moviesError;
+    String? boxSetsError;
+    String? peopleError;
+
+    await Future.wait<void>([
+      // 收藏影片
+      () async {
+        try {
+          movies = await _service.getFavoriteMovies(
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+        } catch (e) {
+          moviesError = e is String ? e : '加载失败：$e';
+          AppLogger.error('加载收藏影片失败', error: e);
+        }
+      }(),
+      // 收藏合集
+      () async {
+        try {
+          boxSets = await _service.getFavoriteBoxSets(
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+        } catch (e) {
+          boxSetsError = e is String ? e : '加载失败：$e';
+          AppLogger.error('加载收藏合集失败', error: e);
+        }
+      }(),
+      // 收藏人物
+      () async {
+        try {
+          people = await _service.getFavoritePeople(
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+        } catch (e) {
+          peopleError = e is String ? e : '加载失败：$e';
+          AppLogger.error('加载收藏人物失败', error: e);
+        }
+      }(),
+    ], eagerError: false);
+
+    // 合并 favoriteIds（只合并成功加载的栏）
+    final ids = _mergeIds(movies, boxSets, people);
+
+    // 全部失败才设置全局 error
+    final allFailed =
+        moviesError != null && boxSetsError != null && peopleError != null;
+
+    state = FavoritesState(
+      movies: movies,
+      boxSets: boxSets,
+      people: people,
+      isLoading: false,
+      error: allFailed ? '全部收藏加载失败' : null,
+      moviesError: moviesError,
+      boxSetsError: boxSetsError,
+      peopleError: peopleError,
+      favoriteIds: ids,
+    );
+    _hasLoaded = true;
+    AppLogger.info('收藏列表加载完成', data: {
+      'movies': movies.length,
+      'moviesError': moviesError,
+      'boxSets': boxSets.length,
+      'boxSetsError': boxSetsError,
+      'people': people.length,
+      'peopleError': peopleError,
+    });
+    _isLoading = false;
   }
 
   /// 切换某条目的收藏状态
@@ -213,12 +277,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     if (newIsFavorite) {
       newIds.add(item.id);
       // 根据类型加入对应的列表
-      final type = item.type.toLowerCase();
-      if (type == 'boxset') {
+      if (item.isBoxSet) {
         if (!newBoxSets.any((e) => e.id == item.id)) {
           newBoxSets.insert(0, item);
         }
-      } else if (type == 'person') {
+      } else if (item.isPerson) {
         if (!newPeople.any((e) => e.id == item.id)) {
           newPeople.insert(0, item);
         }
@@ -265,12 +328,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
       if (currentlyFavorite) {
         rollbackIds.add(item.id);
-        final type = item.type.toLowerCase();
-        if (type == 'boxset') {
+        if (item.isBoxSet) {
           if (!rollbackBoxSets.any((e) => e.id == item.id)) {
             rollbackBoxSets.insert(0, item);
           }
-        } else if (type == 'person') {
+        } else if (item.isPerson) {
           if (!rollbackPeople.any((e) => e.id == item.id)) {
             rollbackPeople.insert(0, item);
           }
