@@ -4,8 +4,11 @@
 // 版本号格式：x.y.z+buildNumber（如 1.133.0+11330）
 // 对比逻辑：仅比较 x.y.z 三段主版本号，忽略 buildNumber
 
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../utils/logger.dart';
 
@@ -184,6 +187,48 @@ class UpdateCheckService {
 
   /// 获取 GitHub Release 页面 URL（用于浏览器打开）
   String get releasePageUrl => 'https://github.com/$_owner/$_repo/releases';
+
+  /// 下载 APK 到本地缓存目录
+  ///
+  /// - [asset] 要下载的 APK 附件
+  /// - [onProgress] 下载进度回调（0.0 ~ 1.0）
+  /// - 返回下载后的本地文件路径
+  Future<String> downloadApk(
+    ReleaseAsset asset, {
+    required void Function(double progress) onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final dir = await getTemporaryDirectory();
+    final savePath = '${dir.path}/${asset.name}';
+
+    // 已下载过同名文件且大小匹配则直接返回
+    final existingFile = File(savePath);
+    if (await existingFile.exists() && await existingFile.length() == asset.size) {
+      onProgress(1.0);
+      return savePath;
+    }
+
+    try {
+      await _dio.download(
+        asset.downloadUrl,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total <= 0) return;
+          onProgress(received / total);
+        },
+      );
+      AppLogger.debug('APK 下载完成：$savePath');
+      return savePath;
+    } on DioException catch (e) {
+      if (CancelToken.isCancel(e)) {
+        AppLogger.info('APK 下载已取消');
+      } else {
+        AppLogger.error('APK 下载失败', error: e);
+      }
+      rethrow;
+    }
+  }
 }
 
 /// 更新检查 Provider

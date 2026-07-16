@@ -1,9 +1,13 @@
 // 设置页面：主题、播放、字幕、存储、账户、关于等
 // 优化：组件提取、配置化、UI 优化、新增功能
 
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
@@ -1862,19 +1866,21 @@ class SettingsView extends ConsumerWidget {
       // 有新版本
       final release = result.latestRelease!;
       // 查找 APK 下载链接
-      final apkAsset = release.assets.where((a) => a.isApk).toList();
+      final apkAssets = release.assets.where((a) => a.isApk).toList();
+      final hasApk = apkAssets.isNotEmpty;
       _showUpdateResultDialog(
         context,
         icon: Icons.system_update,
         title: '发现新版本',
         message: '当前版本：$currentVer\n最新版本：${release.version}\n\n'
             '${release.body.isNotEmpty ? release.body : release.name}',
-        actionText: apkAsset.isNotEmpty ? '下载 APK' : '前往下载',
+        actionText: hasApk ? '下载安装' : '前往下载',
         onAction: () {
-          final url = apkAsset.isNotEmpty
-              ? apkAsset.first.downloadUrl
-              : release.htmlUrl;
-          _launchUrl(url);
+          if (hasApk) {
+            _startDownloadApk(context, ref, apkAssets.first, release);
+          } else {
+            _launchUrl(release.htmlUrl);
+          }
         },
         secondaryActionText: '稍后再说',
         onSecondaryAction: null,
@@ -1891,6 +1897,229 @@ class SettingsView extends ConsumerWidget {
         secondaryActionText: null,
         onSecondaryAction: null,
       );
+    }
+  }
+
+  /// 开始下载 APK：显示进度对话框，下载完成后触发安装
+  void _startDownloadApk(
+    BuildContext context,
+    WidgetRef ref,
+    ReleaseAsset apkAsset,
+    ReleaseInfo release,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final updateService = ref.read(updateCheckServiceProvider);
+    final cancelToken = CancelToken();
+    final progressNotifier = ValueNotifier<double>(0.0);
+    final statusNotifier = ValueNotifier<String>('准备下载...');
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        // 启动下载
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          updateService
+              .downloadApk(
+            apkAsset,
+            onProgress: (p) {
+              progressNotifier.value = p;
+              statusNotifier.value =
+                  '${(p * 100).toStringAsFixed(0)}%  ·  ${_formatSize(apkAsset.size)}';
+            },
+            cancelToken: cancelToken,
+          )
+              .then((savePath) {
+            if (ctx.mounted) {
+              Navigator.pop(ctx);
+              _showInstallDialog(ctx, savePath, release, scheme);
+            }
+          })
+              .catchError((e) {
+            if (CancelToken.isCancel(e)) return;
+            if (ctx.mounted) {
+              Navigator.pop(ctx);
+              _showDownloadError(ctx, e.toString(), apkAsset.downloadUrl);
+            }
+          });
+        });
+
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.downloading, size: 28, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '正在下载更新',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ValueListenableBuilder<double>(
+                valueListenable: progressNotifier,
+                builder: (_, progress, __) {
+                  return LinearProgressIndicator(
+                    value: progress > 0 ? progress : null,
+                    backgroundColor: scheme.surfaceContainerHighest,
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(scheme.primary),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              ValueListenableBuilder<String>(
+                valueListenable: statusNotifier,
+                builder: (_, status, __) {
+                  return Text(
+                    status,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                cancelToken.cancel();
+                Navigator.pop(ctx);
+              },
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      // 对话框关闭时释放资源
+      progressNotifier.dispose();
+      statusNotifier.dispose();
+    });
+  }
+
+  // 显示下载失败对话框
+  void _showDownloadError(BuildContext context, String error, String fallbackUrl) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: scheme.error),
+            const SizedBox(height: 16),
+            const Text(
+              '下载失败',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _launchUrl(fallbackUrl);
+            },
+            child: const Text('浏览器下载'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 显示安装确认对话框
+  void _showInstallDialog(
+    BuildContext context,
+    String apkPath,
+    ReleaseInfo release,
+    ColorScheme scheme,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle, size: 48, color: Colors.green),
+            const SizedBox(height: 16),
+            const Text(
+              '下载完成',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '版本 ${release.version} 已下载完成，是否立即安装？',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('稍后安装'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _installApk(apkPath);
+            },
+            child: const Text('立即安装'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 安装 APK：使用 open_filex 调用系统安装器
+  Future<void> _installApk(String apkPath) async {
+    try {
+      final file = File(apkPath);
+      if (!await file.exists()) {
+        AppLogger.error('安装失败：文件不存在 $apkPath');
+        return;
+      }
+      final result = await OpenFilex.open(apkPath, type: 'application/vnd.android.package-archive');
+      AppLogger.debug('APK 安装结果：${result.type} / ${result.message}');
+    } catch (e) {
+      AppLogger.error('安装 APK 失败', error: e);
     }
   }
 
