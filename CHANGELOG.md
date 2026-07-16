@@ -1,3 +1,15 @@
+# [1.127.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.7...v1.127.0) (2026-07-16)
+
+
+### Bug Fixes
+
+* **search:** 修复 apiClient 未定义错误 ([75fc725](https://github.com/1525745393/EmbyTok-Flutter/commit/75fc72596a65cdcc6f9af640f899e172d63fddcd))
+
+
+### Features
+
+* **search:** 添加分组搜索功能，支持人物搜索 ([c7012d3](https://github.com/1525745393/EmbyTok-Flutter/commit/c7012d32f5852f61822853106ea749383c5c5856))
+
 ## [1.126.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.126.6...v1.126.7) (2026-07-14)
 
 
