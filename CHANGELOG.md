@@ -1,3 +1,10 @@
+# [1.134.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.133.0...v1.134.0) (2026-07-16)
+
+
+### Features
+
+* **settings:** 关于对话框中文化优化 ([d63de9e](https://github.com/1525745393/EmbyTok-Flutter/commit/d63de9e34ecf1b4c57f5a286344d5e29da0711c1))
+
 # [1.133.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.132.0...v1.133.0) (2026-07-16)
 
 
