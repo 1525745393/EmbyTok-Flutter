@@ -283,32 +283,30 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               backgroundColor: Colors.transparent,
                               elevation: 0,
                               indicatorColor: scheme.primary.withOpacity(0.15),
-                              selectedItemColor: scheme.primary,
-                              unselectedItemColor: scheme.onSurfaceVariant,
                               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                               height: kBottomNavHeight,
                               onDestinationSelected: (index) {
                                 ref.read(pageNavigationNotifierProvider).goToPage(index);
                               },
-                              destinations: const [
+                              destinations: [
                                 NavigationDestination(
-                                  icon: Icon(Icons.home_outlined),
-                                  selectedIcon: Icon(Icons.home),
+                                  icon: Icon(Icons.home_outlined, color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.home, color: scheme.primary),
                                   label: '首页',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.favorite_border),
-                                  selectedIcon: Icon(Icons.favorite),
+                                  icon: Icon(Icons.favorite_border, color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.favorite, color: scheme.primary),
                                   label: '收藏',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.person_outline),
-                                  selectedIcon: Icon(Icons.person),
+                                  icon: Icon(Icons.person_outline, color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.person, color: scheme.primary),
                                   label: '演员',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.settings_outlined),
-                                  selectedIcon: Icon(Icons.settings),
+                                  icon: Icon(Icons.settings_outlined, color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.settings, color: scheme.primary),
                                   label: '设置',
                                 ),
                               ],
