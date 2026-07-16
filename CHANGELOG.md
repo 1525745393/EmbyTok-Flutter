@@ -1,3 +1,10 @@
+## [1.129.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.129.0...v1.129.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **pure-mode:** 修复纯净模式工具栏不隐藏问题 ([d43c548](https://github.com/1525745393/EmbyTok-Flutter/commit/d43c548148c2efb1f627b941bc0f4d83e6a04bbf))
+
 # [1.129.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.128.1...v1.129.0) (2026-07-16)
 
 
