@@ -112,6 +112,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   final EmbytokService _service;
   Timer? _searchDebounceTimer;
 
+  // 多库分页时，记录每个库已加载的 item 数量（即下一次请求的 offset）
+  // refresh 时清空，loadMore 时各库独立递增，避免多库共用全局 offset 导致的分页错误
+  final Map<String, int> _libraryLoadedCounts = <String, int>{};
+
   VideoListNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
         super(const VideoListState()) {
@@ -295,9 +299,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
+          // refresh 时清空每库独立计数，从头开始分页
+          _libraryLoadedCounts.clear();
           // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
-          final merged = <MediaItem>[];
+          // 使用 Map 按 id 去重，避免同视频在多个库中重复出现
+          final seenIds = <String, MediaItem>{};
           int totalItems = 0;
+          int failedCount = 0;
           for (final libId in libIds) {
             try {
               final resp = await _service.getLibraryItems(
@@ -312,13 +320,28 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
                 excludePlayed: _ref.read(feedExcludePlayedProvider),
               );
-              merged.addAll(resp.items);
-              totalItems += resp.total; // 累加每个库的总视频数
+              for (final item in resp.items) {
+                if (!seenIds.containsKey(item.id)) {
+                  seenIds[item.id] = item;
+                }
+              }
+              _libraryLoadedCounts[libId] = resp.items.length;
+              totalItems += resp.total;
             } catch (e) {
+              failedCount++;
+              _libraryLoadedCounts[libId] = 0;
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
-          loadedItems = merged;
+          // 所有库都失败 → 视为加载失败，设置 error，用户可重试
+          if (failedCount == libIds.length) {
+            state = state.copyWith(
+              isLoading: false,
+              error: '所有媒体库均加载失败，请检查网络连接',
+            );
+            return;
+          }
+          loadedItems = seenIds.values.toList();
           loadedTotal = totalItems;
           canPaginate = true;
 
@@ -436,17 +459,25 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
 
     try {
-      // 多库分页：使用当前 offset 作为起点，每个库独立获取 limit 条
-      AppLogger.debug('加载更多视频', data: {'offset': state.offset, 'libraryCount': selectedIds.length});
+      // 多库分页：每个库独立 offset（_libraryLoadedCounts），避免全局 offset 导致的分页错误
+      AppLogger.debug('加载更多视频', data: {
+        'offset': state.offset,
+        'libraryCount': selectedIds.length,
+        'perLibLoaded': _libraryLoadedCounts.toString(),
+      });
       final perLibLimit = state.limit;
-      final merged = <MediaItem>[];
-      int totalAvailable = 0; // 累加各库 TotalRecordCount
+      // 按 id 去重，与 refresh 逻辑一致
+      final seenIds = <String, MediaItem>{};
+      int totalAvailable = 0;
+      bool allEmpty = true;
+      int failedCount = 0;
       for (final libId in selectedIds) {
         try {
+          final libOffset = _libraryLoadedCounts[libId] ?? 0;
           final resp = await _service.getLibraryItems(
             libId,
             limit: perLibLimit,
-            offset: state.offset,
+            offset: libOffset,
             serverUrl: serverUrl,
             token: token,
             userId: userId,
@@ -455,41 +486,59 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
             excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
-          merged.addAll(resp.items);
+          for (final item in resp.items) {
+            if (!seenIds.containsKey(item.id)) {
+              seenIds[item.id] = item;
+            }
+          }
+          _libraryLoadedCounts[libId] = libOffset + resp.items.length;
           totalAvailable += resp.total;
+          if (resp.items.isNotEmpty) allEmpty = false;
         } catch (e) {
+          failedCount++;
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
       }
+      final newItems = seenIds.values.toList();
+
+      // 所有库都失败 → 视为加载失败
+      if (failedCount == selectedIds.length) {
+        state = state.copyWith(
+          isLoading: false,
+          error: '加载更多失败，请检查网络连接',
+        );
+        return;
+      }
 
       // 精确判断：当前已加载 + 本次新加载 < 总记录数则还有更多
-      final newTotal = state.items.length + merged.length;
-      final hasMore = totalAvailable > 0 && newTotal < totalAvailable;
+      // 所有库都返回空 → hasMore=false，避免无限空加载循环
+      final newTotal = state.items.length + newItems.length;
+      final hasMore = !allEmpty && totalAvailable > 0 && newTotal < totalAvailable;
 
       state = state.copyWith(
-        items: [...state.items, ...merged],
+        items: [...state.items, ...newItems],
         // 只有当网格还没有手动翻页（gridStartIndex == 0）时，才同步追加到 gridItems
         // 一旦用户翻了网格页，gridItems 就保持独立，不再跟随 feed 追加
-        gridItems: state.gridStartIndex == 0 ? [...state.gridItems, ...merged] : state.gridItems,
+        gridItems: state.gridStartIndex == 0 ? [...state.gridItems, ...newItems] : state.gridItems,
         isLoading: false,
         hasMore: hasMore,
         error: null,
-        offset: state.offset + merged.length,
+        offset: state.offset + newItems.length,
       );
-      AppLogger.debug('加载更多成功', data: {'newCount': merged.length});
+      AppLogger.debug('加载更多成功', data: {'newCount': newItems.length});
     } catch (e) {
       AppLogger.error('加载更多失败', error: e);
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  // 换一批：使用 SortBy=Random 服务端随机排序，获取 150 条随机视频
+  // 换一批：使用 SortBy=Random 服务端随机排序，获取 200 条随机视频
   //
   // 关键设计（避免破坏 feed/grid 跨视图定位）：
   // 1. **同步更新 items 和 gridItems**：shuffleRandom 是 grid 模式下的"换一批"按钮，
   //    grid 选 video 跳 feed 时（context.go('/?initialId=$id')）通过 _waitForInitialItemToLoad
   //    在 items 中查找目标。如果只改 gridItems 不改 items，新一批的 video 在 feed 中找不到
-  //    会触发 loadMore 循环直到超时（PR #60 修复）。
+  //    会触发 loadMore 循环载入旧/新库视频 → 超时跳到 index 0 → 播放错视频（PR #60 修复）。
   // 2. **保留当前在播视频到列表首位**：保证 PosterGridView 的
   //    _scrollToPlayingId 能找到目标，"播放中"卡片能高亮
   Future<void> shuffleRandom() async {
@@ -518,12 +567,16 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'libraryIds': selectedIds.join(','),
       });
 
-      final merged = <MediaItem>[];
+      // 服务端 SortBy=Random 已随机排序，拉 200 条足够换一批
+      // 多库场景下使用 Map 按 id 去重，避免同视频在多个库中重复
+      final seenIds = <String, MediaItem>{};
+      const int shuffleLimit = 200;
+      final perLibLimit = (shuffleLimit / selectedIds.length).ceil();
       for (final libId in selectedIds) {
         try {
           final resp = await _service.getLibraryItems(
             libId,
-            limit: 10000, // 不限制数量，取全部
+            limit: perLibLimit,
             offset: 0,
             serverUrl: serverUrl,
             token: token,
@@ -532,24 +585,19 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             sortOrder: 'Ascending',
             excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
-          merged.addAll(resp.items);
+          for (final item in resp.items) {
+            if (!seenIds.containsKey(item.id)) {
+              seenIds[item.id] = item;
+            }
+          }
         } catch (e) {
           AppLogger.error('加载库 $libId 失败，跳过', error: e);
         }
       }
-
-      // 随机模式下加载完，直接原地洗牌（保持第一个视频在首位）
-      if (merged.isNotEmpty) {
-        final firstItem = merged.first;
-        final rest = merged.skip(1).toList();
-        rest.shuffle();
-        merged.clear();
-        merged.add(firstItem);
-        merged.addAll(rest);
-      }
+      final merged = seenIds.values.toList();
 
       // ★ 关键：保留当前在播视频到 gridItems 首位
-      // 服务端随机返回的 150 条视频可能不包含 currentPlayingItemProvider 指示的当前在播视频，
+      // 服务端随机返回的 200 条视频可能不包含 currentPlayingItemProvider 指示的当前在播视频，
       // 这会导致 PosterGridView 的 _scrollToPlayingId 找不到目标（indexWhere 返回 -1），
       // 切回 grid 时"播放中"定位 + 高亮失效。
       // 解决：调 _ensurePlayingItemFirst 把当前在播视频插到首位（保证能找到）。
@@ -753,17 +801,26 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 从当前列表移除已播放完毕的条目（仅 resume 模式下需要）
-  // 播放完毕后 Emby 服务端会从 resume 列表移除，本地同步移除避免显示过期条目
-  void removePlayedItem(String itemId) {
-    if (state.feedType != FeedType.resume) return;
-    final items = state.items;
+  // 从当前列表移除指定条目（resume 模式播放完毕、删除视频等场景）
+  // 同时从 items 和 gridItems 中移除，保持两个列表一致
+  void removeItem(String itemId) {
+    var items = state.items;
+    var gridItems = state.gridItems;
     final idx = items.indexWhere((item) => item.id == itemId);
-    if (idx < 0) return;
-    final newItems = List<MediaItem>.from(items)..removeAt(idx);
-    state = state.copyWith(items: newItems);
-    AppLogger.debug('已从 resume 列表移除播放完毕条目', data: {'itemId': itemId});
+    if (idx >= 0) {
+      items = List<MediaItem>.from(items)..removeAt(idx);
+    }
+    final gridIdx = gridItems.indexWhere((item) => item.id == itemId);
+    if (gridIdx >= 0) {
+      gridItems = List<MediaItem>.from(gridItems)..removeAt(gridIdx);
+    }
+    if (idx < 0 && gridIdx < 0) return;
+    state = state.copyWith(items: items, gridItems: gridItems);
+    AppLogger.debug('已从列表移除条目', data: {'itemId': itemId});
   }
+
+  // 兼容旧方法名，委托给 removeItem
+  void removePlayedItem(String itemId) => removeItem(itemId);
 
   /// 释放资源：cancel 未完成的防抖 Timer
   ///

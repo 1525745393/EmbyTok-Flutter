@@ -476,6 +476,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         if (mounted) {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('已删除'), duration: Duration(seconds: 2)));
+          // 从视频列表中移除当前 item，避免用户反向滑回已删除的视频
+          ref.read(videoListProvider.notifier).removeItem(widget.item.id);
           widget.onVideoEnded?.call();
         }
       } catch (e) {

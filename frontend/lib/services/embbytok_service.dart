@@ -1108,9 +1108,12 @@ class EmbytokService {
       if (volumeLevel != null) 'VolumeLevel': volumeLevel,
     };
     try {
-      await _apiClient.post<dynamic>(
-        '/Sessions/Playing',
-        data: body,
+      await _retry(
+        () => _apiClient.post<dynamic>(
+          '/Sessions/Playing',
+          data: body,
+        ),
+        operationName: '上报播放开始',
       );
     } catch (e) {
       AppLogger.debug('上报播放开始失败', data: {'error': e.toString()});
@@ -1180,9 +1183,12 @@ class EmbytokService {
       'PlaySessionId': effectiveSessionId,
     };
     try {
-      await _apiClient.post<dynamic>(
-        '/Sessions/Playing/Stopped',
-        data: body,
+      await _retry(
+        () => _apiClient.post<dynamic>(
+          '/Sessions/Playing/Stopped',
+          data: body,
+        ),
+        operationName: '上报播放停止',
       );
     } catch (e) {
       AppLogger.debug('上报播放停止失败', data: {'error': e.toString()});
@@ -1509,6 +1515,38 @@ class EmbytokService {
     final now = DateTime.now().microsecondsSinceEpoch;
     final rand = Random().nextInt(0xFFFF).toRadixString(16).padLeft(4, '0');
     return 'emb-$now-$rand';
+  }
+
+  // 指数退避重试：用于播放上报等关键操作
+  // - maxAttempts: 最多重试次数（含首次），默认 3 次
+  // - delayMs: 初始延迟毫秒数，每次翻倍，带 50% 抖动
+  Future<void> _retry(
+    Future<void> Function() fn, {
+    int maxAttempts = 3,
+    int initialDelayMs = 1000,
+    String operationName = 'operation',
+  }) async {
+    var attempt = 0;
+    var delay = initialDelayMs;
+    final random = Random();
+    while (true) {
+      attempt++;
+      try {
+        await fn();
+        return; // 成功
+      } catch (e) {
+        if (attempt >= maxAttempts) {
+          AppLogger.warn('$operationName 失败（$maxAttempts 次尝试均失败）', error: e);
+          rethrow;
+        }
+        // 指数退避 + 50% 随机抖动，避免多设备同时重试产生雪崩
+        final jitter = (delay * 0.5 * random.nextDouble()).toInt();
+        final waitMs = delay + jitter;
+        AppLogger.debug('$operationName 第 $attempt 次失败，${waitMs}ms 后重试', error: e);
+        await Future.delayed(Duration(milliseconds: waitMs));
+        delay *= 2;
+      }
+    }
   }
 
   // 确保 API client 已配置 serverUrl 和 token
