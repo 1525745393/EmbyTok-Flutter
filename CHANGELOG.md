@@ -1,3 +1,10 @@
+# [1.139.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.138.0...v1.139.0) (2026-07-16)
+
+
+### Features
+
+* **settings:** 新增打赏支持功能 ([9f8d46e](https://github.com/1525745393/EmbyTok-Flutter/commit/9f8d46ec2f20e7fdb15d44284739b9d125f7f7d4))
+
 # [1.138.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.137.0...v1.138.0) (2026-07-16)
 
 
