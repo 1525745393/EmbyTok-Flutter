@@ -532,7 +532,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
-  // 换一批：使用 SortBy=Random 服务端随机排序，获取 200 条随机视频
+  // 换一批：使用 SortBy=Random 服务端随机排序获取全量数据，本地再洗牌以保证随机性均匀
   //
   // 关键设计（避免破坏 feed/grid 跨视图定位）：
   // 1. **同步更新 items 和 gridItems**：shuffleRandom 是 grid 模式下的"换一批"按钮，
@@ -567,16 +567,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'libraryIds': selectedIds.join(','),
       });
 
-      // 服务端 SortBy=Random 已随机排序，拉 200 条足够换一批
       // 多库场景下使用 Map 按 id 去重，避免同视频在多个库中重复
       final seenIds = <String, MediaItem>{};
-      const int shuffleLimit = 200;
-      final perLibLimit = (shuffleLimit / selectedIds.length).ceil();
       for (final libId in selectedIds) {
         try {
           final resp = await _service.getLibraryItems(
             libId,
-            limit: perLibLimit,
+            limit: 10000, // 不限制数量，取全部
             offset: 0,
             serverUrl: serverUrl,
             token: token,
@@ -596,8 +593,18 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       }
       final merged = seenIds.values.toList();
 
+      // 本地再洗牌一次，保证随机性均匀（服务端 SortBy=Random 可能有偏向性）
+      if (merged.isNotEmpty) {
+        final firstItem = merged.first;
+        final rest = merged.skip(1).toList();
+        rest.shuffle();
+        merged.clear();
+        merged.add(firstItem);
+        merged.addAll(rest);
+      }
+
       // ★ 关键：保留当前在播视频到 gridItems 首位
-      // 服务端随机返回的 200 条视频可能不包含 currentPlayingItemProvider 指示的当前在播视频，
+      // 服务端返回的全量视频中可能不包含 currentPlayingItemProvider 指示的当前在播视频（如已被删除），
       // 这会导致 PosterGridView 的 _scrollToPlayingId 找不到目标（indexWhere 返回 -1），
       // 切回 grid 时"播放中"定位 + 高亮失效。
       // 解决：调 _ensurePlayingItemFirst 把当前在播视频插到首位（保证能找到）。
