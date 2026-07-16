@@ -1,3 +1,10 @@
+## [1.136.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.1...v1.136.2) (2026-07-16)
+
+
+### Bug Fixes
+
+* **person-detail:** 修复演员详情页简介不显示的问题 ([08add2a](https://github.com/1525745393/EmbyTok-Flutter/commit/08add2a765c9ffc377eed872883e434d702f2659))
+
 ## [1.136.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.0...v1.136.1) (2026-07-16)
 
 
