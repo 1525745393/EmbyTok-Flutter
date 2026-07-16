@@ -1,3 +1,10 @@
+## [1.136.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.136.0...v1.136.1) (2026-07-16)
+
+
+### Bug Fixes
+
+* **actors:** 修复已关注/未关注 Tab 内容不显示的问题 ([09646f9](https://github.com/1525745393/EmbyTok-Flutter/commit/09646f9176e305b02f4052466a95321519d21ac3))
+
 # [1.136.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.135.0...v1.136.0) (2026-07-16)
 
 
