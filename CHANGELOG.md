@@ -1,3 +1,15 @@
+# [1.136.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.135.0...v1.136.0) (2026-07-16)
+
+
+### Bug Fixes
+
+* **settings:** 显式导入 LicenseRegistry 修复 undefined_identifier 错误 ([b7511bb](https://github.com/1525745393/EmbyTok-Flutter/commit/b7511bb83afc3dd60da75d748b6f9886440d5931))
+
+
+### Features
+
+* **settings:** 自定义中文许可证页面替代英文 showLicensePage ([a3aa92d](https://github.com/1525745393/EmbyTok-Flutter/commit/a3aa92d2dbf8490502713a35d8162c5ba227ad07))
+
 # [1.135.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.134.0...v1.135.0) (2026-07-16)
 
 
