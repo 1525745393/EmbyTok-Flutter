@@ -1,3 +1,11 @@
+## [1.139.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.1...v1.139.2) (2026-07-16)
+
+
+### Bug Fixes
+
+* **person-detail:** 修复演员详情页视频加载缓慢 + 简介空态提示 ([203c920](https://github.com/1525745393/EmbyTok-Flutter/commit/203c920c46844345d10f88d194a01ed0c546c2cc))
+* **person-detail:** 修复演员详情页简介不显示的问题 ([f55be48](https://github.com/1525745393/EmbyTok-Flutter/commit/f55be48f43d68e16e505c18072db7ece562bc7fc))
+
 ## [1.139.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.0...v1.139.1) (2026-07-16)
 
 
