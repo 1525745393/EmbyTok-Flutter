@@ -2071,22 +2071,8 @@ class SettingsView extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              // 打开许可证页面
-              showLicensePage(
-                context: context,
-                applicationName: 'EmbyTok',
-                applicationVersion: version,
-                applicationIcon: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.play_circle_filled,
-                      color: Colors.white, size: 30),
-                ),
-              );
+              // 打开自定义中文许可证页面（替代框架英文 showLicensePage）
+              _showLicensePage(context, version: version, scheme: scheme);
             },
             child: const Text('开源许可证'),
           ),
@@ -2095,6 +2081,26 @@ class SettingsView extends ConsumerWidget {
             child: const Text('关闭'),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 打开自定义中文许可证页面
+  ///
+  /// 替代框架内置的英文 [showLicensePage]，使用 [LicenseRegistry] 异步收集
+  /// 所有依赖的许可证条目，渲染为中文界面的可展开列表。
+  void _showLicensePage(
+    BuildContext context, {
+    required String version,
+    required ColorScheme scheme,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _LicensePage(
+          applicationName: 'EmbyTok',
+          applicationVersion: version,
+          primaryColor: scheme.primary,
+        ),
       ),
     );
   }
@@ -2191,6 +2197,276 @@ class _AboutFeatureRow extends StatelessWidget {
     );
   }
 }
+
+// ==================== 自定义中文许可证页面 ====================
+
+/// 自定义中文许可证页面
+///
+/// 替代 Flutter 框架内置的英文 [showLicensePage]，使用 [LicenseRegistry]
+/// 异步收集所有依赖的许可证条目，渲染为中文界面的可展开列表，
+/// 支持按包名搜索过滤。
+class _LicensePage extends StatefulWidget {
+  final String applicationName;
+  final String applicationVersion;
+  final Color primaryColor;
+
+  const _LicensePage({
+    required this.applicationName,
+    required this.applicationVersion,
+    required this.primaryColor,
+  });
+
+  @override
+  State<_LicensePage> createState() => _LicensePageState();
+}
+
+class _LicensePageState extends State<_LicensePage> {
+  // 收集到的所有许可证条目
+  List<_LicenseEntryView> _entries = const [];
+  bool _isLoading = true;
+  String? _error;
+  // 搜索状态
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLicenses();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // 收集 LicenseRegistry.licenses 流并聚合为列表
+  Future<void> _loadLicenses() async {
+    try {
+      final entries = <_LicenseEntryView>[];
+      // LicenseRegistry.licenses 是单订阅流，await for 一次性消费
+      await for (final entry in LicenseRegistry.licenses) {
+        final packages = entry.packages.toList();
+        final body = entry.paragraphs.map((p) => p.text).join('\n');
+        if (packages.isEmpty) {
+          // 无包名的条目归入"未命名包"
+          entries.add(_LicenseEntryView(
+            packageName: '(未命名包)',
+            body: body,
+          ));
+        } else {
+          // 一个 LicenseEntry 可能覆盖多个包，分别建立条目以便搜索
+          for (final pkg in packages) {
+            entries.add(_LicenseEntryView(packageName: pkg, body: body));
+          }
+        }
+      }
+      // 按包名排序，便于查找
+      entries.sort((a, b) =>
+          a.packageName.toLowerCase().compareTo(b.packageName.toLowerCase()));
+      if (!mounted) return;
+      setState(() {
+        _entries = entries;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '加载许可证失败：$e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // 按搜索关键词过滤包名
+  List<_LicenseEntryView> get _filtered {
+    if (_searchQuery.isEmpty) return _entries;
+    final q = _searchQuery.toLowerCase();
+    return _entries
+        .where((e) => e.packageName.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      appBar: AppBar(
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '搜索包名...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+                style: TextStyle(color: scheme.onSurface, fontSize: 16),
+                onChanged: (v) => setState(() => _searchQuery = v),
+              )
+            : const Text('开源许可证'),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: '取消搜索',
+              onPressed: () {
+                setState(() {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: '搜索包名',
+              onPressed: () => setState(() => _isSearching = true),
+            ),
+        ],
+      ),
+      body: _buildBody(scheme),
+    );
+  }
+
+  // 主体内容：加载中 / 错误 / 空态 / 列表 四种状态
+  Widget _buildBody(ColorScheme scheme) {
+    if (_isLoading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: widget.primaryColor),
+            const SizedBox(height: 12),
+            Text(
+              '正在加载许可证...',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _error!,
+            style: TextStyle(color: scheme.error, fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    final list = _filtered;
+    if (list.isEmpty) {
+      return Center(
+        child: Text(
+          _searchQuery.isEmpty ? '暂无许可证信息' : '没有匹配「$_searchQuery」的包',
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: list.length + 1, // +1 为顶部说明卡片
+      itemBuilder: (context, index) {
+        if (index == 0) return _buildHeaderCard(scheme, list.length);
+        final entry = list[index - 1];
+        return _buildLicenseTile(scheme, entry);
+      },
+    );
+  }
+
+  // 顶部说明卡片：致谢与应用信息
+  Widget _buildHeaderCard(ColorScheme scheme, int count) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: widget.primaryColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: widget.primaryColor.withOpacity(0.2),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.favorite, size: 16, color: widget.primaryColor),
+              const SizedBox(width: 6),
+              Text(
+                '${widget.applicationName} · 版本 ${widget.applicationVersion}',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '本应用使用了 $count 个开源软件包，谨向以下项目的作者致以诚挚谢意。',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 单个许可证条目：点击展开查看全文
+  Widget _buildLicenseTile(ColorScheme scheme, _LicenseEntryView entry) {
+    return ExpansionTile(
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      title: Text(
+        entry.packageName,
+        style: TextStyle(
+          color: scheme.onSurface,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        '点击查看许可证全文',
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+      ),
+      children: [
+        SelectableText(
+          entry.body.isEmpty ? '（无许可证文本）' : entry.body,
+          style: TextStyle(
+            color: scheme.onSurfaceVariant,
+            fontSize: 12,
+            height: 1.5,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 许可证条目视图模型
+class _LicenseEntryView {
+  final String packageName;
+  final String body;
+  const _LicenseEntryView({required this.packageName, required this.body});
+}
+
 
 // ==================== 推荐高级选项折叠组件 ====================
 
