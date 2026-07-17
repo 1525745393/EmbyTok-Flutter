@@ -410,6 +410,7 @@ class _RecommendCard extends ConsumerWidget {
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
                       cacheManager: AppImageCacheManager.thumbnail,
+                      memCacheWidth: 300,
                       placeholder: (context, url) => Container(
                         color: scheme.surfaceContainerHighest,
                         child: const Center(
