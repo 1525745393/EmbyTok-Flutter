@@ -1,3 +1,10 @@
+## [1.143.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.143.1...v1.143.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* UI 层剩余 Bug 修复 - 日志补全/mounted 检查/监听器释放 ([8f9903c](https://github.com/1525745393/EmbyTok-Flutter/commit/8f9903c40c16a6ac47f72e3d9ee6491e809df290))
+
 ## [1.143.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.143.0...v1.143.1) (2026-07-17)
 
 
