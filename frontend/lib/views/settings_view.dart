@@ -364,39 +364,46 @@ class SettingsView extends ConsumerWidget {
   // 推荐评分阈值对话框
   void _showRecommendRatingDialog(
       BuildContext context, WidgetRef ref, double current) {
+    // 使用 StatefulBuilder 让 Slider 拖动时能局部刷新显示值
+    // 避免 provider 更新后 dialog 内显示值仍为旧值的 UI 不一致问题
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('评分阈值'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              current == 0 ? '不过滤' : '≥ ${current.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder: (_) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('评分阈值'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  current == 0 ? '不过滤' : '≥ ${current.toStringAsFixed(1)}',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Slider(
+                  min: 0,
+                  max: 10,
+                  divisions: 20,
+                  value: current,
+                  label: current == 0 ? '不过滤' : current.toStringAsFixed(1),
+                  onChanged: (v) {
+                    setDialogState(() => current = v);
+                    ref.read(recommendMinRatingProvider.notifier).setRating(v);
+                  },
+                ),
+                const Text(
+                  '0 = 不过滤；越高越严格（小众片变少）',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
             ),
-            Slider(
-              min: 0,
-              max: 10,
-              divisions: 20,
-              value: current,
-              label: current == 0 ? '不过滤' : current.toStringAsFixed(1),
-              onChanged: (v) {
-                ref.read(recommendMinRatingProvider.notifier).setRating(v);
-              },
-            ),
-            const Text(
-              '0 = 不过滤；越高越严格（小众片变少）',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('完成'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('完成'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -404,39 +411,46 @@ class SettingsView extends ConsumerWidget {
   // 推荐最短时长对话框
   void _showRecommendRuntimeDialog(
       BuildContext context, WidgetRef ref, int current) {
+    // StatefulBuilder：Slider 拖动时局部刷新显示值
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('最短时长'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              current == 0 ? '不过滤' : '$current 秒以上',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      builder: (_) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('最短时长'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  current == 0 ? '不过滤' : '$current 秒以上',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Slider(
+                  min: 0,
+                  max: 600,
+                  divisions: 30,
+                  value: current.toDouble().clamp(0, 600),
+                  label: current == 0 ? '不过滤' : '${current}s',
+                  onChanged: (v) {
+                    final rounded = v.round();
+                    setDialogState(() => current = rounded);
+                    ref.read(recommendMinRuntimeSecProvider.notifier).setMinRuntime(rounded);
+                  },
+                ),
+                const Text(
+                  '过滤测试片 / 预告片（默认 30s）',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
             ),
-            Slider(
-              min: 0,
-              max: 600,
-              divisions: 30,
-              value: current.toDouble().clamp(0, 600),
-              label: current == 0 ? '不过滤' : '${current}s',
-              onChanged: (v) {
-                ref.read(recommendMinRuntimeSecProvider.notifier).setMinRuntime(v.round());
-              },
-            ),
-            const Text(
-              '过滤测试片 / 预告片（默认 30s）',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('完成'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('完成'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -1620,15 +1634,28 @@ class SettingsView extends ConsumerWidget {
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
-            onPressed: () {
-              ref.read(cacheSizeProvider.notifier).clear();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('缓存已清除'),
-                  backgroundColor: scheme.primary,
-                ),
-              );
+            onPressed: () async {
+              try {
+                await ref.read(cacheSizeProvider.notifier).clear();
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('缓存已清除'),
+                    backgroundColor: scheme.primary,
+                  ),
+                );
+              } catch (e) {
+                AppLogger.error('清除缓存失败', error: e);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('清除失败：$e'),
+                    backgroundColor: scheme.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('清除', style: TextStyle(color: scheme.onError)),
@@ -1659,16 +1686,28 @@ class SettingsView extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              await const AppPreferencesService().resetAllSettings();
-              if (!context.mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('设置已重置，请重启应用以完全生效'),
-                  backgroundColor: scheme.primary,
-                  duration: const Duration(seconds: 4),
-                ),
-              );
+              try {
+                await const AppPreferencesService().resetAllSettings();
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('设置已重置，请重启应用以完全生效'),
+                    backgroundColor: scheme.primary,
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              } catch (e) {
+                AppLogger.error('重置设置失败', error: e);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('重置失败：$e'),
+                    backgroundColor: scheme.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('重置', style: TextStyle(color: scheme.onError)),
@@ -1756,15 +1795,27 @@ class SettingsView extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              await AppLogger.clearLogs();
-              if (!context.mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('日志已清除'),
-                  backgroundColor: scheme.primary,
-                ),
-              );
+              try {
+                await AppLogger.clearLogs();
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('日志已清除'),
+                    backgroundColor: scheme.primary,
+                  ),
+                );
+              } catch (e) {
+                AppLogger.error('清除日志失败', error: e);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('清除失败：$e'),
+                    backgroundColor: scheme.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('清除', style: TextStyle(color: scheme.onError)),
@@ -1898,8 +1949,21 @@ class SettingsView extends ConsumerWidget {
                     ),
                   );
                   if (confirm == true) {
-                    await ref.read(watchStatsProvider.notifier).clear();
-                    if (context.mounted) Navigator.pop(context);
+                    try {
+                      await ref.read(watchStatsProvider.notifier).clear();
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                    } catch (e) {
+                      AppLogger.error('清除统计失败', error: e);
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('清除失败：$e'),
+                          backgroundColor: scheme.error,
+                        ),
+                      );
+                    }
                   }
                 },
                 child: Text('清除统计', style: TextStyle(color: scheme.error)),
@@ -1994,62 +2058,79 @@ class SettingsView extends ConsumerWidget {
       ),
     );
 
-    // 3. 调用 GitHub API 检查
+    // 3. 调用 GitHub API 检查（包裹 try-catch，网络异常时关闭加载框并提示用户）
     final updateService = ref.read(updateCheckServiceProvider);
-    final result = await updateService.checkForUpdate(currentVer);
+    try {
+      final result = await updateService.checkForUpdate(currentVer);
 
-    // 关闭加载对话框
-    if (context.mounted) Navigator.pop(context);
+      // 关闭加载对话框
+      if (context.mounted) Navigator.pop(context);
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    // 4. 展示结果
-    if (result.latestRelease == null) {
-      // 无法获取 Release 信息（网络错误或无 Release）
+      // 4. 展示结果
+      if (result.latestRelease == null) {
+        // 无法获取 Release 信息（网络错误或无 Release）
+        _showUpdateResultDialog(
+          context,
+          icon: Icons.cloud_off,
+          title: '检查失败',
+          message: '无法获取更新信息，请检查网络连接后重试。',
+          actionText: '关闭',
+          onAction: null,
+          secondaryActionText: '前往 GitHub',
+          onSecondaryAction: () => _launchUrl(updateService.releasePageUrl),
+        );
+      } else if (result.hasUpdate) {
+        // 有新版本
+        final release = result.latestRelease!;
+        // 查找 APK 下载链接
+        final apkAssets = release.assets.where((a) => a.isApk).toList();
+        final hasApk = apkAssets.isNotEmpty;
+        _showUpdateResultDialog(
+          context,
+          icon: Icons.system_update,
+          title: '发现新版本',
+          message: '当前版本：$currentVer\n最新版本：${release.version}\n\n'
+              '${release.body.isNotEmpty ? release.body : release.name}',
+          actionText: hasApk ? '下载安装' : '前往下载',
+          onAction: () {
+            if (hasApk) {
+              _startDownloadApk(context, ref, apkAssets.first, release);
+            } else {
+              _launchUrl(release.htmlUrl);
+            }
+          },
+          secondaryActionText: '稍后再说',
+          onSecondaryAction: null,
+        );
+      } else {
+        // 已是最新版本
+        _showUpdateResultDialog(
+          context,
+          icon: Icons.check_circle,
+          title: '已是最新版本',
+          message: '当前版本：$currentVer\n您使用的是最新版本。',
+          actionText: '关闭',
+          onAction: null,
+          secondaryActionText: null,
+          onSecondaryAction: null,
+        );
+      }
+    } catch (e) {
+      // 异常处理：关闭加载对话框，显示错误提示
+      AppLogger.error('检查更新失败', error: e);
+      if (context.mounted) Navigator.pop(context);
+      if (!context.mounted) return;
       _showUpdateResultDialog(
         context,
-        icon: Icons.cloud_off,
+        icon: Icons.error_outline,
         title: '检查失败',
-        message: '无法获取更新信息，请检查网络连接后重试。',
+        message: '检查更新时出错：$e',
         actionText: '关闭',
         onAction: null,
         secondaryActionText: '前往 GitHub',
         onSecondaryAction: () => _launchUrl(updateService.releasePageUrl),
-      );
-    } else if (result.hasUpdate) {
-      // 有新版本
-      final release = result.latestRelease!;
-      // 查找 APK 下载链接
-      final apkAssets = release.assets.where((a) => a.isApk).toList();
-      final hasApk = apkAssets.isNotEmpty;
-      _showUpdateResultDialog(
-        context,
-        icon: Icons.system_update,
-        title: '发现新版本',
-        message: '当前版本：$currentVer\n最新版本：${release.version}\n\n'
-            '${release.body.isNotEmpty ? release.body : release.name}',
-        actionText: hasApk ? '下载安装' : '前往下载',
-        onAction: () {
-          if (hasApk) {
-            _startDownloadApk(context, ref, apkAssets.first, release);
-          } else {
-            _launchUrl(release.htmlUrl);
-          }
-        },
-        secondaryActionText: '稍后再说',
-        onSecondaryAction: null,
-      );
-    } else {
-      // 已是最新版本
-      _showUpdateResultDialog(
-        context,
-        icon: Icons.check_circle,
-        title: '已是最新版本',
-        message: '当前版本：$currentVer\n您使用的是最新版本。',
-        actionText: '关闭',
-        onAction: null,
-        secondaryActionText: null,
-        onSecondaryAction: null,
       );
     }
   }
@@ -2253,7 +2334,7 @@ class SettingsView extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _installApk(apkPath);
+              _installApk(context, apkPath);
             },
             child: const Text('立即安装'),
           ),
@@ -2263,17 +2344,42 @@ class SettingsView extends ConsumerWidget {
   }
 
   /// 安装 APK：使用 open_filex 调用系统安装器
-  Future<void> _installApk(String apkPath) async {
+  /// 失败时通过 SnackBar 告知用户原因，避免"点击无反应"的困惑
+  Future<void> _installApk(BuildContext context, String apkPath) async {
+    final scheme = Theme.of(context).colorScheme;
     try {
       final file = File(apkPath);
       if (!await file.exists()) {
-        AppLogger.error('安装失败：文件不存在 $apkPath');
+        AppLogger.error('安装失败：文件不存在', data: {'path': apkPath});
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('安装失败：安装文件不存在'),
+            backgroundColor: scheme.error,
+          ),
+        );
         return;
       }
       final result = await OpenFilex.open(apkPath, type: 'application/vnd.android.package-archive');
-      AppLogger.debug('APK 安装结果：${result.type} / ${result.message}');
+      AppLogger.debug('APK 安装结果', data: {'type': result.type.name, 'message': result.message});
+      // 打开失败（非 done）时提示用户
+      if (result.type != ResultType.done && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('无法打开安装器：${result.message}'),
+            backgroundColor: scheme.error,
+          ),
+        );
+      }
     } catch (e) {
       AppLogger.error('安装 APK 失败', error: e);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('安装失败：$e'),
+          backgroundColor: scheme.error,
+        ),
+      );
     }
   }
 

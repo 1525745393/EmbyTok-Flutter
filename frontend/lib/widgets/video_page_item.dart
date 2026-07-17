@@ -14,6 +14,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
+import '../utils/logger.dart';
 import '../views/fullscreen_video_page.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
@@ -102,6 +103,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 功耗优化：上一次报告的播放位置秒数，用于跨秒节流 Provider 写入
   int _lastPositionSecond = -1;
 
+  // 保存 listenManual 订阅引用，dispose 时显式 close 避免内存泄漏
+  ProviderSubscription<bool>? _isPlayingSubscription;
+  ProviderSubscription<bool>? _isAutoPlaySubscription;
+
   @override
   void initState() {
     super.initState();
@@ -115,7 +120,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
     // 监听播放状态变化（播放时旋转唱片，暂停时停止）
     // 放在 initState 中通过 listenManual 注册，避免每次 build 重复注册
-    ref.listenManual<bool>(isPlayingProvider, (previous, next) {
+    _isPlayingSubscription = ref.listenManual<bool>(isPlayingProvider, (previous, next) {
       if (next) {
         if (!_discRotationCtrl.isAnimating) _discRotationCtrl.repeat();
       } else {
@@ -127,7 +132,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // - isAutoPlay=true → setAutoPlayActive(true)，顶部工具栏 + 底部导航栏持续隐藏
     // - isAutoPlay=false → setAutoPlayActive(false)，工具栏恢复显示（除非全屏引用计数>0）
     // fireImmediately: true 确保初始值同步（避免页面切换后纯净模式状态丢失）
-    ref.listenManual<bool>(isAutoPlayProvider, (prev, next) {
+    _isAutoPlaySubscription = ref.listenManual<bool>(isAutoPlayProvider, (prev, next) {
       ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
     }, fireImmediately: true);
   }
@@ -189,6 +194,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   @override
   void dispose() {
+    // 显式取消 listenManual 订阅，避免内存泄漏
+    _isPlayingSubscription?.close();
+    _isAutoPlaySubscription?.close();
     WidgetsBinding.instance.removeObserver(this);
     _infoHideTimer?.cancel();
     _discRotationCtrl.dispose();
@@ -287,11 +295,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
         _reportPlaybackStopped();
-        unawaited(_service.markAsPlayed(
-          widget.item.id,
-          serverUrl: _authServerUrl(),
-          token: _authToken(),
-        ));
+        _safeReport(
+          () => _service.markAsPlayed(
+            widget.item.id,
+            serverUrl: _authServerUrl(),
+            token: _authToken(),
+          ),
+          'markAsPlayed',
+        );
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
         _queryNextUp();
       }
@@ -375,10 +386,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _ensureCapabilitiesReported() {
     if (_capabilitiesReported) return;
     _capabilitiesReported = true;
-    unawaited(_service.reportCapabilities(
-      serverUrl: _authServerUrl(),
-      token: _authToken(),
-    ));
+    _safeReport(
+      () => _service.reportCapabilities(
+        serverUrl: _authServerUrl(),
+        token: _authToken(),
+      ),
+      'reportCapabilities',
+    );
   }
 
   void _reportPlaybackStart() {
@@ -392,14 +406,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
-    unawaited(_service.reportPlaybackStart(
-      itemId: widget.item.id,
-      mediaSourceId: widget.item.id,
-      playSessionId: _playSessionId!,
-      playMethod: method,
-      serverUrl: _authServerUrl(),
-      token: _authToken(),
-    ));
+    _safeReport(
+      () => _service.reportPlaybackStart(
+        itemId: widget.item.id,
+        mediaSourceId: widget.item.id,
+        playSessionId: _playSessionId!,
+        playMethod: method,
+        serverUrl: _authServerUrl(),
+        token: _authToken(),
+      ),
+      'reportPlaybackStart',
+    );
   }
 
   void _reportPlaybackProgress({bool isPauseEvent = false}) {
@@ -417,18 +434,21 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final volumeLevel = volume != null ? (volume * 100).round() : null;
     final level = ref.read(playbackLevelProvider);
     final method = _playMethodFromLevel(level);
-    unawaited(_service.reportPlaybackPosition(
-      itemId: widget.item.id,
-      positionTicks: positionTicks,
-      mediaSourceId: widget.item.id,
-      playSessionId: _playSessionId,
-      isPaused: isPaused,
-      volumeLevel: volumeLevel,
-      playMethod: method,
-      eventName: isPauseEvent ? 'Pause' : 'TimeUpdate',
-      serverUrl: _authServerUrl(),
-      token: _authToken(),
-    ));
+    _safeReport(
+      () => _service.reportPlaybackPosition(
+        itemId: widget.item.id,
+        positionTicks: positionTicks,
+        mediaSourceId: widget.item.id,
+        playSessionId: _playSessionId,
+        isPaused: isPaused,
+        volumeLevel: volumeLevel,
+        playMethod: method,
+        eventName: isPauseEvent ? 'Pause' : 'TimeUpdate',
+        serverUrl: _authServerUrl(),
+        token: _authToken(),
+      ),
+      'reportPlaybackPosition',
+    );
   }
 
   void _reportPlaybackStopped() {
@@ -437,14 +457,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final controller = _videoController;
     final position = controller?.value.position;
     final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
-    unawaited(_service.reportPlaybackStopped(
-      itemId: widget.item.id,
-      positionTicks: positionTicks,
-      mediaSourceId: widget.item.id,
-      playSessionId: _playSessionId,
-      serverUrl: _authServerUrl(),
-      token: _authToken(),
-    ));
+    _safeReport(
+      () => _service.reportPlaybackStopped(
+        itemId: widget.item.id,
+        positionTicks: positionTicks,
+        mediaSourceId: widget.item.id,
+        playSessionId: _playSessionId,
+        serverUrl: _authServerUrl(),
+        token: _authToken(),
+      ),
+      'reportPlaybackStopped',
+    );
     _hasStartedReported = false;
   }
 
@@ -462,6 +485,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 只需读取当前值，不需要订阅变化触发重建
   String? _authServerUrl() => ref.read(authProvider).embyServerUrl;
   String? _authToken() => ref.read(authProvider).token;
+
+  /// 安全执行上报类异步操作：捕获异常并记录日志，避免未捕获的 Future 错误
+  /// 用于 markAsPlayed、report* 等不阻塞主流程的后台请求
+  void _safeReport(Future<void> Function() action, String operation) {
+    unawaited(
+      action().catchError((Object e, StackTrace st) {
+        AppLogger.warn('上报操作失败', data: {
+          'operation': operation,
+          'itemId': widget.item.id,
+          'error': e.toString(),
+        });
+      }),
+    );
+  }
 
   // ===== 全屏切换 =====
   // 方案 A：进入全屏页（FullscreenVideoPage）
@@ -523,11 +560,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   Future<void> _showDeleteConfirmDialog() async {
     final confirmed = await sheet_utils.showDeleteConfirmDialog(context, widget.item.title);
     if (confirmed) {
+      // 提前获取认证信息并判空，避免 token 过期/丢失时强制断言崩溃
+      final serverUrl = _authServerUrl();
+      final token = _authToken();
+      if (serverUrl == null || token == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('认证信息缺失，请重新登录后再试'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
       try {
         await _service.deleteItem(
           itemId: widget.item.id,
-          serverUrl: _authServerUrl()!,
-          token: _authToken()!,
+          serverUrl: serverUrl,
+          token: token,
         );
         if (mounted) {
           ScaffoldMessenger.of(context)
@@ -628,6 +679,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
               startFromResumePosition: widget.startFromResumePosition,
               onControllerReady: (c) {
+                // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
+                if (!mounted) return;
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 c.addListener(_onVideoChanged);

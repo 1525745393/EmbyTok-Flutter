@@ -68,6 +68,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
   // 中判断"刚离开前台"或"刚回到前台"
   AppLifecycleState? _lastLifecycleState;
 
+  // 保存 listenManual 返回的订阅引用，dispose 时显式 close 避免内存泄漏
+  ProviderSubscription<PageNavigationState>? _pageNavSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -78,12 +81,17 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     // 延迟到第一帧后注册 listen，避免在 build 期间触发 state 修改
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.listenManual<PageNavigationState>(pageNavigationProvider, _onPageNavChanged);
+      _pageNavSubscription = ref.listenManual<PageNavigationState>(
+        pageNavigationProvider,
+        _onPageNavChanged,
+      );
     });
   }
 
   @override
   void dispose() {
+    // 显式取消订阅，避免内存泄漏
+    _pageNavSubscription?.close();
     // 注销 observer，避免内存泄漏
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

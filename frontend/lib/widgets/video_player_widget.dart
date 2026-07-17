@@ -144,7 +144,18 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _currentItemId = newItemId;
       return;
     }
-    // isCurrentPage 变化：同步播放/暂停状态和音量
+    // 优先处理 item 切换：避免先用旧 controller 同步状态再立即重建
+    if (newItemId != _currentItemId) {
+      AppLogger.debug('VideoPlayerWidget item 切换，重建 controller', data: {
+        'oldItemId': _currentItemId,
+        'newItemId': newItemId,
+      });
+      _currentItemId = newItemId;
+      // 异步释放 + 重新初始化（fire-and-forget）
+      _reinitForNewItem();
+      return;
+    }
+    // 同一个视频，处理 isCurrentPage 变化：同步播放/暂停状态和音量
     // 场景：PageView 滑动后，旧页变为非当前页（需暂停），新页变为当前页（需恢复播放）
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
       final c = _controller;
@@ -177,14 +188,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
       }
     }
-    if (newItemId == _currentItemId) return; // 同一个视频，不重置
-    AppLogger.debug('VideoPlayerWidget item 切换，重建 controller', data: {
-      'oldItemId': _currentItemId,
-      'newItemId': newItemId,
-    });
-    _currentItemId = newItemId;
-    // 异步释放 + 重新初始化（fire-and-forget）
-    _reinitForNewItem();
   }
 
   /// 重试初始化：用户点击"重试"按钮时调用
@@ -249,14 +252,20 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final controller = _controller;
     if (controller == null) return;
     // 错误处理：触发降级链或标记错误状态
+    // 检查 _isUserSwitchInProgress：避免用户主动切换时旧 controller 错误事件触发自动降级
     if (controller.value.hasError &&
         !_hasError &&
         !_isFallbackInProgress &&
+        !_isUserSwitchInProgress &&
         _fallbackLevel < 2) {
       _triggerRuntimeFallback();
       return;
     }
-    if (controller.value.hasError && !_hasError) {
+    // 降级进行中或用户切换中时，不标记错误状态，避免中间状态导致 UI 闪烁
+    if (controller.value.hasError &&
+        !_hasError &&
+        !_isFallbackInProgress &&
+        !_isUserSwitchInProgress) {
       setState(() {
         _hasError = true;
         _errorMessage = AppError.playback(message: '播放出错');
@@ -391,6 +400,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     } catch (e) {
       debugPrint('VideoPlayer initialization error: $e');
       if (_isDisposed) return;
+      // 防止与 listener 触发的降级竞态：listener 可能已开始降级流程
+      if (_isFallbackInProgress) return;
       // 非当前页不做降级重试，直接显示错误占位（避免浪费带宽和解码资源）
       if (!widget.isCurrentPage) {
         if (mounted && !_isDisposed) {
@@ -403,12 +414,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         return;
       }
       if (_fallbackLevel < 2) {
+        _isFallbackInProgress = true;
         _fallbackLevel++;
         debugPrint('降级到 level $_fallbackLevel 重试播放');
         _releaseCurrentController();
         if (mounted && !_isDisposed) {
           // 添加短暂延迟避免快速递归造成资源风暴
           await Future<void>.delayed(const Duration(milliseconds: 50));
+          _isFallbackInProgress = false;
           if (!_isDisposed && mounted) {
             await _initVideo();
           }
@@ -801,14 +814,24 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         userId: authState.user?.id,
       );
     }
-    final cues = await embService.getSubtitleCues(
-      itemId: widget.item.id,
-      mediaSourceId: mediaSourceId,
-      index: trackIndex,
-    );
-    if (mounted) {
-      setState(() {
-        _subtitleCues = cues;
+    try {
+      final cues = await embService.getSubtitleCues(
+        itemId: widget.item.id,
+        mediaSourceId: mediaSourceId,
+        index: trackIndex,
+      );
+      // 双重检查：避免 dispose 后 setState
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _subtitleCues = cues;
+        });
+      }
+    } catch (e) {
+      // 字幕加载失败不影响播放，仅记录日志
+      AppLogger.warn('字幕加载失败', data: {
+        'itemId': widget.item.id,
+        'trackIndex': trackIndex,
+        'error': e.toString(),
       });
     }
   }
@@ -835,13 +858,18 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 非当前页始终静音，避免并发播放时双音
   void _applyInitialVolume(VideoPlayerController c) {
     final isMuted = ref.read(isMutedProvider);
-    if (!widget.isCurrentPage) {
-      c.setVolume(0.0);
-      return;
+    try {
+      if (!widget.isCurrentPage) {
+        c.setVolume(0.0);
+        return;
+      }
+      // 非自动播放场景默认有声；自动播放场景根据静音开关决定
+      final shouldMute = widget.autoPlay && isMuted;
+      c.setVolume(shouldMute ? 0.0 : 1.0);
+    } catch (e) {
+      // controller 可能已释放或异常，静默处理避免中断初始化流程
+      AppLogger.warn('设置初始音量失败', data: {'error': e.toString()});
     }
-    // 非自动播放场景默认有声；自动播放场景根据静音开关决定
-    final shouldMute = widget.autoPlay && isMuted;
-    c.setVolume(shouldMute ? 0.0 : 1.0);
   }
 
   // 根据 isCurrentPage 状态同步播放/暂停和音量
