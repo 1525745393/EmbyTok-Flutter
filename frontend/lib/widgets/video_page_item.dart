@@ -450,6 +450,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 退出全屏后恢复工具栏
     if (mounted) {
       ref.read(toolbarVisibilityProvider.notifier).show();
+      // 退出全屏后重新隐藏系统栏（全屏页 dispose 时会恢复 edgeToEdge）
+      // feed 模式需要保持沉浸式
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     }
   }
 
