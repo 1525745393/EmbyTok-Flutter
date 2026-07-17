@@ -80,6 +80,9 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   Offset? _lastTapPosition;
   bool _showSeekFeedback = false;
   bool _isSeekForward = false;
+  // 连续双击累积次数（用于显示 +20s/+30s 等累积偏移）
+  int _seekFeedbackCount = 0;
+  Timer? _seekFeedbackResetTimer;
 
   // 长按倍速视觉反馈
   bool _showSpeedBadge = false;
@@ -146,14 +149,25 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     } catch (e) {
       debugPrint('doubleTap seek error: $e');
     }
+    // 累积逻辑：同方向连续双击时累加显示（+10s → +20s → +30s）
+    // 反方向或超时（800ms）则重置
+    final isForward = seconds > 0;
+    _seekFeedbackResetTimer?.cancel();
+    if (_showSeekFeedback && _isSeekForward == isForward) {
+      _seekFeedbackCount++;
+    } else {
+      _seekFeedbackCount = 1;
+    }
     setState(() {
-      _isSeekForward = seconds > 0;
+      _isSeekForward = isForward;
       _showSeekFeedback = true;
     });
-    Future.delayed(const Duration(milliseconds: 600), () {
+    // 800ms 内无后续双击则隐藏反馈
+    _seekFeedbackResetTimer = Timer(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() {
           _showSeekFeedback = false;
+          _seekFeedbackCount = 0;
         });
       }
     });
@@ -370,6 +384,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _singleTapTimer?.cancel();
     _dragHideTimer?.cancel();
     _volumeHideTimer?.cancel();
+    _seekFeedbackResetTimer?.cancel();
     super.dispose();
   }
 
@@ -478,6 +493,16 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    // 标签：与全屏页统一，明确指示当前调节的是音量
+                    const Text(
+                      '音量',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -553,7 +578,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _isSeekForward ? '+10s' : '-10s',
+                      // 累积偏移：连续双击时显示 +20s/+30s 等
+                      '${_isSeekForward ? '+' : '-'}${_seekFeedbackCount * 10}s',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 16,

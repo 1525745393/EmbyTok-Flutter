@@ -87,7 +87,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         _jumpToPageWhenReady(next);
       }
     });
-    // 监听视图模式变化：feed↔grid 切换时处理视频播放/暂停
+    // 监听视图模式变化：feed↔grid 切换时处理视频播放/暂停 + 系统栏显隐
     ref.listen<ViewMode>(viewModeProvider, (prev, next) {
       final controller = ref.read(currentVideoControllerProvider);
       if (prev == ViewMode.feed && next == ViewMode.grid) {
@@ -95,17 +95,29 @@ class _FeedViewState extends ConsumerState<FeedView>
         if (controller != null && controller.value.isPlaying) {
           controller.pause();
         }
+        // 切到网格：恢复系统栏（便于操作 AppBar）
+        _restoreSystemBars();
       } else if (prev == ViewMode.grid && next == ViewMode.feed) {
         // 切回视频流：恢复播放
         if (controller != null && !controller.value.isPlaying) {
           controller.play();
         }
+        // 切回视频流：隐藏系统栏（沉浸式）
+        _hideSystemBars();
       }
     });
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
     _checkCloudSyncOnStartup();
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
+    // 沉浸式：进入 feed view 时，若当前是视频流模式则隐藏系统栏
+    // 网格模式保持系统栏可见，便于操作 AppBar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(viewModeProvider) == ViewMode.feed) {
+        _hideSystemBars();
+      }
+    });
     // PR #66：首次未配置视频流媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
     ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
@@ -200,7 +212,20 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollSaveTimer?.cancel();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
     unawaited(ref.read(videoPoolProvider).disposeAll());
+    // 退出 feed view 时恢复系统栏（其他页面需要可见的系统栏）
+    _restoreSystemBars();
     super.dispose();
+  }
+
+  // ========== 沉浸式系统栏控制 ==========
+  // 视频流模式：immersiveSticky（滑动边缘可临时唤出，无人操作几秒后自动隐藏）
+  // 网格模式 / 退出页面：edgeToEdge（系统栏常驻）
+  void _hideSystemBars() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  void _restoreSystemBars() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   // ========== 滚动位置持久化 ==========
@@ -874,18 +899,23 @@ class _FeedViewState extends ConsumerState<FeedView>
             unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));
           }
         }
-        return VideoPageItem(
-          item: item,
-          preloadedSession: preloadedSession,
-          onVideoEnded: _goToNextVideo,
-          startFromResumePosition: item.hasProgress,
-          source: videoState.feedType == FeedType.resume ? 'resume' : 'feed',
-          // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
-          onNextEpisode: item.seriesName != null
-              ? () {
-                  _jumpToNextEpisode(videoState.items, index);
-                }
-              : null,
+        // RepaintBoundary：隔离每页的绘制层，滑动时避免相邻页重绘
+        // VideoPageItem 含视频画面+按钮栏+信息栏，重绘成本高
+        return RepaintBoundary(
+          child: VideoPageItem(
+            item: item,
+            preloadedSession: preloadedSession,
+            onVideoEnded: _goToNextVideo,
+            startFromResumePosition: item.hasProgress,
+            source:
+                videoState.feedType == FeedType.resume ? 'resume' : 'feed',
+            // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
+            onNextEpisode: item.seriesName != null
+                ? () {
+                    _jumpToNextEpisode(videoState.items, index);
+                  }
+                : null,
+          ),
         );
       },
     );
