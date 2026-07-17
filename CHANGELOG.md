@@ -1,3 +1,11 @@
+## [1.143.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.143.0...v1.143.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* UI 层潜在 Bug 修复 - 竞态/内存泄漏/异常处理 ([97b866a](https://github.com/1525745393/EmbyTok-Flutter/commit/97b866a6a5e4bc25c51866c2522b3bbe77653998))
+* 移除 cacheSizeProvider.clear() 的 await（同步方法） ([0954240](https://github.com/1525745393/EmbyTok-Flutter/commit/09542405baa92421da587e22cde9a40889920d86))
+
 # [1.143.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.4...v1.143.0) (2026-07-17)
 
 
