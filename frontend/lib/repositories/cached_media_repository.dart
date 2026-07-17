@@ -141,14 +141,12 @@ class CachedMediaRepository implements MediaRepository {
   /// 失效指定媒体库的列表缓存
   ///
   /// 当媒体库内容可能变化时（如标记已观看、收藏切换等）调用。
-  /// 会清除该 serverUrl + libraryId 下所有分页的缓存。
+  /// 会清除该 serverUrl 下所有媒体库的列表缓存（前缀匹配）。
   void invalidateLibraryItems({
     required String libraryId,
     required String serverUrl,
   }) {
-    // 简单实现：清除该服务器下所有列表缓存
-    // 更精细的实现可以按前缀匹配，但实现复杂度较高
-    _libraryItemsCache.clear();
+    _libraryItemsCache.deleteWherePrefix('lib:$serverUrl:');
   }
 
   /// 失效收藏缓存

@@ -126,6 +126,10 @@ const int kMaxRetryAttempts = 3;
 const int kLoadTimeoutSeconds = 8;
 const int kSwipeProgressIntervalSeconds = 5;
 
+// 内存缓存参数
+const Duration kCacheDefaultTtl = Duration(minutes: 5);
+const int kCacheMaxEntries = 100;
+
 // 水平拖动进度条动画参数
 const int kProgressBarFadeInMs = 150;   // 进度条淡入时长
 const int kProgressBarFadeOutMs = 300;  // 进度条淡出时长

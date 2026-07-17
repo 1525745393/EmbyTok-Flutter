@@ -94,6 +94,21 @@ class MemoryCache<T> {
     _removeEntry(key);
   }
 
+  /// 删除所有以 [prefix] 开头的缓存条目
+  ///
+  /// 用于批量失效某一类缓存（如某个媒体库的所有分页数据）。
+  void deleteWherePrefix(String prefix) {
+    final keysToDelete = <String>[];
+    for (final key in _cache.keys) {
+      if (key.startsWith(prefix)) {
+        keysToDelete.add(key);
+      }
+    }
+    for (final key in keysToDelete) {
+      _removeEntry(key);
+    }
+  }
+
   /// 清空所有缓存
   void clear() {
     _cache.clear();

@@ -9,6 +9,7 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import 'cache_providers.dart';
 
 // 认证状态类
 class AuthState {
@@ -53,9 +54,10 @@ class AuthState {
 
 // 认证 Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
+  final Ref _ref;
   final EmbytokService _service;
 
-  AuthNotifier({EmbytokService? service})
+  AuthNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
         super(const AuthState()) {
     _loadFromStorage();
@@ -143,12 +145,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // 退出登录：清除本地 Token
+  // 退出登录：清除本地 Token 和内存缓存
   Future<void> logout() async {
     AppLogger.info('用户登出');
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(kStorageKeyConfig);
+    } catch (_) {}
+    // 登出时清除所有内存缓存，避免账号切换后数据污染
+    try {
+      _ref.read(cacheControllerProvider).invalidateAll();
     } catch (_) {}
     state = const AuthState();
   }
@@ -162,4 +168,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
 /// - [AuthState.token] 访问令牌
 /// - [AuthState.user] 当前登录用户信息
 final authProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(ref));

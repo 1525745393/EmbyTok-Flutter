@@ -16,11 +16,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../repositories/emby_repository.dart';
 import '../repositories/media_repository.dart';
+import '../repositories/cached_media_repository.dart';
 import '../utils/app_preferences.dart' show FeedType, ViewMode;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 import 'library_provider.dart';
 import 'video_list_state.dart';
 import 'video_playback_controller.dart';
@@ -46,7 +48,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   ProviderSubscription<ViewMode>? _viewModeSubscription;
 
   VideoListNotifier(this._ref, {MediaRepository? repo})
-      : _repo = repo ?? EmbyRepository(),
+      : _repo = repo ?? CachedMediaRepository(EmbyRepository()),
         super(const VideoListState()) {
     // 监听 selectedLibraryIdsProvider 变化：媒体库切换时自动刷新视频列表
     _libraryIdsSubscription = _ref.listen<List<String>>(
@@ -181,7 +183,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // random: 拉 80 条打乱，不分页（支持多库混合）
   // favorites: 拉 getFavoriteMovies 纯列表，不分页
   // resume: 拉 getResumeItems 续播列表，不分页
-  Future<void> refresh() async {
+  //
+  // [forceRefresh] 为 true 时，先清除相关缓存再请求，确保获取最新数据
+  Future<void> refresh({bool forceRefresh = false}) async {
     final currentFeedType = _ref.read(feedTypeProvider);
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
 
@@ -217,7 +221,14 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.info('刷新视频列表', data: {
         'feedType': currentFeedType.toStorageString(),
         'libraryIds': selectedIds.join(','),
+        'forceRefresh': forceRefresh,
       });
+
+      // 强制刷新：先清除相关缓存，确保从服务器获取最新数据
+      if (forceRefresh && _repo is CachedMediaRepository) {
+        final cachedRepo = _repo as CachedMediaRepository;
+        cachedRepo.clearAll();
+      }
 
       final List<MediaItem> loadedItems;
       final bool canPaginate;
