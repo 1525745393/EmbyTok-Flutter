@@ -3,6 +3,7 @@ export 'user.dart';
 export 'library.dart';
 export 'media_item.dart';
 export 'paginated_response.dart';
+export 'favorites_page_result.dart';
 export 'subtitle_track.dart';
 export 'app_config.dart';
 export 'watch_history_item.dart';

@@ -10,16 +10,6 @@ import '../models/models.dart';
 import '../utils/logger.dart';
 import 'api_client.dart';
 
-/// 收藏分页结果：包含条目列表和总数（用于判断是否还有更多）
-class FavoritesPageResult {
-  final List<MediaItem> items;
-  final int totalCount;
-
-  const FavoritesPageResult({required this.items, required this.totalCount});
-
-  bool get hasMore => items.length < totalCount;
-}
-
 class EmbytokService {
   static final EmbytokService _instance = EmbytokService._internal();
 
