@@ -19,8 +19,11 @@ async def list_subtitles(
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
 ) -> List[SubtitleTrack]:
-    """返回指定媒体项的所有可用字幕轨道"""
+    """返回指定媒体项的所有可用字幕轨道
+
+    字幕流 URL 使用 emby_server_url 拼成绝对地址（B2：原实现遗漏导致 url 为相对路径）。
+    """
     async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
         client.user_id = user_id
         raw_list = await client.get_subtitles(item_id)
-        return [subtitle_track_from_emby(item) for item in raw_list]
+        return [subtitle_track_from_emby(item, emby_server_url) for item in raw_list]

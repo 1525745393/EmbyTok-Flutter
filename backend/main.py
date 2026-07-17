@@ -1,24 +1,45 @@
+import contextlib
+from typing import AsyncIterator
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from clients.emby_client import close_shared_http_client, get_shared_http_client
+from core.config import CORS_ALLOWED_ORIGINS
 from core.errors import APIError, INTERNAL_ERROR
 from core.version import __version__
 from routers import auth, favorites, items, libraries, search, subtitles
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """应用生命周期：启动时初始化共享 httpx.AsyncClient，退出时关闭连接池"""
+    # 启动：初始化共享客户端（P1：复用连接池）
+    get_shared_http_client()
+    try:
+        yield
+    finally:
+        # 退出：释放连接池资源
+        await close_shared_http_client()
+
 
 app = FastAPI(
     title="EmbyTok Backend",
     version=__version__,
     description="EmbyTok 后端 API 服务",
+    lifespan=lifespan,
 )
 
+# CORS 配置（B5：从 allow_origins=["*"] 收紧为可通过环境变量配置的白名单）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=CORS_ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
+    allow_credentials=CORS_ALLOWED_ORIGINS != ["*"],
 )
 
 

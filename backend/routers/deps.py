@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import Header
 
+from core.config import DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT
 from core.errors import BAD_REQUEST, APIError
 
 
@@ -35,3 +36,14 @@ def get_user_id(
     if not emby_user_id:
         raise APIError(BAD_REQUEST, "缺少 X-Emby-UserId 请求头")
     return emby_user_id
+
+
+def clamp_limit(limit: int) -> int:
+    """收敛分页 limit 到 [1, MAX_PAGE_LIMIT] 区间（B1：防止客户端传入超大 limit
+    导致 Emby 拉取巨量数据造成内存/超时风险）
+
+    可作为 FastAPI 依赖使用：`limit: int = Depends(clamp_limit)`
+    """
+    if limit < 1:
+        return DEFAULT_PAGE_LIMIT
+    return min(limit, MAX_PAGE_LIMIT)

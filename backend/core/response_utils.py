@@ -128,8 +128,14 @@ def media_item_from_emby(raw: dict, emby_base_url: str) -> MediaItem:
     )
 
 
-def subtitle_track_from_emby(raw: dict) -> SubtitleTrack:
-    """将 Emby 字幕流字典转换为统一的 SubtitleTrack 对象"""
+def subtitle_track_from_emby(raw: dict, emby_base_url: str = "") -> SubtitleTrack:
+    """将 Emby 字幕流字典转换为统一的 SubtitleTrack 对象
+
+    Args:
+        raw: Emby 返回的字幕流字典。
+        emby_base_url: Emby 服务器地址，用于拼接字幕流的绝对 URL。
+            若为空则 url 为相对路径，调用方需自行补全。
+    """
     index = _safe(raw, "Index")
     track_id = str(index) if index is not None else str(_safe(raw, "Id") or "0")
     name = str(_safe(raw, "DisplayTitle") or _safe(raw, "Title") or "字幕")
@@ -138,10 +144,9 @@ def subtitle_track_from_emby(raw: dict) -> SubtitleTrack:
 
     url: Optional[str] = None
     item_id = _safe(raw, "ItemId")
-    if item_id is not None:
-        base = ""
-        if index is not None:
-            url = f"{base}/Videos/{item_id}/{index}/Subtitles/0/Stream.{codec}"
+    if item_id is not None and index is not None:
+        base = emby_base_url.rstrip("/") if emby_base_url else ""
+        url = f"{base}/Videos/{item_id}/{index}/Subtitles/0/Stream.{codec}"
 
     return SubtitleTrack(
         id=track_id,

@@ -3,22 +3,31 @@ from __future__ import annotations
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from clients.emby_client import EmbyClient
+from core.config import MAX_PAGE_LIMIT
 from core.errors import BAD_REQUEST, APIError
 from core.response_utils import media_item_from_emby, paginate_from_items
 from models.base_models import MediaItem, PaginatedResponse
-from routers.deps import get_emby_server_url, get_emby_token, get_user_id
+from routers.deps import clamp_limit, get_emby_server_url, get_emby_token, get_user_id
 
 router = APIRouter(prefix="/api/search", tags=["搜索"])
 
 
 class _SearchBody(BaseModel):
     query: str = Field(..., description="搜索关键字")
-    limit: int = Field(default=20, description="每页条数")
+    limit: int = Field(default=20, description="每页条数（最多 100）")
     offset: int = Field(default=0, description="起始偏移")
     types: Optional[List[str]] = Field(default=None, description="媒体类型过滤")
+
+    @field_validator("limit")
+    @classmethod
+    def _clamp_limit(cls, v: int) -> int:
+        """B1：限制 limit 上界，防止客户端传入超大值导致 Emby 拉取巨量数据"""
+        if v < 1:
+            return 20
+        return min(v, MAX_PAGE_LIMIT)
 
 
 @router.post("", response_model=PaginatedResponse[MediaItem], summary="搜索媒体项（POST）")
@@ -48,14 +57,17 @@ async def search_post(
 @router.get("", response_model=PaginatedResponse[MediaItem], summary="搜索媒体项（GET）")
 async def search_get(
     q: str = Query(..., description="搜索关键字"),
-    limit: int = Query(default=20, description="每页条数"),
+    limit: int = Depends(clamp_limit),
     offset: int = Query(default=0, description="起始偏移"),
     types: Optional[str] = Query(default=None, description="媒体类型过滤，逗号分隔"),
     emby_server_url: str = Depends(get_emby_server_url),
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
 ) -> PaginatedResponse[MediaItem]:
-    """通过查询字符串简单搜索媒体项"""
+    """通过查询字符串简单搜索媒体项
+
+    limit 通过 clamp_limit 依赖自动收敛到 [1, MAX_PAGE_LIMIT]。
+    """
     if not q:
         raise APIError(BAD_REQUEST, "q 参数不能为空")
     async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
@@ -71,7 +83,7 @@ async def search_get(
 @router.get("/persons", response_model=List[dict], summary="搜索人物")
 async def search_persons(
     q: str = Query(..., description="搜索关键字"),
-    limit: int = Query(default=20, description="返回条数"),
+    limit: int = Depends(clamp_limit),
     emby_server_url: str = Depends(get_emby_server_url),
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
