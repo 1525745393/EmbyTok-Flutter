@@ -4,28 +4,81 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-from core.config import get_emby_client_header
+from core.config import (
+    EMBY_CLIENT_MAX_CONNECTIONS,
+    EMBY_CLIENT_MAX_KEEPALIVE,
+    EMBY_CLIENT_TIMEOUT,
+    get_emby_client_header,
+)
 from core.errors import SERVER_UNREACHABLE, APIError, handle_emby_error
 
 
+# 应用级共享 httpx.AsyncClient（P1：复用连接池，避免每次请求新建客户端）
+# 由 main.py 在 startup/shutdown 中管理生命周期，所有 EmbyClient 复用此实例
+_shared_client: Optional[httpx.AsyncClient] = None
+
+
+def get_shared_http_client() -> httpx.AsyncClient:
+    """获取应用级共享的 httpx.AsyncClient。
+
+    若尚未初始化，则按默认配置创建一个（用于测试或未走 lifespan 的场景）。
+    生产环境应由 main.py 在 startup 中显式初始化，以应用连接池配置。
+    """
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(EMBY_CLIENT_TIMEOUT),
+            limits=httpx.Limits(
+                max_connections=EMBY_CLIENT_MAX_CONNECTIONS,
+                max_keepalive_connections=EMBY_CLIENT_MAX_KEEPALIVE,
+            ),
+            headers=get_emby_client_header(),
+        )
+    return _shared_client
+
+
+async def close_shared_http_client() -> None:
+    """关闭应用级共享的 httpx.AsyncClient（应用退出时调用）"""
+    global _shared_client
+    if _shared_client is not None and not _shared_client.is_closed:
+        try:
+            await _shared_client.aclose()
+        except Exception:
+            pass
+    _shared_client = None
+
+
 class EmbyClient:
-    """Emby 服务器异步 HTTP 客户端，封装常用接口"""
+    """Emby 服务器异步 HTTP 客户端，封装常用接口
+
+    性能说明：默认复用应用级共享的 httpx.AsyncClient（连接池/keep-alive/TLS 会话），
+    避免每次请求都新建客户端导致的 TCP+TLS 握手开销。可通过 shared_client=False
+    强制使用独立客户端（仅用于测试或隔离场景）。
+    """
 
     def __init__(
         self,
         base_url: str,
         token: Optional[str] = None,
-        timeout: float = 30.0,
+        timeout: float = EMBY_CLIENT_TIMEOUT,
+        shared_client: bool = True,
     ) -> None:
         self.base_url: str = base_url.rstrip("/")
         self.token: Optional[str] = token
         self.user_id: Optional[str] = None
         self.timeout: float = timeout
 
-        self._client: httpx.AsyncClient = httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout),
-            headers=get_emby_client_header(),
-        )
+        if shared_client:
+            # 复用应用级共享客户端（P1：连接池复用）
+            self._client: httpx.AsyncClient = get_shared_http_client()
+            self._owns_client: bool = False
+        else:
+            # 独立客户端（仅用于测试等隔离场景）
+            self._client = httpx.AsyncClient(
+                timeout=httpx.Timeout(timeout),
+                headers=get_emby_client_header(),
+            )
+            self._owns_client = True
 
     # ------------------------------------------------------------------
     # 基础工具方法
@@ -167,11 +220,14 @@ class EmbyClient:
         return await self._request("GET", f"/Items/{item_id}", params=params)
 
     async def get_playback_url(self, item_id: str) -> str:
-        """构造直链播放 URL（Video 或 Audio）"""
-        base = f"{self.base_url}/Items/{item_id}/Download"
-        if self.token:
-            return f"{base}?api_key={self.token}"
-        return base
+        """构造直链播放地址（相对路径，不含 token）
+
+        安全说明（B4）：原实现将 token 拼到 URL query (?api_key=...) 返回给客户端，
+        会在访问日志/代理链路中泄露。现在返回不含 token 的相对路径，由前端
+        通过自有认证头/已有 playback_url 字段附加鉴权（与 media_item_from_emby
+        返回的 playback_url 行为一致）。
+        """
+        return f"/Items/{item_id}/Download"
 
     async def search(
         self,
@@ -273,15 +329,23 @@ class EmbyClient:
         self,
         item_id: str,
         position_ticks: int,
+        is_paused: bool = False,
     ) -> None:
-        """上报播放进度 POST /Sessions/Playing/Progress"""
+        """上报播放进度 POST /Sessions/Playing/Progress
+
+        Args:
+            item_id: 媒体项 ID。
+            position_ticks: 播放位置（ticks，1 秒 = 10_000_000 ticks）。
+            is_paused: 是否处于暂停状态。原实现写死 False 导致暂停时
+                Emby 仍记录为"在播"，续播位置失真。
+        """
         if not self.user_id:
             raise APIError(400, "需要先完成登录后才能上报播放进度")
         payload = {
             "ItemId": item_id,
             "PositionTicks": int(position_ticks),
-            "IsPaused": False,
-            "EventName": "timeupdate",
+            "IsPaused": bool(is_paused),
+            "EventName": "pause" if is_paused else "timeupdate",
         }
         params: Dict[str, Any] = {"UserId": self.user_id}
         await self._request(
@@ -312,7 +376,13 @@ class EmbyClient:
     # 生命周期
     # ------------------------------------------------------------------
     async def close(self) -> None:
-        """关闭底层 httpx 客户端"""
+        """关闭底层 httpx 客户端
+
+        仅关闭自身拥有的客户端（独立模式）。共享模式下不关闭应用级客户端，
+        其生命周期由 main.py 统一管理。
+        """
+        if not self._owns_client:
+            return
         try:
             await self._client.aclose()
         except Exception:

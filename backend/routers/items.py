@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/items", tags=["媒体项"])
 
 class _ProgressBody(BaseModel):
     position_seconds: float = Field(..., description="当前播放时间（秒）")
+    is_paused: bool = Field(default=False, description="是否处于暂停状态（用于 Emby 续播位置准确性）")
 
 
 @router.get("/{item_id}", response_model=MediaItem, summary="获取媒体项详情")
@@ -60,7 +61,11 @@ async def save_progress(
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
 ) -> Dict[str, bool]:
-    """保存当前媒体项的播放进度（秒）"""
+    """保存当前媒体项的播放进度（秒）
+
+    支持上报暂停状态（is_paused），原实现写死 IsPaused=False 导致暂停时
+    Emby 仍记录为"在播"，续播位置失真。
+    """
     if body.position_seconds < 0:
         raise APIError(BAD_REQUEST, "position_seconds 不能为负数")
     async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
@@ -68,6 +73,7 @@ async def save_progress(
         await client.save_playback_progress(
             item_id=item_id,
             position_ticks=int(body.position_seconds * 10_000_000),
+            is_paused=body.is_paused,
         )
         return {"ok": True}
 

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from clients.emby_client import EmbyClient
 from core.response_utils import paginate_from_items
 from models.base_models import Library, MediaItem, PaginatedResponse
-from routers.deps import get_emby_server_url, get_emby_token, get_user_id
+from routers.deps import clamp_limit, get_emby_server_url, get_emby_token, get_user_id
 
 router = APIRouter(prefix="/api/libraries", tags=["媒体库"])
 
@@ -33,14 +33,18 @@ async def list_libraries(
 )
 async def list_library_items(
     library_id: str,
-    limit: int = 20,
+    limit: int = Depends(clamp_limit),
     offset: int = 0,
     sort: str = "SortName",
     emby_server_url: str = Depends(get_emby_server_url),
     emby_token: str = Depends(get_emby_token),
     user_id: str = Depends(get_user_id),
 ) -> PaginatedResponse[MediaItem]:
-    """按分页返回指定媒体库下的媒体项"""
+    """按分页返回指定媒体库下的媒体项
+
+    limit 通过 clamp_limit 依赖自动收敛到 [1, MAX_PAGE_LIMIT]，
+    防止客户端传入超大值导致 Emby 拉取巨量数据。
+    """
     from core.response_utils import media_item_from_emby
 
     async with EmbyClient(base_url=emby_server_url, token=emby_token) as client:
