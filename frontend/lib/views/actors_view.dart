@@ -700,6 +700,7 @@ class _ActorCard extends StatelessWidget {
       imageUrl: img,
       cacheManager: AppImageCacheManager.thumbnail,
       fit: BoxFit.cover,
+      memCacheWidth: 240,
       httpHeaders: tk != null && tk.isNotEmpty
           ? <String, String>{'X-Emby-Token': tk}
           : null,

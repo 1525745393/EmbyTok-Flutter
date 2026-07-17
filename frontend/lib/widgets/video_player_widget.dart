@@ -76,8 +76,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _isDisposed = false;
   // 降级延迟计时器（网络错误时延迟重试，避免资源风暴）
   Timer? _fallbackTimer;
-  // 非当前页延迟释放计时器（5秒后释放 controller 节省解码资源）
+  // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
+  // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
+  // 内存压力释放：收到系统内存警告时立即释放非当前页 controller
+  static const Duration _backgroundReleaseDelay = Duration(seconds: 2);
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -147,9 +150,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (c != null && c.value.isInitialized) {
         _syncPlaybackState(c);
         if (!widget.isCurrentPage) {
-          // 非当前页：启动 5 秒延迟释放计时器，超时后仍非当前页则释放 controller 节省解码资源
+          // 非当前页：启动延迟释放计时器，超时后仍非当前页则释放 controller 节省解码资源
           _backgroundReleaseTimer?.cancel();
-          _backgroundReleaseTimer = Timer(const Duration(seconds: 5), () {
+          _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
             if (_isDisposed || !mounted) return;
             if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
               debugPrint('非当前页超时，释放 controller 资源: ${widget.item.id}');
