@@ -1636,7 +1636,7 @@ class SettingsView extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               try {
-                await ref.read(cacheSizeProvider.notifier).clear();
+                ref.read(cacheSizeProvider.notifier).clear();
                 if (!context.mounted) return;
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
