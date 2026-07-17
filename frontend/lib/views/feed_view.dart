@@ -97,7 +97,9 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
     // 监听视图模式变化：feed↔grid 切换时通过协调器处理播放暂停/恢复
     // 系统栏显隐是 UI 行为，由本视图处理
+    // 注：listen 回调的 prev 首次为 null，需判空（handleViewModeChange 要求非空 ViewMode）
     ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+      if (prev == null) return;
       _playbackCoordinator.handleViewModeChange(prev, next);
       if (prev == ViewMode.feed && next == ViewMode.grid) {
         // 切到网格：恢复系统栏（便于操作 AppBar）

@@ -28,11 +28,16 @@ import '../utils/logger.dart';
 /// 播放协调器
 ///
 /// 使用方式：
-/// - 在 FeedView 的 initState 中调用 [attach]，传入 onPageIndexReady 回调
+/// - 在 FeedView 的 initState 中创建实例，传入 [onPageIndexReady] 回调
 /// - onPageIndexReady 由 FeedView 提供，负责执行实际的 PageController.jumpToPage
 /// - 在 FeedView 的 dispose 中调用 [detach]
+///
+/// 类型说明：
+/// - 持有 [WidgetRef]（而非 [Ref]），因为 Coordinator 由 ConsumerState 直接创建，
+///   需要读写 Provider 状态（read/notifier.state）以及监听变化
+/// - WidgetRef 完整支持这些操作，无需绕道 Ref
 class PlaybackCoordinator {
-  final Ref _ref;
+  final WidgetRef _ref;
 
   // 路由跳转：当目标 item 已加载时，通过此回调通知 UI 跳页
   // 返回 true 表示 PageController 已 attach 并成功跳页
@@ -255,16 +260,3 @@ class PlaybackCoordinator {
   }
 }
 
-/// 播放协调器 Provider
-///
-/// 注意：此 Provider 不持有状态，每次 ref.read 都会创建新实例。
-/// FeedView 应在 initState 中 read 一次并持有实例，在 dispose 中调用 detach。
-///
-/// onPageIndexReady 回调由 FeedView 提供，用于在目标 item 加载完成后
-/// 通知 UI 执行 PageController.jumpToPage。回调应返回 true 表示已成功跳页
-/// （PageController 已 attach），返回 false 表示需要下一帧重试。
-final playbackCoordinatorProvider =
-    Provider.family<PlaybackCoordinator, bool Function(int)>(
-        (ref, onPageIndexReady) {
-  return PlaybackCoordinator(ref, onPageIndexReady: onPageIndexReady);
-});
