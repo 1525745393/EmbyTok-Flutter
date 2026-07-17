@@ -1,3 +1,10 @@
+## [1.140.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.140.1...v1.140.2) (2026-07-17)
+
+
+### Performance Improvements
+
+* **ui:** 退出全屏后保持 feed 沉浸式系统栏 ([60a4767](https://github.com/1525745393/EmbyTok-Flutter/commit/60a4767d48342e037915202ebc4bc3b0cad911af))
+
 ## [1.140.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.140.0...v1.140.1) (2026-07-17)
 
 
