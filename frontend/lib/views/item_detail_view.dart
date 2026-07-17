@@ -11,6 +11,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/image_cache_manager.dart';
+import '../utils/logger.dart';
 import '../widgets/video_page_item.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {
@@ -115,8 +116,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       if (seasonId != null) {
         await _loadEpisodes(seriesId, seasonId);
       }
-    } catch (_) {
-      // 季列表加载失败不阻塞详情页展示
+    } catch (e) {
+      // 季列表加载失败不阻塞详情页展示，但记录日志便于排查
+      AppLogger.warn('季列表加载失败', data: {
+        'seriesId': seriesId,
+        'error': e.toString(),
+      });
     }
   }
 

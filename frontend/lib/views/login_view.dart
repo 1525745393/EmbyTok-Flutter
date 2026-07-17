@@ -69,15 +69,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
     super.initState();
     _loadSavedData();
     // 服务器地址失焦时自动测试连接
-    _serverFocusNode.addListener(() {
-      if (!_serverFocusNode.hasFocus && _embyController.text.trim().isNotEmpty) {
-        _testConnection();
-      }
-    });
+    _serverFocusNode.addListener(_onServerFocusChanged);
+  }
+
+  /// 服务器输入框焦点变化回调：失焦且地址非空时自动测试连接
+  void _onServerFocusChanged() {
+    if (!_serverFocusNode.hasFocus && _embyController.text.trim().isNotEmpty) {
+      _testConnection();
+    }
   }
 
   @override
   void dispose() {
+    // 显式移除 listener 再 dispose，避免 dispose 过程中残留回调
+    _serverFocusNode.removeListener(_onServerFocusChanged);
     _embyController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
@@ -169,6 +174,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
         });
       }
     } catch (e) {
+      // 记录错误详情便于排查，同时更新 UI 状态
+      AppLogger.warn('连接测试失败', data: {'url': url, 'error': e.toString()});
       if (mounted) {
         setState(() {
           _connectionStatus = false;

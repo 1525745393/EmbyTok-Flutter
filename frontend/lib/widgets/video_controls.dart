@@ -122,6 +122,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
       ),
     );
     if (rate != null) {
+      if (!mounted) return;
       widget.controller.setPlaybackSpeed(rate);
       // 同步更新 playbackRateProvider，保持三种倍速方式状态一致
       ref.read(playbackRateProvider.notifier).state = rate;
@@ -131,6 +132,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   // 弹出字幕选择菜单（从 subtitleTracks 中挑选）
   Future<void> _showSubtitleMenu() async {
     if (widget.subtitleTracks.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('未检测到可用字幕'), duration: Duration(seconds: 1)),
       );
@@ -141,6 +143,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
       tracks: widget.subtitleTracks,
       selectedTrackId: ref.read(selectedSubtitleProvider),
       onSelected: (track) {
+        if (!mounted) return;
         ref.read(selectedSubtitleProvider.notifier).state = track?.id;
       },
     );
