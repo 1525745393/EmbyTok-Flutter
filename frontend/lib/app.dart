@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../utils/logger.dart';
+import '../utils/memory_pressure_handler.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
 import 'views/actors_view.dart';
@@ -44,6 +45,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   @override
   void initState() {
     super.initState();
+    // 挂载内存压力监听器：系统内存警告时主动清缓存 + 释放视频池
+    MemoryPressureHandler.attach(ref);
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
@@ -77,6 +80,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
 
   @override
   void dispose() {
+    MemoryPressureHandler.detach();
     _refreshNotifier.dispose();
     super.dispose();
   }
