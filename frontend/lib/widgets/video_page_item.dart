@@ -59,6 +59,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoController;
   bool _hasNotifiedEnded = false;
+  // 播放停止上报是否已发送，防止 dispose 与结束回调重复上报导致重复会话
+  bool _hasStoppedReported = false;
   // 是否已触发预加载回调（每个视频只触发一次）
   bool _hasFiredPreload = false;
 
@@ -197,6 +199,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _hasStartedReported = false;
     _playSessionId = null;
     _hasNotifiedEnded = false;
+    _hasStoppedReported = false;
     super.dispose();
   }
 
@@ -238,8 +241,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       ref.read(currentPositionProvider.notifier).state =
           controller.value.position;
     }
-    // 信息条重置：仅在不可见时触发（原 _onVideoChangedForReport 逻辑）
-    if (!_isInfoVisible) _resetInfoHideTimer();
+    // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
+    // 使“3 秒自动隐藏”永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。
     // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
     if (!_hasFiredPreload && widget.onPreloadThreshold != null) {
       final pos = controller.value.position;
@@ -403,6 +406,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   void _reportPlaybackStopped() {
+    if (_hasStoppedReported) return;
+    _hasStoppedReported = true;
     final controller = _videoController;
     final position = controller?.value.position;
     final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
@@ -983,6 +988,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
     _initItems();
+    _preloadAround(_currentIndex);
   }
 
   @override
@@ -1034,6 +1040,31 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     setState(() {
       _currentIndex = index;
     });
+    _preloadAround(index);
+  }
+
+  // 接入全局预加载池：预加载相邻视频并清理较远的会话，
+  // 避免独立播放页长列表滑动时控制器数量无限增长（与 feed 行为一致）
+  void _preloadAround(int index) {
+    final auth = ref.read(authProvider);
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    if (serverUrl == null || token == null) return;
+    final pool = ref.read(videoPoolProvider);
+    Future<void> maybePreload(int i) async {
+      if (i < 0 || i >= _items.length) return;
+      final it = _items[i];
+      if (!pool.hasSession(it.id)) {
+        await pool.preload(item: it, serverUrl: serverUrl, token: token);
+      }
+    }
+
+    unawaited(maybePreload(index - 1));
+    unawaited(maybePreload(index + 1));
+    final keep = <String>[];
+    if (index - 1 >= 0) keep.add(_items[index - 1].id);
+    if (index + 1 < _items.length) keep.add(_items[index + 1].id);
+    pool.evictExcept(keep);
   }
 
   @override
@@ -1061,9 +1092,14 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
             onPageChanged: _onPageChanged,
             itemBuilder: (context, index) {
               final item = _items[index];
+              // 复用全局预加载池中的会话（如存在且仍有效），否则回退动态创建
+              final rawSession = ref.read(videoPoolProvider).take(item.id);
+              final preloadedSession =
+                  (rawSession != null && rawSession.isInitialized) ? rawSession : null;
               return VideoPageItem(
                 key: ValueKey(item.id),
                 item: item,
+                preloadedSession: preloadedSession,
                 onVideoEnded: index < _items.length - 1
                     ? () {
                         // 自动播放下一个

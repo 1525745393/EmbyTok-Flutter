@@ -45,6 +45,7 @@ class PlaybackCoordinator {
 
   // 防止重复等待同一 initialId（与 FeedView 的 _processedInitialItemId 对应）
   String? _processedInitialItemId;
+  Timer? _waitTimer;
 
   PlaybackCoordinator(this._ref, {bool Function(int targetIndex)? onPageIndexReady})
       : _onPageIndexReady = onPageIndexReady;
@@ -181,14 +182,22 @@ class PlaybackCoordinator {
     // 防止重复处理同一 initialId
     if (_processedInitialItemId == itemId) return false;
     _processedInitialItemId = itemId;
-
-    _waitForInitialItemInternal(itemId, retryCount: 0);
+    _waitForInitialItemViaTimer(itemId, tick: 0);
     return true;
   }
 
-  void _waitForInitialItemInternal(String itemId, {required int retryCount}) {
-    // 最多等待约5秒（100帧），超时则放弃
-    if (retryCount > 100) {
+  /// 用 100ms 定时代替逐帧轮询（原 addPostFrameCallback 在静态界面下约 60fps 空转）。
+  /// 最多约 5 秒（50 次），超时放弃。
+  void _waitForInitialItemViaTimer(String itemId, {required int tick}) {
+    _waitTimer?.cancel();
+    _waitTimer = Timer(const Duration(milliseconds: 100), () {
+      _tickInitialItem(itemId, tick: tick);
+    });
+  }
+
+  void _tickInitialItem(String itemId, {required int tick}) {
+    // 最多等待约 5 秒（50 次 × 100ms），超时则放弃
+    if (tick > 50) {
       AppLogger.error('路由初始项：等待目标视频超时', data: {'itemId': itemId});
       _processedInitialItemId = null;
       return;
@@ -206,18 +215,14 @@ class PlaybackCoordinator {
       // 通知 UI 跳页
       final jumped = _onPageIndexReady?.call(targetIndex) ?? false;
       if (!jumped) {
-        // PageController 未 attach，下一帧重试
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _waitForInitialItemInternal(itemId, retryCount: retryCount + 1);
-        });
+        // PageController 未 attach，稍后重试
+        _waitForInitialItemViaTimer(itemId, tick: tick + 1);
       }
       return;
     }
 
     if (videoState.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _waitForInitialItemInternal(itemId, retryCount: retryCount + 1);
-      });
+      _waitForInitialItemViaTimer(itemId, tick: tick + 1);
       return;
     }
 
@@ -229,9 +234,7 @@ class PlaybackCoordinator {
       _ref.read(videoListProvider.notifier).loadMore();
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitForInitialItemInternal(itemId, retryCount: retryCount + 1);
-    });
+    _waitForInitialItemViaTimer(itemId, tick: tick + 1);
   }
 
   /// 处理外部跳页请求（来自 FullscreenVideoPage 等）
@@ -256,6 +259,8 @@ class PlaybackCoordinator {
 
   /// 释放协调器资源
   void detach() {
+    _waitTimer?.cancel();
+    _waitTimer = null;
     _processedInitialItemId = null;
   }
 }

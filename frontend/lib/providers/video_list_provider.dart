@@ -513,7 +513,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       // 精确判断：当前已加载 + 本次新加载 < 总记录数则还有更多
       // 所有库都返回空 → hasMore=false，避免无限空加载循环
       final newTotal = state.items.length + newItems.length;
-      final hasMore = !allEmpty && totalAvailable > 0 && newTotal < totalAvailable;
+      // 加入 newItems.isNotEmpty 守卫：多库去重后若本轮未新增任何唯一条目，
+      // 说明已无新内容，避免 totalAvailable（含重复项）导致的 loadMore 无限循环
+      final hasMore = !allEmpty &&
+          newItems.isNotEmpty &&
+          totalAvailable > 0 &&
+          newTotal < totalAvailable;
 
       state = state.copyWith(
         items: [...state.items, ...newItems],
@@ -573,7 +578,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         try {
           final resp = await _service.getLibraryItems(
             libId,
-            limit: 10000, // 不限制数量，取全部
+            limit: kGridPageSize, // 限制单次拉取量，避免大库全量加载导致的内存/性能问题
             offset: 0,
             serverUrl: serverUrl,
             token: token,

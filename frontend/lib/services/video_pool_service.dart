@@ -63,6 +63,9 @@ class VideoPoolService {
   /// LRU 顺序：记录 itemId 按最近访问时间排序
   final List<String> _accessOrder = <String>[];
 
+  /// 正在预加载中的 itemId 集合，用于防止同一 item 并发预加载导致双建 controller
+  final Set<String> _inflight = <String>{};
+
   /// 当前生效的 Token，用于检测是否需要刷新
   String? _currentToken;
 
@@ -108,6 +111,10 @@ class VideoPoolService {
       return existing;
     }
 
+    // 并发防护：同一 item 正在预加载中则跳过，避免双建 controller 造成 native 资源泄漏
+    if (_inflight.contains(item.id)) return null;
+    _inflight.add(item.id);
+
     // 池已满：淘汰最久未访问的会话
     if (_sessions.length >= maxSize) {
       final oldest = _accessOrder.first;
@@ -115,16 +122,19 @@ class VideoPoolService {
     }
 
     // 降级链：DirectPlay → DirectStream → HLS
+    // 统一生成一次 playSessionId，HLS URL 与存储的会话共用，保证 Emby 上报关联一致
+    final playSessionId = _generatePlaySessionId();
     final urls = <int, String?>{
       0: item.computePlaybackUrl(serverUrl, token),
       1: item.computeDirectStreamUrl(serverUrl, token),
       2: item.computeHlsUrl(serverUrl, token,
-          playSessionId: _generatePlaySessionId()),
+          playSessionId: playSessionId),
     };
     final headers = item.authHeaders(token);
 
     PlaybackSession? created;
-    for (int level = 0; level < 3; level++) {
+    try {
+      for (int level = 0; level < 3; level++) {
       final url = urls[level];
       if (url == null || url.isEmpty) continue;
       VideoPlayerController? controller;
@@ -142,7 +152,7 @@ class VideoPoolService {
         created = PlaybackSession(
           itemId: item.id,
           controller: controller,
-          playSessionId: _generatePlaySessionId(),
+          playSessionId: playSessionId,
           playbackLevel: level,
         );
         _sessions[item.id] = created;
@@ -155,6 +165,9 @@ class VideoPoolService {
           controller?.dispose();
         } catch (_) {}
       }
+    }
+    } finally {
+      _inflight.remove(item.id);
     }
 
     return created; // 可能为 null（全部失败）
