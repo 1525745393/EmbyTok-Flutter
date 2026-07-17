@@ -3,7 +3,7 @@
 //
 // 路由 + 起始 itemId 透传模式：
 // - 路由 `/` 支持 `?initialId=<itemId>`，FeedView 接收后等待目标在 items 中出现，jumpToPage
-// - onPageChanged 同步写入 currentPlayingIdProvider（全局"当前在播"信号源）
+// - onPageChanged 同步写入 currentPlayingIdProvider（全局“当前在播”信号源）
 // - 网格等其他视图只读 currentPlayingIdProvider 用于高亮回显
 
 import 'dart:async';
@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../coordinators/playback_coordinator.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
@@ -33,7 +34,7 @@ class FeedView extends ConsumerStatefulWidget {
   // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`
   // - 网格点击 → 跳转前 context.go('/?initialId=$id')
   // - 搜索/收藏/演员详情 → 跳转前 context.go('/?initialId=$id')
-  // - 跨进程清空：每次新路由都是一次新的"起点"
+  // - 跨进程清空：每次新路由都是一次新的“起点”
   final String? initialItemId;
 
   const FeedView({super.key, this.initialItemId});
@@ -63,6 +64,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 页面切换防抖：快速滑动时只在静止后执行预加载和清理
   Timer? _pageChangeDebounce;
 
+  // 播放协调器：抽离自原 feed_view.dart 的播放协调逻辑
+  // 在 initState 中创建，dispose 中 detach
+  late final PlaybackCoordinator _playbackCoordinator;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -70,6 +75,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
+    // 创建播放协调器：传入跳页回调，用于路由跳转时通知 UI 执行 PageController.jumpToPage
+    _playbackCoordinator = PlaybackCoordinator(ref, onPageIndexReady: _jumpToPageByIndex);
     // 注册全局键盘监听
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
@@ -77,31 +84,25 @@ class _FeedViewState extends ConsumerState<FeedView>
       _saveCloudSyncIfNeeded(next);
     });
     // 监听外部跳页请求：全屏页 FullscreenVideoPage 等设置后跳到指定 index（PR #62）
-    // 设计：FullscreenVideoPage 切"上一集/下一集"时不能直接调用 _pageController，
+    // 设计：FullscreenVideoPage 切“上一集/下一集”时不能直接调用 _pageController，
     // 所以通过 feedViewPageJumpRequestProvider 通知 FeedView 跳转
     ref.listen<int?>(feedViewPageJumpRequestProvider, (prev, next) {
       if (next != null && next != prev) {
         AppLogger.debug('外部请求跳页', data: {'index': next});
-        // 先重置避免重复触发
-        ref.read(feedViewPageJumpRequestProvider.notifier).state = null;
-        _jumpToPageWhenReady(next);
+        final targetIndex = _playbackCoordinator.consumeJumpRequest();
+        if (targetIndex != null) {
+          _jumpToPageWhenReady(targetIndex);
+        }
       }
     });
-    // 监听视图模式变化：feed↔grid 切换时处理视频播放/暂停 + 系统栏显隐
+    // 监听视图模式变化：feed↔grid 切换时通过协调器处理播放暂停/恢复
+    // 系统栏显隐是 UI 行为，由本视图处理
     ref.listen<ViewMode>(viewModeProvider, (prev, next) {
-      final controller = ref.read(currentVideoControllerProvider);
+      _playbackCoordinator.handleViewModeChange(prev, next);
       if (prev == ViewMode.feed && next == ViewMode.grid) {
-        // 切到网格：暂停视频
-        if (controller != null && controller.value.isPlaying) {
-          controller.pause();
-        }
         // 切到网格：恢复系统栏（便于操作 AppBar）
         _restoreSystemBars();
       } else if (prev == ViewMode.grid && next == ViewMode.feed) {
-        // 切回视频流：恢复播放
-        if (controller != null && !controller.value.isPlaying) {
-          controller.play();
-        }
         // 切回视频流：隐藏系统栏（沉浸式）
         _hideSystemBars();
       }
@@ -144,13 +145,6 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     if (_pageController.hasClients) {
       _currentIndex = targetIndex;
-      // 同步当前播放 ID 和条目（onPageChanged 会再次确认，但这里先设避免 UI 闪烁）
-      final items = ref.read(videoListProvider).items;
-      if (targetIndex < items.length) {
-        final targetItem = items[targetIndex];
-        ref.read(currentPlayingIdProvider.notifier).state = targetItem.id;
-        ref.read(currentPlayingItemProvider.notifier).state = targetItem;
-      }
       _pageController.jumpToPage(targetIndex);
       return;
     }
@@ -160,46 +154,19 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
   }
 
+  /// 协调器跳页回调：返回 true 表示已成功跳页
+  /// 由 PlaybackCoordinator.waitForInitialItem 在目标 item 加载完成后调用
+  bool _jumpToPageByIndex(int targetIndex) {
+    if (!mounted || !_pageController.hasClients) return false;
+    _currentIndex = targetIndex;
+    _pageController.jumpToPage(targetIndex);
+    return true;
+  }
+
   /// 等待路由透传的初始播放项出现在 items 中
-  /// - 目标项不在当前已加载的列表时，自动 loadMore 连续加载直到找到
-  /// - 找到后调用 _jumpToPageWhenReady
-  void _waitForInitialItemToLoad(String itemId, {int retryCount = 0}) {
-    if (!mounted) return;
-    if (_processedInitialItemId != itemId) return; // 用户已经切换到其他初始项
-
-    // 最多等待约5秒（100帧），超时则放弃
-    if (retryCount > 100) {
-      AppLogger.error('路由初始项：等待目标视频超时', data: {'itemId': itemId});
-      return;
-    }
-
-    final videoState = ref.read(videoListProvider);
-    final targetIndex = videoState.items.indexWhere((item) => item.id == itemId);
-
-    if (targetIndex >= 0) {
-      AppLogger.debug('路由初始项：找到目标视频并跳转', data: {'index': targetIndex, 'itemId': itemId});
-      _jumpToPageWhenReady(targetIndex);
-      return;
-    }
-
-    if (videoState.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _waitForInitialItemToLoad(itemId, retryCount: retryCount + 1);
-      });
-      return;
-    }
-
-    if (videoState.hasMore) {
-      AppLogger.debug('路由初始项：目标视频不在当前列表，加载更多', data: {
-        'currentItemCount': videoState.items.length,
-        'itemId': itemId,
-      });
-      ref.read(videoListProvider.notifier).loadMore();
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitForInitialItemToLoad(itemId, retryCount: retryCount + 1);
-    });
+  /// 委托给 PlaybackCoordinator 处理（loadMore 触发 + 播放 ID 同步）
+  void _waitForInitialItemToLoad(String itemId) {
+    _playbackCoordinator.waitForInitialItem(itemId);
   }
 
   @override
@@ -211,7 +178,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollController.dispose();
     _gridScrollSaveTimer?.cancel();
     // 退出 feed view 时清理所有预加载（当前页面正在使用的由 VideoPageItem 负责）
-    unawaited(ref.read(videoPoolProvider).disposeAll());
+    unawaited(_playbackCoordinator.disposeAllPreloads());
+    _playbackCoordinator.detach();
     // 退出 feed view 时恢复系统栏（其他页面需要可见的系统栏）
     _restoreSystemBars();
     super.dispose();
@@ -265,54 +233,12 @@ class _FeedViewState extends ConsumerState<FeedView>
     } catch (_) {}
   }
 
-  // ========== 预加载与清理（基于 VideoPoolService）==========
-
-  // 对指定 index 的上一条和下一条视频发起预加载
-  // 由 VideoPoolService 负责降级链（DirectPlay → DirectStream → HLS）
-  void _preloadNeighbors(int index, List<MediaItem> items, String? embyServerUrl, String? token) {
-    if (embyServerUrl == null || token == null) return;
-    // 预加载上一条
-    if (index - 1 >= 0) {
-      final prevItem = items[index - 1];
-      if (!ref.read(videoPoolProvider).hasSession(prevItem.id)) {
-        unawaited(
-          ref.read(videoPoolProvider).preload(item: prevItem, serverUrl: embyServerUrl, token: token),
-        );
-      }
-    }
-    // 预加载下一条
-    if (index + 1 < items.length) {
-      final nextItem = items[index + 1];
-      if (!ref.read(videoPoolProvider).hasSession(nextItem.id)) {
-        unawaited(
-          ref.read(videoPoolProvider).preload(item: nextItem, serverUrl: embyServerUrl, token: token),
-        );
-      }
-    }
-  }
-
-  // 清理距离当前索引较远的会话（只保留上一条 + 下一条，其余全部清理）
-  void _evictFarPreloads(int currentIndex, List<MediaItem> items) {
-    final keepIds = <String>[];
-    // 当前条目（如存在）：保持在池中（VideoPageItem 已取出，池里不包含）
-    // 上一条（如存在）：保留预加载
-    if (currentIndex - 1 >= 0) {
-      keepIds.add(items[currentIndex - 1].id);
-    }
-    // 下一条（如存在）：保留预加载
-    if (currentIndex + 1 < items.length) {
-      keepIds.add(items[currentIndex + 1].id);
-    }
-    ref.read(videoPoolProvider).evictExcept(keepIds);
-  }
-
-  // 从池中取出会话（取出后池不再拥有它，由 VideoPageItem 负责释放）
-  PlaybackSession? _takePreloadedSession(String itemId) =>
-      ref.read(videoPoolProvider).take(itemId);
+  // ========== 预加载与清理 ==========
+  // 已迁移到 PlaybackCoordinator，这里只保留薄封装供 onPageChanged 调用
 
   // ========== 跨设备续播云同步 ==========
 
-  // 启动时尝试拉取 DisplayPreferences 中的 "EmbyTok-Resume" 信息
+  // 启动时尝试拉取 DisplayPreferences 中的 “EmbyTok-Resume” 信息
   Future<void> _checkCloudSyncOnStartup() async {
     try {
       final auth = ref.read(authProvider);
@@ -536,8 +462,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // 切换浏览模式（最新/随机/收藏/继续观看）——清理缓存后刷新
-  // 注："推荐"已从 FeedType 移除（PR #57），改为独立路由 /recommend
-  // 顶部操作栏的"推荐"图标按钮现在直接 context.go('/recommend')
+  // 注：“推荐”已从 FeedType 移除（PR #57），改为独立路由 /recommend
+  // 顶部操作栏的“推荐”图标按钮现在直接 context.go('/recommend')
   void _toggleFeedType() {
     final current = ref.read(feedTypeProvider);
     final next = switch (current) {
@@ -547,7 +473,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       FeedType.resume => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
-    unawaited(ref.read(videoPoolProvider).disposeAll());
+    unawaited(_playbackCoordinator.disposeAllPreloads());
     ref.read(feedTypeProvider.notifier).setType(next);
     _showModeToast(next);
   }
@@ -861,14 +787,12 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
-        // 同步当前播放 ID（全局 store，供网格/收藏/历史高亮使用）
-        // 这是 feed 内部唯一权威的"当前在播"信号源。
+        // 通过协调器同步当前播放 ID（全局 store，供网格/收藏/历史高亮使用）
         // onPageChanged 是 PageView 真正切换完成时，比 onControllerReady 更可靠。
-        if (index < videoState.items.length) {
-          final playingItem = videoState.items[index];
-          ref.read(currentPlayingIdProvider.notifier).state = playingItem.id;
-          ref.read(currentPlayingItemProvider.notifier).state = playingItem;
-        }
+        _playbackCoordinator.syncCurrentPlaying(
+          index: index,
+          items: videoState.items,
+        );
         // 分页加载：接近末尾时立即触发，不防抖（数据加载需要及时）
         if (videoState.hasMore && index >= videoState.items.length - 2) {
           final latestState = ref.read(videoListProvider);
@@ -876,11 +800,17 @@ class _FeedViewState extends ConsumerState<FeedView>
             ref.read(videoListProvider.notifier).loadMore();
           }
         }
-        // 预加载和清理：防抖 100ms，快速滑动时避免"创建-销毁-重建"的资源浪费
+        // 预加载和清理：防抖 100ms，快速滑动时避免“创建-销毁-重建”的资源浪费
         _pageChangeDebounce?.cancel();
         _pageChangeDebounce = Timer(const Duration(milliseconds: 100), () {
-          _preloadNeighbors(index, videoState.items, embyServerUrl, token);
-          _evictFarPreloads(index, videoState.items);
+          _playbackCoordinator.preloadNeighbors(
+            index: index,
+            items: videoState.items,
+          );
+          _playbackCoordinator.evictFarPreloads(
+            currentIndex: index,
+            items: videoState.items,
+          );
         });
       },
       itemBuilder: (context, index) {
@@ -888,8 +818,8 @@ class _FeedViewState extends ConsumerState<FeedView>
           return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
         }
         final item = videoState.items[index];
-        // 从 VideoPoolService 取出预加载的会话（如存在）
-        final preloadedSession = _takePreloadedSession(item.id);
+        // 从协调器取出预加载的会话（如存在）
+        final preloadedSession = _playbackCoordinator.takePreloadedSession(item.id);
         // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
         // 避免重复为 index=0 创建 controller（VideoPlayerWidget 已在动态创建路径中创建）
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
