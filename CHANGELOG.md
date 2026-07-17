@@ -1,3 +1,10 @@
+## [1.139.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.2...v1.139.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* **watch-stats:** 补全观看统计功能的数据采集环节 ([4b2d481](https://github.com/1525745393/EmbyTok-Flutter/commit/4b2d481704a059f9481aeb7fa3fe2495f269fed3))
+
 ## [1.139.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.1...v1.139.2) (2026-07-16)
 
 
