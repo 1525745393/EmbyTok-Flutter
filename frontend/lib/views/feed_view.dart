@@ -879,6 +879,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           preloadedSession: preloadedSession,
           onVideoEnded: _goToNextVideo,
           startFromResumePosition: item.hasProgress,
+          source: videoState.feedType == FeedType.resume ? 'resume' : 'feed',
           // 下一集：在 items 中查找同系列的下一集（更大的 indexNumber 或同一 series 的后续条目）
           onNextEpisode: item.seriesName != null
               ? () {

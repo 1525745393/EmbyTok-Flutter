@@ -36,6 +36,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final VoidCallback? onPrevEpisode;
   /// 播放进度达到预加载阈值时回调，用于触发下一个视频的预加载
   final VoidCallback? onPreloadThreshold;
+  /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
+  final String source;
 
   const VideoPageItem({
     super.key,
@@ -46,6 +48,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.onNextEpisode,
     this.onPrevEpisode,
     this.onPreloadThreshold,
+    this.source = 'feed',
   });
 
   @override
@@ -186,6 +189,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (ctrl != null && identical(ctrl, _videoController)) {
       ref.read(currentVideoControllerProvider.notifier).state = null;
     }
+    // 观看统计：记录本次观看的完播率
+    _recordWatchStats();
     // ⚠️ _videoController 由内部 VideoPlayerWidget 负责 dispose，这里只清空引用
     _videoController = null;
     _capabilitiesReported = false;
@@ -193,6 +198,23 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _playSessionId = null;
     _hasNotifiedEnded = false;
     super.dispose();
+  }
+
+  /// 记录观看统计（完播率）
+  void _recordWatchStats() {
+    final controller = _videoController;
+    if (controller == null || !controller.value.isInitialized) return;
+    final position = controller.value.position;
+    final duration = controller.value.duration;
+    if (duration.inMilliseconds <= 0) return;
+    final completionRate = position.inMilliseconds / duration.inMilliseconds;
+    ref.read(watchStatsProvider.notifier).recordWatch(
+          itemId: widget.item.id,
+          itemType: widget.item.type,
+          itemTitle: widget.item.title,
+          completionRate: completionRate,
+          source: widget.source,
+        );
   }
 
   // ===== 视频状态变化监听 =====
