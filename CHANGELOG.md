@@ -1,3 +1,10 @@
+## [1.140.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.140.0...v1.140.1) (2026-07-17)
+
+
+### Performance Improvements
+
+* **ui:** UI/UX 增强——滑动性能+沉浸式+手势反馈优化 ([e53e047](https://github.com/1525745393/EmbyTok-Flutter/commit/e53e047ac30a25793d18bda26c47e30700fe7cc1))
+
 # [1.140.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.3...v1.140.0) (2026-07-17)
 
 
