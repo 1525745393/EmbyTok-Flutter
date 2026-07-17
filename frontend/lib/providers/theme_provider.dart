@@ -14,7 +14,7 @@ final themeModeProvider =
 });
 
 class ThemeModeNotifier extends StateNotifier<String> {
-  ThemeModeNotifier() : super('system') {
+  ThemeModeNotifier() : super('dark') {
     _loadFromStorage();
   }
 
