@@ -856,7 +856,11 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
         final item = videoState.items[index];
         // 从协调器取出预加载的会话（如存在）
-        final preloadedSession = _playbackCoordinator.takePreloadedSession(item.id);
+        // 守卫：仅当会话仍有效（未因 Token 切换/清理被 dispose）时才使用，
+        // 否则回退到 VideoPlayerWidget 动态创建，避免持有已释放的 controller 导致崩溃
+        final rawSession = _playbackCoordinator.takePreloadedSession(item.id);
+        final preloadedSession =
+            (rawSession != null && rawSession.isInitialized) ? rawSession : null;
         // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
         // 避免重复为 index=0 创建 controller（VideoPlayerWidget 已在动态创建路径中创建）
         if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
