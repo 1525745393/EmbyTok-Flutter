@@ -34,8 +34,9 @@ class EmbyRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-      sortBy: params.sortBy,
-      sortOrder: params.sortOrder,
+      // null 时回退到 EmbytokService 的默认排序（与 service 签名默认值保持一致）
+      sortBy: params.sortBy ?? 'DateCreated,SortName',
+      sortOrder: params.sortOrder ?? 'Descending',
       searchTerm: params.searchTerm,
       excludePlayed: params.excludePlayed,
     );

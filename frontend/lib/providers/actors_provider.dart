@@ -188,7 +188,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         token: token,
         userId: userId,
       );
-      final ids = result.items.map((e) => e.id).toSet();
+      // Person.id 可空，过滤掉 null 后再收集
+      final ids = result.items.map((e) => e.id).whereType<String>().toSet();
       if (ids.isNotEmpty) {
         state = state.copyWith(favoritedIds: ids);
       }
