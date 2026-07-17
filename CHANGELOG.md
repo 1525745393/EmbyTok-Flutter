@@ -1,3 +1,10 @@
+# [1.147.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.146.0...v1.147.0) (2026-07-17)
+
+
+### Features
+
+* **cache:** 实现内存缓存体系，减少 Emby API 请求并提升启动速度 ([8a1ded3](https://github.com/1525745393/EmbyTok-Flutter/commit/8a1ded3079d00d57e6c3dc317aac5d0f4f596785))
+
 # [1.146.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.145.0...v1.146.0) (2026-07-17)
 
 
