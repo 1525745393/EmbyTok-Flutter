@@ -1,3 +1,18 @@
+# [1.140.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.3...v1.140.0) (2026-07-17)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([129f331](https://github.com/1525745393/EmbyTok-Flutter/commit/129f33169b99a76a9d38e52942dad2c4a9a1fa49))
+
+
+### Performance Improvements
+
+* **memory:** actors_view 补充 memCacheWidth + video_player 延迟释放缩短到2秒 ([2f5fb23](https://github.com/1525745393/EmbyTok-Flutter/commit/2f5fb2367569c6754c6022d9840df3ef0f4dfc4f))
+* **memory:** recommend_view 补充 memCacheWidth: 300 ([7af2d78](https://github.com/1525745393/EmbyTok-Flutter/commit/7af2d78d6d4ed610244e038d9026d0240525a0df))
+* **memory:** 内存管理优化——延迟释放缩短+内存压力监听+图片缓存补全 ([3915e9b](https://github.com/1525745393/EmbyTok-Flutter/commit/3915e9bda3ec7246a10e76786d1fa30f05de3d8e))
+* **memory:** 添加内存压力监听到 app.dart ([a45b37f](https://github.com/1525745393/EmbyTok-Flutter/commit/a45b37f592b9010943a1b5b290befd2300eb5fb8))
+
 ## [1.139.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.139.2...v1.139.3) (2026-07-17)
 
 
