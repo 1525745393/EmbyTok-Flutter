@@ -1,3 +1,10 @@
+## [1.142.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.0...v1.142.1) (2026-07-17)
+
+
+### Performance Improvements
+
+* 修复性能瓶颈与潜在 Bug ([f4c098e](https://github.com/1525745393/EmbyTok-Flutter/commit/f4c098e072505e7f0537c6d40f2a8a339f07eac0))
+
 # [1.142.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.141.0...v1.142.0) (2026-07-17)
 
 
