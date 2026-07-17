@@ -11,3 +11,4 @@ export 'person.dart';
 export 'media_source.dart';
 export 'user_data.dart';
 export 'search_hint.dart';
+export 'app_error.dart';

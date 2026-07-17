@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -137,6 +138,8 @@ class SettingsView extends ConsumerWidget {
             [
               _buildCacheTile(context, ref),
               _buildResetSettingsTile(context, ref),
+              _buildExportLogsTile(context, ref),
+              _buildClearLogsTile(context, ref),
             ],
           ),
           // PR #81：观看统计
@@ -891,6 +894,31 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 存储 - 导出错误日志（P2 新增）
+  // 将内存中的 WARN/ERROR 日志导出到文件，并复制路径到剪贴板
+  // 使用 Clipboard 替代 share_plus，避免引入额外依赖
+  Widget _buildExportLogsTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.file_download_outlined,
+      iconColor: Colors.blueGrey,
+      title: '导出日志',
+      subtitle: '导出最近 500 条 WARN/ERROR 日志用于排查',
+      onTap: () => _exportLogs(context),
+    );
+  }
+
+  // 存储 - 清除已持久化的日志文件（P2 新增）
+  // 清除内存缓冲区和磁盘上的日志文件
+  Widget _buildClearLogsTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.delete_outline,
+      iconColor: Colors.red,
+      title: '清除日志',
+      subtitle: '删除本地保存的日志文件',
+      onTap: () => _showClearLogsDialog(context),
+    );
+  }
+
   // PR #81：观看统计 tile
   // - 显示总次数 + 平均完播率
   // - 点击查看详情 + 清除按钮
@@ -1181,6 +1209,18 @@ class SettingsView extends ConsumerWidget {
         section: '存储',
         keywords: '存储 重置 设置 reset restore 默认',
         onTap: (ctx) => _showResetSettingsDialog(ctx, ref),
+      ),
+      _SettingEntry(
+        title: '导出日志',
+        section: '存储',
+        keywords: '存储 日志 导出 log export 排查',
+        onTap: (ctx) => _exportLogs(ctx),
+      ),
+      _SettingEntry(
+        title: '清除日志',
+        section: '存储',
+        keywords: '存储 日志 清除 删除 log clear',
+        onTap: (ctx) => _showClearLogsDialog(ctx),
       ),
       // 统计
       _SettingEntry(
@@ -1632,6 +1672,102 @@ class SettingsView extends ConsumerWidget {
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('重置', style: TextStyle(color: scheme.onError)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 导出日志：异步写入文件 + 复制路径到剪贴板 + SnackBar 反馈
+  // 异常情况下显示错误对话框，便于用户排查
+  Future<void> _exportLogs(BuildContext context) async {
+    final scheme = Theme.of(context).colorScheme;
+    try {
+      // 触发持久化并获取日志内容
+      final logContent = await AppLogger.exportLogs();
+      final logPath = await AppLogger.getLogFilePath();
+
+      if (logContent.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('暂无日志可导出'),
+            backgroundColor: scheme.surfaceContainerHighest,
+          ),
+        );
+        return;
+      }
+
+      // 复制日志文件路径到剪贴板，方便用户粘贴到文件管理器
+      if (logPath != null) {
+        await Clipboard.setData(ClipboardData(text: logPath));
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(logPath != null
+              ? '日志已导出，路径已复制（${logContent.length} 字符）'
+              : '日志已导出（${logContent.length} 字符）'),
+          backgroundColor: scheme.primary,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      // 导出失败时显示错误对话框
+      if (!context.mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          backgroundColor: scheme.surface,
+          title: Text('导出失败', style: TextStyle(color: scheme.onSurface)),
+          content: Text(
+            '导出日志时出错：$e',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('确定', style: TextStyle(color: scheme.primary)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // 清除日志确认对话框
+  void _showClearLogsDialog(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: Text('清除日志', style: TextStyle(color: scheme.onSurface)),
+        content: Text(
+          '将删除本地保存的所有 WARN/ERROR 日志文件，此操作不可恢复。\n\n'
+          '如有问题正在排查，建议先导出日志再清除。',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await AppLogger.clearLogs();
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('日志已清除'),
+                  backgroundColor: scheme.primary,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
+            child: Text('清除', style: TextStyle(color: scheme.onError)),
           ),
         ],
       ),

@@ -19,6 +19,7 @@ import '../utils/constants.dart';
 /// - [gridStartIndex] 网格视图的全局起始偏移（用于 feed 模式跳转）
 /// - [isLoading] 是否正在加载中
 /// - [hasMore] 是否还有更多数据可加载
+/// - [error] 错误信息（AppError 类型，包含错误分类和用户可读提示）
 /// - [totalCount] 媒体库总视频数（用于分页显示)
 /// - [feedType] 当前浏览模式（latest/random/favorites/resume）
 /// - [sortBy] 排序字段（Emby SortBy 参数）
@@ -30,7 +31,7 @@ class VideoListState {
   final int gridStartIndex; // 网格视图的全局起始偏移
   final bool isLoading;
   final bool hasMore;
-  final String? error;
+  final AppError? error; // 统一错误模型（替代裸 String）
   final int offset;
   final int limit;
   final int totalCount; // 媒体库总视频数，用于分页显示
@@ -55,13 +56,16 @@ class VideoListState {
     this.searchTerm = '',
   });
 
+  /// copyWith：error 字段使用 [AppError?] 类型
+  ///
+  /// 注意：要显式清除 error，传 `error: null`（因为类型是可空的）
   VideoListState copyWith({
     List<MediaItem>? items,
     List<MediaItem>? gridItems,
     int? gridStartIndex,
     bool? isLoading,
     bool? hasMore,
-    String? error,
+    Object? error = _sentinel,
     int? offset,
     int? limit,
     int? totalCount,
@@ -76,7 +80,8 @@ class VideoListState {
       gridStartIndex: gridStartIndex ?? this.gridStartIndex,
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
-      error: error ?? this.error,
+      // 使用哨兵值区分"未传 error 参数"和"传了 error: null"
+      error: identical(error, _sentinel) ? this.error : error as AppError?,
       offset: offset ?? this.offset,
       limit: limit ?? this.limit,
       totalCount: totalCount ?? this.totalCount,
@@ -87,3 +92,6 @@ class VideoListState {
     );
   }
 }
+
+/// copyWith 的哨兵值：用于区分"未传参"和"传了 null"
+const Object _sentinel = Object();

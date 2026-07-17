@@ -79,9 +79,9 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
     }
 
     // 错误状态
-    final errorMsg = videoState.error;
-    if (displayItems.isEmpty && errorMsg != null) {
-      return _buildErrorState(errorMsg);
+    final error = videoState.error;
+    if (displayItems.isEmpty && error != null) {
+      return _buildErrorState(error.message);
     }
 
     // 空状态（无过滤结果）

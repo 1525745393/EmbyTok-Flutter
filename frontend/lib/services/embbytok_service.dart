@@ -1593,7 +1593,7 @@ class EmbytokService {
     final tk = token ?? _defaultToken;
     if (url == null || url.isEmpty) {
       AppLogger.warn('服务器地址未配置');
-      throw '请先登录或提供 Emby 服务器地址';
+      throw AppError.notAuthenticated(message: '请先登录或提供 Emby 服务器地址');
     }
     if (url != _apiClient.optionsBaseUrl) {
       _apiClient.setBaseUrl(url);

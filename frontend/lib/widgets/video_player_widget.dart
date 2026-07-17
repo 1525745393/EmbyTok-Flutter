@@ -60,7 +60,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
-  String? _errorMessage;
+  // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
+  AppError? _errorMessage;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
@@ -186,6 +187,21 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _reinitForNewItem();
   }
 
+  /// 重试初始化：用户点击"重试"按钮时调用
+  ///
+  /// 清除错误状态并重新触发初始化流程
+  void _retryInitialization() {
+    if (_isDisposed || !mounted) return;
+    setState(() {
+      _hasError = false;
+      _errorMessage = null;
+      _initialized = false;
+      _fallbackLevel = 0;
+    });
+    // 重新触发初始化（依赖 didUpdateWidget 中的初始化逻辑）
+    _reinitForNewItem();
+  }
+
   // 释放当前 controller 的资源（统一方法，避免重复代码）
   void _releaseCurrentController() {
     final c = _controller;
@@ -221,7 +237,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     } else if (mounted && !_isDisposed) {
       setState(() {
         _hasError = true;
-        _errorMessage = '无法获取播放地址';
+        _errorMessage = AppError.notFound(message: '无法获取播放地址');
       });
     }
   }
@@ -243,7 +259,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (controller.value.hasError && !_hasError) {
       setState(() {
         _hasError = true;
-        _errorMessage = '播放出错';
+        _errorMessage = AppError.playback(message: '播放出错');
         _isFallbackInProgress = false;
       });
     }
@@ -328,7 +344,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
-          _errorMessage = '无法获取播放地址';
+          _errorMessage = AppError.notFound(message: '无法获取播放地址');
         });
       }
       return;
@@ -381,7 +397,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           setState(() {
             _initialized = false;
             _hasError = true;
-            _errorMessage = '视频加载失败';
+            _errorMessage = AppError.playback(message: '视频加载失败');
           });
         }
         return;
@@ -405,7 +421,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         setState(() {
           _initialized = false;
           _hasError = true;
-          _errorMessage = '视频加载失败';
+          _errorMessage = AppError.playback(message: '视频加载失败');
         });
       }
     }
@@ -440,7 +456,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
-          _errorMessage = '无法获取播放地址';
+          _errorMessage = AppError.notFound(message: '无法获取播放地址');
           _isFallbackInProgress = false;
         });
       }
@@ -503,7 +519,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           setState(() {
             _initialized = false;
             _hasError = true;
-            _errorMessage = '视频播放失败';
+            _errorMessage = AppError.playback(message: '视频播放失败');
             _isFallbackInProgress = false;
           });
         }
@@ -538,7 +554,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
-          _errorMessage = '无法获取播放地址';
+          _errorMessage = AppError.notFound(message: '无法获取播放地址');
           _isUserSwitchInProgress = false;
         });
       }
@@ -590,7 +606,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
-          _errorMessage = '切换失败';
+          _errorMessage = AppError.playback(message: '切换失败');
           _isUserSwitchInProgress = false;
         });
       }
@@ -859,6 +875,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final headers = widget.item.authHeaders(widget.token);
     final scheme = Theme.of(context).colorScheme;
     final errMsg = _errorMessage;
+    // 根据错误类型选择图标：网络类用 wifi_off，播放类用 error_outline
+    final errorIcon = switch (errMsg?.type) {
+      ErrorType.network || ErrorType.timeout => Icons.wifi_off_outlined,
+      ErrorType.notFound => Icons.movie_filter_outlined,
+      ErrorType.playback => Icons.error_outline,
+      _ => Icons.movie_outlined,
+    };
 
     return Stack(
       fit: StackFit.expand,
@@ -890,13 +913,33 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.movie_outlined, size: 64, color: scheme.onSurface.withOpacity(0.4)),
+                  Icon(
+                    errorIcon,
+                    size: 64,
+                    color: _hasError
+                        ? scheme.error.withOpacity(0.7)
+                        : scheme.onSurface.withOpacity(0.4),
+                  ),
                   if (_hasError && errMsg != null) ...[
                     const SizedBox(height: 8),
                     Text(
-                      errMsg,
+                      errMsg.message,
                       style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                      textAlign: TextAlign.center,
                     ),
+                    // 可重试错误显示重试按钮
+                    if (errMsg.isRetryable) ...[
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: _retryInitialization,
+                        icon: Icon(Icons.refresh, size: 16),
+                        label: const Text('重试', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),

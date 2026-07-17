@@ -433,7 +433,8 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 构建视频流 PageView
   Widget _buildVideoPageView(VideoListState videoState) {
-    final errorMsg = videoState.error;
+    final error = videoState.error;
+    final errorMsg = error?.message;
     if (videoState.items.isEmpty && videoState.isLoading) {
       return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
     }

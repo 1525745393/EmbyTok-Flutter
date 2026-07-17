@@ -1,9 +1,16 @@
 // 结构化日志工具类：支持不同日志级别和结构化数据
 // Debug 模式记录所有级别，Release 模式仅记录 Warn 和 Error
+//
+// 持久化说明（P2 新增）：
+// - WARN 和 ERROR 级别日志会写入本地文件，方便用户导出排查
+// - 采用环形缓冲：最多保留 500 条，超出后覆盖最旧记录
+// - 日志文件路径：应用文档目录/logs/app.log
 
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// 日志级别枚举
 enum LogLevel {
@@ -48,6 +55,16 @@ class AppLogger {
   /// Release 模式：仅记录 WARN 及以上
   static LogLevel _minLevel =
       kDebugMode ? LogLevel.debug : LogLevel.warn;
+
+  // ============ 本地日志持久化（P2 新增）============
+  // 环形缓冲：最多保留 500 条 WARN/ERROR 日志
+  static const int _maxPersistedLogs = 500;
+  // 内存缓冲区（初始化时从文件加载，后续追加）
+  static final List<String> _persistedBuffer = [];
+  // 日志文件路径（首次写入时懒加载）
+  static String? _logFilePath;
+  // 是否已初始化（避免重复读文件）
+  static bool _initialized = false;
 
   /// 设置最小日志级别
   static void setMinLevel(LogLevel level) {
@@ -151,6 +168,115 @@ class AppLogger {
       if (level == LogLevel.error) {
         // ignore: avoid_print
         print(logOutput);
+      }
+    }
+
+    // 持久化 WARN 及以上级别日志到本地文件（便于用户导出排查）
+    if (level.priority >= LogLevel.warn.priority) {
+      _persistLog(logOutput);
+    }
+  }
+
+  // ============ 本地日志持久化方法（P2 新增）============
+
+  /// 持久化单条日志到内存缓冲区，并异步写入文件
+  ///
+  /// 采用环形缓冲策略：超出 _maxPersistedLogs 时移除最旧记录
+  static void _persistLog(String logLine) {
+    _persistedBuffer.add(logLine);
+    // 超出上限时移除最旧的记录（FIFO）
+    while (_persistedBuffer.length > _maxPersistedLogs) {
+      _persistedBuffer.removeAt(0);
+    }
+    // 异步写入文件，不阻塞调用方
+    _flushToFile();
+  }
+
+  /// 将内存缓冲区写入日志文件
+  ///
+  /// 使用 IOSink 追加写入，避免每次重写整个文件
+  static Future<void> _flushToFile() async {
+    try {
+      final path = await _ensureLogFilePath();
+      final file = File(path);
+      // 写入最新一条（追加模式）
+      final lastLine = _persistedBuffer.last;
+      await file.writeAsString('$lastLine\n', mode: FileMode.append);
+    } catch (e) {
+      // 持久化失败不影响主流程，仅开发时打印
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('日志持久化失败: $e');
+      }
+    }
+  }
+
+  /// 懒加载日志文件路径，首次调用时创建文件并加载历史内容
+  static Future<String> _ensureLogFilePath() async {
+    if (_initialized && _logFilePath != null) return _logFilePath!;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final logDir = Directory('${dir.path}/logs');
+      if (!await logDir.exists()) {
+        await logDir.create(recursive: true);
+      }
+      _logFilePath = '${logDir.path}/app.log';
+      // 首次初始化时加载已有日志到内存缓冲区
+      final file = File(_logFilePath!);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final lines = content.split('\n').where((l) => l.isNotEmpty).toList();
+        // 只保留最新的 _maxPersistedLogs 条
+        if (lines.length > _maxPersistedLogs) {
+          _persistedBuffer.clear();
+          _persistedBuffer.addAll(lines.sublist(lines.length - _maxPersistedLogs));
+        } else {
+          _persistedBuffer.clear();
+          _persistedBuffer.addAll(lines);
+        }
+      }
+      _initialized = true;
+    } catch (e) {
+      // 路径获取失败时使用临时目录作为兜底
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('日志路径初始化失败: $e');
+      }
+      _logFilePath = '/tmp/embbytok_app.log';
+      _initialized = true;
+    }
+    return _logFilePath!;
+  }
+
+  /// 获取日志文件路径（供设置页导出使用）
+  ///
+  /// 返回 null 表示路径尚未初始化（可调用 ensureInitialized 先初始化）
+  static Future<String?> getLogFilePath() async {
+    if (!_initialized) {
+      await _ensureLogFilePath();
+    }
+    return _logFilePath;
+  }
+
+  /// 获取所有已持久化的日志内容（供设置页预览或导出）
+  static Future<String> exportLogs() async {
+    if (!_initialized) {
+      await _ensureLogFilePath();
+    }
+    return _persistedBuffer.join('\n');
+  }
+
+  /// 清除所有已持久化的日志（内存 + 文件）
+  static Future<void> clearLogs() async {
+    _persistedBuffer.clear();
+    if (_logFilePath != null) {
+      try {
+        final file = File(_logFilePath!);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {
+        // 清除失败静默处理
       }
     }
   }
