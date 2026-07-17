@@ -1,3 +1,15 @@
+# [1.143.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.4...v1.143.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* 修复 AppError 两处编译错误 ([85feec1](https://github.com/1525745393/EmbyTok-Flutter/commit/85feec1141bdf09541fff38947e046927b8f09e7))
+
+
+### Features
+
+* 错误处理与鲁棒性优化 - 统一错误模型+按需重试+日志持久化 ([888400a](https://github.com/1525745393/EmbyTok-Flutter/commit/888400a5f86b8d0221110a15970755293a31a327))
+
 ## [1.142.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.3...v1.142.4) (2026-07-17)
 
 
