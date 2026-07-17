@@ -593,8 +593,8 @@ class SettingsView extends ConsumerWidget {
                     await ref
                         .read(recommendHalfLifeDaysProvider.notifier)
                         .setDays(v);
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
                   },
                   title: Text(days == 0
                       ? '不衰减 (0 天)'
@@ -607,7 +607,7 @@ class SettingsView extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
             ),
           ],
@@ -679,8 +679,8 @@ class SettingsView extends ConsumerWidget {
                     await ref
                         .read(recommendAntiFatigueDaysProvider.notifier)
                         .setDays(v);
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
                   },
                   title: Text('$d 天'),
                   dense: true,
@@ -691,7 +691,7 @@ class SettingsView extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
             ),
           ],
@@ -765,8 +765,8 @@ class SettingsView extends ConsumerWidget {
                     await ref
                         .read(recommendUserRatingMinProvider.notifier)
                         .setMin(v);
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
+                    if (!dialogContext.mounted) return;
+                    Navigator.of(dialogContext).pop();
                   },
                   title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
                   dense: true,
@@ -777,7 +777,7 @@ class SettingsView extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
             ),
           ],
@@ -1401,7 +1401,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(themeModeProvider.notifier).setTheme(v);
-          Navigator.pop(context);
         },
       ),
     );
@@ -1427,7 +1426,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(defaultPlaybackRateProvider.notifier).set(v);
-          Navigator.pop(context);
         },
       ),
     );
@@ -1451,7 +1449,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(videoQualityProvider.notifier).set(v);
-          Navigator.pop(context);
         },
       ),
     );
@@ -1547,7 +1544,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(defaultSubtitleLanguageProvider.notifier).set(v);
-          Navigator.pop(context);
         },
       ),
     );
@@ -1570,7 +1566,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(subtitleSizeProvider.notifier).set(v);
-          Navigator.pop(context);
         },
       ),
     );
@@ -1595,7 +1590,6 @@ class SettingsView extends ConsumerWidget {
           ref.read(orientationModeProvider.notifier).setMode(
             _parseOrientationMode(v),
           );
-          Navigator.pop(context);
         },
       ),
     );
@@ -1621,7 +1615,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('清除缓存', style: TextStyle(color: scheme.onSurface)),
         content: Text(
@@ -1630,15 +1624,16 @@ class SettingsView extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () async {
               try {
                 ref.read(cacheSizeProvider.notifier).clear();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('缓存已清除'),
@@ -1647,8 +1642,9 @@ class SettingsView extends ConsumerWidget {
                 );
               } catch (e) {
                 AppLogger.error('清除缓存失败', error: e);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('清除失败：$e'),
@@ -1670,7 +1666,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('重置设置', style: TextStyle(color: scheme.onSurface)),
         content: Text(
@@ -1681,15 +1677,16 @@ class SettingsView extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () async {
               try {
                 await const AppPreferencesService().resetAllSettings();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('设置已重置，请重启应用以完全生效'),
@@ -1699,8 +1696,9 @@ class SettingsView extends ConsumerWidget {
                 );
               } catch (e) {
                 AppLogger.error('重置设置失败', error: e);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('重置失败：$e'),
@@ -1832,7 +1830,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
-      builder: (_) => Consumer(builder: (context, ref, _) {
+      builder: (_) => Consumer(builder: (dialogContext, ref, _) {
         final stats = ref.watch(watchStatsProvider);
         return AlertDialog(
           backgroundColor: scheme.surface,
@@ -1918,15 +1916,15 @@ class SettingsView extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
             ),
             if (stats.totalCount > 0)
               TextButton(
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
+                    context: dialogContext,
+                    builder: (confirmContext) => AlertDialog(
                       backgroundColor: scheme.surface,
                       title: Text('清除统计',
                           style: TextStyle(color: scheme.onSurface)),
@@ -1934,12 +1932,12 @@ class SettingsView extends ConsumerWidget {
                           style: TextStyle(color: scheme.onSurfaceVariant)),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context, false),
+                          onPressed: () => Navigator.pop(confirmContext, false),
                           child: Text('取消',
                               style: TextStyle(color: scheme.onSurfaceVariant)),
                         ),
                         ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
+                          onPressed: () => Navigator.pop(confirmContext, true),
                           style: ElevatedButton.styleFrom(
                               backgroundColor: scheme.error),
                           child: Text('清除',
@@ -1951,12 +1949,13 @@ class SettingsView extends ConsumerWidget {
                   if (confirm == true) {
                     try {
                       await ref.read(watchStatsProvider.notifier).clear();
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                      if (!dialogContext.mounted) return;
+                      Navigator.pop(dialogContext);
                     } catch (e) {
                       AppLogger.error('清除统计失败', error: e);
+                      if (!dialogContext.mounted) return;
+                      Navigator.pop(dialogContext);
                       if (!context.mounted) return;
-                      Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('清除失败：$e'),
@@ -2147,17 +2146,21 @@ class SettingsView extends ConsumerWidget {
     final cancelToken = CancelToken();
     final progressNotifier = ValueNotifier<double>(0.0);
     final statusNotifier = ValueNotifier<String>('准备下载...');
+    // 跟踪对话框是否仍在显示，防止对话框关闭后还继续处理下载结果
+    bool isDialogActive = true;
 
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
-        // 启动下载
+        // 启动下载：延迟到第一帧后执行，避免在 builder 中直接调用异步操作
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!isDialogActive) return;
           updateService
               .downloadApk(
             apkAsset,
             onProgress: (p) {
+              if (!isDialogActive) return;
               progressNotifier.value = p;
               statusNotifier.value =
                   '${(p * 100).toStringAsFixed(0)}%  ·  ${_formatSize(apkAsset.size)}';
@@ -2165,14 +2168,16 @@ class SettingsView extends ConsumerWidget {
             cancelToken: cancelToken,
           )
               .then((savePath) {
-            if (ctx.mounted) {
+            if (ctx.mounted && isDialogActive) {
+              isDialogActive = false;
               Navigator.pop(ctx);
               _showInstallDialog(ctx, savePath, release, scheme);
             }
           })
               .catchError((e) {
             if (CancelToken.isCancel(e)) return;
-            if (ctx.mounted) {
+            if (ctx.mounted && isDialogActive) {
+              isDialogActive = false;
               Navigator.pop(ctx);
               _showDownloadError(ctx, e.toString(), apkAsset.downloadUrl);
             }
@@ -3300,7 +3305,11 @@ class _OptionDialog<T> extends StatelessWidget {
             trailing: selected
                 ? Icon(Icons.check, color: scheme.primary)
                 : null,
-            onTap: () => onSelect(opt.$2),
+            onTap: () {
+              // 使用对话框自身的context关闭，避免依赖外层context
+              Navigator.pop(context);
+              onSelect(opt.$2);
+            },
           );
         }).toList(),
       ),

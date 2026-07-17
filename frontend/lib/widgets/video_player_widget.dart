@@ -167,7 +167,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
             if (_isDisposed || !mounted) return;
             if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
-              debugPrint('非当前页超时，释放 controller 资源: ${widget.item.id}');
+              AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
               _releaseCurrentController();
               if (mounted) {
                 setState(() {
@@ -339,9 +339,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           preloadedInitSucceeded = true;
         }
       } catch (e) {
-        debugPrint('VideoPlayer preloaded init error: $e，回退到动态创建');
+        AppLogger.debug('VideoPlayer preloaded init error，回退到动态创建', data: {'error': e.toString()});
         // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
         _releaseCurrentController();
+        // 重置降级级别，动态创建从最高级别重新开始
+        _fallbackLevel = 0;
       }
     }
     if (preloadedInitSucceeded) return;
@@ -398,7 +400,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _syncPlaybackState(c);
       }
     } catch (e) {
-      debugPrint('VideoPlayer initialization error: $e');
+      AppLogger.debug('VideoPlayer initialization error', data: {'error': e.toString()});
       if (_isDisposed) return;
       // 防止与 listener 触发的降级竞态：listener 可能已开始降级流程
       if (_isFallbackInProgress) return;
@@ -416,7 +418,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (_fallbackLevel < 2) {
         _isFallbackInProgress = true;
         _fallbackLevel++;
-        debugPrint('降级到 level $_fallbackLevel 重试播放');
+        AppLogger.debug('降级重试播放', data: {'level': _fallbackLevel});
         _releaseCurrentController();
         if (mounted && !_isDisposed) {
           // 添加短暂延迟避免快速递归造成资源风暴
@@ -457,7 +459,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     } catch (_) {}
 
     final nextLevel = _fallbackLevel + 1;
-    debugPrint('运行时降级 $_fallbackLevel → $nextLevel (item=${widget.item.id})');
+    AppLogger.debug('运行时降级', data: {'from': _fallbackLevel, 'to': nextLevel, 'itemId': widget.item.id});
 
     // 释放当前失败的 controller
     _releaseCurrentController();
@@ -515,7 +517,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _syncPlaybackState(c);
       }
     } catch (e) {
-      debugPrint('运行时降级失败: $e');
+      AppLogger.warn('运行时降级失败', data: {'error': e.toString()});
       if (_isDisposed) return;
       if (_fallbackLevel < 2) {
         _isFallbackInProgress = false;
@@ -615,7 +617,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _syncPlaybackState(c);
       }
     } catch (e) {
-      debugPrint('播放模式切换失败: $e');
+      AppLogger.warn('播放模式切换失败', data: {'error': e.toString()});
       if (mounted && !_isDisposed) {
         setState(() {
           _hasError = true;
@@ -631,7 +633,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       _controller?.play();
     } catch (e) {
-      debugPrint('play error: $e');
+      AppLogger.debug('play error', data: {'error': e.toString()});
     }
   }
 
@@ -640,7 +642,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       _controller?.pause();
     } catch (e) {
-      debugPrint('pause error: $e');
+      AppLogger.debug('pause error', data: {'error': e.toString()});
     }
   }
 
@@ -649,7 +651,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       await _controller?.seekTo(position);
     } catch (e) {
-      debugPrint('seekTo error: $e');
+      AppLogger.debug('seekTo error', data: {'error': e.toString()});
     }
   }
 
@@ -665,9 +667,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (posMs <= 0) return;
     try {
       await c.seekTo(Duration(milliseconds: posMs));
-      debugPrint('续播 seek 到 ${posMs}ms');
+      AppLogger.debug('续播 seek', data: {'positionMs': posMs});
     } catch (e) {
-      debugPrint('续播 seek 失败: $e');
+      AppLogger.debug('续播 seek 失败', data: {'error': e.toString()});
     }
   }
 
@@ -676,7 +678,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       await _controller?.setPlaybackSpeed(rate);
     } catch (e) {
-      debugPrint('setRate error: $e');
+      AppLogger.debug('setRate error', data: {'error': e.toString()});
     }
   }
 

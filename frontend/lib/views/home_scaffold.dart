@@ -180,17 +180,17 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
         // 在 Feed 上按返回键，弹出退出确认
         final result = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             backgroundColor: scheme.surface,
             title: const Text('退出应用？'),
             content: const Text('确定要退出吗？'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: Text('取消', style: TextStyle(color: scheme.onSurface)),
               ),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,
@@ -201,6 +201,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
           ),
         );
 
+        // 对话框返回后检查context是否仍然有效
+        if (!context.mounted) return;
+
         if (result == true) {
           // 主动释放视频控制器池，避免 SystemNavigator.pop() 回收时序与
           // FeedView.dispose() 中的批量 dispose 叠加导致 OOM
@@ -209,7 +212,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
           } catch (_) {}
           // 让出一帧给 GC 和 native texture 回收
           await Future.delayed(Duration.zero);
-          SystemNavigator.pop();
+          if (context.mounted) {
+            SystemNavigator.pop();
+          }
         }
       },
       child: Scaffold(
