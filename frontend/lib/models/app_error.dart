@@ -102,7 +102,7 @@ class AppError implements Exception {
   /// 错误发生时间戳
   final DateTime timestamp;
 
-  const AppError({
+  AppError({
     required this.type,
     required this.message,
     this.debugMessage,
@@ -213,11 +213,13 @@ class AppError implements Exception {
   /// 便捷构造：未登录
   factory AppError.notAuthenticated({
     String? message,
+    String? debugMessage,
     StackTrace? stackTrace,
   }) =>
       AppError(
         type: ErrorType.notAuthenticated,
         message: message ?? '尚未登录',
+        debugMessage: debugMessage,
         stackTrace: stackTrace,
       );
 
