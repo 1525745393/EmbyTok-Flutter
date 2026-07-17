@@ -875,6 +875,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         return RepaintBoundary(
           child: VideoPageItem(
             item: item,
+            isCurrentPage: index == _currentIndex,
             preloadedSession: preloadedSession,
             onVideoEnded: _goToNextVideo,
             startFromResumePosition: item.hasProgress,

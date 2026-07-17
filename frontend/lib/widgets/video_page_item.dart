@@ -38,6 +38,8 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final VoidCallback? onPreloadThreshold;
   /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
   final String source;
+  /// 是否为当前可见页：非当前页初始化后静音暂停，避免相邻预加载页并发有声播放
+  final bool isCurrentPage;
 
   const VideoPageItem({
     super.key,
@@ -49,6 +51,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.onPrevEpisode,
     this.onPreloadThreshold,
     this.source = 'feed',
+    this.isCurrentPage = true,
   });
 
   @override
@@ -175,6 +178,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   @override
+  void didUpdateWidget(covariant VideoPageItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null) {
+      // 由相邻预加载页变为当前页：补齐播放/进度上报（此前因非当前页被静音暂停）
+      ref.read(currentVideoControllerProvider.notifier).state = _videoController;
+      _startPlaybackIfCurrent();
+    }
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _infoHideTimer?.cancel();
@@ -201,6 +214,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _hasNotifiedEnded = false;
     _hasStoppedReported = false;
     super.dispose();
+  }
+
+  // 仅当本页为当前可见页时启动播放上报与进度上报，
+  // 避免相邻预加载页并发以有声方式播放并重复向 Emby 上报播放
+  void _startPlaybackIfCurrent() {
+    if (!widget.isCurrentPage) return;
+    ref.read(isPlayingProvider.notifier).state = true;
+    ref.read(currentPlayingItemProvider.notifier).state = widget.item;
+    ref.read(currentVideoControllerProvider.notifier).state = _videoController;
+    _resetInfoHideTimer();
+    _ensureCapabilitiesReported();
+    _reportPlaybackStart();
+    _startProgressTimer();
   }
 
   /// 记录观看统计（完播率）
@@ -595,6 +621,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             },
             child: VideoPlayerWidget(
               item: widget.item,
+              isCurrentPage: widget.isCurrentPage,
               embyServerUrl: embyServerUrl,
               token: token,
               preloadedController: widget.preloadedSession?.controller,
@@ -602,15 +629,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               startFromResumePosition: widget.startFromResumePosition,
               onControllerReady: (c) {
                 setState(() => _videoController = c);
-                ref.read(currentVideoControllerProvider.notifier).state = c;
-                ref.read(isPlayingProvider.notifier).state = true;
-                ref.read(currentPlayingItemProvider.notifier).state = widget.item;
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-                _resetInfoHideTimer();
-                _ensureCapabilitiesReported();
-                _reportPlaybackStart();
-                _startProgressTimer();
                 c.addListener(_onVideoChanged);
+                // 仅当前页启动播放上报/进度上报，避免相邻预加载页并发有声播放与重复上报
+                if (widget.isCurrentPage) {
+                  _startPlaybackIfCurrent();
+                }
               },
             ),
           ),
@@ -1099,6 +1123,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
               return VideoPageItem(
                 key: ValueKey(item.id),
                 item: item,
+                isCurrentPage: index == _currentIndex,
                 preloadedSession: preloadedSession,
                 onVideoEnded: index < _items.length - 1
                     ? () {
