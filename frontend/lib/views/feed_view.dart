@@ -708,6 +708,7 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 顶部栏统一按钮：图标 + 中文文字
   // 设计：横向可滚动按钮组（PR #77），所有按钮统一样式
+  // 触摸目标 ≥48dp（原 padding 8/8 视觉区仅 ~36dp，不达 MD3 推荐）
   Widget _buildTopBarButton({
     required IconData icon,
     required String label,
@@ -717,21 +718,28 @@ class _FeedViewState extends ConsumerState<FeedView>
     final color = scheme.onSurface.withOpacity(0.85);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(color: color, fontSize: 14),
+      child: Semantics(
+        label: label,
+        button: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48), // 触摸目标 ≥48dp
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    label,
+                    style: TextStyle(color: color, fontSize: 14),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

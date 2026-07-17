@@ -343,25 +343,36 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
         ),
         // 网格内容
         Expanded(
-          child: GridView.builder(
-            controller: widget.scrollController,
-            padding: const EdgeInsets.all(8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.65,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: gridItems.length + (videoState.hasMore && !showPager ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= gridItems.length) {
-                return Center(child: CircularProgressIndicator(color: scheme.primary));
-              }
-              final item = gridItems[index];
-              return _PosterCard(
-                key: Key(item.id),
-                item: item,
-                isPlaying: item.id == playingId, // 标记"当前正在播"高亮
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 响应式列数：手机 3 列，平板（≥600dp）4 列，桌面（≥900dp）5 列
+              // 原实现固定 3 列写死，平板/桌面浪费横向空间
+              final width = constraints.maxWidth;
+              final crossAxisCount = width >= 900 ? 5 : (width >= 600 ? 4 : 3);
+              return GridView.builder(
+                controller: widget.scrollController,
+                padding: const EdgeInsets.all(8),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: gridItems.length + (videoState.hasMore && !showPager ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= gridItems.length) {
+                    return Center(child: CircularProgressIndicator(color: scheme.primary));
+                  }
+                  final item = gridItems[index];
+                  // RepaintBoundary：隔离每个卡片的绘制层，滚动时避免相邻卡片重绘
+                  return RepaintBoundary(
+                    child: _PosterCard(
+                      key: Key(item.id),
+                      item: item,
+                      isPlaying: item.id == playingId, // 标记"当前正在播"高亮
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -389,7 +400,11 @@ class _PosterCard extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
-    return TvFocusable(
+    return Semantics(
+      label: '${item.title}${isPlaying ? '，正在播放' : ''}',
+      button: true,
+      selected: isPlaying,
+      child: TvFocusable(
       onTap: () {
         // PR #76：grid 跳 feed 时同步跳到用户点的视频
         // 解决"有正在播放 + 换库 + grid 点 video"场景下跳错的 bug
@@ -500,6 +515,7 @@ class _PosterCard extends ConsumerWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

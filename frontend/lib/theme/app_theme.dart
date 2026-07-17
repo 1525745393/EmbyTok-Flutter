@@ -11,6 +11,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'theme_extensions.dart';
+
 /// 主题种子色：粉色（保持与旧 primaryPink 一致的视觉风格）
 const Color _kSeedColor = Color(0xFFE91E63);
 
@@ -87,6 +89,9 @@ ThemeData _buildBaseTheme(
     extensions: <ThemeExtension<dynamic>>[
       // 使用 ThemeExtension 携带 overlay style，避免在 ThemeData 中无对应字段
       _SystemOverlayStyleTheme(systemOverlayStyle),
+      // 设计 Token 系统：spacing / radius / typography / scrim
+      // scrim 按当前 ColorScheme 动态生成，适配亮/暗主题
+      AppTheme(scrim: AppScrimTokens.forScheme(colorScheme)),
     ],
     // AppBar 统一风格
     appBarTheme: AppBarTheme(
