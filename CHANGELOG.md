@@ -1,3 +1,10 @@
+## [1.142.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.3...v1.142.4) (2026-07-17)
+
+
+### Bug Fixes
+
+* 修复编译错误 ([b9307de](https://github.com/1525745393/EmbyTok-Flutter/commit/b9307de7f1567a8a5e4e1afcb81503a72f412e61))
+
 ## [1.142.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.2...v1.142.3) (2026-07-17)
 
 
