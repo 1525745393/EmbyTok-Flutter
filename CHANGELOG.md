@@ -1,3 +1,10 @@
+# [1.142.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.141.0...v1.142.0) (2026-07-17)
+
+
+### Features
+
+* **ui:** 默认深色主题、字幕描边增强、视频流位置指示与顶部栏对比度 ([56dc0c2](https://github.com/1525745393/EmbyTok-Flutter/commit/56dc0c2d182f16edf712bfb03a6a73649e34c015))
+
 # [1.141.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.140.2...v1.141.0) (2026-07-17)
 
 
