@@ -49,6 +49,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   bool _showHelp = false; // 快捷键帮助面板显示状态
   // 当前正在播放的索引（与 _pageController 同步）
   int _currentIndex = 0;
+  // 当前位置指示器（N/总数），用 ValueNotifier 驱动，避免每次翻页都 setState
+  final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
 
   // 滚动位置持久化相关（仅网格视图，视频流不持久化）
   final ScrollController _gridScrollController = ScrollController();
@@ -147,6 +149,7 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     if (_pageController.hasClients) {
       _currentIndex = targetIndex;
+      _currentIndexNotifier.value = targetIndex;
       _pageController.jumpToPage(targetIndex);
       return;
     }
@@ -161,6 +164,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   bool _jumpToPageByIndex(int targetIndex) {
     if (!mounted || !_pageController.hasClients) return false;
     _currentIndex = targetIndex;
+    _currentIndexNotifier.value = targetIndex;
     _pageController.jumpToPage(targetIndex);
     return true;
   }
@@ -175,6 +179,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageChangeDebounce?.cancel();
+    _currentIndexNotifier.dispose();
     _pageController.dispose();
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
@@ -572,6 +577,35 @@ class _FeedViewState extends ConsumerState<FeedView>
                 ),
               ),
 
+            // 当前位置指示：N / 总数（仅视频流模式）
+            if (viewMode == ViewMode.feed && videoState.items.isNotEmpty)
+              Positioned(
+                right: 12,
+                bottom: 16,
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _currentIndexNotifier,
+                  builder: (context, idx, _) {
+                    final total = videoState.items.length;
+                    final pos = (idx + 1).clamp(1, total);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: scheme.surface.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '$pos / $total',
+                        style: TextStyle(
+                          color: scheme.onSurface.withOpacity(0.9),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
             // 快捷键帮助面板
             if (_showHelp)
               Positioned.fill(
@@ -599,8 +633,8 @@ class _FeedViewState extends ConsumerState<FeedView>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            scheme.surface.withOpacity(0.87),
-            scheme.surface.withOpacity(0.45),
+            scheme.surface.withOpacity(0.92),
+            scheme.surface.withOpacity(0.62),
             Colors.transparent,
           ],
         ),
@@ -680,7 +714,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final color = scheme.onSurface.withOpacity(0.7);
+    final color = scheme.onSurface.withOpacity(0.85);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: InkWell(
@@ -789,6 +823,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
+        _currentIndexNotifier.value = index;
         // 通过协调器同步当前播放 ID（全局 store，供网格/收藏/历史高亮使用）
         // onPageChanged 是 PageView 真正切换完成时，比 onControllerReady 更可靠。
         _playbackCoordinator.syncCurrentPlaying(
