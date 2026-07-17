@@ -15,6 +15,7 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 
 // 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
@@ -131,7 +132,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     try {
       unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
     } catch (e) {
-      debugPrint('_onDoubleTap toggleFavorite error: $e');
+      AppLogger.warn('双击点赞失败', data: {'error': e.toString()});
     }
   }
 
@@ -147,7 +148,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
       c.seekTo(target);
       HapticFeedback.lightImpact();
     } catch (e) {
-      debugPrint('doubleTap seek error: $e');
+      AppLogger.debug('双击seek失败', data: {'error': e.toString()});
     }
     // 累积逻辑：同方向连续双击时累加显示（+10s → +20s → +30s）
     // 反方向或超时（800ms）则重置
@@ -187,7 +188,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         });
       }
     } catch (e) {
-      debugPrint('_onLongPressStart error: $e');
+      AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
     }
   }
 
@@ -200,7 +201,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
       c.setPlaybackSpeed(_originalRate);
       ref.read(playbackRateProvider.notifier).state = _originalRate;
     } catch (e) {
-      debugPrint('_onLongPressEnd error: $e');
+      AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
     }
     if (mounted) {
       setState(() {
@@ -339,7 +340,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
           c.seekTo(target);
           HapticFeedback.lightImpact();
         } catch (e) {
-          debugPrint('seekTo error: $e');
+          AppLogger.debug('拖动进度seek失败', data: {'error': e.toString()});
         }
       }
       _dragHideTimer?.cancel();

@@ -39,11 +39,17 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // refresh 时清空，loadMore 时各库独立递增，避免多库共用全局 offset 导致的分页错误
   final Map<String, int> _libraryLoadedCounts = <String, int>{};
 
+  ProviderSubscription<List<String>>? _libraryIdsSubscription;
+  ProviderSubscription<FeedType>? _feedTypeSubscription;
+  ProviderSubscription<bool>? _excludePlayedSubscription;
+  ProviderSubscription<String>? _searchQuerySubscription;
+  ProviderSubscription<ViewMode>? _viewModeSubscription;
+
   VideoListNotifier(this._ref, {MediaRepository? repo})
       : _repo = repo ?? EmbyRepository(),
         super(const VideoListState()) {
     // 监听 selectedLibraryIdsProvider 变化：媒体库切换时自动刷新视频列表
-    _ref.listen<List<String>>(
+    _libraryIdsSubscription = _ref.listen<List<String>>(
       selectedLibraryIdsProvider,
       (previous, next) {
         final prevStr = previous?.join(',') ?? '';
@@ -61,7 +67,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       },
     );
     // 监听 feedTypeProvider 变化：浏览模式切换时自动刷新
-    _ref.listen<FeedType>(
+    _feedTypeSubscription = _ref.listen<FeedType>(
       feedTypeProvider,
       (previous, next) {
         if (next != previous) {
@@ -71,7 +77,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       },
     );
     // 监听 feedExcludePlayedProvider 变化：排除已观看切换时自动刷新
-    _ref.listen<bool>(
+    _excludePlayedSubscription = _ref.listen<bool>(
       feedExcludePlayedProvider,
       (previous, next) {
         if (next != previous) {
@@ -82,7 +88,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     );
     // 监听 gridSearchQueryProvider 变化：网格搜索只影响 gridItems，不影响 feed 的 items
     // 设计原则：feed 和 grid 数据隔离。搜索是 grid 的本地行为，feed 始终是未过滤的视频流。
-    _ref.listen<String>(
+    _searchQuerySubscription = _ref.listen<String>(
       gridSearchQueryProvider,
       (previous, next) {
         final viewMode = _ref.read(viewModeProvider);
@@ -99,7 +105,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     // 监听 viewModeProvider 变化：处理视图切换时的视频播放/暂停
     // 核心原则：视频流(feed)的 items 是主数据源，网格只是入口和定位目标
     // 切回 feed 时，feed 的 items 保持不变（不 refresh），无需重置
-    _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
+    _viewModeSubscription = _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
       if (next == ViewMode.feed && previous == ViewMode.grid) {
         // 切回 feed：feed 的 items 不变，无需操作
         AppLogger.debug('切回 feed 模式：保留 feed 数据', data: {
@@ -777,6 +783,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   @override
   void dispose() {
     _searchDebounceTimer?.cancel();
+    _libraryIdsSubscription?.close();
+    _feedTypeSubscription?.close();
+    _excludePlayedSubscription?.close();
+    _searchQuerySubscription?.close();
+    _viewModeSubscription?.close();
     super.dispose();
   }
 }

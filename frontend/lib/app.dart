@@ -270,9 +270,12 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     String? personType;
     final extra = state.extra;
     if (extra is Map) {
-      person = extra['item'] as MediaItem? ??
-          MediaItem(id: personId, title: '', type: 'Person');
-      personType = extra['personType'] as String?;
+      final item = extra['item'];
+      person = item is MediaItem
+          ? item
+          : MediaItem(id: personId, title: '', type: 'Person');
+      final pType = extra['personType'];
+      personType = pType is String ? pType : null;
     } else if (extra is MediaItem) {
       person = extra;
     } else {
@@ -295,9 +298,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     List<MediaItem> items = [];
     if (state.extra is Map<String, dynamic>) {
       final extra = state.extra as Map<String, dynamic>;
-      item = extra['item'] as MediaItem? ??
-          MediaItem(id: itemId, title: '', type: 'Video');
-      items = (extra['items'] as List<MediaItem>?) ?? [];
+      final itemValue = extra['item'];
+      item = itemValue is MediaItem
+          ? itemValue
+          : MediaItem(id: itemId, title: '', type: 'Video');
+      final itemsValue = extra['items'];
+      if (itemsValue is List) {
+        items = itemsValue.whereType<MediaItem>().toList();
+      }
     } else if (state.extra is MediaItem) {
       item = state.extra as MediaItem;
     } else {

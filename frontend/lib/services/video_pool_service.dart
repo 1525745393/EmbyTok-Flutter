@@ -9,11 +9,11 @@
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../utils/logger.dart';
 
 /// 单个播放会话：绑定 VideoPlayerController + PlaySessionId + 降级等级
 class PlaybackSession {
@@ -159,7 +159,7 @@ class VideoPoolService {
         _accessOrder.add(item.id);
         return created;
       } catch (e) {
-        debugPrint('VideoPoolService preload level=$level failed: $e');
+        AppLogger.debug('VideoPoolService preload failed', data: {'level': level, 'error': e.toString()});
         // 释放失败的控制器，避免 native 资源泄漏
         try {
           controller?.dispose();

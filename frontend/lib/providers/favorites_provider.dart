@@ -142,11 +142,13 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   int _boxSetsLoaded = 0;
   int _peopleLoaded = 0;
 
+  ProviderSubscription<AuthState>? _authSubscription;
+
   FavoritesNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
         super(const FavoritesState()) {
     // 监听认证状态变化：登录 → 自动加载；登出 → 清除缓存
-    _ref.listen<AuthState>(authProvider, (previous, next) {
+    _authSubscription = _ref.listen<AuthState>(authProvider, (previous, next) {
       final wasAuthenticated = previous?.isAuthenticated ?? false;
       final isNowAuthenticated = next.isAuthenticated;
 
@@ -158,6 +160,12 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         loadFavorites();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.close();
+    super.dispose();
   }
 
   AuthState get _auth => _ref.read(authProvider);

@@ -1464,7 +1464,7 @@ class SettingsView extends ConsumerWidget {
     // - 左右滑动：拖动进度条（每像素 100ms）
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('手势控制', style: TextStyle(color: scheme.onSurface)),
         content: Column(
@@ -1516,7 +1516,7 @@ class SettingsView extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('关闭', style: TextStyle(color: scheme.primary)),
           ),
         ],
@@ -1755,7 +1755,7 @@ class SettingsView extends ConsumerWidget {
       if (!context.mounted) return;
       showDialog<void>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           backgroundColor: scheme.surface,
           title: Text('导出失败', style: TextStyle(color: scheme.onSurface)),
           content: Text(
@@ -1764,7 +1764,7 @@ class SettingsView extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('确定', style: TextStyle(color: scheme.primary)),
             ),
           ],
@@ -1778,7 +1778,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('清除日志', style: TextStyle(color: scheme.onSurface)),
         content: Text(
@@ -1788,15 +1788,16 @@ class SettingsView extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () async {
               try {
                 await AppLogger.clearLogs();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('日志已清除'),
@@ -1805,8 +1806,9 @@ class SettingsView extends ConsumerWidget {
                 );
               } catch (e) {
                 AppLogger.error('清除日志失败', error: e);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
                 if (!context.mounted) return;
-                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('清除失败：$e'),
@@ -1997,7 +1999,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('退出登录', style: TextStyle(color: scheme.onSurface)),
         content: Text(
@@ -2006,13 +2008,13 @@ class SettingsView extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('取消', style: TextStyle(color: scheme.onSurfaceVariant)),
           ),
           ElevatedButton(
             onPressed: () {
               ref.read(authProvider.notifier).logout();
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
             child: Text('退出', style: TextStyle(color: scheme.onError)),

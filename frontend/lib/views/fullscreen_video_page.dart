@@ -23,6 +23,7 @@ import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
 
 /// 全屏视频播放页
@@ -198,7 +199,7 @@ class _FullscreenVideoPageState
       _brightnessValue = _originalBrightness ?? 1.0;
       if (mounted) setState(() {});
     } catch (e) {
-      debugPrint('Failed to read screen brightness: $e');
+      AppLogger.warn('读取屏幕亮度失败', data: {'error': e.toString()});
       _brightnessValue = 1.0;
     }
   }
@@ -207,7 +208,7 @@ class _FullscreenVideoPageState
     try {
       await ScreenBrightness().setScreenBrightness(value);
     } catch (e) {
-      debugPrint('Failed to set screen brightness: $e');
+      AppLogger.debug('设置屏幕亮度失败', data: {'error': e.toString()});
     }
   }
 
@@ -412,7 +413,7 @@ class _FullscreenVideoPageState
           _subtitleCues = const <SubtitleCue>[];
         });
       }
-      debugPrint('Load subtitle error: $e');
+      AppLogger.warn('字幕加载失败', data: {'error': e.toString()});
     }
   }
 
@@ -699,7 +700,7 @@ class _FullscreenVideoPageState
           controller.seekTo(target);
           HapticFeedback.lightImpact();
         } catch (e) {
-          debugPrint('seekTo error: $e');
+          AppLogger.debug('拖动进度seek失败', data: {'error': e.toString()});
         }
       }
       _dragHideTimer?.cancel();
@@ -768,7 +769,7 @@ class _FullscreenVideoPageState
       try {
         unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(item));
       } catch (e) {
-        debugPrint('toggleFavorite error: $e');
+        AppLogger.warn('全屏点赞失败', data: {'error': e.toString()});
       }
     }
   }
@@ -785,7 +786,7 @@ class _FullscreenVideoPageState
       controller.seekTo(target);
       HapticFeedback.lightImpact();
     } catch (e) {
-      debugPrint('seek error: $e');
+      AppLogger.debug('双击seek失败', data: {'error': e.toString()});
     }
     setState(() {
       _isSeekForward = seconds > 0;
@@ -805,7 +806,7 @@ class _FullscreenVideoPageState
       controller.setPlaybackSpeed(kLongPressPlaybackRate);
       if (mounted) setState(() => _showSpeedBadge = true);
     } catch (e) {
-      debugPrint('_onLongPressStart error: $e');
+      AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
     }
   }
 
@@ -818,7 +819,7 @@ class _FullscreenVideoPageState
       controller.setPlaybackSpeed(_originalRate);
       ref.read(playbackRateProvider.notifier).state = _originalRate;
     } catch (e) {
-      debugPrint('_onLongPressEnd error: $e');
+      AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
     }
     if (mounted) setState(() => _showSpeedBadge = false);
   }
