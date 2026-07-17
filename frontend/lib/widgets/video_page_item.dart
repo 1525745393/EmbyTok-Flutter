@@ -72,8 +72,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   late final Animation<double> _discRotation;
 
   // 底部信息条 3 秒自动隐藏
+  // 改用 ValueNotifier 局部重建（P3：原 setState 会触发整个 11 分支 Stack rebuild）
   Timer? _infoHideTimer;
-  bool _isInfoVisible = true;
+  final ValueNotifier<bool> _isInfoVisible = ValueNotifier<bool>(true);
 
   // 播放上报相关
   final EmbytokService _service = EmbytokService();
@@ -88,7 +89,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _isInfoExpanded = false;
 
   // 控制层（VideoControls）显示状态
-  bool _controlsVisible = false;
+  // 同样改用 ValueNotifier 局部重建
+  final ValueNotifier<bool> _controlsVisible = ValueNotifier<bool>(false);
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
@@ -151,12 +153,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _resetInfoHideTimer() {
     _infoHideTimer?.cancel();
     if (!mounted) return;
-    setState(() => _isInfoVisible = true);
+    _isInfoVisible.value = true; // ValueNotifier：局部重建，不触发 setState
     final c = _videoController;
     final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
     if (isPlaying) {
       _infoHideTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _isInfoVisible = false);
+        if (mounted) _isInfoVisible.value = false;
       });
     }
   }
@@ -165,13 +167,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _toggleInfoBar() {
     _infoHideTimer?.cancel();
     if (!mounted) return;
-    setState(() => _isInfoVisible = !_isInfoVisible);
-    if (_isInfoVisible) {
+    _isInfoVisible.value = !_isInfoVisible.value;
+    if (_isInfoVisible.value) {
       final c = _videoController;
       final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
       if (isPlaying) {
         _infoHideTimer = Timer(const Duration(seconds: 3), () {
-          if (mounted) setState(() => _isInfoVisible = false);
+          if (mounted) _isInfoVisible.value = false;
         });
       }
     }
@@ -191,6 +193,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _infoHideTimer?.cancel();
+    _isInfoVisible.dispose(); // ValueNotifier：显式释放
+    _controlsVisible.dispose();
     _discRotationCtrl.dispose();
     _videoController?.removeListener(_onVideoChanged);
     _progressTimer?.cancel();
@@ -489,7 +493,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   // ===== 控制层显示/隐藏 =====
   void _toggleControls() {
-    if (_controlsVisible) {
+    if (_controlsVisible.value) {
       _hideControls();
     } else {
       _showControls();
@@ -498,13 +502,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   void _showControls() {
     _controlsHideTimer?.cancel();
-    setState(() => _controlsVisible = true);
+    _controlsVisible.value = true; // ValueNotifier：局部重建
     _controlsHideTimer = Timer(const Duration(seconds: _controlsAutoHideSeconds), _hideControls);
   }
 
   void _hideControls() {
     _controlsHideTimer?.cancel();
-    if (mounted) setState(() => _controlsVisible = false);
+    if (mounted) _controlsVisible.value = false;
   }
 
   // ===== 播放/暂停切换 =====
@@ -655,13 +659,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
         if (_videoController != null &&
             _videoController!.value.isInitialized &&
-            (isAutoPlay) &&
-            !_controlsVisible)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ThinProgressBar(controller: _videoController!),
+            (isAutoPlay))
+          ValueListenableBuilder<bool>(
+            valueListenable: _controlsVisible,
+            builder: (context, controlsVisible, _) {
+              if (controlsVisible) return const SizedBox.shrink();
+              return Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ThinProgressBar(controller: _videoController!),
+              );
+            },
           ),
 
         // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
@@ -670,20 +679,25 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             left: 0,
             right: 0,
             bottom: 0,
-            child: AnimatedOpacity(
-              opacity: _controlsVisible ? 1.0 : 0.0,
-              duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: VideoControls(
-                  controller: _videoController!,
-                  subtitleTracks: widget.item.subtitleTracks,
-                  onPrevEpisode: widget.onPrevEpisode,
-                  onNextEpisode: widget.onNextEpisode,
-                  onToggleFullscreen: _openFullscreenPage,
-                  isInFullscreen: false,
-                ),
-              ),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _controlsVisible,
+              builder: (context, controlsVisible, _) {
+                return AnimatedOpacity(
+                  opacity: controlsVisible ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: controlsVisible ? 200 : 300),
+                  child: IgnorePointer(
+                    ignoring: !controlsVisible,
+                    child: VideoControls(
+                      controller: _videoController!,
+                      subtitleTracks: widget.item.subtitleTracks,
+                      onPrevEpisode: widget.onPrevEpisode,
+                      onNextEpisode: widget.onNextEpisode,
+                      onToggleFullscreen: _openFullscreenPage,
+                      isInFullscreen: false,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -693,11 +707,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             left: 0,
             right: 0,
             bottom: 0,
-            child: AnimatedOpacity(
-              opacity: _isInfoVisible ? 1.0 : 0.0,
-              duration: Duration(milliseconds: _isInfoVisible ? 300 : 500),
-              curve: Curves.easeOut,
-              child: Container(
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isInfoVisible,
+              builder: (context, infoVisible, _) {
+                return AnimatedOpacity(
+                  opacity: infoVisible ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: infoVisible ? 300 : 500),
+                  curve: Curves.easeOut,
+                  child: Container(
                 padding: EdgeInsets.fromLTRB(
                   16,
                   80,
@@ -800,6 +817,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 ),
               ),
             ),
+              ),
           ),
 
         // 右侧操作按钮（非纯净模式）
