@@ -1,3 +1,10 @@
+## [1.142.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.1...v1.142.2) (2026-07-17)
+
+
+### Bug Fixes
+
+* 相邻预加载页并发有声播放与重复上报 ([fabc574](https://github.com/1525745393/EmbyTok-Flutter/commit/fabc574756f0cd009a6d1a505a7c9a6358639fc0))
+
 ## [1.142.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.142.0...v1.142.1) (2026-07-17)
 
 
