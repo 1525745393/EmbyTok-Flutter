@@ -253,4 +253,44 @@ abstract class MediaRepository {
     required String serverUrl,
     required String token,
   });
+
+  /// 获取所有类型（Genre）列表
+  ///
+  /// 类型列表极少变化，适合长 TTL 缓存。
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取指定类型下的影片列表
+  ///
+  /// 类型下的影片列表变化不频繁，使用中 TTL 缓存。
+  Future<PaginatedResponse<MediaItem>> getItemsByGenre(
+    String genre, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取所有工作室（Studio）列表
+  ///
+  /// 工作室列表极少变化，适合长 TTL 缓存。
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取指定工作室下的影片列表
+  ///
+  /// 工作室下的影片列表变化不频繁，使用中 TTL 缓存。
+  Future<PaginatedResponse<MediaItem>> getItemsByStudio(
+    String studio, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  });
 }

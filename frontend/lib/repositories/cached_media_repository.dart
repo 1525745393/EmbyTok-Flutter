@@ -42,6 +42,11 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<List<MediaItem>> _suggestionsCache;
   final MemoryCache<List<MediaItem>> _watchHistoryCache;
   final MemoryCache<List<MediaItem>> _childrenCache;
+  // 类型/工作室缓存
+  final MemoryCache<List<Library>> _genresCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _genreItemsCache;
+  final MemoryCache<List<Library>> _studiosCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _studioItemsCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -65,7 +70,11 @@ class CachedMediaRepository implements MediaRepository {
         _recommendationsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
         _suggestionsCache = MemoryCache<List<MediaItem>>(maxSize: 20),
         _watchHistoryCache = MemoryCache<List<MediaItem>>(maxSize: 20),
-        _childrenCache = MemoryCache<List<MediaItem>>(maxSize: 100);
+        _childrenCache = MemoryCache<List<MediaItem>>(maxSize: 100),
+        _genresCache = MemoryCache<List<Library>>(maxSize: 10),
+        _genreItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
+        _studiosCache = MemoryCache<List<Library>>(maxSize: 10),
+        _studioItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50);
 
   // ============================
   // 统计信息
@@ -100,6 +109,10 @@ class CachedMediaRepository implements MediaRepository {
     _suggestionsCache.resetStats();
     _watchHistoryCache.resetStats();
     _childrenCache.resetStats();
+    _genresCache.resetStats();
+    _genreItemsCache.resetStats();
+    _studiosCache.resetStats();
+    _studioItemsCache.resetStats();
   }
 
   /// 辅助：对所有缓存执行统计求和
@@ -121,7 +134,11 @@ class CachedMediaRepository implements MediaRepository {
         selector(_recommendationsCache) +
         selector(_suggestionsCache) +
         selector(_watchHistoryCache) +
-        selector(_childrenCache);
+        selector(_childrenCache) +
+        selector(_genresCache) +
+        selector(_genreItemsCache) +
+        selector(_studiosCache) +
+        selector(_studioItemsCache);
   }
 
   // ============================
@@ -263,6 +280,26 @@ class CachedMediaRepository implements MediaRepository {
     String token,
   ) {
     return 'children:$serverUrl:$token:$parentId:$limit:$offset';
+  }
+
+  /// 生成 getGenres 的缓存键
+  String _genresKey(int limit, String serverUrl, String token) {
+    return 'genres:$serverUrl:$token:$limit';
+  }
+
+  /// 生成 getItemsByGenre 的缓存键
+  String _genreItemsKey(String genre, int limit, int offset, String serverUrl, String token) {
+    return 'genre_items:$serverUrl:$token:$genre:$limit:$offset';
+  }
+
+  /// 生成 getStudios 的缓存键
+  String _studiosKey(int limit, String serverUrl, String token) {
+    return 'studios:$serverUrl:$token:$limit';
+  }
+
+  /// 生成 getItemsByStudio 的缓存键
+  String _studioItemsKey(String studio, int limit, int offset, String serverUrl, String token) {
+    return 'studio_items:$serverUrl:$token:$studio:$limit:$offset';
   }
 
   // ============================
@@ -752,6 +789,106 @@ class CachedMediaRepository implements MediaRepository {
     return result;
   }
 
+  @override
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _genresKey(limit, serverUrl, token);
+    final cached = _genresCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getGenres(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 类型列表极少变化，使用长 TTL
+    _genresCache.set(key, result, ttl: const Duration(minutes: 30));
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByGenre(
+    String genre, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _genreItemsKey(genre, limit, offset, serverUrl, token);
+    final cached = _genreItemsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getItemsByGenre(
+      genre,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 类型下的影片列表变化不频繁，使用中 TTL
+    _genreItemsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _studiosKey(limit, serverUrl, token);
+    final cached = _studiosCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getStudios(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 工作室列表极少变化，使用长 TTL
+    _studiosCache.set(key, result, ttl: const Duration(minutes: 30));
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByStudio(
+    String studio, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _studioItemsKey(studio, limit, offset, serverUrl, token);
+    final cached = _studioItemsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getItemsByStudio(
+      studio,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 工作室下的影片列表变化不频繁，使用中 TTL
+    _studioItemsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
   // ============================
   // 缓存失效操作
   // ============================
@@ -845,6 +982,31 @@ class CachedMediaRepository implements MediaRepository {
     _childrenCache.deleteWherePrefix('children:$serverUrl:');
   }
 
+  /// 失效类型（Genre）列表缓存
+  ///
+  /// 类型列表极少变化，通常不需要主动失效，
+  /// 仅在类型元数据被修改时调用。
+  void invalidateGenres({required String serverUrl}) {
+    _genresCache.deleteWherePrefix('genres:$serverUrl:');
+  }
+
+  /// 失效某类型下的影片缓存
+  ///
+  /// 当某类型下的影片可能变化时调用（如标记已看、收藏切换等）。
+  void invalidateGenreItems({required String serverUrl}) {
+    _genreItemsCache.deleteWherePrefix('genre_items:$serverUrl:');
+  }
+
+  /// 失效工作室（Studio）列表缓存
+  void invalidateStudios({required String serverUrl}) {
+    _studiosCache.deleteWherePrefix('studios:$serverUrl:');
+  }
+
+  /// 失效某工作室下的影片缓存
+  void invalidateStudioItems({required String serverUrl}) {
+    _studioItemsCache.deleteWherePrefix('studio_items:$serverUrl:');
+  }
+
   /// 清除所有缓存
   void clearAll() {
     _libraryItemsCache.clear();
@@ -865,5 +1027,9 @@ class CachedMediaRepository implements MediaRepository {
     _suggestionsCache.clear();
     _watchHistoryCache.clear();
     _childrenCache.clear();
+    _genresCache.clear();
+    _genreItemsCache.clear();
+    _studiosCache.clear();
+    _studioItemsCache.clear();
   }
 }

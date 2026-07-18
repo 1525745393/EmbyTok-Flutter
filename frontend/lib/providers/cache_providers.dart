@@ -117,6 +117,31 @@ class CacheController {
   void invalidateChildren(String serverUrl) {
     _cachedRepo.invalidateChildren(serverUrl: serverUrl);
   }
+
+  /// 失效类型（Genre）列表缓存
+  ///
+  /// 类型列表极少变化，通常不需要主动失效。
+  void invalidateGenres(String serverUrl) {
+    _cachedRepo.invalidateGenres(serverUrl: serverUrl);
+  }
+
+  /// 失效某类型下的影片缓存
+  ///
+  /// 标记已看/收藏切换时可能影响类型下的影片列表，
+  /// 需一并失效以保证最新状态。
+  void invalidateGenreItems(String serverUrl) {
+    _cachedRepo.invalidateGenreItems(serverUrl: serverUrl);
+  }
+
+  /// 失效工作室（Studio）列表缓存
+  void invalidateStudios(String serverUrl) {
+    _cachedRepo.invalidateStudios(serverUrl: serverUrl);
+  }
+
+  /// 失效某工作室下的影片缓存
+  void invalidateStudioItems(String serverUrl) {
+    _cachedRepo.invalidateStudioItems(serverUrl: serverUrl);
+  }
 }
 
 /// 缓存控制器 Provider

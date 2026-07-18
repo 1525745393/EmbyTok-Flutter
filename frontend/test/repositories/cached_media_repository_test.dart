@@ -354,6 +354,96 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValue: Future.value(<MediaItem>[]),
         returnValueForMissingStub: Future.value(<MediaItem>[]),
       ) as Future<List<MediaItem>>;
+
+  @override
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getGenres, [], {
+          #limit: limit,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<Library>[]),
+        returnValueForMissingStub: Future.value(<Library>[]),
+      ) as Future<List<Library>>;
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByGenre(
+    String genre, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getItemsByGenre, [genre], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
+  @override
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getStudios, [], {
+          #limit: limit,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<Library>[]),
+        returnValueForMissingStub: Future.value(<Library>[]),
+      ) as Future<List<Library>>;
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByStudio(
+    String studio, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getItemsByStudio, [studio], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+          items: [],
+          total: 0,
+          offset: 0,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<MediaItem>>;
 }
 
 void main() {
@@ -2056,6 +2146,339 @@ void main() {
         expect(stats.hitCount, 0);
         expect(stats.missCount, 0);
         expect(stats.totalRequests, 0);
+      });
+    });
+
+    group('getGenres', () {
+      final genres = [
+        Library(id: 'g1', name: '动作', type: 'Genre'),
+        Library(id: 'g2', name: '喜剧', type: 'Genre'),
+      ];
+
+      test('首次调用请求后端', () async {
+        when(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => genres);
+
+        final result = await cachedRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.length, 2);
+        expect(result[0].name, '动作');
+        verify(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('二次调用命中缓存，不请求后端', () async {
+        when(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => genres);
+
+        await cachedRepo.getGenres(serverUrl: testServerUrl, token: testToken);
+        final result = await cachedRepo.getGenres(serverUrl: testServerUrl, token: testToken);
+
+        expect(result.length, 2);
+        verify(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同 token 缓存隔离', () async {
+        when(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: 'token-a',
+        )).thenAnswer((_) async => [genres[0]]);
+        when(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: 'token-b',
+        )).thenAnswer((_) async => genres);
+
+        await cachedRepo.getGenres(serverUrl: testServerUrl, token: 'token-a');
+        await cachedRepo.getGenres(serverUrl: testServerUrl, token: 'token-b');
+
+        verify(mockRepo.getGenres(serverUrl: testServerUrl, token: 'token-a')).called(1);
+        verify(mockRepo.getGenres(serverUrl: testServerUrl, token: 'token-b')).called(1);
+      });
+
+      test('invalidateGenres 失效缓存', () async {
+        when(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => genres);
+
+        await cachedRepo.getGenres(serverUrl: testServerUrl, token: testToken);
+        cachedRepo.invalidateGenres(serverUrl: testServerUrl);
+        await cachedRepo.getGenres(serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getGenres(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(2);
+      });
+    });
+
+    group('getItemsByGenre', () {
+      final items = [
+        MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
+        MediaItem(id: 'm2', title: '电影2', type: 'Movie'),
+      ];
+      final response = PaginatedResponse<MediaItem>(
+        items: items,
+        total: 2,
+        offset: 0,
+        limit: 30,
+      );
+
+      test('首次调用请求后端', () async {
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        final result = await cachedRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.items.length, 2);
+        verify(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('二次调用命中缓存', () async {
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken);
+        final result = await cachedRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken);
+
+        expect(result.items.length, 2);
+        verify(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同类型缓存隔离', () async {
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+        when(mockRepo.getItemsByGenre(
+          '喜剧',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getItemsByGenre('喜剧', serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getItemsByGenre('喜剧', serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('分页参数缓存隔离', () async {
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          limit: 30,
+          offset: 30,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByGenre('动作', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getItemsByGenre('动作', limit: 30, offset: 30, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getItemsByGenre('动作', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getItemsByGenre('动作', limit: 30, offset: 30, serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('invalidateGenreItems 失效缓存', () async {
+        when(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken);
+        cachedRepo.invalidateGenreItems(serverUrl: testServerUrl);
+        await cachedRepo.getItemsByGenre('动作', serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getItemsByGenre(
+          '动作',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(2);
+      });
+    });
+
+    group('getStudios', () {
+      final studios = [
+        Library(id: 's1', name: '迪士尼', type: 'Studio'),
+        Library(id: 's2', name: '华纳', type: 'Studio'),
+      ];
+
+      test('首次调用请求后端', () async {
+        when(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => studios);
+
+        final result = await cachedRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.length, 2);
+        expect(result[0].name, '迪士尼');
+        verify(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('二次调用命中缓存', () async {
+        when(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => studios);
+
+        await cachedRepo.getStudios(serverUrl: testServerUrl, token: testToken);
+        final result = await cachedRepo.getStudios(serverUrl: testServerUrl, token: testToken);
+
+        expect(result.length, 2);
+        verify(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('invalidateStudios 失效缓存', () async {
+        when(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => studios);
+
+        await cachedRepo.getStudios(serverUrl: testServerUrl, token: testToken);
+        cachedRepo.invalidateStudios(serverUrl: testServerUrl);
+        await cachedRepo.getStudios(serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getStudios(
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(2);
+      });
+    });
+
+    group('getItemsByStudio', () {
+      final items = [
+        MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
+      ];
+      final response = PaginatedResponse<MediaItem>(
+        items: items,
+        total: 1,
+        offset: 0,
+        limit: 30,
+      );
+
+      test('首次调用请求后端', () async {
+        when(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        final result = await cachedRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.items.length, 1);
+        verify(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('二次调用命中缓存', () async {
+        when(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken);
+        final result = await cachedRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken);
+
+        expect(result.items.length, 1);
+        verify(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同工作室缓存隔离', () async {
+        when(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+        when(mockRepo.getItemsByStudio(
+          '华纳',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getItemsByStudio('华纳', serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getItemsByStudio('华纳', serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('invalidateStudioItems 失效缓存', () async {
+        when(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => response);
+
+        await cachedRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken);
+        cachedRepo.invalidateStudioItems(serverUrl: testServerUrl);
+        await cachedRepo.getItemsByStudio('迪士尼', serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getItemsByStudio(
+          '迪士尼',
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(2);
       });
     });
   });

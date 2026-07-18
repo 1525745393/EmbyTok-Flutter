@@ -98,8 +98,12 @@ final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
 final genresListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <Library>[];
-  final service = _authService(ref, auth);
-  return service.getGenres();
+  // 通过缓存仓库获取，减少重复 API 请求（长 TTL 30min）
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  return cachedRepo.getGenres(
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
 });
 
 // ============================
@@ -110,8 +114,13 @@ final genreItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, genre) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getItemsByGenre(genre);
+  // 通过缓存仓库获取，减少重复 API 请求（中 TTL 5min）
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  final result = await cachedRepo.getItemsByGenre(
+    genre,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
   return result.items;
 });
 
@@ -122,8 +131,12 @@ final genreItemsProvider =
 final studiosListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <Library>[];
-  final service = _authService(ref, auth);
-  return service.getStudios();
+  // 通过缓存仓库获取，减少重复 API 请求（长 TTL 30min）
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  return cachedRepo.getStudios(
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
 });
 
 // ============================
@@ -134,8 +147,13 @@ final studioItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, studio) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getItemsByStudio(studio);
+  // 通过缓存仓库获取，减少重复 API 请求（中 TTL 5min）
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  final result = await cachedRepo.getItemsByStudio(
+    studio,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
   return result.items;
 });
 

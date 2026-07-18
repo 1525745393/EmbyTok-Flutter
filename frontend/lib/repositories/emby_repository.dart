@@ -320,4 +320,64 @@ class EmbyRepository implements MediaRepository {
       token: token,
     );
   }
+
+  @override
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getGenres(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByGenre(
+    String genre, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getItemsByGenre(
+      genre,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getStudios(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByStudio(
+    String studio, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getItemsByStudio(
+      studio,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
 }
