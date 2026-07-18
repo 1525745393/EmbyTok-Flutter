@@ -183,6 +183,33 @@ class VideoPoolService {
     return session;
   }
 
+  /// 归还一个会话到池中（用于非当前页释放时复用）
+  ///
+  /// 使用场景：VideoPlayerWidget 在非当前页 2 秒延迟后释放 controller 时，
+  /// 调用本方法将会话归还到池，而非直接 dispose。
+  /// 后续用户来回滑动回到该 item 时，可从池中 take 直接复用，避免重新 initialize。
+  ///
+  /// 行为：
+  /// - 若池中已有该 itemId 的会话：直接 dispose 传入的会话（避免重复）
+  /// - 若池已满：按 LRU 淘汰最旧会话后存入
+  /// - 否则：存入池中
+  ///
+  /// 注意：传入的会话必须已 initialize 完成且未被 dispose，否则会被忽略。
+  void returnSession(PlaybackSession session) {
+    if (session._isDisposed || !session.isInitialized) return;
+    if (_sessions.containsKey(session.itemId)) {
+      // 池中已有：直接 dispose 传入的（避免重复持有 native 资源）
+      session.dispose();
+      return;
+    }
+    if (_sessions.length >= maxSize) {
+      final oldest = _accessOrder.first;
+      _remove(oldest);
+    }
+    _sessions[session.itemId] = session;
+    _accessOrder.add(session.itemId);
+  }
+
   /// 清理指定 itemId 的会话
   void evict(String itemId) {
     _remove(itemId);
