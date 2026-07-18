@@ -1,3 +1,10 @@
+# [1.154.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.153.0...v1.154.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 扩展类型/工作室缓存覆盖，4 个 Provider 接入缓存 ([0a95216](https://github.com/1525745393/EmbyTok-Flutter/commit/0a95216bd379203fe14ceb5a72ca75dd3aec362a))
+
 # [1.153.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.152.0...v1.153.0) (2026-07-18)
 
 
