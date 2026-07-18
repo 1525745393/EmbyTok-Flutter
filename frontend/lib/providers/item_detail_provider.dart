@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 
 // 公共辅助：初始化带认证信息的 service
 // 使用 Ref 而非 WidgetRef，因为 FutureProvider 中使用的是 FutureProviderRef
@@ -31,11 +32,14 @@ final itemDetailProvider =
     FutureProvider.family<MediaItem, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) throw '尚未登录';
-  final service = EmbytokService();
-  final userId = auth.user?.id;
-  final embyServerUrl = auth.embyServerUrl;
-  final token = auth.token;
-  return service.getItemDetail(itemId, userId: userId, serverUrl: embyServerUrl, token: token);
+  // 通过缓存仓库获取详情，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  return cachedRepo.getItemDetail(
+    itemId,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+    userId: auth.user?.id,
+  );
 });
 
 // ============================
@@ -194,6 +198,18 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);
   await service.markAsPlayed(itemId);
+
+  // 失效相关缓存：播放状态变化影响续播列表和详情数据
+  final serverUrl = auth.embyServerUrl;
+  final token = auth.token;
+  if (serverUrl != null && token != null) {
+    try {
+      final cacheController = ref.read(cacheControllerProvider);
+      cacheController.invalidateResume(serverUrl, token);
+      cacheController.invalidateItemDetail(itemId, serverUrl);
+    } catch (_) {}
+  }
+
   // 刷新相关 Provider
   ref.invalidate(resumeItemsProvider);
   ref.invalidate(nextUpProvider);
@@ -205,6 +221,18 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
   if (!auth.isAuthenticated) return;
   final service = _authService(ref, auth);
   await service.markAsUnplayed(itemId);
+
+  // 失效相关缓存
+  final serverUrl = auth.embyServerUrl;
+  final token = auth.token;
+  if (serverUrl != null && token != null) {
+    try {
+      final cacheController = ref.read(cacheControllerProvider);
+      cacheController.invalidateResume(serverUrl, token);
+      cacheController.invalidateItemDetail(itemId, serverUrl);
+    } catch (_) {}
+  }
+
   ref.invalidate(resumeItemsProvider);
   ref.invalidate(nextUpProvider);
   ref.invalidate(itemDetailProvider(itemId));

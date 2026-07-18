@@ -14,9 +14,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../repositories/emby_repository.dart';
 import '../repositories/media_repository.dart';
-import '../repositories/cached_media_repository.dart';
 import '../utils/app_preferences.dart' show FeedType, ViewMode;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
@@ -48,7 +46,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   ProviderSubscription<ViewMode>? _viewModeSubscription;
 
   VideoListNotifier(this._ref, {MediaRepository? repo})
-      : _repo = repo ?? CachedMediaRepository(EmbyRepository()),
+      : _repo = repo ?? _ref.read(cachedMediaRepositoryProvider),
         super(const VideoListState()) {
     // 监听 selectedLibraryIdsProvider 变化：媒体库切换时自动刷新视频列表
     _libraryIdsSubscription = _ref.listen<List<String>>(
@@ -224,10 +222,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'forceRefresh': forceRefresh,
       });
 
-      // 强制刷新：先清除相关缓存，确保从服务器获取最新数据
-      if (forceRefresh && _repo is CachedMediaRepository) {
-        final cachedRepo = _repo as CachedMediaRepository;
-        cachedRepo.clearAll();
+      // 强制刷新：通过 CacheController 清除缓存，确保从服务器获取最新数据
+      if (forceRefresh) {
+        _ref.read(cacheControllerProvider).invalidateAll();
       }
 
       final List<MediaItem> loadedItems;

@@ -74,6 +74,14 @@ class CacheController {
       token: token,
     );
   }
+
+  /// 失效单个媒体条目的详情缓存
+  void invalidateItemDetail(String itemId, String serverUrl) {
+    _cachedRepo.invalidateItemDetail(
+      itemId: itemId,
+      serverUrl: serverUrl,
+    );
+  }
 }
 
 /// 缓存控制器 Provider

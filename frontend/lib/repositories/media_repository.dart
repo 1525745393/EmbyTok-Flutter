@@ -70,6 +70,17 @@ abstract class MediaRepository {
     String? userId,
   });
 
+  /// 获取单个媒体条目的详情
+  ///
+  /// 对应 Emby 的 /Users/{userId}/Items/{itemId} 端点。
+  /// 包含 Overview、Genres、People、MediaSources、UserData 等完整字段。
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
+
   /// 获取收藏的电影/视频列表
   Future<FavoritesPageResult> getFavoriteMovies({
     required String serverUrl,

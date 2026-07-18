@@ -15,6 +15,7 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 
 // ============================================================
 // 后台 isolate 函数：JSON 批量编解码（避免阻塞 UI 线程）
@@ -312,6 +313,14 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         token: token,
         userId: userId,
       );
+      // 失效收藏缓存（收藏人物列表已变）
+      try {
+        _ref.read(cacheControllerProvider).invalidateFavorites(
+              serverUrl,
+              token,
+              userId,
+            );
+      } catch (_) {}
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);
       // 失败回滚

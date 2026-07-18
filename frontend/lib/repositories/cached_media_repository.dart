@@ -25,6 +25,7 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<PaginatedResponse<MediaItem>> _libraryItemsCache;
   final MemoryCache<FavoritesPageResult> _favoritesCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _resumeCache;
+  final MemoryCache<MediaItem> _itemDetailCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -33,7 +34,8 @@ class CachedMediaRepository implements MediaRepository {
   })  : _ttl = ttl,
         _libraryItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: maxCacheEntries),
         _favoritesCache = MemoryCache<FavoritesPageResult>(maxSize: 20),
-        _resumeCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20);
+        _resumeCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
+        _itemDetailCache = MemoryCache<MediaItem>(maxSize: 100);
 
   // ============================
   // 统计信息
@@ -44,10 +46,11 @@ class CachedMediaRepository implements MediaRepository {
     final libStats = _libraryItemsCache.stats;
     final favStats = _favoritesCache.stats;
     final resumeStats = _resumeCache.stats;
+    final detailStats = _itemDetailCache.stats;
     return CacheStats(
-      hitCount: libStats.hitCount + favStats.hitCount + resumeStats.hitCount,
-      missCount: libStats.missCount + favStats.missCount + resumeStats.missCount,
-      evictionCount: libStats.evictionCount + favStats.evictionCount + resumeStats.evictionCount,
+      hitCount: libStats.hitCount + favStats.hitCount + resumeStats.hitCount + detailStats.hitCount,
+      missCount: libStats.missCount + favStats.missCount + resumeStats.missCount + detailStats.missCount,
+      evictionCount: libStats.evictionCount + favStats.evictionCount + resumeStats.evictionCount + detailStats.evictionCount,
     );
   }
 
@@ -56,6 +59,7 @@ class CachedMediaRepository implements MediaRepository {
     _libraryItemsCache.resetStats();
     _favoritesCache.resetStats();
     _resumeCache.resetStats();
+    _itemDetailCache.resetStats();
   }
 
   // ============================
@@ -83,9 +87,38 @@ class CachedMediaRepository implements MediaRepository {
     return 'resume:$serverUrl:$token:$limit:$offset';
   }
 
+  /// 生成 getItemDetail 的缓存键
+  String _itemDetailKey(String itemId, String serverUrl, String token) {
+    return 'detail:$serverUrl:$token:$itemId';
+  }
+
   // ============================
   // 读操作（带缓存）
   // ============================
+
+  @override
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    final key = _itemDetailKey(itemId, serverUrl, token);
+    final cached = _itemDetailCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getItemDetail(
+      itemId,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    _itemDetailCache.set(key, result, ttl: _ttl);
+    return result;
+  }
 
   @override
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
@@ -190,10 +223,22 @@ class CachedMediaRepository implements MediaRepository {
     _resumeCache.clear();
   }
 
+  /// 失效单个媒体条目的详情缓存
+  ///
+  /// 当条目的 UserData 可能变化时（如 toggleFavorite、markAsPlayed、
+  /// reportPlaybackStopped 等）调用。
+  void invalidateItemDetail({
+    required String itemId,
+    required String serverUrl,
+  }) {
+    _itemDetailCache.deleteWherePrefix('detail:$serverUrl:');
+  }
+
   /// 清除所有缓存
   void clearAll() {
     _libraryItemsCache.clear();
     _favoritesCache.clear();
     _resumeCache.clear();
+    _itemDetailCache.clear();
   }
 }

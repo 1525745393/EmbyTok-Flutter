@@ -15,6 +15,7 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 
 // 每页拉取数量
 const int _kFavoritesPageSize = 50;
@@ -581,6 +582,16 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       );
       // 同步成功后更新本地缓存
       _saveToCache();
+
+      // 失效相关内存缓存：收藏状态变化会影响多种查询结果
+      // 1. 收藏列表缓存（getFavoriteMovies 等）
+      // 2. 媒体库列表缓存（可能包含 IsFavorite 过滤的查询）
+      // 3. 媒体详情缓存（IsFavorite 标志位已变）
+      try {
+        final cacheController = _ref.read(cacheControllerProvider);
+        cacheController.invalidateFavorites(serverUrl, token, userId);
+        cacheController.invalidateItemDetail(item.id, serverUrl);
+      } catch (_) {}
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态
       final rollbackIds = Set<String>.from(state.favoriteIds);

@@ -303,6 +303,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
           'markAsPlayed',
         );
+        // 视频播完标记已看后，失效续播和详情缓存
+        final serverUrl = _authServerUrl();
+        final token = _authToken();
+        if (serverUrl != null && token != null) {
+          try {
+            ref.read(cacheControllerProvider).invalidateResume(serverUrl, token);
+            ref
+                .read(cacheControllerProvider)
+                .invalidateItemDetail(widget.item.id, serverUrl);
+          } catch (_) {}
+        }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
         _queryNextUp();
       }
@@ -468,6 +479,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       ),
       'reportPlaybackStopped',
     );
+    // 播放停止后续播进度已变，失效续播和详情缓存确保下次获取最新数据
+    final serverUrl = _authServerUrl();
+    final token = _authToken();
+    if (serverUrl != null && token != null) {
+      try {
+        ref.read(cacheControllerProvider).invalidateResume(serverUrl, token);
+        ref
+            .read(cacheControllerProvider)
+            .invalidateItemDetail(widget.item.id, serverUrl);
+      } catch (_) {}
+    }
     _hasStartedReported = false;
   }
 

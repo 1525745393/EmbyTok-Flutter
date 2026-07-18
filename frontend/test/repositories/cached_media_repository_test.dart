@@ -88,6 +88,24 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           limit: limit,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
+
+  @override
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getItemDetail, [itemId], {
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(MediaItem(id: '', title: '', type: '')),
+        returnValueForMissingStub:
+            Future.value(MediaItem(id: '', title: '', type: '')),
+      ) as Future<MediaItem>;
 }
 
 void main() {
@@ -648,6 +666,129 @@ void main() {
         verify(mockRepo.getLibraryItems(any, serverUrl: testServerUrl, token: testToken)).called(2);
         verify(mockRepo.getFavoriteMovies(serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(2);
         verify(mockRepo.getResumeItems(serverUrl: testServerUrl, token: testToken)).called(2);
+      });
+    });
+
+    group('getItemDetail', () {
+      final testDetailItem = MediaItem(
+        id: 'detail-1',
+        title: 'Detail Test Movie',
+        type: 'Movie',
+      );
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testDetailItem);
+
+        final result = await cachedRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        expect(result.id, 'detail-1');
+        expect(result.title, 'Detail Test Movie');
+        verify(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testDetailItem);
+
+        // 第一次
+        await cachedRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        // 第二次（应命中缓存）
+        final result = await cachedRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        expect(result.id, 'detail-1');
+        // 底层只调用了一次
+        verify(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('不同 itemId：不命中缓存', () async {
+        when(mockRepo.getItemDetail(
+          any,
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((invocation) async {
+          final itemId = invocation.positionalArguments[0] as String;
+          return MediaItem(id: itemId, title: '', type: '');
+        });
+
+        await cachedRepo.getItemDetail('item-a', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+        await cachedRepo.getItemDetail('item-b', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        verify(mockRepo.getItemDetail('item-a', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(1);
+        verify(mockRepo.getItemDetail('item-b', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(1);
+      });
+
+      test('不同 token：不共享缓存（账号隔离）', () async {
+        when(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: anyNamed('token'),
+          userId: 'user-1',
+        )).thenAnswer((invocation) async {
+          final token = invocation.namedArguments[#token] as String;
+          return MediaItem(id: 'detail-1-$token', title: '', type: '');
+        });
+
+        await cachedRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: 'token-a', userId: 'user-1');
+        await cachedRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: 'token-b', userId: 'user-1');
+
+        verify(mockRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: 'token-a', userId: 'user-1')).called(1);
+        verify(mockRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: 'token-b', userId: 'user-1')).called(1);
+      });
+
+      test('invalidateItemDetail：清除指定条目缓存后重新请求', () async {
+        when(mockRepo.getItemDetail(
+          'detail-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testDetailItem);
+
+        // 第一次
+        await cachedRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        // 失效单个条目
+        cachedRepo.invalidateItemDetail(itemId: 'detail-1', serverUrl: testServerUrl);
+
+        // 第二次（应重新调用底层）
+        await cachedRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        verify(mockRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(2);
       });
     });
 

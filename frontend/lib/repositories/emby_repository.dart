@@ -43,6 +43,21 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getItemDetail(
+      itemId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
   Future<FavoritesPageResult> getFavoriteMovies({
     required String serverUrl,
     required String token,
