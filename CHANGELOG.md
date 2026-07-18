@@ -1,3 +1,10 @@
+# [1.151.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.150.0...v1.151.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 搜索防抖 + 短 TTL 缓存 ([044d6d2](https://github.com/1525745393/EmbyTok-Flutter/commit/044d6d276c5a32174f6e91db7298523956fe1cb2))
+
 # [1.150.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.149.0...v1.150.0) (2026-07-18)
 
 
