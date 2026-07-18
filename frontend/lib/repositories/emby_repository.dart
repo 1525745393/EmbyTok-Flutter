@@ -159,4 +159,68 @@ class EmbyRepository implements MediaRepository {
       token: token,
     );
   }
+
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int limit = 50,
+    int startIndex = 0,
+    List<String>? personTypes,
+    String? searchTerm,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getPeople(
+      limit: limit,
+      startIndex: startIndex,
+      personTypes: personTypes,
+      searchTerm: searchTerm,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getPersonDetail(
+      personId,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getPersonItems(
+      personId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getFavoritePeople(
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
 }

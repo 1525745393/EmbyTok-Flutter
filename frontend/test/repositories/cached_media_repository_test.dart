@@ -123,6 +123,108 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValue: Future.value(<MediaItem>[]),
         returnValueForMissingStub: Future.value(<MediaItem>[]),
       ) as Future<List<MediaItem>>;
+
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int limit = 50,
+    int startIndex = 0,
+    List<String>? personTypes,
+    String? searchTerm,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPeople, [], {
+          #limit: limit,
+          #startIndex: startIndex,
+          #personTypes: personTypes,
+          #searchTerm: searchTerm,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(PaginatedResponse<Person>(
+          items: const <Person>[],
+          total: 0,
+          offset: startIndex,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<Person>(
+          items: const <Person>[],
+          total: 0,
+          offset: startIndex,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<Person>>;
+
+  @override
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPersonDetail, [personId], {
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(null),
+        returnValueForMissingStub: Future.value(null),
+      ) as Future<MediaItem?>;
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPersonItems, [personId], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+          items: const <MediaItem>[],
+          total: 0,
+          offset: offset,
+          limit: limit,
+        )),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+          items: const <MediaItem>[],
+          total: 0,
+          offset: offset,
+          limit: limit,
+        )),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoritePeople, [], {
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(FavoritesPageResult(
+          movies: [],
+          boxSets: [],
+          people: [],
+        )),
+        returnValueForMissingStub: Future.value(FavoritesPageResult(
+          movies: [],
+          boxSets: [],
+          people: [],
+        )),
+      ) as Future<FavoritesPageResult>;
 }
 
 void main() {
@@ -946,6 +1048,413 @@ void main() {
         await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
 
         verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken)).called(2);
+      });
+    });
+
+    group('getPeople', () {
+      final testPeople = <Person>[
+        Person(id: 'person-1', name: 'Actor A', type: 'Actor'),
+        Person(id: 'person-2', name: 'Actor B', type: 'Director'),
+      ];
+      final testPeopleResult = PaginatedResponse<Person>(
+        items: testPeople,
+        total: 2,
+        offset: 0,
+        limit: 50,
+      );
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPeopleResult);
+
+        final result = await cachedRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.items.length, 2);
+        expect(result.items.first.id, 'person-1');
+        verify(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPeopleResult);
+
+        await cachedRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        final result = await cachedRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.items.length, 2);
+        verify(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同 startIndex：不命中缓存（分页隔离）', () async {
+        when(mockRepo.getPeople(
+          limit: anyNamed('limit'),
+          startIndex: anyNamed('startIndex'),
+          personTypes: anyNamed('personTypes'),
+          searchTerm: anyNamed('searchTerm'),
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((invocation) async {
+          final startIndex = invocation.namedArguments[#startIndex] as int;
+          return PaginatedResponse<Person>(
+            items: <Person>[Person(id: 'p-$startIndex', name: '', type: 'Actor')],
+            total: 1,
+            offset: startIndex,
+            limit: 50,
+          );
+        });
+
+        await cachedRepo.getPeople(limit: 50, startIndex: 0, serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getPeople(limit: 50, startIndex: 50, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getPeople(limit: 50, startIndex: 0, personTypes: null, searchTerm: null, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getPeople(limit: 50, startIndex: 50, personTypes: null, searchTerm: null, serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('不同 token：不共享缓存（账号隔离）', () async {
+        when(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: anyNamed('token'),
+        )).thenAnswer((invocation) async {
+          final token = invocation.namedArguments[#token] as String;
+          return PaginatedResponse<Person>(
+            items: <Person>[Person(id: 'p-$token', name: '', type: 'Actor')],
+            total: 1,
+            offset: 0,
+            limit: 50,
+          );
+        });
+
+        await cachedRepo.getPeople(limit: 50, startIndex: 0, serverUrl: testServerUrl, token: 'token-a');
+        await cachedRepo.getPeople(limit: 50, startIndex: 0, serverUrl: testServerUrl, token: 'token-b');
+
+        verify(mockRepo.getPeople(limit: 50, startIndex: 0, personTypes: null, searchTerm: null, serverUrl: testServerUrl, token: 'token-a')).called(1);
+        verify(mockRepo.getPeople(limit: 50, startIndex: 0, personTypes: null, searchTerm: null, serverUrl: testServerUrl, token: 'token-b')).called(1);
+      });
+
+      test('clearAll：清除人员列表缓存后重新请求', () async {
+        when(mockRepo.getPeople(
+          limit: 50,
+          startIndex: 0,
+          personTypes: null,
+          searchTerm: null,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPeopleResult);
+
+        await cachedRepo.getPeople(limit: 50, startIndex: 0, serverUrl: testServerUrl, token: testToken);
+        cachedRepo.clearAll();
+        await cachedRepo.getPeople(limit: 50, startIndex: 0, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getPeople(limit: 50, startIndex: 0, personTypes: null, searchTerm: null, serverUrl: testServerUrl, token: testToken)).called(2);
+      });
+    });
+
+    group('getPersonDetail', () {
+      final testPersonItem = MediaItem(id: 'person-1', title: 'Actor A', type: 'Person');
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getPersonDetail(
+          'person-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testPersonItem);
+
+        final result = await cachedRepo.getPersonDetail(
+          'person-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        expect(result?.id, 'person-1');
+        verify(mockRepo.getPersonDetail(
+          'person-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getPersonDetail(
+          'person-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testPersonItem);
+
+        await cachedRepo.getPersonDetail('person-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+        final result = await cachedRepo.getPersonDetail('person-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        expect(result?.id, 'person-1');
+        verify(mockRepo.getPersonDetail(
+          'person-1',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('不同 personId：不命中缓存', () async {
+        when(mockRepo.getPersonDetail(
+          any,
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((invocation) async {
+          final personId = invocation.positionalArguments[0] as String;
+          return MediaItem(id: personId, title: '', type: 'Person');
+        });
+
+        await cachedRepo.getPersonDetail('p-a', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+        await cachedRepo.getPersonDetail('p-b', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        verify(mockRepo.getPersonDetail('p-a', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(1);
+        verify(mockRepo.getPersonDetail('p-b', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(1);
+      });
+
+      test('null 结果也能被缓存（避免重复请求不存在的演员）', () async {
+        when(mockRepo.getPersonDetail(
+          'missing',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => null);
+
+        await cachedRepo.getPersonDetail('missing', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+        final result = await cachedRepo.getPersonDetail('missing', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        expect(result, isNull);
+        // 底层只调用了一次（第二次命中缓存）
+        verify(mockRepo.getPersonDetail(
+          'missing',
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+    });
+
+    group('getPersonItems', () {
+      final testPersonItems = PaginatedResponse<MediaItem>(
+        items: <MediaItem>[
+          MediaItem(id: 'movie-1', title: 'Movie A', type: 'Movie'),
+          MediaItem(id: 'movie-2', title: 'Movie B', type: 'Movie'),
+        ],
+        total: 2,
+        offset: 0,
+        limit: 30,
+      );
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPersonItems);
+
+        final result = await cachedRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.items.length, 2);
+        expect(result.items.first.id, 'movie-1');
+        verify(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPersonItems);
+
+        await cachedRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+        final result = await cachedRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+
+        expect(result.items.length, 2);
+        verify(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同 offset：不命中缓存（分页隔离）', () async {
+        when(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: anyNamed('offset'),
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((invocation) async {
+          final offset = invocation.namedArguments[#offset] as int;
+          return PaginatedResponse<MediaItem>(
+            items: <MediaItem>[MediaItem(id: 'm-$offset', title: '', type: 'Movie')],
+            total: 1,
+            offset: offset,
+            limit: 30,
+          );
+        });
+
+        await cachedRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getPersonItems('person-1', limit: 30, offset: 30, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getPersonItems('person-1', limit: 30, offset: 30, serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('invalidatePersonItems：清除演员作品缓存后重新请求', () async {
+        when(mockRepo.getPersonItems(
+          'person-1',
+          limit: 30,
+          offset: 0,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testPersonItems);
+
+        await cachedRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+
+        cachedRepo.invalidatePersonItems(serverUrl: testServerUrl);
+
+        await cachedRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getPersonItems('person-1', limit: 30, offset: 0, serverUrl: testServerUrl, token: testToken)).called(2);
+      });
+    });
+
+    group('getFavoritePeople', () {
+      final testFavPeopleResult = FavoritesPageResult(
+        movies: [],
+        boxSets: [],
+        people: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+      );
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testFavPeopleResult);
+
+        final result = await cachedRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        expect(result.people.length, 1);
+        expect(result.people.first.id, 'fav-person-1');
+        verify(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testFavPeopleResult);
+
+        await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+        final result = await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        expect(result.people.length, 1);
+        verify(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(1);
+      });
+
+      test('invalidateFavoritePeople：清除收藏人物缓存后重新请求', () async {
+        when(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).thenAnswer((_) async => testFavPeopleResult);
+
+        await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        cachedRepo.invalidateFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        );
+
+        await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
+
+        verify(mockRepo.getFavoritePeople(
+          serverUrl: testServerUrl,
+          token: testToken,
+          userId: 'user-1',
+        )).called(2);
       });
     });
 

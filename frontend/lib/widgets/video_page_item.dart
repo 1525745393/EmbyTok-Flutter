@@ -303,7 +303,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
           'markAsPlayed',
         );
-        // 视频播完标记已看后，失效续播和详情缓存
+        // 视频播完标记已看后，失效续播、详情和 NextUp 缓存
+        // NextUp 列表在看完一集后会变化，必须失效避免下次看到旧数据
         final serverUrl = _authServerUrl();
         final token = _authToken();
         if (serverUrl != null && token != null) {
@@ -312,6 +313,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             ref
                 .read(cacheControllerProvider)
                 .invalidateItemDetail(widget.item.id, serverUrl);
+            ref.read(cacheControllerProvider).invalidateNextUp(serverUrl: serverUrl);
           } catch (_) {}
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);

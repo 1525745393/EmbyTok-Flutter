@@ -92,6 +92,24 @@ class CacheController {
   void invalidateSeries(String seriesId, String serverUrl) {
     _cachedRepo.invalidateSeries(seriesId: seriesId, serverUrl: serverUrl);
   }
+
+  /// 失效演员作品列表缓存
+  ///
+  /// 用于 markAsPlayed/markAsUnplayed 后，确保演员作品页的观看状态及时更新。
+  void invalidatePersonItems(String serverUrl) {
+    _cachedRepo.invalidatePersonItems(serverUrl: serverUrl);
+  }
+
+  /// 失效收藏人物缓存
+  ///
+  /// 用于 toggleFavorite 后，确保收藏人物列表及时更新。
+  void invalidateFavoritePeople(String serverUrl, String token, String? userId) {
+    _cachedRepo.invalidateFavoritePeople(
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
 }
 
 /// 缓存控制器 Provider

@@ -177,6 +177,9 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   }
 
   /// 加载关注列表（仅调用一次，结果存入 favoritedIds）
+  ///
+  /// 通过缓存仓库获取，避免短时间内重复请求；
+  /// toggleFavorite 后会失效缓存，保证数据一致性。
   Future<void> _loadFavorites() async {
     try {
       final auth = _ref.read(authProvider);
@@ -184,7 +187,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       final token = auth.token;
       final userId = auth.user?.id;
       if (serverUrl == null || token == null) return;
-      final result = await _service.getFavoritePeople(
+      final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
+      final result = await cachedRepo.getFavoritePeople(
         serverUrl: serverUrl,
         token: token,
         userId: userId,
@@ -229,6 +233,9 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   // ---- 搜索 ----
 
   /// 搜索演员（300ms 防抖）
+  ///
+  /// 通过缓存仓库获取搜索结果（30s TTL），
+  /// 相同搜索词短时间内不重复请求。
   void searchActors(String query) {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
@@ -250,7 +257,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
           state = state.copyWith(isSearching: false);
           return;
         }
-        final resp = await _service.getPeople(
+        final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
+        final resp = await cachedRepo.getPeople(
           limit: 50,
           startIndex: 0,
           personTypes: _personTypesParam(),
@@ -314,12 +322,11 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         userId: userId,
       );
       // 失效收藏缓存（收藏人物列表已变）
+      // 同时失效 getFavoritePeople 缓存，避免下次进入页面看到旧数据
       try {
-        _ref.read(cacheControllerProvider).invalidateFavorites(
-              serverUrl,
-              token,
-              userId,
-            );
+        final cacheController = _ref.read(cacheControllerProvider);
+        cacheController.invalidateFavorites(serverUrl, token, userId);
+        cacheController.invalidateFavoritePeople(serverUrl, token, userId);
       } catch (_) {}
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);

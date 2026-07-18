@@ -50,8 +50,13 @@ final similarItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  return service.getSimilarItems(itemId);
+  // 通过缓存仓库获取，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  return cachedRepo.getSimilarItems(
+    itemId,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
 });
 
 // ============================
@@ -61,8 +66,12 @@ final similarItemsProvider =
 final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getResumeItems();
+  // 通过缓存仓库获取，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  final result = await cachedRepo.getResumeItems(
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
   return result.items;
 });
 

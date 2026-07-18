@@ -31,6 +31,11 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<List<MediaItem>> _seasonsCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _episodesCache;
   final MemoryCache<List<MediaItem>> _similarItemsCache;
+  // 演员相关缓存
+  final MemoryCache<PaginatedResponse<Person>> _peopleCache;
+  final MemoryCache<MediaItem?> _personDetailCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _personItemsCache;
+  final MemoryCache<FavoritesPageResult> _favoritePeopleCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -45,7 +50,11 @@ class CachedMediaRepository implements MediaRepository {
         _nextUpCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
         _seasonsCache = MemoryCache<List<MediaItem>>(maxSize: 50),
         _episodesCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
-        _similarItemsCache = MemoryCache<List<MediaItem>>(maxSize: 100);
+        _similarItemsCache = MemoryCache<List<MediaItem>>(maxSize: 100),
+        _peopleCache = MemoryCache<PaginatedResponse<Person>>(maxSize: 50),
+        _personDetailCache = MemoryCache<MediaItem?>(maxSize: 200),
+        _personItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
+        _favoritePeopleCache = MemoryCache<FavoritesPageResult>(maxSize: 20);
 
   // ============================
   // 统计信息
@@ -71,6 +80,10 @@ class CachedMediaRepository implements MediaRepository {
     _seasonsCache.resetStats();
     _episodesCache.resetStats();
     _similarItemsCache.resetStats();
+    _peopleCache.resetStats();
+    _personDetailCache.resetStats();
+    _personItemsCache.resetStats();
+    _favoritePeopleCache.resetStats();
   }
 
   /// 辅助：对所有缓存执行统计求和
@@ -83,7 +96,11 @@ class CachedMediaRepository implements MediaRepository {
         selector(_nextUpCache) +
         selector(_seasonsCache) +
         selector(_episodesCache) +
-        selector(_similarItemsCache);
+        selector(_similarItemsCache) +
+        selector(_peopleCache) +
+        selector(_personDetailCache) +
+        selector(_personItemsCache) +
+        selector(_favoritePeopleCache);
   }
 
   // ============================
@@ -139,6 +156,44 @@ class CachedMediaRepository implements MediaRepository {
   /// 生成 getSimilarItems 的缓存键
   String _similarItemsKey(String itemId, int limit, String serverUrl, String token) {
     return 'similar:$serverUrl:$token:$itemId:$limit';
+  }
+
+  /// 生成 getPeople 的缓存键
+  ///
+  /// searchTerm 为空时表示列表浏览，使用中 TTL；
+  /// 非空时表示搜索，使用短 TTL（由调用方控制 ttl 参数）。
+  String _peopleKey(
+    int limit,
+    int startIndex,
+    List<String>? personTypes,
+    String? searchTerm,
+    String serverUrl,
+    String token,
+  ) {
+    return 'people:$serverUrl:$token:$limit:$startIndex:'
+        '${personTypes != null ? personTypes.join(',') : ''}:'
+        '${searchTerm ?? ''}';
+  }
+
+  /// 生成 getPersonDetail 的缓存键
+  String _personDetailKey(String personId, String serverUrl, String token) {
+    return 'person:$serverUrl:$token:$personId';
+  }
+
+  /// 生成 getPersonItems 的缓存键
+  String _personItemsKey(
+    String personId,
+    int limit,
+    int offset,
+    String serverUrl,
+    String token,
+  ) {
+    return 'person_items:$serverUrl:$token:$personId:$limit:$offset';
+  }
+
+  /// 生成 getFavoritePeople 的缓存键
+  String _favoritePeopleKey(String serverUrl, String token, String? userId) {
+    return 'fav_people:$serverUrl:$token:${userId ?? ''}';
   }
 
   // ============================
@@ -364,6 +419,114 @@ class CachedMediaRepository implements MediaRepository {
     return result;
   }
 
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int limit = 50,
+    int startIndex = 0,
+    List<String>? personTypes,
+    String? searchTerm,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _peopleKey(limit, startIndex, personTypes, searchTerm, serverUrl, token);
+    final cached = _peopleCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getPeople(
+      limit: limit,
+      startIndex: startIndex,
+      personTypes: personTypes,
+      searchTerm: searchTerm,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 搜索场景使用短 TTL，避免新演员上架后看不到；
+    // 列表浏览场景使用中 TTL（演员列表变化不频繁）
+    final ttl = (searchTerm != null && searchTerm.isNotEmpty)
+        ? const Duration(seconds: 30)
+        : _ttl;
+    _peopleCache.set(key, result, ttl: ttl);
+    return result;
+  }
+
+  @override
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    final key = _personDetailKey(personId, serverUrl, token);
+    final cached = _personDetailCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getPersonDetail(
+      personId,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    // 演员详情极少变化，使用长 TTL
+    _personDetailCache.set(key, result, ttl: const Duration(minutes: 30));
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _personItemsKey(personId, limit, offset, serverUrl, token);
+    final cached = _personItemsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getPersonItems(
+      personId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 演员作品列表使用中 TTL，标记已看后会失效
+    _personItemsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    final key = _favoritePeopleKey(serverUrl, token, userId);
+    final cached = _favoritePeopleCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getFavoritePeople(
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    // 收藏人物使用中 TTL，切换收藏后失效
+    _favoritePeopleCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
   // ============================
   // 缓存失效操作
   // ============================
@@ -426,6 +589,26 @@ class CachedMediaRepository implements MediaRepository {
     _episodesCache.deleteWherePrefix('episodes:$serverUrl:');
   }
 
+  /// 失效演员作品列表缓存
+  ///
+  /// 当用户标记作品已看/未看时调用，因为该演员的作品观看状态会变。
+  /// 会清除该 serverUrl 下所有演员的作品列表缓存（前缀匹配）。
+  void invalidatePersonItems({required String serverUrl}) {
+    _personItemsCache.deleteWherePrefix('person_items:$serverUrl:');
+  }
+
+  /// 失效收藏人物缓存
+  ///
+  /// toggleFavorite 后调用，避免显示旧的收藏列表。
+  void invalidateFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    final key = _favoritePeopleKey(serverUrl, token, userId);
+    _favoritePeopleCache.delete(key);
+  }
+
   /// 清除所有缓存
   void clearAll() {
     _libraryItemsCache.clear();
@@ -437,5 +620,9 @@ class CachedMediaRepository implements MediaRepository {
     _seasonsCache.clear();
     _episodesCache.clear();
     _similarItemsCache.clear();
+    _peopleCache.clear();
+    _personDetailCache.clear();
+    _personItemsCache.clear();
+    _favoritePeopleCache.clear();
   }
 }

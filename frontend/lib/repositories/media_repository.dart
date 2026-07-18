@@ -145,4 +145,47 @@ abstract class MediaRepository {
     required String serverUrl,
     required String token,
   });
+
+  /// 获取人员（演员/导演）列表
+  ///
+  /// 支持按类型和搜索词过滤。人员列表变化不频繁，适合中 TTL 缓存。
+  /// 搜索场景应使用短 TTL，列表浏览场景可使用默认中 TTL。
+  Future<PaginatedResponse<Person>> getPeople({
+    int limit = 50,
+    int startIndex = 0,
+    List<String>? personTypes,
+    String? searchTerm,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取单个演员的详情（包含 overview）
+  ///
+  /// 演员详情极少变化，适合长 TTL 缓存。
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
+
+  /// 获取某演员出演的作品列表
+  ///
+  /// 当用户标记作品已看时数据会变，使用中 TTL 缓存，并在 markAsPlayed 后失效。
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取收藏的人物列表
+  ///
+  /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。
+  Future<FavoritesPageResult> getFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
 }

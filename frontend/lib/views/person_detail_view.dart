@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
 import '../utils/image_cache_manager.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
@@ -73,19 +72,19 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
       final serverUrl = auth.embyServerUrl;
       final token = auth.token;
       final userId = auth.user?.id;
 
       // 作品列表优先加载：先显示作品，再等详情
       // 避免 getPersonDetail 超时/失败阻塞整个页面
-      final worksFuture = service.getPersonItems(
+      final worksFuture = cachedRepo.getPersonItems(
         widget.person.id,
-        serverUrl: serverUrl,
-        token: token,
+        serverUrl: serverUrl!,
+        token: token!,
       );
-      final detailFuture = service.getPersonDetail(
+      final detailFuture = cachedRepo.getPersonDetail(
         widget.person.id,
         serverUrl: serverUrl,
         token: token,
@@ -133,11 +132,11 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     setState(() => _isLoadingMore = true);
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final response = await service.getPersonItems(
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final response = await cachedRepo.getPersonItems(
         widget.person.id,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
         limit: 30,
         offset: _works.length,
       );
