@@ -95,4 +95,44 @@ abstract class MediaRepository {
     int limit = 50,
     int offset = 0,
   });
+
+  /// 获取媒体库列表（用户可用的 Views）
+  ///
+  /// 数据极少变更，适合长 TTL 缓存。
+  Future<List<Library>> getLibraries({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
+
+  /// 获取「下一步观看」列表
+  ///
+  /// 看完一集后数据会变，适合短 TTL 缓存。
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    required String serverUrl,
+    required String token,
+    int limit = 20,
+    String? seriesId,
+  });
+
+  /// 获取剧集的季列表
+  ///
+  /// 季列表很少变化，适合中 TTL 缓存。
+  Future<List<MediaItem>> getSeasons(
+    String seriesId, {
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取剧集的集列表
+  ///
+  /// 集列表很少变化，适合中 TTL 缓存。
+  Future<PaginatedResponse<MediaItem>> getEpisodes(
+    String seriesId, {
+    String? seasonId,
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  });
 }

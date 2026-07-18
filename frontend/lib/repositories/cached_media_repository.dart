@@ -26,6 +26,10 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<FavoritesPageResult> _favoritesCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _resumeCache;
   final MemoryCache<MediaItem> _itemDetailCache;
+  final MemoryCache<List<Library>> _librariesCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _nextUpCache;
+  final MemoryCache<List<MediaItem>> _seasonsCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _episodesCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -35,7 +39,11 @@ class CachedMediaRepository implements MediaRepository {
         _libraryItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: maxCacheEntries),
         _favoritesCache = MemoryCache<FavoritesPageResult>(maxSize: 20),
         _resumeCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
-        _itemDetailCache = MemoryCache<MediaItem>(maxSize: 100);
+        _itemDetailCache = MemoryCache<MediaItem>(maxSize: 100),
+        _librariesCache = MemoryCache<List<Library>>(maxSize: 10),
+        _nextUpCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
+        _seasonsCache = MemoryCache<List<MediaItem>>(maxSize: 50),
+        _episodesCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50);
 
   // ============================
   // 统计信息
@@ -43,14 +51,10 @@ class CachedMediaRepository implements MediaRepository {
 
   /// 聚合统计信息（所有缓存的统计总和）
   CacheStats get stats {
-    final libStats = _libraryItemsCache.stats;
-    final favStats = _favoritesCache.stats;
-    final resumeStats = _resumeCache.stats;
-    final detailStats = _itemDetailCache.stats;
     return CacheStats(
-      hitCount: libStats.hitCount + favStats.hitCount + resumeStats.hitCount + detailStats.hitCount,
-      missCount: libStats.missCount + favStats.missCount + resumeStats.missCount + detailStats.missCount,
-      evictionCount: libStats.evictionCount + favStats.evictionCount + resumeStats.evictionCount + detailStats.evictionCount,
+      hitCount: _sum((c) => c.stats.hitCount),
+      missCount: _sum((c) => c.stats.missCount),
+      evictionCount: _sum((c) => c.stats.evictionCount),
     );
   }
 
@@ -60,6 +64,22 @@ class CachedMediaRepository implements MediaRepository {
     _favoritesCache.resetStats();
     _resumeCache.resetStats();
     _itemDetailCache.resetStats();
+    _librariesCache.resetStats();
+    _nextUpCache.resetStats();
+    _seasonsCache.resetStats();
+    _episodesCache.resetStats();
+  }
+
+  /// 辅助：对所有缓存执行统计求和
+  int _sum(int Function(MemoryCache) selector) {
+    return selector(_libraryItemsCache) +
+        selector(_favoritesCache) +
+        selector(_resumeCache) +
+        selector(_itemDetailCache) +
+        selector(_librariesCache) +
+        selector(_nextUpCache) +
+        selector(_seasonsCache) +
+        selector(_episodesCache);
   }
 
   // ============================
@@ -90,6 +110,26 @@ class CachedMediaRepository implements MediaRepository {
   /// 生成 getItemDetail 的缓存键
   String _itemDetailKey(String itemId, String serverUrl, String token) {
     return 'detail:$serverUrl:$token:$itemId';
+  }
+
+  /// 生成 getLibraries 的缓存键
+  String _librariesKey(String serverUrl, String token, String? userId) {
+    return 'libs:$serverUrl:$token:${userId ?? ''}';
+  }
+
+  /// 生成 getNextUp 的缓存键
+  String _nextUpKey(String serverUrl, String token, int limit, String? seriesId) {
+    return 'nextup:$serverUrl:$token:$limit:${seriesId ?? ''}';
+  }
+
+  /// 生成 getSeasons 的缓存键
+  String _seasonsKey(String seriesId, String serverUrl, String token) {
+    return 'seasons:$serverUrl:$token:$seriesId';
+  }
+
+  /// 生成 getEpisodes 的缓存键
+  String _episodesKey(String seriesId, String? seasonId, int limit, int offset, String serverUrl, String token) {
+    return 'episodes:$serverUrl:$token:$seriesId:${seasonId ?? ''}:$limit:$offset';
   }
 
   // ============================
@@ -190,6 +230,106 @@ class CachedMediaRepository implements MediaRepository {
     return result;
   }
 
+  @override
+  Future<List<Library>> getLibraries({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    final key = _librariesKey(serverUrl, token, userId);
+    final cached = _librariesCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getLibraries(
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    // 媒体库列表极少变更，使用更长的 TTL
+    _librariesCache.set(key, result, ttl: const Duration(minutes: 30));
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    required String serverUrl,
+    required String token,
+    int limit = 20,
+    String? seriesId,
+  }) async {
+    final key = _nextUpKey(serverUrl, token, limit, seriesId);
+    final cached = _nextUpCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getNextUp(
+      serverUrl: serverUrl,
+      token: token,
+      limit: limit,
+      seriesId: seriesId,
+    );
+
+    // NextUp 看完一集就变，使用短 TTL
+    _nextUpCache.set(key, result, ttl: const Duration(minutes: 1));
+    return result;
+  }
+
+  @override
+  Future<List<MediaItem>> getSeasons(
+    String seriesId, {
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _seasonsKey(seriesId, serverUrl, token);
+    final cached = _seasonsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getSeasons(
+      seriesId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 季列表很少变化，使用中等 TTL
+    _seasonsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getEpisodes(
+    String seriesId, {
+    String? seasonId,
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _episodesKey(seriesId, seasonId, limit, offset, serverUrl, token);
+    final cached = _episodesCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getEpisodes(
+      seriesId,
+      seasonId: seasonId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 集列表很少变化，使用中等 TTL
+    _episodesCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
   // ============================
   // 缓存失效操作
   // ============================
@@ -234,11 +374,33 @@ class CachedMediaRepository implements MediaRepository {
     _itemDetailCache.deleteWherePrefix('detail:$serverUrl:');
   }
 
+  /// 失效 NextUp 缓存
+  ///
+  /// 标记已观看后调用，因为 NextUp 列表会变化。
+  void invalidateNextUp({required String serverUrl}) {
+    _nextUpCache.deleteWherePrefix('nextup:$serverUrl:');
+  }
+
+  /// 失效剧集相关缓存（季 + 集）
+  ///
+  /// 当剧集结构变化时调用。
+  void invalidateSeries({
+    required String seriesId,
+    required String serverUrl,
+  }) {
+    _seasonsCache.deleteWherePrefix('seasons:$serverUrl:');
+    _episodesCache.deleteWherePrefix('episodes:$serverUrl:');
+  }
+
   /// 清除所有缓存
   void clearAll() {
     _libraryItemsCache.clear();
     _favoritesCache.clear();
     _resumeCache.clear();
     _itemDetailCache.clear();
+    _librariesCache.clear();
+    _nextUpCache.clear();
+    _seasonsCache.clear();
+    _episodesCache.clear();
   }
 }

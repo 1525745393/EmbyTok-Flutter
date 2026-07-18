@@ -82,6 +82,16 @@ class CacheController {
       serverUrl: serverUrl,
     );
   }
+
+  /// 失效 NextUp 缓存
+  void invalidateNextUp(String serverUrl) {
+    _cachedRepo.invalidateNextUp(serverUrl: serverUrl);
+  }
+
+  /// 失效剧集相关缓存（季 + 集）
+  void invalidateSeries(String seriesId, String serverUrl) {
+    _cachedRepo.invalidateSeries(seriesId: seriesId, serverUrl: serverUrl);
+  }
 }
 
 /// 缓存控制器 Provider

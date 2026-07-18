@@ -73,12 +73,11 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
 final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = EmbytokService();
-  final embyServerUrl = auth.embyServerUrl;
-  final token = auth.token;
-  final result = await service.getNextUp(
-    serverUrl: embyServerUrl,
-    token: token,
+  // 通过缓存仓库获取，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  final result = await cachedRepo.getNextUp(
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
   );
   return result.items;
 });
@@ -139,8 +138,13 @@ final seasonsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, seriesId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  return service.getSeasons(seriesId);
+  // 通过缓存仓库获取，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  return cachedRepo.getSeasons(
+    seriesId,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
+  );
 });
 
 // ============================
@@ -168,10 +172,13 @@ final episodesProvider =
     FutureProvider.family<List<MediaItem>, EpisodesQuery>((ref, query) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
-  final service = _authService(ref, auth);
-  final result = await service.getEpisodes(
+  // 通过缓存仓库获取，减少重复 API 请求
+  final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+  final result = await cachedRepo.getEpisodes(
     query.seriesId,
     seasonId: query.seasonId,
+    serverUrl: auth.embyServerUrl!,
+    token: auth.token!,
   );
   return result.items;
 });
@@ -199,7 +206,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
   final service = _authService(ref, auth);
   await service.markAsPlayed(itemId);
 
-  // 失效相关缓存：播放状态变化影响续播列表和详情数据
+  // 失效相关缓存：播放状态变化影响续播、详情、NextUp 数据
   final serverUrl = auth.embyServerUrl;
   final token = auth.token;
   if (serverUrl != null && token != null) {
@@ -207,6 +214,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
       final cacheController = ref.read(cacheControllerProvider);
       cacheController.invalidateResume(serverUrl, token);
       cacheController.invalidateItemDetail(itemId, serverUrl);
+      cacheController.invalidateNextUp(serverUrl);
     } catch (_) {}
   }
 
@@ -230,6 +238,7 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
       final cacheController = ref.read(cacheControllerProvider);
       cacheController.invalidateResume(serverUrl, token);
       cacheController.invalidateItemDetail(itemId, serverUrl);
+      cacheController.invalidateNextUp(serverUrl);
     } catch (_) {}
   }
 

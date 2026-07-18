@@ -84,4 +84,64 @@ class EmbyRepository implements MediaRepository {
       token: token,
     );
   }
+
+  @override
+  Future<List<Library>> getLibraries({
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getLibraries(
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    required String serverUrl,
+    required String token,
+    int limit = 20,
+    String? seriesId,
+  }) {
+    return _service.getNextUp(
+      limit: limit,
+      seriesId: seriesId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<List<MediaItem>> getSeasons(
+    String seriesId, {
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getSeasons(
+      seriesId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getEpisodes(
+    String seriesId, {
+    String? seasonId,
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getEpisodes(
+      seriesId,
+      seasonId: seasonId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
 }

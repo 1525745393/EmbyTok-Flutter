@@ -9,17 +9,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 
 // ==================== 基础数据 Provider ====================
 
 /// 媒体库列表：从 Emby 服务器获取全部媒体库（电影 / 剧集 / 音乐等）
 ///
 /// 登录后自动加载，未登录返回空列表。
+/// 通过缓存仓库获取，媒体库列表极少变更，缓存 TTL 30 分钟。
 final libraryListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   final serverUrl = auth.embyServerUrl;
@@ -29,10 +30,10 @@ final libraryListProvider = FutureProvider<List<Library>>((ref) async {
     return const <Library>[];
   }
 
-  final service = EmbytokService();
   try {
     AppLogger.info('开始加载媒体库列表');
-    final libraries = await service.getLibraries(
+    final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
+    final libraries = await cachedRepo.getLibraries(
       serverUrl: serverUrl,
       token: token,
       userId: auth.user?.id,
