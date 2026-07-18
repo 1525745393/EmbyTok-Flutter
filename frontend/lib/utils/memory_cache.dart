@@ -1,10 +1,55 @@
-// 内存缓存管理器：LRU 淘汰策略 + TTL 过期支持
+// 内存缓存管理器：LRU 淘汰策略 + TTL 过期支持 + 统计能力
 //
 // 设计目标：
 // 1. 泛型支持，可缓存任意类型数据
 // 2. LRU（最近最少使用）淘汰策略，限制最大内存占用
 // 3. 支持 TTL（存活时间），自动过期
 // 4. 纯内存实现，不依赖外部存储，速度快
+// 5. 内置统计：命中率、淘汰数等，便于调优
+
+/// 缓存统计信息
+///
+/// 记录缓存的运行时指标，用于性能分析和调优。
+/// 统计数据是累计的，调用 [MemoryCache.resetStats] 可重置。
+class CacheStats {
+  /// 命中次数
+  final int hitCount;
+
+  /// 未命中次数
+  final int missCount;
+
+  /// 被淘汰的条目数（LRU 淘汰）
+  final int evictionCount;
+
+  const CacheStats({
+    this.hitCount = 0,
+    this.missCount = 0,
+    this.evictionCount = 0,
+  });
+
+  /// 总请求数（命中 + 未命中）
+  int get totalRequests => hitCount + missCount;
+
+  /// 命中率（0.0 ~ 1.0）
+  ///
+  /// 无请求时返回 0.0。
+  double get hitRate {
+    if (totalRequests == 0) return 0.0;
+    return hitCount / totalRequests;
+  }
+
+  CacheStats copyWith({
+    int? hitCount,
+    int? missCount,
+    int? evictionCount,
+  }) {
+    return CacheStats(
+      hitCount: hitCount ?? this.hitCount,
+      missCount: missCount ?? this.missCount,
+      evictionCount: evictionCount ?? this.evictionCount,
+    );
+  }
+}
 
 /// 单个缓存条目
 class _CacheEntry<T> {
@@ -26,6 +71,8 @@ class _CacheEntry<T> {
 /// 使用 LRU（最近最少使用）策略管理缓存条目，
 /// 当缓存数量超过 [maxSize] 时自动淘汰最久未访问的条目。
 /// 支持可选的 TTL（存活时间），过期条目自动失效。
+///
+/// 内置统计功能，可通过 [stats] 获取命中率、淘汰数等指标。
 class MemoryCache<T> {
   final int maxSize;
 
@@ -34,7 +81,33 @@ class MemoryCache<T> {
   /// 按访问顺序排列的 key 列表（最近使用的在末尾）
   final List<String> _accessOrder = <String>[];
 
+  CacheStats _stats = const CacheStats();
+
   MemoryCache({required this.maxSize});
+
+  /// 当前缓存统计信息
+  CacheStats get stats => _stats;
+
+  /// 重置统计数据
+  void resetStats() {
+    _stats = const CacheStats();
+  }
+
+  /// 记录一次命中
+  void _recordHit() {
+    _stats = _stats.copyWith(hitCount: _stats.hitCount + 1);
+  }
+
+  /// 记录一次未命中
+  void _recordMiss() {
+    _stats = _stats.copyWith(missCount: _stats.missCount + 1);
+  }
+
+  /// 记录一次淘汰
+  void _recordEviction(int count) {
+    if (count <= 0) return;
+    _stats = _stats.copyWith(evictionCount: _stats.evictionCount + count);
+  }
 
   /// 获取缓存值
   ///
@@ -42,13 +115,19 @@ class MemoryCache<T> {
   /// 访问时会刷新该条目的 LRU 顺序。
   T? get(String key) {
     final entry = _cache[key];
-    if (entry == null) return null;
+    if (entry == null) {
+      _recordMiss();
+      return null;
+    }
 
     // 已过期：移除并返回 null
     if (entry.isExpired) {
       _removeEntry(key);
+      _recordMiss();
       return null;
     }
+
+    _recordHit();
 
     // 刷新访问顺序：移到末尾（最近使用）
     _accessOrder.remove(key);
@@ -77,9 +156,14 @@ class MemoryCache<T> {
     _cleanExpired();
 
     // 如果还是满了，淘汰最久未使用的
+    int evicted = 0;
     while (_cache.length >= maxSize && _accessOrder.isNotEmpty) {
       final oldestKey = _accessOrder.removeAt(0);
       _cache.remove(oldestKey);
+      evicted++;
+    }
+    if (evicted > 0) {
+      _recordEviction(evicted);
     }
 
     // 容量检查（可能 maxSize=0 或全部过期后仍不满足）
@@ -121,11 +205,16 @@ class MemoryCache<T> {
   /// 检查 key 是否存在（未过期）
   bool containsKey(String key) {
     final entry = _cache[key];
-    if (entry == null) return false;
-    if (entry.isExpired) {
-      _removeEntry(key);
+    if (entry == null) {
+      _recordMiss();
       return false;
     }
+    if (entry.isExpired) {
+      _removeEntry(key);
+      _recordMiss();
+      return false;
+    }
+    _recordHit();
     return true;
   }
 

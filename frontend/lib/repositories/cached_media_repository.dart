@@ -36,6 +36,29 @@ class CachedMediaRepository implements MediaRepository {
         _resumeCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20);
 
   // ============================
+  // 统计信息
+  // ============================
+
+  /// 聚合统计信息（所有缓存的统计总和）
+  CacheStats get stats {
+    final libStats = _libraryItemsCache.stats;
+    final favStats = _favoritesCache.stats;
+    final resumeStats = _resumeCache.stats;
+    return CacheStats(
+      hitCount: libStats.hitCount + favStats.hitCount + resumeStats.hitCount,
+      missCount: libStats.missCount + favStats.missCount + resumeStats.missCount,
+      evictionCount: libStats.evictionCount + favStats.evictionCount + resumeStats.evictionCount,
+    );
+  }
+
+  /// 重置所有缓存的统计数据
+  void resetStats() {
+    _libraryItemsCache.resetStats();
+    _favoritesCache.resetStats();
+    _resumeCache.resetStats();
+  }
+
+  // ============================
   // 缓存键生成
   // ============================
 

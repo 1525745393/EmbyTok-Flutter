@@ -9,6 +9,9 @@
 export 'auth_provider.dart';
 export 'library_provider.dart';
 
+// ---- 缓存 ----
+export 'cache_providers.dart';
+
 // ---- 列表与播放控制 ----
 export 'video_list_provider.dart';
 export 'video_playback_controller.dart';

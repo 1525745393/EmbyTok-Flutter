@@ -140,5 +140,236 @@ void main() {
       expect(cache.get('a'), isNull);
       expect(cache.length, 0);
     });
+
+    test('deleteWherePrefix：删除所有匹配前缀的条目', () {
+      cache.set('user:1', 'Alice');
+      cache.set('user:2', 'Bob');
+      cache.set('movie:1', 'Inception');
+      cache.set('movie:2', 'Avatar');
+
+      cache.deleteWherePrefix('user:');
+
+      expect(cache.get('user:1'), isNull);
+      expect(cache.get('user:2'), isNull);
+      expect(cache.get('movie:1'), 'Inception');
+      expect(cache.get('movie:2'), 'Avatar');
+      expect(cache.length, 2);
+    });
+
+    test('deleteWherePrefix：无前缀匹配时不删除任何内容', () {
+      cache.set('a', '1');
+      cache.set('b', '2');
+
+      cache.deleteWherePrefix('nonexistent:');
+
+      expect(cache.length, 2);
+      expect(cache.get('a'), '1');
+      expect(cache.get('b'), '2');
+    });
+
+    test('deleteWherePrefix：空前缀删除所有条目', () {
+      cache.set('a', '1');
+      cache.set('b', '2');
+      cache.set('c', '3');
+
+      cache.deleteWherePrefix('');
+
+      expect(cache.length, 0);
+    });
+
+    test('containsKey：已过期的条目返回 false 并被移除', () async {
+      cache.set('key1', 'value1', ttl: const Duration(milliseconds: 50));
+      expect(cache.containsKey('key1'), true);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(cache.containsKey('key1'), false);
+      expect(cache.length, 0);
+    });
+
+    test('LRU：连续访问不会导致条目重复', () {
+      cache.set('a', '1');
+      cache.set('b', '2');
+      cache.set('c', '3');
+
+      // 多次访问同一个 key
+      cache.get('a');
+      cache.get('a');
+      cache.get('a');
+
+      // 插入 d，应淘汰 b（最久未使用）
+      cache.set('d', '4');
+
+      expect(cache.get('a'), '1');
+      expect(cache.get('b'), isNull);
+      expect(cache.get('c'), '3');
+      expect(cache.get('d'), '4');
+      expect(cache.length, 3);
+    });
+
+    test('maxSize 为 1 时正常工作', () {
+      cache = MemoryCache<String>(maxSize: 1);
+
+      cache.set('a', '1');
+      expect(cache.get('a'), '1');
+      expect(cache.length, 1);
+
+      cache.set('b', '2');
+      expect(cache.get('a'), isNull);
+      expect(cache.get('b'), '2');
+      expect(cache.length, 1);
+    });
+
+    test('set 相同 key 不增加缓存数量', () {
+      cache.set('a', '1');
+      cache.set('a', '2');
+      cache.set('a', '3');
+
+      expect(cache.length, 1);
+      expect(cache.get('a'), '3');
+    });
+
+    test('TTL：无 TTL 的条目永不过期', () async {
+      cache.set('key1', 'value1'); // 无 TTL
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      expect(cache.get('key1'), 'value1');
+    });
+
+    test('TTL：过期后再 set 可以重新缓存', () async {
+      cache.set('key1', 'value1', ttl: const Duration(milliseconds: 50));
+
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(cache.get('key1'), isNull);
+
+      cache.set('key1', 'value2', ttl: const Duration(milliseconds: 50));
+      expect(cache.get('key1'), 'value2');
+    });
+
+    group('缓存统计', () {
+      setUp(() {
+        cache = MemoryCache<String>(maxSize: 10);
+      });
+
+      test('初始状态：命中和未命中均为 0', () {
+        final stats = cache.stats;
+        expect(stats.hitCount, 0);
+        expect(stats.missCount, 0);
+        expect(stats.hitRate, 0.0);
+      });
+
+      test('get 命中：hitCount 递增', () {
+        cache.set('a', '1');
+
+        cache.get('a'); // 命中
+        cache.get('a'); // 再次命中
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 2);
+        expect(stats.missCount, 0);
+        expect(stats.hitRate, 1.0);
+      });
+
+      test('get 未命中：missCount 递增', () {
+        cache.get('nonexistent'); // 未命中
+        cache.get('nonexistent2'); // 再次未命中
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 0);
+        expect(stats.missCount, 2);
+        expect(stats.hitRate, 0.0);
+      });
+
+      test('混合命中和未命中：命中率正确计算', () {
+        cache.set('a', '1');
+        cache.set('b', '2');
+
+        cache.get('a'); // 命中
+        cache.get('missing'); // 未命中
+        cache.get('b'); // 命中
+        cache.get('missing2'); // 未命中
+        cache.get('a'); // 命中
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 3);
+        expect(stats.missCount, 2);
+        expect(stats.totalRequests, 5);
+        // 3/5 = 0.6
+        expect(stats.hitRate, closeTo(0.6, 0.001));
+      });
+
+      test('TTL 过期的 get 算作未命中', () async {
+        cache.set('key1', 'value1', ttl: const Duration(milliseconds: 50));
+
+        cache.get('key1'); // 命中
+
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        cache.get('key1'); // 已过期，算作未命中
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 1);
+        expect(stats.missCount, 1);
+      });
+
+      test('resetStats：重置统计数据', () {
+        cache.set('a', '1');
+        cache.get('a');
+        cache.get('missing');
+
+        cache.resetStats();
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 0);
+        expect(stats.missCount, 0);
+        expect(stats.hitRate, 0.0);
+      });
+
+      test('containsKey 命中/未命中也计入统计', () {
+        cache.set('a', '1');
+
+        cache.containsKey('a'); // 命中
+        cache.containsKey('missing'); // 未命中
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 1);
+        expect(stats.missCount, 1);
+      });
+
+      test('evictionCount：记录被淘汰的条目数', () {
+        cache = MemoryCache<String>(maxSize: 2);
+
+        cache.set('a', '1');
+        cache.set('b', '2');
+        cache.set('c', '3'); // 淘汰 a
+
+        final stats = cache.stats;
+        expect(stats.evictionCount, 1);
+      });
+
+      test('多次淘汰：evictionCount 累计', () {
+        cache = MemoryCache<String>(maxSize: 2);
+
+        cache.set('a', '1');
+        cache.set('b', '2');
+        cache.set('c', '3'); // 淘汰 a
+        cache.set('d', '4'); // 淘汰 b
+
+        final stats = cache.stats;
+        expect(stats.evictionCount, 2);
+      });
+
+      test('clear：不重置统计（统计是累计的）', () {
+        cache.set('a', '1');
+        cache.get('a');
+
+        cache.clear();
+
+        final stats = cache.stats;
+        expect(stats.hitCount, 1); // 统计保留
+        expect(cache.length, 0); // 数据清空
+      });
+    });
   });
 }
