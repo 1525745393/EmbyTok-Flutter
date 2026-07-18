@@ -1,3 +1,16 @@
+# [1.153.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.152.0...v1.153.0) (2026-07-18)
+
+
+### Bug Fixes
+
+* **cache:** 修复 invalidateNextUp 命名参数错误 ([1bb1419](https://github.com/1525745393/EmbyTok-Flutter/commit/1bb1419bd28d8f3b3cb4c771df30e38ac1f98eef))
+
+
+### Features
+
+* **cache:** 修复 markAsPlayed 失效 NextUp，扩展演员相关缓存 ([2cdde3c](https://github.com/1525745393/EmbyTok-Flutter/commit/2cdde3cfd41b17199d07d5498b44d89430d7f981))
+* **cache:** 扩展缓存覆盖至合集子项/推荐/历史，完善失效链 ([e77ed16](https://github.com/1525745393/EmbyTok-Flutter/commit/e77ed16a038e21c50620904b4fd1a419299c4501))
+
 # [1.152.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.151.0...v1.152.0) (2026-07-18)
 
 
