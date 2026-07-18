@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import '../widgets/video_page_item.dart';
@@ -30,10 +29,6 @@ class ItemDetailView extends ConsumerStatefulWidget {
 }
 
 class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
-  // 复用 EmbytokService 实例，避免每次调用方法都创建新实例
-  // EmbytokService 内部可能持有 HTTP client，频繁创建会浪费资源
-  late final EmbytokService _service;
-
   MediaItem? _item;
   bool _loading = true;
   String? _error;
@@ -51,12 +46,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   @override
   void initState() {
     super.initState();
-    _service = EmbytokService();
     _item = widget.initialItem;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadDetail());
   }
 
-  // 加载详情：若已有 initialItem 则只补全剧集信息，否则请求详情
+  // 加载详情：若已有 initialItem 则只补全剧集信息，否则通过缓存仓库请求详情
   Future<void> _loadDetail() async {
     setState(() {
       _loading = true;
@@ -69,10 +63,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       if (currentItem != null && currentItem.id == widget.itemId) {
         item = currentItem;
       } else {
-        item = await _service.getItemDetail(
+        // 通过缓存仓库获取，减少重复 API 请求
+        final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+        item = await cachedRepo.getItemDetail(
           widget.itemId,
-          serverUrl: auth.embyServerUrl,
-          token: auth.token,
+          serverUrl: auth.embyServerUrl!,
+          token: auth.token!,
           userId: auth.user?.id,
         );
       }
@@ -97,14 +93,15 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     }
   }
 
-  // 加载季列表
+  // 加载季列表 - 通过缓存仓库复用中 TTL 缓存
   Future<void> _loadSeasons(String seriesId) async {
     try {
       final auth = ref.read(authProvider);
-      final seasons = await _service.getSeasons(
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final seasons = await cachedRepo.getSeasons(
         seriesId,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
       );
       if (!mounted) return;
       setState(() {
@@ -125,18 +122,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     }
   }
 
-  // 加载指定季的集数列表
+  // 加载指定季的集数列表 - 通过缓存仓库复用中 TTL 缓存
   Future<void> _loadEpisodes(String seriesId, String seasonId) async {
     setState(() {
       _loadingEpisodes = true;
     });
     try {
       final auth = ref.read(authProvider);
-      final resp = await _service.getEpisodes(
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final resp = await cachedRepo.getEpisodes(
         seriesId,
         seasonId: seasonId,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
       );
       if (!mounted) return;
       setState(() {
@@ -153,18 +151,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     }
   }
 
-  // 加载相似推荐
+  // 加载相似推荐 - 通过缓存仓库复用中 TTL 缓存，避免重复请求
   Future<void> _loadSimilarItems(String itemId) async {
     setState(() {
       _loadingSimilar = true;
     });
     try {
       final auth = ref.read(authProvider);
-      final items = await _service.getSimilarItems(
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final items = await cachedRepo.getSimilarItems(
         itemId,
         limit: 12,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
       );
       if (!mounted) return;
       setState(() {

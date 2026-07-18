@@ -135,4 +135,14 @@ abstract class MediaRepository {
     required String serverUrl,
     required String token,
   });
+
+  /// 获取相似推荐项目
+  ///
+  /// 相似推荐基于算法生成，短时间内稳定，适合中 TTL 缓存。
+  Future<List<MediaItem>> getSimilarItems(
+    String itemId, {
+    int limit = 12,
+    required String serverUrl,
+    required String token,
+  });
 }

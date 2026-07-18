@@ -144,4 +144,19 @@ class EmbyRepository implements MediaRepository {
       token: token,
     );
   }
+
+  @override
+  Future<List<MediaItem>> getSimilarItems(
+    String itemId, {
+    int limit = 12,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getSimilarItems(
+      itemId,
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
 }

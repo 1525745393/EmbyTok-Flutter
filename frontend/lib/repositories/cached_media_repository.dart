@@ -30,6 +30,7 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<PaginatedResponse<MediaItem>> _nextUpCache;
   final MemoryCache<List<MediaItem>> _seasonsCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _episodesCache;
+  final MemoryCache<List<MediaItem>> _similarItemsCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -43,7 +44,8 @@ class CachedMediaRepository implements MediaRepository {
         _librariesCache = MemoryCache<List<Library>>(maxSize: 10),
         _nextUpCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
         _seasonsCache = MemoryCache<List<MediaItem>>(maxSize: 50),
-        _episodesCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50);
+        _episodesCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
+        _similarItemsCache = MemoryCache<List<MediaItem>>(maxSize: 100);
 
   // ============================
   // 统计信息
@@ -68,6 +70,7 @@ class CachedMediaRepository implements MediaRepository {
     _nextUpCache.resetStats();
     _seasonsCache.resetStats();
     _episodesCache.resetStats();
+    _similarItemsCache.resetStats();
   }
 
   /// 辅助：对所有缓存执行统计求和
@@ -79,7 +82,8 @@ class CachedMediaRepository implements MediaRepository {
         selector(_librariesCache) +
         selector(_nextUpCache) +
         selector(_seasonsCache) +
-        selector(_episodesCache);
+        selector(_episodesCache) +
+        selector(_similarItemsCache);
   }
 
   // ============================
@@ -130,6 +134,11 @@ class CachedMediaRepository implements MediaRepository {
   /// 生成 getEpisodes 的缓存键
   String _episodesKey(String seriesId, String? seasonId, int limit, int offset, String serverUrl, String token) {
     return 'episodes:$serverUrl:$token:$seriesId:${seasonId ?? ''}:$limit:$offset';
+  }
+
+  /// 生成 getSimilarItems 的缓存键
+  String _similarItemsKey(String itemId, int limit, String serverUrl, String token) {
+    return 'similar:$serverUrl:$token:$itemId:$limit';
   }
 
   // ============================
@@ -330,6 +339,31 @@ class CachedMediaRepository implements MediaRepository {
     return result;
   }
 
+  @override
+  Future<List<MediaItem>> getSimilarItems(
+    String itemId, {
+    int limit = 12,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _similarItemsKey(itemId, limit, serverUrl, token);
+    final cached = _similarItemsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getSimilarItems(
+      itemId,
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 相似推荐短时间内稳定，使用中等 TTL
+    _similarItemsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
   // ============================
   // 缓存失效操作
   // ============================
@@ -402,5 +436,6 @@ class CachedMediaRepository implements MediaRepository {
     _nextUpCache.clear();
     _seasonsCache.clear();
     _episodesCache.clear();
+    _similarItemsCache.clear();
   }
 }

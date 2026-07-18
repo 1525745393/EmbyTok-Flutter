@@ -106,6 +106,23 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValueForMissingStub:
             Future.value(MediaItem(id: '', title: '', type: '')),
       ) as Future<MediaItem>;
+
+  @override
+  Future<List<MediaItem>> getSimilarItems(
+    String itemId, {
+    int limit = 12,
+    required String serverUrl,
+    required String token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getSimilarItems, [itemId], {
+          #limit: limit,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      ) as Future<List<MediaItem>>;
 }
 
 void main() {
@@ -789,6 +806,146 @@ void main() {
         await cachedRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1');
 
         verify(mockRepo.getItemDetail('detail-1', serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(2);
+      });
+    });
+
+    group('getSimilarItems', () {
+      final testSimilarItems = <MediaItem>[
+        MediaItem(id: 'sim-1', title: 'Similar Movie 1', type: 'Movie'),
+        MediaItem(id: 'sim-2', title: 'Similar Movie 2', type: 'Movie'),
+      ];
+
+      test('首次请求：转发到底层 Repository', () async {
+        when(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testSimilarItems);
+
+        final result = await cachedRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.length, 2);
+        expect(result.first.id, 'sim-1');
+        verify(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('相同参数第二次请求：使用缓存', () async {
+        when(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testSimilarItems);
+
+        // 第一次
+        await cachedRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        // 第二次（应命中缓存）
+        final result = await cachedRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result.length, 2);
+        // 底层只调用了一次
+        verify(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('不同 itemId：不命中缓存', () async {
+        when(mockRepo.getSimilarItems(
+          any,
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((invocation) async {
+          final itemId = invocation.positionalArguments[0] as String;
+          return <MediaItem>[MediaItem(id: 'sim-for-$itemId', title: '', type: '')];
+        });
+
+        await cachedRepo.getSimilarItems('item-a', limit: 12, serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getSimilarItems('item-b', limit: 12, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getSimilarItems('item-a', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getSimilarItems('item-b', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('不同 limit：不命中缓存', () async {
+        when(mockRepo.getSimilarItems(
+          'item-1',
+          limit: anyNamed('limit'),
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((invocation) async {
+          final limit = invocation.namedArguments[#limit] as int;
+          return <MediaItem>[MediaItem(id: 'sim-limit-$limit', title: '', type: '')];
+        });
+
+        await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
+        await cachedRepo.getSimilarItems('item-1', limit: 24, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 24, serverUrl: testServerUrl, token: testToken)).called(1);
+      });
+
+      test('不同 token：不共享缓存（账号隔离）', () async {
+        when(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: anyNamed('token'),
+        )).thenAnswer((invocation) async {
+          final token = invocation.namedArguments[#token] as String;
+          return <MediaItem>[MediaItem(id: 'sim-$token', title: '', type: '')];
+        });
+
+        await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-a');
+        await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-b');
+
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-a')).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-b')).called(1);
+      });
+
+      test('clearAll：清除相似推荐缓存后重新请求', () async {
+        when(mockRepo.getSimilarItems(
+          'item-1',
+          limit: 12,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testSimilarItems);
+
+        // 第一次
+        await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
+
+        // 清除全部
+        cachedRepo.clearAll();
+
+        // 第二次（应重新调用底层）
+        await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
+
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken)).called(2);
       });
     });
 
