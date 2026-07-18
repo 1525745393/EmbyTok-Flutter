@@ -321,12 +321,11 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
         token: token,
         userId: userId,
       );
-      // 失效收藏缓存（收藏人物列表已变）
-      // 同时失效 getFavoritePeople 缓存，避免下次进入页面看到旧数据
+      // 失效收藏缓存：invalidateFavorites 现在统一失效影片+合集+人物三类，
+      // 确保下次进入收藏页/演员页时拉取最新数据
       try {
         final cacheController = _ref.read(cacheControllerProvider);
         cacheController.invalidateFavorites(serverUrl, token, userId);
-        cacheController.invalidateFavoritePeople(serverUrl, token, userId);
       } catch (_) {}
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);

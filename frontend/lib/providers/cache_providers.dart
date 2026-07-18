@@ -58,7 +58,10 @@ class CacheController {
     );
   }
 
-  /// 失效收藏缓存
+  /// 失效收藏缓存（影片 + 合集 + 人物）
+  ///
+  /// toggleFavorite 后调用，统一失效三类收藏缓存。
+  /// 之前的 invalidateFavoritePeople 已合并到此处，避免调用方需要分别调用。
   void invalidateFavorites(String serverUrl, String token, String? userId) {
     _cachedRepo.invalidateFavorites(
       serverUrl: serverUrl,
@@ -100,15 +103,19 @@ class CacheController {
     _cachedRepo.invalidatePersonItems(serverUrl: serverUrl);
   }
 
-  /// 失效收藏人物缓存
+  /// 失效观看历史缓存
   ///
-  /// 用于 toggleFavorite 后，确保收藏人物列表及时更新。
-  void invalidateFavoritePeople(String serverUrl, String token, String? userId) {
-    _cachedRepo.invalidateFavoritePeople(
-      serverUrl: serverUrl,
-      token: token,
-      userId: userId,
-    );
+  /// 用于 markAsPlayed/reportPlaybackStopped/toggleFavorite 后，
+  /// 确保观看历史及时更新。
+  void invalidateWatchHistory(String serverUrl) {
+    _cachedRepo.invalidateWatchHistory(serverUrl: serverUrl);
+  }
+
+  /// 失效子项列表缓存
+  ///
+  /// 用于 BoxSet 子项结构变化时（如添加/移除子项）。
+  void invalidateChildren(String serverUrl) {
+    _cachedRepo.invalidateChildren(serverUrl: serverUrl);
   }
 }
 

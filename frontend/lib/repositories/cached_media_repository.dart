@@ -24,6 +24,7 @@ class CachedMediaRepository implements MediaRepository {
   /// 列表类缓存（key: 组合参数的哈希）
   final MemoryCache<PaginatedResponse<MediaItem>> _libraryItemsCache;
   final MemoryCache<FavoritesPageResult> _favoritesCache;
+  final MemoryCache<FavoritesPageResult> _boxSetsFavoritesCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _resumeCache;
   final MemoryCache<MediaItem> _itemDetailCache;
   final MemoryCache<List<Library>> _librariesCache;
@@ -36,6 +37,11 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<MediaItem?> _personDetailCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _personItemsCache;
   final MemoryCache<FavoritesPageResult> _favoritePeopleCache;
+  // 推荐/建议/历史/子项缓存
+  final MemoryCache<PaginatedResponse<MediaItem>> _recommendationsCache;
+  final MemoryCache<List<MediaItem>> _suggestionsCache;
+  final MemoryCache<List<MediaItem>> _watchHistoryCache;
+  final MemoryCache<List<MediaItem>> _childrenCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -44,6 +50,7 @@ class CachedMediaRepository implements MediaRepository {
   })  : _ttl = ttl,
         _libraryItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: maxCacheEntries),
         _favoritesCache = MemoryCache<FavoritesPageResult>(maxSize: 20),
+        _boxSetsFavoritesCache = MemoryCache<FavoritesPageResult>(maxSize: 20),
         _resumeCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
         _itemDetailCache = MemoryCache<MediaItem>(maxSize: 100),
         _librariesCache = MemoryCache<List<Library>>(maxSize: 10),
@@ -54,7 +61,11 @@ class CachedMediaRepository implements MediaRepository {
         _peopleCache = MemoryCache<PaginatedResponse<Person>>(maxSize: 50),
         _personDetailCache = MemoryCache<MediaItem?>(maxSize: 200),
         _personItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
-        _favoritePeopleCache = MemoryCache<FavoritesPageResult>(maxSize: 20);
+        _favoritePeopleCache = MemoryCache<FavoritesPageResult>(maxSize: 20),
+        _recommendationsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
+        _suggestionsCache = MemoryCache<List<MediaItem>>(maxSize: 20),
+        _watchHistoryCache = MemoryCache<List<MediaItem>>(maxSize: 20),
+        _childrenCache = MemoryCache<List<MediaItem>>(maxSize: 100);
 
   // ============================
   // 统计信息
@@ -73,6 +84,7 @@ class CachedMediaRepository implements MediaRepository {
   void resetStats() {
     _libraryItemsCache.resetStats();
     _favoritesCache.resetStats();
+    _boxSetsFavoritesCache.resetStats();
     _resumeCache.resetStats();
     _itemDetailCache.resetStats();
     _librariesCache.resetStats();
@@ -84,12 +96,17 @@ class CachedMediaRepository implements MediaRepository {
     _personDetailCache.resetStats();
     _personItemsCache.resetStats();
     _favoritePeopleCache.resetStats();
+    _recommendationsCache.resetStats();
+    _suggestionsCache.resetStats();
+    _watchHistoryCache.resetStats();
+    _childrenCache.resetStats();
   }
 
   /// 辅助：对所有缓存执行统计求和
   int _sum(int Function(MemoryCache) selector) {
     return selector(_libraryItemsCache) +
         selector(_favoritesCache) +
+        selector(_boxSetsFavoritesCache) +
         selector(_resumeCache) +
         selector(_itemDetailCache) +
         selector(_librariesCache) +
@@ -100,7 +117,11 @@ class CachedMediaRepository implements MediaRepository {
         selector(_peopleCache) +
         selector(_personDetailCache) +
         selector(_personItemsCache) +
-        selector(_favoritePeopleCache);
+        selector(_favoritePeopleCache) +
+        selector(_recommendationsCache) +
+        selector(_suggestionsCache) +
+        selector(_watchHistoryCache) +
+        selector(_childrenCache);
   }
 
   // ============================
@@ -118,9 +139,14 @@ class CachedMediaRepository implements MediaRepository {
         '${params.excludePlayed}';
   }
 
-  /// 生成 getFavoriteMovies 的缓存键
-  String _favoritesKey(String serverUrl, String token, String? userId) {
-    return 'fav:$serverUrl:$token:${userId ?? ''}';
+  /// 生成 getFavoriteMovies 的缓存键（含分页参数）
+  String _favoritesKey(String serverUrl, String token, String? userId, int limit, int offset) {
+    return 'fav:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
+  }
+
+  /// 生成 getFavoriteBoxSets 的缓存键（含分页参数）
+  String _boxSetsFavoritesKey(String serverUrl, String token, String? userId, int limit, int offset) {
+    return 'fav_boxsets:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
   }
 
   /// 生成 getResumeItems 的缓存键
@@ -191,9 +217,52 @@ class CachedMediaRepository implements MediaRepository {
     return 'person_items:$serverUrl:$token:$personId:$limit:$offset';
   }
 
-  /// 生成 getFavoritePeople 的缓存键
-  String _favoritePeopleKey(String serverUrl, String token, String? userId) {
-    return 'fav_people:$serverUrl:$token:${userId ?? ''}';
+  /// 生成 getFavoritePeople 的缓存键（含分页参数）
+  String _favoritePeopleKey(String serverUrl, String token, String? userId, int limit, int offset) {
+    return 'fav_people:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
+  }
+
+  /// 生成 getRecommendations 的缓存键
+  ///
+  /// 包含 libraryId/minCommunityRating/excludePlayed/includeItemTypes，
+  /// 因为相同 limit/offset 但不同过滤条件的结果不同。
+  String _recommendationsKey(
+    int limit,
+    int offset,
+    String? libraryId,
+    String? userId,
+    String serverUrl,
+    String token,
+    double minCommunityRating,
+    bool excludePlayed,
+    Set<String>? includeItemTypes,
+  ) {
+    final typesStr = includeItemTypes != null
+        ? (includeItemTypes.toList()..sort()).join(',')
+        : '';
+    return 'rec:$serverUrl:$token:${userId ?? ''}:${libraryId ?? ''}:'
+        '$limit:$offset:$minCommunityRating:$excludePlayed:$typesStr';
+  }
+
+  /// 生成 getSuggestions 的缓存键
+  String _suggestionsKey(int limit, String? userId, String serverUrl, String token) {
+    return 'sugg:$serverUrl:$token:${userId ?? ''}:$limit';
+  }
+
+  /// 生成 getWatchHistory 的缓存键
+  String _watchHistoryKey(int limit, String? userId, String serverUrl, String token) {
+    return 'history:$serverUrl:$token:${userId ?? ''}:$limit';
+  }
+
+  /// 生成 getChildren 的缓存键
+  String _childrenKey(
+    String parentId,
+    int limit,
+    int offset,
+    String serverUrl,
+    String token,
+  ) {
+    return 'children:$serverUrl:$token:$parentId:$limit:$offset';
   }
 
   // ============================
@@ -250,23 +319,53 @@ class CachedMediaRepository implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
   }) async {
-    final key = _favoritesKey(serverUrl, token, userId);
+    final key = _favoritesKey(serverUrl, token, userId, limit, offset);
     final cached = _favoritesCache.get(key);
     if (cached != null) {
       return cached;
     }
 
     final result = await _inner.getFavoriteMovies(
+      limit: limit,
+      offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
     );
 
     _favoritesCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<FavoritesPageResult> getFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    final key = _boxSetsFavoritesKey(serverUrl, token, userId, limit, offset);
+    final cached = _boxSetsFavoritesCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getFavoriteBoxSets(
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    _boxSetsFavoritesCache.set(key, result, ttl: _ttl);
     return result;
   }
 
@@ -506,17 +605,21 @@ class CachedMediaRepository implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoritePeople({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
   }) async {
-    final key = _favoritePeopleKey(serverUrl, token, userId);
+    final key = _favoritePeopleKey(serverUrl, token, userId, limit, offset);
     final cached = _favoritePeopleCache.get(key);
     if (cached != null) {
       return cached;
     }
 
     final result = await _inner.getFavoritePeople(
+      limit: limit,
+      offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
@@ -524,6 +627,128 @@ class CachedMediaRepository implements MediaRepository {
 
     // 收藏人物使用中 TTL，切换收藏后失效
     _favoritePeopleCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getRecommendations({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    double minCommunityRating = 4.0,
+    bool excludePlayed = true,
+    Set<String>? includeItemTypes,
+  }) async {
+    final key = _recommendationsKey(
+      limit,
+      offset,
+      libraryId,
+      userId,
+      serverUrl,
+      token,
+      minCommunityRating,
+      excludePlayed,
+      includeItemTypes,
+    );
+    final cached = _recommendationsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getRecommendations(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      minCommunityRating: minCommunityRating,
+      excludePlayed: excludePlayed,
+      includeItemTypes: includeItemTypes,
+    );
+
+    // 推荐基于算法生成，短时间内稳定，使用中 TTL
+    _recommendationsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<List<MediaItem>> getSuggestions({
+    int limit = 20,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _suggestionsKey(limit, userId, serverUrl, token);
+    final cached = _suggestionsCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getSuggestions(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 建议短时间内稳定，使用中 TTL
+    _suggestionsCache.set(key, result, ttl: _ttl);
+    return result;
+  }
+
+  @override
+  Future<List<MediaItem>> getWatchHistory({
+    int limit = 50,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _watchHistoryKey(limit, userId, serverUrl, token);
+    final cached = _watchHistoryCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getWatchHistory(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 观看历史频繁变化（每次播放/标记已看都变），使用短 TTL
+    _watchHistoryCache.set(key, result, ttl: const Duration(minutes: 1));
+    return result;
+  }
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentId, {
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final key = _childrenKey(parentId, limit, offset, serverUrl, token);
+    final cached = _childrenCache.get(key);
+    if (cached != null) {
+      return cached;
+    }
+
+    final result = await _inner.getChildren(
+      parentId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+
+    // 子项列表使用中 TTL，父项结构变化时手动失效
+    _childrenCache.set(key, result, ttl: _ttl);
     return result;
   }
 
@@ -542,14 +767,21 @@ class CachedMediaRepository implements MediaRepository {
     _libraryItemsCache.deleteWherePrefix('lib:$serverUrl:');
   }
 
-  /// 失效收藏缓存
+  /// 失效收藏缓存（影片 + 合集 + 人物）
+  ///
+  /// toggleFavorite 后调用，同时失效影片、合集、人物三类收藏缓存，
+  /// 因为 Emby 的 IsFavorite 过滤是统一的，切换任一项的收藏状态都可能影响任一栏。
   void invalidateFavorites({
     required String serverUrl,
     required String token,
     String? userId,
   }) {
-    final key = _favoritesKey(serverUrl, token, userId);
-    _favoritesCache.delete(key);
+    // 影片：按前缀删除所有分页
+    _favoritesCache.deleteWherePrefix('fav:$serverUrl:$token:${userId ?? ''}:');
+    // 合集：按前缀删除所有分页
+    _boxSetsFavoritesCache.deleteWherePrefix('fav_boxsets:$serverUrl:$token:${userId ?? ''}:');
+    // 人物：按前缀删除所有分页
+    _favoritePeopleCache.deleteWherePrefix('fav_people:$serverUrl:$token:${userId ?? ''}:');
   }
 
   /// 失效续播列表缓存
@@ -597,22 +829,27 @@ class CachedMediaRepository implements MediaRepository {
     _personItemsCache.deleteWherePrefix('person_items:$serverUrl:');
   }
 
-  /// 失效收藏人物缓存
+  /// 失效观看历史缓存
   ///
-  /// toggleFavorite 后调用，避免显示旧的收藏列表。
-  void invalidateFavoritePeople({
-    required String serverUrl,
-    required String token,
-    String? userId,
-  }) {
-    final key = _favoritePeopleKey(serverUrl, token, userId);
-    _favoritePeopleCache.delete(key);
+  /// 标记已看/取消已看、播放进度上报后调用，避免显示旧历史。
+  /// 会清除该 serverUrl 下所有用户的观看历史缓存（前缀匹配）。
+  void invalidateWatchHistory({required String serverUrl}) {
+    _watchHistoryCache.deleteWherePrefix('history:$serverUrl:');
+  }
+
+  /// 失效子项列表缓存
+  ///
+  /// 当父项（如 BoxSet）的子项结构变化时调用。
+  /// 会清除该 serverUrl 下所有父项的子项缓存（前缀匹配）。
+  void invalidateChildren({required String serverUrl}) {
+    _childrenCache.deleteWherePrefix('children:$serverUrl:');
   }
 
   /// 清除所有缓存
   void clearAll() {
     _libraryItemsCache.clear();
     _favoritesCache.clear();
+    _boxSetsFavoritesCache.clear();
     _resumeCache.clear();
     _itemDetailCache.clear();
     _librariesCache.clear();
@@ -624,5 +861,9 @@ class CachedMediaRepository implements MediaRepository {
     _personDetailCache.clear();
     _personItemsCache.clear();
     _favoritePeopleCache.clear();
+    _recommendationsCache.clear();
+    _suggestionsCache.clear();
+    _watchHistoryCache.clear();
+    _childrenCache.clear();
   }
 }

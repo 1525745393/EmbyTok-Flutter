@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/video_page_item.dart';
 
@@ -38,11 +37,12 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
     });
     try {
       final auth = ref.read(authProvider);
-      final service = EmbytokService();
-      final items = await service.getChildren(
+      // 走缓存仓库（5min TTL）：合集详情页频繁返回时直接命中缓存
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final items = await cachedRepo.getChildren(
         widget.item.id,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
       );
       if (mounted) {
         setState(() {

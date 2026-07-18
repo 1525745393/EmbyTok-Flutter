@@ -303,8 +303,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
           'markAsPlayed',
         );
-        // 视频播完标记已看后，失效续播、详情和 NextUp 缓存
+        // 视频播完标记已看后，失效续播、详情、NextUp 和观看历史缓存
         // NextUp 列表在看完一集后会变化，必须失效避免下次看到旧数据
+        // watchHistory 中已播放条目会更新，需失效以反映最新观看进度
         final serverUrl = _authServerUrl();
         final token = _authToken();
         if (serverUrl != null && token != null) {
@@ -314,6 +315,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 .read(cacheControllerProvider)
                 .invalidateItemDetail(widget.item.id, serverUrl);
             ref.read(cacheControllerProvider).invalidateNextUp(serverUrl: serverUrl);
+            ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
           } catch (_) {}
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
@@ -481,7 +483,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       ),
       'reportPlaybackStopped',
     );
-    // 播放停止后续播进度已变，失效续播和详情缓存确保下次获取最新数据
+    // 播放停止后续播进度已变，失效续播、详情和观看历史缓存确保下次获取最新数据
+    // watchHistory 列表（含 Resume）依赖播放进度，必须失效
     final serverUrl = _authServerUrl();
     final token = _authToken();
     if (serverUrl != null && token != null) {
@@ -490,6 +493,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ref
             .read(cacheControllerProvider)
             .invalidateItemDetail(widget.item.id, serverUrl);
+        ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
       } catch (_) {}
     }
     _hasStartedReported = false;

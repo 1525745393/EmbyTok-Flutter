@@ -30,11 +30,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
+import '../repositories/media_repository.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 import 'favorites_provider.dart';
 import 'library_provider.dart';
 import 'recommend_signals.dart';
@@ -298,7 +299,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       return;
     }
 
-    final service = EmbytokService();
+    final repo = _ref.read(cachedMediaRepositoryProvider);
     // PR #79：分页 - 第一页从 0 开始
     final seenIds = <String>{}; // 去重用（首次加载全空）
 
@@ -360,7 +361,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // PR #83：传入 signal 用于门控
     // 返回该页拉到的所有新项（去重后）
     final newItems = await _loadPage(
-      service: service,
+      repo: repo,
       auth: auth,
       selectedIds: selectedIds,
       minRating: minRating,
@@ -388,7 +389,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       final degradedRating = minRating > 3.0 ? 3.0 : minRating;
       // 把降级拉到的新项也并入 merged（PR #80：同时合并 tagged）
       final degradedItems = await _loadRecommendations(
-        service: service,
+        repo: repo,
         auth: auth,
         selectedIds: selectedIds,
         minCommunityRating: degradedRating,
@@ -462,7 +463,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       return;
     }
 
-    final service = EmbytokService();
+    final repo = _ref.read(cachedMediaRepositoryProvider);
     // PR #79：从已显示的 items 构建 seenIds（去重）
     final seenIds = state.items.map((i) => i.id).toSet();
 
@@ -503,7 +504,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     }
 
     final newItems = await _loadPage(
-      service: service,
+      repo: repo,
       auth: auth,
       selectedIds: selectedIds,
       minRating: minRating,
@@ -556,7 +557,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
   Future<_PageLoadResult> _loadPage({
-    required EmbytokService service,
+    required MediaRepository repo,
     required AuthState auth,
     required List<String> selectedIds,
     required double minRating,
@@ -627,7 +628,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     Future<void> fetchNextUp() async {
       try {
-        final resp = await service.getNextUp(
+        final resp = await repo.getNextUp(
           limit: _pageSize,
           serverUrl: serverUrl,
           token: token,
@@ -645,7 +646,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     Future<void> fetchResume() async {
       try {
-        final resp = await service.getResumeItems(
+        final resp = await repo.getResumeItems(
           limit: _pageSize,
           serverUrl: serverUrl,
           token: token,
@@ -672,7 +673,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       try {
         // 限制最近看过的 N=3 个 series，避免 API 调用过多
         const int _recentSeriesLimit = 3;
-        final history = await service.getWatchHistory(
+        final history = await repo.getWatchHistory(
           limit: 50, // 拉少量 history 即可（去重后取前 N）
           userId: userId,
           serverUrl: serverUrl,
@@ -694,7 +695,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         // 并行拉每个 series 的下一集
         final nextUpLists = await Future.wait(recentSeriesIds.map((sid) async {
           try {
-            final resp = await service.getNextUp(
+            final resp = await repo.getNextUp(
               limit: 3, // 每个 series 最多 3 集
               seriesId: sid,
               serverUrl: serverUrl,
@@ -734,7 +735,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
     Future<void> fetchSuggestions() async {
       try {
-        final suggestions = await service.getSuggestions(
+        final suggestions = await repo.getSuggestions(
           limit: _pageSize,
           serverUrl: serverUrl,
           token: token,
@@ -760,7 +761,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // - 合并顺序：收藏 > 完播 > 降级（去重）
     Future<void> fetchSimilarFromRecentHighRated() async {
       try {
-        final history = await service.getWatchHistory(
+        final history = await repo.getWatchHistory(
           limit: 200, // 拉多些，方便筛选
           userId: userId,
           serverUrl: serverUrl,
@@ -812,7 +813,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         }
         final similarLists = await Future.wait(topSeeds.map((seed) async {
           try {
-            return await service.getSimilarItems(
+            return await repo.getSimilarItems(
               seed.id,
               limit: _similarPerSeed,
               serverUrl: serverUrl,
@@ -845,7 +846,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       fetchSuggestions(),
       fetchSimilarFromRecentHighRated(),
       ..._fetchRecommendations(
-        service: service,
+        repo: repo,
         auth: auth,
         selectedIds: selectedIds,
         minCommunityRating: minRating,
@@ -933,7 +934,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #80：queues 改为存 RecommendItem
   // PR #83：黑名单过滤
   List<Future<void>> _fetchRecommendations({
-    required EmbytokService service,
+    required MediaRepository repo,
     required AuthState auth,
     required List<String> selectedIds,
     required double minCommunityRating,
@@ -951,7 +952,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     return selectedIds.map((libId) {
       return () async {
         try {
-          final resp = await service.getRecommendations(
+          final resp = await repo.getRecommendations(
             libraryId: libId,
             limit: _pageSize,
             offset: 0,
@@ -979,7 +980,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #80：返回带 source 标签的 RecommendItem 列表（source = recommendations）
   // PR #83：黑名单过滤
   Future<List<RecommendItem>> _loadRecommendations({
-    required EmbytokService service,
+    required MediaRepository repo,
     required AuthState auth,
     required List<String> selectedIds,
     required double minCommunityRating,
@@ -997,7 +998,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final results = <RecommendItem>[];
     await Future.wait(selectedIds.map((libId) async {
       try {
-        final resp = await service.getRecommendations(
+        final resp = await repo.getRecommendations(
           libraryId: libId,
           limit: _pageSize,
           offset: 0,

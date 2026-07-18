@@ -215,7 +215,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
   final service = _authService(ref, auth);
   await service.markAsPlayed(itemId);
 
-  // 失效相关缓存：播放状态变化影响续播、详情、NextUp 数据
+  // 失效相关缓存：播放状态变化影响续播、详情、NextUp 和观看历史数据
   final serverUrl = auth.embyServerUrl;
   final token = auth.token;
   if (serverUrl != null && token != null) {
@@ -224,6 +224,7 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
       cacheController.invalidateResume(serverUrl, token);
       cacheController.invalidateItemDetail(itemId, serverUrl);
       cacheController.invalidateNextUp(serverUrl);
+      cacheController.invalidateWatchHistory(serverUrl);
     } catch (_) {}
   }
 
@@ -239,7 +240,7 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
   final service = _authService(ref, auth);
   await service.markAsUnplayed(itemId);
 
-  // 失效相关缓存
+  // 失效相关缓存：标记未看后观看历史需更新
   final serverUrl = auth.embyServerUrl;
   final token = auth.token;
   if (serverUrl != null && token != null) {
@@ -248,6 +249,7 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
       cacheController.invalidateResume(serverUrl, token);
       cacheController.invalidateItemDetail(itemId, serverUrl);
       cacheController.invalidateNextUp(serverUrl);
+      cacheController.invalidateWatchHistory(serverUrl);
     } catch (_) {}
   }
 

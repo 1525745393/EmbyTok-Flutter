@@ -81,8 +81,23 @@ abstract class MediaRepository {
     String? userId,
   });
 
-  /// 获取收藏的电影/视频列表
+  /// 获取收藏的电影/视频列表（支持分页）
+  ///
+  /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。
   Future<FavoritesPageResult> getFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
+
+  /// 获取收藏的合集（BoxSet）列表（支持分页）
+  ///
+  /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。
+  Future<FavoritesPageResult> getFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
@@ -180,12 +195,62 @@ abstract class MediaRepository {
     required String token,
   });
 
-  /// 获取收藏的人物列表
+  /// 获取收藏的人物列表（支持分页）
   ///
   /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。
   Future<FavoritesPageResult> getFavoritePeople({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
+  });
+
+  /// 获取推荐列表（基于社区评分、是否已看等过滤）
+  ///
+  /// 推荐基于算法生成，短时间内稳定，适合中 TTL 缓存。
+  /// 缓存键需包含 libraryId + minCommunityRating + excludePlayed + includeItemTypes，
+  /// 因为相同 limit/offset 但不同过滤条件的结果不同。
+  Future<PaginatedResponse<MediaItem>> getRecommendations({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    double minCommunityRating = 4.0,
+    bool excludePlayed = true,
+    Set<String>? includeItemTypes,
+  });
+
+  /// 获取建议列表（Emby 的 Suggestions 端点）
+  ///
+  /// 与推荐列表类似，短时间内稳定，适合中 TTL 缓存。
+  Future<List<MediaItem>> getSuggestions({
+    int limit = 20,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取观看历史
+  ///
+  /// 用户播放/标记已看后数据会变，使用短 TTL 缓存，并在 markAsPlayed 后失效。
+  Future<List<MediaItem>> getWatchHistory({
+    int limit = 50,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取父项的子项列表（如 BoxSet 内的电影、剧集的集等）
+  ///
+  /// 父项结构变化时数据会变，使用中 TTL 缓存。
+  Future<List<MediaItem>> getChildren(
+    String parentId, {
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
   });
 }

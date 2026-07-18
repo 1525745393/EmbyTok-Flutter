@@ -3,9 +3,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
+import 'cache_providers.dart';
 
 /// 观看历史状态：从 Emby 获取最近播放（Resume）的视频列表
 class WatchHistoryState {
@@ -35,13 +35,10 @@ class WatchHistoryState {
 // 观看历史 Notifier
 class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
   final Ref _ref;
-  final EmbytokService _service;
 
-  WatchHistoryNotifier(this._ref)
-      : _service = EmbytokService(),
-        super(const WatchHistoryState());
+  WatchHistoryNotifier(this._ref) : super(const WatchHistoryState());
 
-  // 从 Emby 服务器加载
+  // 从 Emby 服务器加载（走缓存仓库，短 TTL）
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
     final auth = _ref.read(authProvider);
@@ -54,11 +51,11 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
     }
 
     try {
-      final items = await _service.getWatchHistory(
+      final items = await _ref.read(cachedMediaRepositoryProvider).getWatchHistory(
         limit: 50,
         userId: auth.user?.id,
-        serverUrl: auth.embyServerUrl,
-        token: auth.token,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
       );
       state = WatchHistoryState(items: items);
       AppLogger.info('观看历史加载成功', data: {'count': items.length});

@@ -308,7 +308,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏影片
       () async {
         try {
-          final result = await _service.getFavoriteMovies(
+          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoriteMovies(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -325,7 +325,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏合集
       () async {
         try {
-          final result = await _service.getFavoriteBoxSets(
+          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoriteBoxSets(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -342,7 +342,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏人物
       () async {
         try {
-          final result = await _service.getFavoritePeople(
+          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoritePeople(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -437,9 +437,10 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
     try {
       FavoritesPageResult result;
+      final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
       switch (category) {
         case FavoritesCategory.movie:
-          result = await _service.getFavoriteMovies(
+          result = await cachedRepo.getFavoriteMovies(
             limit: _kFavoritesPageSize,
             offset: offset,
             serverUrl: serverUrl,
@@ -457,7 +458,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
           );
           break;
         case FavoritesCategory.boxSet:
-          result = await _service.getFavoriteBoxSets(
+          result = await cachedRepo.getFavoriteBoxSets(
             limit: _kFavoritesPageSize,
             offset: offset,
             serverUrl: serverUrl,
@@ -475,7 +476,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
           );
           break;
         case FavoritesCategory.person:
-          result = await _service.getFavoritePeople(
+          result = await cachedRepo.getFavoritePeople(
             limit: _kFavoritesPageSize,
             offset: offset,
             serverUrl: serverUrl,

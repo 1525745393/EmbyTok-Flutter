@@ -59,11 +59,32 @@ class EmbyRepository implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
   }) {
     return _service.getFavoriteMovies(
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
+
+  @override
+  Future<FavoritesPageResult> getFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getFavoriteBoxSets(
+      limit: limit,
+      offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
@@ -213,14 +234,90 @@ class EmbyRepository implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoritePeople({
+    int limit = 50,
+    int offset = 0,
     required String serverUrl,
     required String token,
     String? userId,
   }) {
     return _service.getFavoritePeople(
+      limit: limit,
+      offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getRecommendations({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    double minCommunityRating = 4.0,
+    bool excludePlayed = true,
+    Set<String>? includeItemTypes,
+  }) {
+    return _service.getRecommendations(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      minCommunityRating: minCommunityRating,
+      excludePlayed: excludePlayed,
+      includeItemTypes: includeItemTypes,
+    );
+  }
+
+  @override
+  Future<List<MediaItem>> getSuggestions({
+    int limit = 20,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getSuggestions(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<List<MediaItem>> getWatchHistory({
+    int limit = 50,
+    String? userId,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getWatchHistory(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentId, {
+    int limit = 100,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getChildren(
+      parentId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 }
