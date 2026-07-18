@@ -35,8 +35,6 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final bool startFromResumePosition;
   final VoidCallback? onNextEpisode;
   final VoidCallback? onPrevEpisode;
-  /// 播放进度达到预加载阈值时回调，用于触发下一个视频的预加载
-  final VoidCallback? onPreloadThreshold;
   /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
   final String source;
   /// 是否为当前可见页：非当前页初始化后静音暂停，避免相邻预加载页并发有声播放
@@ -50,7 +48,6 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.startFromResumePosition = false,
     this.onNextEpisode,
     this.onPrevEpisode,
-    this.onPreloadThreshold,
     this.source = 'feed',
     this.isCurrentPage = true,
   });
@@ -65,8 +62,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _hasNotifiedEnded = false;
   // 播放停止上报是否已发送，防止 dispose 与结束回调重复上报导致重复会话
   bool _hasStoppedReported = false;
-  // 是否已触发预加载回调（每个视频只触发一次）
-  bool _hasFiredPreload = false;
+  // Provider 状态是否已清理（deactivate 幂等保护，避免多次调用重复清理）
+  bool _providerCleaned = false;
 
   // 唱片式静音按钮动画控制器
   late final AnimationController _discRotationCtrl;
@@ -193,6 +190,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   @override
+  void deactivate() {
+    // 在 deactivate 中清理 Provider 状态（而非 dispose），
+    // 因为 riverpod 禁止在 dispose() 中使用 ref.read()。
+    // deactivate 可能被多次调用（widget 从 tree 移除又重新插入），用 _providerCleaned 做幂等。
+    if (!_providerCleaned) {
+      _providerCleaned = true;
+      ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+      final ctrl = ref.read(currentVideoControllerProvider);
+      if (ctrl != null && identical(ctrl, _videoController)) {
+        ref.read(currentVideoControllerProvider.notifier).state = null;
+      }
+    }
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     // 显式取消 listenManual 订阅，避免内存泄漏
     _isPlayingSubscription?.close();
@@ -207,11 +220,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _controlsHideTimer?.cancel();
     _nextUpTimer?.cancel();
     _nextUpTimer = null;
-    ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-    final ctrl = ref.read(currentVideoControllerProvider);
-    if (ctrl != null && identical(ctrl, _videoController)) {
-      ref.read(currentVideoControllerProvider.notifier).state = null;
-    }
+    // Provider 状态清理已移到 deactivate()，避免 riverpod 违规
     // 观看统计：记录本次观看的完播率
     _recordWatchStats();
     // ⚠️ _videoController 由内部 VideoPlayerWidget 负责 dispose，这里只清空引用
@@ -277,18 +286,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }
     // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
     // 使“3 秒自动隐藏”永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。
-    // 播放进度达到阈值时触发预加载（每个视频仅触发一次）
-    if (!_hasFiredPreload && widget.onPreloadThreshold != null) {
-      final pos = controller.value.position;
-      final dur = controller.value.duration;
-      if (dur.inMilliseconds > 0) {
-        final progress = pos.inMilliseconds / dur.inMilliseconds;
-        if (progress >= ref.read(preloadThresholdProvider)) {
-          _hasFiredPreload = true;
-          widget.onPreloadThreshold!.call();
-        }
-      }
-    }
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;

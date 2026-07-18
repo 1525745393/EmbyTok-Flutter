@@ -67,16 +67,11 @@ void main() {
     expect((key as ValueKey<String>).value, 'a',
         reason: 'ValueKey 的 value 必须等于 item.id');
 
-    // 清理：替换 widget 树触发 VideoPageItem unmount，
-    // 并消费 dispose 中 ref.read 抛出的预期异常。
-    // 背景：video_page_item.dart 第 210 行在 dispose() 中调用 ref.read()，
-    // riverpod 禁止此用法（ConsumerStatefulElement 已标记 _disposed）。
-    // 这是 VideoPageItem 的预存在 bug，属 Phase 3 修复范围，本测试不改动它，
-    // 仅在测试侧消费该异常以避免误报失败。
+    // 清理：替换 widget 树触发 VideoPageItem unmount
+    // dispose ref.read bug 已在 Phase 3 修复（移到 deactivate），无需 takeException 兜底
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: SizedBox.shrink())),
     );
     await tester.pump();
-    tester.takeException();
   });
 }
