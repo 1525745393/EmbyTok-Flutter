@@ -1,4 +1,10 @@
 // 搜索状态：关键词、结果分页、加载状态、分组搜索
+//
+// 特性：
+// 1. 防抖：300ms 内的连续输入只发起最后一次请求，减少 API 调用
+// 2. 缓存：相同查询+分类 30 秒内命中缓存，避免重复请求
+
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +12,17 @@ import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import '../utils/memory_cache.dart';
 import 'auth_provider.dart';
+
+/// 搜索防抖时间
+const Duration _kSearchDebounce = Duration(milliseconds: 300);
+
+/// 搜索结果缓存 TTL
+const Duration _kSearchCacheTtl = Duration(seconds: 30);
+
+/// 搜索结果缓存最大条目数
+const int _kSearchCacheMaxSize = 20;
 
 /// 搜索分组类型
 enum SearchCategory {
@@ -128,6 +144,13 @@ class SearchNotifier extends StateNotifier<SearchState> {
   final Ref _ref;
   final EmbytokService _service;
 
+  /// 防抖 Timer：连续输入时只保留最后一次
+  Timer? _debounceTimer;
+
+  /// 搜索结果缓存（按 query+category 缓存整个 SearchState）
+  final MemoryCache<SearchState> _cache =
+      MemoryCache<SearchState>(maxSize: _kSearchCacheMaxSize);
+
   SearchNotifier(this._ref, {EmbytokService? service})
       : _service = service ?? EmbytokService(),
         super(const SearchState());
@@ -153,12 +176,34 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
   }
 
-  // 发起一次新搜索（重置状态）
-  Future<void> search(String query, {SearchCategory? category}) async {
+  // 发起一次新搜索（带防抖，重置状态）
+  //
+  // 300ms 内的连续调用只发起最后一次请求。
+  // 相同查询+分类 30 秒内命中缓存。
+  void search(String query, {SearchCategory? category}) {
     final searchCategory = category ?? SearchCategory.all;
 
+    // 空查询：立即清空，取消 pending 请求
     if (query.isEmpty) {
+      _debounceTimer?.cancel();
       state = const SearchState();
+      return;
+    }
+
+    // 防抖：取消上一次 pending 请求，300ms 后再执行
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_kSearchDebounce, () {
+      _doSearch(query, searchCategory);
+    });
+  }
+
+  /// 实际执行搜索
+  Future<void> _doSearch(String query, SearchCategory searchCategory) async {
+    // 先检查缓存
+    final cacheKey = '$query:${searchCategory.name}:${_auth.embyServerUrl}:${_auth.token}';
+    final cached = _cache.get(cacheKey);
+    if (cached != null) {
+      state = cached;
       return;
     }
 
@@ -193,11 +238,26 @@ class SearchNotifier extends StateNotifier<SearchState> {
       } else {
         await _searchMedia(query, serverUrl, token, userId, searchCategory);
       }
+      // 缓存搜索结果
+      _cache.set(cacheKey, state, ttl: _kSearchCacheTtl);
     } catch (e) {
       final message = e is String ? e : '搜索失败：$e';
       state = state.copyWith(isLoading: false, isLoadingPersons: false, error: message);
       AppLogger.error('搜索失败', error: e);
     }
+  }
+
+  /// 清空搜索状态和缓存
+  void clearCache() {
+    _debounceTimer?.cancel();
+    _cache.clear();
+    state = const SearchState();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   // 搜索媒体项
