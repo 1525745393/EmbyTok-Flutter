@@ -1,3 +1,10 @@
+# [1.150.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.149.0...v1.150.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 扩展缓存覆盖 getLibraries/getNextUp/getSeasons/getEpisodes ([42a1dfc](https://github.com/1525745393/EmbyTok-Flutter/commit/42a1dfc1d7c415fc53b1d6d39e065285160ca979))
+
 # [1.149.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.148.0...v1.149.0) (2026-07-18)
 
 
