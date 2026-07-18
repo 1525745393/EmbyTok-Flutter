@@ -1,3 +1,10 @@
+# [1.148.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.147.0...v1.148.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 完善缓存体系 - 添加统计能力和内存压力响应 ([2aec8f9](https://github.com/1525745393/EmbyTok-Flutter/commit/2aec8f95dc0253b339fc0c8dbaf1ebfca6e762d2))
+
 # [1.147.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.146.0...v1.147.0) (2026-07-17)
 
 
