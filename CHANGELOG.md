@@ -1,3 +1,10 @@
+# [1.152.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.151.0...v1.152.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 扩展 getSimilarItems 缓存，修复详情页绕过缓存 ([b2d92c6](https://github.com/1525745393/EmbyTok-Flutter/commit/b2d92c63a5987c8917edd4068d67a1deec588c97))
+
 # [1.151.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.150.0...v1.151.0) (2026-07-18)
 
 
