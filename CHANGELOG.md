@@ -1,3 +1,10 @@
+# [1.149.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.148.0...v1.149.0) (2026-07-18)
+
+
+### Features
+
+* **cache:** 修复实例隔离、扩展 getItemDetail 缓存、完善失效链路 ([a5a47fc](https://github.com/1525745393/EmbyTok-Flutter/commit/a5a47fc63fd694162c2842bc68b00fd4695292a9))
+
 # [1.148.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.147.0...v1.148.0) (2026-07-18)
 
 
