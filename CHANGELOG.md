@@ -1,3 +1,17 @@
+# [1.155.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.154.0...v1.155.0) (2026-07-18)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([34081c6](https://github.com/1525745393/EmbyTok-Flutter/commit/34081c606d31eb5663374fa232c67f2b14c16807))
+* EmbyX 媒体库网格视图实现 ([690e4d1](https://github.com/1525745393/EmbyTok-Flutter/commit/690e4d1d40dc07d696e7cf9cd7daed7dbe79840d))
+
+
+### Performance Improvements
+
+* **feed:** 为 VideoPageItem 设置 ValueKey(item.id) ([0f3e647](https://github.com/1525745393/EmbyTok-Flutter/commit/0f3e6476735d2fbb6d9bc23487f618ba75a882dd))
+* **video:** 非当前页释放时归还 controller 到预加载池 ([8354491](https://github.com/1525745393/EmbyTok-Flutter/commit/83544912eff710012a6ebf22e6434181c84d0f97))
+
 # [1.154.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.153.0...v1.154.0) (2026-07-18)
 
 
