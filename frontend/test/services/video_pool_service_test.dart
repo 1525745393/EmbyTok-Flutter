@@ -6,6 +6,7 @@
 // - returnSession：池满时按 LRU 淘汰
 // - take：取出后池不再持有
 // - evictExcept：保留指定 ids
+// - 并发安全：returnSession 与 preload/take 的交互场景
 //
 // 注意：使用 Fake 而非 Mock 实现 VideoPlayerController。
 // 原因：VideoPlayerController 继承自 ValueNotifier，mockito Mock 在 stub value 时
@@ -139,6 +140,67 @@ void main() {
       expect(pool.hasSession('b'), isTrue);
       expect(pool.hasSession('a'), isFalse);
       expect(pool.hasSession('c'), isFalse);
+    });
+  });
+
+  // 并发安全测试：验证 returnSession 与 preload/take 的交互场景
+  // 场景：VideoPlayerWidget 释放时归还 controller（returnSession），
+  // 同时 PlaybackCoordinator.preloadNeighbors 可能预加载同 item（preload），
+  // 或 VideoPageItem 从池中取出（take）。需保证状态一致。
+  group('VideoPoolService 并发安全', () {
+    test('returnSession 后池持有该会话，peek 返回同一实例', () {
+      // 模拟：Widget 释放归还 → Coordinator 检查 hasSession 决定是否 preload
+      final pool = VideoPoolService(maxSize: 2);
+      final returned = _session('a');
+      pool.returnSession(returned);
+
+      // Coordinator.preloadNeighbors 会先检查 hasSession，若为 true 则跳过 preload
+      expect(pool.hasSession('a'), isTrue);
+      expect(pool.peek('a'), same(returned));
+    });
+
+    test('returnSession 不会破坏 LRU 顺序', () {
+      // 模拟：连续归还 a, b, c，池满（maxSize=2）应淘汰 a
+      final pool = VideoPoolService(maxSize: 2);
+      pool.returnSession(_session('a'));
+      pool.returnSession(_session('b'));
+      // 归还 c 应淘汰 a（最久未访问）
+      pool.returnSession(_session('c'));
+      expect(pool.hasSession('a'), isFalse);
+      expect(pool.hasSession('b'), isTrue);
+      expect(pool.hasSession('c'), isTrue);
+    });
+
+    test('take 后 returnSession 同 item 应成功（take 已移除池中条目）', () {
+      // 模拟：Widget 取出会话播放 → 用户切走 → Widget 释放归还
+      // take 后池为空，returnSession 同 item 应成功存入
+      final pool = VideoPoolService(maxSize: 2);
+      final session = _session('a');
+      pool.returnSession(session);
+      final taken = pool.take('a');
+      expect(taken, same(session));
+      // take 后池为空
+      expect(pool.size, 0);
+      // returnSession 同 item 应成功（无重复）
+      pool.returnSession(session);
+      expect(pool.hasSession('a'), isTrue);
+      expect(pool.peek('a'), same(session));
+    });
+
+    test('returnSession 与 evictExcept 交互：被 evict 的会话不在池中', () {
+      // 模拟：Widget 归还 a → Coordinator 切到远端页 evictExcept([current±1])
+      final pool = VideoPoolService(maxSize: 5);
+      pool.returnSession(_session('a'));
+      pool.returnSession(_session('b'));
+      pool.returnSession(_session('c'));
+      // 仅保留 b
+      pool.evictExcept(['b']);
+      expect(pool.size, 1);
+      expect(pool.hasSession('a'), isFalse);
+      expect(pool.hasSession('c'), isFalse);
+      // 被淘汰的会话 controller 应被 dispose（_remove 会调 session.dispose）
+      // 此处不验证 disposed 标记（_session() 每次返回新实例，无法追踪），
+      // 仅验证池状态正确
     });
   });
 }
