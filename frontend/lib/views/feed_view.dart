@@ -533,7 +533,11 @@ class _FeedViewState extends ConsumerState<FeedView>
           }
         }
         return RepaintBoundary(
+          // 设置 ValueKey(item.id)：items 列表变化时让 PageView 按 id 复用 widget，
+          // 避免出现「画面还在播旧视频，元信息是新视频」的鬼影过渡态。
+          // 对齐 PlaybackShell（video_page_item.dart 第 1205 行）的实现。
           child: VideoPageItem(
+            key: ValueKey(item.id),
             item: item,
             isCurrentPage: index == _currentIndex,
             preloadedSession: preloadedSession,
