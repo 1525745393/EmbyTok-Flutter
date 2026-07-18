@@ -314,7 +314,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             ref
                 .read(cacheControllerProvider)
                 .invalidateItemDetail(widget.item.id, serverUrl);
-            ref.read(cacheControllerProvider).invalidateNextUp(serverUrl: serverUrl);
+            ref.read(cacheControllerProvider).invalidateNextUp(serverUrl);
             ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
           } catch (_) {}
         }
