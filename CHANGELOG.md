@@ -1,3 +1,10 @@
+## [1.156.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.5...v1.156.6) (2026-07-19)
+
+
+### Bug Fixes
+
+* 补全 X-Emby-Authorization 协议头（中危） ([a960647](https://github.com/1525745393/EmbyTok-Flutter/commit/a9606475b204a3fdaa2ad52954e68fd4bac1f2d6))
+
 ## [1.156.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.4...v1.156.5) (2026-07-19)
 
 
