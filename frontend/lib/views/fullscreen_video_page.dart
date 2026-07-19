@@ -209,10 +209,15 @@ class _FullscreenVideoPageState
   }
 
   Future<void> _setSystemBrightness(double value) async {
+    final oldValue = _brightnessValue;
+    _brightnessValue = value;
+    if (mounted) setState(() {});
     try {
       await ScreenBrightness().setScreenBrightness(value);
     } catch (e) {
-      AppLogger.debug('设置屏幕亮度失败', data: {'error': e.toString()});
+      AppLogger.warn('设置屏幕亮度失败，回滚到旧值', data: {'error': e.toString()});
+      _brightnessValue = oldValue;
+      if (mounted) setState(() {});
     }
   }
 
@@ -458,7 +463,9 @@ class _FullscreenVideoPageState
     if (_originalBrightness != null) {
       try {
         ScreenBrightness().resetScreenBrightness();
-      } catch (_) {}
+      } catch (e) {
+        AppLogger.warn('重置屏幕亮度失败', data: {'error': e.toString()});
+      }
     }
 
     SystemChrome.setEnabledSystemUIMode(
@@ -678,7 +685,7 @@ class _FullscreenVideoPageState
         var newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
         _previewBrightness = newBrightness;
         _setSystemBrightness(newBrightness);
-        if (mounted) setState(() => _brightnessValue = newBrightness);
+        if (mounted) setState(() {});
       } else if (_isVolumeSide) {
         var newVolume = (_dragStartVolume + delta).clamp(0.0, 1.0);
         _previewVolume = newVolume;
