@@ -69,6 +69,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
 
+  // App 生命周期状态跟踪
+  AppLifecycleState? _lastLifecycleState;
+  // 记录进入后台前是否在播放，用于回到前台时恢复
+  bool _wasPlayingBeforeBackground = false;
+
   // 底部信息条 3 秒自动隐藏
   Timer? _infoHideTimer;
   bool _isInfoVisible = true;
@@ -108,6 +113,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
     _discRotationCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -134,17 +140,35 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }, fireImmediately: true);
   }
 
-  // 功耗优化：App 进入后台/不可见时暂停唱片旋转动画，减少 GPU 合成开销
+  // App 进入后台时暂停视频和唱片动画，回到前台时恢复
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _discRotationCtrl.stop();
-    } else if (state == AppLifecycleState.resumed) {
+    super.didChangeAppLifecycleState(state);
+    final prev = _lastLifecycleState;
+    _lastLifecycleState = state;
+    if (prev == null) return;
+
+    final wasForeground = prev == AppLifecycleState.resumed;
+    final isForeground = state == AppLifecycleState.resumed;
+
+    if (wasForeground && !isForeground) {
+      _wasPlayingBeforeBackground = _videoController?.value.isPlaying ?? false;
       if (_videoController != null &&
-          _videoController!.value.isPlaying &&
-          !_discRotationCtrl.isAnimating) {
-        _discRotationCtrl.repeat();
+          _videoController!.value.isInitialized &&
+          _videoController!.value.isPlaying) {
+        _videoController!.pause();
+      }
+      _discRotationCtrl.stop();
+    } else if (!wasForeground && isForeground) {
+      if (_wasPlayingBeforeBackground) {
+        if (_videoController != null &&
+            _videoController!.value.isInitialized &&
+            !_videoController!.value.isPlaying) {
+          _videoController!.play();
+        }
+        if (!_discRotationCtrl.isAnimating) {
+          _discRotationCtrl.repeat();
+        }
       }
     }
   }
