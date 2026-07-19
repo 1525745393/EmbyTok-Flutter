@@ -99,6 +99,9 @@ class _FullscreenVideoPageState
   double _originalRate = 1.0;
   bool _pendingSingleTap = false;
   Timer? _singleTapTimer;
+  Timer? _heartHideTimer;
+  Timer? _seekFeedbackHideTimer;
+  Timer? _resumePlayTimer;
   bool _showHeart = false;
 
   void _setupControllerListener(VideoPlayerController? controller) {
@@ -340,7 +343,8 @@ class _FullscreenVideoPageState
     }
 
     if (!wasForeground && isForeground && wasPlaying) {
-      Future.delayed(const Duration(milliseconds: 300), () {
+      _resumePlayTimer?.cancel();
+      _resumePlayTimer = Timer(const Duration(milliseconds: 300), () {
         if (mounted) {
           try {
             controller?.play();
@@ -443,6 +447,9 @@ class _FullscreenVideoPageState
     _dragHideTimer?.cancel();
     _verticalHideTimer?.cancel();
     _singleTapTimer?.cancel();
+    _heartHideTimer?.cancel();
+    _seekFeedbackHideTimer?.cancel();
+    _resumePlayTimer?.cancel();
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
     _positionSecondsNotifier.dispose();
@@ -761,7 +768,8 @@ class _FullscreenVideoPageState
 
     // 中间双击：点赞
     setState(() => _showHeart = true);
-    Future.delayed(const Duration(milliseconds: 700), () {
+    _heartHideTimer?.cancel();
+    _heartHideTimer = Timer(const Duration(milliseconds: 700), () {
       if (mounted) setState(() => _showHeart = false);
     });
     final item = ref.read(currentPlayingItemProvider);
@@ -792,7 +800,8 @@ class _FullscreenVideoPageState
       _isSeekForward = seconds > 0;
       _showSeekFeedback = true;
     });
-    Future.delayed(const Duration(milliseconds: 600), () {
+    _seekFeedbackHideTimer?.cancel();
+    _seekFeedbackHideTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted) setState(() => _showSeekFeedback = false);
     });
   }
