@@ -444,7 +444,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
             onHorizontalDragCancel: (widget.enableGestures && !usePan)
                 ? _onHorizontalDragCancel
                 : null,
-            child: Container(color: Colors.transparent),
+            child: const SizedBox.expand(),
           ),
         ),
         // 拖动进度条
