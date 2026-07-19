@@ -701,6 +701,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         videoReadyProvider.select((s) => s.contains(widget.item.id)));
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
+    // 监听全屏状态：进入全屏时隐藏本页 VideoPlayer，避免同一 controller 被两个 VideoPlayer 同时渲染导致黑屏
+    final isInFullscreen = ref.watch(isFullscreenProvider);
     final scheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
@@ -730,11 +732,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ),
 
         // 视频播放区（Gestures + VideoPlayer）
-        AnimatedOpacity(
-          opacity: isReady ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          child: GestureOverlay(
+        // 进入全屏时 Offstage，避免同一 VideoPlayerController 被两个 VideoPlayer widget 同时渲染导致黑屏
+        Offstage(
+          offstage: isInFullscreen,
+          child: AnimatedOpacity(
+            opacity: isReady ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            child: GestureOverlay(
             controller: _videoController,
             item: widget.item,
             enableGestures: !_controlsVisible,
@@ -774,6 +779,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               },
             ),
           ),
+        ),
         ),
 
         // 中央播放/暂停按钮（暂停时显示）—— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
