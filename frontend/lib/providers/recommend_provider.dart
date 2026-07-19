@@ -23,15 +23,13 @@
 // 不分页：与原 FeedType.recommend 行为一致
 
 import 'dart:async';
-import 'dart:convert';
+
 import 'dart:math' show Random; // PR #83：随机化降权源配额
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../repositories/media_repository.dart';
-import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
@@ -181,75 +179,16 @@ class _PageLoadResult {
 /// 推荐 Notifier
 class RecommendNotifier extends StateNotifier<RecommendState> {
   RecommendNotifier(this._ref) : super(const RecommendState()) {
-    // PR #78：先尝试从本地缓存读，立即显示旧数据
-    // 然后后台调用 load() 拉取最新数据
     _init();
   }
 
   final Ref _ref;
 
-  // 异步初始化：缓存 → 后台刷新
+  // 初始化：直接拉取 Emby 最新推荐数据
+  // 缓存仅用于本会话内的 MemoryCache 加速（CachedMediaRepository），
+  // 不做跨会话磁盘缓存，确保数据始终以 Emby 为准
   Future<void> _init() async {
-    await _loadFromCache();
-    // 后台刷新（不阻塞 UI 启动）
     unawaited(load());
-  }
-
-  /// 从 SharedPreferences 读取缓存（30 分钟内有效）
-  Future<void> _loadFromCache() async {
-    try {
-      final auth = _ref.read(authProvider);
-      final userId = auth.user?.id;
-      if (userId == null) return;
-      // 缓存按 userId 分键（避免不同账号混用）
-      final cacheKey = '$kStorageKeyRecommendCache:$userId';
-      final timeKey = '$kStorageKeyRecommendCacheTime:$userId';
-
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(cacheKey);
-      final ts = prefs.getInt(timeKey) ?? 0;
-      if (raw == null || raw.isEmpty) return;
-
-      final age = DateTime.now().millisecondsSinceEpoch ~/ 1000 - ts;
-      if (age > kRecommendCacheMaxAgeSec) {
-        AppLogger.debug('推荐缓存过期', data: {'ageSec': age});
-        return;
-      }
-
-      final decoded = json.decode(raw);
-      if (decoded is! List) return;
-      final items = decoded
-          .whereType<Map<String, dynamic>>()
-          .map(MediaItem.fromJson)
-          .toList();
-      if (items.isEmpty) return;
-
-      // 立即用缓存渲染（isLoading=true 会被 load() 切换）
-      // PR #80：缓存不含 source 信息，taggedItems 设为空（待 load() 重新填充）
-      state = state.copyWith(items: items, taggedItems: const [], isColdStart: false);
-      AppLogger.debug('推荐：使用本地缓存', data: {'count': items.length, 'ageSec': age});
-    } catch (e) {
-      AppLogger.debug('推荐：读缓存失败', data: {'error': e.toString()});
-    }
-  }
-
-  /// 把当前 items 写入 SharedPreferences
-  Future<void> _saveToCache(List<MediaItem> items) async {
-    if (items.isEmpty) return;
-    try {
-      final auth = _ref.read(authProvider);
-      final userId = auth.user?.id;
-      if (userId == null) return;
-      final cacheKey = '$kStorageKeyRecommendCache:$userId';
-      final timeKey = '$kStorageKeyRecommendCacheTime:$userId';
-
-      final prefs = await SharedPreferences.getInstance();
-      final encoded = json.encode(items.map((e) => e.toJson()).toList());
-      await prefs.setString(cacheKey, encoded);
-      await prefs.setInt(timeKey, DateTime.now().millisecondsSinceEpoch ~/ 1000);
-    } catch (e) {
-      AppLogger.debug('推荐：写缓存失败', data: {'error': e.toString()});
-    }
   }
 
   // 推荐每次加载数量（PR #78：20 → 30，提升推荐质量）
@@ -425,8 +364,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             newItems.merged.map((i) => i.id),
           ));
     }
-    // PR #78：写入本地缓存（下次启动 < 30 分钟直接用）
-    await _saveToCache(newItems.merged);
     AppLogger.debug('推荐列表加载完成', data: {
       'count': newItems.merged.length,
       'minRating': minRating,

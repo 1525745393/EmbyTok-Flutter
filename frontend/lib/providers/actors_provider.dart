@@ -1,41 +1,18 @@
 // 演员列表状态管理：加载、搜索、筛选、关注、分页
-// - 一次性加载全量演员 + 缓存（SharedPreferences，24h 过期）
+// - 从 Emby 服务器拉取全量演员，缓存仅用于本会话内的 MemoryCache 加速
 // - 搜索防抖（Timer 模式）
 // - 关注状态从 Emby FavoritePeople API 拉取
 // - 三 Tab（全部/已关注/未关注）共享同一数据源，仅视图过滤
 
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
-
-// ============================================================
-// 后台 isolate 函数：JSON 批量编解码（避免阻塞 UI 线程）
-// ============================================================
-
-/// 在后台 isolate 中批量 JSON 编码演员缓存数据
-/// - 输入：可序列化的 List<Map>（主线程已完成 Person → Map 转换）
-/// - 输出：List<String>（每条 JSON 字符串）
-List<String> _encodeActorsCache(List<Map<String, dynamic>> actorsData) {
-  return actorsData.map((a) => jsonEncode(a)).toList();
-}
-
-/// 在后台 isolate 中批量 JSON 解码演员缓存数据
-/// - 输入：List<String>（SharedPreferences 中读取的 JSON 字符串列表）
-/// - 输出：List<Map>（主线程再从 Map 构建 Person 对象）
-List<Map<String, dynamic>> _decodeActorsCache(List<String> jsonList) {
-  return jsonList
-      .map((s) => jsonDecode(s) as Map<String, dynamic>)
-      .toList(growable: false);
-}
 
 // ============================================================
 // 状态
@@ -109,9 +86,6 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   Timer? _debounceTimer;
 
   static const int _pageSize = 50;
-  static const int _cacheExpiryHours = 24;
-  static const String _cacheKey = 'actors_cache_v2';
-  static const String _cacheTimeKey = 'actors_cache_time_v2';
 
   bool _isLoadingFavorites = false;
 
@@ -119,34 +93,16 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 
   // ---- 加载演员列表 ----
 
-  /// 加载演员列表（优先缓存，过期后从服务器拉取）
+  /// 加载演员列表（始终从 Emby 服务器获取最新数据）
   Future<void> loadActors({bool forceRefresh = false}) async {
     if (state.loading) return;
-    if (state.hasLoaded && !forceRefresh) return; // 防止重复加载
+    if (state.hasLoaded && !forceRefresh) return;
 
     state = state.copyWith(loading: true, error: null);
 
     try {
-      // 先尝试缓存
-      if (!forceRefresh) {
-        final cached = await _loadFromCache();
-        if (cached != null) {
-          state = state.copyWith(
-            actors: cached,
-            total: cached.length,
-            loading: false,
-            hasLoaded: true,
-          );
-          // 异步加载关注状态（不阻塞 UI）
-          _loadFavoritesInBackground();
-          return;
-        }
-      }
-
-      // 从服务器一次性加载全量演员
       final auth = _ref.read(authProvider);
       final allActors = await _fetchAllFromServer(auth);
-      await _saveToCache(allActors);
 
       state = state.copyWith(
         actors: allActors,
@@ -331,59 +287,6 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       AppLogger.error('切换关注状态失败', error: e);
       // 失败回滚
       state = state.copyWith(favoritedIds: state.favoritedIds);
-    }
-  }
-
-  // ---- 缓存 ----
-
-  Future<void> _saveToCache(List<Person> actors) async {
-    try {
-      // 主线程：Person → Map（轻量字段访问，不涉及字符串解析）
-      final actorsData = actors
-          .map((a) => <String, dynamic>{
-                'id': a.id,
-                'name': a.name,
-                'type': a.type,
-                'imageUrl': a.imageUrl ?? '',
-              })
-          .toList(growable: false);
-      // 后台 isolate：批量 JSON 编码（避免大量 jsonEncode 阻塞 UI）
-      final json = await compute(_encodeActorsCache, actorsData);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_cacheKey, json);
-      await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
-    } catch (e) {
-      AppLogger.error('保存演员缓存失败', error: e);
-    }
-  }
-
-  Future<List<Person>?> _loadFromCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cacheTime = prefs.getInt(_cacheTimeKey);
-      if (cacheTime == null) return null;
-      final age = DateTime.now().difference(
-        DateTime.fromMillisecondsSinceEpoch(cacheTime),
-      );
-      if (age.inHours >= _cacheExpiryHours) return null;
-      final jsonList = prefs.getStringList(_cacheKey);
-      if (jsonList == null || jsonList.isEmpty) return null;
-      // 后台 isolate：批量 JSON 解码（避免大量 jsonDecode 阻塞 UI）
-      final decoded = await compute(_decodeActorsCache, jsonList);
-      // 主线程：Map → Person（轻量构造）
-      return decoded
-          .map((map) => Person(
-                id: map['id'] as String? ?? '',
-                name: map['name'] as String? ?? '',
-                type: map['type'] as String? ?? 'Actor',
-                imageUrl: (map['imageUrl'] as String?)?.isNotEmpty == true
-                    ? map['imageUrl'] as String
-                    : null,
-              ))
-          .toList(growable: false);
-    } catch (e) {
-      AppLogger.error('读取演员缓存失败', error: e);
-      return null;
     }
   }
 

@@ -66,10 +66,6 @@ const String kStorageKeyRecommendUserRatingEnabled =
     'embbytok_recommend_user_rating_enabled';
 const String kStorageKeyRecommendUserRatingMin =
     'embbytok_recommend_user_rating_min';
-// PR #78：推荐结果本地缓存（30 分钟内启动直接用缓存）
-const String kStorageKeyRecommendCache = 'embytok_recommend_cache';
-const String kStorageKeyRecommendCacheTime = 'embytok_recommend_cache_time';
-const int kRecommendCacheMaxAgeSec = 30 * 60; // 30 分钟
 // PR #81：完播率统计（按 userId 分键，最多保留 500 条）
 const String kStorageKeyWatchStats = 'embytok_watch_stats';
 const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
@@ -82,10 +78,6 @@ const String kStorageKeySelectedLibraryIdForRecommend =
 const String kStorageKeyFeedLibraryConfigured = 'embbytok_feed_library_configured';
 const String kStorageKeyRecommendLibraryConfigured =
     'embbytok_recommend_library_configured';
-const String kStorageKeyActorsCache = 'embbytok_actors_cache';
-const String kStorageKeyActorsCacheTime = 'embbytok_actors_cache_time';
-const String kStorageKeyActorsCachePrefix = 'embbytok_actors_cache_';
-const String kStorageKeyActorsCacheTimePrefix = 'embbytok_actors_cache_time_';
 const String kStorageKeyActorsSelectedType = 'embbytok_actors_selected_type';
 const String kStorageKeyActorsSelectedTab = 'embbytok_actors_selected_tab';
 const String kStorageKeyActorsSearchQuery = 'embbytok_actors_search_query';
