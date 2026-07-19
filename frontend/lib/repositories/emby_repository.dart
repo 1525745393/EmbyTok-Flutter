@@ -42,6 +42,17 @@ class EmbyRepository implements MediaRepository {
     );
   }
 
+  // EmbyRepository 直连服务器，无缓存层，peek 一律返回 null。
+  // 缓存读取由 CachedMediaRepository 装饰器负责。
+  @override
+  PaginatedResponse<MediaItem>? peekLibraryItems(
+    MediaQueryParams params, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
+
   @override
   Future<MediaItem> getItemDetail(
     String itemId, {
@@ -75,6 +86,16 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  FavoritesPageResult? peekFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
+
+  @override
   Future<FavoritesPageResult> getFavoriteBoxSets({
     int limit = 50,
     int offset = 0,
@@ -90,6 +111,16 @@ class EmbyRepository implements MediaRepository {
       userId: userId,
     );
   }
+
+  @override
+  FavoritesPageResult? peekFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
 
   @override
   Future<PaginatedResponse<MediaItem>> getResumeItems({
@@ -248,6 +279,16 @@ class EmbyRepository implements MediaRepository {
       userId: userId,
     );
   }
+
+  @override
+  FavoritesPageResult? peekFavoritePeople({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
 
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({
