@@ -179,19 +179,16 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
   }
 
   /// 从 Emby 服务器并行拉取三栏收藏（首页，每栏 _kFavoritesPageSize 条）
+  /// 采用 SWR（Stale-While-Revalidate）模式：
+  /// 1. 同步读取内存缓存，有缓存则立即展示（加速首屏）
+  /// 2. 后台并行请求网络最新数据
+  /// 3. 网络返回后用最新数据覆盖
   /// 每栏独立 try-catch：某一栏失败不影响其他栏展示
   Future<void> loadFavorites() async {
     if (_isLoading) return;
 
     _isLoading = true;
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-      moviesError: null,
-      boxSetsError: null,
-      peopleError: null,
-    );
-    AppLogger.info('加载收藏列表（三栏）');
+    AppLogger.info('加载收藏列表（三栏，SWR 模式）');
 
     final auth = _auth;
     if (!auth.isAuthenticated ||
@@ -211,6 +208,75 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       return;
     }
 
+    final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
+
+    // ---------- 第一步：同步读取缓存，有缓存立即展示 ----------
+    final cachedMovies = cachedRepo.peekFavoriteMovies(
+      limit: _kFavoritesPageSize,
+      offset: 0,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+    final cachedBoxSets = cachedRepo.peekFavoriteBoxSets(
+      limit: _kFavoritesPageSize,
+      offset: 0,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+    final cachedPeople = cachedRepo.peekFavoritePeople(
+      limit: _kFavoritesPageSize,
+      offset: 0,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+
+    final hasAnyCache = cachedMovies != null || cachedBoxSets != null || cachedPeople != null;
+
+    if (hasAnyCache) {
+      // 有缓存：立即展示缓存数据，isLoading 保持 true 表示后台正在刷新
+      final cachedMoviesList = cachedMovies?.items ?? <MediaItem>[];
+      final cachedBoxSetsList = cachedBoxSets?.items ?? <MediaItem>[];
+      final cachedPeopleList = cachedPeople?.items ?? <MediaItem>[];
+      final cachedIds = _mergeIds(cachedMoviesList, cachedBoxSetsList, cachedPeopleList);
+
+      _moviesLoaded = cachedMoviesList.length;
+      _boxSetsLoaded = cachedBoxSetsList.length;
+      _peopleLoaded = cachedPeopleList.length;
+
+      state = FavoritesState(
+        movies: cachedMoviesList,
+        boxSets: cachedBoxSetsList,
+        people: cachedPeopleList,
+        isLoading: true,
+        error: null,
+        moviesError: null,
+        boxSetsError: null,
+        peopleError: null,
+        favoriteIds: cachedIds,
+        hasMoreMovies: (cachedMovies?.totalCount ?? 0) > cachedMoviesList.length,
+        hasMoreBoxSets: (cachedBoxSets?.totalCount ?? 0) > cachedBoxSetsList.length,
+        hasMorePeople: (cachedPeople?.totalCount ?? 0) > cachedPeopleList.length,
+      );
+      AppLogger.info('展示收藏缓存数据', data: {
+        'movies': '${cachedMoviesList.length}/${cachedMovies?.totalCount ?? 0}',
+        'boxSets': '${cachedBoxSetsList.length}/${cachedBoxSets?.totalCount ?? 0}',
+        'people': '${cachedPeopleList.length}/${cachedPeople?.totalCount ?? 0}',
+      });
+    } else {
+      // 无缓存：显示 loading 骨架屏
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        moviesError: null,
+        boxSetsError: null,
+        peopleError: null,
+      );
+    }
+
+    // ---------- 第二步：并行请求网络最新数据 ----------
     // 三栏独立 try-catch，部分失败不影响整体
     List<MediaItem> movies = [];
     List<MediaItem> boxSets = [];
@@ -226,7 +292,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏影片
       () async {
         try {
-          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoriteMovies(
+          final result = await cachedRepo.getFavoriteMovies(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -243,7 +309,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏合集
       () async {
         try {
-          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoriteBoxSets(
+          final result = await cachedRepo.getFavoriteBoxSets(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -260,7 +326,7 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       // 收藏人物
       () async {
         try {
-          final result = await _ref.read(cachedMediaRepositoryProvider).getFavoritePeople(
+          final result = await cachedRepo.getFavoritePeople(
             limit: _kFavoritesPageSize,
             offset: 0,
             serverUrl: serverUrl,
@@ -276,37 +342,57 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       }(),
     ], eagerError: false);
 
+    // ---------- 第三步：用网络数据更新状态 ----------
+    // 网络失败时：有缓存则保留缓存数据，只更新错误状态；无缓存则显示错误
+    final hasCache = hasAnyCache;
+
     // 更新分页计数
-    _moviesLoaded = movies.length;
-    _boxSetsLoaded = boxSets.length;
-    _peopleLoaded = people.length;
+    _moviesLoaded = moviesError == null ? movies.length : _moviesLoaded;
+    _boxSetsLoaded = boxSetsError == null ? boxSets.length : _boxSetsLoaded;
+    _peopleLoaded = peopleError == null ? people.length : _peopleLoaded;
 
     // 合并 favoriteIds
-    final ids = _mergeIds(movies, boxSets, people);
+    final ids = _mergeIds(
+      moviesError == null ? movies : state.movies,
+      boxSetsError == null ? boxSets : state.boxSets,
+      peopleError == null ? people : state.people,
+    );
 
     // 全部失败才设置全局 error
     final allFailed =
         moviesError != null && boxSetsError != null && peopleError != null;
 
     state = FavoritesState(
-      movies: movies,
-      boxSets: boxSets,
-      people: people,
+      movies: moviesError == null ? movies : state.movies,
+      boxSets: boxSetsError == null ? boxSets : state.boxSets,
+      people: peopleError == null ? people : state.people,
       isLoading: false,
-      error: allFailed ? '全部收藏加载失败' : null,
+      error: allFailed
+          ? (hasCache ? '刷新失败，请稍后重试' : '全部收藏加载失败')
+          : null,
       moviesError: moviesError,
       boxSetsError: boxSetsError,
       peopleError: peopleError,
       favoriteIds: ids,
-      hasMoreMovies: moviesTotal > movies.length,
-      hasMoreBoxSets: boxSetsTotal > boxSets.length,
-      hasMorePeople: peopleTotal > people.length,
+      hasMoreMovies:
+          moviesError == null
+              ? moviesTotal > movies.length
+              : state.hasMoreMovies,
+      hasMoreBoxSets:
+          boxSetsError == null
+              ? boxSetsTotal > boxSets.length
+              : state.hasMoreBoxSets,
+      hasMorePeople:
+          peopleError == null
+              ? peopleTotal > people.length
+              : state.hasMorePeople,
     );
     _hasLoaded = true;
     AppLogger.info('收藏列表加载完成', data: {
-      'movies': '${movies.length}/$moviesTotal',
-      'boxSets': '${boxSets.length}/$boxSetsTotal',
-      'people': '${people.length}/$peopleTotal',
+      'movies': '${moviesError == null ? movies.length : state.movies.length}/${moviesError == null ? moviesTotal : (cachedMovies?.totalCount ?? 0)}',
+      'boxSets': '${boxSetsError == null ? boxSets.length : state.boxSets.length}/${boxSetsError == null ? boxSetsTotal : (cachedBoxSets?.totalCount ?? 0)}',
+      'people': '${peopleError == null ? people.length : state.people.length}/${peopleError == null ? peopleTotal : (cachedPeople?.totalCount ?? 0)}',
+      'fromCache': hasCache,
     });
     _isLoading = false;
   }
