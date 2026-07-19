@@ -1,3 +1,10 @@
+## [1.155.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.155.0...v1.155.1) (2026-07-19)
+
+
+### Performance Improvements
+
+* **frontend:** 优化日志系统 - 添加模块标签、预初始化、移除冗余输出 ([6b6b189](https://github.com/1525745393/EmbyTok-Flutter/commit/6b6b189b2b68a828e5846c6d7970722c00666522))
+
 # [1.155.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.154.0...v1.155.0) (2026-07-18)
 
 
