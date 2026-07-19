@@ -560,6 +560,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   void _showControls() {
     _controlsHideTimer?.cancel();
+    if (!mounted) return;
     setState(() => _controlsVisible = true);
     _controlsHideTimer = Timer(const Duration(seconds: _controlsAutoHideSeconds), _hideControls);
   }

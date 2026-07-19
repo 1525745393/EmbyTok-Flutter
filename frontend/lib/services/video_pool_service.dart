@@ -232,6 +232,9 @@ class VideoPoolService {
   /// 导致的 OOM 崩溃（特别是在退出应用时）。
   Future<void> disposeAll() async {
     // 分批释放：每批处理 2 个，批次间让事件循环有机会触发 GC
+    // 先清空 _inflight：防止登出/换账号后，正在预加载的旧会话完成后
+    // 把过期 controller 写回已清空的 _sessions 池，造成 stale controller 残留
+    _inflight.clear();
     final sessions = List<PlaybackSession>.from(_sessions.values);
     _sessions.clear();
     _accessOrder.clear();

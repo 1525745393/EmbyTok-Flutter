@@ -104,6 +104,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   // ---- 双击 ----
   void _onDoubleTap() {
+    // 双击回调由 300ms 定时器触发，需要提前检查 mounted
+    if (!mounted) return;
     final pos = _lastTapPosition;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -159,6 +161,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     } else {
       _seekFeedbackCount = 1;
     }
+    if (!mounted) return;
     setState(() {
       _isSeekForward = isForward;
       _showSeekFeedback = true;
@@ -372,7 +375,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     } else {
       _pendingSingleTap = true;
       _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
-        if (_pendingSingleTap) {
+        if (_pendingSingleTap && mounted) {
           _pendingSingleTap = false;
           _onSingleTap();
         }
