@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
@@ -1715,14 +1716,11 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 导出日志：异步写入文件 + 复制路径到剪贴板 + SnackBar 反馈
-  // 异常情况下显示错误对话框，便于用户排查
+  // 导出日志：预览内容 + 复制/打开文件操作
   Future<void> _exportLogs(BuildContext context) async {
     final scheme = Theme.of(context).colorScheme;
     try {
-      // 触发持久化并获取日志内容
       final logContent = await AppLogger.exportLogs();
-      final logPath = await AppLogger.getLogFilePath();
 
       if (logContent.isEmpty) {
         if (!context.mounted) return;
@@ -1735,23 +1733,14 @@ class SettingsView extends ConsumerWidget {
         return;
       }
 
-      // 复制日志文件路径到剪贴板，方便用户粘贴到文件管理器
-      if (logPath != null) {
-        await Clipboard.setData(ClipboardData(text: logPath));
-      }
+      // 写入临时文件以便系统查看器打开
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/embbytok_export.log');
+      await tempFile.writeAsString(logContent);
 
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(logPath != null
-              ? '日志已导出，路径已复制（${logContent.length} 字符）'
-              : '日志已导出（${logContent.length} 字符）'),
-          backgroundColor: scheme.primary,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      _showExportLogsDialog(context, logContent, tempFile.path);
     } catch (e) {
-      // 导出失败时显示错误对话框
       if (!context.mounted) return;
       showDialog<void>(
         context: context,
@@ -1771,6 +1760,109 @@ class SettingsView extends ConsumerWidget {
         ),
       );
     }
+  }
+
+  void _showExportLogsDialog(
+    BuildContext context,
+    String logContent,
+    String filePath,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    // 取最后 20 行作为预览
+    final lines = logContent.split('\n');
+    final previewLines = lines.length > 20 ? lines.sublist(lines.length - 20) : lines;
+    final preview = previewLines.join('\n');
+    final hasMore = lines.length > 20;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: Row(
+          children: [
+            Text('导出日志', style: TextStyle(color: scheme.onSurface)),
+            const Spacer(),
+            Text(
+              '共 ${logContent.length} 字符',
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (hasMore)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '... 省略前 ${lines.length - 20} 行',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                  ),
+                ),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 260),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withAlpha(128),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    preview,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: scheme.onSurface,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: logContent));
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('日志内容已复制到剪贴板'),
+                  backgroundColor: scheme.primary,
+                ),
+              );
+            },
+            child: const Text('复制内容'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final result = await OpenFilex.open(filePath, type: 'text/plain');
+              if (result.type != ResultType.done && dialogContext.mounted) {
+                // 无法打开时降级为复制内容
+                await Clipboard.setData(ClipboardData(text: logContent));
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('无法打开文件，日志内容已复制到剪贴板'),
+                    backgroundColor: scheme.primary,
+                  ),
+                );
+              }
+            },
+            child: const Text('打开文件'),
+          ),
+        ],
+      ),
+    );
   }
 
   // 清除日志确认对话框
