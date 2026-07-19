@@ -109,7 +109,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final rate = await showDialog<double>(
       context: context,
       builder: (context) => SimpleDialog(
-        backgroundColor: scheme.surface.withOpacity(0.9),
+        backgroundColor: scheme.surface.withValues(alpha: 0.9),
         title: Text('播放速度',
             style: TextStyle(color: scheme.onSurface, fontSize: 16)),
         children: widget.playbackRates
@@ -162,8 +162,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            scheme.surface.withOpacity(0.54),
-            scheme.surface.withOpacity(0.87),
+            scheme.surface.withValues(alpha: 0.54),
+            scheme.surface.withValues(alpha: 0.87),
           ],
         ),
       ),

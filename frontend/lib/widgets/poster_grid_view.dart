@@ -183,7 +183,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     }
     if (gridItems.isEmpty) {
       return Center(
-        child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
+        child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 16)),
       );
     }
 
@@ -226,9 +226,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.5),
+            color: scheme.surface.withValues(alpha: 0.5),
             border: Border(
-              bottom: BorderSide(color: scheme.onSurface.withOpacity(0.1)),
+              bottom: BorderSide(color: scheme.onSurface.withValues(alpha: 0.1)),
             ),
           ),
           child: SafeArea(
@@ -254,7 +254,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheme.onSurface.withOpacity(0.1),
+                      color: scheme.onSurface.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -263,7 +263,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                         Text(
                           countStr,
                           style: TextStyle(
-                            color: scheme.primary.withOpacity(0.7),
+                            color: scheme.primary.withValues(alpha: 0.7),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -272,7 +272,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                         Icon(
                           Icons.auto_awesome,
                           size: 14,
-                          color: scheme.onSurface.withOpacity(0.7),
+                          color: scheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ],
                     ),
@@ -286,7 +286,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                   },
                   icon: Icon(
                     Icons.phone_android,
-                    color: scheme.onSurface.withOpacity(0.7),
+                    color: scheme.onSurface.withValues(alpha: 0.7),
                     size: 20,
                   ),
                   padding: EdgeInsets.zero,
@@ -303,8 +303,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                     icon: Icon(
                       Icons.chevron_left,
                       color: hasPrevPage
-                          ? scheme.onSurface.withOpacity(0.7)
-                          : scheme.onSurface.withOpacity(0.3),
+                          ? scheme.onSurface.withValues(alpha: 0.7)
+                          : scheme.onSurface.withValues(alpha: 0.3),
                     ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
@@ -328,8 +328,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                     icon: Icon(
                       Icons.chevron_right,
                       color: hasNextPage
-                          ? scheme.onSurface.withOpacity(0.7)
-                          : scheme.onSurface.withOpacity(0.3),
+                          ? scheme.onSurface.withValues(alpha: 0.7)
+                          : scheme.onSurface.withValues(alpha: 0.3),
                     ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
@@ -421,20 +421,20 @@ class _PosterCard extends ConsumerWidget {
                 httpHeaders: item.authHeaders(authState.token),
                 memCacheWidth: 400,
                 placeholder: (_, __) => Container(
-                  color: scheme.surface.withOpacity(0.3),
+                  color: scheme.surface.withValues(alpha: 0.3),
                   child: Center(
                     child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: scheme.surface.withOpacity(0.3),
-                  child: Icon(Icons.broken_image, color: scheme.onSurface.withOpacity(0.4)),
+                  color: scheme.surface.withValues(alpha: 0.3),
+                  child: Icon(Icons.broken_image, color: scheme.onSurface.withValues(alpha: 0.4)),
                 ),
               )
             else
               Container(
-                color: scheme.surface.withOpacity(0.3),
-                child: Icon(Icons.movie, color: scheme.onSurface.withOpacity(0.4)),
+                color: scheme.surface.withValues(alpha: 0.3),
+                child: Icon(Icons.movie, color: scheme.onSurface.withValues(alpha: 0.4)),
               ),
             // "正在播放"角标：左上角小播放图标
             if (isPlaying)
@@ -473,7 +473,7 @@ class _PosterCard extends ConsumerWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      scheme.surface.withOpacity(0.75),
+                      scheme.surface.withValues(alpha: 0.75),
                       Colors.transparent,
                     ],
                   ),
@@ -494,7 +494,7 @@ class _PosterCard extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: item.progressPercent,
                   minHeight: 3,
-                  backgroundColor: scheme.onSurface.withOpacity(0.15),
+                  backgroundColor: scheme.onSurface.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                 ),
               ),

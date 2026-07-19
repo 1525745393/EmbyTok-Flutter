@@ -92,11 +92,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       gridSearchQueryProvider,
       (previous, next) {
         final viewMode = _ref.read(viewModeProvider);
-        final feedType = _ref.read(feedTypeProvider);
-        if (viewMode == ViewMode.grid && feedType == FeedType.latest && next != previous) {
+        // 搜索适用于所有 feedType 的网格视图，不限 latest
+        if (viewMode == ViewMode.grid && next != previous) {
           _searchDebounceTimer?.cancel();
           _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
-            AppLogger.debug('网格搜索变化："$previous" -> "$next"，只刷新网格');
+            final currentFeedType = _ref.read(feedTypeProvider);
+            AppLogger.debug('网格搜索变化："$previous" -> "$next"，feedType=$currentFeedType，只刷新网格');
             _refreshGridOnly(next);
           });
         }

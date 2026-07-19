@@ -1097,7 +1097,7 @@ class _FullscreenVideoPageState
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
                       colors: [
-                        Colors.white.withOpacity(0.15),
+                        Colors.white.withValues(alpha: 0.15),
                         Colors.transparent
                       ],
                     ),
@@ -1200,7 +1200,7 @@ class _FullscreenVideoPageState
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.7),
+                  Colors.black.withValues(alpha: 0.7),
                   Colors.transparent,
                 ],
               ),
@@ -1271,7 +1271,7 @@ class _FullscreenVideoPageState
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withOpacity(0.7),
+                  Colors.black.withValues(alpha: 0.7),
                 ],
               ),
             ),
@@ -1408,7 +1408,7 @@ class _FullscreenVideoPageState
           child: Container(
             width: 200,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.88),
+              color: Colors.black.withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white24),
             ),
@@ -1592,7 +1592,7 @@ class _FullscreenVideoPageState
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
+            color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -1671,7 +1671,7 @@ class _FullscreenVideoPageState
     final selectedSubId = ref.read(selectedSubtitleProvider);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.black.withOpacity(0.9),
+      backgroundColor: Colors.black.withValues(alpha: 0.9),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1754,7 +1754,7 @@ class _SeekPreviewBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
             color: Theme.of(context).colorScheme.primary, width: 1.5),

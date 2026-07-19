@@ -381,7 +381,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildFavoriteButton(bool favorited, ColorScheme scheme) {
     return Container(
       decoration: BoxDecoration(
-        color: scheme.onSurface.withOpacity(0.1),
+        color: scheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: scheme.outlineVariant),
       ),
@@ -423,7 +423,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: scheme.onSurface.withOpacity(0.1),
+        color: scheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -439,7 +439,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: scheme.tertiary.withOpacity(0.2),
+        color: scheme.tertiary.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -615,7 +615,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? scheme.primary
-                            : scheme.onSurface.withOpacity(0.1),
+                            : scheme.onSurface.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: isSelected ? scheme.primary : scheme.outlineVariant,
@@ -650,7 +650,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               child: Center(
                 child: Text(
                   '暂无集数',
-                  style: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7), fontSize: 14),
+                  style: TextStyle(color: scheme.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 14),
                 ),
               ),
             )
@@ -791,7 +791,7 @@ class _BackdropPlaceholder extends StatelessWidget {
     }
     return Container(
       color: scheme.surface,
-      child: Center(child: Icon(icon, color: scheme.onSurface.withOpacity(0.5), size: 80)),
+      child: Center(child: Icon(icon, color: scheme.onSurface.withValues(alpha: 0.5), size: 80)),
     );
   }
 }
@@ -821,7 +821,7 @@ class _CastCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: scheme.surface,
                 border: Border.all(
-                  color: scheme.onSurface.withOpacity(0.1),
+                  color: scheme.onSurface.withValues(alpha: 0.1),
                   width: 0.5,
                 ),
               ),
@@ -860,7 +860,7 @@ class _CastCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: scheme.onSurfaceVariant.withOpacity(0.7),
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                     fontSize: 11,
                   ),
                   textAlign: TextAlign.center,
@@ -881,7 +881,7 @@ class _AvatarPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: scheme.surface,
-      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 32),
+      child: Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5), size: 32),
     );
   }
 }
@@ -920,7 +920,7 @@ class _EpisodeTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.1),
+          color: scheme.onSurface.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: scheme.outlineVariant),
         ),
@@ -976,7 +976,7 @@ class _EpisodeTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: scheme.onSurfaceVariant.withOpacity(0.7),
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                           fontSize: 12,
                         ),
                       ),
@@ -1003,7 +1003,7 @@ class _ThumbPlaceholder extends StatelessWidget {
       width: 120,
       height: 72,
       color: scheme.surface,
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
     );
   }
 }
@@ -1085,7 +1085,7 @@ class _PosterPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: scheme.surface,
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5), size: 32),
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withValues(alpha: 0.5), size: 32),
     );
   }
 }
@@ -1107,7 +1107,7 @@ class _SimilarCardSkeleton extends StatelessWidget {
             aspectRatio: 3 / 4,
             child: Container(
               decoration: BoxDecoration(
-                color: scheme.onSurface.withOpacity(0.05),
+                color: scheme.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -1118,7 +1118,7 @@ class _SimilarCardSkeleton extends StatelessWidget {
             width: double.infinity,
             height: 12,
             decoration: BoxDecoration(
-              color: scheme.onSurface.withOpacity(0.05),
+              color: scheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(4),
             ),
           ),

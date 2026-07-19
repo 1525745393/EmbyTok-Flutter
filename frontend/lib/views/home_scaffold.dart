@@ -285,7 +285,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               end: Alignment.topCenter,
                               colors: [
                                 scheme.surface,
-                                scheme.surface.withOpacity(0.0),
+                                scheme.surface.withValues(alpha: 0.0),
                               ],
                             ),
                           ),
@@ -295,7 +295,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               selectedIndex: currentIndex,
                               backgroundColor: Colors.transparent,
                               elevation: 0,
-                              indicatorColor: scheme.primary.withOpacity(0.15),
+                              indicatorColor: scheme.primary.withValues(alpha: 0.15),
                               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                               height: kBottomNavHeight,
                               onDestinationSelected: (index) {

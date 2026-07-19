@@ -41,7 +41,7 @@ class TVRootView extends ConsumerWidget {
                   const SizedBox(width: 16),
                   Text(
                     '后续将替换为电视专用首页',
-                    style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
+                    style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 14),
                   ),
                 ],
               ),

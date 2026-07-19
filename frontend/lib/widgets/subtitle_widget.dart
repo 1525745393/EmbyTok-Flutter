@@ -87,7 +87,7 @@ class SubtitleStyle {
     return SubtitleStyle(
       fontSize: settings.fontSize,
       textColor: settings.textColor,
-      backgroundColor: scheme.surface.withOpacity(0.54),
+      backgroundColor: scheme.surface.withValues(alpha: 0.54),
       fontWeight: FontWeight.w600,
       lineHeight: 1.3,
       showBackground: true,

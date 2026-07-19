@@ -78,7 +78,7 @@ class _HeartAnimationState extends State<HeartAnimation>
                       size: 96,
                       shadows: [
                         Shadow(
-                          color: scheme.onSurface.withOpacity(0.33),
+                          color: scheme.onSurface.withValues(alpha: 0.33),
                           blurRadius: 16,
                           offset: Offset(0, 4),
                         ),

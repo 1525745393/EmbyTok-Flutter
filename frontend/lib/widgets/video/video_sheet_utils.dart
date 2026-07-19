@@ -19,7 +19,7 @@ Future<void> showSpeedControlPanel(
 
   await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: scheme.surface.withOpacity(0.9),
+    backgroundColor: scheme.surface.withValues(alpha: 0.9),
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
@@ -46,7 +46,7 @@ Future<void> showSpeedControlPanel(
                   max: 10.0,
                   divisions: 18,
                   activeColor: scheme.tertiary,
-                  inactiveColor: scheme.onSurface.withOpacity(0.2),
+                  inactiveColor: scheme.onSurface.withValues(alpha: 0.2),
                   onChanged: (value) {
                     setSheetState(() {
                       selectedSpeed = double.parse(value.toStringAsFixed(1));
@@ -81,7 +81,7 @@ Future<void> showSpeedControlPanel(
                         decoration: BoxDecoration(
                           color: isSelected
                               ? scheme.tertiary
-                              : scheme.onSurface.withOpacity(0.1),
+                              : scheme.onSurface.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -141,7 +141,7 @@ Future<void> showSubtitleSelector(
   final scheme = Theme.of(context).colorScheme;
   await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: scheme.surface.withOpacity(0.9),
+    backgroundColor: scheme.surface.withValues(alpha: 0.9),
     builder: (context) {
       return Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
@@ -198,7 +198,7 @@ Future<bool> showDeleteConfirmDialog(BuildContext context, String itemTitle) asy
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: scheme.surface.withOpacity(0.9),
+      backgroundColor: scheme.surface.withValues(alpha: 0.9),
       title: Text('确认删除', style: TextStyle(color: scheme.onSurface)),
       content: Text('确定要从媒体库中删除 "$itemTitle" 吗？',
           style: TextStyle(color: scheme.onSurfaceVariant)),
@@ -244,7 +244,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
 
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: scheme.surface.withOpacity(0.9),
+    backgroundColor: scheme.surface.withValues(alpha: 0.9),
     isScrollControlled: true,
     builder: (context) {
       return DraggableScrollableSheet(
@@ -263,7 +263,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: scheme.onSurface.withOpacity(0.14),
+                      color: scheme.onSurface.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -350,7 +350,7 @@ class _VideoInfoSubtitle extends StatelessWidget {
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: scheme.primary.withOpacity(0.18),
+          color: scheme.primary.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(type,
@@ -455,10 +455,10 @@ class _VideoInfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: scheme.onSurface.withOpacity(0.08),
+        color: scheme.onSurface.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: highlight
-            ? Border.all(color: scheme.primary.withOpacity(0.45))
+            ? Border.all(color: scheme.primary.withValues(alpha: 0.45))
             : null,
       ),
       constraints: const BoxConstraints(minWidth: 80),
@@ -521,7 +521,7 @@ class _PersonChipList extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.25),
+            color: scheme.surface.withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(display,

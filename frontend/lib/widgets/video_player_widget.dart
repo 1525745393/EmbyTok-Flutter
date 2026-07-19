@@ -947,21 +947,21 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             httpHeaders: headers.isNotEmpty ? headers : null,
             memCacheWidth: cacheWidth,
             placeholder: (_, __) => Container(
-              color: scheme.surface.withOpacity(0.3),
+              color: scheme.surface.withValues(alpha: 0.3),
               child: Center(
                 child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
               ),
             ),
             errorWidget: (_, __, ___) => Container(
-              color: scheme.surface.withOpacity(0.3),
+              color: scheme.surface.withValues(alpha: 0.3),
               child: Center(
-                child: Icon(Icons.broken_image, size: 64, color: scheme.onSurface.withOpacity(0.4)),
+                child: Icon(Icons.broken_image, size: 64, color: scheme.onSurface.withValues(alpha: 0.4)),
               ),
             ),
           )
         else
           Container(
-            color: scheme.surface.withOpacity(0.3),
+            color: scheme.surface.withValues(alpha: 0.3),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -970,14 +970,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                     errorIcon,
                     size: 64,
                     color: _hasError
-                        ? scheme.error.withOpacity(0.7)
-                        : scheme.onSurface.withOpacity(0.4),
+                        ? scheme.error.withValues(alpha: 0.7)
+                        : scheme.onSurface.withValues(alpha: 0.4),
                   ),
                   if (_hasError && errMsg != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       errMsg.message,
-                      style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                      style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                     // 可重试错误显示重试按钮
@@ -1004,10 +1004,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: Icon(
               Icons.play_circle_fill,
               size: 96,
-              color: scheme.onSurface.withOpacity(0.7),
+              color: scheme.onSurface.withValues(alpha: 0.7),
               shadows: [
                 Shadow(
-                  color: scheme.surface.withOpacity(0.54),
+                  color: scheme.surface.withValues(alpha: 0.54),
                   blurRadius: 12,
                 ),
               ],

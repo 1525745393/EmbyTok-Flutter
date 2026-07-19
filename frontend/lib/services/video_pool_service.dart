@@ -196,7 +196,8 @@ class VideoPoolService {
   ///
   /// 注意：传入的会话必须已 initialize 完成且未被 dispose，否则会被忽略。
   void returnSession(PlaybackSession session) {
-    if (session._isDisposed || !session.isInitialized) return;
+    // isInitialized 已包含 !_isDisposed 检查，无需重复访问私有字段
+    if (!session.isInitialized) return;
     if (_sessions.containsKey(session.itemId)) {
       // 池中已有：直接 dispose 传入的（避免重复持有 native 资源）
       session.dispose();

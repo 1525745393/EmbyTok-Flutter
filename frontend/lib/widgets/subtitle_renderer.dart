@@ -46,7 +46,7 @@ class SubtitleRenderer extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.72),
+            color: scheme.surface.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Stack(
@@ -63,7 +63,7 @@ class SubtitleRenderer extends ConsumerWidget {
                     ..style = PaintingStyle.stroke
                     ..strokeWidth = (settings.fontSize * 0.14).clamp(2.0, 5.0)
                     ..strokeJoin = StrokeJoin.round
-                    ..color = Colors.black.withOpacity(0.85),
+                    ..color = Colors.black.withValues(alpha: 0.85),
                 ),
               ),
               // 填充层

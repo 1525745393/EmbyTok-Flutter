@@ -299,7 +299,7 @@ class EmbyClient:
     # ------------------------------------------------------------------
     # 收藏
     # ------------------------------------------------------------------
-    async def get_favorites(self) -> dict:
+    async def get_favorites(self, limit: int = 50, offset: int = 0) -> dict:
         """获取收藏列表（与前端字段集保持一致）"""
         params: Dict[str, Any] = {
             "Recursive": "true",
@@ -309,6 +309,8 @@ class EmbyClient:
                 "Overview,Genres,People,CommunityRating,ProductionYear,"
                 "RuntimeTicks,MediaSources,Path,ImageTags,UserData"
             ),
+            "StartIndex": offset,
+            "Limit": limit,
         }
         if self.user_id:
             params["UserId"] = self.user_id

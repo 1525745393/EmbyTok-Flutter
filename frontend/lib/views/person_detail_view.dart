@@ -227,7 +227,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           Text(
                             _personTypeLabel,
                             style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
+                                color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 13),
                           ),
                           if (overview != null &&
                               overview.isNotEmpty) ...[
@@ -236,7 +236,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                               text: overview,
                               maxLines: 6,
                               style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.7),
+                                color: scheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 13,
                                 height: 1.4,
                               ),
@@ -246,7 +246,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                             Text(
                               '暂无简介',
                               style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.4),
+                                color: scheme.onSurface.withValues(alpha: 0.4),
                                 fontSize: 13,
                                 fontStyle: FontStyle.italic,
                               ),
@@ -289,7 +289,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                   child: Text(
                     '暂无作品',
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
+                        color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 14),
                   ),
                 ),
               )
@@ -348,7 +348,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
           Text(
             _error ?? '加载失败',
             style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.7), fontSize: 14),
+                color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -377,8 +377,8 @@ class _AvatarPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: scheme.surface.withOpacity(0.3),
-      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 64),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5), size: 64),
     );
   }
 }
@@ -409,9 +409,9 @@ class _WorkTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
         ),
         child: Row(
           children: [
@@ -450,7 +450,7 @@ class _WorkTile extends ConsumerWidget {
                   Text(
                     _yearText,
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                        color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12),
                   ),
                 ],
               ),
@@ -479,8 +479,8 @@ class _ThumbPlaceholder extends StatelessWidget {
     return Container(
       width: 120,
       height: 72,
-      color: scheme.surface.withOpacity(0.3),
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
     );
   }
 }

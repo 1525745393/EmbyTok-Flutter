@@ -92,7 +92,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
               ? '暂无视频，请选择其他媒体库'
               : '没有符合筛选条件的视频',
           style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.6), fontSize: 16),
+              color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 16),
         ),
       );
     }
@@ -168,7 +168,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
             Text(
               error,
               style: TextStyle(
-                  color: scheme.onSurface.withOpacity(0.7), fontSize: 16),
+                  color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

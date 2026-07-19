@@ -55,7 +55,7 @@ class LibrarySelector extends ConsumerStatefulWidget {
   }) {
     return showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => LibrarySelector(scope: scope),
     );
   }
@@ -108,7 +108,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
         _localSelectedIds.length >= visibleLibraries.length;
 
     return Dialog(
-      backgroundColor: scheme.surface.withOpacity(0.95),
+      backgroundColor: scheme.surface.withValues(alpha: 0.95),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -164,7 +164,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: scheme.onSurface.withOpacity(0.6)),
+                    icon: Icon(Icons.close, color: scheme.onSurface.withValues(alpha: 0.6)),
                     tooltip: '关闭',
                   ),
                 ],
@@ -191,7 +191,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                       children: [
                         Icon(
                           Icons.error_outline,
-                          color: scheme.onSurface.withOpacity(0.5),
+                          color: scheme.onSurface.withValues(alpha: 0.5),
                           size: 48,
                         ),
                         const SizedBox(height: 12),
@@ -210,7 +210,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: scheme.onSurface.withOpacity(0.6),
+                            color: scheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 12,
                           ),
                         ),
@@ -255,7 +255,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           padding: const EdgeInsets.all(32),
           child: Text(
             '暂无可用媒体库',
-            style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
           ),
         ),
       );
@@ -296,8 +296,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     Navigator.of(context).pop();
                   },
                   gradientColors: [
-                    scheme.primary.withOpacity(0.6),
-                    scheme.primary.withOpacity(0.2),
+                    scheme.primary.withValues(alpha: 0.6),
+                    scheme.primary.withValues(alpha: 0.2),
                   ],
                 ),
               ],
@@ -348,7 +348,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text(
                   '取消',
-                  style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                  style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -384,7 +384,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       child: Text(
         title,
         style: TextStyle(
-          color: scheme.onSurface.withOpacity(0.5),
+          color: scheme.onSurface.withValues(alpha: 0.5),
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
@@ -405,8 +405,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   }) {
     final bgGradient = gradientColors ??
         [
-          scheme.primary.withOpacity(isSelected ? 0.25 : 0.15),
-          scheme.primary.withOpacity(isSelected ? 0.1 : 0.05),
+          scheme.primary.withValues(alpha: isSelected ? 0.25 : 0.15),
+          scheme.primary.withValues(alpha: isSelected ? 0.1 : 0.05),
         ];
 
     return TvFocusable(
@@ -423,7 +423,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           ),
           border: isSelected
               ? Border.all(color: scheme.primary, width: 2)
-              : Border.all(color: scheme.onSurface.withOpacity(0.1), width: 1),
+              : Border.all(color: scheme.onSurface.withValues(alpha: 0.1), width: 1),
         ),
         padding: const EdgeInsets.all(14),
         child: Stack(
@@ -437,12 +437,12 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.1),
+                    color: isSelected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     icon,
-                    color: isSelected ? scheme.onPrimary : scheme.onSurface.withOpacity(0.7),
+                    color: isSelected ? scheme.onPrimary : scheme.onSurface.withValues(alpha: 0.7),
                     size: 20,
                   ),
                 ),
@@ -465,7 +465,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                       Text(
                         '$count 个视频',
                         style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.5),
+                          color: scheme.onSurface.withValues(alpha: 0.5),
                           fontSize: 11,
                         ),
                       ),

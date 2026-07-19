@@ -181,9 +181,9 @@ class _HistoryTile extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
         ),
         child: Row(
           children: [
@@ -238,7 +238,7 @@ class _HistoryTile extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
                                 value: progressPct,
-                                backgroundColor: scheme.onSurface.withOpacity(0.08),
+                                backgroundColor: scheme.onSurface.withValues(alpha: 0.08),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   scheme.primary,
                                 ),
@@ -250,7 +250,7 @@ class _HistoryTile extends ConsumerWidget {
                           Text(
                             '${(progressPct * 100).toInt()}%',
                             style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                                color: scheme.onSurface.withValues(alpha: 0.5), fontSize: 12),
                           ),
                         ],
                       ),
@@ -260,7 +260,7 @@ class _HistoryTile extends ConsumerWidget {
                       Text(
                         '上次观看：${lastPlayedDate.split('T').first}',
                         style: TextStyle(
-                            color: scheme.onSurface.withOpacity(0.4), fontSize: 11),
+                            color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 11),
                       ),
                   ],
                 );
@@ -275,8 +275,8 @@ class _HistoryTile extends ConsumerWidget {
   Widget _thumbPlaceholder(ColorScheme scheme) => Container(
         width: 120,
         height: 72,
-        color: scheme.surface.withOpacity(0.3),
-        child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+        color: scheme.surface.withValues(alpha: 0.3),
+        child: Icon(Icons.movie_outlined, color: scheme.onSurface.withValues(alpha: 0.5)),
       );
 }
 
