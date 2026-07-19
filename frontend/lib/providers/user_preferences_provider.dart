@@ -1,8 +1,10 @@
 /// 用户偏好设置 Provider：主题模式、默认倍速、默认字幕语言等
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/app_preferences.dart';
+import '../utils/constants.dart';
 
 // ---------------- 默认播放倍速 ----------------
 
@@ -56,9 +58,9 @@ final defaultSubtitleLanguageProvider =
 
 // ---------------- 视频画质 ----------------
 
-/// 视频画质：如 'auto'、'1080p'、'720p' 等
+/// 视频画质：'original' / 'directStream' / 'hls'
 class VideoQualityNotifier extends StateNotifier<String> {
-  VideoQualityNotifier() : super('auto') {
+  VideoQualityNotifier() : super('original') {
     _load();
   }
 
@@ -77,6 +79,30 @@ class VideoQualityNotifier extends StateNotifier<String> {
 final videoQualityProvider =
     StateNotifierProvider<VideoQualityNotifier, String>(
         (ref) => VideoQualityNotifier());
+
+// ---------------- 自动降级开关 ----------------
+
+/// 是否启用自动降级（默认关闭）
+class AutoFallbackEnabledNotifier extends StateNotifier<bool> {
+  AutoFallbackEnabledNotifier() : super(false) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.autoFallbackEnabled;
+  }
+
+  Future<void> set(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kStorageKeyAutoFallbackEnabled, value);
+  }
+}
+
+final autoFallbackEnabledProvider =
+    StateNotifierProvider<AutoFallbackEnabledNotifier, bool>(
+        (ref) => AutoFallbackEnabledNotifier());
 
 // ---------------- 字幕大小 ----------------
 

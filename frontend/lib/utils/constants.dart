@@ -39,6 +39,7 @@ const String kStorageKeyHiddenLibraryIds = 'embbytok_hidden_library_ids';
 const String kStorageKeyDefaultPlaybackRate = 'embbytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_language';
 const String kStorageKeyVideoQuality = 'embbytok_video_quality';
+const String kStorageKeyAutoFallbackEnabled = 'auto_fallback_enabled';
 const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
 // PR #78：推荐规则偏好（评分阈值 / 时长过滤 / 排除已观看）
 const String kStorageKeyRecommendMinRating = 'embbytok_recommend_min_rating';
