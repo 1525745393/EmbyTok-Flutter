@@ -702,7 +702,7 @@ class _ActorCard extends StatelessWidget {
       fit: BoxFit.cover,
       memCacheWidth: 240,
       httpHeaders: tk != null && tk.isNotEmpty
-          ? <String, String>{'X-Emby-Token': tk}
+          ? embyAuthHeaders(tk)
           : null,
       placeholder: (_, __) => Center(
         child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),

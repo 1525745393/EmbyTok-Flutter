@@ -162,3 +162,37 @@ const double kFontSizeBodyLarge = 16.0;
 const double kFontSizeTitleSmall = 14.0; // 粗体
 const double kFontSizeTitleMedium = 16.0;
 const double kFontSizeTitleLarge = 22.0;
+
+// ===== Emby API 认证头 =====
+//
+// Emby REST API 规范要求：所有请求必须携带 X-Emby-Authorization 头，
+// 其值格式为：
+//   MediaBrowser Client="<app>", Device="<device>", DeviceId="<id>", Version="<ver>"[, Token="<token>"]
+// Token 字段在登录后的所有请求中必须内嵌（而非作为独立头部），
+// 同时保留 X-Emby-Token 头以兼容旧版 Emby 服务器。
+//
+// 参考：https://emby.media/community/index.php?/topic/17346-how-to-authenticate-a-user/
+
+/// Emby 客户端标识前缀（不含 Token，用于登录前的匿名请求）
+const String kEmbyAuthPrefix =
+    'MediaBrowser Client="EmbyTok", Device="Mobile",'
+    ' DeviceId="embbytok-client", Version="1.0.0"';
+
+/// 构造含 Token 的完整 X-Emby-Authorization 头值
+///
+/// Emby 规范要求 Token 内嵌在 Authorization 头中，
+/// 仅发送 X-Emby-Token 不满足部分版本 Emby 服务器的认证要求。
+String embyAuthHeader(String token) => '$kEmbyAuthPrefix, Token="$token"';
+
+/// 构造 Emby 视频流 / 图片 / API 请求所需的完整认证头 Map
+///
+/// 同时包含：
+/// - X-Emby-Authorization：规范要求，含 Token 内嵌
+/// - X-Emby-Token：向后兼容旧版 Emby 服务器
+///
+/// 用于 VideoPlayerController.networkUrl(httpHeaders: ...)
+/// 和 CachedNetworkImage(httpHeaders: ...)
+Map<String, String> embyAuthHeaders(String token) => {
+      'X-Emby-Authorization': embyAuthHeader(token),
+      'X-Emby-Token': token,
+    };

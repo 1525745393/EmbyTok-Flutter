@@ -42,21 +42,34 @@ class ApiClient {
   /// 当前配置的 baseUrl（供 service 层判断是否需要切换）
   String? get optionsBaseUrl => _dio.options.baseUrl;
 
-  // Emby 客户端标识（用于 Emby 原生 API 认证）
-  static const _clientAuthorization =
-      'MediaBrowser Client="EmbyTok", Device="Mobile", DeviceId="embbytok-client", Version="1.0.0"';
+  // Emby 客户端标识前缀（不含 Token）
+  // Token 在拦截器中动态内嵌，避免登录前后头部格式不一致
+  static const _clientAuthPrefix =
+      'MediaBrowser Client="EmbyTok", Device="Mobile",'
+      ' DeviceId="embbytok-client", Version="1.0.0"';
 
-  // 注册拦截器：自动注入 X-Emby-Token + X-Emby-Authorization 头
+  // 注册拦截器：自动注入符合 Emby 规范的 X-Emby-Authorization 头
+  //
+  // Emby API 规范要求 Token 内嵌在 X-Emby-Authorization 中：
+  //   MediaBrowser Client="...", ..., Token="<token>"
+  // 同时保留 X-Emby-Token 头以兼容旧版 Emby 服务器（双头策略）。
+  // 未登录时（token 为 null）仅发送客户端标识，用于登录请求本身。
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          options.headers['X-Emby-Authorization'] = _clientAuthorization;
-          options.headers['Accept'] = 'application/json';
           final token = _token;
           if (token != null && token.isNotEmpty) {
+            // 已登录：将 Token 内嵌到 X-Emby-Authorization（Emby 规范要求）
+            options.headers['X-Emby-Authorization'] =
+                '$_clientAuthPrefix, Token="$token"';
+            // 同时发送 X-Emby-Token 兼容旧版服务器
             options.headers['X-Emby-Token'] = token;
+          } else {
+            // 未登录（如登录请求本身）：仅发送客户端标识
+            options.headers['X-Emby-Authorization'] = _clientAuthPrefix;
           }
+          options.headers['Accept'] = 'application/json';
           return handler.next(options);
         },
         onResponse: (response, handler) {

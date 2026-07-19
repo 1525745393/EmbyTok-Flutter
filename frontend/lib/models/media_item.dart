@@ -521,10 +521,19 @@ class MediaItem {
         '$msIdParam$sessionParam';
   }
 
-  // 获取认证 HTTP 请求头（用于 video_player 插件）
+  // 获取认证 HTTP 请求头（用于 video_player 插件和 CachedNetworkImage）
+  //
+  // 同时返回 X-Emby-Authorization（含 Token 内嵌，Emby 规范要求）
+  // 和 X-Emby-Token（向后兼容旧版服务器）。
+  // 仅返回 X-Emby-Token 不满足部分 Emby 版本的鉴权要求，会导致 401。
   Map<String, String> authHeaders(String? token) {
     if (token == null || token.isEmpty) return {};
-    return {'X-Emby-Token': token};
+    return {
+      'X-Emby-Authorization':
+          'MediaBrowser Client="EmbyTok", Device="Mobile",'
+          ' DeviceId="embbytok-client", Version="1.0.0", Token="$token"',
+      'X-Emby-Token': token,
+    };
   }
 
   // 获取缩略图 URL（带认证信息）
