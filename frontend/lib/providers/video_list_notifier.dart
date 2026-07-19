@@ -177,6 +177,100 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
+  /// SWR 模式加载最新视频（FeedType.latest 多库混合）
+  ///
+  /// 先从缓存读取并立即展示（加速首屏），然后发起网络请求获取最新数据。
+  /// 始终以网络返回的最新数据为准，缓存仅做加速。
+  _SWRLatestResult _loadLatestSWR({
+    required List<String> libIds,
+    required String serverUrl,
+    required String token,
+    required String? userId,
+    required int limit,
+    required String sortBy,
+    required String sortOrder,
+    required bool excludePlayed,
+    String? searchTerm,
+  }) {
+    final seenIds = <String, MediaItem>{};
+    int totalItems = 0;
+    bool hasCache = false;
+
+    // 第一步：同步读取所有库的缓存，合并去重
+    for (final libId in libIds) {
+      final cachedResult = _repo.peekLibraryItems(
+        MediaQueryParams(
+          libraryId: libId,
+          limit: limit,
+          offset: 0,
+          sortBy: sortBy,
+          sortOrder: sortOrder,
+          searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
+          excludePlayed: excludePlayed,
+        ),
+        serverUrl: serverUrl,
+        token: token,
+      );
+      if (cachedResult != null) {
+        hasCache = true;
+        for (final item in cachedResult.items) {
+          if (!seenIds.containsKey(item.id)) {
+            seenIds[item.id] = item;
+          }
+        }
+        totalItems += cachedResult.total;
+        _libraryLoadedCounts[libId] = cachedResult.items.length;
+      }
+    }
+
+    // 第二步：发起网络请求获取最新数据
+    final freshFuture = () async {
+      final freshSeenIds = <String, MediaItem>{};
+      int freshTotal = 0;
+      int failedCount = 0;
+      for (final libId in libIds) {
+        try {
+          final resp = await _repo.getLibraryItems(
+            MediaQueryParams(
+              libraryId: libId,
+              limit: limit,
+              offset: 0,
+              sortBy: sortBy,
+              sortOrder: sortOrder,
+              searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
+              excludePlayed: excludePlayed,
+            ),
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+          );
+          for (final item in resp.items) {
+            if (!freshSeenIds.containsKey(item.id)) {
+              freshSeenIds[item.id] = item;
+            }
+          }
+          _libraryLoadedCounts[libId] = resp.items.length;
+          freshTotal += resp.total;
+        } catch (e) {
+          failedCount++;
+          _libraryLoadedCounts[libId] = 0;
+          AppLogger.error('SWR: 加载库 $libId 失败', error: e);
+        }
+      }
+      return _SWRLatestFreshResult(
+        items: freshSeenIds.values.toList(),
+        total: freshTotal,
+        allFailed: failedCount == libIds.length,
+      );
+    }();
+
+    return _SWRLatestResult(
+      cachedItems: hasCache ? seenIds.values.toList() : null,
+      cachedTotal: totalItems,
+      freshFuture: freshFuture,
+    );
+  }
+
   // 根据当前 feedType 刷新视频列表
   // latest: 走 getLibraryItems 分页（支持多库混合）
   // random: 拉 80 条打乱，不分页（支持多库混合）
@@ -239,53 +333,68 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          // refresh 时清空每库独立计数，从头开始分页
           _libraryLoadedCounts.clear();
-          // 多库混合：每个库独立 try-catch，一个库失败不影响其他库
-          // 使用 Map 按 id 去重，避免同视频在多个库中重复出现
-          final seenIds = <String, MediaItem>{};
-          int totalItems = 0;
-          int failedCount = 0;
-          for (final libId in libIds) {
-            try {
-              final resp = await _repo.getLibraryItems(
-                MediaQueryParams(
-                  libraryId: libId,
-                  limit: state.limit,
-                  offset: 0,
-                  sortBy: state.sortBy,
-                  sortOrder: state.sortOrder,
-                  searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
-                  excludePlayed: _ref.read(feedExcludePlayedProvider),
-                ),
-                serverUrl: serverUrl,
-                token: token,
-                userId: userId,
-              );
-              for (final item in resp.items) {
-                if (!seenIds.containsKey(item.id)) {
-                  seenIds[item.id] = item;
-                }
+
+          final swr = _loadLatestSWR(
+            libIds: libIds,
+            serverUrl: serverUrl,
+            token: token,
+            userId: userId,
+            limit: state.limit,
+            sortBy: state.sortBy,
+            sortOrder: state.sortOrder,
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
+            searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+          );
+
+          // 有缓存：立即展示缓存数据，仍显示 loading 指示
+          if (swr.hasCache) {
+            state = state.copyWith(
+              items: swr.cachedItems!,
+              gridItems: swr.cachedItems!,
+              isLoading: true,
+              hasMore: swr.cachedTotal > swr.cachedItems!.length,
+              totalCount: swr.cachedTotal,
+              error: null,
+            );
+          }
+
+          // 等待最新数据
+          try {
+            final fresh = await swr.freshFuture;
+            if (fresh.allFailed) {
+              if (swr.hasCache) {
+                state = state.copyWith(isLoading: false);
+              } else {
+                state = state.copyWith(
+                  isLoading: false,
+                  error: AppError.network(message: '所有媒体库均加载失败，请检查网络连接'),
+                );
               }
-              _libraryLoadedCounts[libId] = resp.items.length;
-              totalItems += resp.total;
-            } catch (e) {
-              failedCount++;
-              _libraryLoadedCounts[libId] = 0;
-              AppLogger.error('加载库 $libId 失败，跳过', error: e);
+            } else {
+              state = state.copyWith(
+                items: fresh.items,
+                gridItems: fresh.items,
+                isLoading: false,
+                hasMore: fresh.total > fresh.items.length,
+                totalCount: fresh.total,
+                error: null,
+              );
+            }
+          } catch (e) {
+            if (swr.hasCache) {
+              state = state.copyWith(isLoading: false);
+            } else {
+              state = state.copyWith(
+                isLoading: false,
+                error: AppError.network(message: e.toString()),
+              );
             }
           }
-          // 所有库都失败 → 视为加载失败，设置 error，用户可重试
-          if (failedCount == libIds.length) {
-            state = state.copyWith(
-              isLoading: false,
-              error: AppError.network(message: '所有媒体库均加载失败，请检查网络连接'),
-            );
-            return;
-          }
-          loadedItems = seenIds.values.toList();
-          loadedTotal = totalItems;
+          loadedItems = state.items;
+          loadedTotal = state.totalCount;
           canPaginate = true;
+          break;
 
         case FeedType.random:
           final libIds = selectedIds;
@@ -799,6 +908,34 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     _viewModeSubscription?.close();
     super.dispose();
   }
+}
+
+/// SWR 模式首屏加载结果（FeedType.latest 多库混合场景）
+class _SWRLatestResult {
+  final List<MediaItem>? cachedItems;
+  final int cachedTotal;
+  final Future<_SWRLatestFreshResult> freshFuture;
+
+  const _SWRLatestResult({
+    required this.cachedItems,
+    required this.cachedTotal,
+    required this.freshFuture,
+  });
+
+  bool get hasCache => cachedItems != null;
+}
+
+/// SWR 网络请求结果
+class _SWRLatestFreshResult {
+  final List<MediaItem> items;
+  final int total;
+  final bool allFailed;
+
+  const _SWRLatestFreshResult({
+    required this.items,
+    required this.total,
+    required this.allFailed,
+  });
 }
 
 /// 顶层视频列表 Provider：暴露 [VideoListState] 给 UI 使用
