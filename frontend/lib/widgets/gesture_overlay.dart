@@ -215,6 +215,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   // ---- Pan 模式：同时支持水平/垂直拖动（全屏场景）----
   void _onPanStart(DragStartDetails d) {
+    _singleTapTimer?.cancel();
+    _pendingSingleTap = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
     _dragStartX = d.globalPosition.dx;
@@ -292,6 +294,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
 
   // ---- 水平拖动模式：仅水平 seek（小屏场景）----
   void _onHorizontalDragStart(DragStartDetails d) {
+    _singleTapTimer?.cancel();
+    _pendingSingleTap = false;
     final c = widget.controller;
     if (c == null || !c.value.isInitialized) return;
     _isDragging = true;
