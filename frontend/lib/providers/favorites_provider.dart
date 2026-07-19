@@ -8,6 +8,7 @@
 //   不做跨会话磁盘缓存，确保收藏数据始终以 Emby 为准
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
@@ -17,6 +18,9 @@ import 'cache_providers.dart';
 
 // 每页拉取数量
 const int _kFavoritesPageSize = 50;
+
+// SharedPreferences 本地收藏缓存的 key 前缀（按 userId 分键）
+const String _kCacheKeyPrefix = 'embbytok_favorites_cache_';
 
 /// 收藏状态：影片 / 合集 / 人物 三栏独立列表 + O(1) 快速查询的 favoriteIds
 ///
