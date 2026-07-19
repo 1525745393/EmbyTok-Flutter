@@ -70,6 +70,17 @@ abstract class MediaRepository {
     String? userId,
   });
 
+  /// 纯缓存读取媒体库条目列表，同步，不触发网络请求
+  ///
+  /// 仅从缓存中读取，缓存未命中或已过期时返回 null。
+  PaginatedResponse<MediaItem>? peekLibraryItems(
+    MediaQueryParams params, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
+
   /// 获取单个媒体条目的详情
   ///
   /// 对应 Emby 的 /Users/{userId}/Items/{itemId} 端点。
@@ -92,6 +103,18 @@ abstract class MediaRepository {
     String? userId,
   });
 
+  /// 纯缓存读取收藏的电影/视频列表，同步，不触发网络请求
+  ///
+  /// 仅从缓存中读取，缓存未命中或已过期时返回 null。
+  FavoritesPageResult? peekFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
+
   /// 获取收藏的合集（BoxSet）列表（支持分页）
   ///
   /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。
@@ -102,6 +125,18 @@ abstract class MediaRepository {
     required String token,
     String? userId,
   });
+
+  /// 纯缓存读取收藏的合集（BoxSet）列表，同步，不触发网络请求
+  ///
+  /// 仅从缓存中读取，缓存未命中或已过期时返回 null。
+  FavoritesPageResult? peekFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
 
   /// 获取续播列表（继续观看）
   Future<PaginatedResponse<MediaItem>> getResumeItems({
@@ -205,6 +240,18 @@ abstract class MediaRepository {
     required String token,
     String? userId,
   });
+
+  /// 纯缓存读取收藏的人物列表，同步，不触发网络请求
+  ///
+  /// 仅从缓存中读取，缓存未命中或已过期时返回 null。
+  FavoritesPageResult? peekFavoritePeople({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) =>
+      null;
 
   /// 获取推荐列表（基于社区评分、是否已看等过滤）
   ///
