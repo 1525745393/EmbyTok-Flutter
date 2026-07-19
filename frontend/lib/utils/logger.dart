@@ -1,10 +1,14 @@
-// 结构化日志工具类：支持不同日志级别和结构化数据
+// 结构化日志工具类：支持不同日志级别、模块标签和结构化数据
 // Debug 模式记录所有级别，Release 模式仅记录 Warn 和 Error
 //
-// 持久化说明（P2 新增）：
+// 持久化说明：
 // - WARN 和 ERROR 级别日志会写入本地文件，方便用户导出排查
 // - 采用环形缓冲：最多保留 500 条，超出后覆盖最旧记录
 // - 日志文件路径：应用文档目录/logs/app.log
+//
+// 模块标签（tag）说明：
+// - 所有 log 方法接受可选的 tag 参数，用于标识日志来源模块
+// - 输出格式：[LEVEL][TAG] timestamp - message，无 tag 时格式同旧版
 
 import 'dart:developer' as developer;
 import 'dart:io';
@@ -31,7 +35,7 @@ extension LogLevelExtension on LogLevel {
       };
 
   /// 日志级别标签
-  String get tag => switch (this) {
+  String get label => switch (this) {
         LogLevel.debug => 'DEBUG',
         LogLevel.info => 'INFO',
         LogLevel.warn => 'WARN',
@@ -43,6 +47,7 @@ extension LogLevelExtension on LogLevel {
 ///
 /// 提供结构化日志记录功能，支持：
 /// - 日志级别控制（Debug/Info/Warn/Error）
+/// - 模块标签（tag）用于来源隔离
 /// - 结构化数据附加
 /// - 时间戳和调用位置信息
 /// - Debug/Release 模式差异化输出
@@ -56,7 +61,7 @@ class AppLogger {
   static LogLevel _minLevel =
       kDebugMode ? LogLevel.debug : LogLevel.warn;
 
-  // ============ 本地日志持久化（P2 新增）============
+  // ============ 本地日志持久化 ============
   // 环形缓冲：最多保留 500 条 WARN/ERROR 日志
   static const int _maxPersistedLogs = 500;
   // 内存缓冲区（初始化时从文件加载，后续追加）
@@ -65,6 +70,15 @@ class AppLogger {
   static String? _logFilePath;
   // 是否已初始化（避免重复读文件）
   static bool _initialized = false;
+
+  /// 预初始化日志系统（推荐在 main() 中尽早调用）
+  ///
+  /// 提前创建日志目录并加载已有历史日志到内存缓冲区，
+  /// 避免首次 WARN/ERROR 日志触发惰性初始化时的 I/O 延迟。
+  static Future<void> init() async {
+    if (_initialized) return;
+    await _ensureLogFilePath();
+  }
 
   /// 设置最小日志级别
   static void setMinLevel(LogLevel level) {
@@ -77,22 +91,31 @@ class AppLogger {
   /// 记录 DEBUG 级别日志
   ///
   /// 用于开发调试信息，仅在 Debug 模式下输出
-  static void debug(String message, {Map<String, dynamic>? data}) {
-    _log(LogLevel.debug, message, data: data);
+  static void debug(String message, {
+    Map<String, dynamic>? data,
+    String? tag,
+  }) {
+    _log(LogLevel.debug, message, data: data, tag: tag);
   }
 
   /// 记录 INFO 级别日志
   ///
   /// 用于常规操作信息，如用户登录、API 请求等
-  static void info(String message, {Map<String, dynamic>? data}) {
-    _log(LogLevel.info, message, data: data);
+  static void info(String message, {
+    Map<String, dynamic>? data,
+    String? tag,
+  }) {
+    _log(LogLevel.info, message, data: data, tag: tag);
   }
 
   /// 记录 WARN 级别日志
   ///
   /// 用于警告信息，如降级策略触发、超时等
-  static void warn(String message, {Map<String, dynamic>? data}) {
-    _log(LogLevel.warn, message, data: data);
+  static void warn(String message, {
+    Map<String, dynamic>? data,
+    String? tag,
+  }) {
+    _log(LogLevel.warn, message, data: data, tag: tag);
   }
 
   /// 记录 ERROR 级别日志
@@ -103,11 +126,13 @@ class AppLogger {
     Object? error,
     StackTrace? stackTrace,
     Map<String, dynamic>? data,
+    String? tag,
   }) {
     _log(
       LogLevel.error,
       message,
       data: data,
+      tag: tag,
       error: error,
       stackTrace: stackTrace,
     );
@@ -118,6 +143,7 @@ class AppLogger {
     LogLevel level,
     String message, {
     Map<String, dynamic>? data,
+    String? tag,
     Object? error,
     StackTrace? stackTrace,
   }) {
@@ -130,8 +156,12 @@ class AppLogger {
     final timestamp = DateTime.now().toIso8601String();
     final buffer = StringBuffer();
 
-    // 基础格式：[LEVEL] timestamp - message
-    buffer.write('[$level] $timestamp - $message');
+    // 格式：[LEVEL][TAG] timestamp - message
+    buffer.write('[$level');
+    if (tag != null && tag.isNotEmpty) {
+      buffer.write('][$tag');
+    }
+    buffer.write('] $timestamp - $message');
 
     // 添加结构化数据
     if (data != null && data.isNotEmpty) {
@@ -151,18 +181,14 @@ class AppLogger {
     // 输出日志
     final logOutput = buffer.toString();
 
-    // Debug 模式：输出到控制台和开发者工具
     if (kDebugMode) {
       developer.log(
         logOutput,
         level: _mapToDeveloperLevel(level),
-        name: 'EmbyTok',
+        name: tag ?? 'EmbyTok',
         error: error,
         stackTrace: stackTrace,
       );
-      // 同时输出到控制台便于查看
-      // ignore: avoid_print
-      print(logOutput);
     } else {
       // Release 模式：仅输出 Error 级别到控制台
       if (level == LogLevel.error) {
@@ -177,7 +203,7 @@ class AppLogger {
     }
   }
 
-  // ============ 本地日志持久化方法（P2 新增）============
+  // ============ 本地日志持久化方法 ============
 
   /// 持久化单条日志到内存缓冲区，并异步写入文件
   ///

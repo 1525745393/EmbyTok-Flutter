@@ -24,7 +24,6 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/keyboard_shortcuts.dart';
-import '../utils/logger.dart';
 import '../viewmodels/feed_view_model.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
