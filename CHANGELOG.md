@@ -1,3 +1,10 @@
+## [1.160.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.3...v1.160.4) (2026-07-19)
+
+
+### Performance Improvements
+
+* **gesture:** 全屏页拖动状态改 ValueNotifier，避免 60fps 整树 rebuild ([bf5dbd4](https://github.com/1525745393/EmbyTok-Flutter/commit/bf5dbd4095bf6f8ebf339991e6394052ec87b5c3))
+
 ## [1.160.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.2...v1.160.3) (2026-07-19)
 
 
