@@ -1,3 +1,10 @@
+## [1.156.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.4...v1.156.5) (2026-07-19)
+
+
+### Bug Fixes
+
+* 修复视频控制器内存泄漏（OOM 根因） ([3dc3c53](https://github.com/1525745393/EmbyTok-Flutter/commit/3dc3c5382acdb3a3870fcd35b6ce48d2e26b13fc))
+
 ## [1.156.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.3...v1.156.4) (2026-07-19)
 
 
