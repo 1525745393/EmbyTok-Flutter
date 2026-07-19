@@ -1,3 +1,23 @@
+# [1.160.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.159.0...v1.160.0) (2026-07-19)
+
+
+### Bug Fixes
+
+* **gesture:** Pan/HorizontalDrag 开始时取消挂起的单击 Timer ([eea525a](https://github.com/1525745393/EmbyTok-Flutter/commit/eea525a3917e81b6403606ba67a7b52107649248))
+* **gesture:** 全屏页单击 Timer 回调加 mounted 检查 ([86920bf](https://github.com/1525745393/EmbyTok-Flutter/commit/86920bfa2dffd04f29072a56ba6ef17c7ce0013d))
+* **gesture:** 控制层可见时禁用全屏手势，消除与进度条/Slider 冲突 ([9f39370](https://github.com/1525745393/EmbyTok-Flutter/commit/9f393709f95c89bac8620eda2a107d387b797a98))
+* **gesture:** 进度条拖动过程不再高频 seekTo，防止 MediaCodec 崩溃 ([3125149](https://github.com/1525745393/EmbyTok-Flutter/commit/31251493fb52709af43d87ef9098921ea9fe6430))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([959bb0d](https://github.com/1525745393/EmbyTok-Flutter/commit/959bb0d508930274e517da6d1dfbea91bc1e1ceb))
+
+
+### Performance Improvements
+
+* **gesture:** 水平拖动 seek 速率从 100ms/px 降至 40ms/px ([8c41843](https://github.com/1525745393/EmbyTok-Flutter/commit/8c41843e6d138ca728803dc64c1bc6253cc2fd17))
+
 # [1.159.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.158.0...v1.159.0) (2026-07-19)
 
 
