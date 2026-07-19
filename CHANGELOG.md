@@ -1,3 +1,13 @@
+## [1.160.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.0...v1.160.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **gesture:** 亮度调节失败时回滚 UI 状态，保持与实际一致 ([d7ff67e](https://github.com/1525745393/EmbyTok-Flutter/commit/d7ff67efb1c37382b02a9dcba6788b411e94947a))
+* **gesture:** 全屏页 addPostFrameCallback 加 mounted 检查 ([859c612](https://github.com/1525745393/EmbyTok-Flutter/commit/859c612ebf37a59ca9e296fc7cd8e522454c322f))
+* **gesture:** 进度条 onTapDown 改 onTapUp，消除与 dragStart 抖动 ([83f050c](https://github.com/1525745393/EmbyTok-Flutter/commit/83f050c081d6b2f5e90935c15d57d1e13f0d2a54))
+* **ui:** 帮助面板点击内部内容不关闭，仅点击遮罩关闭 ([3213bd8](https://github.com/1525745393/EmbyTok-Flutter/commit/3213bd8efce5278670efc4ce94a53aa3e462b98f))
+
 # [1.160.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.159.0...v1.160.0) (2026-07-19)
 
 
