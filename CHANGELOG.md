@@ -1,3 +1,16 @@
+# [1.161.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.4...v1.161.0) (2026-07-19)
+
+
+### Bug Fixes
+
+* GestureOverlay 删除不存在的 onDoubleTap 回调引用 ([33d0ee3](https://github.com/1525745393/EmbyTok-Flutter/commit/33d0ee35f5518014094e29b6f529737255ede9e8))
+* VideoGestureMixin 私有成员改为公共，修复跨文件不可见 ([d40365a](https://github.com/1525745393/EmbyTok-Flutter/commit/d40365acb5d2dfcde028a8c2d0b0f3ba86b71592))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([2ed5f6f](https://github.com/1525745393/EmbyTok-Flutter/commit/2ed5f6f827e76a8d83be7d1429c608d2cc2daa09))
+
 ## [1.160.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.3...v1.160.4) (2026-07-19)
 
 
