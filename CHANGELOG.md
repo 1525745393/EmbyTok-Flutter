@@ -1,3 +1,12 @@
+# [1.162.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.161.0...v1.162.0) (2026-07-19)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([29976f6](https://github.com/1525745393/EmbyTok-Flutter/commit/29976f6909dad1dfc46066fb20bf8e9006fa7c27))
+* EmbyX 媒体库网格视图实现 ([616d46c](https://github.com/1525745393/EmbyTok-Flutter/commit/616d46c658400faca2f5f50829bfaf1f8df804b5))
+* 新增自动降级开关 + 调整默认画质 ([ea33b73](https://github.com/1525745393/EmbyTok-Flutter/commit/ea33b73956f6e2ae0384b243c9b0e62375939029))
+
 # [1.161.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.4...v1.161.0) (2026-07-19)
 
 
