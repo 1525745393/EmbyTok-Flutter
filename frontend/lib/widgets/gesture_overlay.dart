@@ -68,18 +68,15 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   @override
   void onDoubleTapLeft() {
     super.onDoubleTapLeft();
-    widget.onDoubleTap?.call();
   }
 
   @override
   void onDoubleTapRight() {
     super.onDoubleTapRight();
-    widget.onDoubleTap?.call();
   }
 
   @override
   void onDoubleTapCenter() {
-    widget.onDoubleTap?.call();
     triggerHeart();
     try {
       ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
