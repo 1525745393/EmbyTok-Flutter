@@ -92,7 +92,10 @@ const double kDefaultPlaybackRate = 1.0;
 const double kLongPressPlaybackRate = 2.0;
 const int kDebounceMs = 300;
 const int kDoubleTapMs = 300;
-const int kSeekPerPixelMs = 100;
+// 水平拖动 seek 速率（毫秒/像素）
+// 原值 100ms/px 在 1080p 屏幕全宽拖动会跳过 3.2 分钟，过于敏感
+// 新值 40ms/px 全宽约 77 秒，更符合行业标准，平衡灵敏度与误触
+const int kSeekPerPixelMs = 40;
 
 // 视频切换与引导动画时长（毫秒）
 const int kVideoFadeInMs = 200;
