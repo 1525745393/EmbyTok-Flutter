@@ -16,6 +16,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import 'video/video_gesture_mixin.dart';
 
 // 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
@@ -49,362 +50,59 @@ class GestureOverlay extends ConsumerStatefulWidget {
   ConsumerState<GestureOverlay> createState() => _GestureOverlayState();
 }
 
-class _GestureOverlayState extends ConsumerState<GestureOverlay> {
-  Timer? _singleTapTimer;
-  bool _pendingSingleTap = false;
-  bool _isLongPressing = false;
-  double _originalRate = 1.0; // 保存长按前的原始播放速度
+class _GestureOverlayState extends ConsumerState<GestureOverlay>
+    with VideoGestureMixin {
+  // ===== VideoGestureMixin 钩子实现 =====
 
-  // 拖动通用状态
-  bool _isDragging = false;
-  // 拖动方向：'h'=水平seek，'v'=垂直音量，null=未确定
-  String? _dragAxis;
-  double _dragStartX = 0.0;
-  double _dragStartY = 0.0;
+  @override
+  VideoPlayerController? get _videoController => widget.controller;
 
-  // 水平拖动状态（seek）
-  Duration _dragStartPosition = Duration.zero;
-  Duration _previewPosition = Duration.zero;
-  bool _showSeekPreview = false;
+  @override
+  bool get _gesturesEnabled => widget.enableGestures;
 
-  // 垂直拖动状态（音量）
-  bool _isVolumeSide = false;
-  double _volumeStartValue = 0.0;
-  bool _showVolumeUI = false;
-  double _volumePreviewValue = 0.0;
-
-  // 动画状态
-  bool _showHeart = false;
-  Timer? _dragHideTimer;
-  Timer? _volumeHideTimer;
-
-  // 双击快进/快退：记录最后一次 tap 位置 + 视觉反馈
-  Offset? _lastTapPosition;
-  bool _showSeekFeedback = false;
-  bool _isSeekForward = false;
-  // 连续双击累积次数（用于显示 +20s/+30s 等累积偏移）
-  int _seekFeedbackCount = 0;
-  Timer? _seekFeedbackResetTimer;
-
-  // 长按倍速视觉反馈
-  bool _showSpeedBadge = false;
-
-  // 安全检查：控制器是否可用
-  bool get _controllerReady {
-    final c = widget.controller;
-    if (c == null) return false;
-    if (!c.value.isInitialized) return false;
-    if (c.value.hasError) return false;
-    return true;
-  }
-
-  // ---- 单击 ----
+  @override
   void _onSingleTap() {
     widget.onSingleTap?.call();
   }
 
-  // ---- 双击 ----
-  void _onDoubleTap() {
-    // 双击回调由 300ms 定时器触发，需要提前检查 mounted
-    if (!mounted) return;
-    final pos = _lastTapPosition;
-    final screenWidth = MediaQuery.of(context).size.width;
+  @override
+  void _onDoubleTapLeft() {
+    super._onDoubleTapLeft();
+    widget.onDoubleTap?.call();
+  }
 
-    if (pos != null && _controllerReady) {
-      final relativeX = pos.dx / screenWidth;
-      if (relativeX < 0.33) {
-        _seekBySeconds(-10);
-        return;
-      } else if (relativeX > 0.67) {
-        _seekBySeconds(10);
-        return;
-      }
-    }
+  @override
+  void _onDoubleTapRight() {
+    super._onDoubleTapRight();
+    widget.onDoubleTap?.call();
+  }
 
-    // 中间区域：双击点赞
-    setState(() {
-      _showHeart = true;
-    });
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() {
-          _showHeart = false;
-        });
-      }
-    });
+  @override
+  void _onDoubleTapCenter() {
+    widget.onDoubleTap?.call();
+    _triggerHeart();
     try {
-      unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(widget.item));
+      ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
     } catch (e) {
       AppLogger.warn('双击点赞失败', data: {'error': e.toString()});
     }
   }
 
-  void _seekBySeconds(int seconds) {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    try {
-      final current = c.value.position;
-      final duration = c.value.duration;
-      var target = current + Duration(seconds: seconds);
-      if (target < Duration.zero) target = Duration.zero;
-      if (duration > Duration.zero && target > duration) target = duration;
-      c.seekTo(target);
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      AppLogger.debug('双击seek失败', data: {'error': e.toString()});
-    }
-    // 累积逻辑：同方向连续双击时累加显示（+10s → +20s → +30s）
-    // 反方向或超时（800ms）则重置
-    final isForward = seconds > 0;
-    _seekFeedbackResetTimer?.cancel();
-    if (_showSeekFeedback && _isSeekForward == isForward) {
-      _seekFeedbackCount++;
-    } else {
-      _seekFeedbackCount = 1;
-    }
-    if (!mounted) return;
-    setState(() {
-      _isSeekForward = isForward;
-      _showSeekFeedback = true;
-    });
-    // 800ms 内无后续双击则隐藏反馈
-    _seekFeedbackResetTimer = Timer(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() {
-          _showSeekFeedback = false;
-          _seekFeedbackCount = 0;
-        });
-      }
-    });
-  }
+  @override
+  bool get _handleLeftVerticalDrag => false;
 
-  // ---- 长按倍速 ----
-  void _onLongPressStart() {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    try {
-      _isLongPressing = true;
-      _originalRate = c.value.playbackSpeed;
-      c.setPlaybackSpeed(kLongPressPlaybackRate);
-      if (mounted) {
-        setState(() {
-          _showSpeedBadge = true;
-        });
-      }
-    } catch (e) {
-      AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
-    }
-  }
+  @override
+  MediaItem? get _currentItem => widget.item;
 
-  void _onLongPressEnd() {
-    if (!_isLongPressing) return;
-    _isLongPressing = false;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    try {
-      c.setPlaybackSpeed(_originalRate);
-      ref.read(playbackRateProvider.notifier).state = _originalRate;
-    } catch (e) {
-      AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
-    }
-    if (mounted) {
-      setState(() {
-        _showSpeedBadge = false;
-      });
-    }
-  }
-
-  // ---- Pan 模式：同时支持水平/垂直拖动（全屏场景）----
-  void _onPanStart(DragStartDetails d) {
-    _singleTapTimer?.cancel();
-    _pendingSingleTap = false;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    _dragStartX = d.globalPosition.dx;
-    _dragStartY = d.globalPosition.dy;
-    _isDragging = true;
-    _dragAxis = null;
-    _dragHideTimer?.cancel();
-    _volumeHideTimer?.cancel();
-    _showSeekPreview = false;
-    if (mounted) setState(() {});
-  }
-
-  void _onPanUpdate(DragUpdateDetails d) {
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-
-    final dx = d.globalPosition.dx - _dragStartX;
-    final dy = d.globalPosition.dy - _dragStartY;
-
-    // 尚未决定方向时，根据移动距离判断
-    if (_dragAxis == null) {
-      if (dx.abs() > dy.abs() && dx.abs() > 8) {
-        _dragAxis = 'h';
-        _dragStartPosition = c.value.position;
-        _previewPosition = c.value.position;
-        _showSeekPreview = true;
-        HapticFeedback.selectionClick();
-      } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
-        _dragAxis = 'v';
-        final screenWidth = MediaQuery.of(context).size.width;
-        _isVolumeSide = _dragStartX > screenWidth / 2;
-        if (_isVolumeSide) {
-          _volumeStartValue = c.value.volume;
-          _volumePreviewValue = c.value.volume;
-          setState(() {
-            _showVolumeUI = true;
-          });
-        } else {
-          // 左侧垂直滑动：让父级（PageView）处理，取消当前拖动
-          _isDragging = false;
-          _dragAxis = null;
-          _showSeekPreview = false;
-          return;
-        }
-      }
-      return;
-    }
-
-    if (_dragAxis == 'h') {
-      final seekMs = (dx * kSeekPerPixelMs).toInt();
-      var target = _dragStartPosition + Duration(milliseconds: seekMs);
-      final duration = c.value.duration;
-      if (target < Duration.zero) target = Duration.zero;
-      if (duration > Duration.zero && target > duration) target = duration;
-      _previewPosition = target;
-      if (mounted) setState(() {});
-    } else if (_dragAxis == 'v' && _isVolumeSide) {
-      final screenHeight = MediaQuery.of(context).size.height;
-      final delta = -dy / (screenHeight * 0.6);
-      var newVolume = (_volumeStartValue + delta).clamp(0.0, 1.0);
-      _volumePreviewValue = newVolume;
-      try {
-        c.setVolume(newVolume);
-      } catch (_) {}
-      if (mounted) setState(() {});
-    }
-  }
-
-  void _onPanEnd(DragEndDetails d) {
-    _endDrag();
-  }
-
-  void _onPanCancel() {
-    _isDragging = false;
-    _dragAxis = null;
-    _showSeekPreview = false;
-    if (mounted) setState(() {});
-  }
-
-  // ---- 水平拖动模式：仅水平 seek（小屏场景）----
-  void _onHorizontalDragStart(DragStartDetails d) {
-    _singleTapTimer?.cancel();
-    _pendingSingleTap = false;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    _isDragging = true;
-    _dragAxis = 'h';
-    _dragStartX = d.globalPosition.dx;
-    _dragStartPosition = c.value.position;
-    _previewPosition = c.value.position;
-    _dragHideTimer?.cancel();
-    _showSeekPreview = true;
-    HapticFeedback.selectionClick();
-    if (mounted) setState(() {});
-  }
-
-  void _onHorizontalDragUpdate(DragUpdateDetails d) {
-    if (!_isDragging || _dragAxis != 'h') return;
-    final c = widget.controller;
-    if (c == null || !c.value.isInitialized) return;
-    final dx = d.globalPosition.dx - _dragStartX;
-    final seekMs = (dx * kSeekPerPixelMs).toInt();
-    var target = _dragStartPosition + Duration(milliseconds: seekMs);
-    final duration = c.value.duration;
-    if (target < Duration.zero) target = Duration.zero;
-    if (duration > Duration.zero && target > duration) target = duration;
-    _previewPosition = target;
-    if (mounted) setState(() {});
-  }
-
-  void _onHorizontalDragEnd(DragEndDetails d) {
-    _endDrag();
-  }
-
-  void _onHorizontalDragCancel() {
-    _isDragging = false;
-    _dragAxis = null;
-    _showSeekPreview = false;
-    if (mounted) setState(() {});
-  }
-
-  // 拖动结束：统一处理 seek 执行和 UI 隐藏
-  void _endDrag() {
-    final c = widget.controller;
-    _volumeHideTimer?.cancel();
-
-    if (_dragAxis == 'h') {
-      if (c != null && _controllerReady) {
-        try {
-          final duration = c.value.duration;
-          var target = _previewPosition;
-          if (target < Duration.zero) target = Duration.zero;
-          if (duration > Duration.zero && target > duration) target = duration;
-          c.seekTo(target);
-          HapticFeedback.lightImpact();
-        } catch (e) {
-          AppLogger.debug('拖动进度seek失败', data: {'error': e.toString()});
-        }
-      }
-      _showSeekPreview = true;
-      _dragHideTimer?.cancel();
-      _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          setState(() {
-            _showSeekPreview = false;
-          });
-        }
-      });
-    } else if (_dragAxis == 'v' && _isVolumeSide) {
-      _volumeHideTimer = Timer(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          setState(() {
-            _showVolumeUI = false;
-          });
-        }
-      });
-    }
-
-    _isDragging = false;
-    _dragAxis = null;
-    if (mounted) setState(() {});
-  }
-
-  // ---- 单击/双击区分：300ms 定时器 ----
-  void _handleTap() {
-    if (_isDragging) return;
-    if (_pendingSingleTap) {
-      _singleTapTimer?.cancel();
-      _pendingSingleTap = false;
-      _onDoubleTap();
-    } else {
-      _pendingSingleTap = true;
-      _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
-        if (_pendingSingleTap && mounted) {
-          _pendingSingleTap = false;
-          _onSingleTap();
-        }
-      });
-    }
+  @override
+  void _onLongPressEnd(LongPressEndDetails details) {
+    super._onLongPressEnd(details);
+    ref.read(playbackRateProvider.notifier).state = _originalRate;
   }
 
   @override
   void dispose() {
-    _singleTapTimer?.cancel();
-    _dragHideTimer?.cancel();
-    _volumeHideTimer?.cancel();
-    _seekFeedbackResetTimer?.cancel();
+    _disposeGestureTimers();
     super.dispose();
   }
 
@@ -414,9 +112,6 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     final duration = (c != null && c.value.isInitialized)
         ? c.value.duration
         : Duration.zero;
-    final currentPosition = (_isDragging && _dragAxis == 'h')
-        ? _previewPosition
-        : (c != null && c.value.isInitialized ? c.value.position : Duration.zero);
 
     final usePan = widget.enableVerticalVolumeDrag;
 
@@ -427,17 +122,13 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapDown: (details) {
-              _lastTapPosition = details.globalPosition;
-            },
+            onTapDown: _handleTapDown,
             onTap: _handleTap,
-            onLongPressStart: widget.enableGestures
-                ? (_) => _onLongPressStart()
-                : null,
+            onLongPressStart: widget.enableGestures ? _onLongPressStart : null,
             onLongPressEnd:
-                widget.enableGestures ? (_) => _onLongPressEnd() : null,
-            onLongPressCancel:
                 widget.enableGestures ? _onLongPressEnd : null,
+            onLongPressCancel:
+                widget.enableGestures ? () => _onLongPressEnd(LongPressEndDetails()) : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
             onPanStart: (widget.enableGestures && usePan) ? _onPanStart : null,
             onPanUpdate: (widget.enableGestures && usePan) ? _onPanUpdate : null,
@@ -460,95 +151,117 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
           ),
         ),
         // 拖动进度条
-        if (_showSeekPreview)
-          Positioned(
-            top: 48,
-            left: 32,
-            right: 32,
-            child: _SeekPreviewBar(
-              current: currentPosition,
-              total: duration,
-              offset: _previewPosition - _dragStartPosition,
-            ),
-          ),
-        // 音量调节 UI
-        if (_showVolumeUI && _isVolumeSide && _dragAxis == 'v')
-          IgnorePointer(
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _volumePreviewValue <= 0
-                          ? Icons.volume_off
-                          : _volumePreviewValue < 0.5
-                              ? Icons.volume_down
-                              : Icons.volume_up,
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: 120,
-                      child: LinearProgressIndicator(
-                        value: _volumePreviewValue,
-                        backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                        minHeight: 4,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(_volumePreviewValue * 100).round()}%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    // 标签：与全屏页统一，明确指示当前调节的是音量
-                    const Text(
-                      '音量',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+        ValueListenableBuilder<Duration>(
+          valueListenable: _previewPositionNotifier,
+          builder: (context, previewPos, _) {
+            if (previewPos == Duration.zero) return const SizedBox.shrink();
+            final currentPosition = previewPos;
+            return Positioned(
+              top: 48,
+              left: 32,
+              right: 32,
+              child: _SeekPreviewBar(
+                current: currentPosition,
+                total: duration,
+                offset: previewPos - _dragStartPosition,
               ),
-            ),
-          ),
+            );
+          },
+        ),
+        // 音量调节 UI
+        ValueListenableBuilder<bool>(
+          valueListenable: _showVolumeUINotifier,
+          builder: (context, showVolume, _) {
+            if (!showVolume || !_isVolumeSide || _dragAxis != 'v') {
+              return const SizedBox.shrink();
+            }
+            return ValueListenableBuilder<double>(
+              valueListenable: _previewVolumeNotifier,
+              builder: (context, volume, _) {
+                return IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            volume <= 0
+                                ? Icons.volume_off
+                                : volume < 0.5
+                                    ? Icons.volume_down
+                                    : Icons.volume_up,
+                            color: Colors.white,
+                            size: 36,
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: 120,
+                            child: LinearProgressIndicator(
+                              value: volume,
+                              backgroundColor: Colors.white24,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              minHeight: 4,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${(volume * 100).round()}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            '音量',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
         // 长按倍速中央大图标反馈
-        if (_showSpeedBadge)
-          IgnorePointer(
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -1,
+        ValueListenableBuilder<bool>(
+          valueListenable: _showSpeedBadgeNotifier,
+          builder: (context, showSpeed, _) {
+            if (!showSpeed) return const SizedBox.shrink();
+            return IgnorePointer(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
+        ),
         // 双击心形动画
         if (_showHeart)
           const IgnorePointer(child: _FlyingHeart()),
