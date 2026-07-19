@@ -1,3 +1,15 @@
+## [1.160.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.1...v1.160.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **gesture:** DraggableCleanActions 高度从硬编码改为运行时测量 ([e755688](https://github.com/1525745393/EmbyTok-Flutter/commit/e755688dd66d2cc8244bfb17a45866844b183104))
+
+
+### Performance Improvements
+
+* **feed:** onPageChanged 防抖从 100ms 增至 200ms ([ee566a0](https://github.com/1525745393/EmbyTok-Flutter/commit/ee566a09c84bb5b95c0dbc3b54a732dab68e1476))
+
 ## [1.160.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.0...v1.160.1) (2026-07-19)
 
 
