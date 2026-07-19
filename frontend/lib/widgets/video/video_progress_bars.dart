@@ -136,9 +136,15 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                 final localDx = details.localPosition.dx;
                 final newProgress = (localDx / totalWidth).clamp(0.0, 1.0);
                 setState(() => _dragProgress = newProgress);
-                _seekToPosition(localDx, totalWidth);
+                // 拖动过程中只更新预览 UI，不调用 seekTo
+                // 避免高频调用导致 MediaCodec 崩溃，与 gesture_overlay.dart 设计原则一致
               },
               onHorizontalDragEnd: (_) {
+                final duration = widget.controller.value.duration;
+                if (duration.inMilliseconds > 0) {
+                  final targetMs = (_dragProgress * duration.inMilliseconds).toInt();
+                  widget.controller.seekTo(Duration(milliseconds: targetMs));
+                }
                 setState(() => _isDragging = false);
               },
               child: Container(
