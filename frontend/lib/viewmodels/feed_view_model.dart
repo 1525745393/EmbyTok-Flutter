@@ -53,9 +53,6 @@ class FeedViewModel {
   final EmbytokService _cloudService = EmbytokService();
   MediaItem? _lastReportedItem;
 
-  // 已处理的初始播放项 ID（防止重复等待同一 initialId）
-  String? _processedInitialItemId;
-
   // 网格滚动保存防抖
   Timer? _gridScrollSaveTimer;
 
@@ -113,16 +110,13 @@ class FeedViewModel {
   void dispose() {
     _gridScrollSaveTimer?.cancel();
     _lastReportedItem = null;
-    _processedInitialItemId = null;
   }
 
   // ==================== 路由跳转辅助 ====================
 
   /// 等待路由透传的初始播放项出现在 items 中
-  /// 防止重复等待同一 initialId（与 FeedView build 中的去重对应）
+  /// 去重和超时重置逻辑由 PlaybackCoordinator 统一管理
   void waitForInitialItem(String itemId) {
-    if (_processedInitialItemId == itemId) return;
-    _processedInitialItemId = itemId;
     _playbackCoordinator.waitForInitialItem(itemId);
   }
 
