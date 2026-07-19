@@ -1,3 +1,23 @@
+# [1.159.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.158.0...v1.159.0) (2026-07-19)
+
+
+### Bug Fixes
+
+* **cache:** EmbyRepository 显式实现 4 个 peek 方法返回 null ([6ac55c6](https://github.com/1525745393/EmbyTok-Flutter/commit/6ac55c6721f2305a5d1d35c9f82ef2a568080dc2))
+
+
+### Features
+
+* **cache:** CachedMediaRepository 实现 peekLibraryItems 纯缓存读取 ([5eb6187](https://github.com/1525745393/EmbyTok-Flutter/commit/5eb6187e6843fea287d04354fd485cb5dfc0f187))
+* **cache:** CachedMediaRepository 实现收藏三栏 peek 纯缓存读取 ([07a1980](https://github.com/1525745393/EmbyTok-Flutter/commit/07a19802230623be3c8589d9e84c997e213b7a8b))
+* **cache:** MediaRepository 接口新增 peek 纯缓存读取方法 ([0f4fed7](https://github.com/1525745393/EmbyTok-Flutter/commit/0f4fed7f380ca20a57ce385b46cbadb648ee05ad))
+
+
+### Performance Improvements
+
+* **favorites:** 收藏页三栏接入 SWR 缓存模式 ([87c63ff](https://github.com/1525745393/EmbyTok-Flutter/commit/87c63ff6451198148bde6d78a926da5dec0421a0))
+* **feed:** 视频流首屏接入 SWR 缓存模式 ([c848f78](https://github.com/1525745393/EmbyTok-Flutter/commit/c848f78a979dac62cbe650a58830a448e0eb5ef5))
+
 # [1.158.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.157.0...v1.158.0) (2026-07-19)
 
 
