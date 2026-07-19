@@ -125,7 +125,7 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
           mainAxisSize: MainAxisSize.min,
           children: [
             GestureDetector(
-              onTapDown: (details) {
+              onTapUp: (details) {
                 _seekToPosition(details.localPosition.dx, totalWidth);
               },
               onHorizontalDragStart: (details) {
