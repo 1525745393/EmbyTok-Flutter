@@ -1,3 +1,11 @@
+## [1.160.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.2...v1.160.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* **gesture:** App 进入后台时暂停视频，回到前台恢复播放 ([b0d1e8f](https://github.com/1525745393/EmbyTok-Flutter/commit/b0d1e8fc53ea4da867268baf9cc91293ff6e330a))
+* **playback:** 去掉 FeedViewModel 重复的 _processedInitialItemId 去重 ([cb7ad61](https://github.com/1525745393/EmbyTok-Flutter/commit/cb7ad61e341d58d98cd9351916621ccf026061ff))
+
 ## [1.160.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.160.1...v1.160.2) (2026-07-19)
 
 
