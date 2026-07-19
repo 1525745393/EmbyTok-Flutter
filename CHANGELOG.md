@@ -1,3 +1,10 @@
+## [1.156.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.0...v1.156.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **favorites:** 补充 SharedPreferences import 和 _kCacheKeyPrefix 常量 ([2b2e5e2](https://github.com/1525745393/EmbyTok-Flutter/commit/2b2e5e2291590ab6453f257547625977eea14430))
+
 # [1.156.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.155.1...v1.156.0) (2026-07-19)
 
 
