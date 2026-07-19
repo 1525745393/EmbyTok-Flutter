@@ -58,18 +58,19 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
 
   static const double _kDragThreshold = 10.0;
   static const double _kScaleFactor = 1.1;
-  static const int _kHeightApprox = 140;
+  final GlobalKey _buttonsKey = GlobalKey();
+  double _measuredHeight = 140.0;
 
   @override
   void initState() {
     super.initState();
     _offset = Offset(
       widget.containerSize.width - widget.buttonWidth - widget.rightSafeArea,
-      widget.containerSize.height - _kHeightApprox - widget.bottomSafeArea,
+      widget.containerSize.height - _measuredHeight - widget.bottomSafeArea,
     );
-    // 帧挂载后启动 auto-hide 定时器（先短暂显示，再隐藏）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _measureHeight();
       _scheduleAutoHide();
     });
   }
@@ -81,13 +82,35 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
       setState(() {
         _offset = Offset(
           _offset.dx.clamp(0.0, widget.containerSize.width - widget.buttonWidth),
-          _offset.dy.clamp(0.0, widget.containerSize.height - _kHeightApprox),
+          _offset.dy.clamp(0.0, widget.containerSize.height - _measuredHeight),
         );
+      });
+    }
+    if (oldWidget.buttons != widget.buttons) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _measureHeight();
       });
     }
     // autoHideAfter 配置变化时重启定时器
     if (oldWidget.autoHideAfter != widget.autoHideAfter) {
       _scheduleAutoHide();
+    }
+  }
+
+  void _measureHeight() {
+    final context = _buttonsKey.currentContext;
+    if (context == null || !mounted) return;
+    final size = context.size;
+    if (size == null) return;
+    if ((size.height - _measuredHeight).abs() > 0.5) {
+      setState(() {
+        _measuredHeight = size.height;
+        _offset = Offset(
+          _offset.dx.clamp(0.0, widget.containerSize.width - widget.buttonWidth),
+          _offset.dy.clamp(0.0, widget.containerSize.height - _measuredHeight),
+        );
+      });
     }
   }
 
@@ -198,7 +221,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                     newX = newX.clamp(
                         0.0, widget.containerSize.width - widget.buttonWidth);
                     newY = newY
-                        .clamp(0.0, widget.containerSize.height - _kHeightApprox);
+                        .clamp(0.0, widget.containerSize.height - _measuredHeight);
                     _offset = Offset(newX, newY);
                   });
                 }
@@ -217,8 +240,8 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                   transform: Matrix4.identity()
                     ..scale(_isDragging ? _kScaleFactor : 1.0),
                   child: Container(
+                    key: _buttonsKey,
                     width: widget.buttonWidth,
-                    height: _kHeightApprox.toDouble(),
                     padding: const EdgeInsets.only(right: 16),
                     alignment: Alignment.centerRight,
                     decoration: _isDragging
