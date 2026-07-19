@@ -311,7 +311,11 @@ class _FeedViewState extends ConsumerState<FeedView>
                 child: Container(
                   color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
                   alignment: Alignment.center,
-                  child: const KeyboardHelpPanel(),
+                  child: GestureDetector(
+                    onTap: () {},
+                    behavior: HitTestBehavior.opaque,
+                    child: const KeyboardHelpPanel(),
+                  ),
                 ),
               ),
             ),
