@@ -514,7 +514,7 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
         // 防抖：页面静止后执行预加载和清理
         _pageChangeDebounce?.cancel();
-        _pageChangeDebounce = Timer(const Duration(milliseconds: 100), () {
+        _pageChangeDebounce = Timer(const Duration(milliseconds: 200), () {
           _viewModel.onPageChangeSettled(index, videoState.items);
         });
       },
