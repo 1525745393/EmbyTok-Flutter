@@ -735,7 +735,7 @@ class _FullscreenVideoPageState
     } else {
       _pendingSingleTap = true;
       _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
-        if (_pendingSingleTap) {
+        if (_pendingSingleTap && mounted) {
           _pendingSingleTap = false;
           _toggleControls();
         }
