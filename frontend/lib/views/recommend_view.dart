@@ -293,7 +293,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
             side: BorderSide(
               color: isSelected
                   ? scheme.primary
-                  : scheme.outlineVariant.withValues(alpha: 0.3),
+                  : scheme.outlineVariant.withOpacity(0.3),
               width: 1,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -311,9 +311,9 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.4),
+        color: scheme.primaryContainer.withOpacity(0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 1),
+        border: Border.all(color: scheme.primary.withOpacity(0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -468,7 +468,7 @@ class _LoadMoreIndicator extends StatelessWidget {
     if (isLoading) {
       return Container(
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: scheme.surfaceContainerHighest.withOpacity(0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(

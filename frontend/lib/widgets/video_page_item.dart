@@ -676,7 +676,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               end: Alignment.bottomRight,
               colors: isReady
                   ? [Colors.transparent, Colors.transparent]
-                  : [scheme.surface.withValues(alpha: 0.7), scheme.surface],
+                  : [scheme.surface.withOpacity(0.7), scheme.surface],
             ),
           ),
         ),
@@ -788,8 +788,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      scheme.surface.withValues(alpha: 0.8),
-                      scheme.surface.withValues(alpha: 0.5),
+                      scheme.surface.withOpacity(0.8),
+                      scheme.surface.withOpacity(0.5),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.45, 1.0],
@@ -811,7 +811,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                               decoration: BoxDecoration(
-                                color: scheme.surface.withValues(alpha: 0.6),
+                                color: scheme.surface.withOpacity(0.6),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
@@ -899,7 +899,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 gradient: LinearGradient(
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
-                  colors: [scheme.surface.withValues(alpha: 0.54), Colors.transparent],
+                  colors: [scheme.surface.withOpacity(0.54), Colors.transparent],
                 ),
               ),
               child: Column(
@@ -989,7 +989,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   buttons: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: scheme.surface.withValues(alpha: 0.4),
+                      color: scheme.surface.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -1234,7 +1234,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.7),
+                  color: scheme.surface.withOpacity(0.7),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(

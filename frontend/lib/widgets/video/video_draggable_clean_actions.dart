@@ -225,7 +225,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                         ? BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: scheme.onSurface.withValues(alpha: 0.25),
+                                color: scheme.onSurface.withOpacity(0.25),
                                 blurRadius: 12,
                                 spreadRadius: 2,
                               ),

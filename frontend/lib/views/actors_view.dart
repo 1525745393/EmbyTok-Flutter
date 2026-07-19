@@ -181,7 +181,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           ref.read(actorsProvider.notifier).searchActors(state.searchQuery);
         }
       },
-      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
       selectedColor: scheme.primaryContainer,
       labelStyle: TextStyle(
         color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
@@ -278,10 +278,10 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                     },
                     decoration: InputDecoration(
                       hintText: '搜索演员...',
-                      hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
-                      prefixIcon: Icon(Icons.search, color: scheme.onSurface.withValues(alpha: 0.5)),
+                      hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+                      prefixIcon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.5)),
                       filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                      fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -314,7 +314,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                 TabBar(
                   controller: _tabController,
                   labelColor: scheme.primary,
-                  unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.6),
+                  unselectedLabelColor: scheme.onSurface.withOpacity(0.6),
                   indicatorColor: scheme.primary,
                   indicatorWeight: 2,
                   tabs: [
@@ -430,7 +430,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                     child: Text(
                       '已加载全部 ${actors.length} 位演员',
                       style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.5),
+                        color: scheme.onSurface.withOpacity(0.5),
                         fontSize: 12,
                       ),
                     ),
@@ -469,7 +469,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Text(
             message,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               fontSize: 14,
             ),
           ),
@@ -490,7 +490,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             Icon(
               Icons.search_off,
               size: 64,
-              color: scheme.onSurface.withValues(alpha: 0.3),
+              color: scheme.onSurface.withOpacity(0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -506,7 +506,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               '换个关键词试试吧',
               style: TextStyle(
                 fontSize: 14,
-                color: scheme.onSurface.withValues(alpha: 0.6),
+                color: scheme.onSurface.withOpacity(0.6),
               ),
             ),
           ],
@@ -522,7 +522,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             Icon(
               Icons.favorite_border,
               size: 64,
-              color: scheme.onSurface.withValues(alpha: 0.3),
+              color: scheme.onSurface.withOpacity(0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -538,14 +538,14 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               '快去关注你喜欢的演员吧',
               style: TextStyle(
                 fontSize: 14,
-                color: scheme.onSurface.withValues(alpha: 0.6),
+                color: scheme.onSurface.withOpacity(0.6),
               ),
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: scheme.primaryContainer.withValues(alpha: 0.5),
+                color: scheme.primaryContainer.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -580,7 +580,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Icon(
             Icons.people_outline,
             size: 64,
-            color: scheme.onSurface.withValues(alpha: 0.3),
+            color: scheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -596,7 +596,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             '请检查 Emby 服务器是否正常',
             style: TextStyle(
               fontSize: 14,
-              color: scheme.onSurface.withValues(alpha: 0.6),
+              color: scheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],
@@ -627,7 +627,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Text(
             '请检查 Emby 服务器是否正常运行',
             style: TextStyle(
-              color: scheme.onSurface.withValues(alpha: 0.6),
+              color: scheme.onSurface.withOpacity(0.6),
               fontSize: 14,
             ),
           ),
@@ -691,7 +691,7 @@ class _ActorCard extends StatelessWidget {
     }
     if (url == null || url.isEmpty) {
       return Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5)),
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
       );
     }
     final img = url;
@@ -705,10 +705,10 @@ class _ActorCard extends StatelessWidget {
           ? <String, String>{'X-Emby-Token': tk}
           : null,
       placeholder: (_, __) => Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5)),
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
       ),
       errorWidget: (_, __, ___) => Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5)),
+        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
       ),
     );
   }
@@ -730,7 +730,7 @@ class _ActorCard extends StatelessWidget {
                 ClipOval(
                   child: Container(
                     width: double.infinity,
-                    color: scheme.surface.withValues(alpha: 0.3),
+                    color: scheme.surface.withOpacity(0.3),
                     child: _buildAvatarImage(scheme),
                   ),
                 ),
@@ -747,7 +747,7 @@ class _ActorCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isFavorited ? scheme.primary : scheme.surface,
-                        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.3), width: 2),
+                        border: Border.all(color: scheme.onSurface.withOpacity(0.3), width: 2),
                       ),
                       child: Icon(
                         isFavorited ? Icons.favorite : Icons.favorite_border,
@@ -784,7 +784,7 @@ class _ActorCard extends StatelessWidget {
           Text(
             isFavorited ? '已关注' : '未关注',
             style: TextStyle(
-              color: isFavorited ? scheme.primary : scheme.onSurface.withValues(alpha: 0.5),
+              color: isFavorited ? scheme.primary : scheme.onSurface.withOpacity(0.5),
               fontSize: 11,
             ),
           ),
@@ -811,9 +811,9 @@ class _ActorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: chipColor.withValues(alpha: 0.15),
+        color: chipColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: chipColor.withValues(alpha: 0.4), width: 0.5),
+        border: Border.all(color: chipColor.withOpacity(0.4), width: 0.5),
       ),
       child: Text(
         type,

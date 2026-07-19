@@ -421,7 +421,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         labelText: 'Emby 服务器地址',
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         hintText: 'http://192.168.1.1:8096',
-        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
+        hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
         prefixIcon: Icon(Icons.dns_outlined, color: scheme.primary),
         suffixIcon: _buildConnectionIndicator(scheme),
         enabledBorder: OutlineInputBorder(
@@ -502,7 +502,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
             overflow: TextOverflow.ellipsis,
           ),
           avatar: Icon(Icons.history, size: 14, color: scheme.onSurfaceVariant),
-          backgroundColor: scheme.onSurface.withValues(alpha: 0.05),
+          backgroundColor: scheme.onSurface.withOpacity(0.05),
           side: BorderSide.none,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -550,7 +550,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         labelText: label,
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         hintText: hint,
-        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
+        hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
         prefixIcon: Icon(icon, color: scheme.primary),
         suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(

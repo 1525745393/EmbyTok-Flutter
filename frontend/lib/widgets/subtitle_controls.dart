@@ -160,7 +160,7 @@ class SubtitleControls extends ConsumerWidget {
         decoration: BoxDecoration(
           color: selected
               ? scheme.primary
-              : scheme.onSurface.withValues(alpha: 0.08),
+              : scheme.onSurface.withOpacity(0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? scheme.primary : scheme.outlineVariant,

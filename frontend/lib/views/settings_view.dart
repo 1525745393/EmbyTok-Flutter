@@ -221,7 +221,7 @@ class SettingsView extends ConsumerWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: sectionColor.withValues(alpha: 0.15),
+                  color: sectionColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: Icon(sectionIcon, color: sectionColor, size: 16),
@@ -246,7 +246,7 @@ class SettingsView extends ConsumerWidget {
             color: scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: scheme.onSurface.withValues(alpha: 0.06),
+              color: scheme.onSurface.withOpacity(0.06),
               width: 0.5,
             ),
           ),
@@ -1300,7 +1300,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
                   fontSize: 13,
                 ),
               )
@@ -1332,7 +1332,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
                   fontSize: 13,
                 ),
               )
@@ -1365,7 +1365,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: scheme.onSurfaceVariant.withOpacity(0.8),
                   fontSize: 13,
                 ),
               )
@@ -1380,7 +1380,7 @@ class SettingsView extends ConsumerWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 20),
@@ -2579,7 +2579,7 @@ class SettingsView extends ConsumerWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.12),
+                  color: Colors.red.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.volunteer_activism,
@@ -2802,7 +2802,7 @@ class SettingsView extends ConsumerWidget {
               Text(
                 '本软件基于开源协议发布',
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  color: scheme.onSurfaceVariant.withOpacity(0.7),
                   fontSize: 12,
                 ),
               ),
@@ -2932,9 +2932,9 @@ class _DonatePlaceholder extends StatelessWidget {
       width: 200,
       height: 200,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -2953,7 +2953,7 @@ class _DonatePlaceholder extends StatelessWidget {
           Text(
             hint,
             style: TextStyle(
-              color: color.withValues(alpha: 0.6),
+              color: color.withOpacity(0.6),
               fontSize: 11,
             ),
           ),
@@ -3183,10 +3183,10 @@ class _LicensePageState extends State<_LicensePage> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: widget.primaryColor.withValues(alpha: 0.08),
+        color: widget.primaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: widget.primaryColor.withValues(alpha: 0.2),
+          color: widget.primaryColor.withOpacity(0.2),
           width: 0.5,
         ),
       ),
@@ -3297,7 +3297,7 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
           subtitle: Text(
             '完播率门控、时间衰减、反疲劳、用户评分',
             style: TextStyle(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+              color: scheme.onSurfaceVariant.withOpacity(0.8),
               fontSize: 13,
             ),
           ),

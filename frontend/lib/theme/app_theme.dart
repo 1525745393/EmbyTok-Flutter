@@ -70,8 +70,8 @@ ThemeData _buildBaseTheme(
   required SystemUiOverlayStyle systemOverlayStyle,
 }) {
   final surfaceElevated = colorScheme.brightness == Brightness.dark
-      ? colorScheme.surface.withValues(alpha: 1.0) // 暗色模式下保持纯深色
-      : colorScheme.surface.withValues(alpha: 0.95); // 亮色模式下轻微加深
+      ? colorScheme.surface.withOpacity(1.0) // 暗色模式下保持纯深色
+      : colorScheme.surface.withOpacity(0.95); // 亮色模式下轻微加深
 
   final surfaceHighest = colorScheme.brightness == Brightness.dark
       ? const Color(0xFF121212) // 暗色：近似 MD3 surfaceContainerHighest
@@ -203,7 +203,7 @@ ThemeData _buildBaseTheme(
       activeTrackColor: colorScheme.primary,
       inactiveTrackColor: surfaceHighest,
       thumbColor: colorScheme.primary,
-      overlayColor: colorScheme.primary.withValues(alpha: 0.12),
+      overlayColor: colorScheme.primary.withOpacity(0.12),
     ),
     // 导航栏（底部 tab）
     navigationBarTheme: NavigationBarThemeData(
@@ -229,7 +229,7 @@ ThemeData _buildBaseTheme(
     // 滚动条
     scrollbarTheme: ScrollbarThemeData(
       thumbColor: WidgetStatePropertyAll(
-        colorScheme.onSurface.withValues(alpha: 0.2),
+        colorScheme.onSurface.withOpacity(0.2),
       ),
       thickness: const WidgetStatePropertyAll(4.0),
       radius: const Radius.circular(2.0),

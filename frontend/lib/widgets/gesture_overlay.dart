@@ -557,7 +557,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
                     colors: [
-                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.22),
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.22),
                       Colors.transparent
                     ],
                   ),
@@ -576,7 +576,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withValues(alpha: 0.33),
+                                .withOpacity(0.33),
                             blurRadius: 8),
                       ],
                     ),
@@ -593,7 +593,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withValues(alpha: 0.33),
+                                  .withOpacity(0.33),
                               blurRadius: 4),
                         ],
                       ),
@@ -647,7 +647,7 @@ class _SeekPreviewBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
             color: Theme.of(context).colorScheme.primary, width: 1.5),
@@ -679,7 +679,7 @@ class _SeekPreviewBar extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withValues(alpha: 0.7),
+                      .withOpacity(0.7),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -690,7 +690,7 @@ class _SeekPreviewBar extends StatelessWidget {
           LinearProgressIndicator(
             value: clampedProgress,
             backgroundColor:
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.14),
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.14),
             valueColor:
                 AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
           ),
@@ -751,7 +751,7 @@ class _FlyingHeartState extends State<_FlyingHeart>
               size: 96,
               shadows: [
                 Shadow(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.33),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.33),
                     blurRadius: 16,
                     offset: Offset(0, 4)),
               ],

@@ -201,7 +201,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       SnackBar(
         content: Text(message),
         duration: actionLabel != null ? const Duration(seconds: 6) : const Duration(seconds: 1),
-        backgroundColor: actionLabel != null ? null : scheme.surface.withValues(alpha: 0.9),
+        backgroundColor: actionLabel != null ? null : scheme.surface.withOpacity(0.9),
         action: actionLabel != null && onAction != null
             ? SnackBarAction(label: actionLabel, onPressed: onAction)
             : null,
@@ -287,13 +287,13 @@ class _FeedViewState extends ConsumerState<FeedView>
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheme.surface.withValues(alpha: 0.6),
+                      color: scheme.surface.withOpacity(0.6),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '$pos / $total',
                       style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.9),
+                        color: scheme.onSurface.withOpacity(0.9),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -309,7 +309,7 @@ class _FeedViewState extends ConsumerState<FeedView>
               child: GestureDetector(
                 onTap: () => ref.read(feedHelpVisibleProvider.notifier).state = false,
                 child: Container(
-                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.54),
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
                   alignment: Alignment.center,
                   child: const KeyboardHelpPanel(),
                 ),
@@ -330,8 +330,8 @@ class _FeedViewState extends ConsumerState<FeedView>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            scheme.surface.withValues(alpha: 0.92),
-            scheme.surface.withValues(alpha: 0.62),
+            scheme.surface.withOpacity(0.92),
+            scheme.surface.withOpacity(0.62),
             Colors.transparent,
           ],
         ),
@@ -401,7 +401,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final color = scheme.onSurface.withValues(alpha: 0.85);
+    final color = scheme.onSurface.withOpacity(0.85);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: InkWell(

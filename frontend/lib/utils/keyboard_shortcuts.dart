@@ -24,7 +24,7 @@ class KeyboardHelpPanel extends StatelessWidget {
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.87),
+        color: scheme.surface.withOpacity(0.87),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: scheme.primary, width: 1.5),
       ),
@@ -47,7 +47,7 @@ class KeyboardHelpPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(s.$1, style: TextStyle(color: scheme.onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-                Text(s.$2, style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 14)),
+                Text(s.$2, style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
               ],
             ),
           )),

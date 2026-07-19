@@ -584,7 +584,7 @@ class _FavoriteCard extends ConsumerWidget {
               height: height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: scheme.surface.withValues(alpha: 0.25),
+                color: scheme.surface.withOpacity(0.25),
                 border: Border.all(color: scheme.outlineVariant),
               ),
               child: ClipRRect(
@@ -600,7 +600,7 @@ class _FavoriteCard extends ConsumerWidget {
                             httpHeaders: headers.isNotEmpty ? headers : null,
                             memCacheWidth: 400,
                             placeholder: (_, __) => Container(
-                              color: scheme.surface.withValues(alpha: 0.25),
+                              color: scheme.surface.withOpacity(0.25),
                               child: Center(
                                 child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
                               ),
@@ -620,7 +620,7 @@ class _FavoriteCard extends ConsumerWidget {
                         size: 18,
                         shadows: [
                           Shadow(
-                            color: scheme.onSurface.withValues(alpha: 0.3),
+                            color: scheme.onSurface.withOpacity(0.3),
                             blurRadius: 4,
                           ),
                         ],
@@ -1081,7 +1081,7 @@ class _GridCard extends ConsumerWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: scheme.surfaceContainerHighest,
-                border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
@@ -1122,7 +1122,7 @@ class _GridCard extends ConsumerWidget {
                         size: 16,
                         shadows: [
                           Shadow(
-                            color: scheme.onSurface.withValues(alpha: 0.3),
+                            color: scheme.onSurface.withOpacity(0.3),
                             blurRadius: 4,
                           ),
                         ],
