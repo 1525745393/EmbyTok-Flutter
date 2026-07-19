@@ -568,6 +568,7 @@ class MediaItem {
     List<MediaSource>? mediaSources,
     String? playbackUrl,
     int? playbackLevel,
+    Map<String, dynamic>? rawJson,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -596,6 +597,7 @@ class MediaItem {
       mediaSources: mediaSources ?? this.mediaSources,
       playbackUrl: playbackUrl ?? this.playbackUrl,
       playbackLevel: playbackLevel ?? this.playbackLevel,
+      rawJson: rawJson ?? this.rawJson,
     );
   }
 }
