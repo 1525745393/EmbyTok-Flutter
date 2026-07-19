@@ -1851,6 +1851,149 @@ void main() {
       });
     });
 
+    group('peek 收藏三栏', () {
+      group('peekFavoriteMovies', () {
+        final testFavResult = FavoritesPageResult(
+          movies: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
+          boxSets: [],
+          people: [],
+        );
+
+        test('缓存未命中返回 null', () {
+          final result = cachedRepo.peekFavoriteMovies(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNull);
+        });
+
+        test('缓存命中返回数据且不触发网络请求', () async {
+          when(mockRepo.getFavoriteMovies(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).thenAnswer((_) async => testFavResult);
+
+          await cachedRepo.getFavoriteMovies(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          final result = cachedRepo.peekFavoriteMovies(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNotNull);
+          expect(result!.movies.length, 1);
+          expect(result.movies.first.id, 'fav-1');
+          verify(mockRepo.getFavoriteMovies(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).called(1);
+        });
+      });
+
+      group('peekFavoriteBoxSets', () {
+        final testFavBoxSetsResult = FavoritesPageResult(
+          movies: [],
+          boxSets: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
+          people: [],
+        );
+
+        test('缓存未命中返回 null', () {
+          final result = cachedRepo.peekFavoriteBoxSets(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNull);
+        });
+
+        test('缓存命中返回数据且不触发网络请求', () async {
+          when(mockRepo.getFavoriteBoxSets(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).thenAnswer((_) async => testFavBoxSetsResult);
+
+          await cachedRepo.getFavoriteBoxSets(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          final result = cachedRepo.peekFavoriteBoxSets(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNotNull);
+          expect(result!.boxSets.length, 1);
+          expect(result.boxSets.first.id, 'fav-boxset-1');
+          verify(mockRepo.getFavoriteBoxSets(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).called(1);
+        });
+      });
+
+      group('peekFavoritePeople', () {
+        final testFavPeopleResult = FavoritesPageResult(
+          movies: [],
+          boxSets: [],
+          people: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+        );
+
+        test('缓存未命中返回 null', () {
+          final result = cachedRepo.peekFavoritePeople(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNull);
+        });
+
+        test('缓存命中返回数据且不触发网络请求', () async {
+          when(mockRepo.getFavoritePeople(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).thenAnswer((_) async => testFavPeopleResult);
+
+          await cachedRepo.getFavoritePeople(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          final result = cachedRepo.peekFavoritePeople(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          );
+
+          expect(result, isNotNull);
+          expect(result!.people.length, 1);
+          expect(result.people.first.id, 'fav-person-1');
+          verify(mockRepo.getFavoritePeople(
+            serverUrl: testServerUrl,
+            token: testToken,
+            userId: 'user-1',
+          )).called(1);
+        });
+      });
+    });
+
     group('getRecommendations', () {
       final testRecResponse = PaginatedResponse<MediaItem>(
         items: [MediaItem(id: 'rec-1', title: 'Recommended', type: 'Movie')],

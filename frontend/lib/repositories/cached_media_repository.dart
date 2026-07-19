@@ -392,6 +392,18 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  FavoritesPageResult? peekFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    final key = _favoritesKey(serverUrl, token, userId, limit, offset);
+    return _favoritesCache.get(key);
+  }
+
+  @override
   Future<FavoritesPageResult> getFavoriteBoxSets({
     int limit = 50,
     int offset = 0,
@@ -415,6 +427,18 @@ class CachedMediaRepository implements MediaRepository {
 
     _boxSetsFavoritesCache.set(key, result, ttl: _ttl);
     return result;
+  }
+
+  @override
+  FavoritesPageResult? peekFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    final key = _boxSetsFavoritesKey(serverUrl, token, userId, limit, offset);
+    return _boxSetsFavoritesCache.get(key);
   }
 
   @override
@@ -676,6 +700,18 @@ class CachedMediaRepository implements MediaRepository {
     // 收藏人物使用中 TTL，切换收藏后失效
     _favoritePeopleCache.set(key, result, ttl: _ttl);
     return result;
+  }
+
+  @override
+  FavoritesPageResult? peekFavoritePeople({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    final key = _favoritePeopleKey(serverUrl, token, userId, limit, offset);
+    return _favoritePeopleCache.get(key);
   }
 
   @override
