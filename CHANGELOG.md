@@ -1,3 +1,11 @@
+## [1.156.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.3...v1.156.4) (2026-07-19)
+
+
+### Bug Fixes
+
+* 修复全部剩余 Bug（5项） ([8d9beb0](https://github.com/1525745393/EmbyTok-Flutter/commit/8d9beb0a1e46c89ea6404aa7f21ad66429d5f11b))
+* 回滚 withValues → withOpacity（SDK 版本不支持） ([8102276](https://github.com/1525745393/EmbyTok-Flutter/commit/81022766ab58ca0631cf1beaef267a47f30873fd))
+
 ## [1.156.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.2...v1.156.3) (2026-07-19)
 
 
