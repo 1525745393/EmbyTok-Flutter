@@ -159,32 +159,36 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 场景：PageView 滑动后，旧页变为非当前页（需暂停），新页变为当前页（需恢复播放）
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
       final c = _controller;
+      // 仅在 controller 已初始化时同步播放/暂停；未初始化时仍需处理计时器
       if (c != null && c.value.isInitialized) {
         _syncPlaybackState(c);
-        if (!widget.isCurrentPage) {
-          // 非当前页：启动延迟释放计时器，超时后仍非当前页则释放 controller 节省解码资源
-          _backgroundReleaseTimer?.cancel();
-          _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
-            if (_isDisposed || !mounted) return;
-            if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
-              AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
-              _releaseCurrentController();
-              if (mounted) {
-                setState(() {
-                  _initialized = false;
-                });
-              }
+      }
+      if (!widget.isCurrentPage) {
+        // 非当前页：启动延迟释放计时器。
+        // 关键修复：不再以 c.value.isInitialized 为前提条件——
+        // 若此时 controller 仍在初始化中（c==null 或未 initialized），
+        // 旧逻辑会跳过计时器，导致 init 完成后 controller 永久驻留不释放（OOM 根因）。
+        _backgroundReleaseTimer?.cancel();
+        _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
+          if (_isDisposed || !mounted) return;
+          if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
+            AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
+            _releaseCurrentController();
+            if (mounted) {
+              setState(() {
+                _initialized = false;
+              });
             }
-          });
-        } else {
-          // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
-          _backgroundReleaseTimer?.cancel();
-          if (_controller == null || !_controller!.value.isInitialized) {
-            _initialized = false;
-            _hasError = false;
-            _fallbackLevel = 0;
-            _initVideo();
           }
+        });
+      } else {
+        // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
+        _backgroundReleaseTimer?.cancel();
+        if (_controller == null || !_controller!.value.isInitialized) {
+          _initialized = false;
+          _hasError = false;
+          _fallbackLevel = 0;
+          _initVideo();
         }
       }
     }
@@ -203,6 +207,25 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     });
     // 重新触发初始化（依赖 didUpdateWidget 中的初始化逻辑）
     _reinitForNewItem();
+  }
+
+  /// 若当前为非播放页，启动后台延迟释放计时器
+  ///
+  /// 在每个控制器初始化成功出口处统一调用，确保无论 controller 在什么时机
+  /// 完成初始化（含 isCurrentPage 已变 false 的异步竞态情况），都能及时释放。
+  /// 已有计时器时先取消，保证幂等。
+  void _scheduleBackgroundReleaseIfNeeded() {
+    if (widget.isCurrentPage || _isDisposed) return;
+    _backgroundReleaseTimer?.cancel();
+    _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
+      if (_isDisposed || !mounted) return;
+      if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
+        AppLogger.debug('非当前页初始化完成后超时，释放 controller 资源',
+            data: {'itemId': widget.item.id});
+        _releaseCurrentController();
+        if (mounted) setState(() { _initialized = false; });
+      }
+    });
   }
 
   // 释放当前 controller 的资源（统一方法，避免重复代码）
@@ -353,6 +376,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             await _seekToResumePosition();
             // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
             _syncPlaybackState(c);
+            // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+            // 立即调度释放计时器，防止 controller 永久驻留
+            _scheduleBackgroundReleaseIfNeeded();
           }
       }
 
@@ -421,6 +447,9 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         await _seekToResumePosition();
         // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
         _syncPlaybackState(c);
+        // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+        // 立即调度释放计时器，防止 controller 永久驻留
+        _scheduleBackgroundReleaseIfNeeded();
       }
     } catch (e) {
       AppLogger.debug('VideoPlayer initialization error', data: {'error': e.toString()});
@@ -538,6 +567,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         _syncPlaybackState(c);
+        // 修复：降级成功后若已非当前页，同样需要调度释放计时器
+        _scheduleBackgroundReleaseIfNeeded();
       }
     } catch (e) {
       AppLogger.warn('运行时降级失败', data: {'error': e.toString()});
