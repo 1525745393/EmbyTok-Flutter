@@ -5,9 +5,10 @@
 **Goal:** 将数据缓存从「TTL 直出」改为「SWR（Stale-While-Revalidate）模式」——联网时缓存仅作为加速首屏的占位，始终发起网络请求并以 Emby 返回数据为准，彻底避免数据不一致。
 
 **Architecture:**
-- 底层：`CachedMediaRepository` 新增 `peekXxx` 同步纯缓存读取方法，供 SWR 场景调用
+- 接口层：`MediaRepository` 抽象类新增 `peekXxx` 同步纯缓存读取方法（默认返回 null），非缓存实现天然返回 null
+- 缓存层：`CachedMediaRepository` override `peekXxx`，从内存缓存同步读取
 - 业务层：各 Provider/View 的首屏加载改为「先 peek 缓存展示 → 后台发网络请求 → 结果回来更新状态」
-- 图片缓存（海报/背景图/Logo）保持现状——Emby 图片 URL 含版本标识，缓存天然只做加速
+- 图片缓存（海报/背景图/Logo）保持现状——Emby 图片 URL 含版本标识（ImageTag），缓存天然只做加速
 - 断网/离线：纯缓存降级（与现有行为一致）
 
 **Tech Stack:** Flutter 3.x, Dart 3.x, flutter_riverpod, MemoryCache（现有 LRU+TTL）, CachedNetworkImage（现有图片缓存）
@@ -27,6 +28,7 @@
 1. **TTL 直出模式**：`CachedMediaRepository.getXxx()` 命中缓存直接返回，TTL 内不会发起网络请求——用户可能看到过时数据
 2. **失效覆盖不完整**：依赖手动 `invalidateXxx()`，写操作（收藏、标记已看）后有遗漏风险
 3. **视频流 FeedView 走缓存**：`video_list_notifier.dart` 第 49 行默认使用 `cachedMediaRepositoryProvider`，切换 FeedType 时可能显示旧数据
+4. **收藏页走缓存**：`favorites_provider.dart` 第 229/246/263 行通过 `cachedMediaRepositoryProvider` 拉取三栏收藏，TTL 内返回旧数据
 
 ### 改造范围（按优先级）
 | 优先级 | 场景 | 方法 | 说明 |
@@ -42,6 +44,7 @@
 - 不引入新的持久化存储（数据库、Hive 等）——保持纯内存缓存
 - 不重构图片缓存
 - 不实现离线模式的完整 CRUD
+- 不改造 `loadMore` 分页路径——分页加载的数据缓存命中概率低，且用户主动滚动触发，对即时性要求较低
 
 ---
 
@@ -49,16 +52,170 @@
 
 | 文件 | 操作 | 职责 |
 |------|------|------|
-| `frontend/lib/repositories/cached_media_repository.dart` | 修改 | 新增 `peekLibraryItems` / `peekFavoriteMovies` 等同步纯缓存方法 |
+| `frontend/lib/repositories/media_repository.dart` | 修改 | 抽象接口新增 `peekLibraryItems` / `peekFavoriteMovies` 等方法（默认返回 null） |
+| `frontend/lib/repositories/emby_repository.dart` | 修改 | 实现 4 个 peek 方法（返回 null，非缓存实现） |
+| `frontend/lib/repositories/cached_media_repository.dart` | 修改 | override 4 个 peek 方法，从内存缓存同步读取 |
 | `frontend/lib/providers/video_list_notifier.dart` | 修改 | FeedType.latest 首屏改为 SWR 模式 |
 | `frontend/lib/providers/favorites_provider.dart` | 修改 | 收藏页三栏首屏改为 SWR 模式 |
-| `frontend/test/repositories/cached_media_repository_test.dart` | 修改 | 新增 peek 方法 + SWR 逻辑测试 |
+| `frontend/test/repositories/cached_media_repository_test.dart` | 修改 | 新增 4 个 peek 方法的单元测试 |
+
+**设计决策**：为什么把 peek 方法加到 `MediaRepository` 抽象类而不是只在 `CachedMediaRepository` 上？
+- 业务层的 `_repo` 字段类型是 `MediaRepository`，如果 peek 只在子类上，调用时需要类型转换或另外读取 `cachedMediaRepositoryProvider`
+- 加到接口层，非缓存实现返回 null，语义清晰：「尝试从缓存获取，没有就算了」
+- 调用方只需 `_repo.peekXxx()`，不需要关心底层是否有缓存
 
 ---
 
 ## 3. Phase 1：底层能力 — peek 方法
 
-### Task 1.1：peekLibraryItems 纯缓存读取
+### Task 1.1：MediaRepository 接口新增 peek 方法声明
+
+**Files:**
+- Modify: `frontend/lib/repositories/media_repository.dart`（在 `getLibraryItems` / `getFavoriteMovies` 等方法之后添加对应 peek 声明）
+
+在抽象接口中声明 4 个 peek 方法，默认返回 null。这样所有实现类都可以选择性 override，不 override 的天然返回 null。
+
+- [ ] **Step 1: 在 MediaRepository 中添加 4 个 peek 方法**
+
+找到 `getLibraryItems` 方法声明（约第 66 行），在其**后面**添加：
+```dart
+  /// 纯缓存读取：偷看媒体库条目（同步，不触发网络请求）
+  ///
+  /// 用于 SWR 模式：先同步读取缓存展示，然后独立发起网络请求刷新。
+  /// 缓存未命中或实现不支持缓存时返回 null。
+  PaginatedResponse<MediaItem>? peekLibraryItems(
+    MediaQueryParams params, {
+    required String serverUrl,
+    required String token,
+  }) =>
+      null;
+```
+
+找到 `getFavoriteMovies` 方法声明（约第 87 行），在其**后面**添加：
+```dart
+  /// 纯缓存读取：偷看收藏影片（同步，不触发网络）
+  FavoritesPageResult? peekFavoriteMovies({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) =>
+      null;
+```
+
+找到 `getFavoriteBoxSets` 方法声明（约第 98 行），在其**后面**添加：
+```dart
+  /// 纯缓存读取：偷看收藏合集（同步，不触发网络）
+  FavoritesPageResult? peekFavoriteBoxSets({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) =>
+      null;
+```
+
+找到 `getFavoritePeople` 方法声明（约第 201 行），在其**后面**添加：
+```dart
+  /// 纯缓存读取：偷看收藏人物（同步，不触发网络）
+  FavoritesPageResult? peekFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) =>
+      null;
+```
+
+- [ ] **Step 2: 运行 analyze 验证无错误**
+
+Run: `cd /workspace/frontend && /opt/flutter/bin/flutter analyze lib/repositories/media_repository.dart`
+Expected: 0 errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+cd /workspace
+git add frontend/lib/repositories/media_repository.dart
+git commit -m "feat(cache): MediaRepository 接口新增 peek 纯缓存读取方法
+
+默认返回 null，供 SWR 模式使用。非缓存实现天然返回 null，
+语义清晰：尝试从缓存获取，没有就算了。"
+```
+
+---
+
+### Task 1.2：EmbyRepository 显式实现 peek 方法（可选）
+
+**Files:**
+- Modify: `frontend/lib/repositories/emby_repository.dart`
+
+由于 `MediaRepository` 已经提供了默认实现（返回 null），`EmbyRepository` 不需要改动即可正常工作。
+
+但为了代码可读性，建议**显式 override 并注释说明**：
+```dart
+  @override
+  PaginatedResponse<MediaItem>? peekLibraryItems(
+    MediaQueryParams params, {
+    required String serverUrl,
+    required String token,
+  }) => null; // EmbyRepository 无缓存，直接返回 null
+
+  @override
+  FavoritesPageResult? peekFavoriteMovies({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) => null;
+
+  @override
+  FavoritesPageResult? peekFavoriteBoxSets({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) => null;
+
+  @override
+  FavoritesPageResult? peekFavoritePeople({
+    required String serverUrl,
+    required String token,
+    String? userId,
+    int limit = 50,
+    int offset = 0,
+  }) => null;
+```
+
+> **注意**：这一步是可选的。如果执行时间紧张，可以跳过——默认实现已经正确。
+
+- [ ] **Step 1: （可选）在 EmbyRepository 中添加显式 override**
+
+在对应 `getXxx` 方法之后添加上面 4 个 override 方法。
+
+- [ ] **Step 2: 运行 analyze 验证**
+
+Run: `cd /workspace/frontend && /opt/flutter/bin/flutter analyze lib/repositories/emby_repository.dart`
+Expected: 0 errors
+
+- [ ] **Step 3: Commit（如果执行了 Step 1）**
+
+```bash
+cd /workspace
+git add frontend/lib/repositories/emby_repository.dart
+git commit -m "refactor(cache): EmbyRepository 显式实现 peek 方法
+
+显式标注无缓存实现，提高代码可读性。"
+```
+
+---
+
+### Task 1.3：CachedMediaRepository 实现 peekLibraryItems
 
 **Files:**
 - Modify: `frontend/lib/repositories/cached_media_repository.dart`（在 `getLibraryItems` 方法之后添加）
@@ -176,18 +333,13 @@
 - [ ] **Step 2: 运行测试验证失败**
 
 Run: `cd /workspace/frontend && /opt/flutter/bin/flutter test test/repositories/cached_media_repository_test.dart -n peekLibraryItems`
-Expected: 编译失败（`peekLibraryItems` 未定义）
+Expected: 编译失败（`peekLibraryItems` 未在 CachedMediaRepository 中 override）
 
 - [ ] **Step 3: 实现 peekLibraryItems 方法**
 
-在 `CachedMediaRepository` 类中、`getLibraryItems` 方法（第 355 行后）添加：
+在 `CachedMediaRepository` 类中、`getLibraryItems` 方法（约第 355 行后）添加：
 ```dart
-  /// 纯缓存读取：偷看媒体库条目（同步，不触发网络请求）
-  ///
-  /// 用于 SWR 模式：先同步读取缓存展示，然后独立发起网络请求刷新。
-  /// 缓存未命中或已过期时返回 null。
-  ///
-  /// 此方法会更新 LRU 顺序和命中计数（缓存确实被用到了）。
+  @override
   PaginatedResponse<MediaItem>? peekLibraryItems(
     MediaQueryParams params, {
     required String serverUrl,
@@ -197,6 +349,8 @@ Expected: 编译失败（`peekLibraryItems` 未定义）
     return _libraryItemsCache.get(key);
   }
 ```
+
+> **注意**：`MemoryCache.get()` 内部已经做了 TTL 过期检查，过期返回 null。不需要额外判断。
 
 - [ ] **Step 4: 运行测试验证通过**
 
@@ -211,16 +365,23 @@ git add frontend/lib/repositories/cached_media_repository.dart frontend/test/rep
 git commit -m "feat(cache): 新增 peekLibraryItems 纯缓存读取方法
 
 同步读取缓存，不触发网络请求，用于 SWR 模式的缓存占位阶段。
-支持 TTL 过期检查和 LRU 顺序更新。"
+支持 TTL 过期检查。"
 ```
 
-### Task 1.2：peekFavoriteMovies / peekFavoriteBoxSets / peekFavoritePeople
+---
+
+### Task 1.4：收藏三栏 peek 方法
 
 **Files:**
 - Modify: `frontend/lib/repositories/cached_media_repository.dart`
 - Test: `frontend/test/repositories/cached_media_repository_test.dart`
 
 收藏页有三栏（影片/合集/人物），需要三个 peek 方法。模式同 peekLibraryItems。
+
+缓存字段与键生成方法对应关系：
+- peekFavoriteMovies → `_favoritesCache` + `_favoritesKey()`
+- peekFavoriteBoxSets → `_boxSetsFavoritesCache` + `_boxSetsFavoritesKey()`
+- peekFavoritePeople → `_favoritePeopleCache` + `_favoritePeopleKey()`
 
 - [ ] **Step 1: 写失败测试**
 
@@ -281,8 +442,90 @@ git commit -m "feat(cache): 新增 peekLibraryItems 纯缓存读取方法
       expect(result, isNotNull);
       expect(result!.items.first.name, '收藏电影');
     });
+
+    test('peekFavoriteBoxSets 缓存未命中返回 null', () {
+      final result = cachedRepo.peekFavoriteBoxSets(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+      expect(result, isNull);
+    });
+
+    test('peekFavoriteBoxSets 缓存命中返回数据', () async {
+      final items = [_fakeItem('2', '收藏合集', isBoxSet: true)];
+      final resp = FavoritesPageResult(items: items, totalCount: 1);
+      when(mockService.getFavoriteBoxSets(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => resp);
+      await cachedRepo.getFavoriteBoxSets(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+
+      final result = cachedRepo.peekFavoriteBoxSets(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+      expect(result, isNotNull);
+      expect(result!.items.first.name, '收藏合集');
+    });
+
+    test('peekFavoritePeople 缓存未命中返回 null', () {
+      final result = cachedRepo.peekFavoritePeople(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+      expect(result, isNull);
+    });
+
+    test('peekFavoritePeople 缓存命中返回数据', () async {
+      final items = [_fakeItem('3', '收藏演员', isPerson: true)];
+      final resp = FavoritesPageResult(items: items, totalCount: 1);
+      when(mockService.getFavoritePeople(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => resp);
+      await cachedRepo.getFavoritePeople(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+
+      final result = cachedRepo.peekFavoritePeople(
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+        limit: 50,
+        offset: 0,
+      );
+      expect(result, isNotNull);
+      expect(result!.items.first.name, '收藏演员');
+    });
   });
 ```
+
+> **注意**：执行时请先确认 `_fakeItem` 函数是否支持 `isBoxSet` 和 `isPerson` 参数。如果不支持，用已有的参数构造对应类型即可。
 
 - [ ] **Step 2: 运行测试验证失败**
 
@@ -293,7 +536,7 @@ Expected: 编译失败
 
 在 `CachedMediaRepository` 类中、对应 get 方法之后分别添加：
 ```dart
-  /// 纯缓存读取：偷看收藏影片（同步，不触发网络）
+  @override
   FavoritesPageResult? peekFavoriteMovies({
     required String serverUrl,
     required String token,
@@ -305,7 +548,7 @@ Expected: 编译失败
     return _favoritesCache.get(key);
   }
 
-  /// 纯缓存读取：偷看收藏合集（同步，不触发网络）
+  @override
   FavoritesPageResult? peekFavoriteBoxSets({
     required String serverUrl,
     required String token,
@@ -317,7 +560,7 @@ Expected: 编译失败
     return _boxSetsFavoritesCache.get(key);
   }
 
-  /// 纯缓存读取：偷看收藏人物（同步，不触发网络）
+  @override
   FavoritesPageResult? peekFavoritePeople({
     required String serverUrl,
     required String token,
@@ -325,17 +568,15 @@ Expected: 编译失败
     int limit = 50,
     int offset = 0,
   }) {
-    final key = _favoritesKey('_people', serverUrl, token, userId, limit, offset);
+    final key = _favoritePeopleKey(serverUrl, token, userId, limit, offset);
     return _favoritePeopleCache.get(key);
   }
 ```
 
-**注意**：收藏人物的缓存键生成方法名可能不同（`_favoritePeopleKey` 或其他），需根据实际 `_favoritePeopleCache` 的 key 生成方法调整。执行时请先确认 `_favoritePeopleCache` 对应的 key 生成方法名。
-
 - [ ] **Step 4: 运行测试验证通过**
 
 Run: `cd /workspace/frontend && /opt/flutter/bin/flutter test test/repositories/cached_media_repository_test.dart -n "peek 收藏"`
-Expected: PASS
+Expected: PASS（6 个测试通过）
 
 - [ ] **Step 5: Commit**
 
@@ -357,53 +598,18 @@ git commit -m "feat(cache): 新增收藏三栏 peek 纯缓存读取方法
 - Modify: `frontend/lib/providers/video_list_notifier.dart`
 
 **背景**：
-- `VideoListNotifier` 构造函数默认使用 `cachedMediaRepositoryProvider`（第 49 行）
+- `VideoListNotifier` 构造函数默认使用 `cachedMediaRepositoryProvider`（第 49 行），`_repo` 类型为 `MediaRepository`
 - `refresh()` 方法（第 187 行）是首屏加载入口，当前直接 `await _repo.getLibraryItems(...)`
-- 只改造 `FeedType.latest` 路径（视频流主场景，第 236-288 行），其他 FeedType 暂不改造
+- 只改造 `FeedType.latest` 路径（视频流主场景，约第 236-288 行），其他 FeedType 暂不改造
 - `loadMore` 方法保持不变
+- `forceRefresh: true` 时的 `invalidateAll()` 可以保留（用户明确要求强制刷新），但 SWR 模式下其实不需要——始终会发网络请求
 
 - [ ] **Step 1: 确认当前代码无错误**
 
 Run: `cd /workspace/frontend && /opt/flutter/bin/flutter analyze lib/providers/video_list_notifier.dart`
 Expected: 0 errors
 
-- [ ] **Step 2: 在文件顶部添加 SWR 辅助类型**
-
-在 `import` 之后、`gridSearchQueryProvider` 之前添加：
-```dart
-/// SWR 模式首屏加载结果（FeedType.latest 多库混合场景）
-///
-/// 包含缓存占位数据和网络请求 Future。
-/// 多库混合时按库分别读取缓存/发起请求，结果合并去重。
-class _SWRLibraryResult {
-  final List<MediaItem>? cachedItems;
-  final int cachedTotal;
-  final Future<_SWRLibraryFreshResult> freshFuture;
-
-  const _SWRLibraryResult({
-    required this.cachedItems,
-    required this.cachedTotal,
-    required this.freshFuture,
-  });
-
-  bool get hasCache => cachedItems != null;
-}
-
-/// SWR 网络请求结果
-class _SWRLibraryFreshResult {
-  final List<MediaItem> items;
-  final int total;
-  final bool allFailed;
-
-  const _SWRLibraryFreshResult({
-    required this.items,
-    required this.total,
-    required this.allFailed,
-  });
-}
-```
-
-- [ ] **Step 3: 在 VideoListNotifier 类中新增 _loadLatestSWR 方法**
+- [ ] **Step 2: 在 VideoListNotifier 类中新增 _loadLatestSWR 方法**
 
 在 `refresh()` 方法之前添加：
 ```dart
@@ -411,7 +617,11 @@ class _SWRLibraryFreshResult {
   ///
   /// 先从缓存读取并立即展示（加速首屏），然后发起网络请求获取最新数据。
   /// 始终以网络返回的最新数据为准，缓存仅做加速。
-  _SWRLibraryResult _loadLatestSWR({
+  ///
+  /// 返回值：
+  /// - cachedItems/cachedTotal：缓存数据（可能为 null）
+  /// - freshFuture：网络请求的 Future，完成后返回最新数据
+  _SWRLatestResult _loadLatestSWR({
     required List<String> libIds,
     required String serverUrl,
     required String token,
@@ -422,14 +632,13 @@ class _SWRLibraryFreshResult {
     required bool excludePlayed,
     String? searchTerm,
   }) {
-    final cachedRepo = _ref.read(cachedMediaRepositoryProvider);
     final seenIds = <String, MediaItem>{};
     int totalItems = 0;
     bool hasCache = false;
 
     // 第一步：同步读取所有库的缓存，合并去重
     for (final libId in libIds) {
-      final cachedResult = cachedRepo.peekLibraryItems(
+      final cachedResult = _repo.peekLibraryItems(
         MediaQueryParams(
           libraryId: libId,
           limit: limit,
@@ -488,14 +697,14 @@ class _SWRLibraryFreshResult {
           AppLogger.error('SWR: 加载库 $libId 失败', error: e);
         }
       }
-      return _SWRLibraryFreshResult(
+      return _SWRLatestFreshResult(
         items: freshSeenIds.values.toList(),
         total: freshTotal,
         allFailed: failedCount == libIds.length,
       );
     }();
 
-    return _SWRLibraryResult(
+    return _SWRLatestResult(
       cachedItems: hasCache ? seenIds.values.toList() : null,
       cachedTotal: totalItems,
       freshFuture: freshFuture,
@@ -503,9 +712,42 @@ class _SWRLibraryFreshResult {
   }
 ```
 
+- [ ] **Step 3: 在文件中添加 SWR 辅助私有类**
+
+在文件底部（`final videoListProvider = ...` 之前）添加：
+```dart
+/// SWR 模式首屏加载结果（FeedType.latest 多库混合场景）
+class _SWRLatestResult {
+  final List<MediaItem>? cachedItems;
+  final int cachedTotal;
+  final Future<_SWRLatestFreshResult> freshFuture;
+
+  const _SWRLatestResult({
+    required this.cachedItems,
+    required this.cachedTotal,
+    required this.freshFuture,
+  });
+
+  bool get hasCache => cachedItems != null;
+}
+
+/// SWR 网络请求结果
+class _SWRLatestFreshResult {
+  final List<MediaItem> items;
+  final int total;
+  final bool allFailed;
+
+  const _SWRLatestFreshResult({
+    required this.items,
+    required this.total,
+    required this.allFailed,
+  });
+}
+```
+
 - [ ] **Step 4: 修改 refresh 方法的 FeedType.latest 路径**
 
-将 `case FeedType.latest:` 块（原 236-288 行）替换为：
+将 `case FeedType.latest:` 块（约原 236-288 行）替换为：
 ```dart
         case FeedType.latest:
           final libIds = selectedIds;
@@ -549,9 +791,7 @@ class _SWRLibraryFreshResult {
               } else {
                 state = state.copyWith(
                   isLoading: false,
-                  error: AppError.network(
-                    message: '所有媒体库均加载失败，请检查网络连接',
-                  ),
+                  error: AppError.network(message: '所有媒体库均加载失败，请检查网络连接'),
                 );
               }
             } else {
@@ -580,14 +820,21 @@ class _SWRLibraryFreshResult {
           break;
 ```
 
-**注意**：原代码中 `loadedItems`、`loadedTotal`、`canPaginate` 是 switch 外的变量，在 break 之前赋值供后续使用。需确保这些变量在 SWR 路径中正确赋值。
+**注意**：原代码中 `loadedItems`、`loadedTotal`、`canPaginate` 是 switch 外的局部变量，在 break 之前赋值供后续使用。需确保这些变量在 SWR 路径中正确赋值。
 
 - [ ] **Step 5: 运行 analyze 验证无错误**
 
 Run: `cd /workspace/frontend && /opt/flutter/bin/flutter analyze lib/providers/video_list_notifier.dart`
 Expected: 0 errors
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: 运行现有测试确保无回归**
+
+Run: `cd /workspace/frontend && /opt/flutter/bin/flutter test test/providers/video_list_notifier_test.dart 2>&1 | tail -20`
+Expected: 所有现有测试通过
+
+> **注意**：如果没有 video_list_notifier 的测试文件，此步跳过。只要 analyze 0 errors 即可。
+
+- [ ] **Step 7: Commit**
 
 ```bash
 cd /workspace
@@ -610,7 +857,8 @@ FeedType.latest 采用 Stale-While-Revalidate：
 
 **背景**：
 - `loadFavorites()` 方法（第 183 行）并行拉取三栏收藏（影片/合集/人物）
-- 当前直接 `await cachedRepo.getFavoriteMovies()` 等，命中缓存则返回旧数据
+- 当前通过 `cachedMediaRepositoryProvider.getFavoriteMovies()` 等获取，命中缓存则返回旧数据
+- `_repo` 模式不适用于收藏页（收藏页直接用 `EmbytokService` + `cachedMediaRepositoryProvider`）
 - 改为 SWR：先同步 peek 三栏缓存并立即展示，然后并行发起网络请求更新
 
 - [ ] **Step 1: 确认当前代码无错误**
@@ -620,7 +868,7 @@ Expected: 0 errors
 
 - [ ] **Step 2: 修改 loadFavorites 方法为 SWR 模式**
 
-将 `loadFavorites()` 方法体（第 183-312 行）替换为：
+将 `loadFavorites()` 方法体（约第 183-312 行）替换为：
 ```dart
   Future<void> loadFavorites() async {
     if (_isLoading) return;
@@ -826,13 +1074,21 @@ Expected: 0 errors
 - 缓存读取用 `peekXxx`（同步，不触发网络），网络请求用 `getXxx`（异步，触发网络并写入缓存）
 - `_moviesLoaded` / `_boxSetsLoaded` / `_peopleLoaded` 在网络请求成功后更新，供 `loadMore` 使用
 - `toggleFavorite` 的乐观更新逻辑不受影响（它直接操作 state，不走缓存）
+- 原代码中 `_kCacheKeyPrefix` 常量和 `reset()` 中的 SharedPreferences 清除逻辑保留不变——虽然当前没有写入缓存的代码，但这些是为未来磁盘缓存预留的，不影响本次改造
 
 - [ ] **Step 3: 运行 analyze 验证无错误**
 
 Run: `cd /workspace/frontend && /opt/flutter/bin/flutter analyze lib/providers/favorites_provider.dart`
 Expected: 0 errors
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: 运行现有测试确保无回归**
+
+Run: `cd /workspace/frontend && /opt/flutter/bin/flutter test test/providers/favorites_provider_test.dart 2>&1 | tail -20`
+Expected: 所有现有测试通过
+
+> **注意**：如果没有 favorites_provider 的测试文件，此步跳过。只要 analyze 0 errors 即可。
+
+- [ ] **Step 5: Commit**
 
 ```bash
 cd /workspace
@@ -849,9 +1105,11 @@ git commit -m "perf(favorites): 收藏页接入 SWR 缓存模式
 ## 6. Phase 4：扩展方向（按需执行）
 
 以下页面改造模式与 Phase 2/3 一致，按需逐步扩展。每个页面的改造步骤为：
-1. 在 `CachedMediaRepository` 中新增对应 `peekXxx` 方法
-2. 修改 Provider/View 的首屏加载方法：先 peek 缓存 → 再网络请求 → 更新状态
-3. `loadMore` / 分页方法保持不变
+1. 在 `MediaRepository` 中新增对应 `peekXxx` 方法声明（默认返回 null）
+2. 在 `CachedMediaRepository` 中 override 对应 `peekXxx` 方法
+3. 添加单元测试
+4. 修改 Provider/View 的首屏加载方法：先 peek 缓存 → 再网络请求 → 更新状态
+5. `loadMore` / 分页方法保持不变
 
 | 页面 | Provider/View | 对应 peek 方法 | 优先级 |
 |------|--------------|---------------|--------|
@@ -883,8 +1141,10 @@ git commit -m "perf(favorites): 收藏页接入 SWR 缓存模式
 
 ## 8. 完成标准
 
-- [ ] `peekLibraryItems` 方法 + 测试通过
-- [ ] 收藏三栏 peek 方法 + 测试通过
+- [ ] `MediaRepository` 接口新增 4 个 peek 方法（默认返回 null）
+- [ ] `CachedMediaRepository` 实现 4 个 peek 方法
+- [ ] `peekLibraryItems` 单元测试通过（3 个）
+- [ ] 收藏三栏 peek 单元测试通过（6 个）
 - [ ] FeedView 视频流（FeedType.latest）接入 SWR
 - [ ] 收藏页三栏接入 SWR
 - [ ] 全量 analyze 0 errors
