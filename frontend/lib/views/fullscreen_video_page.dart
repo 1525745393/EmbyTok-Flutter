@@ -25,6 +25,7 @@ import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
+import '../widgets/video/video_gesture_mixin.dart';
 
 /// 全屏视频播放页
 class FullscreenVideoPage extends ConsumerStatefulWidget {
@@ -37,7 +38,82 @@ class FullscreenVideoPage extends ConsumerStatefulWidget {
 
 class _FullscreenVideoPageState
     extends ConsumerState<FullscreenVideoPage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, VideoGestureMixin {
+  // ===== VideoGestureMixin 钩子实现 =====
+
+  @override
+  VideoPlayerController? get _videoController => _watchedController;
+
+  @override
+  bool get _gesturesEnabled => true;
+
+  @override
+  void _onSingleTap() {
+    _toggleControls();
+  }
+
+  @override
+  void _onDoubleTapLeft() {
+    super._onDoubleTapLeft();
+  }
+
+  @override
+  void _onDoubleTapRight() {
+    super._onDoubleTapRight();
+  }
+
+  @override
+  void _onDoubleTapCenter() {
+    final item = ref.read(currentPlayingItemProvider);
+    if (item != null) {
+      try {
+        ref.read(favoritesProvider.notifier).toggleFavorite(item);
+      } catch (e) {
+        AppLogger.warn('全屏点赞失败', data: {'error': e.toString()});
+      }
+    }
+    _triggerHeart();
+  }
+
+  @override
+  bool get _handleLeftVerticalDrag => true;
+
+  @override
+  void _onLeftVerticalDragUpdate(double delta) {
+    if (!_showBrightnessUINotifier.value) {
+      _dragStartBrightness = _brightnessValue;
+      _previewBrightnessNotifier.value = _dragStartBrightness;
+      _showBrightnessUINotifier.value = true;
+    }
+    var newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
+    _previewBrightnessNotifier.value = newBrightness;
+    _setSystemBrightness(newBrightness);
+  }
+
+  @override
+  void _endDrag() {
+    final wasVerticalBrightness = _dragAxis == 'v' && !_isVolumeSide;
+    super._endDrag();
+    if (wasVerticalBrightness) {
+      _brightnessHideTimer?.cancel();
+      _brightnessHideTimer = Timer(const Duration(milliseconds: 600), () {
+        if (!mounted) return;
+        _showBrightnessUINotifier.value = false;
+      });
+    }
+  }
+
+  @override
+  void _onLongPressEnd(LongPressEndDetails details) {
+    super._onLongPressEnd(details);
+    ref.read(playbackRateProvider.notifier).state = _originalRate;
+  }
+
+  @override
+  MediaItem? get _currentItem => ref.read(currentPlayingItemProvider);
+
+  // ===== 全屏页特有状态 =====
+
   bool _controlsVisible = true;
   Timer? _hideTimer;
 
@@ -60,6 +136,10 @@ class _FullscreenVideoPageState
 
   double _brightnessValue = 1.0;
   double? _originalBrightness;
+  double _dragStartBrightness = 0.0;
+  final ValueNotifier<bool> _showBrightnessUINotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<double> _previewBrightnessNotifier = ValueNotifier<double>(0.0);
+  Timer? _brightnessHideTimer;
 
   // 功耗优化：状态缓存
   final ValueNotifier<bool> _bufferingNotifier = ValueNotifier<bool>(false);
@@ -74,35 +154,7 @@ class _FullscreenVideoPageState
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
   bool _isLoadingSubtitle = false;
 
-  // 手势状态
-  bool _isDragging = false;
-  String? _dragAxis;
-  double _dragStartX = 0.0;
-  double _dragStartY = 0.0;
-  Duration _dragStartPosition = Duration.zero;
-  final ValueNotifier<Duration> _previewPositionNotifier = ValueNotifier<Duration>(Duration.zero);
-  bool _isBrightnessSide = false;
-  bool _isVolumeSide = false;
-  double _dragStartBrightness = 0.0;
-  double _dragStartVolume = 0.0;
-  final ValueNotifier<bool> _showBrightnessUINotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> _showVolumeUINotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<double> _previewBrightnessNotifier = ValueNotifier<double>(0.0);
-  final ValueNotifier<double> _previewVolumeNotifier = ValueNotifier<double>(0.0);
-  Timer? _dragHideTimer;
-  Timer? _verticalHideTimer;
-  Offset? _lastTapPosition;
-  bool _showSeekFeedback = false;
-  bool _isSeekForward = false;
-  final ValueNotifier<bool> _showSpeedBadgeNotifier = ValueNotifier<bool>(false);
-  bool _isLongPressing = false;
-  double _originalRate = 1.0;
-  bool _pendingSingleTap = false;
-  Timer? _singleTapTimer;
-  Timer? _heartHideTimer;
-  Timer? _seekFeedbackHideTimer;
   Timer? _resumePlayTimer;
-  bool _showHeart = false;
 
   void _setupControllerListener(VideoPlayerController? controller) {
     if (_watchedController == controller) return;
@@ -446,25 +498,18 @@ class _FullscreenVideoPageState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _disposeGestureTimers();
     _hideTimer?.cancel();
     _networkToastTimer?.cancel();
     _connectivitySub?.cancel();
     _rotateEndTimer?.cancel();
-    _dragHideTimer?.cancel();
-    _verticalHideTimer?.cancel();
-    _singleTapTimer?.cancel();
-    _heartHideTimer?.cancel();
-    _seekFeedbackHideTimer?.cancel();
+    _brightnessHideTimer?.cancel();
     _resumePlayTimer?.cancel();
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
     _positionSecondsNotifier.dispose();
-    _previewPositionNotifier.dispose();
     _showBrightnessUINotifier.dispose();
     _previewBrightnessNotifier.dispose();
-    _showVolumeUINotifier.dispose();
-    _previewVolumeNotifier.dispose();
-    _showSpeedBadgeNotifier.dispose();
 
     if (_originalBrightness != null) {
       try {
@@ -628,218 +673,6 @@ class _FullscreenVideoPageState
     return ratio == 0 ? 16 / 9 : ratio;
   }
 
-  // 手势处理
-  void _onPanStart(DragStartDetails d) {
-    final controller = _watchedController;
-    if (controller == null || !controller.value.isInitialized) return;
-    _dragStartX = d.globalPosition.dx;
-    _dragStartY = d.globalPosition.dy;
-    _isDragging = true;
-    _dragAxis = null;
-    _dragHideTimer?.cancel();
-    _verticalHideTimer?.cancel();
-    if (mounted) setState(() {});
-  }
-
-  void _onPanUpdate(DragUpdateDetails d) {
-    final controller = _watchedController;
-    if (controller == null || !controller.value.isInitialized) return;
-
-    final dx = d.globalPosition.dx - _dragStartX;
-    final dy = d.globalPosition.dy - _dragStartY;
-
-    if (_dragAxis == null) {
-      if (dx.abs() > dy.abs() && dx.abs() > 8) {
-        _dragAxis = 'h';
-        _dragStartPosition = controller.value.position;
-        _previewPositionNotifier.value = controller.value.position;
-        HapticFeedback.selectionClick();
-        if (mounted) setState(() {});
-      } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
-        _dragAxis = 'v';
-        final screenWidth = MediaQuery.of(context).size.width;
-        _isBrightnessSide = _dragStartX < screenWidth / 2;
-        _isVolumeSide = _dragStartX >= screenWidth / 2;
-
-        if (_isBrightnessSide) {
-          _dragStartBrightness = _brightnessValue;
-          _previewBrightnessNotifier.value = _dragStartBrightness;
-          _showBrightnessUINotifier.value = true;
-        } else if (_isVolumeSide) {
-          _dragStartVolume = controller.value.volume;
-          _previewVolumeNotifier.value = _dragStartVolume;
-          _showVolumeUINotifier.value = true;
-        }
-        if (mounted) setState(() {});
-      }
-      return;
-    }
-
-    if (_dragAxis == 'h') {
-      final seekMs = (dx * kSeekPerPixelMs).toInt();
-      var target = _dragStartPosition + Duration(milliseconds: seekMs);
-      final duration = controller.value.duration;
-      if (target < Duration.zero) target = Duration.zero;
-      if (duration > Duration.zero && target > duration) target = duration;
-      _previewPositionNotifier.value = target;
-    } else if (_dragAxis == 'v') {
-      final screenHeight = MediaQuery.of(context).size.height;
-      final delta = -dy / (screenHeight * 0.6);
-
-      if (_isBrightnessSide) {
-        var newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
-        _previewBrightnessNotifier.value = newBrightness;
-        _setSystemBrightness(newBrightness);
-      } else if (_isVolumeSide) {
-        var newVolume = (_dragStartVolume + delta).clamp(0.0, 1.0);
-        _previewVolumeNotifier.value = newVolume;
-        try {
-          controller.setVolume(newVolume);
-        } catch (_) {}
-      }
-    }
-  }
-
-  void _onPanEnd(DragEndDetails d) {
-    _endDrag();
-  }
-
-  void _endDrag() {
-    final controller = _watchedController;
-    _verticalHideTimer?.cancel();
-
-    if (_dragAxis == 'h') {
-      if (controller != null && controller.value.isInitialized) {
-        try {
-          final duration = controller.value.duration;
-          var target = _previewPositionNotifier.value;
-          if (target < Duration.zero) target = Duration.zero;
-          if (duration > Duration.zero && target > duration) target = duration;
-          controller.seekTo(target);
-          HapticFeedback.lightImpact();
-        } catch (e) {
-          AppLogger.debug('拖动进度seek失败', data: {'error': e.toString()});
-        }
-      }
-      _dragHideTimer?.cancel();
-      _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        _previewPositionNotifier.value = Duration.zero;
-        _dragStartPosition = Duration.zero;
-      });
-    } else if (_dragAxis == 'v') {
-      _verticalHideTimer = Timer(const Duration(milliseconds: 600), () {
-        if (!mounted) return;
-        _showBrightnessUINotifier.value = false;
-        _showVolumeUINotifier.value = false;
-      });
-    }
-
-    _isDragging = false;
-    _dragAxis = null;
-    if (mounted) setState(() {});
-  }
-
-  void _handleTap() {
-    if (_isDragging) return;
-    if (_pendingSingleTap) {
-      _singleTapTimer?.cancel();
-      _pendingSingleTap = false;
-      _onDoubleTap();
-    } else {
-      _pendingSingleTap = true;
-      _singleTapTimer = Timer(const Duration(milliseconds: kDoubleTapMs), () {
-        if (_pendingSingleTap && mounted) {
-          _pendingSingleTap = false;
-          _toggleControls();
-        }
-      });
-    }
-  }
-
-  void _onDoubleTap() {
-    final pos = _lastTapPosition;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final controller = _watchedController;
-
-    if (pos != null && controller != null && controller.value.isInitialized) {
-      final relativeX = pos.dx / screenWidth;
-      if (relativeX < 0.33) {
-        _seekBySeconds(-10);
-        return;
-      } else if (relativeX > 0.67) {
-        _seekBySeconds(10);
-        return;
-      }
-    }
-
-    // 中间双击：点赞
-    setState(() => _showHeart = true);
-    _heartHideTimer?.cancel();
-    _heartHideTimer = Timer(const Duration(milliseconds: 700), () {
-      if (mounted) setState(() => _showHeart = false);
-    });
-    final item = ref.read(currentPlayingItemProvider);
-    if (item != null) {
-      try {
-        unawaited(ref.read(favoritesProvider.notifier).toggleFavorite(item));
-      } catch (e) {
-        AppLogger.warn('全屏点赞失败', data: {'error': e.toString()});
-      }
-    }
-  }
-
-  void _seekBySeconds(int seconds) {
-    final controller = _watchedController;
-    if (controller == null || !controller.value.isInitialized) return;
-    try {
-      final current = controller.value.position;
-      final duration = controller.value.duration;
-      var target = current + Duration(seconds: seconds);
-      if (target < Duration.zero) target = Duration.zero;
-      if (duration > Duration.zero && target > duration) target = duration;
-      controller.seekTo(target);
-      HapticFeedback.lightImpact();
-    } catch (e) {
-      AppLogger.debug('双击seek失败', data: {'error': e.toString()});
-    }
-    setState(() {
-      _isSeekForward = seconds > 0;
-      _showSeekFeedback = true;
-    });
-    _seekFeedbackHideTimer?.cancel();
-    _seekFeedbackHideTimer = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _showSeekFeedback = false);
-    });
-  }
-
-  void _onLongPressStart() {
-    final controller = _watchedController;
-    if (controller == null || !controller.value.isInitialized) return;
-    try {
-      _isLongPressing = true;
-      _originalRate = controller.value.playbackSpeed;
-      controller.setPlaybackSpeed(kLongPressPlaybackRate);
-      _showSpeedBadgeNotifier.value = true;
-    } catch (e) {
-      AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
-    }
-  }
-
-  void _onLongPressEnd() {
-    if (!_isLongPressing) return;
-    _isLongPressing = false;
-    final controller = _watchedController;
-    if (controller == null || !controller.value.isInitialized) return;
-    try {
-      controller.setPlaybackSpeed(_originalRate);
-      ref.read(playbackRateProvider.notifier).state = _originalRate;
-    } catch (e) {
-      AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
-    }
-    _showSpeedBadgeNotifier.value = false;
-  }
-
   String _formatDuration(Duration d) {
     if (d.inSeconds < 0) return '0:00';
     if (d.inHours > 0) {
@@ -929,6 +762,7 @@ class _FullscreenVideoPageState
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
     final videoVisible = !_isScreenLocked;
+    final gesturesEnabled = !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -939,27 +773,24 @@ class _FullscreenVideoPageState
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (details) => _lastTapPosition = details.globalPosition,
+              onTapDown: _handleTapDown,
               onTap: _handleTap,
               onLongPressStart:
-                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
-                      ? (_) => _onLongPressStart()
+                  gesturesEnabled && controller != null
+                      ? _onLongPressStart
                       : null,
               onLongPressEnd:
-                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
-                      ? (_) => _onLongPressEnd()
-                      : null,
-              onLongPressCancel:
-                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
+                  gesturesEnabled && controller != null
                       ? _onLongPressEnd
                       : null,
-              onPanStart: !_isScreenLocked && !_showSettingsPanel && !_controlsVisible
-                  ? _onPanStart
-                  : null,
-              onPanUpdate:
-                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible ? _onPanUpdate : null,
-              onPanEnd:
-                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible ? _onPanEnd : null,
+              onLongPressCancel:
+                  gesturesEnabled && controller != null
+                      ? () => _onLongPressEnd(LongPressEndDetails())
+                      : null,
+              onPanStart: gesturesEnabled ? _onPanStart : null,
+              onPanUpdate: gesturesEnabled ? _onPanUpdate : null,
+              onPanEnd: gesturesEnabled ? _onPanEnd : null,
+              onPanCancel: gesturesEnabled ? _onPanCancel : null,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -1063,7 +894,7 @@ class _FullscreenVideoPageState
           ValueListenableBuilder<double>(
             valueListenable: _previewBrightnessNotifier,
             builder: (context, brightness, _) {
-              if (!_showBrightnessUINotifier.value || !_isBrightnessSide || _dragAxis != 'v') return const SizedBox.shrink();
+              if (!_showBrightnessUINotifier.value || _isVolumeSide || _dragAxis != 'v') return const SizedBox.shrink();
               return _buildVerticalIndicator(
                 icon: _brightnessIconFor(brightness),
                 value: brightness,
@@ -1149,7 +980,7 @@ class _FullscreenVideoPageState
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _isSeekForward ? '+10s' : '-10s',
+                        '${_isSeekForward ? '+' : '-'}${_seekFeedbackCount * 10}s',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
