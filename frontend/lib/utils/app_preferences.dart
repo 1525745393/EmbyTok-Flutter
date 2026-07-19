@@ -520,6 +520,12 @@ class AppPreferencesService {
     await prefs.setString(kStorageKeyVideoQuality, quality);
   }
 
+  // 单独更新自动降级开关
+  Future<void> setAutoFallbackEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kStorageKeyAutoFallbackEnabled, value);
+  }
+
   // 单独更新字幕大小
   Future<void> setSubtitleSize(String size) async {
     final prefs = await SharedPreferences.getInstance();

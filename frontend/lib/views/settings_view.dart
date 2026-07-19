@@ -102,6 +102,7 @@ class SettingsView extends ConsumerWidget {
               _buildAutoPlayTile(context, ref),
               _buildPlaybackRateTile(context, ref),
               _buildVideoQualityTile(context, ref),
+              _buildAutoFallbackTile(context, ref),
               _buildGestureControlTile(context, ref),
             ],
           ),
@@ -826,6 +827,23 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 播放 - 自动降级
+  Widget _buildAutoFallbackTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(autoFallbackEnabledProvider);
+    return _SwitchTile(
+      icon: Icons.auto_graph_outlined,
+      iconColor: Colors.orange,
+      title: '自动降级',
+      subtitle: enabled
+          ? '播放失败时自动降低画质重试'
+          : '关闭：播放失败需手动切换画质',
+      value: enabled,
+      onChanged: (value) {
+        ref.read(autoFallbackEnabledProvider.notifier).set(value);
+      },
+    );
+  }
+
   // 播放 - 手势控制
   Widget _buildGestureControlTile(BuildContext context, WidgetRef ref) {
     return _TapTile(
@@ -1181,6 +1199,15 @@ class SettingsView extends ConsumerWidget {
             _showVideoQualityDialog(ctx, ref, ref.read(videoQualityProvider)),
       ),
       _SettingEntry(
+        title: '自动降级',
+        section: '播放',
+        keywords: '播放 自动 降级 fallback 画质',
+        onTap: (ctx) {
+          final value = ref.read(autoFallbackEnabledProvider);
+          ref.read(autoFallbackEnabledProvider.notifier).set(!value);
+        },
+      ),
+      _SettingEntry(
         title: '手势控制',
         section: '播放',
         keywords: '播放 手势 gesture 滑动 双击 长按',
@@ -1442,10 +1469,9 @@ class SettingsView extends ConsumerWidget {
       builder: (_) => _OptionDialog(
         title: '画质偏好',
         options: const [
-          ('自动（最佳画质）', 'auto'),
-          ('1080p', '1080p'),
-          ('720p', '720p'),
-          ('480p', '480p'),
+          ('原画（Direct Play）', 'original'),
+          ('高清 Remux（Direct Stream）', 'directStream'),
+          ('流畅转码（HLS）', 'hls'),
         ],
         currentValue: current,
         onSelect: (v) {
@@ -2863,15 +2889,14 @@ class SettingsView extends ConsumerWidget {
 
   String _videoQualityLabel(String quality) {
     switch (quality) {
-      case '1080p':
-        return '1080p';
-      case '720p':
-        return '720p';
-      case '480p':
-        return '480p';
-      case 'auto':
+      case 'original':
+        return '原画（Direct Play）';
+      case 'directStream':
+        return '高清 Remux（Direct Stream）';
+      case 'hls':
+        return '流畅转码（HLS）';
       default:
-        return '自动选择最佳画质';
+        return '原画（Direct Play）';
     }
   }
 

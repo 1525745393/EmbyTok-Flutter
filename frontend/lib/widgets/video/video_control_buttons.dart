@@ -306,6 +306,57 @@ class PlayModeButton extends ConsumerWidget {
   }
 }
 
+// ===== 画质选择按钮 =====
+class QualityButton extends ConsumerWidget {
+  final VoidCallback onTap;
+
+  const QualityButton({
+    super.key,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentLevel = ref.watch(playbackLevelProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final label = switch (currentLevel) {
+      0 => '原画',
+      1 => '高清',
+      2 => '流畅',
+      _ => '原画',
+    };
+    final isModified = currentLevel != 0;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: rs(40),
+        height: rs(40),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isModified
+              ? scheme.primary.withOpacity(0.8)
+              : scheme.surface.withOpacity(0.3),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.hd, color: scheme.onSurface, size: rs(18)),
+            Text(
+              label,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: rs(9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ===== 字幕按钮 =====
 class SubtitleButton extends ConsumerWidget {
   final bool hasSubtitles;

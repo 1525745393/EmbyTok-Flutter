@@ -974,7 +974,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
                   ),
                   SizedBox(height: rs(16, 1.5)),
-                  const PlayModeButton(),
+                  QualityButton(
+                    onTap: () => sheet_utils.showQualitySelector(context),
+                  ),
                   SizedBox(height: rs(16, 1.5)),
                   SubtitleButton(
                     hasSubtitles: widget.item.subtitleTracks.isNotEmpty,
@@ -1179,11 +1181,18 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     final token = auth.token;
     if (serverUrl == null || token == null) return;
     final pool = ref.read(videoPoolProvider);
+    // 根据用户默认画质设置决定预加载起始等级
+    final defaultQuality = ref.read(videoQualityProvider);
+    final startLevel = switch (defaultQuality) {
+      'directStream' => 1,
+      'hls' => 2,
+      _ => 0,
+    };
     Future<void> maybePreload(int i) async {
       if (i < 0 || i >= _items.length) return;
       final it = _items[i];
       if (!pool.hasSession(it.id)) {
-        await pool.preload(item: it, serverUrl: serverUrl, token: token);
+        await pool.preload(item: it, serverUrl: serverUrl, token: token, startLevel: startLevel);
       }
     }
 

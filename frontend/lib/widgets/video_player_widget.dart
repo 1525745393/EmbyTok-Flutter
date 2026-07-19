@@ -187,7 +187,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         if (_controller == null || !_controller!.value.isInitialized) {
           _initialized = false;
           _hasError = false;
-          _fallbackLevel = 0;
+          _fallbackLevel = _initialFallbackLevel;
           _initVideo();
         }
       }
@@ -203,7 +203,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _hasError = false;
       _errorMessage = null;
       _initialized = false;
-      _fallbackLevel = 0;
+      _fallbackLevel = _initialFallbackLevel;
     });
     // 重新触发初始化（依赖 didUpdateWidget 中的初始化逻辑）
     _reinitForNewItem();
@@ -276,7 +276,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
-      _fallbackLevel = 0; // 重新从最高级（DirectPlay）开始尝试
+      _fallbackLevel = _initialFallbackLevel; // 从用户设置的默认画质开始
       _isFallbackInProgress = false;
       _isUserSwitchInProgress = false;
     });
@@ -303,7 +303,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         !_hasError &&
         !_isFallbackInProgress &&
         !_isUserSwitchInProgress &&
-        _fallbackLevel < 2) {
+        _fallbackLevel < 2 &&
+        _autoFallbackEnabled) {
       _triggerRuntimeFallback();
       return;
     }
@@ -323,6 +324,30 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (sec != _positionSeconds.value) {
       _positionSeconds.value = sec;
     }
+  }
+
+  // 根据画质字符串获取对应的降级等级
+  int _qualityToLevel(String quality) {
+    switch (quality) {
+      case 'directStream':
+        return 1;
+      case 'hls':
+        return 2;
+      case 'original':
+      default:
+        return 0;
+    }
+  }
+
+  // 获取当前默认画质对应的初始降级等级
+  int get _initialFallbackLevel {
+    final quality = ref.read(videoQualityProvider);
+    return _qualityToLevel(quality);
+  }
+
+  // 判断是否启用自动降级
+  bool get _autoFallbackEnabled {
+    return ref.read(autoFallbackEnabledProvider);
   }
 
   // 初始化视频控制器
@@ -391,8 +416,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         AppLogger.debug('VideoPlayer preloaded init error，回退到动态创建', data: {'error': e.toString()});
         // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
         _releaseCurrentController();
-        // 重置降级级别，动态创建从最高级别重新开始
-        _fallbackLevel = 0;
+        // 重置降级级别，动态创建从用户设置的默认画质开始
+        _fallbackLevel = _initialFallbackLevel;
       }
     }
     if (preloadedInitSucceeded) return;
@@ -467,7 +492,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
         return;
       }
-      if (_fallbackLevel < 2) {
+      if (_fallbackLevel < 2 && _autoFallbackEnabled) {
         _isFallbackInProgress = true;
         _fallbackLevel++;
         AppLogger.debug('降级重试播放', data: {'level': _fallbackLevel});
@@ -573,7 +598,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     } catch (e) {
       AppLogger.warn('运行时降级失败', data: {'error': e.toString()});
       if (_isDisposed) return;
-      if (_fallbackLevel < 2) {
+      if (_fallbackLevel < 2 && _autoFallbackEnabled) {
         _isFallbackInProgress = false;
         // 添加延迟避免快速递归造成资源风暴，让出主线程
         _fallbackTimer?.cancel();

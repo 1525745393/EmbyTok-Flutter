@@ -94,10 +94,12 @@ class VideoPoolService {
   /// - 返回 Future<PlaybackSession?>：控制器初始化完成后 resolve
   /// - 如已存在则直接返回现有会话
   /// - 如池已满则先淘汰最旧的会话
+  /// - startLevel：从哪个降级等级开始尝试（0=原画, 1=高清Remux, 2=流畅转码）
   Future<PlaybackSession?> preload({
     required MediaItem item,
     required String serverUrl,
     required String token,
+    int startLevel = 0,
   }) async {
     if (kIsWeb) return null; // Web 环境下不预加载
     if (item.id.isEmpty || serverUrl.isEmpty || token.isEmpty) return null;
@@ -135,7 +137,7 @@ class VideoPoolService {
 
     PlaybackSession? created;
     try {
-      for (int level = 0; level < 3; level++) {
+      for (int level = startLevel; level < 3; level++) {
       final url = urls[level];
       if (url == null || url.isEmpty) continue;
       VideoPlayerController? controller;
