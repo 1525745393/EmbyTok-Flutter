@@ -65,6 +65,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   // 水平拖动状态（seek）
   Duration _dragStartPosition = Duration.zero;
   Duration _previewPosition = Duration.zero;
+  bool _showSeekPreview = false;
 
   // 垂直拖动状态（音量）
   bool _isVolumeSide = false;
@@ -225,6 +226,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _dragAxis = null;
     _dragHideTimer?.cancel();
     _volumeHideTimer?.cancel();
+    _showSeekPreview = false;
     if (mounted) setState(() {});
   }
 
@@ -241,6 +243,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
         _dragAxis = 'h';
         _dragStartPosition = c.value.position;
         _previewPosition = c.value.position;
+        _showSeekPreview = true;
         HapticFeedback.selectionClick();
       } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
         _dragAxis = 'v';
@@ -256,6 +259,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
           // 左侧垂直滑动：让父级（PageView）处理，取消当前拖动
           _isDragging = false;
           _dragAxis = null;
+          _showSeekPreview = false;
           return;
         }
       }
@@ -289,6 +293,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   void _onPanCancel() {
     _isDragging = false;
     _dragAxis = null;
+    _showSeekPreview = false;
     if (mounted) setState(() {});
   }
 
@@ -304,6 +309,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
     _dragStartPosition = c.value.position;
     _previewPosition = c.value.position;
     _dragHideTimer?.cancel();
+    _showSeekPreview = true;
     HapticFeedback.selectionClick();
     if (mounted) setState(() {});
   }
@@ -329,6 +335,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
   void _onHorizontalDragCancel() {
     _isDragging = false;
     _dragAxis = null;
+    _showSeekPreview = false;
     if (mounted) setState(() {});
   }
 
@@ -350,9 +357,14 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
           AppLogger.debug('拖动进度seek失败', data: {'error': e.toString()});
         }
       }
+      _showSeekPreview = true;
       _dragHideTimer?.cancel();
       _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
-        if (mounted) setState(() {});
+        if (mounted) {
+          setState(() {
+            _showSeekPreview = false;
+          });
+        }
       });
     } else if (_dragAxis == 'v' && _isVolumeSide) {
       _volumeHideTimer = Timer(const Duration(milliseconds: 600), () {
@@ -448,8 +460,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay> {
           ),
         ),
         // 拖动进度条
-        if ((_isDragging && _dragAxis == 'h') ||
-            (_dragHideTimer?.isActive == true && _dragAxis == null && _previewPosition != Duration.zero))
+        if (_showSeekPreview)
           Positioned(
             top: 48,
             left: 32,
