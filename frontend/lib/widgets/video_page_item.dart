@@ -230,6 +230,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   @override
+  void activate() {
+    super.activate();
+    // widget 重新插入树中时重置标记，确保后续 deactivate 能再次清理
+    _providerCleaned = false;
+    // 如果有 controller 且是当前页，重新写入 Provider（避免 deactivate 清理后状态丢失）
+    if (_videoController != null && widget.isCurrentPage) {
+      ref.read(currentVideoControllerProvider.notifier).state = _videoController;
+      ref.read(isPlayingProvider.notifier).state = _videoController!.value.isPlaying;
+    }
+  }
+
+  @override
   void dispose() {
     // 显式取消 listenManual 订阅，避免内存泄漏
     _isPlayingSubscription?.close();
@@ -417,7 +429,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // ===== 播放上报链方法 =====
   String _newPlaySessionId() => 'emb-flutter-${DateTime.now().microsecondsSinceEpoch}';
 
-  String _playMethodFromLevel(int level) => level >= 2 ? 'Transcode' : 'DirectPlay';
+  String _playMethodFromLevel(int level) {
+    switch (level) {
+      case 0:
+        return 'DirectPlay';
+      case 1:
+        return 'DirectStream';
+      case 2:
+      default:
+        return 'Transcode';
+    }
+  }
 
   void _ensureCapabilitiesReported() {
     if (_capabilitiesReported) return;
@@ -435,7 +457,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (_hasStartedReported) return;
     _hasStartedReported = true;
     // 如果来自预加载会话，则复用其 playSessionId，保证预加载和播放使用同一个会话
-    _playSessionId = widget.preloadedSession?.playSessionId ?? _newPlaySessionId();
+    // 空字符串视为无效，生成新的会话 ID
+    final preloadedId = widget.preloadedSession?.playSessionId;
+    _playSessionId = (preloadedId != null && preloadedId.isNotEmpty) ? preloadedId : _newPlaySessionId();
     // 如果来自预加载会话，同步播放等级到 provider（保证 reportPlaybackProgress 正确）
     if (widget.preloadedSession != null) {
       ref.read(playbackLevelProvider.notifier).setLevel(widget.preloadedSession!.playbackLevel);
@@ -732,11 +756,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               onControllerReady: (c) {
                 // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
                 if (!mounted) return;
+                final isNewController = _videoController == null;
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 c.addListener(_onVideoChanged);
                 // 仅当前页启动播放上报/进度上报，避免相邻预加载页并发有声播放与重复上报
                 if (widget.isCurrentPage) {
+                  // 如果是新 controller（之前已被释放过），重置上报状态避免重复检测
+                  if (isNewController) {
+                    _hasStartedReported = false;
+                    _hasStoppedReported = false;
+                    _playSessionId = null;
+                    _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
+                  }
                   _startPlaybackIfCurrent();
                 }
               },

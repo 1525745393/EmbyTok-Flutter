@@ -137,6 +137,7 @@ class VideoPoolService {
 
     PlaybackSession? created;
     try {
+      // 第一轮：从 startLevel 开始尝试（用户偏好画质）
       for (int level = startLevel; level < 3; level++) {
       final url = urls[level];
       if (url == null || url.isEmpty) continue;
@@ -169,6 +170,42 @@ class VideoPoolService {
         } catch (_) {}
       }
     }
+      // 第二轮：若 startLevel > 0 且高级别全部失败，回退从 0 开始尝试
+      // 确保至少有一种画质能播放（可用性优先于用户偏好）
+      if (startLevel > 0) {
+        for (int level = 0; level < startLevel; level++) {
+          final url = urls[level];
+          if (url == null || url.isEmpty) continue;
+          VideoPlayerController? controller;
+          try {
+            controller = VideoPlayerController.networkUrl(
+              Uri.parse(url),
+              httpHeaders: headers,
+            );
+            await controller.initialize().timeout(
+              const Duration(seconds: 12),
+              onTimeout: () {
+                throw TimeoutException('preload initialize timeout');
+              },
+            );
+            created = PlaybackSession(
+              itemId: item.id,
+              controller: controller,
+              playSessionId: playSessionId,
+              playbackLevel: level,
+            );
+            _sessions[item.id] = created;
+            _accessOrder.add(item.id);
+            return created;
+          } catch (e) {
+            AppLogger.debug('VideoPoolService preload fallback failed',
+                data: {'level': level, 'error': e.toString()});
+            try {
+              controller?.dispose();
+            } catch (_) {}
+          }
+        }
+      }
     } finally {
       _inflight.remove(item.id);
     }
