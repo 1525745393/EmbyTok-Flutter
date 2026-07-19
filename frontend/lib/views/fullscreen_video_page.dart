@@ -176,6 +176,7 @@ class _FullscreenVideoPageState
     WidgetsBinding.instance.addObserver(this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
       if (ctrl != null && ctrl.value.isInitialized) {
         final size = ctrl.value.size;
