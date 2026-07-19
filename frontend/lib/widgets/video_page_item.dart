@@ -689,6 +689,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           child: GestureOverlay(
             controller: _videoController,
             item: widget.item,
+            enableGestures: !_controlsVisible,
             onSingleTap: () {
               if (isAutoPlay) {
                 _toggleControls();

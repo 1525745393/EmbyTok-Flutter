@@ -926,24 +926,24 @@ class _FullscreenVideoPageState
               onTapDown: (details) => _lastTapPosition = details.globalPosition,
               onTap: _handleTap,
               onLongPressStart:
-                  !_isScreenLocked && !_showSettingsPanel && controller != null
+                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
                       ? (_) => _onLongPressStart()
                       : null,
               onLongPressEnd:
-                  !_isScreenLocked && !_showSettingsPanel && controller != null
+                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
                       ? (_) => _onLongPressEnd()
                       : null,
               onLongPressCancel:
-                  !_isScreenLocked && !_showSettingsPanel && controller != null
+                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible && controller != null
                       ? _onLongPressEnd
                       : null,
-              onPanStart: !_isScreenLocked && !_showSettingsPanel
+              onPanStart: !_isScreenLocked && !_showSettingsPanel && !_controlsVisible
                   ? _onPanStart
                   : null,
               onPanUpdate:
-                  !_isScreenLocked && !_showSettingsPanel ? _onPanUpdate : null,
+                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible ? _onPanUpdate : null,
               onPanEnd:
-                  !_isScreenLocked && !_showSettingsPanel ? _onPanEnd : null,
+                  !_isScreenLocked && !_showSettingsPanel && !_controlsVisible ? _onPanEnd : null,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
