@@ -1,3 +1,10 @@
+# [1.156.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.155.1...v1.156.0) (2026-07-19)
+
+
+### Features
+
+* **frontend:** 优化日志导出体验 - 预览+打开文件+复制内容 ([75ab10c](https://github.com/1525745393/EmbyTok-Flutter/commit/75ab10c80f16f893de26a4645a93b88a5f2ad803))
+
 ## [1.155.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.155.0...v1.155.1) (2026-07-19)
 
 
