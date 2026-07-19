@@ -80,21 +80,21 @@ class _FullscreenVideoPageState
   double _dragStartX = 0.0;
   double _dragStartY = 0.0;
   Duration _dragStartPosition = Duration.zero;
-  Duration _previewPosition = Duration.zero;
+  final ValueNotifier<Duration> _previewPositionNotifier = ValueNotifier<Duration>(Duration.zero);
   bool _isBrightnessSide = false;
   bool _isVolumeSide = false;
   double _dragStartBrightness = 0.0;
   double _dragStartVolume = 0.0;
-  bool _showBrightnessUI = false;
-  bool _showVolumeUI = false;
-  double _previewBrightness = 0.0;
-  double _previewVolume = 0.0;
+  final ValueNotifier<bool> _showBrightnessUINotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> _showVolumeUINotifier = ValueNotifier<bool>(false);
+  final ValueNotifier<double> _previewBrightnessNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _previewVolumeNotifier = ValueNotifier<double>(0.0);
   Timer? _dragHideTimer;
   Timer? _verticalHideTimer;
   Offset? _lastTapPosition;
   bool _showSeekFeedback = false;
   bool _isSeekForward = false;
-  bool _showSpeedBadge = false;
+  final ValueNotifier<bool> _showSpeedBadgeNotifier = ValueNotifier<bool>(false);
   bool _isLongPressing = false;
   double _originalRate = 1.0;
   bool _pendingSingleTap = false;
@@ -459,6 +459,12 @@ class _FullscreenVideoPageState
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
     _positionSecondsNotifier.dispose();
+    _previewPositionNotifier.dispose();
+    _showBrightnessUINotifier.dispose();
+    _previewBrightnessNotifier.dispose();
+    _showVolumeUINotifier.dispose();
+    _previewVolumeNotifier.dispose();
+    _showSpeedBadgeNotifier.dispose();
 
     if (_originalBrightness != null) {
       try {
@@ -646,7 +652,7 @@ class _FullscreenVideoPageState
       if (dx.abs() > dy.abs() && dx.abs() > 8) {
         _dragAxis = 'h';
         _dragStartPosition = controller.value.position;
-        _previewPosition = controller.value.position;
+        _previewPositionNotifier.value = controller.value.position;
         HapticFeedback.selectionClick();
         if (mounted) setState(() {});
       } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
@@ -657,12 +663,12 @@ class _FullscreenVideoPageState
 
         if (_isBrightnessSide) {
           _dragStartBrightness = _brightnessValue;
-          _previewBrightness = _dragStartBrightness;
-          _showBrightnessUI = true;
+          _previewBrightnessNotifier.value = _dragStartBrightness;
+          _showBrightnessUINotifier.value = true;
         } else if (_isVolumeSide) {
           _dragStartVolume = controller.value.volume;
-          _previewVolume = _dragStartVolume;
-          _showVolumeUI = true;
+          _previewVolumeNotifier.value = _dragStartVolume;
+          _showVolumeUINotifier.value = true;
         }
         if (mounted) setState(() {});
       }
@@ -675,24 +681,21 @@ class _FullscreenVideoPageState
       final duration = controller.value.duration;
       if (target < Duration.zero) target = Duration.zero;
       if (duration > Duration.zero && target > duration) target = duration;
-      _previewPosition = target;
-      if (mounted) setState(() {});
+      _previewPositionNotifier.value = target;
     } else if (_dragAxis == 'v') {
       final screenHeight = MediaQuery.of(context).size.height;
       final delta = -dy / (screenHeight * 0.6);
 
       if (_isBrightnessSide) {
         var newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
-        _previewBrightness = newBrightness;
+        _previewBrightnessNotifier.value = newBrightness;
         _setSystemBrightness(newBrightness);
-        if (mounted) setState(() {});
       } else if (_isVolumeSide) {
         var newVolume = (_dragStartVolume + delta).clamp(0.0, 1.0);
-        _previewVolume = newVolume;
+        _previewVolumeNotifier.value = newVolume;
         try {
           controller.setVolume(newVolume);
         } catch (_) {}
-        if (mounted) setState(() {});
       }
     }
   }
@@ -709,7 +712,7 @@ class _FullscreenVideoPageState
       if (controller != null && controller.value.isInitialized) {
         try {
           final duration = controller.value.duration;
-          var target = _previewPosition;
+          var target = _previewPositionNotifier.value;
           if (target < Duration.zero) target = Duration.zero;
           if (duration > Duration.zero && target > duration) target = duration;
           controller.seekTo(target);
@@ -721,18 +724,14 @@ class _FullscreenVideoPageState
       _dragHideTimer?.cancel();
       _dragHideTimer = Timer(const Duration(milliseconds: 800), () {
         if (!mounted) return;
-        setState(() {
-          _previewPosition = Duration.zero;
-          _dragStartPosition = Duration.zero;
-        });
+        _previewPositionNotifier.value = Duration.zero;
+        _dragStartPosition = Duration.zero;
       });
     } else if (_dragAxis == 'v') {
       _verticalHideTimer = Timer(const Duration(milliseconds: 600), () {
         if (!mounted) return;
-        setState(() {
-          _showBrightnessUI = false;
-          _showVolumeUI = false;
-        });
+        _showBrightnessUINotifier.value = false;
+        _showVolumeUINotifier.value = false;
       });
     }
 
@@ -821,7 +820,7 @@ class _FullscreenVideoPageState
       _isLongPressing = true;
       _originalRate = controller.value.playbackSpeed;
       controller.setPlaybackSpeed(kLongPressPlaybackRate);
-      if (mounted) setState(() => _showSpeedBadge = true);
+      _showSpeedBadgeNotifier.value = true;
     } catch (e) {
       AppLogger.debug('长按倍速启动失败', data: {'error': e.toString()});
     }
@@ -838,7 +837,7 @@ class _FullscreenVideoPageState
     } catch (e) {
       AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
     }
-    if (mounted) setState(() => _showSpeedBadge = false);
+    _showSpeedBadgeNotifier.value = false;
   }
 
   String _formatDuration(Duration d) {
@@ -1044,54 +1043,73 @@ class _FullscreenVideoPageState
           if (_networkToastMessage != null) _buildNetworkToast(),
 
           // 手势反馈 UI
-          if (_isDragging && _dragAxis == 'h' && controller != null)
-            Positioned(
-              top: 48,
-              left: 32,
-              right: 32,
-              child: _SeekPreviewBar(
-                current: _previewPosition,
-                total: controller.value.duration,
-                offset: _previewPosition - _dragStartPosition,
-              ),
-            ),
+          ValueListenableBuilder<Duration>(
+            valueListenable: _previewPositionNotifier,
+            builder: (context, previewPos, _) {
+              if (!_isDragging || _dragAxis != 'h' || controller == null) return const SizedBox.shrink();
+              return Positioned(
+                top: 48,
+                left: 32,
+                right: 32,
+                child: _SeekPreviewBar(
+                  current: previewPos,
+                  total: controller.value.duration,
+                  offset: previewPos - _dragStartPosition,
+                ),
+              );
+            },
+          ),
 
-          if (_showBrightnessUI && _isBrightnessSide && _dragAxis == 'v')
-            _buildVerticalIndicator(
-              icon: _brightnessIcon(),
-              value: _previewBrightness,
-              label: '亮度',
-            ),
+          ValueListenableBuilder<double>(
+            valueListenable: _previewBrightnessNotifier,
+            builder: (context, brightness, _) {
+              if (!_showBrightnessUINotifier.value || !_isBrightnessSide || _dragAxis != 'v') return const SizedBox.shrink();
+              return _buildVerticalIndicator(
+                icon: _brightnessIconFor(brightness),
+                value: brightness,
+                label: '亮度',
+              );
+            },
+          ),
 
-          if (_showVolumeUI && _isVolumeSide && _dragAxis == 'v')
-            _buildVerticalIndicator(
-              icon: _volumeIcon(),
-              value: _previewVolume,
-              label: '音量',
-            ),
+          ValueListenableBuilder<double>(
+            valueListenable: _previewVolumeNotifier,
+            builder: (context, volume, _) {
+              if (!_showVolumeUINotifier.value || !_isVolumeSide || _dragAxis != 'v') return const SizedBox.shrink();
+              return _buildVerticalIndicator(
+                icon: _volumeIconFor(volume),
+                value: volume,
+                label: '音量',
+              );
+            },
+          ),
 
-          if (_showSpeedBadge)
-            IgnorePointer(
-              child: Center(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -1,
+          ValueListenableBuilder<bool>(
+            valueListenable: _showSpeedBadgeNotifier,
+            builder: (context, show, _) {
+              if (!show) return const SizedBox.shrink();
+              return IgnorePointer(
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -1,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
+          ),
 
           if (_showHeart) const IgnorePointer(child: _FlyingHeart()),
 
@@ -1628,15 +1646,15 @@ class _FullscreenVideoPageState
     );
   }
 
-  IconData _brightnessIcon() {
-    if (_previewBrightness <= 0.1) return Icons.brightness_low;
-    if (_previewBrightness < 0.5) return Icons.brightness_medium;
+  IconData _brightnessIconFor(double value) {
+    if (value <= 0.1) return Icons.brightness_low;
+    if (value < 0.5) return Icons.brightness_medium;
     return Icons.brightness_high;
   }
 
-  IconData _volumeIcon() {
-    if (_previewVolume <= 0) return Icons.volume_off;
-    if (_previewVolume < 0.5) return Icons.volume_down;
+  IconData _volumeIconFor(double value) {
+    if (value <= 0) return Icons.volume_off;
+    if (value < 0.5) return Icons.volume_down;
     return Icons.volume_up;
   }
 
