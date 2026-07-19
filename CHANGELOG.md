@@ -1,3 +1,10 @@
+## [1.156.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.1...v1.156.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **models:** copyWith 补充 rawJson 字段传递 ([911af5a](https://github.com/1525745393/EmbyTok-Flutter/commit/911af5ae1335b7404f8852fe24635eba61133157))
+
 ## [1.156.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.0...v1.156.1) (2026-07-19)
 
 
