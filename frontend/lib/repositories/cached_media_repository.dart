@@ -355,6 +355,17 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  PaginatedResponse<MediaItem>? peekLibraryItems(
+    MediaQueryParams params, {
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    final key = _libraryItemsKey(params, serverUrl, token);
+    return _libraryItemsCache.get(key);
+  }
+
+  @override
   Future<FavoritesPageResult> getFavoriteMovies({
     int limit = 50,
     int offset = 0,

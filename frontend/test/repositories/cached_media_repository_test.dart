@@ -722,6 +722,75 @@ void main() {
       )).called(1);
     });
 
+    group('peekLibraryItems', () {
+      test('缓存未命中返回 null', () {
+        final result = cachedRepo.peekLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result, isNull);
+      });
+
+      test('缓存命中返回数据且不触发网络请求', () async {
+        when(mockRepo.getLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testResponse);
+
+        await cachedRepo.getLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        final result = cachedRepo.peekLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result, isNotNull);
+        expect(result!.items.length, 1);
+        expect(result.items.first.id, 'item-1');
+        verify(mockRepo.getLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).called(1);
+      });
+
+      test('过期缓存返回 null', () async {
+        final ttlZeroRepo = CachedMediaRepository(
+          mockRepo,
+          ttl: Duration.zero,
+          maxCacheEntries: 50,
+        );
+
+        when(mockRepo.getLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        )).thenAnswer((_) async => testResponse);
+
+        await ttlZeroRepo.getLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        final result = ttlZeroRepo.peekLibraryItems(
+          testParams,
+          serverUrl: testServerUrl,
+          token: testToken,
+        );
+
+        expect(result, isNull);
+      });
+    });
+
     group('getFavoriteMovies', () {
       final testFavResult = FavoritesPageResult(
         movies: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
