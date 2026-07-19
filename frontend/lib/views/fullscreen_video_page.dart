@@ -42,28 +42,28 @@ class _FullscreenVideoPageState
   // ===== VideoGestureMixin 钩子实现 =====
 
   @override
-  VideoPlayerController? get _videoController => _watchedController;
+  VideoPlayerController? get videoController => _watchedController;
 
   @override
-  bool get _gesturesEnabled => true;
+  bool get gesturesEnabled => true;
 
   @override
-  void _onSingleTap() {
+  void onSingleTap() {
     _toggleControls();
   }
 
   @override
-  void _onDoubleTapLeft() {
-    super._onDoubleTapLeft();
+  void onDoubleTapLeft() {
+    super.onDoubleTapLeft();
   }
 
   @override
-  void _onDoubleTapRight() {
-    super._onDoubleTapRight();
+  void onDoubleTapRight() {
+    super.onDoubleTapRight();
   }
 
   @override
-  void _onDoubleTapCenter() {
+  void onDoubleTapCenter() {
     final item = ref.read(currentPlayingItemProvider);
     if (item != null) {
       try {
@@ -72,14 +72,14 @@ class _FullscreenVideoPageState
         AppLogger.warn('全屏点赞失败', data: {'error': e.toString()});
       }
     }
-    _triggerHeart();
+    triggerHeart();
   }
 
   @override
-  bool get _handleLeftVerticalDrag => true;
+  bool get handleLeftVerticalDrag => true;
 
   @override
-  void _onLeftVerticalDragUpdate(double delta) {
+  void onLeftVerticalDragUpdate(double delta) {
     if (!_showBrightnessUINotifier.value) {
       _dragStartBrightness = _brightnessValue;
       _previewBrightnessNotifier.value = _dragStartBrightness;
@@ -91,9 +91,9 @@ class _FullscreenVideoPageState
   }
 
   @override
-  void _endDrag() {
-    final wasVerticalBrightness = _dragAxis == 'v' && !_isVolumeSide;
-    super._endDrag();
+  void endDrag() {
+    final wasVerticalBrightness = dragAxis == 'v' && !isVolumeSide;
+    super.endDrag();
     if (wasVerticalBrightness) {
       _brightnessHideTimer?.cancel();
       _brightnessHideTimer = Timer(const Duration(milliseconds: 600), () {
@@ -104,13 +104,13 @@ class _FullscreenVideoPageState
   }
 
   @override
-  void _onLongPressEnd(LongPressEndDetails details) {
-    super._onLongPressEnd(details);
-    ref.read(playbackRateProvider.notifier).state = _originalRate;
+  void onLongPressEnd(LongPressEndDetails details) {
+    super.onLongPressEnd(details);
+    ref.read(playbackRateProvider.notifier).state = originalRate;
   }
 
   @override
-  MediaItem? get _currentItem => ref.read(currentPlayingItemProvider);
+  MediaItem? get currentItem => ref.read(currentPlayingItemProvider);
 
   // ===== 全屏页特有状态 =====
 
@@ -498,7 +498,7 @@ class _FullscreenVideoPageState
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _disposeGestureTimers();
+    disposeGestureTimers();
     _hideTimer?.cancel();
     _networkToastTimer?.cancel();
     _connectivitySub?.cancel();
@@ -773,24 +773,24 @@ class _FullscreenVideoPageState
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: _handleTapDown,
-              onTap: _handleTap,
+              onTapDown: handleTapDown,
+              onTap: handleTap,
               onLongPressStart:
                   gesturesEnabled && controller != null
-                      ? _onLongPressStart
+                      ? onLongPressStart
                       : null,
               onLongPressEnd:
                   gesturesEnabled && controller != null
-                      ? _onLongPressEnd
+                      ? onLongPressEnd
                       : null,
               onLongPressCancel:
                   gesturesEnabled && controller != null
-                      ? () => _onLongPressEnd(LongPressEndDetails())
+                      ? () => onLongPressEnd(LongPressEndDetails())
                       : null,
-              onPanStart: gesturesEnabled ? _onPanStart : null,
-              onPanUpdate: gesturesEnabled ? _onPanUpdate : null,
-              onPanEnd: gesturesEnabled ? _onPanEnd : null,
-              onPanCancel: gesturesEnabled ? _onPanCancel : null,
+              onPanStart: gesturesEnabled ? onPanStart : null,
+              onPanUpdate: gesturesEnabled ? onPanUpdate : null,
+              onPanEnd: gesturesEnabled ? onPanEnd : null,
+              onPanCancel: gesturesEnabled ? onPanCancel : null,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -875,9 +875,9 @@ class _FullscreenVideoPageState
 
           // 手势反馈 UI
           ValueListenableBuilder<Duration>(
-            valueListenable: _previewPositionNotifier,
+            valueListenable: previewPositionNotifier,
             builder: (context, previewPos, _) {
-              if (!_isDragging || _dragAxis != 'h' || controller == null) return const SizedBox.shrink();
+              if (!isDragging || dragAxis != 'h' || controller == null) return const SizedBox.shrink();
               return Positioned(
                 top: 48,
                 left: 32,
@@ -885,7 +885,7 @@ class _FullscreenVideoPageState
                 child: _SeekPreviewBar(
                   current: previewPos,
                   total: controller.value.duration,
-                  offset: previewPos - _dragStartPosition,
+                  offset: previewPos - dragStartPosition,
                 ),
               );
             },
@@ -894,7 +894,7 @@ class _FullscreenVideoPageState
           ValueListenableBuilder<double>(
             valueListenable: _previewBrightnessNotifier,
             builder: (context, brightness, _) {
-              if (!_showBrightnessUINotifier.value || _isVolumeSide || _dragAxis != 'v') return const SizedBox.shrink();
+              if (!_showBrightnessUINotifier.value || isVolumeSide || dragAxis != 'v') return const SizedBox.shrink();
               return _buildVerticalIndicator(
                 icon: _brightnessIconFor(brightness),
                 value: brightness,
@@ -904,9 +904,9 @@ class _FullscreenVideoPageState
           ),
 
           ValueListenableBuilder<double>(
-            valueListenable: _previewVolumeNotifier,
+            valueListenable: previewVolumeNotifier,
             builder: (context, volume, _) {
-              if (!_showVolumeUINotifier.value || !_isVolumeSide || _dragAxis != 'v') return const SizedBox.shrink();
+              if (!showVolumeUINotifier.value || !isVolumeSide || dragAxis != 'v') return const SizedBox.shrink();
               return _buildVerticalIndicator(
                 icon: _volumeIconFor(volume),
                 value: volume,
@@ -916,7 +916,7 @@ class _FullscreenVideoPageState
           ),
 
           ValueListenableBuilder<bool>(
-            valueListenable: _showSpeedBadgeNotifier,
+            valueListenable: showSpeedBadgeNotifier,
             builder: (context, show, _) {
               if (!show) return const SizedBox.shrink();
               return IgnorePointer(
@@ -942,24 +942,24 @@ class _FullscreenVideoPageState
             },
           ),
 
-          if (_showHeart) const IgnorePointer(child: _FlyingHeart()),
+          if (showHeart) const IgnorePointer(child: _FlyingHeart()),
 
-          if (_showSeekFeedback)
+          if (showSeekFeedback)
             IgnorePointer(
               child: Positioned(
                 top: 0,
                 bottom: 0,
-                left: _isSeekForward ? null : 0,
-                right: _isSeekForward ? 0 : null,
+                left: isSeekForward ? null : 0,
+                right: isSeekForward ? 0 : null,
                 width: MediaQuery.of(context).size.width / 3,
                 child: Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: _isSeekForward
+                      begin: isSeekForward
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
-                      end: _isSeekForward
+                      end: isSeekForward
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
                       colors: [
@@ -972,7 +972,7 @@ class _FullscreenVideoPageState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        _isSeekForward
+                        isSeekForward
                             ? Icons.fast_forward
                             : Icons.fast_rewind,
                         color: Colors.white,
@@ -980,7 +980,7 @@ class _FullscreenVideoPageState
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_isSeekForward ? '+' : '-'}${_seekFeedbackCount * 10}s',
+                        '${isSeekForward ? '+' : '-'}${seekFeedbackCount * 10}s',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,

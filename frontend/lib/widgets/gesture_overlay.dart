@@ -55,32 +55,32 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   // ===== VideoGestureMixin 钩子实现 =====
 
   @override
-  VideoPlayerController? get _videoController => widget.controller;
+  VideoPlayerController? get videoController => widget.controller;
 
   @override
-  bool get _gesturesEnabled => widget.enableGestures;
+  bool get gesturesEnabled => widget.enableGestures;
 
   @override
-  void _onSingleTap() {
+  void onSingleTap() {
     widget.onSingleTap?.call();
   }
 
   @override
-  void _onDoubleTapLeft() {
-    super._onDoubleTapLeft();
+  void onDoubleTapLeft() {
+    super.onDoubleTapLeft();
     widget.onDoubleTap?.call();
   }
 
   @override
-  void _onDoubleTapRight() {
-    super._onDoubleTapRight();
+  void onDoubleTapRight() {
+    super.onDoubleTapRight();
     widget.onDoubleTap?.call();
   }
 
   @override
-  void _onDoubleTapCenter() {
+  void onDoubleTapCenter() {
     widget.onDoubleTap?.call();
-    _triggerHeart();
+    triggerHeart();
     try {
       ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
     } catch (e) {
@@ -89,20 +89,20 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   }
 
   @override
-  bool get _handleLeftVerticalDrag => false;
+  bool get handleLeftVerticalDrag => false;
 
   @override
-  MediaItem? get _currentItem => widget.item;
+  MediaItem? get currentItem => widget.item;
 
   @override
-  void _onLongPressEnd(LongPressEndDetails details) {
-    super._onLongPressEnd(details);
-    ref.read(playbackRateProvider.notifier).state = _originalRate;
+  void onLongPressEnd(LongPressEndDetails details) {
+    super.onLongPressEnd(details);
+    ref.read(playbackRateProvider.notifier).state = originalRate;
   }
 
   @override
   void dispose() {
-    _disposeGestureTimers();
+    disposeGestureTimers();
     super.dispose();
   }
 
@@ -122,37 +122,37 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTapDown: _handleTapDown,
-            onTap: _handleTap,
-            onLongPressStart: widget.enableGestures ? _onLongPressStart : null,
+            onTapDown: handleTapDown,
+            onTap: handleTap,
+            onLongPressStart: widget.enableGestures ? onLongPressStart : null,
             onLongPressEnd:
-                widget.enableGestures ? _onLongPressEnd : null,
+                widget.enableGestures ? onLongPressEnd : null,
             onLongPressCancel:
-                widget.enableGestures ? () => _onLongPressEnd(LongPressEndDetails()) : null,
+                widget.enableGestures ? () => onLongPressEnd(LongPressEndDetails()) : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
-            onPanStart: (widget.enableGestures && usePan) ? _onPanStart : null,
-            onPanUpdate: (widget.enableGestures && usePan) ? _onPanUpdate : null,
-            onPanEnd: (widget.enableGestures && usePan) ? _onPanEnd : null,
-            onPanCancel: (widget.enableGestures && usePan) ? _onPanCancel : null,
+            onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
+            onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
+            onPanEnd: (widget.enableGestures && usePan) ? onPanEnd : null,
+            onPanCancel: (widget.enableGestures && usePan) ? onPanCancel : null,
             // 纯水平模式：小屏场景，不影响 PageView 垂直滑动
             onHorizontalDragStart: (widget.enableGestures && !usePan)
-                ? _onHorizontalDragStart
+                ? onHorizontalDragStart
                 : null,
             onHorizontalDragUpdate: (widget.enableGestures && !usePan)
-                ? _onHorizontalDragUpdate
+                ? onHorizontalDragUpdate
                 : null,
             onHorizontalDragEnd: (widget.enableGestures && !usePan)
-                ? _onHorizontalDragEnd
+                ? onHorizontalDragEnd
                 : null,
             onHorizontalDragCancel: (widget.enableGestures && !usePan)
-                ? _onHorizontalDragCancel
+                ? onHorizontalDragCancel
                 : null,
             child: const SizedBox.expand(),
           ),
         ),
         // 拖动进度条
         ValueListenableBuilder<Duration>(
-          valueListenable: _previewPositionNotifier,
+          valueListenable: previewPositionNotifier,
           builder: (context, previewPos, _) {
             if (previewPos == Duration.zero) return const SizedBox.shrink();
             final currentPosition = previewPos;
@@ -163,20 +163,20 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
               child: _SeekPreviewBar(
                 current: currentPosition,
                 total: duration,
-                offset: previewPos - _dragStartPosition,
+                offset: previewPos - dragStartPosition,
               ),
             );
           },
         ),
         // 音量调节 UI
         ValueListenableBuilder<bool>(
-          valueListenable: _showVolumeUINotifier,
+          valueListenable: showVolumeUINotifier,
           builder: (context, showVolume, _) {
-            if (!showVolume || !_isVolumeSide || _dragAxis != 'v') {
+            if (!showVolume || !isVolumeSide || dragAxis != 'v') {
               return const SizedBox.shrink();
             }
             return ValueListenableBuilder<double>(
-              valueListenable: _previewVolumeNotifier,
+              valueListenable: previewVolumeNotifier,
               builder: (context, volume, _) {
                 return IgnorePointer(
                   child: Center(
@@ -237,7 +237,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
         ),
         // 长按倍速中央大图标反馈
         ValueListenableBuilder<bool>(
-          valueListenable: _showSpeedBadgeNotifier,
+          valueListenable: showSpeedBadgeNotifier,
           builder: (context, showSpeed, _) {
             if (!showSpeed) return const SizedBox.shrink();
             return IgnorePointer(
@@ -263,25 +263,25 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
           },
         ),
         // 双击心形动画
-        if (_showHeart)
+        if (showHeart)
           const IgnorePointer(child: _FlyingHeart()),
         // 双击快进/快退视觉反馈
-        if (_showSeekFeedback)
+        if (showSeekFeedback)
           IgnorePointer(
             child: Positioned(
               top: 0,
               bottom: 0,
-              left: _isSeekForward ? null : 0,
-              right: _isSeekForward ? 0 : null,
+              left: isSeekForward ? null : 0,
+              right: isSeekForward ? 0 : null,
               width: MediaQuery.of(context).size.width / 3,
               child: Container(
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: _isSeekForward
+                    begin: isSeekForward
                         ? Alignment.centerRight
                         : Alignment.centerLeft,
-                    end: _isSeekForward
+                    end: isSeekForward
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
                     colors: [
@@ -294,7 +294,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _isSeekForward
+                      isSeekForward
                           ? Icons.fast_forward
                           : Icons.fast_rewind,
                       color: Theme.of(context).colorScheme.onPrimary,
@@ -311,7 +311,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                     const SizedBox(height: 4),
                     Text(
                       // 累积偏移：连续双击时显示 +20s/+30s 等
-                      '${_isSeekForward ? '+' : '-'}${_seekFeedbackCount * 10}s',
+                      '${isSeekForward ? '+' : '-'}${seekFeedbackCount * 10}s',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
                         fontSize: 16,
