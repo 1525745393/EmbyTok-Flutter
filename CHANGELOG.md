@@ -1,3 +1,10 @@
+## [1.156.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.2...v1.156.3) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ui:** 修复四项核心 UI 交互 Bug ([b72020b](https://github.com/1525745393/EmbyTok-Flutter/commit/b72020b6d9ea73bfe2f50ed733a84de295fa5c52))
+
 ## [1.156.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.156.1...v1.156.2) (2026-07-19)
 
 
