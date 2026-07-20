@@ -34,21 +34,26 @@ class ToolbarVisibilityNotifier extends StateNotifier<bool> {
   /// 显示工具栏
   void show() {
     if (_hideCount > 0) _hideCount--;
-    _recompute();
-    // 保留防抖语义
-    _setVisible(state);
+    else if (_hideCount < 0) _hideCount = 0;
+    _setVisible(_recompute());
   }
 
   /// 隐藏工具栏
   void hide() {
     _hideCount++;
-    _recompute();
-    _setVisible(state);
+    _setVisible(_recompute());
   }
 
   /// 切换显示/隐藏
+  ///
+  /// 注意：纯净模式下工具栏持续隐藏，toggle() 不会改变状态。
   void toggle() {
-    _setVisible(!state);
+    if (_autoPlayActive) return;
+    if (_hideCount == 0) {
+      hide();
+    } else {
+      show();
+    }
   }
 
   /// PR #72：同步纯净模式状态
@@ -59,13 +64,15 @@ class ToolbarVisibilityNotifier extends StateNotifier<bool> {
   void setAutoPlayActive(bool active) {
     if (_autoPlayActive == active) return;
     _autoPlayActive = active;
-    _recompute();
-    _setVisible(state);
+    _setVisible(_recompute());
   }
 
   /// 重新计算 state（基于三个维度的与运算）
-  void _recompute() {
+  ///
+  /// 返回计算后的新状态值，供调用方传递给 _setVisible()。
+  bool _recompute() {
     state = !_autoPlayActive && _hideCount == 0;
+    return state;
   }
 
   /// 核心设置方法：防抖 + 去重

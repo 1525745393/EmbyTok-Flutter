@@ -68,10 +68,18 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
       widget.containerSize.width - widget.buttonWidth - widget.rightSafeArea,
       widget.containerSize.height - _measuredHeight - widget.bottomSafeArea,
     );
+    // 纯净模式下初始状态应立即隐藏，避免首次 build 时短暂显示
+    final isAutoPlayInitial = ref.read(isAutoPlayProvider);
+    if (isAutoPlayInitial) {
+      _isHidden = true;
+      _isAutoPlay = true;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _measureHeight();
-      _scheduleAutoHide();
+      if (!isAutoPlayInitial) {
+        _scheduleAutoHide();
+      }
     });
   }
 
