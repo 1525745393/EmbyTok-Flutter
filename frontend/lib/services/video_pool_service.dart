@@ -124,27 +124,28 @@ class VideoPoolService {
 
     // 并发防护：同一 item 正在预加载中则跳过，避免双建 controller 造成 native 资源泄漏
     if (_inflight.contains(item.id)) return null;
-    _inflight.add(item.id);
-
-    // 池已满：淘汰最久未访问的会话
-    if (_sessions.length >= maxSize) {
-      final oldest = _accessOrder.first;
-      _remove(oldest);
-    }
-
-    // 降级链：DirectPlay → DirectStream → HLS
-    // 统一生成一次 playSessionId，HLS URL 与存储的会话共用，保证 Emby 上报关联一致
-    final playSessionId = _generatePlaySessionId();
-    final urls = <int, String?>{
-      0: item.computePlaybackUrl(serverUrl, token),
-      1: item.computeDirectStreamUrl(serverUrl, token),
-      2: item.computeHlsUrl(serverUrl, token,
-          playSessionId: playSessionId),
-    };
-    final headers = item.authHeaders(token);
 
     PlaybackSession? created;
     try {
+      _inflight.add(item.id);
+
+      // 池已满：淘汰最久未访问的会话
+      if (_sessions.length >= maxSize) {
+        final oldest = _accessOrder.first;
+        _remove(oldest);
+      }
+
+      // 降级链：DirectPlay → DirectStream → HLS
+      // 统一生成一次 playSessionId，HLS URL 与存储的会话共用，保证 Emby 上报关联一致
+      final playSessionId = _generatePlaySessionId();
+      final urls = <int, String?>{
+        0: item.computePlaybackUrl(serverUrl, token),
+        1: item.computeDirectStreamUrl(serverUrl, token),
+        2: item.computeHlsUrl(serverUrl, token,
+            playSessionId: playSessionId),
+      };
+      final headers = item.authHeaders(token);
+
       // 降级链：DirectPlay → DirectStream → HLS
       for (int level = 0; level < 3; level++) {
         final url = urls[level];

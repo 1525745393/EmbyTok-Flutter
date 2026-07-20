@@ -224,6 +224,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
+      _subtitleCues = const <SubtitleCue>[]; // 清空旧字幕，避免新视频初始时显示旧字幕
     });
     // 重新初始化
     if (_canPlayVideo) {

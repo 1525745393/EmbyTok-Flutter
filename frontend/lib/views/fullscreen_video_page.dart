@@ -711,6 +711,9 @@ class _FullscreenVideoPageState
     final playingItem = ref.watch(currentPlayingItemProvider);
     final items = ref.watch(videoListProvider.select((s) => s.items));
 
+    // 同步更新 _watchedController，确保第一帧时 listener 已正确设置
+    _setupControllerListener(controller);
+
     // 监听 controller 变化，安全注册 listener
     ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
         (prev, next) {
