@@ -47,10 +47,10 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
+  ConsumerState<VideoPlayerWidget> createState() => VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
+class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
@@ -166,8 +166,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   /// 重试初始化：用户点击"重试"按钮时调用
   ///
-  /// 清除错误状态并重新触发初始化流程
-  void _retryInitialization() {
+  /// 公开方法：清除错误状态并重新触发初始化流程，供外部通过 GlobalKey 调用
+  void retryInitialization() {
     if (_isDisposed || !mounted) return;
     setState(() {
       _hasError = false;
@@ -722,7 +722,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                     if (errMsg.isRetryable) ...[
                       const SizedBox(height: 12),
                       TextButton.icon(
-                        onPressed: _retryInitialization,
+                        onPressed: retryInitialization,
                         icon: Icon(Icons.refresh, size: 16),
                         label: const Text('重试', style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(

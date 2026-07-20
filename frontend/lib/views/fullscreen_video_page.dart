@@ -570,11 +570,10 @@ class _FullscreenVideoPageState
   }
 
   void _retryVideo() {
-    final controller = ref.read(currentVideoControllerProvider);
-    if (controller != null) {
-      try {
-        controller.play();
-      } catch (_) {}
+    // 全屏页不拥有 controller，通过 Provider 通知 VideoPageItem 触发重试
+    final item = ref.read(currentPlayingItemProvider);
+    if (item != null) {
+      ref.read(videoRetryRequestProvider.notifier).state = item.id;
       setState(() => _retryKey++);
     }
   }

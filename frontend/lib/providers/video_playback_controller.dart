@@ -163,3 +163,13 @@ final isAutoPlayProvider =
     StateNotifierProvider<IsAutoPlayNotifier, bool>(
   (ref) => IsAutoPlayNotifier(),
 );
+
+/// 视频重试请求 Provider
+///
+/// 全屏页通过设置 itemId 请求 VideoPageItem 重新初始化 controller
+///
+/// 设计：
+/// - 设置为非 null 时触发重试
+/// - VideoPageItem 处理完成后立即 reset 为 null（避免重复触发）
+/// - 不传 controller 引用，避免 widget 重建时引用错位
+final videoRetryRequestProvider = StateProvider<String?>((ref) => null);

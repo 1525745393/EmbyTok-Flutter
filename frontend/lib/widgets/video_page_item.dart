@@ -59,6 +59,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
 class _VideoPageItemState extends ConsumerState<VideoPageItem>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   VideoPlayerController? _videoController;
+  final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey = GlobalKey<VideoPlayerWidgetState>();
   bool _hasNotifiedEnded = false;
   // 播放停止上报是否已发送，防止 dispose 与结束回调重复上报导致重复会话
   bool _hasStoppedReported = false;
@@ -141,6 +142,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _isAutoPlaySubscription = ref.listenManual<bool>(isAutoPlayProvider, (prev, next) {
       ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
     }, fireImmediately: true);
+
+    // 监听全屏页的重试请求
+    ref.listen<String?>(videoRetryRequestProvider, (prev, next) {
+      if (next != null && next == widget.item.id) {
+        _videoPlayerKey.currentState?.retryInitialization();
+        // 清除请求，避免重复触发
+        ref.read(videoRetryRequestProvider.notifier).state = null;
+      }
+    });
   }
 
   // App 进入后台时暂停视频和唱片动画，回到前台时恢复
@@ -757,6 +767,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               }
             },
             child: VideoPlayerWidget(
+              key: _videoPlayerKey,
               item: widget.item,
               isCurrentPage: widget.isCurrentPage,
               embyServerUrl: embyServerUrl,
