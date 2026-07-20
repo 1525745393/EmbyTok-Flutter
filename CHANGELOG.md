@@ -1,3 +1,12 @@
+## [1.162.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.4...v1.162.5) (2026-07-20)
+
+
+### Bug Fixes
+
+* 修复 5 项 Critical/High Bug + MemoryCache SWR 基础 ([a85c820](https://github.com/1525745393/EmbyTok-Flutter/commit/a85c820b3e89519aea4cdea0cef3942107f00af4))
+* 修复纯净模式多个潜在Bug ([8adc8f7](https://github.com/1525745393/EmbyTok-Flutter/commit/8adc8f75e2a0b24557e8346eb5c93d75d43aa975))
+* 修复编译错误 ([752d7a3](https://github.com/1525745393/EmbyTok-Flutter/commit/752d7a3f739118d9bff4db0b89d870a39646a5c8))
+
 ## [1.162.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.3...v1.162.4) (2026-07-20)
 
 
