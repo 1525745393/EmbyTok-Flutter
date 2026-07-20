@@ -288,18 +288,26 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   /// 记录观看统计（完播率）
   void _recordWatchStats() {
     final controller = _videoController;
-    if (controller == null || !controller.value.isInitialized) return;
-    final position = controller.value.position;
-    final duration = controller.value.duration;
-    if (duration.inMilliseconds <= 0) return;
-    final completionRate = position.inMilliseconds / duration.inMilliseconds;
-    ref.read(watchStatsProvider.notifier).recordWatch(
-          itemId: widget.item.id,
-          itemType: widget.item.type,
-          itemTitle: widget.item.title,
-          completionRate: completionRate,
-          source: widget.source,
-        );
+    if (controller == null) return;
+    try {
+      if (!controller.value.isInitialized) return;
+      final position = controller.value.position;
+      final duration = controller.value.duration;
+      if (duration.inMilliseconds <= 0) return;
+      final completionRate = position.inMilliseconds / duration.inMilliseconds;
+      ref.read(watchStatsProvider.notifier).recordWatch(
+            itemId: widget.item.id,
+            itemType: widget.item.type,
+            itemTitle: widget.item.title,
+            completionRate: completionRate,
+            source: widget.source,
+          );
+    } catch (e) {
+      // controller 可能已被子 widget VideoPlayerWidget dispose，
+      // 此时跳过统计记录，避免 dispose 链中断
+      AppLogger.debug('recordWatchStats 跳过：controller 不可访问',
+          data: {'itemId': widget.item.id, 'error': e.toString()});
+    }
   }
 
   // ===== 视频状态变化监听 =====
