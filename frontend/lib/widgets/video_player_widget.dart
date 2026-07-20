@@ -217,7 +217,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               itemId: widget.item.id,
               controller: c,
               playSessionId: '',
-              playbackLevel: 0,
             ));
             _controller = null;
             return;

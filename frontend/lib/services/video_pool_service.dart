@@ -16,12 +16,11 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../utils/logger.dart';
 
-/// 单个播放会话：绑定 VideoPlayerController + PlaySessionId + 降级等级
+/// 单个播放会话：绑定 VideoPlayerController + PlaySessionId
 class PlaybackSession {
   final String itemId;
   final VideoPlayerController controller;
   final String playSessionId;
-  final int playbackLevel; // 0=DirectPlay, 1=DirectStream, 2=HLS
   final DateTime createdAt;
   bool _isDisposed = false;
 
@@ -29,7 +28,6 @@ class PlaybackSession {
     required this.itemId,
     required this.controller,
     required this.playSessionId,
-    required this.playbackLevel,
   }) : createdAt = DateTime.now();
 
   bool get isInitialized =>
@@ -175,7 +173,6 @@ class VideoPoolService {
             itemId: item.id,
             controller: controller,
             playSessionId: playSessionId,
-            playbackLevel: level,
           );
           _sessions[item.id] = created;
           _accessOrder.add(item.id);
