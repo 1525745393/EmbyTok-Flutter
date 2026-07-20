@@ -1,3 +1,10 @@
+## [1.162.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.5...v1.162.6) (2026-07-20)
+
+
+### Bug Fixes
+
+* 修复纯净模式无法退出的问题 ([c722fd6](https://github.com/1525745393/EmbyTok-Flutter/commit/c722fd6b29df8ce84fc7264ee3056bb6166b576f))
+
 ## [1.162.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.4...v1.162.5) (2026-07-20)
 
 
