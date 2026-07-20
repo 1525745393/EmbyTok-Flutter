@@ -197,34 +197,14 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     });
   }
 
-  // 释放当前 controller 的资源（统一方法，避免重复代码）
+  // 释放当前 controller 的资源
+  // 始终 dispose 而非归还池，避免外部 listener（VideoPageItem 的 _onVideoChanged）
+  // 残留在归还池的 controller 上，复用时触发陈旧 listener 导致状态错乱
   void _releaseCurrentController() {
     final c = _controller;
     if (c != null) {
       try { c.removeListener(_onControllerChanged); } catch (_) {}
       try { c.pause(); } catch (_) {}
-      // 智能释放：优先将会话归还到预加载池，供下次来回滑动复用
-      // 条件：controller 已初始化且非错误状态（_hasError=false）
-      // 若池拒绝接收（池满或已有同 item 会话），则直接 dispose
-      // playSessionId 传空字符串：Emby 上报在 VideoPageItem 层维护独立
-      // _playSessionId，归还池的会话仅用于复用 controller，不参与上报
-      if (c.value.isInitialized && !_hasError) {
-        final pool = ref.read(videoPoolProvider);
-        // 仅当池中尚无该 item 的会话时才归还，避免覆盖预加载的会话
-        if (!pool.hasSession(widget.item.id)) {
-          try {
-            pool.returnSession(PlaybackSession(
-              itemId: widget.item.id,
-              controller: c,
-              playSessionId: '',
-            ));
-            _controller = null;
-            return;
-          } catch (_) {
-            // 归还失败，回退到直接 dispose
-          }
-        }
-      }
       try { c.dispose(); } catch (_) {}
     }
     _controller = null;
