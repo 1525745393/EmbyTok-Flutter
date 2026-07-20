@@ -18,35 +18,47 @@ class CacheStats {
   /// 未命中次数
   final int missCount;
 
+  /// 过期但仍有数据的命中次数（SWR stale hits）
+  final int staleHitCount;
+
   /// 被淘汰的条目数（LRU 淘汰）
   final int evictionCount;
+
+  /// 后台刷新触发次数（SWR）
+  final int swrRefreshCount;
 
   const CacheStats({
     this.hitCount = 0,
     this.missCount = 0,
+    this.staleHitCount = 0,
     this.evictionCount = 0,
+    this.swrRefreshCount = 0,
   });
 
   /// 总请求数（命中 + 未命中）
-  int get totalRequests => hitCount + missCount;
+  int get totalRequests => hitCount + missCount + staleHitCount;
 
-  /// 命中率（0.0 ~ 1.0）
+  /// 命中率（0.0 ~ 1.0，stale 也算有效命中）
   ///
   /// 无请求时返回 0.0。
   double get hitRate {
     if (totalRequests == 0) return 0.0;
-    return hitCount / totalRequests;
+    return (hitCount + staleHitCount) / totalRequests;
   }
 
   CacheStats copyWith({
     int? hitCount,
     int? missCount,
+    int? staleHitCount,
     int? evictionCount,
+    int? swrRefreshCount,
   }) {
     return CacheStats(
       hitCount: hitCount ?? this.hitCount,
       missCount: missCount ?? this.missCount,
+      staleHitCount: staleHitCount ?? this.staleHitCount,
       evictionCount: evictionCount ?? this.evictionCount,
+      swrRefreshCount: swrRefreshCount ?? this.swrRefreshCount,
     );
   }
 }
@@ -103,6 +115,16 @@ class MemoryCache<T> {
     _stats = _stats.copyWith(missCount: _stats.missCount + 1);
   }
 
+  /// 记录一次过期命中（SWR stale hit）
+  void _recordStaleHit() {
+    _stats = _stats.copyWith(staleHitCount: _stats.staleHitCount + 1);
+  }
+
+  /// 记录一次 SWR 后台刷新
+  void recordSwrRefresh() {
+    _stats = _stats.copyWith(swrRefreshCount: _stats.swrRefreshCount + 1);
+  }
+
   /// 记录一次淘汰
   void _recordEviction(int count) {
     if (count <= 0) return;
@@ -120,9 +142,8 @@ class MemoryCache<T> {
       return null;
     }
 
-    // 已过期：移除并返回 null
+    // 已过期：不移除（留给 getStale），返回 null
     if (entry.isExpired) {
-      _removeEntry(key);
       _recordMiss();
       return null;
     }
@@ -130,6 +151,32 @@ class MemoryCache<T> {
     _recordHit();
 
     // 刷新访问顺序：移到末尾（最近使用）
+    _accessOrder.remove(key);
+    _accessOrder.add(key);
+
+    return entry.value;
+  }
+
+  /// 获取缓存值（包括已过期的）
+  ///
+  /// 与 [get] 不同，即使条目已过期也会返回（用于 SWR 模式）。
+  /// 仅在 key 完全不存在时返回 null。
+  /// 访问时会刷新 LRU 顺序。
+  T? getStale(String key) {
+    final entry = _cache[key];
+    if (entry == null) {
+      _recordMiss();
+      return null;
+    }
+
+    // 已过期：仍返回数据，记录为 stale hit
+    if (entry.isExpired) {
+      _recordStaleHit();
+    } else {
+      _recordHit();
+    }
+
+    // 刷新访问顺序
     _accessOrder.remove(key);
     _accessOrder.add(key);
 

@@ -32,12 +32,15 @@ final itemDetailProvider =
     FutureProvider.family<MediaItem, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) throw '尚未登录';
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) throw '服务器配置不完整';
   // 通过缓存仓库获取详情，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   return cachedRepo.getItemDetail(
     itemId,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
     userId: auth.user?.id,
   );
 });
@@ -50,12 +53,15 @@ final similarItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, itemId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   return cachedRepo.getSimilarItems(
     itemId,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
 });
 
@@ -66,11 +72,14 @@ final similarItemsProvider =
 final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   final result = await cachedRepo.getResumeItems(
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
   return result.items;
 });
@@ -82,11 +91,14 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
 final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   final result = await cachedRepo.getNextUp(
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
   return result.items;
 });
@@ -98,11 +110,14 @@ final nextUpProvider = FutureProvider<List<MediaItem>>((ref) async {
 final genresListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <Library>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <Library>[];
   // 通过缓存仓库获取，减少重复 API 请求（长 TTL 30min）
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   return cachedRepo.getGenres(
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
 });
 
@@ -114,12 +129,15 @@ final genreItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, genre) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求（中 TTL 5min）
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   final result = await cachedRepo.getItemsByGenre(
     genre,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
   return result.items;
 });
@@ -131,11 +149,14 @@ final genreItemsProvider =
 final studiosListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <Library>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <Library>[];
   // 通过缓存仓库获取，减少重复 API 请求（长 TTL 30min）
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   return cachedRepo.getStudios(
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
 });
 
@@ -147,12 +168,15 @@ final studioItemsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, studio) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求（中 TTL 5min）
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   final result = await cachedRepo.getItemsByStudio(
     studio,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
   return result.items;
 });
@@ -165,12 +189,15 @@ final seasonsProvider =
     FutureProvider.family<List<MediaItem>, String>((ref, seriesId) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   return cachedRepo.getSeasons(
     seriesId,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
 });
 
@@ -199,13 +226,16 @@ final episodesProvider =
     FutureProvider.family<List<MediaItem>, EpisodesQuery>((ref, query) async {
   final auth = ref.watch(authProvider);
   if (!auth.isAuthenticated) return <MediaItem>[];
+  final svr = auth.embyServerUrl;
+  final tkn = auth.token;
+  if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
   final result = await cachedRepo.getEpisodes(
     query.seriesId,
     seasonId: query.seasonId,
-    serverUrl: auth.embyServerUrl!,
-    token: auth.token!,
+    serverUrl: svr,
+    token: tkn,
   );
   return result.items;
 });

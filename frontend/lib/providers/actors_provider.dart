@@ -255,7 +255,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
     final actorId = actor.id;
     if (actorId == null) return; // 无 ID 的演员无法操作关注状态
     final isFav = state.favoritedIds.contains(actorId);
-    final newIds = Set<String>.from(state.favoritedIds);
+    final oldIds = Set<String>.from(state.favoritedIds);
+    final newIds = Set<String>.from(oldIds);
     if (isFav) {
       newIds.remove(actorId);
     } else {
@@ -269,7 +270,10 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       final serverUrl = auth.embyServerUrl;
       final token = auth.token;
       final userId = auth.user?.id;
-      if (serverUrl == null || token == null) return;
+      if (serverUrl == null || token == null) {
+        state = state.copyWith(favoritedIds: oldIds);
+        return;
+      }
       await _service.toggleFavorite(
         itemId: actorId,
         isFavorite: !isFav,
@@ -285,8 +289,8 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       } catch (_) {}
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);
-      // 失败回滚
-      state = state.copyWith(favoritedIds: state.favoritedIds);
+      // 失败回滚：恢复乐观更新前的状态
+      state = state.copyWith(favoritedIds: oldIds);
     }
   }
 

@@ -163,15 +163,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
     try {
       final client = HttpClient();
       client.connectionTimeout = const Duration(seconds: 5);
-      final uri = Uri.parse('$url/System/Info/Public');
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      client.close();
-      if (mounted) {
-        setState(() {
-          _connectionStatus = response.statusCode == 200;
-          _isTestingConnection = false;
-        });
+      try {
+        final uri = Uri.parse('$url/System/Info/Public');
+        final request = await client.getUrl(uri);
+        final response = await request.close();
+        client.close();
+        if (mounted) {
+          setState(() {
+            _connectionStatus = response.statusCode == 200;
+            _isTestingConnection = false;
+          });
+        }
+      } finally {
+        try { client.close(force: true); } catch (_) {}
       }
     } catch (e) {
       // 记录错误详情便于排查，同时更新 UI 状态

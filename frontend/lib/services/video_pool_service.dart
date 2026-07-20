@@ -76,6 +76,9 @@ class VideoPoolService {
   /// 当前生效的服务器地址
   String? _currentServer;
 
+  /// 正在异步释放所有会话（防止并发 preload 创建新会话后又被误杀）
+  bool _disposing = false;
+
   /// 检查是否存在某个 itemId 的预加载会话
   bool hasSession(String itemId) => _sessions.containsKey(itemId);
 
@@ -87,6 +90,7 @@ class VideoPoolService {
     if (_currentServer == serverUrl && _currentToken == token) return;
     _currentServer = serverUrl;
     _currentToken = token;
+    _disposing = true;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
     // 异步释放，不阻塞当前调用链
     unawaited(disposeAll());
@@ -110,6 +114,9 @@ class VideoPoolService {
 
     // Token 检查：如已变更则重新记录
     updateAuth(serverUrl: serverUrl, token: token);
+
+    // 正在异步释放旧会话（updateAuth 触发的 disposeAll），等待完成后再创建新会话
+    if (_disposing) return null;
 
     // 已有会话：直接返回
     final existing = _sessions[item.id];
@@ -305,8 +312,8 @@ class VideoPoolService {
         await Future.delayed(Duration.zero);
       }
     }
-    // 释放完毕后重置标记，池可继续接受新预加载请求
     _disposed = false;
+    _disposing = false;
   }
 
   /// 重置已销毁标记，使池可重新使用（如重新登录后复用同一实例）
