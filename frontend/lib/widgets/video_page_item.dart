@@ -761,14 +761,21 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               onControllerReady: (c) {
                 // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
                 if (!mounted) return;
-                final isNewController = _videoController == null;
+                // 判断是否为新的 controller 实例（非当前持有的）
+                // 场景：首次初始化（_videoController==null）、controller 被释放后重新初始化、
+                // 用户切换画质后 _userInitiatedReinit 创建新 controller
+                final isNewController = !identical(_videoController, c);
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 c.addListener(_onVideoChanged);
                 // 仅当前页启动播放上报/进度上报，避免相邻预加载页并发有声播放与重复上报
                 if (widget.isCurrentPage) {
-                  // 如果是新 controller（之前已被释放过），重置上报状态避免重复检测
+                  // 如果是新 controller 实例，重置上报状态并重新上报
                   if (isNewController) {
+                    // 先上报旧会话结束（如果之前有开始上报过）
+                    if (_hasStartedReported && !_hasStoppedReported) {
+                      _reportPlaybackStopped();
+                    }
                     _hasStartedReported = false;
                     _hasStoppedReported = false;
                     _playSessionId = null;

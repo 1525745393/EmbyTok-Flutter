@@ -75,6 +75,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _isUserSwitchInProgress = false;
   // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
   bool _isDisposed = false;
+  // 标记视频尺寸是否为空（初始化后 size 仍为 0 的边缘情况）
+  bool _wasSizeEmpty = false;
   // 降级延迟计时器（网络错误时延迟重试，避免资源风暴）
   Timer? _fallbackTimer;
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
@@ -171,7 +173,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _backgroundReleaseTimer?.cancel();
         _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
           if (_isDisposed || !mounted) return;
-          if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
+          if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress && !_isUserSwitchInProgress) {
             AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
             _releaseCurrentController();
             if (mounted) {
@@ -219,7 +221,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _backgroundReleaseTimer?.cancel();
     _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
       if (_isDisposed || !mounted) return;
-      if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress) {
+      if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress && !_isUserSwitchInProgress) {
         AppLogger.debug('非当前页初始化完成后超时，释放 controller 资源',
             data: {'itemId': widget.item.id});
         _releaseCurrentController();
@@ -260,6 +262,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       try { c.dispose(); } catch (_) {}
     }
     _controller = null;
+    _wasSizeEmpty = false;
   }
 
   // 释放旧 controller 并用新 widget.item 重新初始化
@@ -323,6 +326,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final sec = controller.value.position.inSeconds;
     if (sec != _positionSeconds.value) {
       _positionSeconds.value = sec;
+    }
+    // 视频尺寸从 Size.zero 变为有效尺寸时，需重建以从加载指示器切换到播放 UI
+    if (controller.value.isInitialized &&
+        !controller.value.size.isEmpty &&
+        _wasSizeEmpty) {
+      _wasSizeEmpty = false;
+      setState(() {});
     }
   }
 
@@ -809,6 +819,15 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
+    // 视频尺寸为 0 时（HLS 流初始化后偶现），渲染 SizedBox(0,0) 会导致黑屏
+    // 此时显示加载指示器，等待 size 更新后再渲染
+    final videoSize = vc.value.size;
+    if (videoSize.isEmpty) {
+      _wasSizeEmpty = true;
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+      );
+    }
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
     // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
@@ -823,8 +842,8 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: FittedBox(
               fit: isLandscape ? BoxFit.contain : BoxFit.cover,
               child: SizedBox(
-                width: vc.value.size.width,
-                height: vc.value.size.height,
+                width: videoSize.width,
+                height: videoSize.height,
                 child: VideoPlayer(vc),
               ),
             ),

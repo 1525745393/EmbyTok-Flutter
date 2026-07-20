@@ -67,6 +67,9 @@ class VideoPoolService {
   /// 正在预加载中的 itemId 集合，用于防止同一 item 并发预加载导致双建 controller
   final Set<String> _inflight = <String>{};
 
+  /// disposeAll 后预加载 controller 逃逸防护
+  bool _disposed = false;
+
   /// 当前生效的 Token，用于检测是否需要刷新
   String? _currentToken;
 
@@ -102,6 +105,7 @@ class VideoPoolService {
     int startLevel = 0,
   }) async {
     if (kIsWeb) return null; // Web 环境下不预加载
+    if (_disposed) return null;
     if (item.id.isEmpty || serverUrl.isEmpty || token.isEmpty) return null;
 
     // Token 检查：如已变更则重新记录
@@ -153,6 +157,11 @@ class VideoPoolService {
             throw TimeoutException('preload initialize timeout');
           },
         );
+        // disposeAll 后异步回调仍在执行，检查池是否已销毁
+        if (_disposed) {
+          try { controller.dispose(); } catch (_) {}
+          return null;
+        }
         created = PlaybackSession(
           itemId: item.id,
           controller: controller,
@@ -188,6 +197,11 @@ class VideoPoolService {
                 throw TimeoutException('preload initialize timeout');
               },
             );
+            // disposeAll 后异步回调仍在执行，检查池是否已销毁
+            if (_disposed) {
+              try { controller.dispose(); } catch (_) {}
+              return null;
+            }
             created = PlaybackSession(
               itemId: item.id,
               controller: controller,
@@ -271,6 +285,7 @@ class VideoPoolService {
   /// 分批释放以避免同步批量 dispose VideoPlayerController 时内存峰值过高
   /// 导致的 OOM 崩溃（特别是在退出应用时）。
   Future<void> disposeAll() async {
+    _disposed = true;
     // 分批释放：每批处理 2 个，批次间让事件循环有机会触发 GC
     // 先清空 _inflight：防止登出/换账号后，正在预加载的旧会话完成后
     // 把过期 controller 写回已清空的 _sessions 池，造成 stale controller 残留
@@ -290,6 +305,13 @@ class VideoPoolService {
         await Future.delayed(Duration.zero);
       }
     }
+    // 释放完毕后重置标记，池可继续接受新预加载请求
+    _disposed = false;
+  }
+
+  /// 重置已销毁标记，使池可重新使用（如重新登录后复用同一实例）
+  void reset() {
+    _disposed = false;
   }
 
   /// 当前池中的会话数
