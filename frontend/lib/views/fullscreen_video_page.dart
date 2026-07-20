@@ -227,6 +227,25 @@ class _FullscreenVideoPageState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // 同步初始化 controller listener，确保首帧时 listener 已正确设置
+    // （避免 build 中有副作用）
+    final initialController = ref.read(currentVideoControllerProvider);
+    _setupControllerListener(initialController);
+
+    // 监听 controller 变化，安全注册 listener
+    ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
+        (prev, next) {
+      _setupControllerListener(next);
+      if (mounted) setState(() {});
+    });
+
+    // 监听字幕选择变化，异步加载字幕
+    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
+      if (next != previous) {
+        _loadSubtitle(next);
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
@@ -236,7 +255,6 @@ class _FullscreenVideoPageState
         _orientationPref =
             isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
       }
-      _setupControllerListener(ctrl);
       _applyOrientations();
       _applySystemUI();
       // isFullscreenProvider 由调用方在 Navigator.push 前同步设置，
@@ -710,23 +728,6 @@ class _FullscreenVideoPageState
     final controller = ref.watch(currentVideoControllerProvider);
     final playingItem = ref.watch(currentPlayingItemProvider);
     final items = ref.watch(videoListProvider.select((s) => s.items));
-
-    // 同步更新 _watchedController，确保第一帧时 listener 已正确设置
-    _setupControllerListener(controller);
-
-    // 监听 controller 变化，安全注册 listener
-    ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
-        (prev, next) {
-      _setupControllerListener(next);
-      if (mounted) setState(() {});
-    });
-
-    // 监听字幕选择变化，异步加载字幕
-    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
-      if (next != previous) {
-        _loadSubtitle(next);
-      }
-    });
 
     bool isControllerReady;
     bool hasError;

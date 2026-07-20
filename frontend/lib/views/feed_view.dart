@@ -23,6 +23,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
+import '../utils/fullscreen_navigator.dart';
 import '../utils/keyboard_shortcuts.dart';
 import '../viewmodels/feed_view_model.dart';
 import '../widgets/empty_state_card.dart';
@@ -30,7 +31,6 @@ import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video_page_item.dart';
-import 'fullscreen_video_page.dart';
 
 class FeedView extends ConsumerStatefulWidget {
   // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`
@@ -212,20 +212,15 @@ class _FeedViewState extends ConsumerState<FeedView>
   // ==================== 全屏页（UI 层职责，依赖 Navigator） ====================
 
   Future<void> _openFullscreenPage() async {
-    if (ref.read(currentVideoControllerProvider) == null) return;
-    ref.read(toolbarVisibilityProvider.notifier).hide();
-    // 同步设置 isFullscreenProvider，使 VideoPageItem 中的 VideoPlayer 立即 Offstage，
-    // 避免与 FullscreenVideoPage 中的 VideoPlayer 短暂同时渲染同一 controller
-    ref.read(isFullscreenProvider.notifier).state = true;
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FullscreenVideoPage(),
-        fullscreenDialog: true,
-      ),
+    await FullscreenNavigator.open(
+      ref: ref,
+      context: context,
+      onExit: () {
+        if (mounted) {
+          ref.read(toolbarVisibilityProvider.notifier).show();
+        }
+      },
     );
-    if (mounted) {
-      ref.read(toolbarVisibilityProvider.notifier).show();
-    }
   }
 
   @override

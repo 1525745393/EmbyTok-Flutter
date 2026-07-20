@@ -15,7 +15,7 @@ import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
 import '../utils/logger.dart';
-import '../views/fullscreen_video_page.dart';
+import '../utils/fullscreen_navigator.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
@@ -591,25 +591,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // - 进度 100% 不丢，零额外内存
   // - 退出全屏用系统返回键，PopScope 自动处理
   Future<void> _openFullscreenPage() async {
-    // 进入前隐藏工具栏（沉浸感）
-    ref.read(toolbarVisibilityProvider.notifier).hide();
-    // 同步设置 isFullscreenProvider，使 VideoPageItem 中的 VideoPlayer 立即 Offstage，
-    // 避免与 FullscreenVideoPage 中的 VideoPlayer 短暂同时渲染同一 controller
-    ref.read(isFullscreenProvider.notifier).state = true;
-    // push 全屏页
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FullscreenVideoPage(),
-        fullscreenDialog: true,
-      ),
+    await FullscreenNavigator.open(
+      ref: ref,
+      context: context,
+      onExit: () {
+        if (mounted) {
+          ref.read(toolbarVisibilityProvider.notifier).show();
+          // 退出全屏后重新隐藏系统栏（全屏页 dispose 时会恢复 edgeToEdge）
+          // feed 模式需要保持沉浸式
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        }
+      },
     );
-    // 退出全屏后恢复工具栏
-    if (mounted) {
-      ref.read(toolbarVisibilityProvider.notifier).show();
-      // 退出全屏后重新隐藏系统栏（全屏页 dispose 时会恢复 edgeToEdge）
-      // feed 模式需要保持沉浸式
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    }
   }
 
   // ===== 控制层显示/隐藏 =====
