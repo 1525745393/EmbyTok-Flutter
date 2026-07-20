@@ -6,10 +6,11 @@
 // - 视频暂停 / 控制条显示 / 单击屏幕时重新显示
 // - 用户拖动按钮后保留显示（不再自动隐藏，让用户看清新位置）
 //
-// PR #74：纯净模式下按钮持续隐藏
-// - show() / hide() 是被动调用（isPlaying 变化、单击屏幕等）
-// - 纯净模式下这些被动调用不再显示按钮（继续 _isHidden = true）
-// - 用户主动操作按钮（onPointerDown）仍然能强制显示（直接 setState 绕过）
+// 纯净模式（isAutoPlay=true）行为：
+// - 初始状态隐藏，用户单击屏幕或触摸按钮区域时显示
+// - 显示后使用长延迟（10秒）自动隐藏，保持纯净体验
+// - 纯净模式下不允许拖动按钮（onPointerDown 仅显示，不记录 pointer）
+// - 用户可通过显示的 AutoPlayButton 退出纯净模式
 
 import 'dart:async';
 
@@ -133,11 +134,15 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
   /// 规则：
   /// - 拖动过的按钮组不再自动隐藏
   /// - autoHideAfter = Duration.zero 表示禁用
+  /// - 纯净模式下使用更长延迟（10秒），给用户足够时间操作但保持纯净体验
   void _scheduleAutoHide() {
     _autoHideTimer?.cancel();
     if (_userInteracted) return;
     if (widget.autoHideAfter == Duration.zero) return;
-    _autoHideTimer = Timer(widget.autoHideAfter, () {
+    final delay = _isAutoPlay
+        ? const Duration(seconds: 10)  // 纯净模式：长延迟，便于操作后回归纯净
+        : widget.autoHideAfter;
+    _autoHideTimer = Timer(delay, () {
       if (!mounted) return;
       setState(() => _isHidden = true);
     });
@@ -146,16 +151,13 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
   /// 外部触发显示（视频暂停 / 控制条显示 / 单击屏幕时调用）
   ///
   /// 显示后按当前 [autoHideAfter] 重新调度隐藏。
-  ///
-  /// 纯净模式下：允许显示按钮（以便用户关闭纯净模式），但不自动隐藏
+  /// 纯净模式下也调度自动隐藏（使用更长延迟），保持纯净体验。
   void show() {
     if (!mounted) return;
     if (_isHidden) {
       setState(() => _isHidden = false);
     }
-    if (!_isAutoPlay) {
-      _scheduleAutoHide();
-    }
+    _scheduleAutoHide();
   }
 
   /// 外部触发立即隐藏
@@ -186,9 +188,6 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
             child: Listener(
-              // PR #74：纯净模式下按钮持续隐藏
-              // onPointerDown 是 PR #71 设计的"用户主动操作按钮就强制显示"逻辑
-              // 但纯净模式下应该不响应 → 直接 return，不记录 pointer，不显示按钮
               onPointerDown: (event) {
                 if (_isAutoPlay) {
                   // 纯净模式：允许显示按钮以便用户关闭纯净模式，但不允许拖动
@@ -197,6 +196,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                   if (_isHidden) {
                     setState(() => _isHidden = false);
                   }
+                  _scheduleAutoHide();
                   return;
                 }
                 _startPointer = event.localPosition;

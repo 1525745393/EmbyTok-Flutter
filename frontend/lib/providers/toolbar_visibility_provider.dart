@@ -69,10 +69,9 @@ class ToolbarVisibilityNotifier extends StateNotifier<bool> {
 
   /// 重新计算 state（基于三个维度的与运算）
   ///
-  /// 返回计算后的新状态值，供调用方传递给 _setVisible()。
+  /// 仅返回计算值，不直接修改 state，由调用方通过 _setVisible() 统一决定。
   bool _recompute() {
-    state = !_autoPlayActive && _hideCount == 0;
-    return state;
+    return !_autoPlayActive && _hideCount == 0;
   }
 
   /// 核心设置方法：防抖 + 去重
