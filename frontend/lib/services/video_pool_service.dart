@@ -106,12 +106,10 @@ class VideoPoolService {
   /// - 返回 Future<PlaybackSession?>：控制器初始化完成后 resolve
   /// - 如已存在则直接返回现有会话
   /// - 如池已满则先淘汰最旧的会话
-  /// - startLevel：从哪个降级等级开始尝试（0=原画, 1=高清Remux, 2=流畅转码）
   Future<PlaybackSession?> preload({
     required MediaItem item,
     required String serverUrl,
     required String token,
-    int startLevel = 0,
   }) async {
     if (kIsWeb) return null; // Web 环境下不预加载
     if (_disposed) return null;
@@ -153,83 +151,40 @@ class VideoPoolService {
 
     PlaybackSession? created;
     try {
-      // 第一轮：从 startLevel 开始尝试（用户偏好画质）
-      for (int level = startLevel; level < 3; level++) {
-      final url = urls[level];
-      if (url == null || url.isEmpty) continue;
-      VideoPlayerController? controller;
-      try {
-        controller = VideoPlayerController.networkUrl(
-          Uri.parse(url),
-          httpHeaders: headers,
-        );
-        await controller.initialize().timeout(
-          const Duration(seconds: 12),
-          onTimeout: () {
-            throw TimeoutException('preload initialize timeout');
-          },
-        );
-        // disposeAll 后异步回调仍在执行，检查池是否已销毁
-        if (_disposed) {
-          try { controller.dispose(); } catch (_) {}
-          return null;
-        }
-        created = PlaybackSession(
-          itemId: item.id,
-          controller: controller,
-          playSessionId: playSessionId,
-          playbackLevel: level,
-        );
-        _sessions[item.id] = created;
-        _accessOrder.add(item.id);
-        return created;
-      } catch (e) {
-        AppLogger.debug('VideoPoolService preload failed', data: {'level': level, 'error': e.toString()});
-        // 释放失败的控制器，避免 native 资源泄漏
+      // 降级链：DirectPlay → DirectStream → HLS
+      for (int level = 0; level < 3; level++) {
+        final url = urls[level];
+        if (url == null || url.isEmpty) continue;
+        VideoPlayerController? controller;
         try {
-          controller?.dispose();
-        } catch (_) {}
-      }
-    }
-      // 第二轮：若 startLevel > 0 且高级别全部失败，回退从 0 开始尝试
-      // 确保至少有一种画质能播放（可用性优先于用户偏好）
-      if (startLevel > 0) {
-        for (int level = 0; level < startLevel; level++) {
-          final url = urls[level];
-          if (url == null || url.isEmpty) continue;
-          VideoPlayerController? controller;
-          try {
-            controller = VideoPlayerController.networkUrl(
-              Uri.parse(url),
-              httpHeaders: headers,
-            );
-            await controller.initialize().timeout(
-              const Duration(seconds: 12),
-              onTimeout: () {
-                throw TimeoutException('preload initialize timeout');
-              },
-            );
-            // disposeAll 后异步回调仍在执行，检查池是否已销毁
-            if (_disposed) {
-              try { controller.dispose(); } catch (_) {}
-              return null;
-            }
-            created = PlaybackSession(
-              itemId: item.id,
-              controller: controller,
-              playSessionId: playSessionId,
-              playbackLevel: level,
-            );
-            _sessions[item.id] = created;
-            _accessOrder.add(item.id);
-            return created;
-          } catch (e) {
-            AppLogger.debug('VideoPoolService preload fallback failed',
-                data: {'level': level, 'error': e.toString()});
-            try {
-              controller?.dispose();
-            } catch (_) {}
+          controller = VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            httpHeaders: headers,
+          );
+          await controller.initialize().timeout(
+            const Duration(seconds: 12),
+            onTimeout: () {
+              throw TimeoutException('preload initialize timeout');
+            },
+          );
+          if (_disposed) {
+            try { controller.dispose(); } catch (_) {}
+            return null;
           }
+          created = PlaybackSession(
+            itemId: item.id,
+            controller: controller,
+            playSessionId: playSessionId,
+            playbackLevel: level,
+          );
+          _sessions[item.id] = created;
+          _accessOrder.add(item.id);
+          return created;
+        } catch (e) {
+          AppLogger.debug('VideoPoolService preload failed', data: {'level': level, 'error': e.toString()});
+          try {
+            controller?.dispose();
+          } catch (_) {}
         }
       }
     } finally {

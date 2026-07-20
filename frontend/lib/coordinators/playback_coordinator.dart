@@ -67,14 +67,6 @@ class PlaybackCoordinator {
 
     final pool = _ref.read(videoPoolProvider);
 
-    // 根据用户默认画质设置决定预加载起始等级
-    final defaultQuality = _ref.read(videoQualityProvider);
-    final startLevel = switch (defaultQuality) {
-      'directStream' => 1,
-      'hls' => 2,
-      _ => 0,
-    };
-
     // 预加载上一条
     if (index - 1 >= 0) {
       final prevItem = items[index - 1];
@@ -83,7 +75,6 @@ class PlaybackCoordinator {
           item: prevItem,
           serverUrl: serverUrl,
           token: token,
-          startLevel: startLevel,
         ));
       }
     }
@@ -95,7 +86,6 @@ class PlaybackCoordinator {
           item: nextItem,
           serverUrl: serverUrl,
           token: token,
-          startLevel: startLevel,
         ));
       }
     }

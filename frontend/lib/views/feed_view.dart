@@ -532,14 +532,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           if (1 < videoState.items.length && embyServerUrl != null && token != null) {
             final nextItem = videoState.items[1];
             final pool = ref.read(videoPoolProvider);
-            // 根据用户默认画质设置决定预加载起始等级
-            final defaultQuality = ref.read(videoQualityProvider);
-            final startLevel = switch (defaultQuality) {
-              'directStream' => 1,
-              'hls' => 2,
-              _ => 0,
-            };
-            unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token, startLevel: startLevel));
+            unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));
           }
         }
         return RepaintBoundary(

@@ -24,7 +24,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final String? token;
   // 预加载控制器（如果为 null，则动态创建）
   final VideoPlayerController? preloadedController;
-  final int? preloadedPlaybackLevel;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
   final bool autoPlay;
@@ -40,7 +39,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.embyServerUrl,
     this.token,
     this.preloadedController,
-    this.preloadedPlaybackLevel,
     this.onControllerReady,
     this.autoPlay = true,
     this.loop = true,

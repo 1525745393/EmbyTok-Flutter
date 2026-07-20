@@ -432,18 +432,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // ===== 播放上报链方法 =====
   String _newPlaySessionId() => 'emb-flutter-${DateTime.now().microsecondsSinceEpoch}';
 
-  String _playMethodFromLevel(int level) {
-    switch (level) {
-      case 0:
-        return 'DirectPlay';
-      case 1:
-        return 'DirectStream';
-      case 2:
-      default:
-        return 'Transcode';
-    }
-  }
-
   void _ensureCapabilitiesReported() {
     if (_capabilitiesReported) return;
     _capabilitiesReported = true;
@@ -463,14 +451,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 空字符串视为无效，生成新的会话 ID
     final preloadedId = widget.preloadedSession?.playSessionId;
     _playSessionId = (preloadedId != null && preloadedId.isNotEmpty) ? preloadedId : _newPlaySessionId();
-    final level = widget.preloadedSession?.playbackLevel ?? 0;
-    final method = _playMethodFromLevel(level);
     _safeReport(
       () => _service.reportPlaybackStart(
         itemId: widget.item.id,
         mediaSourceId: widget.item.id,
         playSessionId: _playSessionId!,
-        playMethod: method,
+        playMethod: 'DirectPlay',
         serverUrl: _authServerUrl(),
         token: _authToken(),
       ),
@@ -491,8 +477,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final isPaused = controller != null && !controller.value.isPlaying;
     final volume = controller?.value.volume;
     final volumeLevel = volume != null ? (volume * 100).round() : null;
-    final level = widget.preloadedSession?.playbackLevel ?? 0;
-    final method = _playMethodFromLevel(level);
     _safeReport(
       () => _service.reportPlaybackPosition(
         itemId: widget.item.id,
@@ -501,7 +485,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         playSessionId: _playSessionId,
         isPaused: isPaused,
         volumeLevel: volumeLevel,
-        playMethod: method,
+        playMethod: 'DirectPlay',
         eventName: isPauseEvent ? 'Pause' : 'TimeUpdate',
         serverUrl: _authServerUrl(),
         token: _authToken(),
@@ -756,7 +740,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               embyServerUrl: embyServerUrl,
               token: token,
               preloadedController: widget.preloadedSession?.controller,
-              preloadedPlaybackLevel: widget.preloadedSession?.playbackLevel,
               startFromResumePosition: widget.startFromResumePosition,
               onControllerReady: (c) {
                 // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
@@ -1225,18 +1208,11 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     final token = auth.token;
     if (serverUrl == null || token == null) return;
     final pool = ref.read(videoPoolProvider);
-    // 根据用户默认画质设置决定预加载起始等级
-    final defaultQuality = ref.read(videoQualityProvider);
-    final startLevel = switch (defaultQuality) {
-      'directStream' => 1,
-      'hls' => 2,
-      _ => 0,
-    };
     Future<void> maybePreload(int i) async {
       if (i < 0 || i >= _items.length) return;
       final it = _items[i];
       if (!pool.hasSession(it.id)) {
-        await pool.preload(item: it, serverUrl: serverUrl, token: token, startLevel: startLevel);
+        await pool.preload(item: it, serverUrl: serverUrl, token: token);
       }
     }
 
