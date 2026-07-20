@@ -91,12 +91,8 @@ class VideoPoolService {
     _disposing = true;
     _disposed = true;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
-    // 异步释放，不阻塞当前调用链
-    unawaited(disposeAll().then((_) {
-      // 释放完成后重置标记，池可继续接受新预加载请求
-      // 此时 _inflight 已清空，并发 preload 的 await 也会检查到 _disposed=true 而拒绝写入
-      _disposed = false;
-    }));
+    // 异步释放，不阻塞当前调用链；disposeAll 完成后会自动重置 _disposed 和 _disposing
+    unawaited(disposeAll());
   }
 
   /// 预加载一个媒体条目
@@ -249,8 +245,7 @@ class VideoPoolService {
   /// 分批释放以避免同步批量 dispose VideoPlayerController 时内存峰值过高
   /// 导致的 OOM 崩溃（特别是在退出应用时）。
   ///
-  /// 注意：本方法不会重置 `_disposed` 标志，由调用方（如 updateAuth）负责
-  /// 在 `.then()` 回调中重置，或通过 `reset()` 显式重置。
+  /// 本方法在完成后会自动重置 `_disposed` 和 `_disposing` 标志，使池可继续接受新预加载请求。
   Future<void> disposeAll() async {
     _disposed = true;
     // 分批释放：每批处理 2 个，批次间让事件循环有机会触发 GC
@@ -272,9 +267,8 @@ class VideoPoolService {
         await Future.delayed(Duration.zero);
       }
     }
-    // _disposed 不自动重置：保持"曾销毁"语义，由 reset() 显式重置
-    // 防止并发 preload 在 disposeAll 完成后写入已 dispose 的 controller
     _disposing = false;
+    _disposed = false;
   }
 
   /// 重置已销毁标记，使池可重新使用（如重新登录后复用同一实例）
