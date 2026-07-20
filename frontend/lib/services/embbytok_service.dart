@@ -1003,7 +1003,7 @@ class EmbytokService {
           'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber,ParentIndexNumber,SeriesName',
       if (seasonId != null && seasonId.isNotEmpty) 'SeasonId': seasonId,
     };
-    const path = '/Shows/$seriesId/Episodes';
+    final path = '/Shows/$seriesId/Episodes';
     final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }

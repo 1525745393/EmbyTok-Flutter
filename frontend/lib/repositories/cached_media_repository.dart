@@ -509,7 +509,6 @@ class CachedMediaRepository implements MediaRepository {
       seriesId: seriesId,
     ), ttl: const Duration(minutes: 1));
   }
-  }
 
   @override
   Future<List<MediaItem>> getSeasons(
