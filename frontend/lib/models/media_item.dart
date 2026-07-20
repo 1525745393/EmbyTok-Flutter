@@ -39,7 +39,6 @@ class MediaItem {
   // 播放
   final List<MediaSource>? mediaSources;
   final String? playbackUrl;            // 兼容字段
-  final int playbackLevel;              // 当前播放降级等级：0=DirectPlay,1=DirectStream,2=HLS（瞬时字段，不参与序列化）
 
   // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
   final Map<String, dynamic>? rawJson;
@@ -70,7 +69,6 @@ class MediaItem {
     this.isFavorite,
     this.mediaSources,
     this.playbackUrl,
-    this.playbackLevel = 0,
     this.rawJson,
   });
 
@@ -576,7 +574,6 @@ class MediaItem {
     bool? isFavorite,
     List<MediaSource>? mediaSources,
     String? playbackUrl,
-    int? playbackLevel,
     Map<String, dynamic>? rawJson,
   }) {
     return MediaItem(
@@ -605,7 +602,6 @@ class MediaItem {
       isFavorite: isFavorite ?? this.isFavorite,
       mediaSources: mediaSources ?? this.mediaSources,
       playbackUrl: playbackUrl ?? this.playbackUrl,
-      playbackLevel: playbackLevel ?? this.playbackLevel,
       rawJson: rawJson ?? this.rawJson,
     );
   }
