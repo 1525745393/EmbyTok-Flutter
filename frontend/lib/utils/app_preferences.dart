@@ -132,8 +132,6 @@ class AppPreferences {
   final Set<String> hiddenLibraryIds;
   final double defaultPlaybackRate;
   final String defaultSubtitleLanguage;
-  final String videoQuality;
-  final bool autoFallbackEnabled;
   final String subtitleSize;
   // 视频流排除已观看（默认 false）
   final bool feedExcludePlayed;
@@ -180,8 +178,6 @@ class AppPreferences {
     this.hiddenLibraryIds = const <String>{},
     this.defaultPlaybackRate = 1.0,
     this.defaultSubtitleLanguage = '',
-    this.videoQuality = 'original',
-    this.autoFallbackEnabled = false,
     this.subtitleSize = 'medium',
     this.feedExcludePlayed = false,
     this.recommendMinRating = 4.0,
@@ -212,8 +208,6 @@ class AppPreferences {
     Set<String>? hiddenLibraryIds,
     double? defaultPlaybackRate,
     String? defaultSubtitleLanguage,
-    String? videoQuality,
-    bool? autoFallbackEnabled,
     String? subtitleSize,
     bool? feedExcludePlayed,
     double? recommendMinRating,
@@ -237,8 +231,6 @@ class AppPreferences {
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate ?? this.defaultPlaybackRate,
       defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
-      videoQuality: videoQuality ?? this.videoQuality,
-      autoFallbackEnabled: autoFallbackEnabled ?? this.autoFallbackEnabled,
       subtitleSize: subtitleSize ?? this.subtitleSize,
       feedExcludePlayed: feedExcludePlayed ?? this.feedExcludePlayed,
       recommendMinRating: recommendMinRating ?? this.recommendMinRating,
@@ -305,13 +297,6 @@ class AppPreferencesService {
 
     final defaultPlaybackRate = prefs.getDouble(kStorageKeyDefaultPlaybackRate) ?? 1.0;
     final defaultSubtitleLanguage = prefs.getString(kStorageKeyDefaultSubtitleLanguage) ?? '';
-    const validQualities = {'original', 'directStream', 'hls'};
-    final rawQuality = prefs.getString(kStorageKeyVideoQuality) ?? 'original';
-    final videoQuality = validQualities.contains(rawQuality) ? rawQuality : 'original';
-    if (rawQuality != videoQuality) {
-      prefs.setString(kStorageKeyVideoQuality, videoQuality);
-    }
-    final autoFallbackEnabled = prefs.getBool(kStorageKeyAutoFallbackEnabled) ?? false;
     final subtitleSize = prefs.getString(kStorageKeySubtitleSize) ?? 'medium';
 
     // 视频流排除已观看（默认 false）
@@ -360,8 +345,6 @@ class AppPreferencesService {
       hiddenLibraryIds: hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate,
       defaultSubtitleLanguage: defaultSubtitleLanguage,
-      videoQuality: videoQuality,
-      autoFallbackEnabled: autoFallbackEnabled,
       subtitleSize: subtitleSize,
       feedExcludePlayed: feedExcludePlayed,
       recommendMinRating: recommendMinRating,
@@ -390,8 +373,6 @@ class AppPreferencesService {
       prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
       prefs.setDouble(kStorageKeyDefaultPlaybackRate, preferences.defaultPlaybackRate),
       prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
-      prefs.setString(kStorageKeyVideoQuality, preferences.videoQuality),
-      prefs.setBool(kStorageKeyAutoFallbackEnabled, preferences.autoFallbackEnabled),
       prefs.setString(kStorageKeySubtitleSize, preferences.subtitleSize),
       // 视频流排除已观看
       prefs.setBool(kStorageKeyFeedExcludePlayed, preferences.feedExcludePlayed),
@@ -440,8 +421,6 @@ class AppPreferencesService {
       kStorageKeyHiddenLibraryIds,
       kStorageKeyDefaultPlaybackRate,
       kStorageKeyDefaultSubtitleLanguage,
-      kStorageKeyVideoQuality,
-      kStorageKeyAutoFallbackEnabled,
       kStorageKeySubtitleSize,
       kStorageKeyFeedExcludePlayed,
       kStorageKeyRecommendMinRating,
@@ -512,18 +491,6 @@ class AppPreferencesService {
   Future<void> setDefaultSubtitleLanguage(String language) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kStorageKeyDefaultSubtitleLanguage, language);
-  }
-
-  // 单独更新视频画质
-  Future<void> setVideoQuality(String quality) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kStorageKeyVideoQuality, quality);
-  }
-
-  // 单独更新自动降级开关
-  Future<void> setAutoFallbackEnabled(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(kStorageKeyAutoFallbackEnabled, value);
   }
 
   // 单独更新字幕大小
