@@ -1,3 +1,10 @@
+## [1.162.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.6...v1.162.7) (2026-07-20)
+
+
+### Bug Fixes
+
+* 代码审查发现的多个潜在问题 ([38b2908](https://github.com/1525745393/EmbyTok-Flutter/commit/38b2908241eac8e14a5837e89d54e54603508323)), closes [#1](https://github.com/1525745393/EmbyTok-Flutter/issues/1) [#2](https://github.com/1525745393/EmbyTok-Flutter/issues/2) [#4](https://github.com/1525745393/EmbyTok-Flutter/issues/4) [#6](https://github.com/1525745393/EmbyTok-Flutter/issues/6) [#74](https://github.com/1525745393/EmbyTok-Flutter/issues/74)
+
 ## [1.162.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.5...v1.162.6) (2026-07-20)
 
 
