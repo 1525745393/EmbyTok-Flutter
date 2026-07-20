@@ -1,3 +1,10 @@
+## [1.162.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.2...v1.162.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* 修复全屏切换画质时错误 dispose controller 导致黑屏 ([d80cac1](https://github.com/1525745393/EmbyTok-Flutter/commit/d80cac1230af2073d041c1aaf9c768b47fc3468b))
+
 ## [1.162.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.1...v1.162.2) (2026-07-19)
 
 
