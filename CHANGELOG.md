@@ -1,3 +1,10 @@
+## [1.162.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.3...v1.162.4) (2026-07-20)
+
+
+### Bug Fixes
+
+* 修复视频播放多个严重Bug ([bdd06be](https://github.com/1525745393/EmbyTok-Flutter/commit/bdd06be2701738e86e9a83d0a95e4df1c926d47f))
+
 ## [1.162.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.2...v1.162.3) (2026-07-20)
 
 
