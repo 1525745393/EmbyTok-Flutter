@@ -101,8 +101,6 @@ class SettingsView extends ConsumerWidget {
             [
               _buildAutoPlayTile(context, ref),
               _buildPlaybackRateTile(context, ref),
-              _buildVideoQualityTile(context, ref),
-              _buildAutoFallbackTile(context, ref),
               _buildGestureControlTile(context, ref),
             ],
           ),
@@ -815,35 +813,6 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 播放 - 画质偏好
-  Widget _buildVideoQualityTile(BuildContext context, WidgetRef ref) {
-    final quality = ref.watch(videoQualityProvider);
-    return _TapTile(
-      icon: Icons.high_quality_outlined,
-      iconColor: Colors.blue,
-      title: '画质偏好',
-      subtitle: _videoQualityLabel(quality),
-      onTap: () => _showVideoQualityDialog(context, ref, quality),
-    );
-  }
-
-  // 播放 - 自动降级
-  Widget _buildAutoFallbackTile(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(autoFallbackEnabledProvider);
-    return _SwitchTile(
-      icon: Icons.auto_graph_outlined,
-      iconColor: Colors.orange,
-      title: '自动降级',
-      subtitle: enabled
-          ? '播放失败时自动降低画质重试'
-          : '关闭：播放失败需手动切换画质',
-      value: enabled,
-      onChanged: (value) {
-        ref.read(autoFallbackEnabledProvider.notifier).set(value);
-      },
-    );
-  }
-
   // 播放 - 手势控制
   Widget _buildGestureControlTile(BuildContext context, WidgetRef ref) {
     return _TapTile(
@@ -1192,22 +1161,6 @@ class SettingsView extends ConsumerWidget {
             _showPlaybackRateDialog(ctx, ref, ref.read(defaultPlaybackRateProvider)),
       ),
       _SettingEntry(
-        title: '画质偏好',
-        section: '播放',
-        keywords: '播放 画质 quality 1080p 720p',
-        onTap: (ctx) =>
-            _showVideoQualityDialog(ctx, ref, ref.read(videoQualityProvider)),
-      ),
-      _SettingEntry(
-        title: '自动降级',
-        section: '播放',
-        keywords: '播放 自动 降级 fallback 画质',
-        onTap: (ctx) {
-          final value = ref.read(autoFallbackEnabledProvider);
-          ref.read(autoFallbackEnabledProvider.notifier).set(!value);
-        },
-      ),
-      _SettingEntry(
         title: '手势控制',
         section: '播放',
         keywords: '播放 手势 gesture 滑动 双击 长按',
@@ -1454,28 +1407,6 @@ class SettingsView extends ConsumerWidget {
         currentValue: current,
         onSelect: (v) {
           ref.read(defaultPlaybackRateProvider.notifier).set(v);
-        },
-      ),
-    );
-  }
-
-  void _showVideoQualityDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String current,
-  ) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => _OptionDialog(
-        title: '画质偏好',
-        options: const [
-          ('原画（Direct Play）', 'original'),
-          ('高清 Remux（Direct Stream）', 'directStream'),
-          ('流畅转码（HLS）', 'hls'),
-        ],
-        currentValue: current,
-        onSelect: (v) {
-          ref.read(videoQualityProvider.notifier).set(v);
         },
       ),
     );
@@ -2884,19 +2815,6 @@ class SettingsView extends ConsumerWidget {
       case 'system':
       default:
         return '跟随系统';
-    }
-  }
-
-  String _videoQualityLabel(String quality) {
-    switch (quality) {
-      case 'original':
-        return '原画（Direct Play）';
-      case 'directStream':
-        return '高清 Remux（Direct Stream）';
-      case 'hls':
-        return '流畅转码（HLS）';
-      default:
-        return '原画（Direct Play）';
     }
   }
 
