@@ -1,4 +1,4 @@
-// 视频播放器 Widget：支持三级播放降级链 + 运行时 error 自动降级
+// 视频播放器 Widget：仅使用 Direct Play 模式
 
 import 'dart:async';
 
@@ -16,9 +16,7 @@ import 'subtitle_renderer.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
-// 三级播放降级链：Direct Play(0) → Direct Stream(1) → HLS(2)
-// - 初始化失败时自动尝试下一级
-// - 运行时发生 error（如解码失败/网络中断）时也尝试降级
+// 仅使用 Direct Play 模式
 class VideoPlayerWidget extends ConsumerStatefulWidget {
   final MediaItem item;
   // Emby 服务器认证信息（用于动态构造播放 URL）
@@ -64,19 +62,10 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
-  // 降级链等级：0=Direct Play, 1=Direct Stream, 2=HLS
-  // 仅在动态创建路径（路径2）使用降级，预加载路径不降级
-  int _fallbackLevel = 0;
-  // 标记当前正在执行降级（避免 listener 与 initVideo 递归调用导致的重复降级）
-  bool _isFallbackInProgress = false;
-  // 标记是否正在执行用户发起的播放模式切换（区别于自动降级）
-  bool _isUserSwitchInProgress = false;
   // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
   bool _isDisposed = false;
   // 标记视频尺寸是否为空（初始化后 size 仍为 0 的边缘情况）
   bool _wasSizeEmpty = false;
-  // 降级延迟计时器（网络错误时延迟重试，避免资源风暴）
-  Timer? _fallbackTimer;
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
   // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
@@ -92,22 +81,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
     // 尝试动态构造 Emby 视频流 URL
     return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
-  }
-
-  // 根据降级等级获取对应的播放 URL
-  // level 0: Direct Play（computePlaybackUrl）
-  // level 1: Direct Stream（computeDirectStreamUrl，Remux 不重编码）
-  // level 2: HLS 转码（computeHlsUrl）
-  String? _getUrlForFallbackLevel(int level) {
-    switch (level) {
-      case 1:
-        return widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token);
-      case 2:
-        return widget.item.computeHlsUrl(widget.embyServerUrl, widget.token);
-      case 0:
-      default:
-        return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
-    }
   }
 
   // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
@@ -171,7 +144,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _backgroundReleaseTimer?.cancel();
         _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
           if (_isDisposed || !mounted) return;
-          if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress && !_isUserSwitchInProgress) {
+          if (!widget.isCurrentPage && _controller != null) {
             AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
             _releaseCurrentController();
             if (mounted) {
@@ -187,7 +160,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         if (_controller == null || !_controller!.value.isInitialized) {
           _initialized = false;
           _hasError = false;
-          _fallbackLevel = _initialFallbackLevel;
           _initVideo();
         }
       }
@@ -203,7 +175,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _hasError = false;
       _errorMessage = null;
       _initialized = false;
-      _fallbackLevel = _initialFallbackLevel;
     });
     // 重新触发初始化（依赖 didUpdateWidget 中的初始化逻辑）
     _reinitForNewItem();
@@ -219,7 +190,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _backgroundReleaseTimer?.cancel();
     _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
       if (_isDisposed || !mounted) return;
-      if (!widget.isCurrentPage && _controller != null && !_isFallbackInProgress && !_isUserSwitchInProgress) {
+      if (!widget.isCurrentPage && _controller != null) {
         AppLogger.debug('非当前页初始化完成后超时，释放 controller 资源',
             data: {'itemId': widget.item.id});
         _releaseCurrentController();
@@ -248,7 +219,7 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
               itemId: widget.item.id,
               controller: c,
               playSessionId: '',
-              playbackLevel: _fallbackLevel,
+              playbackLevel: 0,
             ));
             _controller = null;
             return;
@@ -267,7 +238,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Future<void> _reinitForNewItem() async {
     if (_isDisposed) return;
     // 取消所有待执行的计时器
-    _fallbackTimer?.cancel();
     _backgroundReleaseTimer?.cancel();
     // 释放旧 controller
     _releaseCurrentController();
@@ -277,9 +247,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
-      _fallbackLevel = _initialFallbackLevel; // 从用户设置的默认画质开始
-      _isFallbackInProgress = false;
-      _isUserSwitchInProgress = false;
     });
     // 重新初始化
     if (_canPlayVideo) {
@@ -293,31 +260,16 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   }
 
   // 统一的控制器变化监听器（命名方法，便于 dispose 显式移除）
-  // 处理：错误降级链触发、错误状态标记、位置变化（跨秒更新字幕）
+  // 处理：错误状态标记、位置变化（跨秒更新字幕）
   void _onControllerChanged() {
     if (!mounted) return;
     final controller = _controller;
     if (controller == null) return;
-    // 错误处理：触发降级链或标记错误状态
-    // 检查 _isUserSwitchInProgress：避免用户主动切换时旧 controller 错误事件触发自动降级
-    if (controller.value.hasError &&
-        !_hasError &&
-        !_isFallbackInProgress &&
-        !_isUserSwitchInProgress &&
-        _fallbackLevel < 2 &&
-        _autoFallbackEnabled) {
-      _triggerRuntimeFallback();
-      return;
-    }
-    // 降级进行中或用户切换中时，不标记错误状态，避免中间状态导致 UI 闪烁
-    if (controller.value.hasError &&
-        !_hasError &&
-        !_isFallbackInProgress &&
-        !_isUserSwitchInProgress) {
+    // 错误处理：标记错误状态
+    if (controller.value.hasError && !_hasError) {
       setState(() {
         _hasError = true;
         _errorMessage = AppError.playback(message: '播放出错');
-        _isFallbackInProgress = false;
       });
     }
     // 位置变化：更新字幕
@@ -332,30 +284,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _wasSizeEmpty = false;
       setState(() {});
     }
-  }
-
-  // 根据画质字符串获取对应的降级等级
-  int _qualityToLevel(String quality) {
-    switch (quality) {
-      case 'directStream':
-        return 1;
-      case 'hls':
-        return 2;
-      case 'original':
-      default:
-        return 0;
-    }
-  }
-
-  // 获取当前默认画质对应的初始降级等级
-  int get _initialFallbackLevel {
-    final quality = ref.read(videoQualityProvider);
-    return _qualityToLevel(quality);
-  }
-
-  // 判断是否启用自动降级
-  bool get _autoFallbackEnabled {
-    return ref.read(autoFallbackEnabledProvider);
   }
 
   // 初始化视频控制器
@@ -379,11 +307,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       // IIFE：把非空参数传入，函数体内 Dart 会把形参 c 视为非空
       Future<void> usePreloaded(VideoPlayerController c) async {
         _controller = c;
-        // 同步预加载时的播放等级，供播放上报 PlayMethod 一致
-        final preloadLevel = widget.preloadedPlaybackLevel;
-        if (preloadLevel != null) {
-          _fallbackLevel = preloadLevel;
-        }
         c.addListener(_onControllerChanged);
         if (!c.value.isInitialized) {
           await c.initialize().timeout(
@@ -423,15 +346,13 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         AppLogger.debug('VideoPlayer preloaded init error，回退到动态创建', data: {'error': e.toString()});
         // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
         _releaseCurrentController();
-        // 重置降级级别，动态创建从用户设置的默认画质开始
-        _fallbackLevel = _initialFallbackLevel;
       }
     }
     if (preloadedInitSucceeded) return;
     if (_isDisposed) return;
 
-    // ---- 路径 2：动态创建控制器 ----
-    final url = _getUrlForFallbackLevel(_fallbackLevel);
+    // ---- 路径 2：动态创建控制器（仅使用 Direct Play） ----
+    final url = _playbackUrl;
     if (url == null) {
       if (mounted && !_isDisposed) {
         setState(() {
@@ -451,7 +372,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
       _controller = c;
 
-      // 监听器：运行时 error 触发降级链，否则仅标记错误状态
       c.addListener(_onControllerChanged);
 
       c.setLooping(widget.loop);
@@ -484,222 +404,11 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     } catch (e) {
       AppLogger.debug('VideoPlayer initialization error', data: {'error': e.toString()});
       if (_isDisposed) return;
-      // 防止与 listener 触发的降级竞态：listener 可能已开始降级流程
-      if (_isFallbackInProgress) return;
-      // 非当前页不做降级重试，直接显示错误占位（避免浪费带宽和解码资源）
-      if (!widget.isCurrentPage) {
-        if (mounted && !_isDisposed) {
-          setState(() {
-            _initialized = false;
-            _hasError = true;
-            _errorMessage = AppError.playback(message: '视频加载失败');
-          });
-        }
-        return;
-      }
-      if (_fallbackLevel < 2 && _autoFallbackEnabled) {
-        _isFallbackInProgress = true;
-        _fallbackLevel++;
-        AppLogger.debug('降级重试播放', data: {'level': _fallbackLevel});
-        _releaseCurrentController();
-        if (mounted && !_isDisposed) {
-          // 添加短暂延迟避免快速递归造成资源风暴
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          _isFallbackInProgress = false;
-          if (!_isDisposed && mounted) {
-            await _initVideo();
-          }
-        }
-        return;
-      }
       if (mounted && !_isDisposed) {
         setState(() {
           _initialized = false;
           _hasError = true;
           _errorMessage = AppError.playback(message: '视频加载失败');
-        });
-      }
-    }
-  }
-
-  // 运行时降级：初始化成功但播放过程中发生 error（解码失败、网络抖动等）
-  Future<void> _triggerRuntimeFallback() async {
-    if (_isDisposed) return;
-    if (_isFallbackInProgress) return;
-    if (_fallbackLevel >= 2) return;
-    _isFallbackInProgress = true;
-
-    // 记录当前播放进度，降级成功后 seek 回相同位置
-    int positionSeconds = 0;
-    try {
-      final c = _controller;
-      if (c != null && c.value.isInitialized) {
-        positionSeconds = c.value.position.inSeconds;
-      }
-    } catch (_) {}
-
-    final nextLevel = _fallbackLevel + 1;
-    AppLogger.debug('运行时降级', data: {'from': _fallbackLevel, 'to': nextLevel, 'itemId': widget.item.id});
-
-    // 释放当前失败的 controller
-    _releaseCurrentController();
-    _fallbackLevel = nextLevel;
-    if (_isDisposed) return;
-
-    final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
-    if (newUrl == null || newUrl.isEmpty) {
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _hasError = true;
-          _errorMessage = AppError.notFound(message: '无法获取播放地址');
-          _isFallbackInProgress = false;
-        });
-      }
-      return;
-    }
-
-    try {
-      final headers = widget.item.authHeaders(widget.token);
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(newUrl),
-        httpHeaders: headers,
-      );
-      _controller = c;
-      // 新 controller 也注册降级监听器（再失败则继续降级）
-      c.addListener(_onControllerChanged);
-
-      c.setLooping(widget.loop);
-      await c.initialize().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw TimeoutException('视频降级初始化超时'),
-      );
-      if (_isDisposed) {
-        try { c.dispose(); } catch (_) {}
-        return;
-      }
-      // seek 回到失败前的播放位置，减少用户感知
-      if (positionSeconds > 0) {
-        try {
-          await c.seekTo(Duration(seconds: positionSeconds));
-        } catch (_) {}
-      }
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _initialized = true;
-          _hasError = false;
-          _isFallbackInProgress = false;
-        });
-        _applyInitialVolume(c);
-        widget.onControllerReady?.call(c);
-        _autoLoadDefaultSubtitle();
-        _syncPlaybackState(c);
-        // 修复：降级成功后若已非当前页，同样需要调度释放计时器
-        _scheduleBackgroundReleaseIfNeeded();
-      }
-    } catch (e) {
-      AppLogger.warn('运行时降级失败', data: {'error': e.toString()});
-      if (_isDisposed) return;
-      if (_fallbackLevel < 2 && _autoFallbackEnabled) {
-        _isFallbackInProgress = false;
-        // 添加延迟避免快速递归造成资源风暴，让出主线程
-        _fallbackTimer?.cancel();
-        _fallbackTimer = Timer(const Duration(milliseconds: 100), () {
-          if (!_isDisposed && mounted && !_isFallbackInProgress) {
-            _triggerRuntimeFallback();
-          }
-        });
-      } else {
-        if (mounted && !_isDisposed) {
-          setState(() {
-            _initialized = false;
-            _hasError = true;
-            _errorMessage = AppError.playback(message: '视频播放失败');
-            _isFallbackInProgress = false;
-          });
-        }
-      }
-    }
-  }
-
-  // 用户手动切换播放模式（Direct/Transcode/Fbk）：用新的播放 URL 重新初始化播放器
-  Future<void> _userInitiatedReinit(int newLevel) async {
-    if (_isDisposed) return;
-    if (_isUserSwitchInProgress) return;
-    _isUserSwitchInProgress = true;
-    // 取消待执行的计时器
-    _fallbackTimer?.cancel();
-    _backgroundReleaseTimer?.cancel();
-    // 记录当前播放进度，切换成功后 seek 回相同位置
-    int positionSeconds = 0;
-    try {
-      final c = _controller;
-      if (c != null && c.value.isInitialized) {
-        positionSeconds = c.value.position.inSeconds;
-      }
-    } catch (_) {}
-
-    // 释放当前 controller
-    _releaseCurrentController();
-    _fallbackLevel = newLevel;
-    if (_isDisposed) return;
-
-    final newUrl = _getUrlForFallbackLevel(_fallbackLevel);
-    if (newUrl == null || newUrl.isEmpty) {
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _hasError = true;
-          _errorMessage = AppError.notFound(message: '无法获取播放地址');
-          _isUserSwitchInProgress = false;
-        });
-      }
-      return;
-    }
-
-    try {
-      final headers = widget.item.authHeaders(widget.token);
-
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(newUrl),
-        httpHeaders: headers,
-      );
-      _controller = c;
-      c.addListener(_onControllerChanged);
-
-      c.setLooping(widget.loop);
-      await c.initialize().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('播放模式切换初始化超时');
-        },
-      );
-      if (_isDisposed) {
-        try { c.dispose(); } catch (_) {}
-        return;
-      }
-      // seek 回到切换前的播放位置，减少用户感知
-      if (positionSeconds > 0) {
-        try {
-          await c.seekTo(Duration(seconds: positionSeconds));
-        } catch (_) {}
-      }
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _initialized = true;
-          _hasError = false;
-          _isUserSwitchInProgress = false;
-        });
-        _applyInitialVolume(c);
-        widget.onControllerReady?.call(c);
-        _autoLoadDefaultSubtitle();
-        _syncPlaybackState(c);
-      }
-    } catch (e) {
-      AppLogger.warn('播放模式切换失败', data: {'error': e.toString()});
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _hasError = true;
-          _errorMessage = AppError.playback(message: '切换失败');
-          _isUserSwitchInProgress = false;
         });
       }
     }
@@ -762,7 +471,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   void dispose() {
     _isDisposed = true;
-    _fallbackTimer?.cancel();
     _backgroundReleaseTimer?.cancel();
     _positionSeconds.dispose();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
