@@ -767,6 +767,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 // 场景：首次初始化（_videoController==null）、controller 被释放后重新初始化、
                 // 用户切换画质后 _userInitiatedReinit 创建新 controller
                 final isNewController = !identical(_videoController, c);
+                // 切换 controller 前先移除旧 controller 上的 listener，
+                // 避免内存泄漏和旧 controller 状态变化时误触发 _onVideoChanged
+                if (isNewController && _videoController != null) {
+                  _videoController!.removeListener(_onVideoChanged);
+                }
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
                 c.addListener(_onVideoChanged);
