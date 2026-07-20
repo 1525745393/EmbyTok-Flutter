@@ -1,3 +1,22 @@
+# [2.1.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.0.0...v2.1.0) (2026-07-20)
+
+
+### Bug Fixes
+
+* _recordWatchStats 添加 try-catch 防止 dispose 后访问 controller 崩溃 ([7c5d80b](https://github.com/1525745393/EmbyTok-Flutter/commit/7c5d80bf9a059c2b6700899c8c2b5aafc0518c3b))
+* _releaseCurrentController 始终 dispose，避免归还池 listener 残留 ([8731745](https://github.com/1525745393/EmbyTok-Flutter/commit/8731745d26a9d849661b8d934117a8ca6d1dfb89))
+* didUpdateWidget 处理 isCurrentPage true→false，停止旧页进度上报 ([e382b49](https://github.com/1525745393/EmbyTok-Flutter/commit/e382b49b64e5a8c73fe73da360e4c5063b6dba7e))
+* disposeAll 完成后重置 _disposed，修复预加载永久失效 ([17abb9e](https://github.com/1525745393/EmbyTok-Flutter/commit/17abb9e5afb9425cb4ceb350c10446cb6a4a28f2))
+* onControllerReady 切换 controller 时移除旧 listener ([be19be2](https://github.com/1525745393/EmbyTok-Flutter/commit/be19be29ebeac00aa851be788724cd748982482d))
+* 修复三个中等 Bug（首帧不同步、字幕残留、_inflight 竞态） ([7dc8a7f](https://github.com/1525745393/EmbyTok-Flutter/commit/7dc8a7febeeae6691c5a94f2ff220f58c9691311))
+* 全屏进入时同步设置 isFullscreenProvider，避免双 VideoPlayer 渲染 ([683b1e3](https://github.com/1525745393/EmbyTok-Flutter/commit/683b1e3a3828adf6b5193843aa42bbf3464e3022))
+* 全屏页重试按钮通过 Provider 触发 controller 重新初始化 ([76def72](https://github.com/1525745393/EmbyTok-Flutter/commit/76def728f46a249a7bb709e56421050bcf1b9500))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([5adaf76](https://github.com/1525745393/EmbyTok-Flutter/commit/5adaf76c003c1b8fe37d52b61e1bf81ae75fee51))
+
 # [2.0.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.163.0...v2.0.0) (2026-07-20)
 
 
