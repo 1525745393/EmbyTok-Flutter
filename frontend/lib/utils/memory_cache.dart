@@ -158,6 +158,15 @@ class MemoryCache<T> {
   }
 
   /// 获取缓存值（包括已过期的）
+
+  /// 检查指定 key 是否已过期（不影响 LRU 顺序或统计）
+  bool isExpired(String key) {
+    final entry = _cache[key];
+    if (entry == null) return false;
+    return entry.isExpired;
+  }
+
+  /// 与 [get] 不同，即使条目已过期也会返回（用于 SWR 模式）。
   ///
   /// 与 [get] 不同，即使条目已过期也会返回（用于 SWR 模式）。
   /// 仅在 key 完全不存在时返回 null。

@@ -13,6 +13,8 @@ import '../models/models.dart';
 import '../utils/memory_cache.dart';
 import 'media_repository.dart';
 
+import 'dart:async';
+
 /// 带缓存的媒体仓库装饰器
 ///
 /// 使用装饰器模式包装 [MediaRepository]，为只读操作添加内存缓存。
@@ -76,6 +78,9 @@ class CachedMediaRepository implements MediaRepository {
         _studiosCache = MemoryCache<List<Library>>(maxSize: 10),
         _studioItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50);
 
+  /// 正在后台刷新的 key 集合，防止并发重复刷新
+  final Set<String> _pendingRefreshes = {};
+
   // ============================
   // 统计信息
   // ============================
@@ -85,7 +90,9 @@ class CachedMediaRepository implements MediaRepository {
     return CacheStats(
       hitCount: _sum((c) => c.stats.hitCount),
       missCount: _sum((c) => c.stats.missCount),
+      staleHitCount: _sum((c) => c.stats.staleHitCount),
       evictionCount: _sum((c) => c.stats.evictionCount),
+      swrRefreshCount: _sum((c) => c.stats.swrRefreshCount),
     );
   }
 
@@ -303,6 +310,54 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   // ============================
+  // SWR (Stale-While-Revalidate) 核心辅助
+  // ============================
+
+  /// 带缓存的数据获取（SWR 模式）
+  ///
+  /// 三级路径：
+  /// 1. 新鲜命中 → 直接返回
+  /// 2. 过期命中 → 返回过期数据 + 后台异步刷新
+  /// 3. 完全未命中 → 同步等待获取
+  Future<T> _withCache<T>(
+    MemoryCache<T> cache,
+    String key,
+    Future<T> Function() fetcher, {
+    Duration? ttl,
+  }) async {
+    final staleValue = cache.getStale(key);
+    if (staleValue != null) {
+      if (!cache.isExpired(key)) {
+        return staleValue;
+      }
+      // 过期命中：返回旧数据 + 后台刷新
+      _refreshInBackground(cache, key, fetcher, ttl: ttl);
+      return staleValue;
+    }
+    // 未命中：同步获取
+    final result = await fetcher();
+    cache.set(key, result, ttl: ttl ?? _ttl);
+    return result;
+  }
+
+  /// 后台异步刷新（防重复）
+  void _refreshInBackground<T>(
+    MemoryCache<T> cache,
+    String key,
+    Future<T> Function() fetcher, {
+    Duration? ttl,
+  }) {
+    if (_pendingRefreshes.contains(key)) return;
+    _pendingRefreshes.add(key);
+    unawaited(fetcher().then((result) {
+      cache.set(key, result, ttl: ttl ?? _ttl);
+      cache.recordSwrRefresh();
+    }).whenComplete(() {
+      _pendingRefreshes.remove(key);
+    }));
+  }
+
+  // ============================
   // 读操作（带缓存）
   // ============================
 
@@ -312,22 +367,14 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _itemDetailKey(itemId, serverUrl, token);
-    final cached = _itemDetailCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getItemDetail(
+    return _withCache(_itemDetailCache, key, () => _inner.getItemDetail(
       itemId,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    _itemDetailCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -336,22 +383,14 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _libraryItemsKey(params, serverUrl, token);
-    final cached = _libraryItemsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getLibraryItems(
+    return _withCache(_libraryItemsCache, key, () => _inner.getLibraryItems(
       params,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    _libraryItemsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -372,23 +411,15 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _favoritesKey(serverUrl, token, userId, limit, offset);
-    final cached = _favoritesCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getFavoriteMovies(
+    return _withCache(_favoritesCache, key, () => _inner.getFavoriteMovies(
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    _favoritesCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -410,23 +441,15 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _boxSetsFavoritesKey(serverUrl, token, userId, limit, offset);
-    final cached = _boxSetsFavoritesCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getFavoriteBoxSets(
+    return _withCache(_boxSetsFavoritesCache, key, () => _inner.getFavoriteBoxSets(
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    _boxSetsFavoritesCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -447,22 +470,14 @@ class CachedMediaRepository implements MediaRepository {
     required String token,
     int limit = 50,
     int offset = 0,
-  }) async {
+  }) {
     final key = _resumeKey(serverUrl, token, limit, offset);
-    final cached = _resumeCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getResumeItems(
+    return _withCache(_resumeCache, key, () => _inner.getResumeItems(
       serverUrl: serverUrl,
       token: token,
       limit: limit,
       offset: offset,
-    );
-
-    _resumeCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -470,22 +485,13 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _librariesKey(serverUrl, token, userId);
-    final cached = _librariesCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getLibraries(
+    return _withCache(_librariesCache, key, () => _inner.getLibraries(
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    // 媒体库列表极少变更，使用更长的 TTL
-    _librariesCache.set(key, result, ttl: const Duration(minutes: 30));
-    return result;
+    ), ttl: const Duration(minutes: 30));
   }
 
   @override
@@ -494,23 +500,15 @@ class CachedMediaRepository implements MediaRepository {
     required String token,
     int limit = 20,
     String? seriesId,
-  }) async {
+  }) {
     final key = _nextUpKey(serverUrl, token, limit, seriesId);
-    final cached = _nextUpCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getNextUp(
+    return _withCache(_nextUpCache, key, () => _inner.getNextUp(
       serverUrl: serverUrl,
       token: token,
       limit: limit,
       seriesId: seriesId,
-    );
-
-    // NextUp 看完一集就变，使用短 TTL
-    _nextUpCache.set(key, result, ttl: const Duration(minutes: 1));
-    return result;
+    ), ttl: const Duration(minutes: 1));
+  }
   }
 
   @override
@@ -518,22 +516,13 @@ class CachedMediaRepository implements MediaRepository {
     String seriesId, {
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _seasonsKey(seriesId, serverUrl, token);
-    final cached = _seasonsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getSeasons(
+    return _withCache(_seasonsCache, key, () => _inner.getSeasons(
       seriesId,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 季列表很少变化，使用中等 TTL
-    _seasonsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -544,25 +533,16 @@ class CachedMediaRepository implements MediaRepository {
     int offset = 0,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _episodesKey(seriesId, seasonId, limit, offset, serverUrl, token);
-    final cached = _episodesCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getEpisodes(
+    return _withCache(_episodesCache, key, () => _inner.getEpisodes(
       seriesId,
       seasonId: seasonId,
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 集列表很少变化，使用中等 TTL
-    _episodesCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -571,23 +551,14 @@ class CachedMediaRepository implements MediaRepository {
     int limit = 12,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _similarItemsKey(itemId, limit, serverUrl, token);
-    final cached = _similarItemsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getSimilarItems(
+    return _withCache(_similarItemsCache, key, () => _inner.getSimilarItems(
       itemId,
       limit: limit,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 相似推荐短时间内稳定，使用中等 TTL
-    _similarItemsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -598,29 +569,19 @@ class CachedMediaRepository implements MediaRepository {
     String? searchTerm,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _peopleKey(limit, startIndex, personTypes, searchTerm, serverUrl, token);
-    final cached = _peopleCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getPeople(
+    final ttl = (searchTerm != null && searchTerm.isNotEmpty)
+        ? const Duration(seconds: 30)
+        : _ttl;
+    return _withCache(_peopleCache, key, () => _inner.getPeople(
       limit: limit,
       startIndex: startIndex,
       personTypes: personTypes,
       searchTerm: searchTerm,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 搜索场景使用短 TTL，避免新演员上架后看不到；
-    // 列表浏览场景使用中 TTL（演员列表变化不频繁）
-    final ttl = (searchTerm != null && searchTerm.isNotEmpty)
-        ? const Duration(seconds: 30)
-        : _ttl;
-    _peopleCache.set(key, result, ttl: ttl);
-    return result;
+    ), ttl: ttl);
   }
 
   @override
@@ -629,23 +590,14 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _personDetailKey(personId, serverUrl, token);
-    final cached = _personDetailCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getPersonDetail(
+    return _withCache(_personDetailCache, key, () => _inner.getPersonDetail(
       personId,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    // 演员详情极少变化，使用长 TTL
-    _personDetailCache.set(key, result, ttl: const Duration(minutes: 30));
-    return result;
+    ), ttl: const Duration(minutes: 30));
   }
 
   @override
@@ -655,24 +607,15 @@ class CachedMediaRepository implements MediaRepository {
     int offset = 0,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _personItemsKey(personId, limit, offset, serverUrl, token);
-    final cached = _personItemsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getPersonItems(
+    return _withCache(_personItemsCache, key, () => _inner.getPersonItems(
       personId,
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 演员作品列表使用中 TTL，标记已看后会失效
-    _personItemsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -682,24 +625,15 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) async {
+  }) {
     final key = _favoritePeopleKey(serverUrl, token, userId, limit, offset);
-    final cached = _favoritePeopleCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getFavoritePeople(
+    return _withCache(_favoritePeopleCache, key, () => _inner.getFavoritePeople(
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-    );
-
-    // 收藏人物使用中 TTL，切换收藏后失效
-    _favoritePeopleCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -725,24 +659,12 @@ class CachedMediaRepository implements MediaRepository {
     double minCommunityRating = 4.0,
     bool excludePlayed = true,
     Set<String>? includeItemTypes,
-  }) async {
+  }) {
     final key = _recommendationsKey(
-      limit,
-      offset,
-      libraryId,
-      userId,
-      serverUrl,
-      token,
-      minCommunityRating,
-      excludePlayed,
-      includeItemTypes,
+      limit, offset, libraryId, userId, serverUrl, token,
+      minCommunityRating, excludePlayed, includeItemTypes,
     );
-    final cached = _recommendationsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getRecommendations(
+    return _withCache(_recommendationsCache, key, () => _inner.getRecommendations(
       limit: limit,
       offset: offset,
       libraryId: libraryId,
@@ -752,11 +674,7 @@ class CachedMediaRepository implements MediaRepository {
       minCommunityRating: minCommunityRating,
       excludePlayed: excludePlayed,
       includeItemTypes: includeItemTypes,
-    );
-
-    // 推荐基于算法生成，短时间内稳定，使用中 TTL
-    _recommendationsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -765,23 +683,14 @@ class CachedMediaRepository implements MediaRepository {
     String? userId,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _suggestionsKey(limit, userId, serverUrl, token);
-    final cached = _suggestionsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getSuggestions(
+    return _withCache(_suggestionsCache, key, () => _inner.getSuggestions(
       limit: limit,
       userId: userId,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 建议短时间内稳定，使用中 TTL
-    _suggestionsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -790,23 +699,14 @@ class CachedMediaRepository implements MediaRepository {
     String? userId,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _watchHistoryKey(limit, userId, serverUrl, token);
-    final cached = _watchHistoryCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getWatchHistory(
+    return _withCache(_watchHistoryCache, key, () => _inner.getWatchHistory(
       limit: limit,
       userId: userId,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 观看历史频繁变化（每次播放/标记已看都变），使用短 TTL
-    _watchHistoryCache.set(key, result, ttl: const Duration(minutes: 1));
-    return result;
+    ), ttl: const Duration(minutes: 1));
   }
 
   @override
@@ -816,24 +716,15 @@ class CachedMediaRepository implements MediaRepository {
     int offset = 0,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _childrenKey(parentId, limit, offset, serverUrl, token);
-    final cached = _childrenCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getChildren(
+    return _withCache(_childrenCache, key, () => _inner.getChildren(
       parentId,
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 子项列表使用中 TTL，父项结构变化时手动失效
-    _childrenCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -841,22 +732,13 @@ class CachedMediaRepository implements MediaRepository {
     int limit = 100,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _genresKey(limit, serverUrl, token);
-    final cached = _genresCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getGenres(
+    return _withCache(_genresCache, key, () => _inner.getGenres(
       limit: limit,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 类型列表极少变化，使用长 TTL
-    _genresCache.set(key, result, ttl: const Duration(minutes: 30));
-    return result;
+    ), ttl: const Duration(minutes: 30));
   }
 
   @override
@@ -866,24 +748,15 @@ class CachedMediaRepository implements MediaRepository {
     int offset = 0,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _genreItemsKey(genre, limit, offset, serverUrl, token);
-    final cached = _genreItemsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getItemsByGenre(
+    return _withCache(_genreItemsCache, key, () => _inner.getItemsByGenre(
       genre,
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 类型下的影片列表变化不频繁，使用中 TTL
-    _genreItemsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   @override
@@ -891,22 +764,13 @@ class CachedMediaRepository implements MediaRepository {
     int limit = 100,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _studiosKey(limit, serverUrl, token);
-    final cached = _studiosCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getStudios(
+    return _withCache(_studiosCache, key, () => _inner.getStudios(
       limit: limit,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 工作室列表极少变化，使用长 TTL
-    _studiosCache.set(key, result, ttl: const Duration(minutes: 30));
-    return result;
+    ), ttl: const Duration(minutes: 30));
   }
 
   @override
@@ -916,24 +780,15 @@ class CachedMediaRepository implements MediaRepository {
     int offset = 0,
     required String serverUrl,
     required String token,
-  }) async {
+  }) {
     final key = _studioItemsKey(studio, limit, offset, serverUrl, token);
-    final cached = _studioItemsCache.get(key);
-    if (cached != null) {
-      return cached;
-    }
-
-    final result = await _inner.getItemsByStudio(
+    return _withCache(_studioItemsCache, key, () => _inner.getItemsByStudio(
       studio,
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
-    );
-
-    // 工作室下的影片列表变化不频繁，使用中 TTL
-    _studioItemsCache.set(key, result, ttl: _ttl);
-    return result;
+    ));
   }
 
   // ============================
@@ -1056,6 +911,7 @@ class CachedMediaRepository implements MediaRepository {
 
   /// 清除所有缓存
   void clearAll() {
+    _pendingRefreshes.clear();
     _libraryItemsCache.clear();
     _favoritesCache.clear();
     _boxSetsFavoritesCache.clear();
