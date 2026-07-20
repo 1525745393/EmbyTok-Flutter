@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.163.0...v2.0.0) (2026-07-20)
+
+
+### Features
+
+* 简化播放流程，移除画质偏好和自动降级功能 ([5b8d9c5](https://github.com/1525745393/EmbyTok-Flutter/commit/5b8d9c5cd9fc0a4d9f845e3bc6547841975ed1ea))
+
+
+### BREAKING CHANGES
+
+* 移除画质偏好和自动降级功能，播放固定使用 Direct Play
+
 # [1.163.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v1.162.7...v1.163.0) (2026-07-20)
 
 
