@@ -147,21 +147,15 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
   ///
   /// 显示后按当前 [autoHideAfter] 重新调度隐藏。
   ///
-  /// PR #74：纯净模式下按钮持续隐藏
-  /// - 纯净模式设计意图是"按钮永不显示"，但 PR #71 留了几个 show() 入口
-  ///   （isPlaying 变化、控制条显示、单击屏幕等），这些入口在纯净模式下应该无效
-  /// - 这里直接 return，不改变 _isHidden，也不调度 timer
-  /// - 用户主动操作按钮的 onPointerDown 仍然能强制显示（不经过本方法）
+  /// 纯净模式下：允许显示按钮（以便用户关闭纯净模式），但不自动隐藏
   void show() {
     if (!mounted) return;
-    if (_isAutoPlay) {
-      // 纯净模式：保持隐藏，不响应被动 show() 调用
-      return;
-    }
     if (_isHidden) {
       setState(() => _isHidden = false);
     }
-    _scheduleAutoHide();
+    if (!_isAutoPlay) {
+      _scheduleAutoHide();
+    }
   }
 
   /// 外部触发立即隐藏
@@ -197,8 +191,12 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
               // 但纯净模式下应该不响应 → 直接 return，不记录 pointer，不显示按钮
               onPointerDown: (event) {
                 if (_isAutoPlay) {
-                  // 纯净模式：保持隐藏，不响应任何被动 pointer 事件
-                  // （包括单指按压、双指按压等所有 onPointerDown）
+                  // 纯净模式：允许显示按钮以便用户关闭纯净模式，但不允许拖动
+                  // 用户触摸按钮区域时，按钮显示出来，用户可以点击 AutoPlayButton 退出
+                  _autoHideTimer?.cancel();
+                  if (_isHidden) {
+                    setState(() => _isHidden = false);
+                  }
                   return;
                 }
                 _startPointer = event.localPosition;

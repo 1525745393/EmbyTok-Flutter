@@ -95,6 +95,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
+  // 纯净模式下可拖动按钮组的引用，用于单击屏幕时显示按钮以便退出纯净模式
+  final GlobalKey<DraggableCleanActionsState> _cleanActionsKey = GlobalKey<DraggableCleanActionsState>();
+
   // NextUp（下一集提示）状态
   MediaItem? _nextUpItem;
   bool _showNextUpBanner = false;
@@ -745,7 +748,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             enableGestures: !_controlsVisible,
             onSingleTap: () {
               if (isAutoPlay) {
-                _toggleControls();
+                // 纯净模式：单击屏幕显示可拖动按钮组，以便用户关闭纯净模式
+                _cleanActionsKey.currentState?.show();
               } else {
                 _togglePlay();
               }
@@ -1054,6 +1058,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return DraggableCleanActions(
+                  key: _cleanActionsKey,
                   containerSize: Size(constraints.maxWidth, constraints.maxHeight),
                   buttonWidth: rs(80, 2.0),
                   bottomSafeArea: bottomPadding + 80 + 16,
