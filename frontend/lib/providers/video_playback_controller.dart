@@ -57,26 +57,6 @@ final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((re
 /// - 不传 pageController 引用，避免 widget 重建时引用错位
 final feedViewPageJumpRequestProvider = StateProvider<int?>((ref) => null);
 
-/// 播放降级等级 Notifier：0=DirectPlay，1=DirectStream，2=HLS 转码
-///
-/// 等级越高代表越保守的播放策略，用于不同网速下的自适应降级。
-class PlaybackLevelNotifier extends StateNotifier<int> {
-  PlaybackLevelNotifier() : super(0);
-
-  void setLevel(int level) {
-    if (level >= 0 && level <= 2) state = level;
-  }
-
-  void reset() {
-    state = 0;
-  }
-}
-
-final playbackLevelProvider =
-    StateNotifierProvider<PlaybackLevelNotifier, int>(
-  (ref) => PlaybackLevelNotifier(),
-);
-
 /// 当前播放倍速：1.0 / 1.25 / 1.5 / 2.0
 final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 

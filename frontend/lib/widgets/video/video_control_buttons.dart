@@ -265,49 +265,8 @@ class SpeedControlButton extends StatelessWidget {
   }
 }
 
-// ===== 播放模式按钮（DirectPlay/Transcode/Fallback 循环切换）=====
-class PlayModeButton extends ConsumerWidget {
-  const PlayModeButton({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentLevel = ref.watch(playbackLevelProvider);
-    final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
-    final IconData icon;
-    final Color bgColor;
-    switch (currentLevel) {
-      case 0:
-        icon = Icons.play_circle_outline;
-        bgColor = scheme.surface.withOpacity(0.3);
-        break;
-      case 1:
-        icon = Icons.swap_horiz;
-        bgColor = scheme.primary.withOpacity(0.8);
-        break;
-      case 2:
-      default:
-        icon = Icons.warning;
-        bgColor = scheme.tertiary.withOpacity(0.8);
-        break;
-    }
-    return GestureDetector(
-      onTap: () {
-        final newLevel = (currentLevel + 1) % 3;
-        ref.read(playbackLevelProvider.notifier).setLevel(newLevel);
-      },
-      child: Container(
-        width: rs(40),
-        height: rs(40),
-        decoration: BoxDecoration(shape: BoxShape.circle, color: bgColor),
-        child: Center(child: Icon(icon, color: scheme.onSurface, size: rs(20))),
-      ),
-    );
-  }
-}
-
 // ===== 画质选择按钮 =====
-class QualityButton extends ConsumerWidget {
+class QualityButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const QualityButton({
@@ -316,17 +275,9 @@ class QualityButton extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentLevel = ref.watch(playbackLevelProvider);
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
-    final label = switch (currentLevel) {
-      0 => '原画',
-      1 => '高清',
-      2 => '流畅',
-      _ => '原画',
-    };
-    final isModified = currentLevel != 0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -334,16 +285,14 @@ class QualityButton extends ConsumerWidget {
         height: rs(40),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isModified
-              ? scheme.primary.withOpacity(0.8)
-              : scheme.surface.withOpacity(0.3),
+          color: scheme.surface.withOpacity(0.3),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.hd, color: scheme.onSurface, size: rs(18)),
             Text(
-              label,
+              '原画',
               style: TextStyle(
                 color: scheme.onSurface,
                 fontSize: rs(9),

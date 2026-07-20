@@ -26,8 +26,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final String? token;
   // 预加载控制器（如果为 null，则动态创建）
   final VideoPlayerController? preloadedController;
-  // 预加载控制器的播放等级（0=DirectPlay, 1=DirectStream, 2=HLS）
-  // 如非空，将同步到 playbackLevelProvider，保证 Emby 上报一致
   final int? preloadedPlaybackLevel;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
@@ -385,7 +383,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         final preloadLevel = widget.preloadedPlaybackLevel;
         if (preloadLevel != null) {
           _fallbackLevel = preloadLevel;
-          ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
         }
         c.addListener(_onControllerChanged);
         if (!c.value.isInitialized) {
@@ -468,8 +465,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         try { c.dispose(); } catch (_) {}
         return;
       }
-      // 初始化成功：同步降级等级到 provider（供播放上报判断 PlayMethod）
-      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       if (mounted && !_isDisposed) {
         setState(() {
           _initialized = true;
@@ -517,8 +512,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
         return;
       }
-      // 三级降级都失败：标记最终错误状态
-      ref.read(playbackLevelProvider.notifier).setLevel(2);
       if (mounted && !_isDisposed) {
         setState(() {
           _initialized = false;
@@ -584,8 +577,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         try { c.dispose(); } catch (_) {}
         return;
       }
-      // 降级成功：同步新的降级等级
-      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       // seek 回到失败前的播放位置，减少用户感知
       if (positionSeconds > 0) {
         try {
@@ -618,7 +609,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           }
         });
       } else {
-        ref.read(playbackLevelProvider.notifier).setLevel(2);
         if (mounted && !_isDisposed) {
           setState(() {
             _initialized = false;
@@ -686,8 +676,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         try { c.dispose(); } catch (_) {}
         return;
       }
-      // 切换成功：同步新的降级等级
-      ref.read(playbackLevelProvider.notifier).setLevel(_fallbackLevel);
       // seek 回到切换前的播放位置，减少用户感知
       if (positionSeconds > 0) {
         try {
@@ -785,16 +773,6 @@ class _VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     final vc = _controller;
-    // 监听播放模式切换（用户手动点击按钮触发）
-    ref.listen<int>(playbackLevelProvider, (previous, next) {
-      // 只有当外部设置等级变化后才响应；且非自己内部 setLevel 设置的不响应
-      // 内部会在初始化/降级成功后调用 setLevel，那时 _fallbackLevel == next，所以相等，不触发
-      // 用户点击按钮时，_fallbackLevel != next，触发重新初始化
-      if (next != _fallbackLevel && _initialized && !_isFallbackInProgress) {
-        _userInitiatedReinit(next);
-      }
-    });
-
     // 监听字幕选择：用户选择新字幕轨道时异步加载
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {

@@ -479,22 +479,6 @@ class _FullscreenVideoPageState
     }
   }
 
-  // 清晰度变化时触发重新初始化（交由外部重新创建 controller）
-  void _onPlaybackLevelChanged(int level) {
-    final item = ref.read(currentPlayingItemProvider);
-    if (item == null) return;
-    // 不直接 dispose controller：controller 生命周期由 VideoPageItem 的 VideoPlayerWidget 管理。
-    // FullscreenVideoPage 只是通过 Provider 借用 controller。
-    // 直接 dispose 会导致：
-    //   1. VideoPageItem 的 VideoPlayerWidget 仍持有已 dispose controller 的引用，退出全屏后黑屏
-    //   2. 若 controller 来自 VideoPoolService，dispose 会污染池中会话
-    // 正确做法：只清空 Provider 引用并触发重建，让 VideoPageItem 的 ref.listen 触发 _userInitiatedReinit
-    // 来安全地释放旧 controller 并创建新的 controller。
-    ref.read(currentVideoControllerProvider.notifier).state = null;
-    // 触发重试 key 更新来触发重建（显示加载指示器）
-    setState(() => _retryKey++);
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -738,13 +722,6 @@ class _FullscreenVideoPageState
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {
         _loadSubtitle(next);
-      }
-    });
-
-    // 清晰度变化时触发重新初始化
-    ref.listen<int>(playbackLevelProvider, (previous, next) {
-      if (previous != next && previous != null) {
-        _onPlaybackLevelChanged(next);
       }
     });
 
@@ -1243,11 +1220,6 @@ class _FullscreenVideoPageState
                       tooltip: '倍速',
                     ),
                     IconButton(
-                      icon: const Icon(Icons.hd, color: Colors.white, size: 22),
-                      onPressed: () => _toggleSettingsPanel(_SettingsTab.quality),
-                      tooltip: '清晰度',
-                    ),
-                    IconButton(
                       icon: const Icon(Icons.aspect_ratio,
                           color: Colors.white, size: 22),
                       onPressed: () => _toggleSettingsPanel(_SettingsTab.ratio),
@@ -1325,8 +1297,6 @@ class _FullscreenVideoPageState
     switch (tab) {
       case _SettingsTab.speed:
         return Icons.speed;
-      case _SettingsTab.quality:
-        return Icons.hd;
       case _SettingsTab.ratio:
         return Icons.aspect_ratio;
     }
@@ -1336,8 +1306,6 @@ class _FullscreenVideoPageState
     switch (_settingsTab) {
       case _SettingsTab.speed:
         return _buildSpeedList(controller);
-      case _SettingsTab.quality:
-        return _buildQualityList();
       case _SettingsTab.ratio:
         return _buildRatioList();
     }
@@ -1355,29 +1323,6 @@ class _FullscreenVideoPageState
           onTap: () {
             controller.setPlaybackSpeed(rate);
             ref.read(playbackRateProvider.notifier).state = rate;
-            _startHideTimer();
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildQualityList() {
-    final currentLevel = ref.watch(playbackLevelProvider);
-    const qualities = [
-      _QualityOption(0, '原画画质', 'Direct Play'),
-      _QualityOption(1, '高清 Remux', 'Direct Stream'),
-      _QualityOption(2, '流畅转码', 'HLS'),
-    ];
-    return Column(
-      children: qualities.map((q) {
-        final selected = q.level == currentLevel;
-        return _SettingsListItem(
-          label: q.label,
-          subtitle: q.desc,
-          selected: selected,
-          onTap: () {
-            ref.read(playbackLevelProvider.notifier).setLevel(q.level);
             _startHideTimer();
           },
         );
@@ -1781,7 +1726,7 @@ class _SettingsListItem extends StatelessWidget {
   }
 }
 
-enum _SettingsTab { speed, quality, ratio }
+enum _SettingsTab { speed, ratio }
 enum _AspectRatioMode { auto, contain, cover, fill, sixteenNine, fourThree }
 enum _OrientationPref { landscape, portrait, sensor }
 

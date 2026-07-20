@@ -463,11 +463,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 空字符串视为无效，生成新的会话 ID
     final preloadedId = widget.preloadedSession?.playSessionId;
     _playSessionId = (preloadedId != null && preloadedId.isNotEmpty) ? preloadedId : _newPlaySessionId();
-    // 如果来自预加载会话，同步播放等级到 provider（保证 reportPlaybackProgress 正确）
-    if (widget.preloadedSession != null) {
-      ref.read(playbackLevelProvider.notifier).setLevel(widget.preloadedSession!.playbackLevel);
-    }
-    final level = ref.read(playbackLevelProvider);
+    final level = widget.preloadedSession?.playbackLevel ?? 0;
     final method = _playMethodFromLevel(level);
     _safeReport(
       () => _service.reportPlaybackStart(
@@ -495,7 +491,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final isPaused = controller != null && !controller.value.isPlaying;
     final volume = controller?.value.volume;
     final volumeLevel = volume != null ? (volume * 100).round() : null;
-    final level = ref.read(playbackLevelProvider);
+    final level = widget.preloadedSession?.playbackLevel ?? 0;
     final method = _playMethodFromLevel(level);
     _safeReport(
       () => _service.reportPlaybackPosition(
@@ -1023,9 +1019,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
                   ),
                   SizedBox(height: rs(16, 1.5)),
-                  QualityButton(
-                    onTap: () => sheet_utils.showQualitySelector(context),
-                  ),
+
                   SizedBox(height: rs(16, 1.5)),
                   SubtitleButton(
                     hasSubtitles: widget.item.subtitleTracks.isNotEmpty,
