@@ -214,6 +214,9 @@ class _FeedViewState extends ConsumerState<FeedView>
   Future<void> _openFullscreenPage() async {
     if (ref.read(currentVideoControllerProvider) == null) return;
     ref.read(toolbarVisibilityProvider.notifier).hide();
+    // 同步设置 isFullscreenProvider，使 VideoPageItem 中的 VideoPlayer 立即 Offstage，
+    // 避免与 FullscreenVideoPage 中的 VideoPlayer 短暂同时渲染同一 controller
+    ref.read(isFullscreenProvider.notifier).state = true;
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const FullscreenVideoPage(),

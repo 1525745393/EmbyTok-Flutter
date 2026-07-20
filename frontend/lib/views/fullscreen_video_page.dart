@@ -239,7 +239,8 @@ class _FullscreenVideoPageState
       _setupControllerListener(ctrl);
       _applyOrientations();
       _applySystemUI();
-      ref.read(isFullscreenProvider.notifier).state = true;
+      // isFullscreenProvider 由调用方在 Navigator.push 前同步设置，
+      // 避免 VideoPageItem 和 FullscreenVideoPage 短暂同时渲染同一 controller
     });
 
     _applySystemUI();

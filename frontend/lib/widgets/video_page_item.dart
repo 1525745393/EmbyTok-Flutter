@@ -583,6 +583,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   Future<void> _openFullscreenPage() async {
     // 进入前隐藏工具栏（沉浸感）
     ref.read(toolbarVisibilityProvider.notifier).hide();
+    // 同步设置 isFullscreenProvider，使 VideoPageItem 中的 VideoPlayer 立即 Offstage，
+    // 避免与 FullscreenVideoPage 中的 VideoPlayer 短暂同时渲染同一 controller
+    ref.read(isFullscreenProvider.notifier).state = true;
     // push 全屏页
     await Navigator.of(context).push(
       MaterialPageRoute(
