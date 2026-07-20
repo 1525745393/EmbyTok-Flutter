@@ -54,53 +54,6 @@ final defaultSubtitleLanguageProvider =
     StateNotifierProvider<DefaultSubtitleLanguageNotifier, String>(
         (ref) => DefaultSubtitleLanguageNotifier());
 
-// ---------------- 视频画质 ----------------
-
-/// 视频画质：'original' / 'directStream' / 'hls'
-class VideoQualityNotifier extends StateNotifier<String> {
-  VideoQualityNotifier() : super('original') {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = await const AppPreferencesService().load();
-    state = prefs.videoQuality;
-  }
-
-  Future<void> set(String quality) async {
-    state = quality;
-    await const AppPreferencesService().setVideoQuality(quality);
-  }
-}
-
-/// 顶层视频画质 Provider
-final videoQualityProvider =
-    StateNotifierProvider<VideoQualityNotifier, String>(
-        (ref) => VideoQualityNotifier());
-
-// ---------------- 自动降级开关 ----------------
-
-/// 是否启用自动降级（默认关闭）
-class AutoFallbackEnabledNotifier extends StateNotifier<bool> {
-  AutoFallbackEnabledNotifier() : super(false) {
-    _load();
-  }
-
-  Future<void> _load() async {
-    final prefs = await const AppPreferencesService().load();
-    state = prefs.autoFallbackEnabled;
-  }
-
-  Future<void> set(bool value) async {
-    state = value;
-    await const AppPreferencesService().setAutoFallbackEnabled(value);
-  }
-}
-
-final autoFallbackEnabledProvider =
-    StateNotifierProvider<AutoFallbackEnabledNotifier, bool>(
-        (ref) => AutoFallbackEnabledNotifier());
-
 // ---------------- 字幕大小 ----------------
 
 /// 字幕大小：如 'small'、'medium'、'large'
