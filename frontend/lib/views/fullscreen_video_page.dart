@@ -483,15 +483,15 @@ class _FullscreenVideoPageState
   void _onPlaybackLevelChanged(int level) {
     final item = ref.read(currentPlayingItemProvider);
     if (item == null) return;
-    // 释放当前 controller，外部会重新创建
-    final oldController = ref.read(currentVideoControllerProvider);
-    if (oldController != null) {
-      try {
-        oldController.dispose();
-      } catch (_) {}
-    }
+    // 不直接 dispose controller：controller 生命周期由 VideoPageItem 的 VideoPlayerWidget 管理。
+    // FullscreenVideoPage 只是通过 Provider 借用 controller。
+    // 直接 dispose 会导致：
+    //   1. VideoPageItem 的 VideoPlayerWidget 仍持有已 dispose controller 的引用，退出全屏后黑屏
+    //   2. 若 controller 来自 VideoPoolService，dispose 会污染池中会话
+    // 正确做法：只清空 Provider 引用并触发重建，让 VideoPageItem 的 ref.listen 触发 _userInitiatedReinit
+    // 来安全地释放旧 controller 并创建新的 controller。
     ref.read(currentVideoControllerProvider.notifier).state = null;
-    // 触发重试 key 更新来触发重建
+    // 触发重试 key 更新来触发重建（显示加载指示器）
     setState(() => _retryKey++);
   }
 
