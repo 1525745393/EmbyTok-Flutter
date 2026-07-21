@@ -693,6 +693,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 final old = _videoController;
                 if (old != null) {
                   try { old.removeListener(_onVideoChanged); } catch (_) {}
+                  // 同步清除 currentVideoControllerProvider（如果持有相同引用）
+                  // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
+                  // 进入全屏页后 isControllerReady=false，导致黑屏
+                  final current = ref.read(currentVideoControllerProvider);
+                  if (current != null && identical(current, old)) {
+                    ref.read(currentVideoControllerProvider.notifier).state = null;
+                  }
                 }
                 setState(() => _videoController = null);
               },

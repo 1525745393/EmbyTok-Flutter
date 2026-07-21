@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import '../views/fullscreen_video_page.dart';
@@ -10,6 +11,30 @@ import '../views/fullscreen_video_page.dart';
 /// 和退出全屏后的恢复操作，避免多个地方重复实现相同逻辑。
 class FullscreenNavigator {
   FullscreenNavigator._();
+
+  /// 检查 controller 是否可用于全屏播放
+  ///
+  /// 返回 false 的情况：
+  /// - null
+  /// - 已 disposed（访问 value 抛异常）
+  /// - 有错误（hasError=true）
+  /// - 未初始化（isInitialized=false）
+  ///
+  /// 防御场景：onControllerReleased 回调未同步清除
+  /// currentVideoControllerProvider 时，provider 可能持有已 disposed 的 controller，
+  /// 直接进入全屏会导致黑屏。
+  static bool isControllerUsableForFullscreen(VideoPlayerController? controller) {
+    if (controller == null) return false;
+    try {
+      final v = controller.value;
+      if (v.hasError) return false;
+      if (!v.isInitialized) return false;
+      return true;
+    } catch (_) {
+      // controller 已 disposed，访问 value 会抛异常
+      return false;
+    }
+  }
 
   /// 进入全屏播放页
   ///
@@ -24,7 +49,8 @@ class FullscreenNavigator {
     VoidCallback? onExit,
   }) async {
     final controller = ref.read(currentVideoControllerProvider);
-    if (controller == null) return false;
+    // 防御性检查：不仅检查 null，还要检查 controller 是否已 disposed 或有错误
+    if (!isControllerUsableForFullscreen(controller)) return false;
 
     // 进入前隐藏工具栏（沉浸感）
     ref.read(toolbarVisibilityProvider.notifier).hide();
