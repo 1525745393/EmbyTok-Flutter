@@ -21,10 +21,21 @@
 //   - 评分推荐自动排除已观看（getRecommendations 内部 Filters=IsPlayed=false）
 //
 // 不分页：与原 FeedType.recommend 行为一致
+//
+// 修复记录（推荐系统审查专项）：
+// P0-1/P0-2：_shouldSkipItem 统一过滤（黑名单 + 反疲劳 + 用户评分低）
+// P0-3：追剧 NextUp 插入顺序修正（最近观看优先）
+// P1-1/P2-2：_LoadContext + _buildLoadContext 抽离公共逻辑
+// P1-2：_loadPage 拆分（5 个 fetch 方法 + _mergeRoundRobin）
+// P1-3：userBehaviorSignalProvider 独立缓存 signal
+// P1-4：_isLoading 互斥锁防并发
+// P1-5：_runWithConcurrencyLimit 限制 HTTP 并发数
+// P2-1：移除冗余 items 字段和 merged 字段
+// P2-3：空标签分类显示空状态（_withDerived 不再回退）
 
 import 'dart:async';
 
-import 'dart:math' show Random; // PR #83：随机化降权源配额
+import 'dart:math' show Random;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,11 +52,7 @@ import 'watch_stats_provider.dart';
 
 /// 推荐状态
 class RecommendState {
-  // PR #79：原 MediaItem 列表（用于兼容历史逻辑，缓存、loadMore）
-  final List<MediaItem> items;
   // PR #80：带数据源标签的推荐项（用于标签分类 UI）
-  // - 与 items 一一对应，但额外标注来自哪个数据源
-  // - 标签切换时只过滤 taggedItems，不影响 items
   final List<RecommendItem> taggedItems;
   // PR #80：当前选中的标签（null=全部）
   final String? selectedTag;
@@ -62,13 +69,12 @@ class RecommendState {
   // 性能优化：预计算的 derived 字段（由 Notifier._withDerived 填充）
   // - 避免在 build 方法中同步做 where + map + length 计算
   // - taggedItems 或 selectedTag 变化时由 Notifier 重新计算
-  /// 根据 selectedTag 过滤后的展示列表（空则回退到 taggedItems）
+  /// 根据 selectedTag 过滤后的展示列表
   final List<RecommendItem> displayItems;
   /// 各标签的计数（key = RecommendSource.key）
   final Map<String, int> tagCounts;
 
   const RecommendState({
-    this.items = const [],
     this.taggedItems = const [],
     this.selectedTag,
     this.isLoading = false,
@@ -82,7 +88,6 @@ class RecommendState {
   });
 
   RecommendState copyWith({
-    List<MediaItem>? items,
     List<RecommendItem>? taggedItems,
     String? selectedTag,
     bool? isLoading,
@@ -95,7 +100,6 @@ class RecommendState {
     Map<String, int>? tagCounts,
   }) {
     return RecommendState(
-      items: items ?? this.items,
       taggedItems: taggedItems ?? this.taggedItems,
       selectedTag: selectedTag ?? this.selectedTag,
       isLoading: isLoading ?? this.isLoading,
@@ -162,18 +166,71 @@ extension RecommendSourceLabel on RecommendSource {
 
 /// PR #79：分页 - 单页加载结果
 /// 记录一页拉到的项 + 各数据源原始项数（用于 load() 冷启动检测）
-/// PR #80：增加 tagged 字段（带 source 标签的列表）
 class _PageLoadResult {
-  final List<MediaItem> merged; // 去重 + round-robin 后的列表
-  final List<RecommendItem> tagged; // 与 merged 一一对应，带 source 标签
+  final List<RecommendItem> tagged; // 带 source 标签的推荐项
   final int nextUpCount; // NextUp 数据源原始项数
   final int resumeCount; // Resume 数据源原始项数
   const _PageLoadResult({
-    required this.merged,
     required this.tagged,
     required this.nextUpCount,
     required this.resumeCount,
   });
+}
+
+/// 加载上下文：封装 load() / loadMore() 共用的配置和计算结果
+/// 减少两个方法之间的代码重复
+class _LoadContext {
+  final AuthState auth;
+  final List<String> selectedIds;
+  final MediaRepository repo;
+  final double minRating;
+  final bool excludePlayed;
+  final Set<String> includeTypes;
+  final int minRuntimeSec;
+  final int minRuntimeTicks;
+  final UserBehaviorSignal signal;
+  final Set<String> favoriteIds;
+  final bool antiFatigueEnabled;
+  final Set<String> recentlyShownIds;
+  final bool userRatingEnabled;
+  final double userRatingMin;
+
+  const _LoadContext({
+    required this.auth,
+    required this.selectedIds,
+    required this.repo,
+    required this.minRating,
+    required this.excludePlayed,
+    required this.includeTypes,
+    required this.minRuntimeSec,
+    required this.minRuntimeTicks,
+    required this.signal,
+    required this.favoriteIds,
+    required this.antiFatigueEnabled,
+    required this.recentlyShownIds,
+    required this.userRatingEnabled,
+    required this.userRatingMin,
+  });
+
+  // PR #73：过滤非视频类型 item
+  bool isVideo(MediaItem item) => _allowedTypes.contains(item.type);
+
+  // PR #78：时长过滤（避免测试片/预告片污染推荐）
+  // 0 表示不过滤
+  bool isTooShort(MediaItem item) {
+    if (minRuntimeSec == 0) return false;
+    final ticks = item.runtimeTicks;
+    if (ticks == null) return false;
+    return ticks < minRuntimeTicks;
+  }
+
+  static const Set<String> _allowedTypes = {
+    'Movie',
+    'Episode',
+    'Video',
+    'MusicVideo',
+    'Series',
+  };
 }
 
 /// 推荐 Notifier
@@ -183,6 +240,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   final Ref _ref;
+
+  // 加载互斥锁：防止 load() 和 loadMore() 并发执行导致状态冲突
+  bool _isLoading = false;
+
+  // 并发请求数上限（多库高分推荐、相似推荐种子等场景）
+  // 避免一次性发起过多 HTTP 请求导致服务器压力或连接池耗尽
+  static const int _maxConcurrentRequests = 3;
 
   // 初始化：直接拉取 Emby 最新推荐数据
   // 缓存仅用于本会话内的 MemoryCache 加速（CachedMediaRepository），
@@ -202,70 +266,46 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   static const String _sourceSimilar = 'similar';
 
   // PR #78：相似推荐配置
-  // - 取最近 N 个高评分项（communityRating >= 7.0）
-  // - 对每个高分项取 Top K 相似视频
-  static const int _similarSeedCount = 3; // 取最近 3 个高分项
-  static const int _similarPerSeed = 10; // 每个高分项取 10 个相似
-  static const double _similarSeedMinRating = 7.0; // 高分阈值
+  static const int _similarSeedCount = 3;
+  static const int _similarPerSeed = 10;
+  static const double _similarSeedMinRating = 7.0;
 
-  // 服务端单次上限（避免一次拉太多）
-  Future<void> load() async {
-    state = state.copyWith(isLoading: true, error: null);
-
+  // 构建加载上下文（load() 和 loadMore() 共用）
+  // 鉴权失败或未选择媒体库时返回 null
+  // PR #83 优化：从 userBehaviorSignalProvider 读取缓存的 signal
+  _LoadContext? _buildLoadContext() {
     final auth = _ref.read(authProvider);
-    // PR #66：推荐页改用独立的 recommendLibraryIdsProvider，
-    // 视频流和推荐可以分别设置媒体库
     final selectedIds = _ref.read(recommendLibraryIdsProvider);
+
+    if (!auth.isAuthenticated ||
+        auth.embyServerUrl == null ||
+        auth.token == null) {
+      return null;
+    }
+    if (selectedIds.isEmpty) {
+      return null;
+    }
+
+    final repo = _ref.read(cachedMediaRepositoryProvider);
 
     // PR #78：读取推荐规则偏好
     final minRating = _ref.read(recommendMinRatingProvider);
     final excludePlayed = _ref.read(recommendExcludePlayedProvider);
     final minRuntimeSec = _ref.read(recommendMinRuntimeSecProvider);
-    // PR #79：类型偏好（空集合时不过滤）
     final includeTypes = _ref.read(recommendIncludeTypesProvider);
-    // 1 tick = 100ns，秒转 tick
     final minRuntimeTicks = minRuntimeSec * 10000000;
 
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
-      state = state.copyWith(isLoading: false, hasMore: false, error: '尚未登录');
-      return;
-    }
-
-    if (selectedIds.isEmpty) {
-      state = state.copyWith(isLoading: false, hasMore: false, error: '未选择媒体库');
-      return;
-    }
-
-    final repo = _ref.read(cachedMediaRepositoryProvider);
-    // PR #79：分页 - 第一页从 0 开始
-    final seenIds = <String>{}; // 去重用（首次加载全空）
-
-    // PR #83：计算用户行为信号（基于完播率历史）
-    // - 冷启动（记录 < 5）使用默认信号
-    // - 否则按 source 聚合完播率，计算权重 + 黑名单 + 高完播种子
-    // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
-    // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
-    // PR #88：读取用户控制 - 反推荐疲劳（开关 + 已展示 itemIds）
-    // PR #89：读取用户控制 - 用户评分加权（开关 + 最低阈值）
-    final stats = _ref.read(watchStatsProvider);
-    final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
-    final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
-    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+    // PR #88：取最近展示记录
     final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
-    // PR #88：取最近展示记录（注意：days 用于按期过期判断，本 PR 暂未在 AppPreferences
-    // 保存时间戳，统一用 Set<String> 简化；后续可扩展为 Map<itemId, shownAt>）
     final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
-    // PR #89：用户评分加权 - 关闭时不应用用户评分过滤
+    // PR #89：用户评分加权
     final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
     final userRatingMin = _ref.read(recommendUserRatingMinProvider);
-    final signal = UserBehaviorSignalCalculator.compute(
-      stats.records,
-      useWatchHistory: useWatchHistory,
-      halfLifeDays: halfLifeDays,
-      favoriteIds: favoriteIds,
-    );
+    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+
+    // PR #83 优化：从 userBehaviorSignalProvider 读取缓存，避免每次重算
+    final signal = _ref.read(userBehaviorSignalProvider);
+
     if (signal.strength != SignalStrength.weak) {
       AppLogger.debug('推荐：用户行为信号', data: {
         'strength': signal.strength.name,
@@ -276,46 +316,64 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       });
     }
 
-    // PR #73：过滤非视频类型 item
-    // 修复 Emby Suggestions API 返回 Tag/Genre 类型字段导致推荐页显示非视频的问题
-    const allowedTypes = <String>{
-      'Movie',
-      'Episode',
-      'Video',
-      'MusicVideo',
-      'Series',
-    };
-    bool isVideo(MediaItem item) => allowedTypes.contains(item.type);
-
-    // PR #78：时长过滤（避免测试片/预告片污染推荐）
-    // 0 表示不过滤
-    bool isTooShort(MediaItem item) {
-      if (minRuntimeSec == 0) return false;
-      final ticks = item.runtimeTicks;
-      if (ticks == null) return false; // 无时长信息：保留
-      return ticks < minRuntimeTicks;
-    }
-
-    // PR #79：抽离核心加载逻辑，支持分页
-    // PR #83：传入 signal 用于门控
-    // 返回该页拉到的所有新项（去重后）
-    final newItems = await _loadPage(
-      repo: repo,
+    return _LoadContext(
       auth: auth,
       selectedIds: selectedIds,
+      repo: repo,
       minRating: minRating,
       excludePlayed: excludePlayed,
       includeTypes: includeTypes,
       minRuntimeSec: minRuntimeSec,
-      isTooShort: isTooShort,
-      isVideo: isVideo,
-      seenIds: seenIds,
+      minRuntimeTicks: minRuntimeTicks,
       signal: signal,
-      favoriteIds: favoriteIds, // PR #86
-      antiFatigueEnabled: antiFatigueEnabled, // PR #88
-      recentlyShownIds: recentlyShownIds, // PR #88
-      userRatingEnabled: userRatingEnabled, // PR #89
-      userRatingMin: userRatingMin, // PR #89
+      favoriteIds: favoriteIds,
+      antiFatigueEnabled: antiFatigueEnabled,
+      recentlyShownIds: recentlyShownIds,
+      userRatingEnabled: userRatingEnabled,
+      userRatingMin: userRatingMin,
+    );
+  }
+
+  // 记录反推荐疲劳的展示记录
+  void _recordRecentlyShownItems(
+    Iterable<String> itemIds,
+    bool antiFatigueEnabled,
+  ) {
+    if (antiFatigueEnabled && itemIds.isNotEmpty) {
+      unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(itemIds));
+    }
+  }
+
+  // 服务端单次上限（避免一次拉太多）
+  Future<void> load() async {
+    if (_isLoading) return;
+    _isLoading = true;
+    try {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final ctx = _buildLoadContext();
+    if (ctx == null) {
+      final auth = _ref.read(authProvider);
+      final selectedIds = _ref.read(recommendLibraryIdsProvider);
+      if (!auth.isAuthenticated ||
+          auth.embyServerUrl == null ||
+          auth.token == null) {
+        state = state.copyWith(isLoading: false, hasMore: false, error: '尚未登录');
+        return;
+      }
+      if (selectedIds.isEmpty) {
+        state = state.copyWith(isLoading: false, hasMore: false, error: '未选择媒体库');
+        return;
+      }
+      return;
+    }
+
+    final seenIds = <String>{};
+
+    // PR #79：抽离核心加载逻辑，支持分页
+    final newItems = await _loadPage(
+      ctx: ctx,
+      seenIds: seenIds,
     );
 
     // 冷启动判定：建议数据源 + Resume 都为空
@@ -323,165 +381,94 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         newItems.resumeCount == 0;
 
     // PR #79：首次加载启用冷启动降级
+    List<RecommendItem> finalTagged = newItems.tagged;
     if (isColdStart) {
       AppLogger.info('推荐：冷启动模式，评分阈值降级');
-      final degradedRating = minRating > 3.0 ? 3.0 : minRating;
-      // 把降级拉到的新项也并入 merged（PR #80：同时合并 tagged）
+      final degradedRating = ctx.minRating > 3.0 ? 3.0 : ctx.minRating;
       final degradedItems = await _loadRecommendations(
-        repo: repo,
-        auth: auth,
-        selectedIds: selectedIds,
+        ctx: ctx,
         minCommunityRating: degradedRating,
-        excludePlayed: excludePlayed,
-        includeTypes: includeTypes,
-        minRuntimeSec: minRuntimeSec,
-        isTooShort: isTooShort,
         seenIds: seenIds,
-        signal: signal,
       );
-      newItems.merged.addAll(degradedItems.map((r) => r.item));
-      newItems.tagged.addAll(degradedItems);
+      finalTagged = [...finalTagged, ...degradedItems];
     }
 
     // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
-    final hasMore = newItems.merged.length >= _pageSize;
+    final hasMore = finalTagged.length >= _pageSize;
 
     state = _withDerived(state.copyWith(
-      items: newItems.merged,
-      taggedItems: newItems.tagged,
+      taggedItems: finalTagged,
       isLoading: false,
       hasMore: hasMore,
-      offset: newItems.merged.length,
+      offset: finalTagged.length,
       error: null,
-      isColdStart: isColdStart && newItems.merged.length < _pageSize ~/ 2,
+      isColdStart: isColdStart && finalTagged.length < _pageSize ~/ 2,
     ));
     // PR #88：记录展示过的 itemId（用于反推荐疲劳）
-    // - 反疲劳开启时记录
-    // - 不阻塞主流程
-    if (antiFatigueEnabled && newItems.merged.isNotEmpty) {
-      // 异步记录（不 await）
-      unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(
-            newItems.merged.map((i) => i.id),
-          ));
-    }
+    _recordRecentlyShownItems(
+      finalTagged.map((r) => r.item.id),
+      ctx.antiFatigueEnabled,
+    );
     AppLogger.debug('推荐列表加载完成', data: {
-      'count': newItems.merged.length,
-      'minRating': minRating,
-      'excludePlayed': excludePlayed,
-      'minRuntimeSec': minRuntimeSec,
-      'includeTypes': includeTypes.toList(),
+      'count': finalTagged.length,
+      'minRating': ctx.minRating,
+      'excludePlayed': ctx.excludePlayed,
+      'minRuntimeSec': ctx.minRuntimeSec,
+      'includeTypes': ctx.includeTypes.toList(),
       'isColdStart': isColdStart,
       'hasMore': hasMore,
     });
+    } finally {
+      _isLoading = false;
+    }
   }
 
   /// PR #79：分页加载下一页
-  /// 复用 5 数据源逻辑，结果去重后 append 到 state.items
+  /// 复用 5 数据源逻辑，结果去重后 append 到 state.taggedItems
   Future<void> loadMore() async {
+    if (_isLoading) return;
     if (state.isLoadingMore || !state.hasMore) return;
+    _isLoading = true;
+    try {
     state = state.copyWith(isLoadingMore: true);
 
-    final auth = _ref.read(authProvider);
-    final selectedIds = _ref.read(recommendLibraryIdsProvider);
-    final minRating = _ref.read(recommendMinRatingProvider);
-    final excludePlayed = _ref.read(recommendExcludePlayedProvider);
-    final minRuntimeSec = _ref.read(recommendMinRuntimeSecProvider);
-    final includeTypes = _ref.read(recommendIncludeTypesProvider);
-    final minRuntimeTicks = minRuntimeSec * 10000000;
-
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
-      state = state.copyWith(isLoadingMore: false, hasMore: false);
-      return;
-    }
-    if (selectedIds.isEmpty) {
+    final ctx = _buildLoadContext();
+    if (ctx == null) {
       state = state.copyWith(isLoadingMore: false, hasMore: false);
       return;
     }
 
-    final repo = _ref.read(cachedMediaRepositoryProvider);
     // PR #79：从已显示的 items 构建 seenIds（去重）
-    final seenIds = state.items.map((i) => i.id).toSet();
-
-    // PR #83：计算用户行为信号
-    // PR #85：读取用户控制 - 完播率门控开关 + 时间衰减半衰期
-    // PR #86：读取用户收藏 - 用于种子 + 黑名单豁免
-    // PR #88：读取反推荐疲劳（开关 + 已展示 itemIds）
-    // PR #89：读取用户评分加权（开关 + 最低阈值）
-    final stats = _ref.read(watchStatsProvider);
-    final useWatchHistory = _ref.read(recommendUseWatchHistoryProvider);
-    final halfLifeDays = _ref.read(recommendHalfLifeDaysProvider);
-    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
-    final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
-    final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
-    // PR #89：用户评分加权 - 关闭时不应用用户评分过滤
-    final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
-    final userRatingMin = _ref.read(recommendUserRatingMinProvider);
-    final signal = UserBehaviorSignalCalculator.compute(
-      stats.records,
-      useWatchHistory: useWatchHistory,
-      halfLifeDays: halfLifeDays,
-      favoriteIds: favoriteIds,
-    );
-
-    const allowedTypes = <String>{
-      'Movie',
-      'Episode',
-      'Video',
-      'MusicVideo',
-      'Series',
-    };
-    bool isVideo(MediaItem item) => allowedTypes.contains(item.type);
-    bool isTooShort(MediaItem item) {
-      if (minRuntimeSec == 0) return false;
-      final ticks = item.runtimeTicks;
-      if (ticks == null) return false;
-      return ticks < minRuntimeTicks;
-    }
+    final seenIds = state.taggedItems.map((r) => r.item.id).toSet();
 
     final newItems = await _loadPage(
-      repo: repo,
-      auth: auth,
-      selectedIds: selectedIds,
-      minRating: minRating,
-      excludePlayed: excludePlayed,
-      includeTypes: includeTypes,
-      minRuntimeSec: minRuntimeSec,
-      isTooShort: isTooShort,
-      isVideo: isVideo,
+      ctx: ctx,
       seenIds: seenIds,
-      signal: signal,
-      favoriteIds: favoriteIds, // PR #86
-      antiFatigueEnabled: antiFatigueEnabled, // PR #88
-      recentlyShownIds: recentlyShownIds, // PR #88
-      userRatingEnabled: userRatingEnabled, // PR #89
-      userRatingMin: userRatingMin, // PR #89
     );
 
-    final merged = [...state.items, ...newItems.merged];
-    final taggedMerged = [...state.taggedItems, ...newItems.tagged];
+    final merged = [...state.taggedItems, ...newItems.tagged];
     // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
-    final hasMore = newItems.merged.length >= _pageSize;
+    final hasMore = newItems.tagged.length >= _pageSize;
 
     state = _withDerived(state.copyWith(
-      items: merged,
-      taggedItems: taggedMerged,
+      taggedItems: merged,
       isLoadingMore: false,
       hasMore: hasMore,
       offset: merged.length,
     ));
     // PR #88：记录新展示的 itemId
-    if (antiFatigueEnabled && newItems.merged.isNotEmpty) {
-      unawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(
-            newItems.merged.map((i) => i.id),
-          ));
-    }
+    _recordRecentlyShownItems(
+      newItems.tagged.map((r) => r.item.id),
+      ctx.antiFatigueEnabled,
+    );
     AppLogger.debug('推荐 loadMore 完成', data: {
-      'newCount': newItems.merged.length,
+      'newCount': newItems.tagged.length,
       'total': merged.length,
       'hasMore': hasMore,
     });
+    } finally {
+      _isLoading = false;
+    }
   }
 
   // PR #79：抽离 - 拉一页（5 数据源 + round-robin）
@@ -490,40 +477,22 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #86：favoriteIds 传入 - 黑名单跳过收藏
   // PR #88：antiFatigueEnabled + recentlyShownIds 传入 - X 天内不重推
   // PR #89：userRatingEnabled + userRatingMin 传入 - 用户评分 < 阈值跳过
-  // 返回 _PageLoadResult，包含 merged 列表（去重 round-robin 后的纯 MediaItem）
-  // + taggedList（与 merged 一一对应的带 source 标签的 RecommendItem）
+  // 返回 _PageLoadResult，包含 taggedList（带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
   Future<_PageLoadResult> _loadPage({
-    required MediaRepository repo,
-    required AuthState auth,
-    required List<String> selectedIds,
-    required double minRating,
-    required bool excludePlayed,
-    required Set<String> includeTypes,
-    required int minRuntimeSec,
-    required bool Function(MediaItem) isTooShort,
-    required bool Function(MediaItem) isVideo,
+    required _LoadContext ctx,
     required Set<String> seenIds,
-    required UserBehaviorSignal signal,
-    required Set<String> favoriteIds, // PR #86
-    required bool antiFatigueEnabled, // PR #88
-    required Set<String> recentlyShownIds, // PR #88
-    required bool userRatingEnabled, // PR #89
-    required double userRatingMin, // PR #89
   }) async {
-    // 提前提取非空值，避免方法内反复使用 !
-    final serverUrl = auth.embyServerUrl;
-    final token = auth.token;
-    final userId = auth.user?.id;
+    final serverUrl = ctx.auth.embyServerUrl;
+    final token = ctx.auth.token;
+    final userId = ctx.auth.user?.id;
     if (serverUrl == null || token == null) {
       return const _PageLoadResult(
-        merged: [],
         tagged: [],
         nextUpCount: 0,
         resumeCount: 0,
       );
     }
-    // PR #80：队列存 RecommendItem 而非 MediaItem，保留 source 信息
     final queues = <String, List<RecommendItem>>{
       _sourceNextUp: <RecommendItem>[],
       _sourceResume: <RecommendItem>[],
@@ -532,280 +501,403 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceSimilar: <RecommendItem>[],
     };
 
-    // PR #83：黑名单过滤辅助 - 已加入黑名单的 item 跳过
-    // PR #86：收藏项不应用黑名单（用户主动喜欢 > 系统推断不爱看）
-    // PR #88：最近展示过的 itemId 跳过（X 天内不重推）
-    bool isBlacklisted(MediaItem item) =>
-        signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
-
-    // PR #88：反推荐疲劳 - X 天内展示过的 item 跳过
-    // - 关闭时不跳过
-    // - 收藏项不受反推荐疲劳影响（用户主动喜欢 > 防疲劳）
-    bool isRecentlyShown(MediaItem item) =>
-        antiFatigueEnabled &&
-        recentlyShownIds.contains(item.id) &&
-        !favoriteIds.contains(item.id);
-
-    // PR #89：用户评分加权 - 用户评分 < 阈值的 item 跳过
-    // - 仅对"用户有评分"的 item 应用（null = 用户未评分，按原逻辑走）
-    // - 收藏项不受影响（用户主动喜欢 > 用户评分低）
-    // - userRatingMin == 0 时关闭该过滤
-    bool isUserRatingLow(MediaItem item) {
-      if (!userRatingEnabled) return false;
-      if (userRatingMin <= 0) return false;
-      if (favoriteIds.contains(item.id)) return false;
-      final ur = item.userRating;
-      if (ur == null) return false; // 用户未评分 = 不过滤
-      return ur < userRatingMin;
-    }
-
-    // 合并过滤：黑名单 + 最近展示 + 用户评分低
-    bool shouldSkip(MediaItem item) =>
-        isBlacklisted(item) || isRecentlyShown(item) || isUserRatingLow(item);
-
-    Future<void> fetchNextUp() async {
-      try {
-        final resp = await repo.getNextUp(
-          limit: _pageSize,
-          serverUrl: serverUrl,
-          token: token,
-        );
-        final nextUpQueue = queues[_sourceNextUp];
-        for (final item in resp.items) {
-          if (!isVideo(item) || isTooShort(item)) continue;
-          if (shouldSkip(item)) continue; // PR #83+#88
-          nextUpQueue?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
-        }
-      } catch (e) {
-        AppLogger.error('推荐：加载 NextUp 失败', error: e);
-      }
-    }
-
-    Future<void> fetchResume() async {
-      try {
-        final resp = await repo.getResumeItems(
-          limit: _pageSize,
-          serverUrl: serverUrl,
-          token: token,
-        );
-        final resumeQueue = queues[_sourceResume];
-        for (final item in resp.items) {
-          if (!isVideo(item) || isTooShort(item)) continue;
-          if (shouldSkip(item)) continue; // PR #83+#88
-          resumeQueue?.add(RecommendItem(item: item, source: RecommendSource.resume));
-        }
-      } catch (e) {
-        AppLogger.error('推荐：加载 Resume 失败', error: e);
-      }
-    }
-
-    // PR #87：系列追剧优先
-    // - 从 watch history 找最近看过的 N 个 series
-    // - 对每个 series 调用 getNextUp(seriesId: ...) 拉该 series 的下一集
-    // - 合并到 _sourceNextUp 队列前面（先于 fetchNextUp 的结果）
-    // 价值：如果 Emby server 端 NextUp 数量少（< 5），客户端可补全
-    //   - 追剧党最爱：用户看完一集后立即看到下一集
-    //   - 与 fetchNextUp 不重复：round-robin 用 seenIds 去重
-    Future<void> fetchNextUpByRecentSeries() async {
-      try {
-        // 限制最近看过的 N=3 个 series，避免 API 调用过多
-        const int _recentSeriesLimit = 3;
-        final history = await repo.getWatchHistory(
-          limit: 50, // 拉少量 history 即可（去重后取前 N）
-          userId: userId,
-          serverUrl: serverUrl,
-          token: token,
-        );
-        // 提取最近看过的 series（按 DatePlayed 倒序，watch history 已按此排序）
-        final seenSeriesIds = <String>{};
-        final recentSeriesIds = <String>[];
-        for (final item in history) {
-          final sid = item.seriesId;
-          if (sid == null || sid.isEmpty) continue;
-          if (seenSeriesIds.contains(sid)) continue;
-          seenSeriesIds.add(sid);
-          recentSeriesIds.add(sid);
-          if (recentSeriesIds.length >= _recentSeriesLimit) break;
-        }
-        if (recentSeriesIds.isEmpty) return;
-
-        // 并行拉每个 series 的下一集
-        final nextUpLists = await Future.wait(recentSeriesIds.map((sid) async {
-          try {
-            final resp = await repo.getNextUp(
-              limit: 3, // 每个 series 最多 3 集
-              seriesId: sid,
-              serverUrl: serverUrl,
-              token: token,
-            );
-            return resp.items;
-          } catch (e) {
-            AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
-            return <MediaItem>[];
-          }
-        }));
-
-        // 合并到 _sourceNextUp 队列前面
-        // 注：先排序（按 season + index），再批量插入队首，保证同 series 内顺序
-        for (final list in nextUpLists) {
-          final sorted = List<MediaItem>.from(list)
-            ..sort((a, b) {
-              final sa = a.parentIndexNumber ?? 0;
-              final sb = b.parentIndexNumber ?? 0;
-              if (sa != sb) return sa.compareTo(sb);
-              return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
-            });
-          final nextUpQueueForInsert = queues[_sourceNextUp];
-          for (final item in sorted) {
-            if (!isVideo(item) || isTooShort(item)) continue;
-            if (shouldSkip(item)) continue; // PR #83+#88
-            nextUpQueueForInsert?.insert(
-              0, // 插到队首，优先于 fetchNextUp 拉到的项
-              RecommendItem(item: item, source: RecommendSource.nextUp),
-            );
-          }
-        }
-      } catch (e) {
-        AppLogger.error('推荐：NextUp by series 流程失败', error: e);
-      }
-    }
-
-    Future<void> fetchSuggestions() async {
-      try {
-        final suggestions = await repo.getSuggestions(
-          limit: _pageSize,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-        );
-        final suggestionsQueue = queues[_sourceSuggestions];
-        for (final item in suggestions) {
-          if (!isVideo(item) || isTooShort(item)) continue;
-          if (shouldSkip(item)) continue; // PR #83+#88
-          suggestionsQueue?.add(
-              RecommendItem(item: item, source: RecommendSource.suggestions));
-        }
-      } catch (e) {
-        AppLogger.error('推荐：加载个性化推荐失败', error: e);
-      }
-    }
-
-    // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
-    // - signal.highCompletionSeeds 不为空：从中筛 communityRating >= 7.0 的项
-    // - 为空：降级用"最近高分项"（与 PR #78 一致）
-    // PR #86：收藏项优先作为相似种子
-    // - 收藏种子从 watch history 中筛（确保有 communityRating 字段）
-    // - 合并顺序：收藏 > 完播 > 降级（去重）
-    Future<void> fetchSimilarFromRecentHighRated() async {
-      try {
-        final history = await repo.getWatchHistory(
-          limit: 200, // 拉多些，方便筛选
-          userId: userId,
-          serverUrl: serverUrl,
-          token: token,
-        );
-        // PR #86：合并相似种子 - 收藏 > 完播 > 降级
-        final seedByItemId = <String, MediaItem>{};
-
-        // 1. 收藏种子（PR #86）：用户主动标记喜欢的项
-        if (signal.favoriteSeeds.isNotEmpty) {
-          final favoriteSet = signal.favoriteSeeds.toSet();
-          for (final item in history) {
-            if (favoriteSet.contains(item.id)) {
-              seedByItemId[item.id] = item;
-            }
-          }
-        }
-
-        // 2. 完播种子（PR #83）：用户在历史中完播率高的项
-        if (signal.highCompletionSeeds.isNotEmpty) {
-          final completionSet = signal.highCompletionSeeds.toSet();
-          for (final item in history) {
-            // 已存在的（来自收藏）跳过 - 保留收藏优先
-            if (seedByItemId.containsKey(item.id)) continue;
-            if (completionSet.contains(item.id)) {
-              seedByItemId[item.id] = item;
-            }
-          }
-        }
-
-        // 3. 降级：最近高分项（PR #78 行为，仅在种子不足时填充）
-        if (seedByItemId.isEmpty) {
-          for (final item in history) {
-            if ((item.communityRating ?? 0) >= _similarSeedMinRating) {
-              seedByItemId.putIfAbsent(item.id, () => item);
-            }
-          }
-        }
-
-        // 取 Top N 评分项
-        final highRated = seedByItemId.values
-            .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
-            .toList()
-          ..sort((a, b) =>
-              (b.communityRating ?? 0).compareTo(a.communityRating ?? 0));
-        final topSeeds = highRated.take(_similarSeedCount).toList();
-        if (topSeeds.isEmpty) {
-          return;
-        }
-        final similarLists = await Future.wait(topSeeds.map((seed) async {
-          try {
-            return await repo.getSimilarItems(
-              seed.id,
-              limit: _similarPerSeed,
-              serverUrl: serverUrl,
-              token: token,
-            );
-          } catch (e) {
-            AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
-            return <MediaItem>[];
-          }
-        }));
-        for (final list in similarLists) {
-          final similarQueue = queues[_sourceSimilar];
-          for (final item in list) {
-            if (!isVideo(item) || isTooShort(item)) continue;
-            if (shouldSkip(item)) continue; // PR #83+#88
-            similarQueue?.add(RecommendItem(item: item, source: RecommendSource.similar));
-          }
-        }
-      } catch (e) {
-        AppLogger.error('推荐：Similar 流程失败', error: e);
-      }
-    }
-
     await Future.wait([
-      fetchNextUp(),
-      fetchResume(),
-      // PR #87：系列追剧优先 - 拉最近看过的 series 的下一集
-      // 与 fetchNextUp 并行，重复项由 round-robin seenIds 去重
-      fetchNextUpByRecentSeries(),
-      fetchSuggestions(),
-      fetchSimilarFromRecentHighRated(),
-      ..._fetchRecommendations(
-        repo: repo,
-        auth: auth,
-        selectedIds: selectedIds,
-        minCommunityRating: minRating,
-        excludePlayed: excludePlayed,
-        includeTypes: includeTypes,
-        isTooShort: isTooShort,
-        seenIds: seenIds,
-        queues: queues,
-        signal: signal,
-      ),
+      _fetchNextUpQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
+      _fetchResumeQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
+      _fetchNextUpByRecentSeries(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
+      _fetchSuggestionsQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
+      _fetchSimilarQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
+      _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
     ]);
 
-    // round-robin（PR #83：按 source weight 调整每轮取几项）
+    return _mergeRoundRobin(
+      queues: queues,
+      signal: ctx.signal,
+      seenIds: seenIds,
+    );
+  }
+
+  // 填充 NextUp 追剧队列
+  Future<void> _fetchNextUpQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+  }) async {
+    try {
+      final resp = await ctx.repo.getNextUp(
+        limit: _pageSize,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final nextUpQueue = queues[_sourceNextUp];
+      for (final item in resp.items) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        if (_shouldSkipItem(
+          item,
+          signal: ctx.signal,
+          favoriteIds: ctx.favoriteIds,
+          antiFatigueEnabled: ctx.antiFatigueEnabled,
+          recentlyShownIds: ctx.recentlyShownIds,
+          userRatingEnabled: ctx.userRatingEnabled,
+          userRatingMin: ctx.userRatingMin,
+        )) continue;
+        nextUpQueue?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
+      }
+    } catch (e) {
+      AppLogger.error('推荐：加载 NextUp 失败', error: e);
+    }
+  }
+
+  // 填充 Resume 续看队列
+  Future<void> _fetchResumeQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+  }) async {
+    try {
+      final resp = await ctx.repo.getResumeItems(
+        limit: _pageSize,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final resumeQueue = queues[_sourceResume];
+      for (final item in resp.items) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        if (_shouldSkipItem(
+          item,
+          signal: ctx.signal,
+          favoriteIds: ctx.favoriteIds,
+          antiFatigueEnabled: ctx.antiFatigueEnabled,
+          recentlyShownIds: ctx.recentlyShownIds,
+          userRatingEnabled: ctx.userRatingEnabled,
+          userRatingMin: ctx.userRatingMin,
+        )) continue;
+        resumeQueue?.add(RecommendItem(item: item, source: RecommendSource.resume));
+      }
+    } catch (e) {
+      AppLogger.error('推荐：加载 Resume 失败', error: e);
+    }
+  }
+
+  // PR #87：从最近看过的 series 拉下一集，插入到 NextUp 队列前面
+  // 修复 P0-3：收集所有下一集后一次性插入队首，保证最近观看优先
+  Future<void> _fetchNextUpByRecentSeries({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    try {
+      const int recentSeriesLimit = 3;
+      final history = await ctx.repo.getWatchHistory(
+        limit: 50,
+        userId: userId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final seenSeriesIds = <String>{};
+      final recentSeriesIds = <String>[];
+      for (final item in history) {
+        final sid = item.seriesId;
+        if (sid == null || sid.isEmpty) continue;
+        if (seenSeriesIds.contains(sid)) continue;
+        seenSeriesIds.add(sid);
+        recentSeriesIds.add(sid);
+        if (recentSeriesIds.length >= recentSeriesLimit) break;
+      }
+      if (recentSeriesIds.isEmpty) return;
+
+      // 并发限制：最多同时请求 _maxConcurrentRequests 个 series
+      final tasks = recentSeriesIds.map((sid) => () async {
+        try {
+          final resp = await ctx.repo.getNextUp(
+            limit: 3,
+            seriesId: sid,
+            serverUrl: serverUrl,
+            token: token,
+          );
+          return resp.items;
+        } catch (e) {
+          AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
+          return <MediaItem>[];
+        }
+      }).toList();
+      final nextUpLists = await _runWithConcurrencyLimit(tasks);
+
+      // P0-3 修复：一次性收集所有下一集后插入队首
+      // 遍历顺序 = recentSeriesIds 顺序（最近观看优先），同 series 内按 season+index 排序
+      final allNextUp = <RecommendItem>[];
+      for (final list in nextUpLists) {
+        final sorted = List<MediaItem>.from(list)
+          ..sort((a, b) {
+            final sa = a.parentIndexNumber ?? 0;
+            final sb = b.parentIndexNumber ?? 0;
+            if (sa != sb) return sa.compareTo(sb);
+            return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
+          });
+        for (final item in sorted) {
+          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+          if (_shouldSkipItem(
+            item,
+            signal: ctx.signal,
+            favoriteIds: ctx.favoriteIds,
+            antiFatigueEnabled: ctx.antiFatigueEnabled,
+            recentlyShownIds: ctx.recentlyShownIds,
+            userRatingEnabled: ctx.userRatingEnabled,
+            userRatingMin: ctx.userRatingMin,
+          )) continue;
+          allNextUp.add(RecommendItem(item: item, source: RecommendSource.nextUp));
+        }
+      }
+      if (allNextUp.isNotEmpty) {
+        final nextUpQueue = queues[_sourceNextUp];
+        nextUpQueue?.insertAll(0, allNextUp);
+      }
+    } catch (e) {
+      AppLogger.error('推荐：NextUp by series 流程失败', error: e);
+    }
+  }
+
+  // 填充个性化推荐队列
+  Future<void> _fetchSuggestionsQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    try {
+      final suggestions = await ctx.repo.getSuggestions(
+        limit: _pageSize,
+        serverUrl: serverUrl,
+        token: token,
+        userId: userId,
+      );
+      final suggestionsQueue = queues[_sourceSuggestions];
+      for (final item in suggestions) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        if (_shouldSkipItem(
+          item,
+          signal: ctx.signal,
+          favoriteIds: ctx.favoriteIds,
+          antiFatigueEnabled: ctx.antiFatigueEnabled,
+          recentlyShownIds: ctx.recentlyShownIds,
+          userRatingEnabled: ctx.userRatingEnabled,
+          userRatingMin: ctx.userRatingMin,
+        )) continue;
+        suggestionsQueue?.add(
+            RecommendItem(item: item, source: RecommendSource.suggestions));
+      }
+    } catch (e) {
+      AppLogger.error('推荐：加载个性化推荐失败', error: e);
+    }
+  }
+
+  // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
+  // PR #86：收藏项优先作为相似种子
+  Future<void> _fetchSimilarQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    try {
+      final history = await ctx.repo.getWatchHistory(
+        limit: 200,
+        userId: userId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final seedByItemId = <String, MediaItem>{};
+
+      // 1. 收藏种子（PR #86）
+      if (ctx.signal.favoriteSeeds.isNotEmpty) {
+        final favoriteSet = ctx.signal.favoriteSeeds.toSet();
+        for (final item in history) {
+          if (favoriteSet.contains(item.id)) {
+            seedByItemId[item.id] = item;
+          }
+        }
+      }
+
+      // 2. 完播种子（PR #83）
+      if (ctx.signal.highCompletionSeeds.isNotEmpty) {
+        final completionSet = ctx.signal.highCompletionSeeds.toSet();
+        for (final item in history) {
+          if (seedByItemId.containsKey(item.id)) continue;
+          if (completionSet.contains(item.id)) {
+            seedByItemId[item.id] = item;
+          }
+        }
+      }
+
+      // 3. 降级：最近高分项
+      if (seedByItemId.isEmpty) {
+        for (final item in history) {
+          if ((item.communityRating ?? 0) >= _similarSeedMinRating) {
+            seedByItemId.putIfAbsent(item.id, () => item);
+          }
+        }
+      }
+
+      final highRated = seedByItemId.values
+          .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
+          .toList()
+        ..sort((a, b) =>
+            (b.communityRating ?? 0).compareTo(a.communityRating ?? 0));
+      final topSeeds = highRated.take(_similarSeedCount).toList();
+      if (topSeeds.isEmpty) {
+        return;
+      }
+      // 并发限制：最多同时请求 _maxConcurrentRequests 个种子
+      final tasks = topSeeds.map((seed) => () async {
+        try {
+          return await ctx.repo.getSimilarItems(
+            seed.id,
+            limit: _similarPerSeed,
+            serverUrl: serverUrl,
+            token: token,
+          );
+        } catch (e) {
+          AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
+          return <MediaItem>[];
+        }
+      }).toList();
+      final similarLists = await _runWithConcurrencyLimit(tasks);
+      for (final list in similarLists) {
+        final similarQueue = queues[_sourceSimilar];
+        for (final item in list) {
+          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+          if (_shouldSkipItem(
+            item,
+            signal: ctx.signal,
+            favoriteIds: ctx.favoriteIds,
+            antiFatigueEnabled: ctx.antiFatigueEnabled,
+            recentlyShownIds: ctx.recentlyShownIds,
+            userRatingEnabled: ctx.userRatingEnabled,
+            userRatingMin: ctx.userRatingMin,
+          )) continue;
+          similarQueue?.add(RecommendItem(item: item, source: RecommendSource.similar));
+        }
+      }
+    } catch (e) {
+      AppLogger.error('推荐：Similar 流程失败', error: e);
+    }
+  }
+
+  // 填充多库高分推荐队列
+  Future<void> _fetchRecommendationsQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required Set<String> seenIds,
+  }) async {
+    final serverUrl = ctx.auth.embyServerUrl;
+    final token = ctx.auth.token;
+    final userId = ctx.auth.user?.id;
+    if (serverUrl == null || token == null) return;
+    // 并发限制：最多同时请求 _maxConcurrentRequests 个库
+    final tasks = ctx.selectedIds.map((libId) => () async {
+      try {
+        final resp = await ctx.repo.getRecommendations(
+          libraryId: libId,
+          limit: _pageSize,
+          offset: 0,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+          minCommunityRating: ctx.minRating,
+          excludePlayed: ctx.excludePlayed,
+          includeItemTypes: ctx.includeTypes,
+        );
+        for (final item in resp.items) {
+          if (ctx.isTooShort(item)) continue;
+          if (_shouldSkipItem(
+            item,
+            signal: ctx.signal,
+            favoriteIds: ctx.favoriteIds,
+            antiFatigueEnabled: ctx.antiFatigueEnabled,
+            recentlyShownIds: ctx.recentlyShownIds,
+            userRatingEnabled: ctx.userRatingEnabled,
+            userRatingMin: ctx.userRatingMin,
+          )) continue;
+          if (seenIds.add(item.id)) {
+            queues[_sourceRecommendations]?.add(RecommendItem(
+                item: item, source: RecommendSource.recommendations));
+          }
+        }
+      } catch (e) {
+        AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
+      }
+    }).toList();
+    await _runWithConcurrencyLimit(tasks);
+  }
+
+  // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
+  // PR #80：返回带 source 标签的 RecommendItem 列表
+  // PR #83+#88+#89：完整过滤（黑名单 + 反疲劳 + 用户评分低）
+  Future<List<RecommendItem>> _loadRecommendations({
+    required _LoadContext ctx,
+    required double minCommunityRating,
+    required Set<String> seenIds,
+  }) async {
+    final serverUrl = ctx.auth.embyServerUrl;
+    final token = ctx.auth.token;
+    final userId = ctx.auth.user?.id;
+    if (serverUrl == null || token == null) return [];
+    final results = <RecommendItem>[];
+    // 并发限制：最多同时请求 _maxConcurrentRequests 个库
+    final tasks = ctx.selectedIds.map((libId) => () async {
+      try {
+        final resp = await ctx.repo.getRecommendations(
+          libraryId: libId,
+          limit: _pageSize,
+          offset: 0,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+          minCommunityRating: minCommunityRating,
+          excludePlayed: ctx.excludePlayed,
+          includeItemTypes: ctx.includeTypes,
+        );
+        for (final item in resp.items) {
+          if (ctx.isTooShort(item)) continue;
+          if (_shouldSkipItem(
+            item,
+            signal: ctx.signal,
+            favoriteIds: ctx.favoriteIds,
+            antiFatigueEnabled: ctx.antiFatigueEnabled,
+            recentlyShownIds: ctx.recentlyShownIds,
+            userRatingEnabled: ctx.userRatingEnabled,
+            userRatingMin: ctx.userRatingMin,
+          )) continue;
+          if (seenIds.add(item.id)) {
+            results.add(RecommendItem(
+                item: item, source: RecommendSource.recommendations));
+          }
+        }
+      } catch (e) {
+        AppLogger.error('推荐：冷启动降级加载失败', error: e);
+      }
+    }).toList();
+    await _runWithConcurrencyLimit(tasks);
+    return results;
+  }
+
+  // round-robin 合并各队列，按 source 权重分配配额
+  _PageLoadResult _mergeRoundRobin({
+    required Map<String, List<RecommendItem>> queues,
+    required UserBehaviorSignal signal,
+    required Set<String> seenIds,
+  }) {
     for (final list in queues.values) {
       list.shuffle();
     }
-    // PR #79：在 round-robin 清空队列前记录原始项数（用于 load() 冷启动检测）
     final nextUpCount = queues[_sourceNextUp]?.length ?? 0;
     final resumeCount = queues[_sourceResume]?.length ?? 0;
-    // PR #83：按 source 顺序 + 权重配额
-    // - weight >= 0.7：每轮取 round(weight) 项（clamp 1-3）
-    // - weight < 0.7：50% 概率跳过这一轮（降权源少取）
     final sourceOrder = <RecommendSource>[
       RecommendSource.nextUp,
       RecommendSource.resume,
@@ -813,35 +905,29 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       RecommendSource.similar,
       RecommendSource.recommendations,
     ];
-    final merged = <MediaItem>[];
     final tagged = <RecommendItem>[];
-    final rng = Random(); // PR #83：降权源配额随机化
+    final rng = Random();
     while (sourceOrder.any((s) => _queueOf(queues, s).isNotEmpty)) {
       for (final source in sourceOrder) {
         final q = _queueOf(queues, source);
         if (q.isEmpty) continue;
         final w = signal.weightFor(source);
-        // PR #83：权重配额
         int take;
         if (w < 0.7) {
-          // 低权重源：50% 概率跳过这一轮
           if (!rng.nextBool()) continue;
           take = 1;
         } else {
-          // 中性 / 高权重源：每轮取 round(weight) 项
           take = w.round().clamp(1, 3);
         }
         for (int i = 0; i < take && q.isNotEmpty; i++) {
           final r = q.removeAt(0);
           if (seenIds.add(r.item.id)) {
-            merged.add(r.item);
             tagged.add(r);
           }
         }
       }
     }
     return _PageLoadResult(
-      merged: merged,
       tagged: tagged,
       nextUpCount: nextUpCount,
       resumeCount: resumeCount,
@@ -867,98 +953,57 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     }
   }
 
-  // PR #79：抽离 - 多库评分推荐 future 列表
-  // PR #80：queues 改为存 RecommendItem
-  // PR #83：黑名单过滤
-  List<Future<void>> _fetchRecommendations({
-    required MediaRepository repo,
-    required AuthState auth,
-    required List<String> selectedIds,
-    required double minCommunityRating,
-    required bool excludePlayed,
-    required Set<String> includeTypes,
-    required bool Function(MediaItem) isTooShort,
-    required Set<String> seenIds,
-    required Map<String, List<RecommendItem>> queues,
-    required UserBehaviorSignal signal,
-  }) {
-    final serverUrl = auth.embyServerUrl;
-    final token = auth.token;
-    final userId = auth.user?.id;
-    if (serverUrl == null || token == null) return [];
-    return selectedIds.map((libId) {
-      return () async {
-        try {
-          final resp = await repo.getRecommendations(
-            libraryId: libId,
-            limit: _pageSize,
-            offset: 0,
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-            minCommunityRating: minCommunityRating,
-            excludePlayed: excludePlayed,
-            includeItemTypes: includeTypes,
-          );
-          for (final item in resp.items) {
-            if (isTooShort(item)) continue;
-            if (signal.blacklist.contains(item.id)) continue; // PR #83
-            queues[_sourceRecommendations]?.add(RecommendItem(
-                item: item, source: RecommendSource.recommendations));
-          }
-        } catch (e) {
-          AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
-        }
-      }();
-    }).toList();
+  // 并发限制工具：限制同时执行的异步任务数
+  // 实现思路：滑动窗口，每完成一个就补上一个，保持最多 maxConcurrent 个在跑
+  static Future<List<T>> _runWithConcurrencyLimit<T>(
+    List<Future<T> Function()> tasks, {
+    int maxConcurrent = _maxConcurrentRequests,
+  }) async {
+    if (tasks.isEmpty) return const [];
+    final results = List<T?>.filled(tasks.length, null);
+    int nextIndex = 0;
+
+    Future<void> worker() async {
+      while (true) {
+        final i = nextIndex++;
+        if (i >= tasks.length) return;
+        results[i] = await tasks[i]();
+      }
+    }
+
+    final workerCount = maxConcurrent.clamp(1, tasks.length);
+    await Future.wait(List.generate(workerCount, (_) => worker()));
+    return results.cast<T>();
   }
 
-  // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
-  // PR #80：返回带 source 标签的 RecommendItem 列表（source = recommendations）
-  // PR #83：黑名单过滤
-  Future<List<RecommendItem>> _loadRecommendations({
-    required MediaRepository repo,
-    required AuthState auth,
-    required List<String> selectedIds,
-    required double minCommunityRating,
-    required bool excludePlayed,
-    required Set<String> includeTypes,
-    required int minRuntimeSec,
-    required bool Function(MediaItem) isTooShort,
-    required Set<String> seenIds,
+  // PR #83+#88+#89：统一的 item 过滤逻辑
+  // - 黑名单（收藏豁免）
+  // - 反推荐疲劳（收藏豁免）
+  // - 用户评分低（收藏豁免）
+  // 所有数据源共用此逻辑，确保过滤一致性
+  bool _shouldSkipItem(
+    MediaItem item, {
     required UserBehaviorSignal signal,
-  }) async {
-    final serverUrl = auth.embyServerUrl;
-    final token = auth.token;
-    final userId = auth.user?.id;
-    if (serverUrl == null || token == null) return [];
-    final results = <RecommendItem>[];
-    await Future.wait(selectedIds.map((libId) async {
-      try {
-        final resp = await repo.getRecommendations(
-          libraryId: libId,
-          limit: _pageSize,
-          offset: 0,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-          minCommunityRating: minCommunityRating,
-          excludePlayed: excludePlayed,
-          includeItemTypes: includeTypes,
-        );
-        for (final item in resp.items) {
-          if (isTooShort(item)) continue;
-          if (signal.blacklist.contains(item.id)) continue; // PR #83
-          if (seenIds.add(item.id)) {
-            results.add(RecommendItem(
-                item: item, source: RecommendSource.recommendations));
-          }
-        }
-      } catch (e) {
-        AppLogger.error('推荐：冷启动降级加载失败', error: e);
-      }
-    }));
-    return results;
+    required Set<String> favoriteIds,
+    required bool antiFatigueEnabled,
+    required Set<String> recentlyShownIds,
+    required bool userRatingEnabled,
+    required double userRatingMin,
+  }) {
+    final isBlacklisted =
+        signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
+    final isRecentlyShown = antiFatigueEnabled &&
+        recentlyShownIds.contains(item.id) &&
+        !favoriteIds.contains(item.id);
+    bool isUserRatingLow() {
+      if (!userRatingEnabled) return false;
+      if (userRatingMin <= 0) return false;
+      if (favoriteIds.contains(item.id)) return false;
+      final ur = item.userRating;
+      if (ur == null) return false;
+      return ur < userRatingMin;
+    }
+    return isBlacklisted || isRecentlyShown || isUserRatingLow();
   }
 
   /// 刷新（用户下拉刷新时调用）
@@ -969,20 +1014,18 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   /// 性能优化：为 state 补充预计算的 derived 字段
   ///
   /// 把 build 方法中的同步过滤 + 计数逻辑提前到 Provider 层：
-  /// - [displayItems]：按 selectedTag 过滤后的列表（空则回退全量）
+  /// - [displayItems]：按 selectedTag 过滤后的列表
   /// - [tagCounts]：各数据源标签的项数（用于标签栏徽标）
   ///
   /// 在 taggedItems 或 selectedTag 变化时调用，避免每次 widget rebuild
   /// 都重复执行 O(n) 的 where + map + length 操作。
   RecommendState _withDerived(RecommendState s) {
     final tag = s.selectedTag;
-    final filtered = tag == null
+    final displayItems = tag == null
         ? s.taggedItems
         : s.taggedItems
             .where((r) => r.source.key == tag)
             .toList(growable: false);
-    final displayItems =
-        filtered.isEmpty ? s.taggedItems : filtered;
 
     final tagCounts = <String, int>{};
     for (final item in s.taggedItems) {

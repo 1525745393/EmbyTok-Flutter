@@ -17,7 +17,11 @@
 
 import 'dart:math' as math;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../models/models.dart';
+import 'app_preferences_providers.dart';
+import 'favorites_provider.dart';
 import 'recommend_provider.dart' show RecommendSource;
 import 'watch_stats_provider.dart';
 
@@ -365,3 +369,30 @@ class UserBehaviorSignalCalculator {
     }
   }
 }
+
+/// PR #83 优化：独立的 userBehaviorSignalProvider
+///
+/// 将 signal 计算从 recommend_provider._buildLoadContext() 抽离出来，
+/// 作为独立的 Provider 缓存结果。好处：
+/// - 避免每次 load() / loadMore() 都重算 signal
+/// - watchStats / 收藏 / 偏好变化时自动重算
+/// - 其他模块也可以复用 signal（如调试面板）
+///
+/// 依赖：
+/// - watchStatsProvider：完播率记录
+/// - recommendUseWatchHistoryProvider：是否启用门控
+/// - recommendHalfLifeDaysProvider：时间衰减半衰期
+/// - favoritesProvider：收藏列表（黑名单豁免 + 收藏种子）
+final userBehaviorSignalProvider = Provider<UserBehaviorSignal>((ref) {
+  final watchStats = ref.watch(watchStatsProvider);
+  final useWatchHistory = ref.watch(recommendUseWatchHistoryProvider);
+  final halfLifeDays = ref.watch(recommendHalfLifeDaysProvider);
+  final favorites = ref.watch(favoritesProvider);
+
+  return UserBehaviorSignalCalculator.compute(
+    watchStats.records,
+    useWatchHistory: useWatchHistory,
+    halfLifeDays: halfLifeDays,
+    favoriteIds: favorites.favoriteIds,
+  );
+});

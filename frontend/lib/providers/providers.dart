@@ -17,6 +17,7 @@ export 'video_list_provider.dart';
 export 'video_playback_controller.dart';
 export 'item_detail_provider.dart';
 export 'recommend_provider.dart';
+export 'recommend_signals.dart';
 export '../services/video_pool_service.dart';
 
 // ---- 收藏与历史 ----

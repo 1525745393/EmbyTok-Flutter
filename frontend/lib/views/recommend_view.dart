@@ -146,10 +146,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
     // PR #79：冷启动 Banner（仅当 isColdStart=true 时显示）
     // 提示用户"先观看几个视频，推荐会更准"
-    final showColdStartBanner = state.isColdStart && state.items.isNotEmpty;
+    final showColdStartBanner = state.isColdStart && state.taggedItems.isNotEmpty;
 
     // 首次加载
-    if (state.isLoading && state.items.isEmpty) {
+    if (state.isLoading && state.taggedItems.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
       );
@@ -157,7 +157,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
     // 错误（无数据 + 错误信息）
     final errorMsg = state.error;
-    if (state.items.isEmpty && errorMsg != null) {
+    if (state.taggedItems.isEmpty && errorMsg != null) {
       return ErrorStateCard(
         title: '加载推荐失败',
         subtitle: errorMsg,
@@ -167,7 +167,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     }
 
     // 空数据
-    if (state.items.isEmpty) {
+    if (state.taggedItems.isEmpty) {
       return const EmptyStateCard(
         icon: Icons.auto_awesome,
         title: '暂无推荐',
