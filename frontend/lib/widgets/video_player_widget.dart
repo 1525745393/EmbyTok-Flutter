@@ -298,20 +298,25 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
         c.setLooping(widget.loop);
         if (mounted && !_isDisposed) {
-            setState(() {
-              _initialized = true;
-              _hasError = false;
-            });
+            // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
+            // 原顺序：setState → onControllerReady → seek → play
+            //   导致 VideoPlayer 首次构建时 controller 未播放，纹理不初始化，画面黑屏
             _applyInitialVolume(c);
-            widget.onControllerReady?.call(c);
             _autoLoadDefaultSubtitle();
             // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
             await _seekToResumePosition();
             // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
             _syncPlaybackState(c);
-            // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
-            // 立即调度释放计时器，防止 controller 永久驻留
-            _scheduleBackgroundReleaseIfNeeded();
+            if (mounted && !_isDisposed) {
+              setState(() {
+                _initialized = true;
+                _hasError = false;
+              });
+              widget.onControllerReady?.call(c);
+              // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+              // 立即调度释放计时器，防止 controller 永久驻留
+              _scheduleBackgroundReleaseIfNeeded();
+            }
           }
       }
 
@@ -364,20 +369,23 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         return;
       }
       if (mounted && !_isDisposed) {
-        setState(() {
-          _initialized = true;
-          _hasError = false;
-        });
+        // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
         _applyInitialVolume(c);
-        widget.onControllerReady?.call(c);
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
         // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
         _syncPlaybackState(c);
-        // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
-        // 立即调度释放计时器，防止 controller 永久驻留
-        _scheduleBackgroundReleaseIfNeeded();
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _initialized = true;
+            _hasError = false;
+          });
+          widget.onControllerReady?.call(c);
+          // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+          // 立即调度释放计时器，防止 controller 永久驻留
+          _scheduleBackgroundReleaseIfNeeded();
+        }
       }
     } catch (e) {
       AppLogger.debug('VideoPlayer initialization error', data: {'error': e.toString()});
