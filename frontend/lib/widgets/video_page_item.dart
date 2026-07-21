@@ -210,19 +210,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   @override
   void didUpdateWidget(covariant VideoPageItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null) {
-      // 由相邻预加载页变为当前页：补齐播放/进度上报（此前因非当前页被静音暂停）
+    if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null && _videoController!.value.isInitialized) {
       ref.read(currentVideoControllerProvider.notifier).state = _videoController;
       _startPlaybackIfCurrent();
     } else if (!widget.isCurrentPage && oldWidget.isCurrentPage) {
-      // 由当前页变为非当前页：停止进度上报定时器，避免持续向 Emby 发送无效进度
       _progressTimer?.cancel();
       _progressTimer = null;
-      // 上报一次 Pause 事件，确保 Emby 收到最新播放进度
       if (_hasStartedReported && !_hasStoppedReported) {
         _reportPlaybackProgress(isPauseEvent: true);
       }
-      // 取消 UI 定时器，避免非当前页触发 setState
       _infoHideTimer?.cancel();
       _controlsHideTimer?.cancel();
     }
@@ -297,8 +293,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       try {
         controller.play();
       } catch (_) {}
+      ref.read(isPlayingProvider.notifier).state = true;
     }
-    ref.read(isPlayingProvider.notifier).state = true;
     ref.read(currentPlayingItemProvider.notifier).state = widget.item;
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
     _resetInfoHideTimer();
