@@ -62,8 +62,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _hasStoppedReported = false;
   bool _providerCleaned = false;
 
-  int _controllerGeneration = 0;
-
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
 
@@ -672,7 +670,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         Offstage(
           offstage: isInFullscreen,
           child: AnimatedOpacity(
-            key: ValueKey(_controllerGeneration),
             opacity: isReady ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
@@ -696,6 +693,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               token: token,
               preloadedController: widget.preloadedSession?.controller,
               startFromResumePosition: widget.startFromResumePosition,
+              onControllerReleased: () {
+                ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+              },
               onControllerReady: (c) {
                 // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
                 if (!mounted) return;
@@ -707,9 +707,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 // 避免内存泄漏和旧 controller 状态变化时误触发 _onVideoChanged
                 if (isNewController && _videoController != null) {
                   _videoController!.removeListener(_onVideoChanged);
-                }
-                if (isNewController) {
-                  _controllerGeneration++;
                 }
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);

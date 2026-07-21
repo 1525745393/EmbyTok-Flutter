@@ -26,6 +26,8 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final VideoPlayerController? preloadedController;
   // 控制回调：暴露给外部调用
   final void Function(VideoPlayerController controller)? onControllerReady;
+  // 控制器被释放（dispose）时回调，通知外部清理就绪状态
+  final VoidCallback? onControllerReleased;
   final bool autoPlay;
   final bool loop;
   // 是否从续播位置开始播放（Emby 服务器同步的播放进度）
@@ -40,6 +42,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.token,
     this.preloadedController,
     this.onControllerReady,
+    this.onControllerReleased,
     this.autoPlay = true,
     this.loop = true,
     this.startFromResumePosition = false,
@@ -209,6 +212,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
     _controller = null;
     _sizeWasEmpty = false;
+    widget.onControllerReleased?.call();
   }
 
   // 释放旧 controller 并用新 widget.item 重新初始化
