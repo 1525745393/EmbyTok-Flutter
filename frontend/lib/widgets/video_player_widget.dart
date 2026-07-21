@@ -62,8 +62,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
   // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
   bool _isDisposed = false;
-  // 标记视频尺寸是否为空（初始化后 size 仍为 0 的边缘情况）
-  bool _wasSizeEmpty = false;
+  // 标记视频尺寸是否曾为空（用于尺寸更新时触发重建以隐藏加载指示器）
+  bool _sizeWasEmpty = false;
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
   // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
@@ -208,7 +208,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       try { c.dispose(); } catch (_) {}
     }
     _controller = null;
-    _wasSizeEmpty = false;
+    _sizeWasEmpty = false;
   }
 
   // 释放旧 controller 并用新 widget.item 重新初始化
@@ -255,11 +255,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (sec != _positionSeconds.value) {
       _positionSeconds.value = sec;
     }
-    // 视频尺寸从 Size.zero 变为有效尺寸时，需重建以从加载指示器切换到播放 UI
+    // 视频尺寸从 Size.zero 变为有效尺寸时，触发重建以隐藏加载指示器
     if (controller.value.isInitialized &&
         !controller.value.size.isEmpty &&
-        _wasSizeEmpty) {
-      _wasSizeEmpty = false;
+        _sizeWasEmpty) {
+      _sizeWasEmpty = false;
       setState(() {});
     }
   }
@@ -483,14 +483,12 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
-    // 视频尺寸为 0 时（HLS 流初始化后偶现），渲染 SizedBox(0,0) 会导致黑屏
-    // 此时显示加载指示器，等待 size 更新后再渲染
+    // 视频尺寸：使用 controller.value.size，若为空则使用 1x1 占位（避免 VideoPlayer 首次构建时尺寸为0导致渲染异常）
     final videoSize = vc.value.size;
-    if (videoSize.isEmpty) {
-      _wasSizeEmpty = true;
-      return Center(
-        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
-      );
+    final hasValidSize = !videoSize.isEmpty;
+    // 记录尺寸是否曾为空，用于尺寸更新时触发重建以隐藏加载指示器
+    if (!hasValidSize) {
+      _sizeWasEmpty = true;
     }
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
@@ -506,12 +504,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: FittedBox(
               fit: isLandscape ? BoxFit.contain : BoxFit.cover,
               child: SizedBox(
-                width: videoSize.width,
-                height: videoSize.height,
+                width: hasValidSize ? videoSize.width : 1,
+                height: hasValidSize ? videoSize.height : 1,
                 child: VideoPlayer(vc),
               ),
             ),
           ),
+          // 视频尺寸为空时显示加载指示器（视频仍在后台初始化）
+          if (!hasValidSize)
+            Center(
+              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+            ),
           if (displayCues.isNotEmpty && selectedSubId != null)
             RepaintBoundary(
               child: ValueListenableBuilder<int>(
