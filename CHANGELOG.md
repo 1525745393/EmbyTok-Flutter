@@ -1,3 +1,11 @@
+# [2.10.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.9.1...v2.10.0) (2026-07-21)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([f0c5598](https://github.com/1525745393/EmbyTok-Flutter/commit/f0c5598ed34c270ca62d017032bb2a87b1070a3d))
+* 纯净模式VideoControls控制条精简为双层布局 ([20d1f23](https://github.com/1525745393/EmbyTok-Flutter/commit/20d1f23357f1c8906aa1a996eff3dbc5f0a1e457))
+
 ## [2.9.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.9.0...v2.9.1) (2026-07-21)
 
 
