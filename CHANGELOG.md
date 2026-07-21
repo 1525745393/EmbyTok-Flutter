@@ -1,3 +1,10 @@
+# [2.8.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.3...v2.8.0) (2026-07-21)
+
+
+### Features
+
+* 信息条始终可见，单击恢复切换播放/暂停 ([de863c5](https://github.com/1525745393/EmbyTok-Flutter/commit/de863c5fda6260fe788f3900c2ff3b584a685749))
+
 ## [2.7.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.2...v2.7.3) (2026-07-21)
 
 
