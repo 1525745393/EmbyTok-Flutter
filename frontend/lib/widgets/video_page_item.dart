@@ -384,18 +384,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           } catch (_) {}
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
-        _queryNextUp();
+        // 注意：不再自动播放下一个视频（已移除自动播放功能）
+        // 用户可手动点击"下一集"按钮切换
       }
     }
   }
 
   // ===== NextUp 下一集查询与倒计时 =====
+  // 已移除自动播放功能，以下方法保留但不再被自动调用
+  // 用户可手动点击"下一集"按钮触发 onNextEpisode callback
   Future<void> _queryNextUp() async {
+    // 已移除自动播放功能，此方法不再被自动调用
+    // 保留方法体以避免编译错误，但逻辑已废弃
     final seriesId = widget.item.seriesId;
     final isEpisode = widget.item.type == 'Episode' ||
         (widget.item.seriesName != null && widget.item.seriesName!.isNotEmpty);
     if (!isEpisode) {
-      _fallbackAutoPlay();
       return;
     }
     try {
@@ -413,12 +417,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           _nextUpCountdown = _nextUpCountdownSeconds;
         });
         _startNextUpCountdown();
-      } else if (mounted) {
-        _fallbackAutoPlay();
       }
-    } catch (_) {
-      if (mounted) _fallbackAutoPlay();
-    }
+    } catch (_) {}
   }
 
   void _startNextUpCountdown() {
@@ -437,13 +437,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   void _playNextUp() {
+    // 已移除自动播放功能
     _nextUpTimer?.cancel();
     if (!mounted) return;
     if (widget.onNextEpisode != null) {
       setState(() => _showNextUpBanner = false);
       widget.onNextEpisode!.call();
-    } else {
-      _fallbackAutoPlay();
     }
   }
 
@@ -451,11 +450,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _nextUpTimer?.cancel();
     if (!mounted) return;
     setState(() => _showNextUpBanner = false);
-  }
-
-  void _fallbackAutoPlay() {
-    final autoPlay = ref.read(isAutoPlayProvider);
-    if (autoPlay) widget.onVideoEnded?.call();
   }
 
   // ===== 播放上报链方法 =====
@@ -1080,12 +1074,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 只保留纯净模式开关，移除倍速按钮等其他功能
                         const AutoPlayButton(),
-                        SizedBox(height: rs(16, 1.5)),
-                        SpeedControlButton(
-                          controller: _videoController,
-                          onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
-                        ),
                       ],
                     ),
                   ),
@@ -1096,14 +1086,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
         // 顶部操作区：全屏模式下控制条已有退出按钮，无需额外入口
 
-        // NextUp 下一集提示条
-        if (_showNextUpBanner && _nextUpItem != null)
-          NextUpBanner(
-            nextItem: _nextUpItem!,
-            countdown: _nextUpCountdown,
-            onPlay: _playNextUp,
-            onCancel: _cancelNextUp,
-          ),
+        // 注意：NextUp 自动播放提示条已移除
+        // 用户可手动点击"下一集"按钮切换视频
       ],
     );
 
