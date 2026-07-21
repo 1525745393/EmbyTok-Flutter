@@ -4,7 +4,7 @@
 // ✅ 键盘快捷键处理（纯业务，操作 Provider 状态）
 // ✅ 云同步（跨设备续播检查与保存）
 // ✅ 滚动位置持久化（网格视图滚动偏移保存/恢复）
-// ✅ 下一集查找算法（在 items 中找同 series 的下一集）
+// ✅ 视频切换逻辑（通过 PageView 滑动切换）
 // ✅ 视图切换协调（播放暂停/恢复，委托给 PlaybackCoordinator）
 // ✅ 浏览模式切换（FeedType 循环切换）
 // ❌ PageController 操作：依赖 hasClients/mounted，UI 层职责
@@ -404,7 +404,7 @@ class FeedViewModel {
 
 /// Feed 视图当前播放索引（与 PageController 同步）
 ///
-/// 用于 ViewModel 中需要知道当前索引的场景（键盘快捷键、下一集查找等），
+/// 用于 ViewModel 中需要知道当前索引的场景（键盘快捷键、视频切换等），
 /// 避免 ViewModel 直接持有 PageController。
 final feedCurrentIndexProvider = StateProvider<int>((ref) => 0);
 

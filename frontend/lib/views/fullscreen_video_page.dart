@@ -703,24 +703,10 @@ class _FullscreenVideoPageState
     return idx != null && idx > 0;
   }
 
-  bool _hasNext() {
-    final idx = _getCurrentIndex();
-    final items = ref.read(videoListProvider).items;
-    return idx != null && idx < items.length - 1;
-  }
-
   void _jumpToPrevious() {
     final idx = _getCurrentIndex();
     if (idx == null || idx <= 0) return;
     ref.read(feedViewPageJumpRequestProvider.notifier).state = idx - 1;
-  }
-
-  void _jumpToNext() {
-    final idx = _getCurrentIndex();
-    if (idx == null) return;
-    final items = ref.read(videoListProvider).items;
-    if (idx >= items.length - 1) return;
-    ref.read(feedViewPageJumpRequestProvider.notifier).state = idx + 1;
   }
 
   @override
@@ -1193,10 +1179,6 @@ class _FullscreenVideoPageState
                           },
                         );
                       },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.skip_next, color: Colors.white),
-                      onPressed: _hasNext() ? _jumpToNext : null,
                     ),
                     const Spacer(),
                     IconButton(

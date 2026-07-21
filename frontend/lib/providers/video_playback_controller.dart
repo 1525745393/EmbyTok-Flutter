@@ -48,7 +48,7 @@ final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((re
 
 /// FeedView 外部跳页请求：全屏页（FullscreenVideoPage）等需要切换视频时设置目标 index
 ///
-/// FullscreenVideoPage 中"上一集/下一集"按钮无法直接调用 FeedView 的 _pageController，
+/// FullscreenVideoPage 中"上一集"按钮无法直接调用 FeedView 的 _pageController，
 /// 因此通过这个 Provider 通知 FeedView 跳转到指定 index。
 ///
 /// 设计：

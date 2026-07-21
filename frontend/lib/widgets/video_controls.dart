@@ -1,4 +1,4 @@
-// 视频控制条：播放/暂停按钮 + 上一集/下一集 + 进度条 + 时间 + 倍速 + 字幕
+// 视频控制条：播放/暂停按钮 + 上一集 + 进度条 + 时间 + 倍速 + 字幕
 // TikTok 风格半透明控制层，接入 isPlayingProvider 同步播放状态
 
 import 'package:flutter/material.dart';

@@ -8,7 +8,7 @@
 //
 // 架构说明（阶段 3 ViewModel 重构）：
 // - FeedView：纯 UI 层，负责 Widget 构建、PageController 管理、系统栏控制
-// - FeedViewModel：业务逻辑层，处理键盘快捷键、云同步、滚动持久化、下一集查找等
+// - FeedViewModel：业务逻辑层，处理键盘快捷键、云同步、滚动持久化、视频切换等
 // - PlaybackCoordinator：播放协调层，处理预加载、播放ID同步、视图切换播放控制
 
 import 'dart:async';
