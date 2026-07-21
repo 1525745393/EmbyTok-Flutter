@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.5.0...v2.5.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* 修复滑动切换视频时画面不显示的问题 ([33091b0](https://github.com/1525745393/EmbyTok-Flutter/commit/33091b032b88b380a39b5c0bfa542b8afa70bd19))
+
 # [2.5.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.4.0...v2.5.0) (2026-07-21)
 
 
