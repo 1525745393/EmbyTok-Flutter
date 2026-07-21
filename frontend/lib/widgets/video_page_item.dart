@@ -695,6 +695,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               startFromResumePosition: widget.startFromResumePosition,
               onControllerReleased: () {
                 ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+                // 关键修复：controller 被 VideoPlayerWidget 释放时，必须清除本组件的引用，
+                // 否则 _videoController 会指向已 dispose 的 controller，
+                // 导致 didUpdateWidget 中 _startPlaybackIfCurrent() 对已 dispose 的 controller
+                // 调用 play() 无效，视频无法播放。
+                // 同时移除 listener 避免对已 dispose 的 controller 持有 listener 造成泄漏。
+                if (!mounted) return;
+                final old = _videoController;
+                if (old != null) {
+                  try { old.removeListener(_onVideoChanged); } catch (_) {}
+                }
+                setState(() => _videoController = null);
               },
               onControllerReady: (c) {
                 // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常

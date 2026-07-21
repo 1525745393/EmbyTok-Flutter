@@ -67,6 +67,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _isDisposed = false;
   // 标记视频尺寸是否曾为空（用于尺寸更新时触发重建以隐藏加载指示器）
   bool _sizeWasEmpty = false;
+  // 标记预加载 controller 是否已被使用过（可能已被 dispose）
+  // 避免 _initVideo() 被重新调用时重复使用已 dispose 的预加载 controller
+  bool _preloadedControllerUsed = false;
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
   // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
@@ -224,6 +227,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _releaseCurrentController();
     // 重置状态
     if (!mounted || _isDisposed) return;
+    // item 切换时重置预加载标记，允许使用新 item 的预加载 controller
+    _preloadedControllerUsed = false;
     setState(() {
       _initialized = false;
       _hasError = false;
@@ -285,7 +290,14 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // lambda 内部对 c 即为非空 VideoPlayerController，可正常调用方法。
     final preloaded = widget.preloadedController;
     bool preloadedInitSucceeded = false;
-    if (preloaded != null) {
+    // 关键修复：如果预加载 controller 已被使用过（可能已被 dispose），
+    // 不再重复使用，直接走动态创建路径。
+    // 场景：非当前页 controller 被 _backgroundReleaseTimer 释放后，
+    // 用户滑回该页面，didUpdateWidget 重新调用 _initVideo()，
+    // 此时 widget.preloadedController 指向的 controller 已被 dispose，
+    // 重复使用会导致 play/seek 等操作静默失败，视频无法播放。
+    if (preloaded != null && !_preloadedControllerUsed) {
+      _preloadedControllerUsed = true;
       // IIFE：把非空参数传入，函数体内 Dart 会把形参 c 视为非空
       Future<void> usePreloaded(VideoPlayerController c) async {
         _controller = c;
