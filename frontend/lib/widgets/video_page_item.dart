@@ -679,7 +679,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             enableGestures: !_controlsVisible,
             onSingleTap: () {
               if (isAutoPlay) {
-                // 纯净模式：单击屏幕显示可拖动按钮组，以便用户关闭纯净模式
+                // 纯净模式：单击屏幕切换控制条显示/隐藏，与全屏页行为一致
+                // 用户可通过控制条暂停/播放、拖动进度、调节倍速、切换字幕等
+                _toggleControls();
                 _cleanActionsKey.currentState?.show();
               } else {
                 _togglePlay();
@@ -784,6 +786,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   onPrevEpisode: widget.onPrevEpisode,
                   onToggleFullscreen: _openFullscreenPage,
                   isInFullscreen: false,
+                  onSeekStart: () {
+                    _controlsHideTimer?.cancel();
+                  },
+                  onSeekEnd: () {
+                    _controlsHideTimer?.cancel();
+                    _controlsHideTimer = Timer(
+                      const Duration(seconds: _controlsAutoHideSeconds),
+                      _hideControls,
+                    );
+                  },
                 ),
               ),
             ),
