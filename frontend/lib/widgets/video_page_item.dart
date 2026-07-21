@@ -819,6 +819,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   onPrevEpisode: widget.onPrevEpisode,
                   onToggleFullscreen: _openFullscreenPage,
                   isInFullscreen: false,
+                  compact: true,
                   onSeekStart: () {
                     _controlsHideTimer?.cancel();
                   },

@@ -26,6 +26,8 @@ class VideoControls extends ConsumerStatefulWidget {
   // Slider 拖动开始/结束回调（用于外部暂停控制层自动隐藏计时器）
   final VoidCallback? onSeekStart;
   final VoidCallback? onSeekEnd;
+  // 紧凑模式：双层布局（按钮行+进度条行），精简按钮，纯净模式使用
+  final bool compact;
 
   const VideoControls({
     super.key,
@@ -37,6 +39,7 @@ class VideoControls extends ConsumerStatefulWidget {
     this.isInFullscreen = false,
     this.onSeekStart,
     this.onSeekEnd,
+    this.compact = false,
   });
 
   @override
@@ -151,9 +154,170 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final controller = widget.controller;
+    final isCompact = widget.compact;
+
+    // 进度条 + 时间 组件（供两种模式共用）
+    final progressRow = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        final position = _isSeeking
+            ? (_previewPosition ?? value.position)
+            : value.position;
+        final duration = value.duration;
+        final progress = duration.inMilliseconds > 0
+            ? position.inMilliseconds / duration.inMilliseconds
+            : 0.0;
+        final timeFontSize = isCompact ? 12.0 : 13.0;
+        return Row(
+          children: [
+            Text(
+              _formatDuration(position),
+              style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
+            ),
+            SizedBox(width: isCompact ? 6 : 8),
+            Expanded(
+              child: Slider(
+                value: progress.clamp(0.0, 1.0),
+                onChangeStart: (v) {
+                  setState(() {
+                    _isSeeking = true;
+                    _previewPosition = Duration(
+                      milliseconds: (v * duration.inMilliseconds).toInt(),
+                    );
+                  });
+                  widget.onSeekStart?.call();
+                  HapticFeedback.selectionClick();
+                },
+                onChanged: (v) {
+                  setState(() {
+                    _previewPosition = Duration(
+                      milliseconds: (v * duration.inMilliseconds).toInt(),
+                    );
+                  });
+                },
+                onChangeEnd: (v) {
+                  final target = Duration(
+                    milliseconds: (v * duration.inMilliseconds).toInt(),
+                  );
+                  controller.seekTo(target);
+                  setState(() {
+                    _isSeeking = false;
+                    _previewPosition = null;
+                  });
+                  widget.onSeekEnd?.call();
+                  HapticFeedback.lightImpact();
+                },
+                activeColor: scheme.primary,
+                inactiveColor: scheme.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(width: isCompact ? 6 : 8),
+            Text(
+              _formatDuration(duration),
+              style: TextStyle(color: scheme.onSurface, fontSize: timeFontSize),
+            ),
+          ],
+        );
+      },
+    );
+
+    // 播放/暂停按钮
+    final playButton = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        return IconButton(
+          icon: Icon(
+            value.isPlaying ? Icons.pause : Icons.play_arrow,
+            color: scheme.onSurface,
+            size: isCompact ? 24 : 28,
+          ),
+          onPressed: _togglePlay,
+        );
+      },
+    );
+
+    // 倍速按钮
+    final speedButton = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        return TextButton(
+          onPressed: _showRateMenu,
+          child: Text(
+            '${value.playbackSpeed.toStringAsFixed(1)}x',
+            style: TextStyle(
+              color: scheme.onSurface,
+              fontSize: isCompact ? 12 : 14,
+            ),
+          ),
+        );
+      },
+    );
+
+    // 全屏按钮
+    final fullscreenButton = widget.onToggleFullscreen != null
+        ? IconButton(
+            icon: Icon(
+              widget.isInFullscreen
+                  ? Icons.fullscreen_exit
+                  : Icons.fullscreen,
+              color: scheme.onSurface,
+              size: isCompact ? 20 : 24,
+            ),
+            onPressed: widget.onToggleFullscreen,
+          )
+        : null;
+
+    // 三点菜单（紧凑模式：收纳字幕等低频功能）
+    final moreButton = isCompact
+        ? PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert,
+                color: scheme.onSurface, size: 20),
+            onSelected: (value) {
+              if (value == 'subtitles') _showSubtitleMenu();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'subtitles',
+                child: Row(
+                  children: [
+                    Icon(Icons.subtitles,
+                        color: scheme.onSurfaceVariant, size: 20),
+                    const SizedBox(width: 10),
+                    Text('字幕',
+                        style: TextStyle(
+                            color: scheme.onSurface, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ],
+          )
+        : null;
+
+    // 字幕按钮（非紧凑模式常驻）
+    final subtitleButton = !isCompact
+        ? IconButton(
+            icon: Icon(Icons.subtitles, color: scheme.onSurface),
+            onPressed: _showSubtitleMenu,
+          )
+        : null;
+
+    // 上一集按钮（非紧凑模式常驻）
+    final prevButton = !isCompact
+        ? IconButton(
+            icon: Icon(Icons.skip_previous, color: scheme.onSurface),
+            onPressed: widget.onPrevEpisode,
+          )
+        : null;
+
+    final horizontalPadding = isCompact ? 8.0 : 12.0;
+    final verticalPadding = isCompact ? 6.0 : 8.0;
+    final buttonSpacing = isCompact ? 4.0 : 8.0;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: verticalPadding,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -167,129 +331,38 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            // 上一集（静态，不随播放进度重建）
-            IconButton(
-              icon: Icon(Icons.skip_previous, color: scheme.onSurface),
-              onPressed: widget.onPrevEpisode,
-            ),
-            // 播放/暂停按钮：仅 isPlaying 变化时局部重建
-            ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: controller,
-              builder: (context, value, child) {
-                return IconButton(
-                  icon: Icon(
-                    value.isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: scheme.onSurface,
-                    size: 28,
-                  ),
-                  onPressed: _togglePlay,
-                );
-              },
-            ),
-            const SizedBox(width: 8),
-            // 时间显示 + 进度条：共享 position/duration，合并为一个监听器
-            // Expanded 保证进度条填充剩余水平空间
-            Expanded(
-              child: ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: controller,
-                builder: (context, value, child) {
-                  // 拖动中使用预览位置，否则使用真实位置
-                  final position = _isSeeking
-                      ? (_previewPosition ?? value.position)
-                      : value.position;
-                  final duration = value.duration;
-                  final progress = duration.inMilliseconds > 0
-                      ? position.inMilliseconds / duration.inMilliseconds
-                      : 0.0;
-                  return Row(
+        child: isCompact
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 第一行：按钮
+                  Row(
                     children: [
-                      Text(
-                        '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                        style:
-                            TextStyle(color: scheme.onSurface, fontSize: 13),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Slider(
-                          value: progress.clamp(0.0, 1.0),
-                          onChangeStart: (v) {
-                            setState(() {
-                              _isSeeking = true;
-                              _previewPosition = Duration(
-                                milliseconds:
-                                    (v * duration.inMilliseconds).toInt(),
-                              );
-                            });
-                            widget.onSeekStart?.call();
-                            HapticFeedback.selectionClick();
-                          },
-                          onChanged: (v) {
-                            // 拖动过程中只更新预览位置，不实际 seekTo
-                            // 避免高频调用 MediaCodec 导致崩溃
-                            setState(() {
-                              _previewPosition = Duration(
-                                milliseconds:
-                                    (v * duration.inMilliseconds).toInt(),
-                              );
-                            });
-                          },
-                          onChangeEnd: (v) {
-                            // 松手时执行一次 seek —— 这是正确的做法
-                            final target = Duration(
-                              milliseconds:
-                                  (v * duration.inMilliseconds).toInt(),
-                            );
-                            controller.seekTo(target);
-                            setState(() {
-                              _isSeeking = false;
-                              _previewPosition = null;
-                            });
-                            widget.onSeekEnd?.call();
-                            HapticFeedback.lightImpact();
-                          },
-                          activeColor: scheme.primary,
-                          inactiveColor: scheme.onSurfaceVariant,
-                        ),
-                      ),
+                      playButton,
+                      const Spacer(),
+                      speedButton,
+                      SizedBox(width: buttonSpacing),
+                      if (fullscreenButton != null) fullscreenButton,
+                      if (moreButton != null) moreButton,
                     ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            // 字幕按钮（静态）
-            IconButton(
-              icon: Icon(Icons.subtitles, color: scheme.onSurface),
-              onPressed: _showSubtitleMenu,
-            ),
-            // 倍速按钮：仅 playbackSpeed 变化时局部重建
-            ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: controller,
-              builder: (context, value, child) {
-                return TextButton(
-                  onPressed: _showRateMenu,
-                  child: Text(
-                    '${value.playbackSpeed.toStringAsFixed(1)}x',
-                    style: TextStyle(color: scheme.onSurface, fontSize: 14),
                   ),
-                );
-              },
-            ),
-            // 全屏切换按钮（静态）
-            if (widget.onToggleFullscreen != null)
-              IconButton(
-                icon: Icon(
-                  widget.isInFullscreen
-                      ? Icons.fullscreen_exit
-                      : Icons.fullscreen,
-                  color: scheme.onSurface,
-                ),
-                onPressed: widget.onToggleFullscreen,
+                  SizedBox(height: isCompact ? 4 : 0),
+                  // 第二行：进度条 + 时间
+                  progressRow,
+                ],
+              )
+            : Row(
+                children: [
+                  if (prevButton != null) prevButton,
+                  playButton,
+                  SizedBox(width: buttonSpacing),
+                  Expanded(child: progressRow),
+                  SizedBox(width: buttonSpacing),
+                  if (subtitleButton != null) subtitleButton,
+                  speedButton,
+                  if (fullscreenButton != null) fullscreenButton,
+                ],
               ),
-          ],
-        ),
       ),
     );
   }
