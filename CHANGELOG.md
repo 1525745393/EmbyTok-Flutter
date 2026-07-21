@@ -1,3 +1,10 @@
+## [2.8.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.8.0...v2.8.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* 修复点击全屏观看黑屏 - controller释放后未清除currentVideoControllerProvider ([3d9559b](https://github.com/1525745393/EmbyTok-Flutter/commit/3d9559b2a99388528d1554c506da2ab18ab97a56))
+
 # [2.8.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.3...v2.8.0) (2026-07-21)
 
 
