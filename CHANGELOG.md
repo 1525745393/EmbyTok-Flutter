@@ -1,3 +1,10 @@
+## [2.7.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.2...v2.7.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* 非纯净模式下单击切换信息条显示，中央按钮支持播放/暂停 ([2e1f71c](https://github.com/1525745393/EmbyTok-Flutter/commit/2e1f71cfcb97bf97da4424e2c40dc5299e8bf41b))
+
 ## [2.7.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.1...v2.7.2) (2026-07-21)
 
 
