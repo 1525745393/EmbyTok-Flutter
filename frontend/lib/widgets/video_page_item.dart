@@ -59,12 +59,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   VideoPlayerController? _videoController;
   final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey = GlobalKey<VideoPlayerWidgetState>();
   bool _hasNotifiedEnded = false;
-  // 播放停止上报是否已发送，防止 dispose 与结束回调重复上报导致重复会话
   bool _hasStoppedReported = false;
-  // Provider 状态是否已清理（deactivate 幂等保护，避免多次调用重复清理）
   bool _providerCleaned = false;
 
-  // 唱片式静音按钮动画控制器
+  int _controllerGeneration = 0;
+
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
 
@@ -673,6 +672,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         Offstage(
           offstage: isInFullscreen,
           child: AnimatedOpacity(
+            key: ValueKey(_controllerGeneration),
             opacity: isReady ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
@@ -707,6 +707,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 // 避免内存泄漏和旧 controller 状态变化时误触发 _onVideoChanged
                 if (isNewController && _videoController != null) {
                   _videoController!.removeListener(_onVideoChanged);
+                }
+                if (isNewController) {
+                  _controllerGeneration++;
                 }
                 setState(() => _videoController = c);
                 ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
