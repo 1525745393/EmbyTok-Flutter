@@ -91,6 +91,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   Timer? _controlsHideTimer;
   static const int _controlsAutoHideSeconds = 3;
 
+  // 中央播放/暂停按钮显示状态（仅非纯净模式，2秒后自动隐藏）
+  bool _centerButtonVisible = false;
+  Timer? _centerButtonHideTimer;
+  static const int _centerButtonAutoHideSeconds = 2;
+
   // 纯净模式下可拖动按钮组的引用，用于单击屏幕时显示按钮以便退出纯净模式
   final GlobalKey<DraggableCleanActionsState> _cleanActionsKey = GlobalKey<DraggableCleanActionsState>();
 
@@ -203,6 +208,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       }
       _infoHideTimer?.cancel();
       _controlsHideTimer?.cancel();
+      _centerButtonHideTimer?.cancel();
     }
   }
 
@@ -251,6 +257,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _progressTimer = null;
     if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
+    _centerButtonHideTimer?.cancel();
     // Provider 状态清理已移到 deactivate()，避免 riverpod 违规
     // 观看统计：记录本次观看的完播率
     _recordWatchStats();
@@ -537,6 +544,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (mounted) setState(() => _controlsVisible = false);
   }
 
+  // ===== 中央播放/暂停按钮显示/隐藏（仅非纯净模式） =====
+  /// 显示中央播放/暂停按钮并启动自动隐藏计时器
+  void _showCenterButton() {
+    _centerButtonHideTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _centerButtonVisible = true);
+    _centerButtonHideTimer = Timer(
+      const Duration(seconds: _centerButtonAutoHideSeconds),
+      _hideCenterButton,
+    );
+  }
+
+  /// 隐藏中央播放/暂停按钮
+  void _hideCenterButton() {
+    _centerButtonHideTimer?.cancel();
+    if (mounted) setState(() => _centerButtonVisible = false);
+  }
+
   // ===== 播放/暂停切换 =====
   void _togglePlay() {
     if (_videoController == null) return;
@@ -546,6 +571,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     } else {
       _videoController!.play();
       ref.read(isPlayingProvider.notifier).state = true;
+    }
+    // 非纯净模式下单击切换播放/暂停后显示中央按钮，2秒后自动隐藏
+    if (!ref.read(isAutoPlayProvider)) {
+      _showCenterButton();
     }
   }
 
@@ -740,10 +769,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ),
 
         // 中央播放/暂停按钮 —— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
-        // 信息条始终可见后，单击屏幕即可切换播放/暂停，中央按钮仅在暂停时显示
+        // 非纯净模式：单击切换播放/暂停后显示，2秒后自动隐藏
+        // 纯净模式：不显示（由 VideoControls 控制条操作）
         _CenterPlayButtonWrapper(
           controller: _videoController,
           onPlay: _togglePlay,
+          visible: _centerButtonVisible,
+          isAutoPlay: isAutoPlay,
         ),
 
         // 倍速状态徽章
@@ -1056,20 +1088,28 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 class _CenterPlayButtonWrapper extends ConsumerWidget {
   final VideoPlayerController? controller;
   final VoidCallback onPlay;
+  // 由父组件控制显示状态（非纯净模式下的自动隐藏）
+  final bool visible;
+  final bool isAutoPlay;
 
   const _CenterPlayButtonWrapper({
     required this.controller,
     required this.onPlay,
+    required this.visible,
+    required this.isAutoPlay,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isPlaying = ref.watch(isPlayingProvider);
-    // 仅在控制器已初始化且非播放状态时显示中央播放按钮
-    if (controller != null && controller!.value.isInitialized && !isPlaying) {
-      return CenterPlayButton(onPlay: onPlay);
+    // 纯净模式不显示中央按钮（由 VideoControls 控制条操作）
+    if (isAutoPlay) return const SizedBox.shrink();
+    // 非纯净模式：由 visible 状态控制显示
+    if (!visible) return const SizedBox.shrink();
+    if (controller == null || !controller!.value.isInitialized) {
+      return const SizedBox.shrink();
     }
-    return const SizedBox.shrink();
+    final isPlaying = ref.watch(isPlayingProvider);
+    return CenterPlayButton(onPlay: onPlay, isPlaying: isPlaying);
   }
 }
 
