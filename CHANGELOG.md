@@ -1,3 +1,10 @@
+## [2.7.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.1...v2.7.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* 纯净模式下单击屏幕显示VideoControls控制条，支持暂停/进度/倍速/字幕操作 ([09d038b](https://github.com/1525745393/EmbyTok-Flutter/commit/09d038bc918cfa47897119ce40786d90b71e59ca))
+
 ## [2.7.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.7.0...v2.7.1) (2026-07-21)
 
 
