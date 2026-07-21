@@ -500,6 +500,10 @@ class _FeedViewState extends ConsumerState<FeedView>
       onPageChanged: (index) {
         _currentIndex = index;
         _currentIndexNotifier.value = index;
+        // 关键修复：调用 setState 触发 PageView 重建，更新 isCurrentPage
+        // 原问题：仅更新 _currentIndex 未触发重建，导致新页面 isCurrentPage 一直为 false
+        // controller 不会被 play，视频画面不显示
+        setState(() {});
         // 委托 ViewModel 处理业务逻辑
         final needLoadMore = _viewModel.onPageChanged(
           index,
