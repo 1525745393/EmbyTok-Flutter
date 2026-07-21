@@ -249,6 +249,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     super.activate();
     // widget 重新插入树中时重置标记，确保后续 deactivate 能再次清理
     _providerCleaned = false;
+    // 如果有 controller 且已初始化，重新标记 ready（避免 deactivate 清理后视频画面不显示）
+    if (_videoController != null && _videoController!.value.isInitialized) {
+      ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+    }
     // 如果有 controller 且是当前页，重新写入 Provider（避免 deactivate 清理后状态丢失）
     if (_videoController != null && widget.isCurrentPage) {
       ref.read(currentVideoControllerProvider.notifier).state = _videoController;
