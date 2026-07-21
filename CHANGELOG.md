@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.0...v2.6.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* 修复VideoPlayer构建时序问题导致画面黑屏 ([875d192](https://github.com/1525745393/EmbyTok-Flutter/commit/875d192b0592814ce04050c06430e59e0b9aa75e))
+
 # [2.6.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.5.1...v2.6.0) (2026-07-21)
 
 
