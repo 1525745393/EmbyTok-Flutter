@@ -1,3 +1,10 @@
+## [2.6.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.2...v2.6.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* 控制器替换时强制重建 AnimatedOpacity 解决滑动切换视频画面不显示 ([343e702](https://github.com/1525745393/EmbyTok-Flutter/commit/343e7022e368767231b48cebee066c9ed85beee3))
+
 ## [2.6.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.1...v2.6.2) (2026-07-21)
 
 
