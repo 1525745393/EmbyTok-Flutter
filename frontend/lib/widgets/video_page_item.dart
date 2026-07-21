@@ -286,6 +286,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 避免相邻预加载页并发以有声方式播放并重复向 Emby 上报播放
   void _startPlaybackIfCurrent() {
     if (!widget.isCurrentPage) return;
+    final controller = _videoController;
+    if (controller != null && controller.value.isInitialized) {
+      final isMuted = ref.read(isMutedProvider);
+      controller.setVolume(isMuted ? 0.0 : 1.0);
+      try {
+        controller.play();
+      } catch (_) {}
+    }
     ref.read(isPlayingProvider.notifier).state = true;
     ref.read(currentPlayingItemProvider.notifier).state = widget.item;
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
