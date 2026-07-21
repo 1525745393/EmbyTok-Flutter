@@ -1,3 +1,10 @@
+# [2.9.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.8.1...v2.9.0) (2026-07-21)
+
+
+### Features
+
+* 非纯净模式中央播放/暂停按钮支持图标切换和2秒自动隐藏 ([146c9a8](https://github.com/1525745393/EmbyTok-Flutter/commit/146c9a8da5eb9bfd00560ed0992dc34a016d6092))
+
 ## [2.8.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.8.0...v2.8.1) (2026-07-21)
 
 
