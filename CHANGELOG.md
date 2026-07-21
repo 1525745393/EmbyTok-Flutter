@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.9.0...v2.9.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* 调整非纯净模式中央按钮行为 - 暂停时一直显示，播放时不显示 ([f68d1ee](https://github.com/1525745393/EmbyTok-Flutter/commit/f68d1eee6ca7c38f0931273b1a8c6c320dcc2fa8))
+
 # [2.9.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.8.1...v2.9.0) (2026-07-21)
 
 
