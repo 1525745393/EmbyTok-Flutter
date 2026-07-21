@@ -1,3 +1,10 @@
+## [2.6.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.3...v2.6.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* 控制器释放时同步清除 videoReadyProvider 确保就绪状态一致 ([ca5d64c](https://github.com/1525745393/EmbyTok-Flutter/commit/ca5d64cd815d6c7572a1141ae1d81a4186ef0348))
+
 ## [2.6.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.2...v2.6.3) (2026-07-21)
 
 
