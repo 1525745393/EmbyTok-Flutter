@@ -174,34 +174,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }
   }
 
-  // ===== 底部信息条 3 秒自动隐藏 =====
+  // ===== 底部信息条：始终可见 =====
+  // 原设计为播放3秒后自动隐藏，但用户反馈需要始终可见以便随时查看标题、进度等
   void _resetInfoHideTimer() {
     _infoHideTimer?.cancel();
     if (!mounted) return;
     setState(() => _isInfoVisible = true);
-    final c = _videoController;
-    final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
-    if (isPlaying) {
-      _infoHideTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _isInfoVisible = false);
-      });
-    }
   }
 
-  // 切换信息条显示（用于点击画面手动触发）
+  // 切换信息条显示（保留接口，当前默认始终可见）
   void _toggleInfoBar() {
     _infoHideTimer?.cancel();
     if (!mounted) return;
     setState(() => _isInfoVisible = !_isInfoVisible);
-    if (_isInfoVisible) {
-      final c = _videoController;
-      final isPlaying = c != null && c.value.isInitialized && c.value.isPlaying;
-      if (isPlaying) {
-        _infoHideTimer = Timer(const Duration(seconds: 3), () {
-          if (mounted) setState(() => _isInfoVisible = false);
-        });
-      }
-    }
   }
 
   @override
@@ -684,9 +669,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 _toggleControls();
                 _cleanActionsKey.currentState?.show();
               } else {
-                // 非纯净模式：单击切换底部信息条显示/隐藏（含全屏观看按钮、标题、进度条）
-                // 播放/暂停通过中央播放按钮完成
-                _toggleInfoBar();
+                // 非纯净模式：单击切换播放/暂停
+                // 信息条始终可见，无需单击控制显隐
+                _togglePlay();
               }
             },
             child: VideoPlayerWidget(
@@ -748,12 +733,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ),
 
         // 中央播放/暂停按钮 —— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
-        // 非纯净模式：始终显示（播放时显示暂停图标，暂停时显示播放图标）
-        // 纯净模式：仅暂停时显示（避免遮挡沉浸式体验）
+        // 信息条始终可见后，单击屏幕即可切换播放/暂停，中央按钮仅在暂停时显示
         _CenterPlayButtonWrapper(
           controller: _videoController,
           onPlay: _togglePlay,
-          isAutoPlay: isAutoPlay,
         ),
 
         // 倍速状态徽章
@@ -1066,26 +1049,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 class _CenterPlayButtonWrapper extends ConsumerWidget {
   final VideoPlayerController? controller;
   final VoidCallback onPlay;
-  // 是否为纯净模式：纯净模式下仅暂停时显示，非纯净模式下始终显示
-  final bool isAutoPlay;
 
   const _CenterPlayButtonWrapper({
     required this.controller,
     required this.onPlay,
-    required this.isAutoPlay,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isPlaying = ref.watch(isPlayingProvider);
-    if (controller == null || !controller!.value.isInitialized) {
-      return const SizedBox.shrink();
+    // 仅在控制器已初始化且非播放状态时显示中央播放按钮
+    if (controller != null && controller!.value.isInitialized && !isPlaying) {
+      return CenterPlayButton(onPlay: onPlay);
     }
-    // 纯净模式：仅暂停时显示；非纯净模式：始终显示
-    if (isAutoPlay && isPlaying) {
-      return const SizedBox.shrink();
-    }
-    return CenterPlayButton(onPlay: onPlay, isPlaying: isPlaying);
+    return const SizedBox.shrink();
   }
 }
 
