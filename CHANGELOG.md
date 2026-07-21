@@ -1,3 +1,10 @@
+## [2.6.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.1...v2.6.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* 修复滑动切换视频时控制器僵尸引用导致画面不显示 ([0d38ed6](https://github.com/1525745393/EmbyTok-Flutter/commit/0d38ed6adae3d366580d7f57bd733b8089bc2226))
+
 ## [2.6.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.6.0...v2.6.1) (2026-07-21)
 
 
