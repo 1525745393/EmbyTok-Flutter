@@ -407,13 +407,16 @@ class DiscMuteButton extends ConsumerWidget {
   }
 }
 
-// ===== 中央播放按钮（暂停时显示半透明播放图标）=====
+// ===== 中央播放按钮（暂停时显示播放图标，播放时显示暂停图标）=====
 class CenterPlayButton extends StatelessWidget {
   final VoidCallback onPlay;
+  // 是否正在播放：true 显示暂停图标，false 显示播放图标
+  final bool isPlaying;
 
   const CenterPlayButton({
     super.key,
     required this.onPlay,
+    this.isPlaying = false,
   });
 
   @override
@@ -431,7 +434,11 @@ class CenterPlayButton extends StatelessWidget {
               color: scheme.surface.withOpacity(0.6),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.play_arrow, color: scheme.onSurface, size: rs(40)),
+            child: Icon(
+              isPlaying ? Icons.pause : Icons.play_arrow,
+              color: scheme.onSurface,
+              size: rs(40),
+            ),
           ),
         ),
       ),
