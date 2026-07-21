@@ -568,13 +568,19 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (_videoController!.value.isPlaying) {
       _videoController!.pause();
       ref.read(isPlayingProvider.notifier).state = false;
+      // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
+      if (!ref.read(isAutoPlayProvider)) {
+        _centerButtonHideTimer?.cancel();
+        if (mounted) setState(() => _centerButtonVisible = true);
+      }
     } else {
       _videoController!.play();
       ref.read(isPlayingProvider.notifier).state = true;
-    }
-    // 非纯净模式下单击切换播放/暂停后显示中央按钮，2秒后自动隐藏
-    if (!ref.read(isAutoPlayProvider)) {
-      _showCenterButton();
+      // 播放时立即隐藏中央按钮（不显示⏸）
+      if (!ref.read(isAutoPlayProvider)) {
+        _centerButtonHideTimer?.cancel();
+        if (mounted) setState(() => _centerButtonVisible = false);
+      }
     }
   }
 
