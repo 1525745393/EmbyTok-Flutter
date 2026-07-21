@@ -15,9 +15,8 @@ class VideoControls extends ConsumerStatefulWidget {
   final VideoPlayerController controller;
   // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
   final List<SubtitleTrack> subtitleTracks;
-  // 上一集/下一集回调（剧集类内容）
+  // 上一集回调（剧集类内容）
   final VoidCallback? onPrevEpisode;
-  final VoidCallback? onNextEpisode;
   // 倍速档位（支持常见的 0.5x ～ 2.0x 六档）
   final List<double> playbackRates;
   // 全屏切换回调
@@ -33,7 +32,6 @@ class VideoControls extends ConsumerStatefulWidget {
     required this.controller,
     this.subtitleTracks = const <SubtitleTrack>[],
     this.onPrevEpisode,
-    this.onNextEpisode,
     this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
     this.onToggleFullscreen,
     this.isInFullscreen = false,
@@ -189,11 +187,6 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                   onPressed: _togglePlay,
                 );
               },
-            ),
-            // 下一集（静态）
-            IconButton(
-              icon: Icon(Icons.skip_next, color: scheme.onSurface),
-              onPressed: widget.onNextEpisode,
             ),
             const SizedBox(width: 8),
             // 时间显示 + 进度条：共享 position/duration，合并为一个监听器

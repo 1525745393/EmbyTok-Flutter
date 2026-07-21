@@ -545,9 +545,6 @@ class _FeedViewState extends ConsumerState<FeedView>
             onVideoEnded: _viewModel.onVideoEnded,
             startFromResumePosition: item.hasProgress,
             source: videoState.feedType == FeedType.resume ? 'resume' : 'feed',
-            onNextEpisode: item.seriesName != null
-                ? _viewModel.onNextEpisode
-                : null,
           ),
         );
       },

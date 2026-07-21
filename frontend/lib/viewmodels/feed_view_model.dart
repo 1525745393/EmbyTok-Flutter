@@ -175,9 +175,6 @@ class FeedViewModel {
       case LogicalKeyboardKey.keyM:
         _toggleMute();
         return true;
-      case LogicalKeyboardKey.keyN:
-        _jumpToNextEpisodeFromCurrent();
-        return true;
       case LogicalKeyboardKey.keyP:
         _goToPreviousVideo();
         return true;
@@ -338,60 +335,6 @@ class FeedViewModel {
     onJumpToPage?.call(idx);
   }
 
-  // ==================== 下一集查找 ====================
-
-  /// 从当前播放位置触发下一集跳转
-  void _jumpToNextEpisodeFromCurrent() {
-    final videoState = _ref.read(videoListProvider);
-    final currentIndex = _ref.read(feedCurrentIndexProvider);
-    if (videoState.items.isEmpty) return;
-    _jumpToNextEpisode(videoState.items, currentIndex);
-  }
-
-  /// 在 items 中查找当前条目的下一集（同 series 的下一个）
-  void _jumpToNextEpisode(List<MediaItem> items, int currentIndex) {
-    final current = items[currentIndex];
-    final series = current.seriesName;
-    if (series == null || series.isEmpty) {
-      _goToNextVideo();
-      return;
-    }
-
-    // 策略1：当前条目是 Episode，寻找同季下一集或下一季第1集
-    int? nextIndex;
-    if (current.indexNumber != null && current.parentIndexNumber != null) {
-      for (int i = 0; i < items.length; i++) {
-        final it = items[i];
-        if (it.seriesName == series &&
-            it.parentIndexNumber == current.parentIndexNumber &&
-            it.indexNumber == current.indexNumber! + 1) {
-          nextIndex = i;
-          break;
-        }
-      }
-      // 同季没找到，找下一季第1集
-      nextIndex ??= items.indexWhere(
-        (it) =>
-            it.seriesName == series &&
-            it.indexNumber == 1 &&
-            it.parentIndexNumber == current.parentIndexNumber! + 1,
-      );
-      if (nextIndex == -1) nextIndex = null;
-    }
-
-    // 策略2：找到下一个 seriesName 相同的条目（按顺序）
-    nextIndex ??= items.indexWhere(
-      (it) => it.seriesName == series,
-      currentIndex + 1,
-    );
-
-    if (nextIndex >= 0 && nextIndex < items.length) {
-      onJumpToPage?.call(nextIndex);
-    } else {
-      _goToNextVideo();
-    }
-  }
-
   // ==================== 滚动位置持久化 ====================
 
   /// 保存网格滚动偏移量（防抖调用）
@@ -454,11 +397,6 @@ class FeedViewModel {
   /// 视频播放结束：跳到下一个视频
   void onVideoEnded() {
     _goToNextVideo();
-  }
-
-  /// 触发下一集跳转
-  void onNextEpisode() {
-    _jumpToNextEpisodeFromCurrent();
   }
 }
 

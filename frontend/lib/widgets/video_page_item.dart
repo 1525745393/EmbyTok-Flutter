@@ -33,7 +33,6 @@ class VideoPageItem extends ConsumerStatefulWidget {
   final PlaybackSession? preloadedSession;
   final VoidCallback? onVideoEnded;
   final bool startFromResumePosition;
-  final VoidCallback? onNextEpisode;
   final VoidCallback? onPrevEpisode;
   /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
   final String source;
@@ -46,7 +45,6 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.preloadedSession,
     this.onVideoEnded,
     this.startFromResumePosition = false,
-    this.onNextEpisode,
     this.onPrevEpisode,
     this.source = 'feed',
     this.isCurrentPage = true,
@@ -98,13 +96,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   // 纯净模式下可拖动按钮组的引用，用于单击屏幕时显示按钮以便退出纯净模式
   final GlobalKey<DraggableCleanActionsState> _cleanActionsKey = GlobalKey<DraggableCleanActionsState>();
-
-  // NextUp（下一集提示）状态
-  MediaItem? _nextUpItem;
-  bool _showNextUpBanner = false;
-  int _nextUpCountdown = 5;
-  Timer? _nextUpTimer;
-  static const int _nextUpCountdownSeconds = 5;
 
   // 功耗优化：上一次报告的播放位置秒数，用于跨秒节流 Provider 写入
   int _lastPositionSecond = -1;
@@ -278,8 +269,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _progressTimer = null;
     if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
-    _nextUpTimer?.cancel();
-    _nextUpTimer = null;
     // Provider 状态清理已移到 deactivate()，避免 riverpod 违规
     // 观看统计：记录本次观看的完播率
     _recordWatchStats();
@@ -384,72 +373,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           } catch (_) {}
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
-        // 注意：不再自动播放下一个视频（已移除自动播放功能）
-        // 用户可手动点击"下一集"按钮切换
+        // 视频播放结束：已移除自动播放和下一集功能
+        // 用户需要手动滑动切换到下一个视频
       }
     }
-  }
-
-  // ===== NextUp 下一集查询与倒计时 =====
-  // 已移除自动播放功能，以下方法保留但不再被自动调用
-  // 用户可手动点击"下一集"按钮触发 onNextEpisode callback
-  Future<void> _queryNextUp() async {
-    // 已移除自动播放功能，此方法不再被自动调用
-    // 保留方法体以避免编译错误，但逻辑已废弃
-    final seriesId = widget.item.seriesId;
-    final isEpisode = widget.item.type == 'Episode' ||
-        (widget.item.seriesName != null && widget.item.seriesName!.isNotEmpty);
-    if (!isEpisode) {
-      return;
-    }
-    try {
-      final resp = await _service.getNextUp(
-        seriesId: seriesId,
-        limit: 1,
-        serverUrl: _authServerUrl(),
-        token: _authToken(),
-      );
-      final candidates = resp.items.where((it) => it.id != widget.item.id).toList();
-      if (mounted && candidates.isNotEmpty) {
-        setState(() {
-          _nextUpItem = candidates.first;
-          _showNextUpBanner = true;
-          _nextUpCountdown = _nextUpCountdownSeconds;
-        });
-        _startNextUpCountdown();
-      }
-    } catch (_) {}
-  }
-
-  void _startNextUpCountdown() {
-    _nextUpTimer?.cancel();
-    _nextUpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _nextUpCountdown--);
-      if (_nextUpCountdown <= 0) {
-        timer.cancel();
-        _playNextUp();
-      }
-    });
-  }
-
-  void _playNextUp() {
-    // 已移除自动播放功能
-    _nextUpTimer?.cancel();
-    if (!mounted) return;
-    if (widget.onNextEpisode != null) {
-      setState(() => _showNextUpBanner = false);
-      widget.onNextEpisode!.call();
-    }
-  }
-
-  void _cancelNextUp() {
-    _nextUpTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _showNextUpBanner = false);
   }
 
   // ===== 播放上报链方法 =====
@@ -836,7 +763,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   controller: _videoController!,
                   subtitleTracks: widget.item.subtitleTracks,
                   onPrevEpisode: widget.onPrevEpisode,
-                  onNextEpisode: widget.onNextEpisode,
                   onToggleFullscreen: _openFullscreenPage,
                   isInFullscreen: false,
                 ),
@@ -1040,15 +966,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     posterUrl: posterUrl,
                     httpHeaders: posterHeaders,
                   ),
-                  if (widget.onNextEpisode != null) ...[
-                    SizedBox(height: rs(16, 1.5)),
-                    PressableActionButton(
-                      icon: Icons.chevron_right,
-                      label: '下一集',
-                      color: scheme.onSurface,
-                      onTap: widget.onNextEpisode,
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -1086,8 +1003,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
         // 顶部操作区：全屏模式下控制条已有退出按钮，无需额外入口
 
-        // 注意：NextUp 自动播放提示条已移除
-        // 用户可手动点击"下一集"按钮切换视频
+        // NextUp 自动播放提示条和下一集按钮已移除
+        // 用户需要手动滑动切换到下一个视频
       ],
     );
 

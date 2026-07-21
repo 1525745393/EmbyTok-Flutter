@@ -134,8 +134,9 @@ class IsMutedNotifier extends StateNotifier<bool> {
 final isMutedProvider =
     StateNotifierProvider<IsMutedNotifier, bool>((ref) => IsMutedNotifier());
 
-/// isAutoPlayProvider：是否自动播放下一集 / 下一条
+/// isAutoPlayProvider：是否开启纯净模式（沉浸式播放）
 ///
+/// 纯净模式下：工具栏持续隐藏，按钮组自动隐藏，提供更沉浸的观看体验。
 /// 从本地持久化存储读取，切换后自动保存。
 class IsAutoPlayNotifier extends StateNotifier<bool> {
   // PR #72：初始值与 AppPreferences.isAutoPlay 默认值保持一致（false），
