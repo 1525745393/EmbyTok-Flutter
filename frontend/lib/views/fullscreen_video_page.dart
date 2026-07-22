@@ -166,7 +166,7 @@ class _FullscreenVideoPageState
       _lastIsPlaying = v.isPlaying;
       _lastHasError = v.hasError;
       _bufferingNotifier.value = v.isBuffering;
-      _wasControllerReady = v.isInitialized && !v.hasError;
+      _wasControllerReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
     } else {
       _lastIsPlaying = false;
       _lastHasError = false;
@@ -204,7 +204,7 @@ class _FullscreenVideoPageState
       }
     }
 
-    final isReady = v.isInitialized && !v.hasError;
+    final isReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
     if (isReady != _wasControllerReady) {
       _wasControllerReady = isReady;
       needsRebuild = true;
