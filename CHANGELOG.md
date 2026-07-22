@@ -1,3 +1,10 @@
+## [2.13.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.13.0...v2.13.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **fullscreen:** isReady 判断增加尺寸检查，与 build 保持一致 ([a75c904](https://github.com/1525745393/EmbyTok-Flutter/commit/a75c9045e6a913b040214095c280dda9081072d7))
+
 # [2.13.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.12.0...v2.13.0) (2026-07-22)
 
 
