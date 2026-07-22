@@ -601,8 +601,8 @@ class _FullscreenVideoPageState
     final videoSize = controller.value.size;
     final hasValidSize = !videoSize.isEmpty;
     // 尺寸为空时使用 1x1 占位，保证 VideoPlayer 渲染管线不断
-    final width = hasValidSize ? videoSize.width : 1;
-    final height = hasValidSize ? videoSize.height : 1;
+    final width = hasValidSize ? videoSize.width : 1.0;
+    final height = hasValidSize ? videoSize.height : 1.0;
 
     switch (_aspectMode) {
       case _AspectRatioMode.auto:
