@@ -10,7 +10,7 @@ from core.config import (
     EMBY_CLIENT_TIMEOUT,
     get_emby_client_header,
 )
-from core.errors import SERVER_UNREACHABLE, APIError, handle_emby_error
+from core.errors import SERVER_UNREACHABLE, APIError, ITEM_NOT_FOUND, handle_emby_error
 
 
 # 应用级共享 httpx.AsyncClient（P1：复用连接池，避免每次请求新建客户端）
@@ -370,8 +370,12 @@ class EmbyClient:
                 ticks = data.get("PlaybackPositionTicks")
                 if ticks is not None:
                     return int(ticks) // 10_000_000
-        except APIError:
-            return None
+        except APIError as exc:
+            # 404（用户数据不存在）可安全返回 None
+            # 401/5xx 等错误应向上传播，调用方可正确处理认证失败和服务器不可达
+            if exc.status_code == ITEM_NOT_FOUND:
+                return None
+            raise
         return None
 
     # ------------------------------------------------------------------

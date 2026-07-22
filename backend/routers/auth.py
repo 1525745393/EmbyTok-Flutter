@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from clients.emby_client import EmbyClient
-from core.errors import BAD_REQUEST, APIError, SERVER_UNREACHABLE
+from core.errors import BAD_REQUEST, APIError, BAD_GATEWAY, SERVER_UNREACHABLE
 from models.base_models import AuthRequest, AuthResponse
 from routers.deps import get_emby_server_url
 
@@ -19,7 +19,7 @@ async def login(body: AuthRequest) -> AuthResponse:
         async with EmbyClient(base_url=body.emby_url) as client:
             data = await client.authenticate(body.username, body.password)
             if not isinstance(data, dict):
-                raise APIError(502, "服务器返回格式异常")
+                raise APIError(BAD_GATEWAY, "服务器返回格式异常")
 
             access_token = data.get("AccessToken") or (
                 (data.get("SessionInfo") or {}).get("AccessToken")
@@ -40,7 +40,7 @@ async def login(body: AuthRequest) -> AuthResponse:
             )
     except APIError as exc:
         if exc.status_code == 401:
-            raise
+            raise exc
         if exc.status_code == SERVER_UNREACHABLE or "无法连接" in str(exc.message):
-            raise APIError(502, f"无法连接 Emby 服务器：{exc.message}")
-        raise
+            raise APIError(BAD_GATEWAY, f"无法连接 Emby 服务器：{exc.message}")
+        raise exc

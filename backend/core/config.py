@@ -2,8 +2,8 @@
 
 import os
 
-APP_VERSION: str = "1.0.0"
-"""当前应用版本号"""
+from core.version import __version__ as APP_VERSION
+"""当前应用版本号（由发布脚本自动维护，见 core/version.py）"""
 
 DEFAULT_PAGE_LIMIT: int = 20
 """默认每页返回条数"""

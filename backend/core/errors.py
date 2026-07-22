@@ -8,6 +8,9 @@ INVALID_CREDENTIALS: int = 401
 SERVER_UNREACHABLE: int = 503
 """无法连接到 Emby 服务器"""
 
+BAD_GATEWAY: int = 502
+"""上游服务器返回异常（网关错误）"""
+
 ITEM_NOT_FOUND: int = 404
 """请求的媒体项不存在"""
 
