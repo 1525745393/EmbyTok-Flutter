@@ -61,6 +61,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _hasNotifiedEnded = false;
   bool _hasStoppedReported = false;
   bool _providerCleaned = false;
+  bool _statsRecorded = false;
 
   late final AnimationController _discRotationCtrl;
   late final Animation<double> _discRotation;
@@ -225,6 +226,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ref.read(currentVideoControllerProvider.notifier).state = null;
       }
     }
+    // 观看统计：在 deactivate 中记录（避免 dispose 中调用 ref.read 违反 Riverpod 规范）
+    if (!_statsRecorded) {
+      _statsRecorded = true;
+      _recordWatchStats();
+    }
     super.deactivate();
   }
 
@@ -233,6 +239,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     super.activate();
     // widget 重新插入树中时重置标记，确保后续 deactivate 能再次清理
     _providerCleaned = false;
+    _statsRecorded = false;
     // 如果有 controller 且已初始化，重新标记 ready（避免 deactivate 清理后视频画面不显示）
     if (_videoController != null && _videoController!.value.isInitialized) {
       ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
@@ -258,9 +265,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (_hasStartedReported) _reportPlaybackStopped();
     _controlsHideTimer?.cancel();
     _centerButtonHideTimer?.cancel();
-    // Provider 状态清理已移到 deactivate()，避免 riverpod 违规
-    // 观看统计：记录本次观看的完播率
-    _recordWatchStats();
     // ⚠️ _videoController 由内部 VideoPlayerWidget 负责 dispose，这里只清空引用
     _videoController = null;
     _capabilitiesReported = false;
@@ -294,6 +298,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   /// 记录观看统计（完播率）
   void _recordWatchStats() {
+    // 只有当前页才记录，避免预加载页误记录拉低完播率
+    if (!widget.isCurrentPage) return;
     final controller = _videoController;
     if (controller == null) return;
     try {

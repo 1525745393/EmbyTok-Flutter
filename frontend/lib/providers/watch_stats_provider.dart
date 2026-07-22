@@ -113,9 +113,23 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
   WatchStatsNotifier(this._ref) : super(const WatchStatsState()) {
     // 初始化时从本地读
     _init();
+    // 监听认证状态变化：登录 → 加载对应用户数据；登出 → 清空内存
+    _authSubscription = _ref.listen<AuthState>(authProvider, (previous, next) {
+      final prevId = previous?.user?.id;
+      final currId = next.user?.id;
+      if (prevId != currId) {
+        // 用户 ID 变化（登出/切换用户）：重置内存 state
+        state = const WatchStatsState();
+        if (currId != null) {
+          // 新用户登录：加载其数据
+          _loadForUser(currId);
+        }
+      }
+    });
   }
 
   final Ref _ref;
+  ProviderSubscription<AuthState>? _authSubscription;
 
   // PR #81：最多保留 500 条（防止 SharedPreferences 过大）
   static const int _maxRecords = 500;
@@ -129,8 +143,16 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
       final auth = _ref.read(authProvider);
       final userId = auth.user?.id;
       if (userId == null) return;
-      final cacheKey = '$kStorageKeyWatchStats:$userId';
+      await _loadForUser(userId);
+    } catch (e) {
+      AppLogger.debug('完播率统计：初始化失败', data: {'error': e.toString()});
+    }
+  }
 
+  /// 从本地加载指定用户的完播率记录
+  Future<void> _loadForUser(String userId) async {
+    try {
+      final cacheKey = '$kStorageKeyWatchStats:$userId';
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(cacheKey);
       if (raw == null || raw.isEmpty) return;
@@ -148,6 +170,12 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
     } catch (e) {
       AppLogger.debug('完播率统计：读本地失败', data: {'error': e.toString()});
     }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.close();
+    super.dispose();
   }
 
   /// PR #81：记录一次观看
