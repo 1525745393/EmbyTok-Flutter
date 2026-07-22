@@ -599,16 +599,19 @@ class _FullscreenVideoPageState
   // 视频渲染表面：根据画面比例模式正确显示
   Widget _buildVideoSurface(VideoPlayerController controller) {
     final videoSize = controller.value.size;
-    if (videoSize.isEmpty) return const SizedBox.shrink();
+    final hasValidSize = !videoSize.isEmpty;
+    // 尺寸为空时使用 1x1 占位，保证 VideoPlayer 渲染管线不断
+    final width = hasValidSize ? videoSize.width : 1;
+    final height = hasValidSize ? videoSize.height : 1;
 
     switch (_aspectMode) {
       case _AspectRatioMode.auto:
-        final isPortraitVideo = videoSize.height > videoSize.width;
+        final isPortraitVideo = hasValidSize && videoSize.height > videoSize.width;
         return FittedBox(
           fit: isPortraitVideo ? BoxFit.cover : BoxFit.contain,
           child: SizedBox(
-            width: videoSize.width,
-            height: videoSize.height,
+            width: width,
+            height: height,
             child: VideoPlayer(controller),
           ),
         );
@@ -618,8 +621,8 @@ class _FullscreenVideoPageState
         return FittedBox(
           fit: _getBoxFit(),
           child: SizedBox(
-            width: videoSize.width,
-            height: videoSize.height,
+            width: width,
+            height: height,
             child: VideoPlayer(controller),
           ),
         );
@@ -634,8 +637,8 @@ class _FullscreenVideoPageState
             child: FittedBox(
               fit: BoxFit.cover,
               child: SizedBox(
-                width: videoSize.width,
-                height: videoSize.height,
+                width: width,
+                height: height,
                 child: VideoPlayer(controller),
               ),
             ),
@@ -719,7 +722,8 @@ class _FullscreenVideoPageState
     bool hasError;
     if (controller != null) {
       final v = controller.value;
-      isControllerReady = v.isInitialized && !v.hasError;
+      // 增加尺寸检查，避免尺寸为空时认为控制器就绪导致黑屏
+      isControllerReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
       hasError = v.hasError;
     } else {
       isControllerReady = false;
