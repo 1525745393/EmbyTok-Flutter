@@ -1,3 +1,10 @@
+## [2.15.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.1...v2.15.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* 修复全屏黑屏 — VideoPlayerWidget 全屏时释放 Texture 避免双 widget 纹理冲突 ([9d7fa68](https://github.com/1525745393/EmbyTok-Flutter/commit/9d7fa681b9d1546f99a3cf80eedead7c5ae94d18))
+
 ## [2.15.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.0...v2.15.1) (2026-07-23)
 
 
