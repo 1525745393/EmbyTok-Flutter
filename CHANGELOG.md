@@ -1,3 +1,10 @@
+# [2.16.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.7...v2.16.0) (2026-07-23)
+
+
+### Features
+
+* 登录界面安全性优化 — 密码加密存储、防重复提交、连接测试复用Dio ([ccccf25](https://github.com/1525745393/EmbyTok-Flutter/commit/ccccf25a9f04ae6fe535de670ced02c7751fa679))
+
 ## [2.15.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.6...v2.15.7) (2026-07-23)
 
 
