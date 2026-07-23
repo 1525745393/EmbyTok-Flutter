@@ -1,3 +1,10 @@
+## [2.15.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.4...v2.15.5) (2026-07-23)
+
+
+### Bug Fixes
+
+* 全屏控件不显示 — 改用 showGeneralDialog 确保透明覆盖层正确渲染 ([9dc887b](https://github.com/1525745393/EmbyTok-Flutter/commit/9dc887b4753c37b6d48b7cd9a8d7c9165596d9a5))
+
 ## [2.15.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.3...v2.15.4) (2026-07-23)
 
 
