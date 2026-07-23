@@ -205,7 +205,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          err.toString() ?? '未知错误',
+                          err.toString(),
                           textAlign: TextAlign.center,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
