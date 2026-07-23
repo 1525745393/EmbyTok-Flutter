@@ -1,3 +1,10 @@
+## [2.15.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.6...v2.15.7) (2026-07-23)
+
+
+### Bug Fixes
+
+* catchError 参数类型从 Object 改为 DioException 以匹配 CancelToken.isCancel ([97ee254](https://github.com/1525745393/EmbyTok-Flutter/commit/97ee25456f1eb1a690a6d5ee0e71e58e3b147526))
+
 ## [2.15.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.5...v2.15.6) (2026-07-23)
 
 
