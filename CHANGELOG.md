@@ -1,3 +1,10 @@
+## [2.15.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.2...v2.15.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* 全屏黑屏 — 覆盖层架构，VideoPlayer 始终渲染避免纹理冲突 ([02ae350](https://github.com/1525745393/EmbyTok-Flutter/commit/02ae350e5ebd20f8cd2bc809582cacc5d283f38d))
+
 ## [2.15.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.1...v2.15.2) (2026-07-23)
 
 
