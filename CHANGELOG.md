@@ -1,3 +1,15 @@
+# [2.17.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.16.0...v2.17.0) (2026-07-23)
+
+
+### Bug Fixes
+
+* 修复 const 构造函数错误和 EmbytokService 未定义错误 ([52e0a7b](https://github.com/1525745393/EmbyTok-Flutter/commit/52e0a7b3f325723b0eadc4cc04e2fc7f7337278e))
+
+
+### Features
+
+* 服务器历史交互优化 — 友好名称、类型图标、删除确认、JSON 存储 ([3eb23e1](https://github.com/1525745393/EmbyTok-Flutter/commit/3eb23e1af06fd2224c955e38bc18d9b271f258b8))
+
 # [2.16.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.7...v2.16.0) (2026-07-23)
 
 
