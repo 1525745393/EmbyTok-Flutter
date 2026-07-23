@@ -29,8 +29,15 @@ import '../widgets/subtitle_renderer.dart';
 import '../widgets/video/video_gesture_mixin.dart';
 
 /// 全屏视频播放页
+///
+/// 作为覆盖层渲染在 VideoPageItem 的 Stack 中（非导航路由），
+/// 避免 showGeneralDialog 的 ModalBarrier 干扰手势事件分发。
+/// 退出时通过 [onExit] 回调通知父组件恢复 UI 状态。
 class FullscreenVideoPage extends ConsumerStatefulWidget {
-  const FullscreenVideoPage({super.key});
+  /// 退出全屏时的回调，由父组件负责恢复 UI 状态
+  final VoidCallback? onExit;
+
+  const FullscreenVideoPage({super.key, this.onExit});
 
   @override
   ConsumerState<FullscreenVideoPage> createState() =>
@@ -669,14 +676,14 @@ class _FullscreenVideoPageState
     final videoVisible = !_isScreenLocked;
     final gesturesEnabled = !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        key: ValueKey('fs-stack-$_retryKey'),
-        children: [
-          // 手势层：透明覆盖，接收所有触摸事件
-          Positioned.fill(
-            child: GestureDetector(
+    // 直接返回 Stack（非 Scaffold），因为本页作为覆盖层渲染在 VideoPageItem 的 Stack 中，
+    // 不需要额外的 Scaffold 包装，避免导航 UI 干扰
+    return Stack(
+      key: ValueKey('fs-stack-$_retryKey'),
+      children: [
+        // 手势层：透明覆盖，接收所有触摸事件
+        Positioned.fill(
+          child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTapDown: handleTapDown,
               onTap: handleTap,
@@ -980,7 +987,10 @@ class _FullscreenVideoPageState
                 IconButton(
                   icon: const Icon(Icons.fullscreen_exit,
                       color: Colors.white, size: 28),
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    widget.onExit?.call();
+                    Navigator.of(context).pop();
+                  },
                   tooltip: '退出全屏',
                 ),
                 if (playingItem != null)

@@ -83,7 +83,7 @@ class FullscreenNavigator {
           child: child,
         );
       },
-      pageBuilder: (_, __, ___) => const FullscreenVideoPage(),
+      pageBuilder: (_, __, ___) => FullscreenVideoPage(onExit: onExit),
     );
 
     onExit?.call();
