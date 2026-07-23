@@ -64,9 +64,13 @@ class FullscreenNavigator {
     // 全屏页为透明覆盖层，画面由底层 VideoPageItem 的 VideoPlayer 提供
     ref.read(isFullscreenProvider.notifier).state = true;
 
+    // 使用 PageRouteBuilder + opaque: false 确保路由透明，
+    // 底层 VideoPageItem 的 VideoPlayer 画面可以透过覆盖层显示
+    // MaterialPageRoute 默认 opaque: true，会导致旧路由内容不渲染
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const FullscreenVideoPage(),
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (_, __, ___) => const FullscreenVideoPage(),
         fullscreenDialog: true,
       ),
     );
