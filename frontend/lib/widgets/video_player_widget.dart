@@ -34,6 +34,9 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final bool startFromResumePosition;
   // 是否为当前可见页面（非当前页初始化后暂停+静音，避免并发播放/解码）
   final bool isCurrentPage;
+  // 是否处于全屏模式：全屏时内部 VideoPlayer widget 不渲染，
+  // 释放 Texture 避免与 FullscreenVideoPage 的 VideoPlayer 争用纹理导致黑屏
+  final bool isInFullscreen;
 
   const VideoPlayerWidget({
     super.key,
@@ -47,6 +50,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.loop = true,
     this.startFromResumePosition = false,
     this.isCurrentPage = true,
+    this.isInFullscreen = false,
   });
 
   @override
@@ -483,6 +487,14 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     final vc = _controller;
+
+    // 全屏模式：不渲染 VideoPlayer widget，释放底层 Texture
+    // 避免与 FullscreenVideoPage 中的 VideoPlayer 争用同一 textureId 导致黑屏。
+    // Widget 本身保持挂载，controller 不会被 dispose，全屏页可正常复用。
+    if (widget.isInFullscreen) {
+      return const SizedBox.shrink();
+    }
+
     // 监听字幕选择：用户选择新字幕轨道时异步加载
     ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {

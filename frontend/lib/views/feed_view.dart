@@ -212,7 +212,7 @@ class _FeedViewState extends ConsumerState<FeedView>
   // ==================== 全屏页（UI 层职责，依赖 Navigator） ====================
 
   Future<void> _openFullscreenPage() async {
-    await FullscreenNavigator.open(
+    final success = await FullscreenNavigator.open(
       ref: ref,
       context: context,
       onExit: () {
@@ -221,6 +221,15 @@ class _FeedViewState extends ConsumerState<FeedView>
         }
       },
     );
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('视频正在准备中，请稍后'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override

@@ -702,14 +702,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ),
 
         // 视频播放区（Gestures + VideoPlayer）
-        // 进入全屏时 Offstage，避免同一 VideoPlayerController 被两个 VideoPlayer widget 同时渲染导致黑屏
-        Offstage(
-          offstage: isInFullscreen,
-          child: AnimatedOpacity(
-            opacity: isReady ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            child: GestureOverlay(
+        // 全屏时 VideoPlayerWidget 内部不渲染 VideoPlayer widget，
+        // 释放底层 Texture 避免与 FullscreenVideoPage 的 VideoPlayer 争用纹理导致黑屏
+        AnimatedOpacity(
+          opacity: isReady ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          child: GestureOverlay(
             controller: _videoController,
             item: widget.item,
             enableGestures: !_controlsVisible,
@@ -729,6 +728,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               key: _videoPlayerKey,
               item: widget.item,
               isCurrentPage: widget.isCurrentPage,
+              isInFullscreen: isInFullscreen,
               embyServerUrl: embyServerUrl,
               token: token,
               preloadedController: widget.preloadedSession?.controller,
@@ -787,7 +787,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               },
             ),
           ),
-        ),
         ),
 
         // 中央播放/暂停按钮 —— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
