@@ -1,6 +1,8 @@
 // 登录页面：深色 TikTok 风格，粉紫色主题
-// 优化：服务器历史、连接测试、键盘交互、内联错误提示
+// 优化：服务器历史（友好名称 + 类型图标 + 删除确认）、连接测试、键盘交互、内联错误提示
 // 安全：密码通过 flutter_secure_storage 加密存储，防重复提交锁
+
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +19,61 @@ import '../utils/logger.dart';
 const _kSecureKeyServer = 'embbytok_secure_server';
 const _kSecureKeyUsername = 'embbytok_secure_username';
 const _kSecureKeyPassword = 'embbytok_secure_password';
+
+/// 服务器类型
+enum ServerType {
+  emby,
+  plex,
+}
+
+/// 服务器历史记录条目
+class _ServerHistoryEntry {
+  final String url;
+  final ServerType serverType;
+  final String displayName;
+  final DateTime lastUsed;
+
+  const _ServerHistoryEntry({
+    required this.url,
+    this.serverType = ServerType.emby,
+    String? displayName,
+    DateTime? lastUsed,
+  })  : displayName = displayName ?? _extractHostPort(url),
+        lastUsed = lastUsed ?? DateTime.now();
+
+  /// 从 URL 提取 host:port 作为显示名称
+  static String _extractHostPort(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final host = uri.host;
+      final port = uri.hasPort ? ':${uri.port}' : '';
+      return '$host$port';
+    } catch (_) {
+      return url;
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        't': serverType.name,
+        'n': displayName,
+        'd': lastUsed.toIso8601String(),
+      };
+
+  factory _ServerHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return _ServerHistoryEntry(
+      url: json['url'] as String? ?? '',
+      serverType: ServerType.values.firstWhere(
+        (e) => e.name == (json['t'] as String?),
+        orElse: () => ServerType.emby,
+      ),
+      displayName: json['n'] as String?,
+      lastUsed: json['d'] != null
+          ? DateTime.tryParse(json['d'] as String)
+          : null,
+    );
+  }
+}
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -37,7 +94,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   bool _passwordVisible = false;
   bool _rememberMe = false;
-  List<String> _serverHistory = [];
+  List<_ServerHistoryEntry> _serverHistory = [];
 
   // 连接测试状态：null=未测试, true=成功, false=失败
   bool? _connectionStatus;
@@ -75,12 +132,31 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 加载服务器历史（SharedPreferences）和凭据（安全存储）
+  /// 兼容旧格式（纯 URL 字符串）和新格式（JSON 字符串）
   Future<void> _loadSavedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // 加载服务器历史（不敏感，用 SharedPreferences）
-      final history = prefs.getStringList(kStorageKeyServerHistory) ?? [];
+      // 加载服务器历史 — 尝试新格式，回退到旧格式并迁移
+      final rawHistory = prefs.getStringList(kStorageKeyServerHistory) ?? [];
+      final entries = <_ServerHistoryEntry>[];
+      bool needsMigration = false;
+
+      for (final raw in rawHistory) {
+        if (raw.startsWith('{')) {
+          // 新格式：JSON 字符串
+          try {
+            final json = jsonDecode(raw) as Map<String, dynamic>;
+            entries.add(_ServerHistoryEntry.fromJson(json));
+          } catch (_) {
+            // 损坏的 JSON，跳过
+          }
+        } else {
+          // 旧格式：纯 URL 字符串，自动迁移
+          entries.add(_ServerHistoryEntry(url: raw));
+          needsMigration = true;
+        }
+      }
 
       // 从安全存储加载凭据
       final server = await _secureStorage.read(key: _kSecureKeyServer);
@@ -89,7 +165,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
       if (mounted) {
         setState(() {
-          _serverHistory = history;
+          _serverHistory = entries;
           if (server != null && server.isNotEmpty) {
             _embyController.text = server;
             _usernameController.text = username ?? '';
@@ -98,24 +174,49 @@ class _LoginViewState extends ConsumerState<LoginView> {
           }
         });
       }
+
+      // 旧格式迁移：保存为新格式
+      if (needsMigration) {
+        await _persistHistory();
+      }
     } catch (e) {
       AppLogger.error('加载登录数据失败', error: e);
+    }
+  }
+
+  /// 持久化服务器历史到 SharedPreferences
+  Future<void> _persistHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = _serverHistory.map((e) => jsonEncode(e.toJson())).toList();
+      await prefs.setStringList(kStorageKeyServerHistory, raw);
+    } catch (e) {
+      AppLogger.error('保存服务器历史失败', error: e);
     }
   }
 
   /// 保存服务器地址到历史列表（去重，最多 5 个）
   Future<void> _saveServerHistory(String url) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final history = prefs.getStringList(kStorageKeyServerHistory) ?? [];
-      history.remove(url);
-      history.insert(0, url);
-      if (history.length > 5) history.removeRange(5, history.length);
-      await prefs.setStringList(kStorageKeyServerHistory, history);
-      if (mounted) setState(() => _serverHistory = history);
+      // 移除同 URL 的旧条目
+      _serverHistory.removeWhere((e) => e.url == url);
+      // 插入到最前面
+      _serverHistory.insert(0, _ServerHistoryEntry(url: url, lastUsed: DateTime.now()));
+      // 最多保留 5 条
+      if (_serverHistory.length > 5) {
+        _serverHistory = _serverHistory.sublist(0, 5);
+      }
+      await _persistHistory();
+      if (mounted) setState(() {});
     } catch (e) {
       AppLogger.error('保存服务器历史失败', error: e);
     }
+  }
+
+  /// 删除指定服务器历史条目
+  Future<void> _deleteHistoryEntry(int index) async {
+    setState(() => _serverHistory.removeAt(index));
+    await _persistHistory();
   }
 
   /// 保存或清除凭据（使用 flutter_secure_storage 加密存储）
@@ -148,7 +249,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     });
 
     try {
-      // 复用 ApiClient，统一使用 Dio 进行网络请求
       final apiClient = ApiClient(baseUrl: url);
       final response = await apiClient.get('/System/Info/Public');
       if (mounted) {
@@ -188,7 +288,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   /// 提交登录：带防重复提交锁和内联错误提示
   Future<void> _submit() async {
-    // 防重复提交锁
     if (_isSubmitting) return;
     if (_formKey.currentState?.validate() != true) return;
 
@@ -235,7 +334,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
-    // 键盘弹出时的额外底部间距
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
@@ -369,7 +467,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     ],
                   ),
 
-                  // 内联错误提示（替代 SnackBar）
+                  // 内联错误提示
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Container(
@@ -521,43 +619,150 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return null;
   }
 
-  /// 服务器历史记录快选
+  /// 服务器历史记录 — 卡片式列表，含服务器类型图标、友好名称和删除确认
   Widget _buildServerHistory(ColorScheme scheme) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: _serverHistory.map((url) {
-        return InputChip(
-          label: Text(
-            url,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            '最近使用',
             style: TextStyle(
               fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          avatar: Icon(Icons.history, size: 14, color: scheme.onSurfaceVariant),
-          backgroundColor: scheme.onSurface.withOpacity(0.05),
-          side: BorderSide.none,
-          shape: RoundedRectangleBorder(
+        ),
+        ...List.generate(_serverHistory.length, (index) {
+          final entry = _serverHistory[index];
+          final isFirst = index == 0;
+          return Padding(
+            padding: EdgeInsets.only(bottom: index < _serverHistory.length - 1 ? 4 : 0),
+            child: Material(
+              color: scheme.onSurface.withOpacity(isFirst ? 0.06 : 0.03),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  _embyController.text = entry.url;
+                  _clearError();
+                  _testConnection();
+                  _usernameFocusNode.requestFocus();
+                },
+                onLongPress: () => _showDeleteConfirmDialog(index, scheme),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      // 服务器类型图标
+                      _buildServerTypeIcon(entry.serverType, scheme),
+                      const SizedBox(width: 10),
+                      // 服务器信息
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.displayName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (entry.url != entry.displayName)
+                              Text(
+                                entry.url,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // 删除按钮
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: IconButton(
+                          icon: Icon(Icons.close, size: 16, color: scheme.onSurfaceVariant),
+                          padding: EdgeInsets.zero,
+                          onPressed: () => _showDeleteConfirmDialog(index, scheme),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  /// 服务器类型图标
+  Widget _buildServerTypeIcon(ServerType type, ColorScheme scheme) {
+    switch (type) {
+      case ServerType.emby:
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFF52B54B).withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          onPressed: () {
-            _embyController.text = url;
-            _clearError();
-            _testConnection();
-            _usernameFocusNode.requestFocus();
-          },
-          onDeleted: () async {
-            setState(() => _serverHistory.remove(url));
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setStringList(kStorageKeyServerHistory, _serverHistory);
-          },
-          deleteIconColor: scheme.onSurfaceVariant,
+          child: const Icon(Icons.dns, size: 18, color: Color(0xFF52B54B)),
         );
-      }).toList(),
+      case ServerType.plex:
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5A00D).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.play_circle_outline, size: 18, color: Color(0xFFE5A00D)),
+        );
+    }
+  }
+
+  /// 删除确认弹窗
+  Future<void> _showDeleteConfirmDialog(int index, ColorScheme scheme) async {
+    final entry = _serverHistory[index];
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: const Text('删除服务器'),
+        content: Text(
+          '确定要删除 "${entry.displayName}" 吗？',
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: scheme.error),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
     );
+    if (confirmed == true && mounted) {
+      await _deleteHistoryEntry(index);
+    }
   }
 
   /// 通用表单项
