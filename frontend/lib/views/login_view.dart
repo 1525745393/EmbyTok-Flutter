@@ -1,45 +1,22 @@
 // 登录页面：深色 TikTok 风格，粉紫色主题
-// 优化：服务器历史、记住密码、HTTPS 提示、连接测试、键盘交互、错误提示
-
-import 'dart:convert';
-import 'dart:io';
+// 优化：服务器历史、连接测试、键盘交互、内联错误提示
+// 安全：密码通过 flutter_secure_storage 加密存储，防重复提交锁
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/providers.dart';
+import '../services/api_client.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 
-/// 保存的服务器凭据
-class _SavedCredentials {
-  final String serverUrl;
-  final String username;
-  final String password;
-
-  const _SavedCredentials({
-    required this.serverUrl,
-    required this.username,
-    required this.password,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'serverUrl': serverUrl,
-        'username': username,
-        'password': password,
-      };
-
-  factory _SavedCredentials.fromJson(Map<String, dynamic> json) {
-    return _SavedCredentials(
-      serverUrl: json['serverUrl'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      password: json['password'] as String? ?? '',
-    );
-  }
-}
+/// 安全存储键名（仅用于凭据，服务器历史仍用 SharedPreferences）
+const _kSecureKeyServer = 'embbytok_secure_server';
+const _kSecureKeyUsername = 'embbytok_secure_username';
+const _kSecureKeyPassword = 'embbytok_secure_password';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -56,13 +33,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _serverFocusNode = FocusNode();
   final _usernameFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
+  final _secureStorage = const FlutterSecureStorage();
 
   bool _passwordVisible = false;
   bool _rememberMe = false;
   List<String> _serverHistory = [];
+
   // 连接测试状态：null=未测试, true=成功, false=失败
   bool? _connectionStatus;
   bool _isTestingConnection = false;
+
+  // 防重复提交锁 & 内联错误提示
+  bool _isSubmitting = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -81,7 +64,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   @override
   void dispose() {
-    // 显式移除 listener 再 dispose，避免 dispose 过程中残留回调
     _serverFocusNode.removeListener(_onServerFocusChanged);
     _embyController.dispose();
     _usernameController.dispose();
@@ -92,24 +74,29 @@ class _LoginViewState extends ConsumerState<LoginView> {
     super.dispose();
   }
 
-  /// 加载服务器历史和保存的凭据
+  /// 加载服务器历史（SharedPreferences）和凭据（安全存储）
   Future<void> _loadSavedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // 加载服务器历史
+      // 加载服务器历史（不敏感，用 SharedPreferences）
       final history = prefs.getStringList(kStorageKeyServerHistory) ?? [];
-      if (mounted) setState(() => _serverHistory = history);
 
-      // 加载保存的凭据
-      final saved = prefs.getString(kStorageKeySavedCredentials);
-      if (saved != null && saved.isNotEmpty) {
-        final json = jsonDecode(saved) as Map<String, dynamic>;
-        final creds = _SavedCredentials.fromJson(json);
-        _embyController.text = creds.serverUrl;
-        _usernameController.text = creds.username;
-        _passwordController.text = creds.password;
-        if (mounted) setState(() => _rememberMe = true);
+      // 从安全存储加载凭据
+      final server = await _secureStorage.read(key: _kSecureKeyServer);
+      final username = await _secureStorage.read(key: _kSecureKeyUsername);
+      final password = await _secureStorage.read(key: _kSecureKeyPassword);
+
+      if (mounted) {
+        setState(() {
+          _serverHistory = history;
+          if (server != null && server.isNotEmpty) {
+            _embyController.text = server;
+            _usernameController.text = username ?? '';
+            _passwordController.text = password ?? '';
+            _rememberMe = true;
+          }
+        });
       }
     } catch (e) {
       AppLogger.error('加载登录数据失败', error: e);
@@ -131,26 +118,26 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
-  /// 保存或清除凭据
+  /// 保存或清除凭据（使用 flutter_secure_storage 加密存储）
   Future<void> _saveCredentials(String server, String username, String password) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       if (_rememberMe) {
-        final creds = _SavedCredentials(
-          serverUrl: server,
-          username: username,
-          password: password,
-        );
-        await prefs.setString(kStorageKeySavedCredentials, jsonEncode(creds.toJson()));
+        await _secureStorage.write(key: _kSecureKeyServer, value: server);
+        await _secureStorage.write(key: _kSecureKeyUsername, value: username);
+        await _secureStorage.write(key: _kSecureKeyPassword, value: password);
       } else {
-        await prefs.remove(kStorageKeySavedCredentials);
+        await Future.wait([
+          _secureStorage.delete(key: _kSecureKeyServer),
+          _secureStorage.delete(key: _kSecureKeyUsername),
+          _secureStorage.delete(key: _kSecureKeyPassword),
+        ]);
       }
     } catch (e) {
       AppLogger.error('保存凭据失败', error: e);
     }
   }
 
-  /// 测试服务器连接（GET /System/Info/Public）
+  /// 测试服务器连接：复用 ApiClient（Dio），替代原始 HttpClient
   Future<void> _testConnection() async {
     final url = _embyController.text.trim();
     if (url.isEmpty) return;
@@ -161,24 +148,16 @@ class _LoginViewState extends ConsumerState<LoginView> {
     });
 
     try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 5);
-      try {
-        final uri = Uri.parse('$url/System/Info/Public');
-        final request = await client.getUrl(uri);
-        final response = await request.close();
-        client.close();
-        if (mounted) {
-          setState(() {
-            _connectionStatus = response.statusCode == 200;
-            _isTestingConnection = false;
-          });
-        }
-      } finally {
-        try { client.close(force: true); } catch (_) {}
+      // 复用 ApiClient，统一使用 Dio 进行网络请求
+      final apiClient = ApiClient(baseUrl: url);
+      final response = await apiClient.get('/System/Info/Public');
+      if (mounted) {
+        setState(() {
+          _connectionStatus = response.statusCode == 200;
+          _isTestingConnection = false;
+        });
       }
     } catch (e) {
-      // 记录错误详情便于排查，同时更新 UI 状态
       AppLogger.warn('连接测试失败', data: {'url': url, 'error': e.toString()});
       if (mounted) {
         setState(() {
@@ -207,17 +186,23 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return e is String ? e : '登录失败：$e';
   }
 
-  // 提交登录请求
+  /// 提交登录：带防重复提交锁和内联错误提示
   Future<void> _submit() async {
+    // 防重复提交锁
+    if (_isSubmitting) return;
     if (_formKey.currentState?.validate() != true) return;
 
     final emby = _embyController.text.trim();
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
     try {
       await ref.read(authProvider.notifier).login(emby, username, password);
-      // 登录成功后保存历史和凭据
       await _saveServerHistory(emby);
       await _saveCredentials(emby, username, password);
       if (mounted) {
@@ -225,15 +210,23 @@ class _LoginViewState extends ConsumerState<LoginView> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_friendlyError(e)),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        setState(() {
+          _errorMessage = _friendlyError(e);
+        });
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  /// 清除内联错误（用户修改输入时调用）
+  void _clearError() {
+    if (_errorMessage != null) {
+      setState(() => _errorMessage = null);
     }
   }
 
@@ -242,35 +235,45 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final isLoading = authState.isLoading;
+    // 键盘弹出时的额外底部间距
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: scheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+            padding: EdgeInsets.only(
+              left: 32,
+              right: 32,
+              top: 48,
+              bottom: 48 + bottomInset,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo 图标
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: scheme.primary,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(
-                      Icons.play_circle_filled,
-                      color: Colors.white,
-                      size: 44,
+                  // Logo 图标（居中）
+                  Center(
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_filled,
+                        color: Colors.white,
+                        size: 44,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // 顶部大标题
+
+                  // 应用标题
                   Text(
                     'EmbyTok',
                     style: TextStyle(
@@ -307,6 +310,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.username],
                     onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                    onChanged: (_) => _clearError(),
                   ),
                   const SizedBox(height: 16),
 
@@ -321,6 +325,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     textInputAction: TextInputAction.done,
                     autofillHints: const [AutofillHints.password],
                     onFieldSubmitted: (_) => _submit(),
+                    onChanged: (_) => _clearError(),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _passwordVisible ? Icons.visibility : Icons.visibility_off,
@@ -363,13 +368,39 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         ),
                     ],
                   ),
+
+                  // 内联错误提示（替代 SnackBar）
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: scheme.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: scheme.error.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: scheme.error, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: scheme.error, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 24),
 
                   // 登录按钮
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isLoading ? null : _submit,
+                      onPressed: (isLoading || _isSubmitting) ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: scheme.primary,
                         foregroundColor: scheme.onPrimary,
@@ -382,7 +413,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      child: isLoading
+                      child: (isLoading || _isSubmitting)
                           ? SizedBox(
                               height: 20,
                               width: 20,
@@ -419,6 +450,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       textInputAction: TextInputAction.next,
       autofillHints: const [AutofillHints.url],
       style: TextStyle(color: scheme.onSurface),
+      onChanged: (_) => _clearError(),
       decoration: InputDecoration(
         filled: true,
         fillColor: scheme.surface,
@@ -513,6 +545,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
           ),
           onPressed: () {
             _embyController.text = url;
+            _clearError();
             _testConnection();
             _usernameFocusNode.requestFocus();
           },
@@ -527,7 +560,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     );
   }
 
-  // 通用表单项
+  /// 通用表单项
   Widget _buildTextField({
     required ColorScheme scheme,
     required TextEditingController controller,
@@ -540,6 +573,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     TextInputAction? textInputAction,
     Iterable<String>? autofillHints,
     ValueChanged<String>? onFieldSubmitted,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -548,6 +582,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       textInputAction: textInputAction,
       autofillHints: autofillHints,
       style: TextStyle(color: scheme.onSurface),
+      onChanged: onChanged,
       decoration: InputDecoration(
         filled: true,
         fillColor: scheme.surface,
