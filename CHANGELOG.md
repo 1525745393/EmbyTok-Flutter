@@ -1,3 +1,10 @@
+## [2.15.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.3...v2.15.4) (2026-07-23)
+
+
+### Bug Fixes
+
+* 全屏黑屏 — 路由改为 opaque: false 使底层视频画面可见 ([23ad795](https://github.com/1525745393/EmbyTok-Flutter/commit/23ad795684af4326d6d73a8972a8b89d07a023ba))
+
 ## [2.15.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.2...v2.15.3) (2026-07-23)
 
 
