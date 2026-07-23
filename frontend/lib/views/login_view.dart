@@ -33,7 +33,7 @@ class _ServerHistoryEntry {
   final String displayName;
   final DateTime lastUsed;
 
-  const _ServerHistoryEntry({
+  _ServerHistoryEntry({
     required this.url,
     this.serverType = ServerType.emby,
     String? displayName,
