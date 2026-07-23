@@ -64,15 +64,26 @@ class FullscreenNavigator {
     // 全屏页为透明覆盖层，画面由底层 VideoPageItem 的 VideoPlayer 提供
     ref.read(isFullscreenProvider.notifier).state = true;
 
-    // 使用 PageRouteBuilder + opaque: false 确保路由透明，
-    // 底层 VideoPageItem 的 VideoPlayer 画面可以透过覆盖层显示
-    // MaterialPageRoute 默认 opaque: true，会导致旧路由内容不渲染
-    await Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (_, __, ___) => const FullscreenVideoPage(),
-        fullscreenDialog: true,
-      ),
+    // 使用 showGeneralDialog 创建透明覆盖层路由
+    // RawDialogRoute 默认 opaque: false，专为透明覆盖场景设计，
+    // 能正确处理 hit testing 和控件渲染
+    await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'fullscreen',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 300),
+      transitionBuilder: (_, animation, __, child) {
+        // 从底部滑入过渡，与 fullscreenDialog 行为一致
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          child: child,
+        );
+      },
+      pageBuilder: (_, __, ___) => const FullscreenVideoPage(),
     );
 
     onExit?.call();
