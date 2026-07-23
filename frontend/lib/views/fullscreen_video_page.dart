@@ -903,8 +903,7 @@ class _FullscreenVideoPageState
               ),
             ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildErrorState(VideoPlayerController? controller) {
