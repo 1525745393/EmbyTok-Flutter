@@ -516,7 +516,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // - 进度 100% 不丢，零额外内存
   // - 退出全屏用系统返回键，PopScope 自动处理
   Future<void> _openFullscreenPage() async {
-    await FullscreenNavigator.open(
+    final success = await FullscreenNavigator.open(
       ref: ref,
       context: context,
       onExit: () {
@@ -528,6 +528,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         }
       },
     );
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('视频正在准备中，请稍后'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // ===== 控制层显示/隐藏 =====

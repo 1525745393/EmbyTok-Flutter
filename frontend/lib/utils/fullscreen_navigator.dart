@@ -19,16 +19,22 @@ class FullscreenNavigator {
   /// - 已 disposed（访问 value 抛异常）
   /// - 有错误（hasError=true）
   /// - 未初始化（isInitialized=false）
+  /// - 视频尺寸为空（size.isEmpty=true）
   ///
   /// 防御场景：onControllerReleased 回调未同步清除
   /// currentVideoControllerProvider 时，provider 可能持有已 disposed 的 controller，
   /// 直接进入全屏会导致黑屏。
+  ///
+  /// 尺寸检查：视频已初始化但尺寸尚未获取时，进入全屏会显示加载指示器而非视频画面，
+  /// 因此必须等待尺寸有效后才允许进入全屏。
   static bool isControllerUsableForFullscreen(VideoPlayerController? controller) {
     if (controller == null) return false;
     try {
       final v = controller.value;
       if (v.hasError) return false;
       if (!v.isInitialized) return false;
+      // 关键修复：必须检查尺寸，否则进入全屏后画面可能不显示
+      if (v.size.isEmpty) return false;
       return true;
     } catch (_) {
       // controller 已 disposed，访问 value 会抛异常

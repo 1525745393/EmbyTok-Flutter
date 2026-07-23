@@ -147,6 +147,7 @@ class _FullscreenVideoPageState
   bool _lastIsPlaying = false;
   bool _lastHasError = false;
   bool _wasControllerReady = false;
+  bool _lastHasSize = false;
   VideoPlayerController? _watchedController;
   int _lastPositionSec = -1;
 
@@ -166,12 +167,14 @@ class _FullscreenVideoPageState
       _lastIsPlaying = v.isPlaying;
       _lastHasError = v.hasError;
       _bufferingNotifier.value = v.isBuffering;
-      _wasControllerReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
+      _wasControllerReady = v.isInitialized && !v.hasError;
+      _lastHasSize = !v.size.isEmpty;
     } else {
       _lastIsPlaying = false;
       _lastHasError = false;
       _bufferingNotifier.value = false;
       _wasControllerReady = false;
+      _lastHasSize = false;
     }
   }
 
@@ -204,10 +207,19 @@ class _FullscreenVideoPageState
       }
     }
 
-    final isReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
+    final isReady = v.isInitialized && !v.hasError;
     if (isReady != _wasControllerReady) {
       _wasControllerReady = isReady;
       needsRebuild = true;
+    }
+
+    // 尺寸变化检测：从空变为有效时触发重建，确保 VideoPlayer 切换到正确尺寸
+    final hasSizeNow = !v.size.isEmpty;
+    if (hasSizeNow != _lastHasSize) {
+      _lastHasSize = hasSizeNow;
+      if (hasSizeNow) {
+        needsRebuild = true;
+      }
     }
 
     // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
@@ -597,9 +609,8 @@ class _FullscreenVideoPageState
   }
 
   // 视频渲染表面：根据画面比例模式正确显示
-  Widget _buildVideoSurface(VideoPlayerController controller) {
+  Widget _buildVideoSurface(VideoPlayerController controller, {required bool hasValidSize}) {
     final videoSize = controller.value.size;
-    final hasValidSize = !videoSize.isEmpty;
     // 尺寸为空时使用 1x1 占位，保证 VideoPlayer 渲染管线不断
     final width = hasValidSize ? videoSize.width : 1.0;
     final height = hasValidSize ? videoSize.height : 1.0;
@@ -720,14 +731,17 @@ class _FullscreenVideoPageState
 
     bool isControllerReady;
     bool hasError;
+    bool hasValidSize;
     if (controller != null) {
       final v = controller.value;
-      // 增加尺寸检查，避免尺寸为空时认为控制器就绪导致黑屏
-      isControllerReady = v.isInitialized && !v.hasError && !v.size.isEmpty;
+      // isControllerReady 不再检查尺寸，确保 VideoPlayer 能及时构建
+      isControllerReady = v.isInitialized && !v.hasError;
       hasError = v.hasError;
+      hasValidSize = !v.size.isEmpty;
     } else {
       isControllerReady = false;
       hasError = false;
+      hasValidSize = false;
     }
 
     final mediaOrientation = MediaQuery.orientationOf(context);
@@ -767,15 +781,19 @@ class _FullscreenVideoPageState
                 children: [
                   const ColoredBox(color: Colors.black),
 
+                  // 只要控制器已初始化且无错误，就构建 VideoPlayer（即使尺寸为空）
+                  // 尺寸为空时使用占位尺寸，避免黑屏
                   if (isControllerReady && controller != null)
                     Offstage(
                       offstage: hasError || !videoVisible,
-                      child: _buildVideoSurface(controller),
+                      child: _buildVideoSurface(controller, hasValidSize: hasValidSize),
                     ),
 
                   if (hasError && controller != null)
                     _buildErrorState(controller),
 
+                  // 加载指示器仅在控制器未初始化时显示
+                  // 已初始化但尺寸为空时，VideoPlayer 会用占位尺寸渲染，无需显示加载指示器
                   if (!isControllerReady && !hasError)
                     const Center(
                       child: CircularProgressIndicator(color: Colors.white),
@@ -826,16 +844,16 @@ class _FullscreenVideoPageState
             ),
           ),
 
-          // 顶部控制栏
-          if (_controlsVisible && !_isScreenLocked)
+          // 顶部栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
+          if (_controlsVisible && isControllerReady && hasValidSize && !_isScreenLocked)
             _buildTopBar(playingItem, isActuallyLandscape),
 
-          // 底部控制栏
-          if (_controlsVisible && isControllerReady && controller != null && !_isScreenLocked)
+          // 底部控制栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
+          if (_controlsVisible && isControllerReady && hasValidSize && controller != null && !_isScreenLocked)
             _buildBottomBar(controller, playingItem, items),
 
-          // 设置面板
-          if (_showSettingsPanel && isControllerReady && controller != null && !_isScreenLocked)
+          // 设置面板：尺寸有效时才显示，避免画面未就绪时显示设置面板
+          if (_showSettingsPanel && isControllerReady && hasValidSize && controller != null && !_isScreenLocked)
             _buildSettingsPanel(controller),
 
           // 锁屏 UI
