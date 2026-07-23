@@ -307,7 +307,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       final position = controller.value.position;
       final duration = controller.value.duration;
       if (duration.inMilliseconds <= 0) return;
-      final completionRate = position.inMilliseconds / duration.inMilliseconds;
+      // 使用微秒计算避免毫秒整数除法的精度损失
+      final completionRate = position.inMicroseconds / duration.inMicroseconds;
       ref.read(watchStatsProvider.notifier).recordWatch(
             itemId: widget.item.id,
             itemType: widget.item.type,

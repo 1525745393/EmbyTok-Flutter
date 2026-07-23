@@ -11,7 +11,7 @@
 // 2. 未来可接入推荐打分：完播率高的相似 source，下次推荐加权
 //
 // 数据流：
-// - VideoPageItem 视频完播 / dispose 时回调 recordWatch()
+// - VideoPageItem 视频完播 / deactivate 时回调 recordWatch()
 // - Provider 写入 SharedPreferences（按 userId 分键，最多保留 500 条）
 // - 设置页读 provider 展示统计
 
@@ -83,27 +83,72 @@ class WatchStatsState {
     this.last7DaysAvgCompletion = 0.0,
   });
 
+  /// 全量替换记录并重算统计（单次遍历，无中间列表分配）
+  /// 用于 _loadForUser 批量加载场景
   WatchStatsState copyWith({
     List<WatchRecord>? records,
   }) {
     final list = records ?? this.records;
     final total = list.length;
-    final avg = total == 0
-        ? 0.0
-        : list.fold<double>(0.0, (sum, r) => sum + r.completionRate) / total;
-    // 最近 7 天
+    // 单次遍历同时累加全量和 7 天统计，避免 where+toList 产生的中间列表
+    double sumAll = 0.0;
+    int last7Count = 0;
+    double last7Sum = 0.0;
     final cutoff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
-    final last7 = list.where((r) => r.watchedAt >= cutoff).toList();
-    final last7Avg = last7.isEmpty
-        ? 0.0
-        : last7.fold<double>(0.0, (sum, r) => sum + r.completionRate) /
-            last7.length;
+    for (final r in list) {
+      sumAll += r.completionRate;
+      if (r.watchedAt >= cutoff) {
+        last7Count++;
+        last7Sum += r.completionRate;
+      }
+    }
     return WatchStatsState(
       records: list,
       totalCount: total,
-      avgCompletion: avg,
-      last7DaysCount: last7.length,
-      last7DaysAvgCompletion: last7Avg,
+      avgCompletion: total == 0 ? 0.0 : sumAll / total,
+      last7DaysCount: last7Count,
+      last7DaysAvgCompletion: last7Count == 0 ? 0.0 : last7Sum / last7Count,
+    );
+  }
+
+  /// 增量更新：添加单条记录后计算新统计
+  /// totalCount / avgCompletion 用增量公式 O(1)
+  /// 7 天统计因时间窗口漂移仍需遍历，但可利用时间倒序提前终止
+  ///
+  /// 前置条件：records 必须按 watchedAt 倒序排列（新记录在前）。
+  /// 当前由 _loadForUser 的 sort + 本方法 [record, ...records] 保证。
+  WatchStatsState addRecord(WatchRecord record, {int maxRecords = 500}) {
+    final newList = [record, ...records];
+    // 截断超出上限的旧记录（列表尾部，时间最久远）
+    int removedCount = 0;
+    double removedSum = 0.0;
+    if (newList.length > maxRecords) {
+      final removed = newList.sublist(maxRecords);
+      removedCount = removed.length;
+      for (final r in removed) {
+        removedSum += r.completionRate;
+      }
+      newList.removeRange(maxRecords, newList.length);
+    }
+    // 增量计算全量统计
+    final oldSum = avgCompletion * totalCount;
+    final newTotal = totalCount + 1 - removedCount;
+    final newSum = oldSum + record.completionRate - removedSum;
+    // 7 天统计：单次遍历（时间窗口会漂移，无法纯增量）
+    final cutoff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
+    int last7Count = 0;
+    double last7Sum = 0.0;
+    for (final r in newList) {
+      if (r.watchedAt < cutoff) break; // 时间倒序，遇到旧记录可提前终止
+      last7Count++;
+      last7Sum += r.completionRate;
+    }
+    return WatchStatsState(
+      records: newList,
+      totalCount: newTotal,
+      avgCompletion: newTotal > 0 ? newSum / newTotal : 0.0,
+      last7DaysCount: last7Count,
+      last7DaysAvgCompletion: last7Count > 0 ? last7Sum / last7Count : 0.0,
     );
   }
 }
@@ -207,12 +252,8 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
       source: source,
     );
 
-    // 插入到头部 + 截断
-    final newList = [record, ...state.records];
-    if (newList.length > _maxRecords) {
-      newList.removeRange(_maxRecords, newList.length);
-    }
-    state = state.copyWith(records: newList);
+    // 使用增量计算替代 copyWith 全量重算
+    state = state.addRecord(record, maxRecords: _maxRecords);
 
     AppLogger.debug('完播率统计：记录', data: {
       'itemId': itemId,
@@ -221,7 +262,7 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
     });
 
     // 异步持久化（不阻塞）
-    unawaited(_saveToCache(newList));
+    unawaited(_saveToCache(state.records));
   }
 
   /// 清除所有记录
