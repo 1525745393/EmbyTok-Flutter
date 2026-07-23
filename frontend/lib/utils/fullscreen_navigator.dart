@@ -60,8 +60,8 @@ class FullscreenNavigator {
 
     // 进入前隐藏工具栏（沉浸感）
     ref.read(toolbarVisibilityProvider.notifier).hide();
-    // 同步设置 isFullscreenProvider，使 VideoPageItem 中的 VideoPlayer 立即 Offstage，
-    // 避免与 FullscreenVideoPage 中的 VideoPlayer 短暂同时渲染同一 controller
+    // 设置 isFullscreenProvider，使 VideoPageItem 隐藏 UI 控件（但 VideoPlayer 保持渲染）
+    // 全屏页为透明覆盖层，画面由底层 VideoPageItem 的 VideoPlayer 提供
     ref.read(isFullscreenProvider.notifier).state = true;
 
     await Navigator.of(context).push(

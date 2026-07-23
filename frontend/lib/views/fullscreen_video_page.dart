@@ -1,4 +1,4 @@
-// 全屏视频播放页：完整功能版
+// 全屏视频播放页：透明覆盖层
 //
 // 核心特性：
 // 1. 基础交互：播放暂停、进度拖动、退出全屏、控制栏自动显隐、横竖屏切换
@@ -6,7 +6,8 @@
 // 3. 设置面板：倍速切换、清晰度切换、画面比例设置
 // 4. 系统适配：沉浸式状态栏、安全区、前后台切换、网络切换提醒
 // 5. 状态反馈：缓冲、失败、手势操作的完整视觉反馈
-// 6. 无缝衔接：复用全局 VideoPlayerController，不重新初始化
+// 6. 覆盖层架构：不做视频渲染，VideoPlayer 由底层 VideoPageItem 持续渲染，
+//    本页为透明覆盖层，仅提供全屏控件和手势，避免 Texture 释放/重新注册导致黑屏
 // 7. 系统亮度：使用 screen_brightness 实现全局亮度调节，退出时恢复原始亮度
 
 import 'dart:async';
@@ -608,87 +609,6 @@ class _FullscreenVideoPageState
     }
   }
 
-  // 视频渲染表面：根据画面比例模式正确显示
-  Widget _buildVideoSurface(VideoPlayerController controller, {required bool hasValidSize}) {
-    final videoSize = controller.value.size;
-    // 尺寸为空时使用 1x1 占位，保证 VideoPlayer 渲染管线不断
-    final width = hasValidSize ? videoSize.width : 1.0;
-    final height = hasValidSize ? videoSize.height : 1.0;
-
-    switch (_aspectMode) {
-      case _AspectRatioMode.auto:
-        final isPortraitVideo = hasValidSize && videoSize.height > videoSize.width;
-        return FittedBox(
-          fit: isPortraitVideo ? BoxFit.cover : BoxFit.contain,
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: VideoPlayer(controller),
-          ),
-        );
-      case _AspectRatioMode.contain:
-      case _AspectRatioMode.cover:
-      case _AspectRatioMode.fill:
-        return FittedBox(
-          fit: _getBoxFit(),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: VideoPlayer(controller),
-          ),
-        );
-      case _AspectRatioMode.sixteenNine:
-      case _AspectRatioMode.fourThree:
-        // 固定比例模式：外层按指定比例布局，内层裁剪/拉伸由 fit 决定
-        final targetRatio =
-            _aspectMode == _AspectRatioMode.sixteenNine ? 16 / 9 : 4 / 3;
-        return Center(
-          child: AspectRatio(
-            aspectRatio: targetRatio,
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: width,
-                height: height,
-                child: VideoPlayer(controller),
-              ),
-            ),
-          ),
-        );
-    }
-  }
-
-  BoxFit _getBoxFit() {
-    switch (_aspectMode) {
-      case _AspectRatioMode.auto:
-        final controller = ref.read(currentVideoControllerProvider);
-        if (controller != null && controller.value.isInitialized) {
-          final size = controller.value.size;
-          final isPortraitVideo = size.height > size.width;
-          return isPortraitVideo ? BoxFit.cover : BoxFit.contain;
-        }
-        return BoxFit.contain;
-      case _AspectRatioMode.contain:
-        return BoxFit.contain;
-      case _AspectRatioMode.cover:
-        return BoxFit.cover;
-      case _AspectRatioMode.fill:
-        return BoxFit.fill;
-      case _AspectRatioMode.sixteenNine:
-        return BoxFit.contain;
-      case _AspectRatioMode.fourThree:
-        return BoxFit.contain;
-    }
-  }
-
-  double _resolveAspectRatio(VideoPlayerController controller) {
-    if (_aspectMode == _AspectRatioMode.sixteenNine) return 16 / 9;
-    if (_aspectMode == _AspectRatioMode.fourThree) return 4 / 3;
-    if (!controller.value.isInitialized) return 16 / 9;
-    final ratio = controller.value.aspectRatio;
-    return ratio == 0 ? 16 / 9 : ratio;
-  }
-
   String _formatDuration(Duration d) {
     if (d.inSeconds < 0) return '0:00';
     if (d.inHours > 0) {
@@ -750,11 +670,11 @@ class _FullscreenVideoPageState
     final gesturesEnabled = !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       body: Stack(
         key: ValueKey('fs-stack-$_retryKey'),
         children: [
-          // 视频渲染层
+          // 手势层：透明覆盖，接收所有触摸事件
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -779,16 +699,10 @@ class _FullscreenVideoPageState
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  const ColoredBox(color: Colors.black),
+                  // 覆盖层架构：不做视频渲染，VideoPlayer 由底层 VideoPageItem 持续渲染
+                  // 本页为透明覆盖层，仅提供全屏控件和手势
 
-                  // 只要控制器已初始化且无错误，就构建 VideoPlayer（即使尺寸为空）
-                  // 尺寸为空时使用占位尺寸，避免黑屏
-                  if (isControllerReady && controller != null)
-                    Offstage(
-                      offstage: hasError || !videoVisible,
-                      child: _buildVideoSurface(controller, hasValidSize: hasValidSize),
-                    ),
-
+                  // 错误状态：controller 有错误时显示
                   if (hasError && controller != null)
                     _buildErrorState(controller),
 

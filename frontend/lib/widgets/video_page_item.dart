@@ -671,7 +671,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         videoReadyProvider.select((s) => s.contains(widget.item.id)));
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
-    // 监听全屏状态：进入全屏时隐藏本页 VideoPlayer，避免同一 controller 被两个 VideoPlayer 同时渲染导致黑屏
+    // 监听全屏状态：进入全屏时隐藏本页 UI 控件，但 VideoPlayer 保持渲染
+    // 画面通过透明 FullscreenVideoPage 覆盖层显示，避免纹理释放/重新注册导致黑屏
     final isInFullscreen = ref.watch(isFullscreenProvider);
     final scheme = Theme.of(context).colorScheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
@@ -702,8 +703,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         ),
 
         // 视频播放区（Gestures + VideoPlayer）
-        // 全屏时 VideoPlayerWidget 内部不渲染 VideoPlayer widget，
-        // 释放底层 Texture 避免与 FullscreenVideoPage 的 VideoPlayer 争用纹理导致黑屏
+        // 全屏时 VideoPlayer 保持渲染，画面通过透明 FullscreenVideoPage 覆盖层显示，
+        // 避免移除 VideoPlayer 后 Texture 无法重新注册导致黑屏
         AnimatedOpacity(
           opacity: isReady ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
@@ -728,7 +729,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               key: _videoPlayerKey,
               item: widget.item,
               isCurrentPage: widget.isCurrentPage,
-              isInFullscreen: isInFullscreen,
               embyServerUrl: embyServerUrl,
               token: token,
               preloadedController: widget.preloadedSession?.controller,
@@ -789,69 +789,73 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
         ),
 
-        // 中央播放/暂停按钮 —— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
-        // 非纯净模式：单击切换播放/暂停后显示，2秒后自动隐藏
-        // 纯净模式：不显示（由 VideoControls 控制条操作）
-        _CenterPlayButtonWrapper(
-          controller: _videoController,
-          onPlay: _togglePlay,
-          visible: _centerButtonVisible,
-          isAutoPlay: isAutoPlay,
-        ),
-
-        // 倍速状态徽章
-        if (_videoController != null &&
-            _videoController!.value.isInitialized &&
-            _videoController!.value.playbackSpeed > 1.0)
-          SpeedBadge(speed: _videoController!.value.playbackSpeed),
-
-        // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
-        if (_videoController != null &&
-            _videoController!.value.isInitialized &&
-            (isAutoPlay) &&
-            !_controlsVisible)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ThinProgressBar(controller: _videoController!),
+        // 全屏时隐藏所有 UI 控件，VideoPlayer 保持渲染
+        // 画面通过透明 FullscreenVideoPage 覆盖层显示
+        if (!isInFullscreen) ...[
+          // 中央播放/暂停按钮 —— 独立子组件，仅监听 isPlayingProvider 避免父组件过度重建
+          // 非纯净模式：单击切换播放/暂停后显示，2秒后自动隐藏
+          // 纯净模式：不显示（由 VideoControls 控制条操作）
+          _CenterPlayButtonWrapper(
+            controller: _videoController,
+            onPlay: _togglePlay,
+            visible: _centerButtonVisible,
+            isAutoPlay: isAutoPlay,
           ),
 
-        // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
-        if (_videoController != null && _videoController!.value.isInitialized && (isAutoPlay))
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedOpacity(
-              opacity: _controlsVisible ? 1.0 : 0.0,
-              duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
-              child: IgnorePointer(
-                ignoring: !_controlsVisible,
-                child: VideoControls(
-                  controller: _videoController!,
-                  subtitleTracks: widget.item.subtitleTracks,
-                  onPrevEpisode: widget.onPrevEpisode,
-                  onToggleFullscreen: _openFullscreenPage,
-                  isInFullscreen: false,
-                  compact: true,
-                  onSeekStart: () {
-                    _controlsHideTimer?.cancel();
-                  },
-                  onSeekEnd: () {
-                    _controlsHideTimer?.cancel();
-                    _controlsHideTimer = Timer(
-                      const Duration(seconds: _controlsAutoHideSeconds),
-                      _hideControls,
-                    );
-                  },
+          // 倍速状态徽章
+          if (_videoController != null &&
+              _videoController!.value.isInitialized &&
+              _videoController!.value.playbackSpeed > 1.0)
+            SpeedBadge(speed: _videoController!.value.playbackSpeed),
+
+          // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
+          if (_videoController != null &&
+              _videoController!.value.isInitialized &&
+              (isAutoPlay) &&
+              !_controlsVisible)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ThinProgressBar(controller: _videoController!),
+            ),
+
+          // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
+          if (_videoController != null && _videoController!.value.isInitialized && (isAutoPlay))
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedOpacity(
+                opacity: _controlsVisible ? 1.0 : 0.0,
+                duration: Duration(milliseconds: _controlsVisible ? 200 : 300),
+                child: IgnorePointer(
+                  ignoring: !_controlsVisible,
+                  child: VideoControls(
+                    controller: _videoController!,
+                    subtitleTracks: widget.item.subtitleTracks,
+                    onPrevEpisode: widget.onPrevEpisode,
+                    onToggleFullscreen: _openFullscreenPage,
+                    isInFullscreen: false,
+                    compact: true,
+                    onSeekStart: () {
+                      _controlsHideTimer?.cancel();
+                    },
+                    onSeekEnd: () {
+                      _controlsHideTimer?.cancel();
+                      _controlsHideTimer = Timer(
+                        const Duration(seconds: _controlsAutoHideSeconds),
+                        _hideControls,
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
+        ],
 
         // 底部渐变 + 标题/简介/类型标签（非纯净模式）
-        if ((_isInfoExpanded || !isAutoPlay))
+        if ((_isInfoExpanded || !isAutoPlay) && !isInFullscreen)
           Positioned(
             left: 0,
             right: 0,
@@ -966,7 +970,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
 
         // 右侧操作按钮（非纯净模式）
-        if (!isAutoPlay)
+        if (!isAutoPlay && !isInFullscreen)
           Positioned(
             right: 0,
             top: 0,
@@ -1052,7 +1056,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ),
 
         // 纯净模式：可拖动按钮组
-        if (isAutoPlay)
+        if (isAutoPlay && !isInFullscreen)
           Positioned.fill(
             child: LayoutBuilder(
               builder: (context, constraints) {
