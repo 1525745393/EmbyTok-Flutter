@@ -5,8 +5,6 @@
 // - 便于在多个 Notifier/Provider 之间共享状态定义
 // - 单独文件使状态结构一目了然
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../models/models.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import '../utils/constants.dart';

@@ -5,8 +5,6 @@
 // 垂直滑动：屏幕右侧 1/2 区域上下滑动调节音量（仅在 enableVerticalVolumeDrag=true 时启用，
 //           避免和小屏 PageView 的垂直滑动切换视频冲突）
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

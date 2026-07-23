@@ -16,7 +16,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../repositories/media_repository.dart';
 import '../utils/app_preferences.dart' show FeedType, ViewMode;
-import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';

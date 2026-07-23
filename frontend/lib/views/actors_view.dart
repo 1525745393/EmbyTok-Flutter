@@ -26,7 +26,6 @@ class ActorsView extends ConsumerStatefulWidget {
 class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
-  bool _hasRestoredState = false;
   Timer? _scrollSaveTimer;
   late final TextEditingController _searchController;
 
@@ -80,8 +79,6 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
         _searchController.text = savedSearch;
         ref.read(actorsProvider.notifier).searchActors(savedSearch);
       }
-
-      _hasRestoredState = true;
     } catch (_) {}
   }
 

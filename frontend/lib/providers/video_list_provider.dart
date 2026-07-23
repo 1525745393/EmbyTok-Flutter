@@ -15,9 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../utils/app_preferences.dart' show OrientationMode;
 import 'app_preferences_providers.dart';
-import 'playback_list_provider.dart';
 import 'video_list_notifier.dart';
-import 'video_list_state.dart';
 
 // ==================== 状态与 Notifier 重新导出 ====================
 

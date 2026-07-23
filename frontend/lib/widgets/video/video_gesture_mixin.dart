@@ -17,7 +17,6 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
-import '../../utils/constants.dart';
 import '../../utils/logger.dart';
 
 mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {

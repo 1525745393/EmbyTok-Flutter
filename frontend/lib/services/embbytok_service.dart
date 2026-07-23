@@ -1576,7 +1576,7 @@ class EmbytokService {
         final waitMs = delay + jitter;
         AppLogger.debug('$operationName 第 $attempt 次失败，${waitMs}ms 后重试',
             data: {'error': e.toString()});
-        await Future.delayed(Duration(milliseconds: waitMs));
+        await Future<void>.delayed(Duration(milliseconds: waitMs));
         delay *= 2;
       }
     }

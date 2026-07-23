@@ -2225,7 +2225,7 @@ class SettingsView extends ConsumerWidget {
               _showInstallDialog(ctx, savePath, release, scheme);
             }
           })
-              .catchError((e) {
+              .catchError((Object e) {
             if (CancelToken.isCancel(e)) return;
             if (ctx.mounted && isDialogActive) {
               isDialogActive = false;

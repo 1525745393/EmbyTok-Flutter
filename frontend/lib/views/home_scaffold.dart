@@ -211,7 +211,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
             await ref.read(videoPoolProvider).disposeAll();
           } catch (_) {}
           // 让出一帧给 GC 和 native texture 回收
-          await Future.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
           if (context.mounted) {
             SystemNavigator.pop();
           }

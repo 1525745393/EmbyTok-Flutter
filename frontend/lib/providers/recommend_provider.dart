@@ -48,7 +48,6 @@ import 'cache_providers.dart';
 import 'favorites_provider.dart';
 import 'library_provider.dart';
 import 'recommend_signals.dart';
-import 'watch_stats_provider.dart';
 
 /// 推荐状态
 class RecommendState {

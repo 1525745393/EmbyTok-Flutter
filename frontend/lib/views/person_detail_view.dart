@@ -100,7 +100,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             _loading = false;
           });
         }
-      }).catchError((e) {
+      }).catchError((Object e) {
         if (mounted) {
           setState(() {
             _error = e.toString();

@@ -265,7 +265,7 @@ class VideoPoolService {
       }
       // 批次之间让出主线程，给 GC 和 native texture 回收时间
       if (i + batchSize < sessions.length) {
-        await Future.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
       }
     }
     _disposing = false;

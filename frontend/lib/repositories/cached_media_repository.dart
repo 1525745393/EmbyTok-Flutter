@@ -123,7 +123,7 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   /// 辅助：对所有缓存执行统计求和
-  int _sum(int Function(MemoryCache) selector) {
+  int _sum(int Function(MemoryCache<dynamic>) selector) {
     return selector(_libraryItemsCache) +
         selector(_favoritesCache) +
         selector(_boxSetsFavoritesCache) +

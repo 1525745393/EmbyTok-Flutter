@@ -22,7 +22,6 @@ import 'package:video_player/video_player.dart';
 import '../models/models.dart';
 import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
@@ -161,7 +160,6 @@ class _FullscreenVideoPageState
 
   // 字幕
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
-  bool _isLoadingSubtitle = false;
 
   Timer? _resumePlayTimer;
 
@@ -483,7 +481,6 @@ class _FullscreenVideoPageState
     trackIndex ??= int.tryParse(selectedTrackId);
     if (trackIndex == null) return;
 
-    setState(() => _isLoadingSubtitle = true);
     try {
       final embService = ref.read(embbytokServiceProvider);
       final authState = ref.read(authProvider);
@@ -504,13 +501,11 @@ class _FullscreenVideoPageState
       if (mounted) {
         setState(() {
           _subtitleCues = cues;
-          _isLoadingSubtitle = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _isLoadingSubtitle = false;
           _subtitleCues = const <SubtitleCue>[];
         });
       }
@@ -673,7 +668,6 @@ class _FullscreenVideoPageState
 
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
-    final videoVisible = !_isScreenLocked;
     final gesturesEnabled = !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
 
     // 直接返回 Stack（非 Scaffold），因为本页作为覆盖层渲染在 VideoPageItem 的 Stack 中，

@@ -19,7 +19,6 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
 import 'app_preferences_providers.dart';
 import 'favorites_provider.dart';
 import 'recommend_provider.dart' show RecommendSource;
@@ -118,7 +117,6 @@ class UserBehaviorSignalCalculator {
   // PR #83：相似推荐种子阈值
   // - communityRating >= 7.0
   // - 该 seed 的平均完播率 >= 0.5
-  static const double _seedMinRating = 7.0;
   static const double _seedMinCompletion = 0.5;
   static const int _seedMaxCount = 5;
 

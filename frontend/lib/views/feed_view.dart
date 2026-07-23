@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../coordinators/playback_coordinator.dart';
-import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';

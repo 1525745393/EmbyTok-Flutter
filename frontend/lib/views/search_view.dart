@@ -324,7 +324,6 @@ class _SearchViewState extends ConsumerState<SearchView>
   }
 
   Widget _buildPersonResults(SearchState state) {
-    final scheme = Theme.of(context).colorScheme;
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
