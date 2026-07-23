@@ -1,3 +1,11 @@
+## [2.15.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.5...v2.15.6) (2026-07-23)
+
+
+### Bug Fixes
+
+* 全屏退出按钮和手势控制 — onExit 回调正确传递与调用 ([2b83e05](https://github.com/1525745393/EmbyTok-Flutter/commit/2b83e05701f99ef990ba6d9ef1fd5cda9dd5245b))
+* 移除 Scaffold 包装后多余闭合括号导致语法错误 ([3837322](https://github.com/1525745393/EmbyTok-Flutter/commit/3837322d91d4b02f5dfaccaf29cb9e5223796b87))
+
 ## [2.15.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.15.4...v2.15.5) (2026-07-23)
 
 
