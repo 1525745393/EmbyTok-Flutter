@@ -1,3 +1,10 @@
+## [2.20.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.3...v2.20.4) (2026-07-24)
+
+
+### Bug Fixes
+
+* remove explicit initialize() to prevent native crash ([84d4203](https://github.com/1525745393/EmbyTok-Flutter/commit/84d4203bff8178af3f319051b1c6acb522d07e07))
+
 ## [2.20.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.2...v2.20.3) (2026-07-24)
 
 
