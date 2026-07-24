@@ -62,22 +62,30 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   }
 
   @override
+  void didUpdateWidget(covariant VideoControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      _lastIsPlaying = widget.controller.isPlaying;
+      widget.controller.addListener(_onControllerChanged);
+    }
+  }
+
+  @override
   void dispose() {
     widget.controller.removeListener(_onControllerChanged);
     super.dispose();
   }
 
-  // 控制器变化回调：不再调用 setState，依赖 controller.value 的组件
-  // （进度条、时间、播放按钮、倍速）通过 ValueListenableBuilder 实现局部重建，
-  // 避免整棵 VideoControls 每秒重建约 60 次
+  // 控制器变化回调：通过 addListener + setState 驱动 UI 更新
   void _onControllerChanged() {
     if (!mounted) return;
-    // 仅在 isPlaying 实际变化时才同步到 Provider（供中央播放按钮显示/隐藏使用）
     final isPlaying = widget.controller.isPlaying;
     if (isPlaying != _lastIsPlaying) {
       _lastIsPlaying = isPlaying;
       ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
+    setState(() {});
   }
 
   // 格式化 Duration 为 "mm:ss" 或 "h:mm:ss"
@@ -157,13 +165,12 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final isCompact = widget.compact;
 
     // 进度条 + 时间 组件（供两种模式共用）
-    final progressRow = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
+    final progressRow = Builder(
+      builder: (context) {
         final position = _isSeeking
-            ? (_previewPosition ?? value.position)
-            : value.position;
-        final duration = value.duration;
+            ? (_previewPosition ?? controller.position)
+            : controller.position;
+        final duration = controller.duration;
         final progress = duration.inMilliseconds > 0
             ? position.inMilliseconds / duration.inMilliseconds
             : 0.0;
@@ -222,12 +229,11 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
 
     // 播放/暂停按钮
-    final playButton = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
+    final playButton = Builder(
+      builder: (context) {
         return IconButton(
           icon: Icon(
-            value.isPlaying ? Icons.pause : Icons.play_arrow,
+            controller.isPlaying ? Icons.pause : Icons.play_arrow,
             color: scheme.onSurface,
             size: isCompact ? 24 : 28,
           ),
@@ -237,13 +243,12 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
 
     // 倍速按钮
-    final speedButton = ValueListenableBuilder<VideoPlayerValue>(
-      valueListenable: controller,
-      builder: (context, value, child) {
+    final speedButton = Builder(
+      builder: (context) {
         return TextButton(
           onPressed: _showRateMenu,
           child: Text(
-            '${value.playbackSpeed.toStringAsFixed(1)}x',
+            '${controller.playbackSpeed.toStringAsFixed(1)}x',
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: isCompact ? 12 : 14,

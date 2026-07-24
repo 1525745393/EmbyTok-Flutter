@@ -3,14 +3,14 @@
 // 背景：
 // - HomeScaffold 用 IndexedStack 同时保持 Feed / Favorites / Actors / Settings
 //   四个 Tab 视图存活，切换 Tab 不会触发 deactivate/activate。
-// - 修复前：切到非 Feed Tab 时 VideoPlayerController 仍处于 playing，
+// - 修复前：切到非 Feed Tab 时播放控制器仍处于 playing，
 //   视频在后台继续播放/消耗流量/发热。
 // - 修复后：HomeScaffold 监听 pageNavigationProvider 变化，
 //   当 Feed 刚被隐藏时主动 controller.pause()，重新可见时如果用户
 //   原本"想播放"（isPlayingProvider=true）则 controller.play()。
 //
 // 测试策略：核心逻辑已抽到顶层纯函数 applyFeedVisibilityChange，
-// 用 mockito mock VideoPlayerController 验证 pause/play 调用。
+// 用 mockito mock IPlaybackController 验证 pause/play 调用。
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';

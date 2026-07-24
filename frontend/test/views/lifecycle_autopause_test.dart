@@ -4,7 +4,7 @@
 // - 用户反馈：App 切到后台（按 Home 键 / 切换应用 / 来电）时，Feed 中的视频
 //   仍在后台继续播放，消耗流量 / 电池 / 发热。
 // - 修复前：HomeScaffold 没有监听 WidgetsBindingObserver，
-//   切后台时 VideoPlayerController 仍处于 playing。
+//   切后台时播放控制器仍处于 playing。
 // - 修复后：HomeScaffold 混入 WidgetsBindingObserver，
 //   didChangeAppLifecycleState 中调用 applyLifecyclePlaybackChange 顶层纯函数：
 //   - 离开前台（resumed → inactive/paused/hidden）→ pause（无论 Feed 可见否）
@@ -12,7 +12,7 @@
 //   - 中间过渡态（resumed → inactive → paused / 反向）由边界触发，不重复调用
 //
 // 测试策略：核心逻辑抽到顶层纯函数 applyLifecyclePlaybackChange，
-// 用 mockito mock VideoPlayerController 验证 pause/play 调用。
+// 用 mockito mock IPlaybackController 验证 pause/play 调用。
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

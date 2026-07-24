@@ -169,12 +169,11 @@ class _FullscreenVideoPageState
     _watchedController = controller;
     if (controller != null) {
       controller.addListener(_onControllerTick);
-      final v = controller.value;
-      _lastIsPlaying = v.isPlaying;
-      _lastHasError = v.hasError;
-      _bufferingNotifier.value = v.isBuffering;
-      _wasControllerReady = v.isInitialized && !v.hasError;
-      _lastHasSize = !v.size.isEmpty;
+      _lastIsPlaying = controller.isPlaying;
+      _lastHasError = controller.hasError;
+      _bufferingNotifier.value = controller.isBuffering;
+      _wasControllerReady = controller.isInitialized && !controller.hasError;
+      _lastHasSize = true;
     } else {
       _lastIsPlaying = false;
       _lastHasError = false;
@@ -188,22 +187,23 @@ class _FullscreenVideoPageState
     if (!mounted) return;
     final c = _watchedController;
     if (c == null) return;
-    final v = c.value;
 
     bool needsRebuild = false;
 
-    if (v.isBuffering != _bufferingNotifier.value) {
-      _bufferingNotifier.value = v.isBuffering;
+    final isBuffering = c.isBuffering;
+
+    if (isBuffering != _bufferingNotifier.value) {
+      _bufferingNotifier.value = isBuffering;
     }
 
-    if (v.hasError != _lastHasError) {
-      _lastHasError = v.hasError;
+    if (c.hasError != _lastHasError) {
+      _lastHasError = c.hasError;
       needsRebuild = true;
     }
 
-    if (v.isPlaying != _lastIsPlaying) {
-      _lastIsPlaying = v.isPlaying;
-      if (v.isPlaying &&
+    if (c.isPlaying != _lastIsPlaying) {
+      _lastIsPlaying = c.isPlaying;
+      if (c.isPlaying &&
           _controlsVisible &&
           !_isScreenLocked &&
           !_showSettingsPanel) {
@@ -213,14 +213,13 @@ class _FullscreenVideoPageState
       }
     }
 
-    final isReady = v.isInitialized && !v.hasError;
+    final isReady = c.isInitialized && !c.hasError;
     if (isReady != _wasControllerReady) {
       _wasControllerReady = isReady;
       needsRebuild = true;
     }
 
-    // 尺寸变化检测：从空变为有效时触发重建，确保 VideoPlayer 切换到正确尺寸
-    final hasSizeNow = !v.size.isEmpty;
+    final hasSizeNow = true;
     if (hasSizeNow != _lastHasSize) {
       _lastHasSize = hasSizeNow;
       if (hasSizeNow) {
@@ -229,7 +228,7 @@ class _FullscreenVideoPageState
     }
 
     // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
-    final sec = v.position.inSeconds;
+    final sec = c.position.inSeconds;
     if (sec != _lastPositionSec) {
       _lastPositionSec = sec;
       _positionSecondsNotifier.value = sec;
@@ -278,7 +277,8 @@ class _FullscreenVideoPageState
       if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
       if (ctrl != null && ctrl.isInitialized) {
-        final isLandscapeVideo = widget.item?.isLandscape ?? false;
+        final playingItemForOrient = ref.read(currentPlayingItemProvider);
+        final isLandscapeVideo = playingItemForOrient?.isLandscape ?? false;
         _orientationPref =
             isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
       }
@@ -662,11 +662,9 @@ class _FullscreenVideoPageState
     bool hasError;
     bool hasValidSize;
     if (controller != null) {
-      final v = controller.value;
-      // isControllerReady 不再检查尺寸，确保 VideoPlayer 能及时构建
-      isControllerReady = v.isInitialized && !v.hasError;
-      hasError = v.hasError;
-      hasValidSize = !v.size.isEmpty;
+      isControllerReady = controller.isInitialized && !controller.hasError;
+      hasError = controller.hasError;
+      hasValidSize = true;
     } else {
       isControllerReady = false;
       hasError = false;
@@ -1058,15 +1056,12 @@ class _FullscreenVideoPageState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ValueListenableBuilder<VideoPlayerValue>(
-                  valueListenable: controller,
-                  builder: (context, value, child) {
-                    final position = value.position;
-                    final duration = value.duration;
-                    final progress = duration.inMilliseconds > 0
-                        ? position.inMilliseconds / duration.inMilliseconds
-                        : 0.0;
-                    return Row(
+                final position = controller.position;
+                final duration = controller.duration;
+                final progress = duration.inMilliseconds > 0
+                    ? position.inMilliseconds / duration.inMilliseconds
+                    : 0.0;
+                Row(
                       children: [
                         Text(
                           _formatDuration(position),
@@ -1095,9 +1090,7 @@ class _FullscreenVideoPageState
                               color: Colors.white70, fontSize: 12),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -1105,25 +1098,20 @@ class _FullscreenVideoPageState
                       icon: const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _hasPrevious() ? _jumpToPrevious : null,
                     ),
-                    ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: controller,
-                      builder: (context, value, child) {
-                        return IconButton(
-                          icon: Icon(
-                            value.isPlaying
-                                ? Icons.pause_circle_filled
-                                : Icons.play_circle_filled,
-                            color: Colors.white,
-                            size: 44,
-                          ),
-                          onPressed: () {
-                            if (value.isPlaying) {
-                              controller.pause();
-                            } else {
-                              controller.play();
-                            }
-                          },
-                        );
+                    IconButton(
+                      icon: Icon(
+                        controller.isPlaying
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_filled,
+                        color: Colors.white,
+                        size: 44,
+                      ),
+                      onPressed: () {
+                        if (controller.isPlaying) {
+                          controller.pause();
+                        } else {
+                          controller.play();
+                        }
                       },
                     ),
                     const Spacer(),
@@ -1136,17 +1124,12 @@ class _FullscreenVideoPageState
                       tooltip: '字幕',
                     ),
                     IconButton(
-                      icon: ValueListenableBuilder<VideoPlayerValue>(
-                        valueListenable: controller,
-                        builder: (context, value, child) {
-                          return Text(
-                            '${value.playbackSpeed.toStringAsFixed(1)}x',
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600),
-                          );
-                        },
+                      icon: Text(
+                        '${controller.playbackSpeed.toStringAsFixed(1)}x',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600),
                       ),
                       onPressed: () => _toggleSettingsPanel(_SettingsTab.speed),
                       tooltip: '倍速',

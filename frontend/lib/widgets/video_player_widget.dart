@@ -13,6 +13,7 @@ import '../providers/providers.dart';
 import '../services/playback/i_playback_controller.dart';
 import '../services/playback/controller_factory.dart';
 import '../services/playback/emby_playback_url_resolver.dart';
+import '../services/playback/vlc_controller_adapter.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import 'subtitle_renderer.dart';

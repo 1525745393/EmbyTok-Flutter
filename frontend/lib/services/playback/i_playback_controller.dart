@@ -15,6 +15,7 @@ abstract class IPlaybackController {
   Duration get duration;
   bool get isInitialized;
   bool get isPlaying;
+  bool get isBuffering;
   bool get hasError;
   double get playbackSpeed;
   int get playerId;

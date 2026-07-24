@@ -15,7 +15,7 @@ import 'package:embbytok_flutter/models/models.dart';
 import 'package:embbytok_flutter/widgets/video_page_item.dart';
 
 // 构造一个最小可播放的 MediaItem（playbackUrl 为空时 VideoPlayerWidget 降级为缩略图，
-// 不会真正初始化 VideoPlayerController，适合 widget 测试）
+// 不会真正初始化播放控制器，适合 widget 测试）
 MediaItem _fakeItem(String id) => MediaItem(
       id: id,
       title: 'item-$id',

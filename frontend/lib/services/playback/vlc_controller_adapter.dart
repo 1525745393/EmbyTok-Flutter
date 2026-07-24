@@ -87,13 +87,16 @@ class VlcControllerAdapter implements IPlaybackController {
   bool get isPlaying => _vlcController.value.isPlaying;
 
   @override
+  bool get isBuffering => _vlcController.value.isBuffering;
+
+  @override
   bool get hasError => _vlcController.value.hasError;
 
   @override
   double get playbackSpeed => _vlcController.value.playbackSpeed;
 
   @override
-  int get playerId => _vlcController.playerId;
+  int get playerId => identityHashCode(_vlcController);
 
   @override
   VoidCallback? onPositionChanged;

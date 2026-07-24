@@ -33,6 +33,9 @@ class _FakeController implements IPlaybackController {
   bool get isPlaying => false;
 
   @override
+  bool get isBuffering => false;
+
+  @override
   bool get hasError => false;
 
   @override
