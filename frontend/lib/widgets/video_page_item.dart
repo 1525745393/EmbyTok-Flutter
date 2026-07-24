@@ -1170,11 +1170,25 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
     _initItems();
     _preloadAround(_currentIndex);
+    // 进入播放页时立即隐藏系统栏，进入全屏沉浸式
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    // 离开播放页时恢复系统栏
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
@@ -1255,6 +1269,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: scheme.surface,
+        extendBody: true,
+        extendBodyBehindAppBar: true,
         body: Center(
           child: CircularProgressIndicator(color: scheme.primary),
         ),
@@ -1263,6 +1279,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // PageView 支持滑动切换视频

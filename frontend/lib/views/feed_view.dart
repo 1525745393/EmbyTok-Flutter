@@ -106,13 +106,11 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
 
-    // 沉浸式：进入 feed view 时，若当前是视频流模式则隐藏系统栏
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (ref.read(viewModeProvider) == ViewMode.feed) {
-        _hideSystemBars();
-      }
-    });
+    // 沉浸式：进入 feed view 时，若当前是视频流模式则立即隐藏系统栏
+    // 不等待首帧后再设置，避免启动时短暂显示状态栏
+    if (ref.read(viewModeProvider) == ViewMode.feed) {
+      _hideSystemBars();
+    }
   }
 
   @override
@@ -173,10 +171,24 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // ==================== 沉浸式系统栏控制（纯 UI 行为） ====================
 
+  /// 隐藏系统栏，进入全屏沉浸式模式
+  /// - 使用 immersiveSticky：用户从边缘滑入时临时显示，几秒后自动隐藏
+  /// - 配合 Scaffold.extendBody 确保视频内容延伸到系统栏区域
   void _hideSystemBars() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
   }
 
+  /// 恢复系统栏显示（切换到网格模式或离开页面时）
   void _restoreSystemBars() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
@@ -248,6 +260,8 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           if (isNotAuthenticated)
