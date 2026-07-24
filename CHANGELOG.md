@@ -1,3 +1,10 @@
+## [2.18.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.0...v2.18.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* **ui:** 修复视频流模式状态栏未隐藏及视频内容未延伸到状态栏区域 ([debb8fe](https://github.com/1525745393/EmbyTok-Flutter/commit/debb8fee606dc0c9ba2169ab167111d0fa145c2c))
+
 # [2.18.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.17.0...v2.18.0) (2026-07-24)
 
 
