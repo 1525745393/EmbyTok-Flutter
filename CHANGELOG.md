@@ -1,3 +1,17 @@
+# [2.20.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.19.0...v2.20.0) (2026-07-24)
+
+
+### Bug Fixes
+
+* resolve compilation errors after video_player → libVLC migration ([3fe1578](https://github.com/1525745393/EmbyTok-Flutter/commit/3fe15783e1933264b38672120c55baecbed74e1f))
+* resolve flutter analyze warnings ([ec92732](https://github.com/1525745393/EmbyTok-Flutter/commit/ec92732d41f23878471340eb9ab9cdff317d83bf))
+* syntax error - local var declarations inside list literal ([8a5a15a](https://github.com/1525745393/EmbyTok-Flutter/commit/8a5a15a7f2e333aaaf734986a9b4125ae208b9a1))
+
+
+### Features
+
+* implement player-enhancement - replace video_player with libVLC ([f01c47e](https://github.com/1525745393/EmbyTok-Flutter/commit/f01c47e57439083950f614e6c679aae8fbfe55ef))
+
 # [2.19.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.5...v2.19.0) (2026-07-24)
 
 
