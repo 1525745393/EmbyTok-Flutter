@@ -34,8 +34,6 @@ class SubtitleSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final settings = ref.watch(subtitleSettingsProvider);
-    final currentLanguage = settings.language;
 
     return Container(
       decoration: BoxDecoration(
@@ -98,7 +96,7 @@ class SubtitleSelector extends ConsumerWidget {
                     ref: ref,
                     title: '关闭字幕',
                     subtitle: '不显示字幕',
-                    isSelected: currentLanguage.isEmpty,
+                    isSelected: selectedTrackId == null,
                     onTap: () {
                       ref.read(subtitleSettingsProvider.notifier).setLanguage('');
                       onSelected?.call(null);
@@ -129,9 +127,10 @@ class SubtitleSelector extends ConsumerWidget {
                     context: context,
                     ref: ref,
                     track: track,
-                    isSelected: currentLanguage == track.id,
+                    isSelected: selectedTrackId == track.id,
                     onTap: () {
-                      ref.read(subtitleSettingsProvider.notifier).setLanguage(track.id);
+                      // 保存偏好语言（语言代码，用于跨视频自动匹配）
+                      ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
                       onSelected?.call(track);
                       onClose?.call();
                     },

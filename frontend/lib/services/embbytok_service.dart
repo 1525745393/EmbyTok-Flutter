@@ -26,6 +26,9 @@ class EmbytokService {
   // 保存当前登录用户的 userId，用于 Views 端点和云同步等需要用户身份的接口
   String? _defaultUserId;
 
+  // 字幕缓存：key = "itemId_mediaSourceId_index_format"
+  final Map<String, List<SubtitleCue>> _subtitleCache = {};
+
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
   // ============================
@@ -1061,6 +1064,12 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
+    // 内存缓存：相同参数直接返回缓存结果
+    // 避免 VideoPlayerWidget 和 FullscreenVideoPage 重复请求
+    final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
+    if (_subtitleCache.containsKey(cacheKey)) {
+      return _subtitleCache[cacheKey]!;
+    }
     try {
       // URL: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
       // 36000000000 = 1小时（1 tick = 100ns）
@@ -1076,13 +1085,23 @@ class EmbytokService {
         ),
       );
       final text = resp.data;
-      if (text == null || text.isEmpty) return const <SubtitleCue>[];
+      if (text == null || text.isEmpty) {
+        _subtitleCache[cacheKey] = const <SubtitleCue>[];
+        return const <SubtitleCue>[];
+      }
       // 调用 parseSrt 解析
-      return parseSrt(text);
+      final cues = parseSrt(text);
+      _subtitleCache[cacheKey] = cues;
+      return cues;
     } catch (e) {
       // 字幕加载失败不中断播放，返回空列表
       return const <SubtitleCue>[];
     }
+  }
+
+  /// 清空字幕缓存（视频切换或用户登出时调用）
+  void clearSubtitleCache() {
+    _subtitleCache.clear();
   }
 
   // ============================

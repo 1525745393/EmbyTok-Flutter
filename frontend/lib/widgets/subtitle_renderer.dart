@@ -29,13 +29,9 @@ class SubtitleRenderer extends ConsumerWidget {
     final settings = ref.watch(subtitleSettingsProvider);
     if (!settings.enabled) return const SizedBox.shrink();
 
-    // 查找当前时间匹配的字幕
-    final current = cues.firstWhere(
-      (c) => position >= c.start && position <= c.end,
-      orElse: () => SubtitleCue(Duration.zero, Duration.zero, ''),
-    );
-
-    if (current.text.isEmpty) return const SizedBox.shrink();
+    // 二分查找当前时间匹配的字幕（O(log n)，优于线性搜索 O(n)）
+    final current = findCueAtPosition(cues, position);
+    if (current == null || current.text.isEmpty) return const SizedBox.shrink();
 
     final scheme = Theme.of(context).colorScheme;
 

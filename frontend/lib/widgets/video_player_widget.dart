@@ -629,20 +629,38 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   }
 
   // 自动加载默认字幕轨道（controller 就绪后调用）
-  // 策略：用户未手动选择时，自动选中 isDefault 或第一个字幕轨道
+  // 策略：优先匹配用户偏好语言，匹配失败选 isDefault 或第一个
   void _autoLoadDefaultSubtitle() {
-    final currentSelected = ref.read(selectedSubtitleProvider);
-    // 用户已手动选择过，不自动覆盖
-    if (currentSelected != null) return;
     final tracks = widget.item.subtitleTracks;
-    if (tracks.isEmpty) return;
-    // 优先选择 isDefault 的轨道，否则选第一个
-    final defaultTrack = tracks.firstWhere(
+    if (tracks.isEmpty) {
+      ref.read(selectedSubtitleProvider.notifier).state = null;
+      return;
+    }
+    final settings = ref.read(subtitleSettingsProvider);
+    SubtitleTrack? matchedTrack;
+
+    // 用户有偏好语言时，优先匹配
+    if (settings.language.isNotEmpty) {
+      // 精确匹配语言代码
+      matchedTrack = tracks.firstWhere(
+        (t) => t.language.toLowerCase() == settings.language.toLowerCase(),
+        orElse: () => tracks.first,
+      );
+      // firstWhere 的 orElse 会返回 first，但需要验证是否真的匹配到了
+      if (matchedTrack.language.toLowerCase() != settings.language.toLowerCase()) {
+        matchedTrack = null;
+      }
+    }
+
+    // 未匹配到偏好语言，选默认或第一个
+    matchedTrack ??= tracks.firstWhere(
       (t) => t.isDefault,
       orElse: () => tracks.first,
     );
-    ref.read(selectedSubtitleProvider.notifier).state = defaultTrack.id;
-    // _loadSubtitle 会通过 ref.listen 自动触发
+
+    ref.read(selectedSubtitleProvider.notifier).state = matchedTrack.id;
+    // 直接加载字幕，不依赖 ref.listen（避免时序竞态）
+    _loadSubtitle(matchedTrack.id);
   }
 
   // 应用初始音量：根据 isMutedProvider、autoPlay 和 isCurrentPage 决定音量

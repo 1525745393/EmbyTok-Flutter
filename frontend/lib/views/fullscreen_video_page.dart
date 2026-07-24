@@ -264,6 +264,16 @@ class _FullscreenVideoPageState
       }
     });
 
+    // 主动加载当前选中的字幕（避免 listen 因值未变而不触发）
+    // 场景：从 feed 模式进入全屏，selectedSubtitleProvider 已有值
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentSub = ref.read(selectedSubtitleProvider);
+      if (currentSub != null) {
+        _loadSubtitle(currentSub);
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
@@ -1415,6 +1425,7 @@ class _FullscreenVideoPageState
                   style: TextStyle(color: Colors.white)),
               leading: const Icon(Icons.close, color: Colors.white54),
               onTap: () {
+                ref.read(subtitleSettingsProvider.notifier).setLanguage('');
                 ref.read(selectedSubtitleProvider.notifier).state = null;
                 Navigator.pop(context);
               },
@@ -1435,6 +1446,8 @@ class _FullscreenVideoPageState
                   color: selected ? Colors.blue : Colors.white54,
                 ),
                 onTap: () {
+                  // 保存偏好语言（用于跨视频自动匹配）
+                  ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
                   ref.read(selectedSubtitleProvider.notifier).state = track.id;
                   Navigator.pop(context);
                 },
