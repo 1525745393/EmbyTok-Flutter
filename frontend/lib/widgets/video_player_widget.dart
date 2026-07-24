@@ -535,7 +535,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                         aspectRatio: 16 / 9,
                         placeholder: const Center(child: CircularProgressIndicator()),
                       )
-                    : const SizedBox.shrink(),
+                    : const Center(child: CircularProgressIndicator()),
               ),
             ),
           ),
