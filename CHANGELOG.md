@@ -1,3 +1,10 @@
+## [2.18.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.3...v2.18.4) (2026-07-24)
+
+
+### Bug Fixes
+
+* 修复手动选择字幕后字幕不显示的问题 ([a27e4d4](https://github.com/1525745393/EmbyTok-Flutter/commit/a27e4d4dc5f41d00758545d1e2aec8b3f6a05396))
+
 ## [2.18.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.2...v2.18.3) (2026-07-24)
 
 
