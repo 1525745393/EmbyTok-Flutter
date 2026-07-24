@@ -13,7 +13,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../utils/logger.dart';
 import 'playback/i_playback_controller.dart';
 import 'playback/emby_playback_url_resolver.dart';
 import 'playback/controller_factory.dart';

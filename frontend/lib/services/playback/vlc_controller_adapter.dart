@@ -18,11 +18,6 @@ class VlcControllerAdapter implements IPlaybackController {
     String url, {
     Map<String, String>? httpHeaders,
   }) async {
-    final options = httpHeaders != null && httpHeaders.isNotEmpty
-        ? ':http-user-agent=EmbyTok'
-            '${httpHeaders.entries.map((e) => ':${e.key}=${e.value}').join()}'
-        : '';
-
     final vlcController = VlcPlayerController.network(
       url,
       hwAcc: HwAcc.auto,

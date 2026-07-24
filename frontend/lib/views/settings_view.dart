@@ -2225,8 +2225,8 @@ class SettingsView extends ConsumerWidget {
               _showInstallDialog(ctx, savePath, release, scheme);
             }
           })
-              .catchError((DioException e) {
-            if (CancelToken.isCancel(e)) return;
+              .catchError((Object e) {
+            if (e is DioException && CancelToken.isCancel(e)) return;
             if (ctx.mounted && isDialogActive) {
               isDialogActive = false;
               Navigator.pop(ctx);
