@@ -1,3 +1,10 @@
+## [2.18.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.2...v2.18.3) (2026-07-24)
+
+
+### Bug Fixes
+
+* **subtitle:** 修复字幕不显示问题 ([f5b96ea](https://github.com/1525745393/EmbyTok-Flutter/commit/f5b96ea39383c5f9cd72c5d11caa16f0e5c916b9))
+
 ## [2.18.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.1...v2.18.2) (2026-07-24)
 
 
