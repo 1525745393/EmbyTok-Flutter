@@ -60,7 +60,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
   AppError? _errorMessage;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
-  final ValueNotifier<int> _positionSeconds = ValueNotifier<int>(0);
+  final ValueNotifier<int> _positionMs = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
   // 标记 widget 是否已 dispose，防止异步操作在 dispose 后继续执行
@@ -270,9 +270,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       });
     }
     // 位置变化：更新字幕
-    final sec = controller.value.position.inSeconds;
-    if (sec != _positionSeconds.value) {
-      _positionSeconds.value = sec;
+    final ms = controller.value.position.inMilliseconds;
+    if ((ms - _positionMs.value).abs() >= 50) {
+      _positionMs.value = ms;
     }
     // 视频尺寸从 Size.zero 变为有效尺寸时，触发重建以隐藏加载指示器
     if (controller.value.isInitialized &&
@@ -484,7 +484,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   void dispose() {
     _isDisposed = true;
     _backgroundReleaseTimer?.cancel();
-    _positionSeconds.dispose();
+    _positionMs.dispose();
     _subtitleSubscription?.close();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     _releaseCurrentController();
@@ -547,10 +547,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           if (displayCues.isNotEmpty && selectedSubId != null)
             RepaintBoundary(
               child: ValueListenableBuilder<int>(
-                valueListenable: _positionSeconds,
-                builder: (_, seconds, __) {
+                valueListenable: _positionMs,
+                builder: (_, ms, __) {
                   return SubtitleRenderer(
-                    position: Duration(seconds: seconds),
+                    position: Duration(milliseconds: ms),
                     cues: displayCues,
                     enabled: true,
                   );

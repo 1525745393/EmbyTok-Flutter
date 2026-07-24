@@ -150,13 +150,13 @@ class _FullscreenVideoPageState
 
   // 功耗优化：状态缓存
   final ValueNotifier<bool> _bufferingNotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<int> _positionSecondsNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _positionMsNotifier = ValueNotifier<int>(0);
   bool _lastIsPlaying = false;
   bool _lastHasError = false;
   bool _wasControllerReady = false;
   bool _lastHasSize = false;
   VideoPlayerController? _watchedController;
-  int _lastPositionSec = -1;
+  int _lastPositionMs = -1;
 
   // 字幕
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
@@ -229,10 +229,10 @@ class _FullscreenVideoPageState
     }
 
     // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
-    final sec = v.position.inSeconds;
-    if (sec != _lastPositionSec) {
-      _lastPositionSec = sec;
-      _positionSecondsNotifier.value = sec;
+    final ms = v.position.inMilliseconds;
+    if (ms != _lastPositionMs) {
+      _lastPositionMs = ms;
+      _positionMsNotifier.value = ms;
     }
 
     if (needsRebuild && mounted) {
@@ -266,11 +266,14 @@ class _FullscreenVideoPageState
 
     // 主动加载当前选中的字幕（避免 listen 因值未变而不触发）
     // 场景：从 feed 模式进入全屏，selectedSubtitleProvider 已有值
+    // 如果为 null，自动匹配默认字幕轨道
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final currentSub = ref.read(selectedSubtitleProvider);
       if (currentSub != null) {
         _loadSubtitle(currentSub);
+      } else {
+        _autoLoadDefaultSubtitle();
       }
     });
 
@@ -523,6 +526,33 @@ class _FullscreenVideoPageState
     }
   }
 
+  void _autoLoadDefaultSubtitle() {
+    final item = ref.read(currentPlayingItemProvider);
+    if (item == null) return;
+    final tracks = item.subtitleTracks;
+    if (tracks.isEmpty) return;
+    final settings = ref.read(subtitleSettingsProvider);
+    SubtitleTrack? matchedTrack;
+
+    if (settings.language.isNotEmpty) {
+      matchedTrack = tracks.firstWhere(
+        (t) => t.language.toLowerCase() == settings.language.toLowerCase(),
+        orElse: () => tracks.first,
+      );
+      if (matchedTrack.language.toLowerCase() != settings.language.toLowerCase()) {
+        matchedTrack = null;
+      }
+    }
+
+    matchedTrack ??= tracks.firstWhere(
+      (t) => t.isDefault,
+      orElse: () => tracks.first,
+    );
+
+    ref.read(selectedSubtitleProvider.notifier).state = matchedTrack.id;
+    _loadSubtitle(matchedTrack.id);
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -535,7 +565,7 @@ class _FullscreenVideoPageState
     _resumePlayTimer?.cancel();
     _watchedController?.removeListener(_onControllerTick);
     _bufferingNotifier.dispose();
-    _positionSecondsNotifier.dispose();
+    _positionMsNotifier.dispose();
     _showBrightnessUINotifier.dispose();
     _previewBrightnessNotifier.dispose();
 
@@ -751,10 +781,10 @@ class _FullscreenVideoPageState
                       bottom: 60,
                       child: RepaintBoundary(
                         child: ValueListenableBuilder<int>(
-                          valueListenable: _positionSecondsNotifier,
-                          builder: (_, seconds, __) {
+                          valueListenable: _positionMsNotifier,
+                          builder: (_, ms, __) {
                             return SubtitleRenderer(
-                              position: Duration(seconds: seconds),
+                              position: Duration(milliseconds: ms),
                               cues: _subtitleCues,
                               enabled: true,
                             );
