@@ -75,6 +75,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Timer? _backgroundReleaseTimer;
   // 内存压力释放：收到系统内存警告时立即释放非当前页 controller
   static const Duration _backgroundReleaseDelay = Duration(seconds: 2);
+  // 字幕选择变化监听订阅（在 initState 中注册，dispose 时关闭）
+  ProviderSubscription<String?>? _subtitleSubscription;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   String? get _playbackUrl {
@@ -99,6 +101,14 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
+    // 监听字幕选择变化：用户选择新字幕轨道时异步加载
+    // 必须在 initState 中通过 listenManual 注册，不能在 build 中，
+    // 否则会因 build 时序问题导致选择事件被遗漏
+    _subtitleSubscription = ref.listenManual<String?>(selectedSubtitleProvider, (previous, next) {
+      if (next != previous) {
+        _loadSubtitle(next);
+      }
+    });
     if (_canPlayVideo) {
       _initVideo();
     }
@@ -475,6 +485,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _isDisposed = true;
     _backgroundReleaseTimer?.cancel();
     _positionSeconds.dispose();
+    _subtitleSubscription?.close();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     _releaseCurrentController();
     super.dispose();
@@ -483,13 +494,6 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     final vc = _controller;
-
-    // 监听字幕选择：用户选择新字幕轨道时异步加载
-    ref.listen<String?>(selectedSubtitleProvider, (previous, next) {
-      if (next != previous) {
-        _loadSubtitle(next);
-      }
-    });
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
@@ -560,8 +564,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   // 根据 selectedSubtitleProvider 的最新值异步加载字幕
   Future<void> _loadSubtitle(String? selectedTrackId) async {
+    AppLogger.debug('字幕加载请求', data: {
+      'itemId': widget.item.id,
+      'selectedTrackId': selectedTrackId,
+    });
     if (!mounted) return;
     if (selectedTrackId == null) {
+      AppLogger.debug('字幕：关闭字幕');
       setState(() {
         _subtitleCues = const <SubtitleCue>[];
       });
@@ -573,26 +582,46 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             ? sources.first.id
             : null;
     if (mediaSourceId == null || mediaSourceId.isEmpty) {
+      AppLogger.warn('字幕加载失败：无有效 mediaSourceId', data: {
+        'itemId': widget.item.id,
+        'sourcesCount': sources?.length ?? 0,
+      });
       return;
     }
-    // 从 item 的 subtitleTracks 中找到对应 track 的 index
+    // 从 item 的 subtitleTracks 中找到对应 track
     final tracks = widget.item.subtitleTracks;
+    AppLogger.debug('字幕轨道列表', data: {
+      'tracksCount': tracks.length,
+      'tracks': tracks.map((t) => '${t.id}:${t.language}:${t.displayName}').toList(),
+    });
+    SubtitleTrack? selectedTrack;
     int? trackIndex;
     for (int i = 0; i < tracks.length; i++) {
       if (tracks[i].id == selectedTrackId) {
-        // track.id 本身就是 "N" 形式（例如 "0"/"1"），直接解析
-        final maybeIndex = int.tryParse(tracks[i].id);
-        if (maybeIndex != null) {
-          trackIndex = maybeIndex;
-          break;
-        }
-        // 否则退而求其次：用 i 作为轨道索引
-        trackIndex = i;
+        selectedTrack = tracks[i];
+        // track.id 本身就是 stream.index 的字符串形式，直接解析
+        trackIndex = int.tryParse(tracks[i].id);
         break;
       }
     }
+    // 如果没找到匹配的 track，尝试直接解析 selectedTrackId 作为索引
     trackIndex ??= int.tryParse(selectedTrackId);
-    if (trackIndex == null) return;
+    if (trackIndex == null || selectedTrack == null) {
+      AppLogger.warn('字幕加载失败：找不到匹配的字幕轨道', data: {
+        'itemId': widget.item.id,
+        'selectedTrackId': selectedTrackId,
+        'availableTrackIds': tracks.map((t) => t.id).toList(),
+      });
+      return;
+    }
+
+    AppLogger.debug('开始加载字幕', data: {
+      'itemId': widget.item.id,
+      'mediaSourceId': mediaSourceId,
+      'trackIndex': trackIndex,
+      'format': selectedTrack.format,
+      'language': selectedTrack.language,
+    });
 
     final embService = ref.read(embbytokServiceProvider);
     // 注入当前认证信息（确保字幕请求头包含 Token）
@@ -607,11 +636,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
     try {
+      // Emby 字幕 API 支持通过 format 参数请求输出格式，统一请求 srt
       final cues = await embService.getSubtitleCues(
         itemId: widget.item.id,
         mediaSourceId: mediaSourceId,
         index: trackIndex,
       );
+      AppLogger.debug('字幕加载完成', data: {
+        'itemId': widget.item.id,
+        'trackIndex': trackIndex,
+        'cuesCount': cues.length,
+      });
       // 双重检查：避免 dispose 后 setState
       if (mounted && !_isDisposed) {
         setState(() {
@@ -619,12 +654,18 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         });
       }
     } catch (e) {
-      // 字幕加载失败不影响播放，仅记录日志
-      AppLogger.warn('字幕加载失败', data: {
+      // 字幕加载失败不影响播放，记录详细日志
+      AppLogger.warn('字幕加载异常', data: {
         'itemId': widget.item.id,
+        'mediaSourceId': mediaSourceId,
         'trackIndex': trackIndex,
         'error': e.toString(),
       });
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _subtitleCues = const <SubtitleCue>[];
+        });
+      }
     }
   }
 

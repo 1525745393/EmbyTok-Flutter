@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../subtitle_selector.dart';
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
 Future<void> showSpeedControlPanel(
@@ -134,61 +135,33 @@ Future<void> showSpeedControlPanel(
 }
 
 // ===== 字幕选择器 =====
+/// 显示字幕选择器底部弹窗（委托给 SubtitleSelector 组件）
 Future<void> showSubtitleSelector(
   BuildContext context,
   List<SubtitleTrack> tracks,
 ) async {
-  final scheme = Theme.of(context).colorScheme;
+  final container = ProviderScope.containerOf(context, listen: false);
+  final selectedTrackId = container.read(selectedSubtitleProvider);
+
   await showModalBottomSheet<void>(
     context: context,
-    backgroundColor: scheme.surface.withOpacity(0.9),
-    builder: (context) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('字幕选择',
-                style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ListTile(
-              title: Text('关闭字幕', style: TextStyle(color: scheme.onSurface)),
-              onTap: () {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (context.mounted) {
-                    ProviderScope.containerOf(context, listen: false)
-                        .read(selectedSubtitleProvider.notifier)
-                        .state = null;
-                  }
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-            ...tracks.asMap().entries.map((entry) {
-              final track = entry.value;
-              return ListTile(
-                title: Text('${track.displayName} (${entry.key + 1})',
-                    style: TextStyle(color: scheme.onSurface)),
-                onTap: () {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (context.mounted) {
-                      ProviderScope.containerOf(context, listen: false)
-                          .read(selectedSubtitleProvider.notifier)
-                          .state = track.id;
-                    }
-                  });
-                  Navigator.of(context).pop();
-                },
-              );
-            }),
-          ],
-        ),
-      );
-    },
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (sheetContext) => SubtitleSelector(
+      tracks: tracks,
+      selectedTrackId: selectedTrackId,
+      onSelected: (track) {
+        // 先更新 provider，再关闭弹窗
+        // 注意：不能用 addPostFrameCallback + Navigator.pop 顺序，
+        // 因为 pop 后 context 会 unmount，postFrameCallback 中的更新会被跳过
+        if (track == null) {
+          container.read(selectedSubtitleProvider.notifier).state = null;
+        } else {
+          container.read(selectedSubtitleProvider.notifier).state = track.id;
+        }
+      },
+      onClose: () => Navigator.of(sheetContext).pop(),
+    ),
   );
 }
 

@@ -1068,6 +1068,7 @@ class EmbytokService {
     // 避免 VideoPlayerWidget 和 FullscreenVideoPage 重复请求
     final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
     if (_subtitleCache.containsKey(cacheKey)) {
+      AppLogger.debug('字幕缓存命中', data: {'cacheKey': cacheKey});
       return _subtitleCache[cacheKey]!;
     }
     try {
@@ -1075,6 +1076,7 @@ class EmbytokService {
       // 36000000000 = 1小时（1 tick = 100ns）
       final url =
           '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/36000000000.$format';
+      AppLogger.debug('请求字幕', data: {'url': url});
       // 需要非 JSON 请求（SRT 文本）
       final resp = await _apiClient.dio.get<String>(
         url,
@@ -1086,15 +1088,29 @@ class EmbytokService {
       );
       final text = resp.data;
       if (text == null || text.isEmpty) {
+        AppLogger.debug('字幕内容为空', data: {'url': url});
         _subtitleCache[cacheKey] = const <SubtitleCue>[];
         return const <SubtitleCue>[];
       }
       // 调用 parseSrt 解析
       final cues = parseSrt(text);
+      AppLogger.debug('字幕解析完成', data: {
+        'url': url,
+        'cuesCount': cues.length,
+        'rawLength': text.length,
+      });
       _subtitleCache[cacheKey] = cues;
       return cues;
     } catch (e) {
-      // 字幕加载失败不中断播放，返回空列表
+      // 字幕加载失败不中断播放，缓存空结果避免重复请求
+      AppLogger.warn('字幕请求失败', data: {
+        'itemId': itemId,
+        'mediaSourceId': mediaSourceId,
+        'index': index,
+        'format': format,
+        'error': e.toString(),
+      });
+      _subtitleCache[cacheKey] = const <SubtitleCue>[];
       return const <SubtitleCue>[];
     }
   }
