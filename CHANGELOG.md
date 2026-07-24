@@ -1,3 +1,10 @@
+## [2.18.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.4...v2.18.5) (2026-07-24)
+
+
+### Bug Fixes
+
+* 修复字幕不显示的三个根本原因 ([074af9c](https://github.com/1525745393/EmbyTok-Flutter/commit/074af9cfcf0af64dc83ecc1e0da80a7166418cf2))
+
 ## [2.18.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.3...v2.18.4) (2026-07-24)
 
 
