@@ -1056,41 +1056,45 @@ class _FullscreenVideoPageState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                final position = controller.position;
-                final duration = controller.duration;
-                final progress = duration.inMilliseconds > 0
-                    ? position.inMilliseconds / duration.inMilliseconds
-                    : 0.0;
-                Row(
-                      children: [
-                        Text(
-                          _formatDuration(position),
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Slider(
-                            value: progress.clamp(0.0, 1.0),
-                            onChanged: (v) {
-                              final target = Duration(
-                                milliseconds:
-                                    (v * duration.inMilliseconds).round(),
-                              );
-                              controller.seekTo(target);
-                            },
-                            activeColor: Theme.of(context).colorScheme.primary,
-                            inactiveColor: Colors.white24,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatDuration(duration),
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                Builder(
+                  builder: (context) {
+                    final position = controller.position;
+                    final duration = controller.duration;
+                    final progress = duration.inMilliseconds > 0
+                        ? position.inMilliseconds / duration.inMilliseconds
+                        : 0.0;
+                    return Row(
+                          children: [
+                            Text(
+                              _formatDuration(position),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 12),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Slider(
+                                value: progress.clamp(0.0, 1.0),
+                                onChanged: (v) {
+                                  final target = Duration(
+                                    milliseconds:
+                                        (v * duration.inMilliseconds).round(),
+                                  );
+                                  controller.seekTo(target);
+                                },
+                                activeColor: Theme.of(context).colorScheme.primary,
+                                inactiveColor: Colors.white24,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatDuration(duration),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12),
+                            ),
+                          ],
+                        );
+                  },
+                ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
