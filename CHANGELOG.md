@@ -1,3 +1,10 @@
+## [2.18.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.1...v2.18.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* **subtitle:** 修复字幕模块多个问题并优化性能 ([afd952d](https://github.com/1525745393/EmbyTok-Flutter/commit/afd952d7f66da5963e70fa54b33645aee8779178))
+
 ## [2.18.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.0...v2.18.1) (2026-07-24)
 
 
