@@ -1,3 +1,10 @@
+## [2.20.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.1...v2.20.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* render VlcPlayer before initialization to create native view ([dc6c87e](https://github.com/1525745393/EmbyTok-Flutter/commit/dc6c87eea03654aad49748d6b88a989bfea1878c))
+
 ## [2.20.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.0...v2.20.1) (2026-07-24)
 
 
