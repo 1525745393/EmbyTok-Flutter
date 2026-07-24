@@ -6,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../services/playback/i_playback_controller.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
@@ -234,7 +234,7 @@ class AutoPlayButton extends ConsumerWidget {
 
 // ===== 倍速调节按钮 =====
 class SpeedControlButton extends StatelessWidget {
-  final IPlaybackController? controller;
+  final VideoPlayerController? controller;
   final VoidCallback onTap;
 
   const SpeedControlButton({
@@ -246,7 +246,7 @@ class SpeedControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final currentSpeed = controller?.playbackSpeed ?? 1.0;
+    final currentSpeed = controller?.value.playbackSpeed ?? 1.0;
     final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
@@ -345,7 +345,7 @@ class SubtitleButton extends ConsumerWidget {
 // ===== 唱片式静音按钮（播放时旋转，显示封面图，静音时红色边框）=====
 class DiscMuteButton extends ConsumerWidget {
   final Animation<double> discRotation;
-  final IPlaybackController? controller;
+  final VideoPlayerController? controller;
   final String posterUrl;
   final Map<String, String>? httpHeaders;
 

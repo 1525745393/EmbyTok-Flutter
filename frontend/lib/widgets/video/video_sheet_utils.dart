@@ -3,18 +3,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
-import '../../services/playback/i_playback_controller.dart';
 import '../subtitle_selector.dart';
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
 Future<void> showSpeedControlPanel(
   BuildContext context,
-  IPlaybackController? controller,
+  VideoPlayerController? controller,
 ) async {
-  double currentSpeed = controller?.playbackSpeed ?? 1.0;
+  double currentSpeed = controller?.value.playbackSpeed ?? 1.0;
   double selectedSpeed = currentSpeed;
   final scheme = Theme.of(context).colorScheme;
 

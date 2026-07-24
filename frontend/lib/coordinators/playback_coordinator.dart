@@ -153,12 +153,14 @@ class PlaybackCoordinator {
   String? handleViewModeChange(ViewMode prev, ViewMode next) {
     final controller = _ref.read(currentVideoControllerProvider);
     if (prev == ViewMode.feed && next == ViewMode.grid) {
-      if (controller != null && controller.isPlaying) {
+      // 切到网格：暂停视频
+      if (controller != null && controller.value.isPlaying) {
         controller.pause();
       }
       return 'pause';
     } else if (prev == ViewMode.grid && next == ViewMode.feed) {
-      if (controller != null && !controller.isPlaying) {
+      // 切回视频流：恢复播放
+      if (controller != null && !controller.value.isPlaying) {
         controller.play();
       }
       return 'resume';

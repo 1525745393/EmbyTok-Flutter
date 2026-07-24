@@ -1,4 +1,4 @@
-// 视频控制器池（IPlaybackController Pool）
+// 视频控制器池（VideoPlayerController Pool）
 //
 // 设计目标：
 // 1. 统一管理 Emby 视频的预加载与播放，避免重复初始化
@@ -11,24 +11,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
-import 'playback/i_playback_controller.dart';
-import 'playback/emby_playback_url_resolver.dart';
-import 'playback/controller_factory.dart';
+import '../utils/logger.dart';
 
-enum DecodeMode {
-  hardware,
-  software,
-  unknown,
-}
-
-/// 单个播放会话：绑定 IPlaybackController + PlaySessionId
+/// 单个播放会话：绑定 VideoPlayerController + PlaySessionId
 class PlaybackSession {
   final String itemId;
-  final IPlaybackController controller;
+  final VideoPlayerController controller;
   final String playSessionId;
-  final DecodeMode decodeMode;
   final DateTime createdAt;
   bool _isDisposed = false;
 
@@ -36,11 +28,10 @@ class PlaybackSession {
     required this.itemId,
     required this.controller,
     required this.playSessionId,
-    this.decodeMode = DecodeMode.unknown,
   }) : createdAt = DateTime.now();
 
   bool get isInitialized =>
-      !_isDisposed && controller.isInitialized;
+      !_isDisposed && controller.value.isInitialized;
 
   void dispose() {
     if (_isDisposed) return;
@@ -114,54 +105,87 @@ class VideoPoolService {
     required String serverUrl,
     required String token,
   }) async {
-    if (kIsWeb) return null;
+    if (kIsWeb) return null; // Web 环境下不预加载
     if (_disposed) return null;
     if (item.id.isEmpty || serverUrl.isEmpty || token.isEmpty) return null;
 
+    // Token 检查：如已变更则重新记录
     updateAuth(serverUrl: serverUrl, token: token);
 
+    // 正在异步释放旧会话（updateAuth 触发的 disposeAll），等待完成后再创建新会话
     if (_disposing) return null;
 
+    // 已有会话：直接返回
     final existing = _sessions[item.id];
     if (existing != null) {
       _touch(existing.itemId);
       return existing;
     }
 
+    // 并发防护：同一 item 正在预加载中则跳过，避免双建 controller 造成 native 资源泄漏
     if (_inflight.contains(item.id)) return null;
 
     PlaybackSession? created;
     try {
       _inflight.add(item.id);
 
+      // 池已满：淘汰最久未访问的会话
       if (_sessions.length >= maxSize) {
         final oldest = _accessOrder.first;
         _remove(oldest);
       }
 
+      // 降级链：DirectPlay → DirectStream → HLS
+      // 统一生成一次 playSessionId，HLS URL 与存储的会话共用，保证 Emby 上报关联一致
       final playSessionId = _generatePlaySessionId();
-      final resolver = EmbyPlaybackUrlResolver(playSessionId: playSessionId);
-      final factory = ControllerFactory(urlResolver: resolver);
+      final urls = <int, String?>{
+        0: item.computePlaybackUrl(serverUrl, token),
+        1: item.computeDirectStreamUrl(serverUrl, token),
+        2: item.computeHlsUrl(serverUrl, token,
+            playSessionId: playSessionId),
+      };
+      final headers = item.authHeaders(token);
 
-      final controller = await factory.create(item, serverUrl, token);
-      if (controller == null) return null;
-      if (_disposed) {
-        controller.dispose();
-        return null;
+      // 降级链：DirectPlay → DirectStream → HLS
+      for (int level = 0; level < 3; level++) {
+        final url = urls[level];
+        if (url == null || url.isEmpty) continue;
+        VideoPlayerController? controller;
+        try {
+          controller = VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            httpHeaders: headers,
+          );
+          await controller.initialize().timeout(
+            const Duration(seconds: 12),
+            onTimeout: () {
+              throw TimeoutException('preload initialize timeout');
+            },
+          );
+          if (_disposed) {
+            try { controller.dispose(); } catch (_) {}
+            return null;
+          }
+          created = PlaybackSession(
+            itemId: item.id,
+            controller: controller,
+            playSessionId: playSessionId,
+          );
+          _sessions[item.id] = created;
+          _accessOrder.add(item.id);
+          return created;
+        } catch (e) {
+          AppLogger.debug('VideoPoolService preload failed', data: {'level': level, 'error': e.toString()});
+          try {
+            controller?.dispose();
+          } catch (_) {}
+        }
       }
-
-      created = PlaybackSession(
-        itemId: item.id,
-        controller: controller,
-        playSessionId: playSessionId,
-      );
-      _sessions[item.id] = created;
-      _accessOrder.add(item.id);
     } finally {
       _inflight.remove(item.id);
     }
 
-    return created;
+    return created; // 可能为 null（全部失败）
   }
 
   /// 取出一个会话（从池中移除，所有权交给调用方）
@@ -219,7 +243,7 @@ class VideoPoolService {
 
   /// 清理所有会话（如退出登录、切换服务器）
   ///
-  /// 分批释放以避免同步批量 dispose 控制器时内存峰值过高
+  /// 分批释放以避免同步批量 dispose VideoPlayerController 时内存峰值过高
   /// 导致的 OOM 崩溃（特别是在退出应用时）。
   ///
   /// 本方法在完成后会自动重置 `_disposed` 和 `_disposing` 标志，使池可继续接受新预加载请求。

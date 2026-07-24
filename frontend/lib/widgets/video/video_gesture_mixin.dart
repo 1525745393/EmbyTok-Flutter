@@ -14,15 +14,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
-import '../../services/playback/i_playback_controller.dart';
 import '../../utils/logger.dart';
 
 mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   // ==================== 钩子方法（子类实现/重写）====================
 
-  IPlaybackController? get videoController;
+  VideoPlayerController? get videoController;
 
   bool get gesturesEnabled => true;
 
@@ -126,7 +126,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     final pos = _lastTapPosition;
     final c = videoController;
 
-    if (pos != null && c != null && c.isInitialized) {
+    if (pos != null && c != null && c.value.isInitialized) {
       final screenWidth = MediaQuery.of(context).size.width;
       final relativeX = pos.dx / screenWidth;
       if (relativeX < 0.33) {
@@ -165,10 +165,10 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
 
   void seekBySeconds(int seconds) {
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     try {
-      final current = c.position;
-      final duration = c.duration;
+      final current = c.value.position;
+      final duration = c.value.duration;
       var target = current + Duration(seconds: seconds);
       if (target < Duration.zero) target = Duration.zero;
       if (duration > Duration.zero && target > duration) target = duration;
@@ -191,7 +191,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (!gesturesEnabled) return;
     _cancelSingleTap();
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     _dragStartX = d.globalPosition.dx;
     _dragStartY = d.globalPosition.dy;
     isDragging = true;
@@ -203,7 +203,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
 
   void onPanUpdate(DragUpdateDetails d) {
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
 
     final dx = d.globalPosition.dx - _dragStartX;
     final dy = d.globalPosition.dy - _dragStartY;
@@ -211,8 +211,8 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (dragAxis == null) {
       if (dx.abs() > dy.abs() && dx.abs() > 8) {
         dragAxis = 'h';
-        dragStartPosition = c.position;
-        previewPositionNotifier.value = c.position;
+        dragStartPosition = c.value.position;
+        previewPositionNotifier.value = c.value.position;
         HapticFeedback.selectionClick();
         if (mounted) setState(() {});
       } else if (dy.abs() > dx.abs() && dy.abs() > 8) {
@@ -221,7 +221,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
         isVolumeSide = _dragStartX >= screenWidth / 2;
 
         if (isVolumeSide) {
-          _volumeStartValue = 1.0;
+          _volumeStartValue = c.value.volume;
           previewVolumeNotifier.value = _volumeStartValue;
           showVolumeUINotifier.value = true;
         } else if (handleLeftVerticalDrag) {
@@ -240,7 +240,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (dragAxis == 'h') {
       final seekMs = (dx * _kSeekPerPixelMs).toInt();
       var target = dragStartPosition + Duration(milliseconds: seekMs);
-      final duration = c.duration;
+      final duration = c.value.duration;
       if (target < Duration.zero) target = Duration.zero;
       if (duration > Duration.zero && target > duration) target = duration;
       previewPositionNotifier.value = target;
@@ -276,12 +276,12 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (!gesturesEnabled) return;
     _cancelSingleTap();
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     isDragging = true;
     dragAxis = 'h';
     _dragStartX = d.globalPosition.dx;
-    dragStartPosition = c.position;
-    previewPositionNotifier.value = c.position;
+    dragStartPosition = c.value.position;
+    previewPositionNotifier.value = c.value.position;
     _dragHideTimer?.cancel();
     HapticFeedback.selectionClick();
     if (mounted) setState(() {});
@@ -290,11 +290,11 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void onHorizontalDragUpdate(DragUpdateDetails d) {
     if (!isDragging || dragAxis != 'h') return;
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     final dx = d.globalPosition.dx - _dragStartX;
     final seekMs = (dx * _kSeekPerPixelMs).toInt();
     var target = dragStartPosition + Duration(milliseconds: seekMs);
-    final duration = c.duration;
+    final duration = c.value.duration;
     if (target < Duration.zero) target = Duration.zero;
     if (duration > Duration.zero && target > duration) target = duration;
     previewPositionNotifier.value = target;
@@ -317,9 +317,9 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     _volumeHideTimer?.cancel();
 
     if (dragAxis == 'h') {
-      if (c != null && c.isInitialized) {
+      if (c != null && c.value.isInitialized) {
         try {
-          final duration = c.duration;
+          final duration = c.value.duration;
           var target = previewPositionNotifier.value;
           if (target < Duration.zero) target = Duration.zero;
           if (duration > Duration.zero && target > duration) target = duration;
@@ -352,10 +352,10 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   void onLongPressStart(LongPressStartDetails details) {
     if (!gesturesEnabled) return;
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     try {
       _isLongPressing = true;
-      originalRate = c.playbackSpeed;
+      originalRate = c.value.playbackSpeed;
       c.setPlaybackSpeed(_kLongPressRate);
       showSpeedBadgeNotifier.value = true;
     } catch (e) {
@@ -367,7 +367,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (!_isLongPressing) return;
     _isLongPressing = false;
     final c = videoController;
-    if (c == null || !c.isInitialized) return;
+    if (c == null || !c.value.isInitialized) return;
     try {
       c.setPlaybackSpeed(originalRate);
     } catch (e) {

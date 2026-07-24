@@ -4,15 +4,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/playback/i_playback_controller.dart';
 import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
-  final IPlaybackController controller;
+  final VideoPlayerController controller;
   // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
   final List<SubtitleTrack> subtitleTracks;
   // 上一集回调（剧集类内容）
@@ -57,18 +57,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   @override
   void initState() {
     super.initState();
-    _lastIsPlaying = widget.controller.isPlaying;
+    _lastIsPlaying = widget.controller.value.isPlaying;
     widget.controller.addListener(_onControllerChanged);
-  }
-
-  @override
-  void didUpdateWidget(covariant VideoControls oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.controller != oldWidget.controller) {
-      oldWidget.controller.removeListener(_onControllerChanged);
-      _lastIsPlaying = widget.controller.isPlaying;
-      widget.controller.addListener(_onControllerChanged);
-    }
   }
 
   @override
@@ -77,15 +67,17 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     super.dispose();
   }
 
-  // 控制器变化回调：通过 addListener + setState 驱动 UI 更新
+  // 控制器变化回调：不再调用 setState，依赖 controller.value 的组件
+  // （进度条、时间、播放按钮、倍速）通过 ValueListenableBuilder 实现局部重建，
+  // 避免整棵 VideoControls 每秒重建约 60 次
   void _onControllerChanged() {
     if (!mounted) return;
-    final isPlaying = widget.controller.isPlaying;
+    // 仅在 isPlaying 实际变化时才同步到 Provider（供中央播放按钮显示/隐藏使用）
+    final isPlaying = widget.controller.value.isPlaying;
     if (isPlaying != _lastIsPlaying) {
       _lastIsPlaying = isPlaying;
       ref.read(isPlayingProvider.notifier).state = isPlaying;
     }
-    setState(() {});
   }
 
   // 格式化 Duration 为 "mm:ss" 或 "h:mm:ss"
@@ -103,13 +95,13 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
   // 切换播放/暂停
   void _togglePlay() {
-    if (widget.controller.isPlaying) {
+    if (widget.controller.value.isPlaying) {
       widget.controller.pause();
     } else {
       widget.controller.play();
     }
     ref.read(isPlayingProvider.notifier).state =
-        widget.controller.isPlaying;
+        widget.controller.value.isPlaying;
   }
 
   // 弹出倍速选择菜单（替代原先循环切换）
@@ -165,12 +157,13 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final isCompact = widget.compact;
 
     // 进度条 + 时间 组件（供两种模式共用）
-    final progressRow = Builder(
-      builder: (context) {
+    final progressRow = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
         final position = _isSeeking
-            ? (_previewPosition ?? controller.position)
-            : controller.position;
-        final duration = controller.duration;
+            ? (_previewPosition ?? value.position)
+            : value.position;
+        final duration = value.duration;
         final progress = duration.inMilliseconds > 0
             ? position.inMilliseconds / duration.inMilliseconds
             : 0.0;
@@ -229,11 +222,12 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
 
     // 播放/暂停按钮
-    final playButton = Builder(
-      builder: (context) {
+    final playButton = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
         return IconButton(
           icon: Icon(
-            controller.isPlaying ? Icons.pause : Icons.play_arrow,
+            value.isPlaying ? Icons.pause : Icons.play_arrow,
             color: scheme.onSurface,
             size: isCompact ? 24 : 28,
           ),
@@ -243,12 +237,13 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
 
     // 倍速按钮
-    final speedButton = Builder(
-      builder: (context) {
+    final speedButton = ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
         return TextButton(
           onPressed: _showRateMenu,
           child: Text(
-            '${controller.playbackSpeed.toStringAsFixed(1)}x',
+            '${value.playbackSpeed.toStringAsFixed(1)}x',
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: isCompact ? 12 : 14,

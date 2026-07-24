@@ -208,9 +208,9 @@ class FeedViewModel {
   void _seekBySeconds(int seconds) {
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller == null) return;
-    if (!controller.isInitialized) return;
-    final current = controller.position;
-    final duration = controller.duration;
+    if (!controller.value.isInitialized) return;
+    final current = controller.value.position;
+    final duration = controller.value.duration;
     final deltaMs = seconds * 1000;
     var newMs = current.inMilliseconds + deltaMs;
     newMs = newMs.clamp(0, duration.inMilliseconds);
@@ -220,7 +220,7 @@ class FeedViewModel {
   void _togglePlayPause() {
     final isPlaying = _ref.read(isPlayingProvider);
     final controller = _ref.read(currentVideoControllerProvider);
-    if (controller != null && controller.isInitialized) {
+    if (controller != null && controller.value.isInitialized) {
       if (isPlaying) {
         controller.pause();
       } else {

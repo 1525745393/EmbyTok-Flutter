@@ -17,11 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
-import '../services/playback/i_playback_controller.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
@@ -49,7 +49,7 @@ class _FullscreenVideoPageState
   // ===== VideoGestureMixin 钩子实现 =====
 
   @override
-  IPlaybackController? get videoController => _watchedController;
+  VideoPlayerController? get videoController => _watchedController;
 
   @override
   bool get gesturesEnabled => true;
@@ -155,7 +155,7 @@ class _FullscreenVideoPageState
   bool _lastHasError = false;
   bool _wasControllerReady = false;
   bool _lastHasSize = false;
-  IPlaybackController? _watchedController;
+  VideoPlayerController? _watchedController;
   int _lastPositionSec = -1;
 
   // 字幕
@@ -163,17 +163,18 @@ class _FullscreenVideoPageState
 
   Timer? _resumePlayTimer;
 
-  void _setupControllerListener(IPlaybackController? controller) {
+  void _setupControllerListener(VideoPlayerController? controller) {
     if (_watchedController == controller) return;
     _watchedController?.removeListener(_onControllerTick);
     _watchedController = controller;
     if (controller != null) {
       controller.addListener(_onControllerTick);
-      _lastIsPlaying = controller.isPlaying;
-      _lastHasError = controller.hasError;
-      _bufferingNotifier.value = controller.isBuffering;
-      _wasControllerReady = controller.isInitialized && !controller.hasError;
-      _lastHasSize = true;
+      final v = controller.value;
+      _lastIsPlaying = v.isPlaying;
+      _lastHasError = v.hasError;
+      _bufferingNotifier.value = v.isBuffering;
+      _wasControllerReady = v.isInitialized && !v.hasError;
+      _lastHasSize = !v.size.isEmpty;
     } else {
       _lastIsPlaying = false;
       _lastHasError = false;
@@ -187,23 +188,22 @@ class _FullscreenVideoPageState
     if (!mounted) return;
     final c = _watchedController;
     if (c == null) return;
+    final v = c.value;
 
     bool needsRebuild = false;
 
-    final isBuffering = c.isBuffering;
-
-    if (isBuffering != _bufferingNotifier.value) {
-      _bufferingNotifier.value = isBuffering;
+    if (v.isBuffering != _bufferingNotifier.value) {
+      _bufferingNotifier.value = v.isBuffering;
     }
 
-    if (c.hasError != _lastHasError) {
-      _lastHasError = c.hasError;
+    if (v.hasError != _lastHasError) {
+      _lastHasError = v.hasError;
       needsRebuild = true;
     }
 
-    if (c.isPlaying != _lastIsPlaying) {
-      _lastIsPlaying = c.isPlaying;
-      if (c.isPlaying &&
+    if (v.isPlaying != _lastIsPlaying) {
+      _lastIsPlaying = v.isPlaying;
+      if (v.isPlaying &&
           _controlsVisible &&
           !_isScreenLocked &&
           !_showSettingsPanel) {
@@ -213,13 +213,14 @@ class _FullscreenVideoPageState
       }
     }
 
-    final isReady = c.isInitialized && !c.hasError;
+    final isReady = v.isInitialized && !v.hasError;
     if (isReady != _wasControllerReady) {
       _wasControllerReady = isReady;
       needsRebuild = true;
     }
 
-    final hasSizeNow = true;
+    // 尺寸变化检测：从空变为有效时触发重建，确保 VideoPlayer 切换到正确尺寸
+    final hasSizeNow = !v.size.isEmpty;
     if (hasSizeNow != _lastHasSize) {
       _lastHasSize = hasSizeNow;
       if (hasSizeNow) {
@@ -228,7 +229,7 @@ class _FullscreenVideoPageState
     }
 
     // 位置秒数节流更新，用于字幕渲染（每秒最多一次）
-    final sec = c.position.inSeconds;
+    final sec = v.position.inSeconds;
     if (sec != _lastPositionSec) {
       _lastPositionSec = sec;
       _positionSecondsNotifier.value = sec;
@@ -250,7 +251,7 @@ class _FullscreenVideoPageState
     _setupControllerListener(initialController);
 
     // 监听 controller 变化，安全注册 listener
-    ref.listen<IPlaybackController?>(currentVideoControllerProvider,
+    ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
         (prev, next) {
       _setupControllerListener(next);
       if (mounted) setState(() {});
@@ -276,9 +277,9 @@ class _FullscreenVideoPageState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
-      if (ctrl != null && ctrl.isInitialized) {
-        final playingItemForOrient = ref.read(currentPlayingItemProvider);
-        final isLandscapeVideo = playingItemForOrient?.isLandscape ?? false;
+      if (ctrl != null && ctrl.value.isInitialized) {
+        final size = ctrl.value.size;
+        final isLandscapeVideo = size.width >= size.height;
         _orientationPref =
             isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
       }
@@ -438,7 +439,7 @@ class _FullscreenVideoPageState
     final wasForeground = prev == AppLifecycleState.resumed;
     final isForeground = state == AppLifecycleState.resumed;
     final controller = ref.read(currentVideoControllerProvider);
-    final wasPlaying = controller?.isPlaying ?? false;
+    final wasPlaying = controller?.value.isPlaying ?? false;
 
     if (wasForeground && !isForeground) {
       try {
@@ -662,9 +663,11 @@ class _FullscreenVideoPageState
     bool hasError;
     bool hasValidSize;
     if (controller != null) {
-      isControllerReady = controller.isInitialized && !controller.hasError;
-      hasError = controller.hasError;
-      hasValidSize = true;
+      final v = controller.value;
+      // isControllerReady 不再检查尺寸，确保 VideoPlayer 能及时构建
+      isControllerReady = v.isInitialized && !v.hasError;
+      hasError = v.hasError;
+      hasValidSize = !v.size.isEmpty;
     } else {
       isControllerReady = false;
       hasError = false;
@@ -793,7 +796,7 @@ class _FullscreenVideoPageState
                 right: 32,
                 child: _SeekPreviewBar(
                   current: previewPos,
-                  total: controller.duration,
+                  total: controller.value.duration,
                   offset: previewPos - dragStartPosition,
                 ),
               );
@@ -905,7 +908,7 @@ class _FullscreenVideoPageState
       );
   }
 
-  Widget _buildErrorState(IPlaybackController? controller) {
+  Widget _buildErrorState(VideoPlayerController? controller) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -918,7 +921,7 @@ class _FullscreenVideoPageState
           ),
           const SizedBox(height: 8),
           Text(
-            controller?.hasError == true ? '播放出错' : '网络错误或资源不可用',
+            controller?.value.errorDescription ?? '网络错误或资源不可用',
             style: const TextStyle(color: Colors.white54, fontSize: 13),
             textAlign: TextAlign.center,
           ),
@@ -1028,7 +1031,7 @@ class _FullscreenVideoPageState
   }
 
   Widget _buildBottomBar(
-    IPlaybackController controller,
+    VideoPlayerController controller,
     MediaItem? playingItem,
     List<MediaItem> items,
   ) {
@@ -1056,43 +1059,44 @@ class _FullscreenVideoPageState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Builder(
-                  builder: (context) {
-                    final position = controller.position;
-                    final duration = controller.duration;
+                ValueListenableBuilder<VideoPlayerValue>(
+                  valueListenable: controller,
+                  builder: (context, value, child) {
+                    final position = value.position;
+                    final duration = value.duration;
                     final progress = duration.inMilliseconds > 0
                         ? position.inMilliseconds / duration.inMilliseconds
                         : 0.0;
                     return Row(
-                          children: [
-                            Text(
-                              _formatDuration(position),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 12),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Slider(
-                                value: progress.clamp(0.0, 1.0),
-                                onChanged: (v) {
-                                  final target = Duration(
-                                    milliseconds:
-                                        (v * duration.inMilliseconds).round(),
-                                  );
-                                  controller.seekTo(target);
-                                },
-                                activeColor: Theme.of(context).colorScheme.primary,
-                                inactiveColor: Colors.white24,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatDuration(duration),
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12),
-                            ),
-                          ],
-                        );
+                      children: [
+                        Text(
+                          _formatDuration(position),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Slider(
+                            value: progress.clamp(0.0, 1.0),
+                            onChanged: (v) {
+                              final target = Duration(
+                                milliseconds:
+                                    (v * duration.inMilliseconds).round(),
+                              );
+                              controller.seekTo(target);
+                            },
+                            activeColor: Theme.of(context).colorScheme.primary,
+                            inactiveColor: Colors.white24,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDuration(duration),
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    );
                   },
                 ),
                 Row(
@@ -1102,20 +1106,25 @@ class _FullscreenVideoPageState
                       icon: const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _hasPrevious() ? _jumpToPrevious : null,
                     ),
-                    IconButton(
-                      icon: Icon(
-                        controller.isPlaying
-                            ? Icons.pause_circle_filled
-                            : Icons.play_circle_filled,
-                        color: Colors.white,
-                        size: 44,
-                      ),
-                      onPressed: () {
-                        if (controller.isPlaying) {
-                          controller.pause();
-                        } else {
-                          controller.play();
-                        }
+                    ValueListenableBuilder<VideoPlayerValue>(
+                      valueListenable: controller,
+                      builder: (context, value, child) {
+                        return IconButton(
+                          icon: Icon(
+                            value.isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_filled,
+                            color: Colors.white,
+                            size: 44,
+                          ),
+                          onPressed: () {
+                            if (value.isPlaying) {
+                              controller.pause();
+                            } else {
+                              controller.play();
+                            }
+                          },
+                        );
                       },
                     ),
                     const Spacer(),
@@ -1128,12 +1137,17 @@ class _FullscreenVideoPageState
                       tooltip: '字幕',
                     ),
                     IconButton(
-                      icon: Text(
-                        '${controller.playbackSpeed.toStringAsFixed(1)}x',
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600),
+                      icon: ValueListenableBuilder<VideoPlayerValue>(
+                        valueListenable: controller,
+                        builder: (context, value, child) {
+                          return Text(
+                            '${value.playbackSpeed.toStringAsFixed(1)}x',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600),
+                          );
+                        },
                       ),
                       onPressed: () => _toggleSettingsPanel(_SettingsTab.speed),
                       tooltip: '倍速',
@@ -1154,7 +1168,7 @@ class _FullscreenVideoPageState
     );
   }
 
-  Widget _buildSettingsPanel(IPlaybackController controller) {
+  Widget _buildSettingsPanel(VideoPlayerController controller) {
     return Positioned(
       right: 16,
       bottom: 100,
@@ -1221,7 +1235,7 @@ class _FullscreenVideoPageState
     }
   }
 
-  Widget _buildSettingsContent(IPlaybackController controller) {
+  Widget _buildSettingsContent(VideoPlayerController controller) {
     switch (_settingsTab) {
       case _SettingsTab.speed:
         return _buildSpeedList(controller);
@@ -1230,7 +1244,7 @@ class _FullscreenVideoPageState
     }
   }
 
-  Widget _buildSpeedList(IPlaybackController controller) {
+  Widget _buildSpeedList(VideoPlayerController controller) {
     const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     final currentRate = ref.watch(playbackRateProvider);
     return Column(

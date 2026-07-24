@@ -3,18 +3,18 @@
 // 背景：
 // - HomeScaffold 用 IndexedStack 同时保持 Feed / Favorites / Actors / Settings
 //   四个 Tab 视图存活，切换 Tab 不会触发 deactivate/activate。
-// - 修复前：切到非 Feed Tab 时播放控制器仍处于 playing，
+// - 修复前：切到非 Feed Tab 时 VideoPlayerController 仍处于 playing，
 //   视频在后台继续播放/消耗流量/发热。
 // - 修复后：HomeScaffold 监听 pageNavigationProvider 变化，
 //   当 Feed 刚被隐藏时主动 controller.pause()，重新可见时如果用户
 //   原本"想播放"（isPlayingProvider=true）则 controller.play()。
 //
 // 测试策略：核心逻辑已抽到顶层纯函数 applyFeedVisibilityChange，
-// 用 mockito mock IPlaybackController 验证 pause/play 调用。
+// 用 mockito mock VideoPlayerController 验证 pause/play 调用。
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:embbytok_flutter/services/playback/i_playback_controller.dart';
+import 'package:video_player/video_player.dart';
 import 'package:embbytok_flutter/providers/providers.dart';
 import 'package:embbytok_flutter/views/home_scaffold.dart';
 
@@ -61,22 +61,24 @@ void main() {
   group('applyFeedVisibilityChange：核心 pause/play 决策', () {
     // 用 mockito 拦截 pause()/play() 调用，验证决策正确性
 
-    late MockPlaybackController mockController;
+    late MockVideoPlayerController mockController;
 
     /// 设置一个"已初始化且正在播放"的 mock controller
-    void stubPlaying(MockPlaybackController ctrl) {
-      when(ctrl.isInitialized).thenReturn(true);
-      when(ctrl.isPlaying).thenReturn(true);
+    void stubPlaying(MockVideoPlayerController ctrl) {
+      when(ctrl.value).thenReturn(
+        const VideoPlayerValue(initialized: true, isPlaying: true),
+      );
     }
 
     /// 设置一个"已初始化但已暂停"的 mock controller
-    void stubPaused(MockPlaybackController ctrl) {
-      when(ctrl.isInitialized).thenReturn(true);
-      when(ctrl.isPlaying).thenReturn(false);
+    void stubPaused(MockVideoPlayerController ctrl) {
+      when(ctrl.value).thenReturn(
+        const VideoPlayerValue(initialized: true, isPlaying: false),
+      );
     }
 
     setUp(() {
-      mockController = MockPlaybackController();
+      mockController = MockVideoPlayerController();
     });
 
     test('Feed 切到收藏 Tab：controller.pause() 被调用', () {
@@ -221,9 +223,10 @@ void main() {
     });
 
     test('controller 未初始化：不调用任何方法', () {
-      // 模拟 controller 存在但 isInitialized=false
-      when(mockController.isInitialized).thenReturn(false);
-      when(mockController.isPlaying).thenReturn(false);
+      // 模拟 controller 存在但 value.isInitialized=false
+      when(mockController.value).thenReturn(
+        const VideoPlayerValue(initialized: false, isPlaying: false),
+      );
 
       const prev = PageNavigationState();
       const next = PageNavigationState(currentIndex: PageIndices.favorites);
@@ -284,7 +287,8 @@ void main() {
   });
 }
 
-/// Mock IPlaybackController：拦截 pause/play 调用
+/// Mock VideoPlayerController：拦截 pause/play/value 调用
 ///
-/// IPlaybackController 是抽象接口，单元测试中用 mockito Mock 类拦截方法调用。
-class MockPlaybackController extends Mock implements IPlaybackController {}
+/// video_player 包的 controller 依赖 native platform channel，
+/// 单元测试中无法构造真实实例。用 mockito Mock 类拦截方法调用。
+class MockVideoPlayerController extends Mock implements VideoPlayerController {}

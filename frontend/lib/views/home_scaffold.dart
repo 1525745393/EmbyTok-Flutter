@@ -20,10 +20,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import '../services/video_pool_service.dart';
-import '../services/playback/i_playback_controller.dart';
 import '../utils/constants.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
@@ -50,7 +50,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
   //
   // 背景：HomeScaffold 用 IndexedStack 同时保持 Feed / Favorites / Actors / Settings
   // 四个 Tab 视图存活，切换 Tab 时不会触发 deactivate/activate。
-  // Feed 中的 IPlaybackController 一直是同一个实例，即使切到其他 Tab
+  // Feed 中的 VideoPlayerController 一直是同一个实例，即使切到其他 Tab
   // 也会继续后台播放。
   //
   // 修复：在 _HomeScaffoldState 中监听 pageNavigationProvider 变化，
@@ -351,21 +351,24 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
 }
 
 /// 底层工具：仅在 controller 正在播放时 pause（防止重复 pause）
-void _pauseIfPlaying(IPlaybackController? controller) {
+void _pauseIfPlaying(VideoPlayerController? controller) {
   if (controller == null) return;
-  if (!controller.isInitialized) return;
-  if (controller.isPlaying) {
+  if (!controller.value.isInitialized) return;
+  if (controller.value.isPlaying) {
     controller.pause();
   }
 }
 
+/// 底层工具：仅在 userWantsToPlay=true 且 controller 已暂停时 play
+///
+/// 不覆盖用户的"主动暂停"意图——只有当用户原本就想播放时才恢复。
 void _playIfWantedAndPaused(
-  IPlaybackController? controller,
+  VideoPlayerController? controller,
   bool userWantsToPlay,
 ) {
   if (controller == null) return;
-  if (!controller.isInitialized) return;
-  if (userWantsToPlay && !controller.isPlaying) {
+  if (!controller.value.isInitialized) return;
+  if (userWantsToPlay && !controller.value.isPlaying) {
     controller.play();
   }
 }
@@ -381,12 +384,12 @@ void _playIfWantedAndPaused(
 ///
 /// 入参：
 /// - [prev] / [next]：前后两次导航状态
-/// - [controller]：当前 IPlaybackController（可能为 null）
+/// - [controller]：当前 VideoPlayerController（可能为 null）
 /// - [userWantsToPlay]：用户播放意图（isPlayingProvider），用于切回 Feed 时决定是否恢复
 void applyFeedVisibilityChange({
   required PageNavigationState prev,
   required PageNavigationState next,
-  required IPlaybackController? controller,
+  required VideoPlayerController? controller,
   required bool userWantsToPlay,
 }) {
   // 1. 可见性没有变化 → 不处理
@@ -416,13 +419,13 @@ void applyFeedVisibilityChange({
 /// 入参：
 /// - [prev] / [next]：前后两次 AppLifecycleState（prev 可能为 null 表示首次）
 /// - [isFeedVisible]：回前台时 Feed Tab 是否可见（决定是否恢复播放）
-/// - [controller]：当前 IPlaybackController（可能为 null）
+/// - [controller]：当前 VideoPlayerController（可能为 null）
 /// - [userWantsToPlay]：用户播放意图
 void applyLifecyclePlaybackChange({
   required AppLifecycleState? prev,
   required AppLifecycleState next,
   required bool isFeedVisible,
-  required IPlaybackController? controller,
+  required VideoPlayerController? controller,
   required bool userWantsToPlay,
 }) {
   // 首次回调（prev 为 null）：不做处理
