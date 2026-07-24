@@ -26,8 +26,9 @@ class SubtitleRenderer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (!enabled || cues.isEmpty) return const SizedBox.shrink();
 
+    // settings 仅用于字幕样式（字号、颜色、位置），不控制是否显示
+    // 是否显示由外部决定（cues 是否为空、selectedSubId 是否为 null）
     final settings = ref.watch(subtitleSettingsProvider);
-    if (!settings.enabled) return const SizedBox.shrink();
 
     // 二分查找当前时间匹配的字幕（O(log n)，优于线性搜索 O(n)）
     final current = findCueAtPosition(cues, position);
