@@ -21,7 +21,7 @@ class VlcControllerAdapter implements IPlaybackController {
     final vlcController = VlcPlayerController.network(
       url,
       hwAcc: HwAcc.auto,
-      autoInitialize: false,
+      autoInitialize: true,
       autoPlay: false,
       options: VlcPlayerOptions(
         advanced: VlcAdvancedOptions([
