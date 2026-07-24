@@ -1,3 +1,11 @@
+# [2.19.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.5...v2.19.0) (2026-07-24)
+
+
+### Features
+
+* add player-enhancement implementation task list ([fd029df](https://github.com/1525745393/EmbyTok-Flutter/commit/fd029df1e97582922202f035015a48cb7223b666))
+* add player-enhancement requirements and technical design ([b5abb5d](https://github.com/1525745393/EmbyTok-Flutter/commit/b5abb5d5c644c4eff74fdcde1cf17fb4f0ba1daf))
+
 ## [2.18.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.4...v2.18.5) (2026-07-24)
 
 
