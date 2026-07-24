@@ -1,3 +1,10 @@
+## [2.20.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.5...v2.20.6) (2026-07-24)
+
+
+### Bug Fixes
+
+* duplicate subtitles in fullscreen mode ([4ad6f5d](https://github.com/1525745393/EmbyTok-Flutter/commit/4ad6f5d54b2e093c769cfb845fd7603b97bd68b1))
+
 ## [2.20.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.4...v2.20.5) (2026-07-24)
 
 
