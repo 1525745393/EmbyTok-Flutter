@@ -537,10 +537,8 @@ class _FullscreenVideoPageState
       }
     }
 
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.edgeToEdge,
-      overlays: SystemUiOverlay.values,
-    );
+    // 退出全屏：恢复为沉浸式模式（FeedView 也是沉浸式的）
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     ref.read(isFullscreenProvider.notifier).state = false;
 

@@ -219,6 +219,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
+        // 关键：让 body 延伸到系统栏区域，使 FeedView 视频流能占满全屏
+        extendBody: true,
+        extendBodyBehindAppBar: true,
         body: Stack(
           children: [
             // 页面内容
@@ -227,22 +230,31 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                 // 覆盖层页面显示在 Feed 之上，不切换底部导航
                 index: pageNavState.isOverlayPage ? 0 : currentIndex,
                 children: [
-                  // 索引 0: Feed 页面（全屏展示）
+                  // 索引 0: Feed 页面（全屏展示，视频延伸到状态栏区域）
                   // 路由透传：把 initialItemId 传给 FeedView 用于 jumpToPage
                   FeedView(initialItemId: widget.initialItemId),
-                  // 索引 1: 收藏页面（预留底部导航栏高度）
+                  // 索引 1: 收藏页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
-                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top,
+                      bottom: kBottomNavHeight + bottomPadding,
+                    ),
                     child: const FavoritesView(),
                   ),
-                  // 索引 2: 演员页面（预留底部导航栏高度）
+                  // 索引 2: 演员页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
-                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top,
+                      bottom: kBottomNavHeight + bottomPadding,
+                    ),
                     child: const ActorsView(),
                   ),
-                  // 索引 3: 设置页面（预留底部导航栏高度）
+                  // 索引 3: 设置页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
-                    padding: EdgeInsets.only(bottom: kBottomNavHeight + bottomPadding),
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top,
+                      bottom: kBottomNavHeight + bottomPadding,
+                    ),
                     child: const SettingsView(),
                   ),
                 ],

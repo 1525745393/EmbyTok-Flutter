@@ -1187,8 +1187,9 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   @override
   void dispose() {
     _pageController.dispose();
-    // 离开播放页时恢复系统栏
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // 离开播放页：返回 FeedView，需要保持沉浸式模式
+    // 不恢复 edgeToEdge，因为目标页面（FeedView）也是沉浸式的
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     super.dispose();
   }
 
