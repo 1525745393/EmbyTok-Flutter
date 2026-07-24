@@ -1,3 +1,10 @@
+## [2.20.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.2...v2.20.3) (2026-07-24)
+
+
+### Bug Fixes
+
+* restore autoInitialize: true for native media player creation ([20e5acf](https://github.com/1525745393/EmbyTok-Flutter/commit/20e5acf5fc5f0a04bbd0678f994b69c459520274))
+
 ## [2.20.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.1...v2.20.2) (2026-07-24)
 
 
