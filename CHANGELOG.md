@@ -1,3 +1,15 @@
+## [2.20.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.4...v2.20.5) (2026-07-24)
+
+
+### Bug Fixes
+
+* subtitle display issues ([8d5ac67](https://github.com/1525745393/EmbyTok-Flutter/commit/8d5ac670f84dc549090a9645fb24b6f772785a1d))
+
+
+### Reverts
+
+* rollback to v2.18.5 — player enhancement not stable ([589620d](https://github.com/1525745393/EmbyTok-Flutter/commit/589620dbd0230ae1903b18e9081895fdeb868985))
+
 ## [2.18.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.5...v2.18.6) (2026-07-24)
 
 
