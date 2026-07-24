@@ -1,3 +1,10 @@
+## [2.18.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.5...v2.18.6) (2026-07-24)
+
+
+### Bug Fixes
+
+* rollback player-enhancement to v2.18.5 ([589620d](https://github.com/1525745393/EmbyTok-Flutter/commit/589620d8627f7e2f41a62b73dd3cf271044f70b9))
+
 ## [2.18.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.18.4...v2.18.5) (2026-07-24)
 
 
