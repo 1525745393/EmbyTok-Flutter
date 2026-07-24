@@ -1052,7 +1052,7 @@ class EmbytokService {
   // - index: 字幕轨道 index（与 MediaStream.index）
   // - mediaSourceId: 媒体源 ID
   //
-  // 字幕 URL 格式：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
+  // 字幕 URL 格式：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/Stream.{format}
   // 返回：按 start / end / text
   // ============================
   Future<List<SubtitleCue>> getSubtitleCues({
@@ -1064,20 +1064,20 @@ class EmbytokService {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    // 内存缓存：相同参数直接返回缓存结果
-    // 避免 VideoPlayerWidget 和 FullscreenVideoPage 重复请求
+    // 内存缓存：仅缓存成功且非空的结果，避免重复请求
+    // 空结果和失败请求不缓存，确保下次可以重试
     final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
-    if (_subtitleCache.containsKey(cacheKey)) {
-      AppLogger.debug('字幕缓存命中', data: {'cacheKey': cacheKey});
-      return _subtitleCache[cacheKey]!;
+    final cached = _subtitleCache[cacheKey];
+    if (cached != null) {
+      AppLogger.debug('字幕缓存命中', data: {'cacheKey': cacheKey, 'count': cached.length});
+      return cached;
     }
     try {
-      // URL: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/36000000000.{format}
-      // 36000000000 = 1小时（1 tick = 100ns）
+      // Emby 字幕 API：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/Stream.{format}
+      // 0 = startPositionTicks，Stream.{format} 返回完整字幕
       final url =
-          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/36000000000.$format';
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
       AppLogger.debug('请求字幕', data: {'url': url});
-      // 需要非 JSON 请求（SRT 文本）
       final resp = await _apiClient.dio.get<String>(
         url,
         options: Options(
@@ -1088,8 +1088,7 @@ class EmbytokService {
       );
       final text = resp.data;
       if (text == null || text.isEmpty) {
-        AppLogger.debug('字幕内容为空', data: {'url': url});
-        _subtitleCache[cacheKey] = const <SubtitleCue>[];
+        AppLogger.debug('字幕内容为空', data: {'url': url, 'statusCode': resp.statusCode});
         return const <SubtitleCue>[];
       }
       // 调用 parseSrt 解析
@@ -1099,10 +1098,13 @@ class EmbytokService {
         'cuesCount': cues.length,
         'rawLength': text.length,
       });
-      _subtitleCache[cacheKey] = cues;
+      // 仅缓存非空结果
+      if (cues.isNotEmpty) {
+        _subtitleCache[cacheKey] = cues;
+      }
       return cues;
     } catch (e) {
-      // 字幕加载失败不中断播放，缓存空结果避免重复请求
+      // 字幕加载失败不中断播放，不缓存失败结果以便下次重试
       AppLogger.warn('字幕请求失败', data: {
         'itemId': itemId,
         'mediaSourceId': mediaSourceId,
@@ -1110,7 +1112,6 @@ class EmbytokService {
         'format': format,
         'error': e.toString(),
       });
-      _subtitleCache[cacheKey] = const <SubtitleCue>[];
       return const <SubtitleCue>[];
     }
   }

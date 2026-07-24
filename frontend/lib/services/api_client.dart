@@ -69,7 +69,9 @@ class ApiClient {
             // 未登录（如登录请求本身）：仅发送客户端标识
             options.headers['X-Emby-Authorization'] = _clientAuthPrefix;
           }
-          options.headers['Accept'] = 'application/json';
+          // 仅在请求未指定 Accept 时设置默认值
+          // 字幕请求需要 Accept: text/plain，不能被覆盖
+          options.headers.putIfAbsent('Accept', () => 'application/json');
           return handler.next(options);
         },
         onResponse: (response, handler) {
