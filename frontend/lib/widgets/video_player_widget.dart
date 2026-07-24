@@ -308,6 +308,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       Future<void> usePreloaded(IPlaybackController c) async {
         _controller = c;
         c.addListener(_onControllerChanged);
+        if (mounted) setState(() {});
         if (!c.isInitialized) {
           await c.initialize().timeout(
             const Duration(seconds: 15),
@@ -379,6 +380,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       _controller = c;
 
       c.addListener(_onControllerChanged);
+      if (mounted) setState(() {});
 
       c.setLooping(widget.loop);
       await c.initialize().timeout(
@@ -497,22 +499,21 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       return _buildThumbnailPlaceholder(context);
     }
 
-    // 场景 2：视频正在初始化，显示加载指示器
-    if (vc == null || !_initialized) {
+    // 场景 2：控制器未创建，显示加载指示器
+    if (vc == null) {
       return Center(
         child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
       );
     }
 
     // 场景 3：正常播放视频（带字幕叠加）
+    // 必须在初始化期间就渲染 VlcPlayer，让原生视图先创建，
+    // 否则 init 完成后才创建视图会导致视频无法渲染
     // BoxFit 策略：
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
     final isReady = vc.isInitialized;
-    if (!isReady) {
-      _sizeWasEmpty = true;
-    }
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
     // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
