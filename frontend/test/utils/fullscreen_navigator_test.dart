@@ -12,7 +12,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:video_player/video_player.dart';
+import 'package:embbytok_flutter/services/playback/i_playback_controller.dart';
 import 'package:embbytok_flutter/utils/fullscreen_navigator.dart';
 
 void main() {
@@ -25,10 +25,9 @@ void main() {
       );
     });
 
-    test('已 disposed 的 controller（访问 value 抛异常）应返回 false', () {
-      final mockController = MockVideoPlayerController();
-      // 模拟 controller 已 disposed：访问 value 抛 StateError
-      when(mockController.value).thenThrow(StateError('disposed'));
+    test('已 disposed 的 controller（访问 getter 抛异常）应返回 false', () {
+      final mockController = MockPlaybackController();
+      when(mockController.hasError).thenThrow(StateError('disposed'));
 
       expect(
         FullscreenNavigator.isControllerUsableForFullscreen(mockController),
@@ -38,10 +37,9 @@ void main() {
     });
 
     test('有错误的 controller 应返回 false', () {
-      final mockController = MockVideoPlayerController();
-      when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: true, hasError: true),
-      );
+      final mockController = MockPlaybackController();
+      when(mockController.hasError).thenReturn(true);
+      when(mockController.isInitialized).thenReturn(true);
 
       expect(
         FullscreenNavigator.isControllerUsableForFullscreen(mockController),
@@ -51,10 +49,8 @@ void main() {
     });
 
     test('未初始化的 controller 应返回 false', () {
-      final mockController = MockVideoPlayerController();
-      when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: false),
-      );
+      final mockController = MockPlaybackController();
+      when(mockController.isInitialized).thenReturn(false);
 
       expect(
         FullscreenNavigator.isControllerUsableForFullscreen(mockController),
@@ -64,10 +60,10 @@ void main() {
     });
 
     test('已初始化且无错误的 controller 应返回 true', () {
-      final mockController = MockVideoPlayerController();
-      when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: true),
-      );
+      final mockController = MockPlaybackController();
+      when(mockController.hasError).thenReturn(false);
+      when(mockController.isInitialized).thenReturn(true);
+      when(mockController.duration).thenReturn(const Duration(seconds: 10));
 
       expect(
         FullscreenNavigator.isControllerUsableForFullscreen(mockController),
@@ -78,5 +74,5 @@ void main() {
   });
 }
 
-/// Mock VideoPlayerController：拦截 value 调用
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+/// Mock IPlaybackController：拦截 getter 调用
+class MockPlaybackController extends Mock implements IPlaybackController {}

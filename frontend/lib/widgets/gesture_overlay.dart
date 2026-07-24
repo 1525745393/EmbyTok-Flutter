@@ -8,10 +8,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/playback/i_playback_controller.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'video/video_gesture_mixin.dart';
@@ -20,7 +20,7 @@ import 'video/video_gesture_mixin.dart';
 class GestureOverlay extends ConsumerStatefulWidget {
   final Widget child;
   final MediaItem item;
-  final VideoPlayerController? controller;
+  final IPlaybackController? controller;
   // 单击回调：用于切换控制层显示/隐藏（由父组件 VideoPageItem 提供）
   final VoidCallback? onSingleTap;
   // 是否启用「长按倍速 / 水平拖动 seek」手势
@@ -53,7 +53,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   // ===== VideoGestureMixin 钩子实现 =====
 
   @override
-  VideoPlayerController? get videoController => widget.controller;
+  IPlaybackController? get videoController => widget.controller;
 
   @override
   bool get gesturesEnabled => widget.enableGestures;
@@ -104,8 +104,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
-    final duration = (c != null && c.value.isInitialized)
-        ? c.value.duration
+    final duration = (c != null && c.isInitialized)
+        ? c.duration
         : Duration.zero;
 
     final usePan = widget.enableVerticalVolumeDrag;

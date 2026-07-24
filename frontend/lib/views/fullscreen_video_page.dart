@@ -17,11 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
+import '../services/playback/i_playback_controller.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
@@ -49,7 +49,7 @@ class _FullscreenVideoPageState
   // ===== VideoGestureMixin 钩子实现 =====
 
   @override
-  VideoPlayerController? get videoController => _watchedController;
+  IPlaybackController? get videoController => _watchedController;
 
   @override
   bool get gesturesEnabled => true;
@@ -155,7 +155,7 @@ class _FullscreenVideoPageState
   bool _lastHasError = false;
   bool _wasControllerReady = false;
   bool _lastHasSize = false;
-  VideoPlayerController? _watchedController;
+  IPlaybackController? _watchedController;
   int _lastPositionSec = -1;
 
   // 字幕
@@ -163,7 +163,7 @@ class _FullscreenVideoPageState
 
   Timer? _resumePlayTimer;
 
-  void _setupControllerListener(VideoPlayerController? controller) {
+  void _setupControllerListener(IPlaybackController? controller) {
     if (_watchedController == controller) return;
     _watchedController?.removeListener(_onControllerTick);
     _watchedController = controller;
@@ -251,7 +251,7 @@ class _FullscreenVideoPageState
     _setupControllerListener(initialController);
 
     // 监听 controller 变化，安全注册 listener
-    ref.listen<VideoPlayerController?>(currentVideoControllerProvider,
+    ref.listen<IPlaybackController?>(currentVideoControllerProvider,
         (prev, next) {
       _setupControllerListener(next);
       if (mounted) setState(() {});
@@ -277,9 +277,8 @@ class _FullscreenVideoPageState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final ctrl = ref.read(currentVideoControllerProvider);
-      if (ctrl != null && ctrl.value.isInitialized) {
-        final size = ctrl.value.size;
-        final isLandscapeVideo = size.width >= size.height;
+      if (ctrl != null && ctrl.isInitialized) {
+        final isLandscapeVideo = widget.item?.isLandscape ?? false;
         _orientationPref =
             isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
       }
@@ -439,7 +438,7 @@ class _FullscreenVideoPageState
     final wasForeground = prev == AppLifecycleState.resumed;
     final isForeground = state == AppLifecycleState.resumed;
     final controller = ref.read(currentVideoControllerProvider);
-    final wasPlaying = controller?.value.isPlaying ?? false;
+    final wasPlaying = controller?.isPlaying ?? false;
 
     if (wasForeground && !isForeground) {
       try {
@@ -796,7 +795,7 @@ class _FullscreenVideoPageState
                 right: 32,
                 child: _SeekPreviewBar(
                   current: previewPos,
-                  total: controller.value.duration,
+                  total: controller.duration,
                   offset: previewPos - dragStartPosition,
                 ),
               );
@@ -908,7 +907,7 @@ class _FullscreenVideoPageState
       );
   }
 
-  Widget _buildErrorState(VideoPlayerController? controller) {
+  Widget _buildErrorState(IPlaybackController? controller) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -921,7 +920,7 @@ class _FullscreenVideoPageState
           ),
           const SizedBox(height: 8),
           Text(
-            controller?.value.errorDescription ?? '网络错误或资源不可用',
+            controller?.hasError == true ? '播放出错' : '网络错误或资源不可用',
             style: const TextStyle(color: Colors.white54, fontSize: 13),
             textAlign: TextAlign.center,
           ),
@@ -1031,7 +1030,7 @@ class _FullscreenVideoPageState
   }
 
   Widget _buildBottomBar(
-    VideoPlayerController controller,
+    IPlaybackController controller,
     MediaItem? playingItem,
     List<MediaItem> items,
   ) {
@@ -1168,7 +1167,7 @@ class _FullscreenVideoPageState
     );
   }
 
-  Widget _buildSettingsPanel(VideoPlayerController controller) {
+  Widget _buildSettingsPanel(IPlaybackController controller) {
     return Positioned(
       right: 16,
       bottom: 100,
@@ -1235,7 +1234,7 @@ class _FullscreenVideoPageState
     }
   }
 
-  Widget _buildSettingsContent(VideoPlayerController controller) {
+  Widget _buildSettingsContent(IPlaybackController controller) {
     switch (_settingsTab) {
       case _SettingsTab.speed:
         return _buildSpeedList(controller);
@@ -1244,7 +1243,7 @@ class _FullscreenVideoPageState
     }
   }
 
-  Widget _buildSpeedList(VideoPlayerController controller) {
+  Widget _buildSpeedList(IPlaybackController controller) {
     const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     final currentRate = ref.watch(playbackRateProvider);
     return Column(

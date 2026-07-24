@@ -17,30 +17,28 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:video_player/video_player.dart';
+import 'package:embbytok_flutter/services/playback/i_playback_controller.dart';
 import 'package:embbytok_flutter/providers/providers.dart';
 import 'package:embbytok_flutter/views/home_scaffold.dart';
 
 void main() {
   group('applyLifecyclePlaybackChange：App 前后台切换的视频控制', () {
-    late MockVideoPlayerController mockController;
+    late MockPlaybackController mockController;
 
     /// 设置一个"已初始化且正在播放"的 mock controller
-    void stubPlaying(MockVideoPlayerController ctrl) {
-      when(ctrl.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: true),
-      );
+    void stubPlaying(MockPlaybackController ctrl) {
+      when(ctrl.isInitialized).thenReturn(true);
+      when(ctrl.isPlaying).thenReturn(true);
     }
 
     /// 设置一个"已初始化但已暂停"的 mock controller
-    void stubPaused(MockVideoPlayerController ctrl) {
-      when(ctrl.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: false),
-      );
+    void stubPaused(MockPlaybackController ctrl) {
+      when(ctrl.isInitialized).thenReturn(true);
+      when(ctrl.isPlaying).thenReturn(false);
     }
 
     setUp(() {
-      mockController = MockVideoPlayerController();
+      mockController = MockPlaybackController();
     });
 
     group('离开前台：pause', () {
@@ -246,9 +244,8 @@ void main() {
       });
 
       test('controller 未初始化：不调用任何方法', () {
-        when(mockController.value).thenReturn(
-          const VideoPlayerValue(initialized: false, isPlaying: false),
-        );
+        when(mockController.isInitialized).thenReturn(false);
+        when(mockController.isPlaying).thenReturn(false);
 
         applyLifecyclePlaybackChange(
           prev: AppLifecycleState.resumed,
@@ -339,8 +336,7 @@ void main() {
   });
 }
 
-/// Mock VideoPlayerController：拦截 pause/play/value 调用
+/// Mock IPlaybackController：拦截 pause/play 调用
 ///
-/// video_player 包的 controller 依赖 native platform channel，
-/// 单元测试中无法构造真实实例。用 mockito Mock 类拦截方法调用。
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+/// IPlaybackController 是抽象接口，单元测试中用 mockito Mock 类拦截方法调用。
+class MockPlaybackController extends Mock implements IPlaybackController {}

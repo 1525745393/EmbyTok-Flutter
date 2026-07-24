@@ -7,12 +7,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/embbytok_service.dart';
 import '../services/video_pool_service.dart';
+import '../services/playback/i_playback_controller.dart';
 import '../utils/logger.dart';
 import '../utils/fullscreen_navigator.dart';
 import 'gesture_overlay.dart';
@@ -55,7 +55,7 @@ class VideoPageItem extends ConsumerStatefulWidget {
 
 class _VideoPageItemState extends ConsumerState<VideoPageItem>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  VideoPlayerController? _videoController;
+  IPlaybackController? _videoController;
   final GlobalKey<VideoPlayerWidgetState> _videoPlayerKey = GlobalKey<VideoPlayerWidgetState>();
   bool _hasNotifiedEnded = false;
   bool _hasStoppedReported = false;
@@ -158,18 +158,18 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final isForeground = state == AppLifecycleState.resumed;
 
     if (wasForeground && !isForeground) {
-      _wasPlayingBeforeBackground = _videoController?.value.isPlaying ?? false;
+      _wasPlayingBeforeBackground = _videoController?.isPlaying ?? false;
       if (_videoController != null &&
-          _videoController!.value.isInitialized &&
-          _videoController!.value.isPlaying) {
+          _videoController!.isInitialized &&
+          _videoController!.isPlaying) {
         _videoController!.pause();
       }
       _discRotationCtrl.stop();
     } else if (!wasForeground && isForeground) {
       if (_wasPlayingBeforeBackground) {
         if (_videoController != null &&
-            _videoController!.value.isInitialized &&
-            !_videoController!.value.isPlaying) {
+            _videoController!.isInitialized &&
+            !_videoController!.isPlaying) {
           _videoController!.play();
         }
         if (!_discRotationCtrl.isAnimating) {
@@ -197,7 +197,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   @override
   void didUpdateWidget(covariant VideoPageItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null && _videoController!.value.isInitialized) {
+    if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null && _videoController!.isInitialized) {
       ref.read(currentVideoControllerProvider.notifier).state = _videoController;
       _startPlaybackIfCurrent();
     } else if (!widget.isCurrentPage && oldWidget.isCurrentPage) {
@@ -240,13 +240,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _providerCleaned = false;
     _statsRecorded = false;
     // 如果有 controller 且已初始化，重新标记 ready（避免 deactivate 清理后视频画面不显示）
-    if (_videoController != null && _videoController!.value.isInitialized) {
+    if (_videoController != null && _videoController!.isInitialized) {
       ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
     }
     // 如果有 controller 且是当前页，重新写入 Provider（避免 deactivate 清理后状态丢失）
     if (_videoController != null && widget.isCurrentPage) {
       ref.read(currentVideoControllerProvider.notifier).state = _videoController;
-      ref.read(isPlayingProvider.notifier).state = _videoController!.value.isPlaying;
+      ref.read(isPlayingProvider.notifier).state = _videoController!.isPlaying;
     }
   }
 
@@ -279,7 +279,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _startPlaybackIfCurrent() {
     if (!widget.isCurrentPage) return;
     final controller = _videoController;
-    if (controller != null && controller.value.isInitialized) {
+    if (controller != null && controller.isInitialized) {
       final isMuted = ref.read(isMutedProvider);
       controller.setVolume(isMuted ? 0.0 : 1.0);
       try {
@@ -302,9 +302,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final controller = _videoController;
     if (controller == null) return;
     try {
-      if (!controller.value.isInitialized) return;
-      final position = controller.value.position;
-      final duration = controller.value.duration;
+      if (!controller.isInitialized) return;
+      final position = controller.position;
+      final duration = controller.duration;
       if (duration.inMilliseconds <= 0) return;
       // 使用微秒计算避免毫秒整数除法的精度损失
       final completionRate = position.inMicroseconds / duration.inMicroseconds;
@@ -331,24 +331,24 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final controller = _videoController;
     if (controller == null) return;
     // 播放状态：仅在变化时同步 Provider（避免每帧 setState 等效操作）
-    final isPlaying = controller.value.isPlaying;
+    final isPlaying = controller.isPlaying;
     if (ref.read(isPlayingProvider) != isPlaying) {
       ref.read(isPlayingProvider.notifier).state = isPlaying;
       // 播放状态变化时触发暂停上报（原 _onVideoChangedForReport 逻辑）
       if (!isPlaying) _reportPlaybackProgress(isPauseEvent: true);
     }
     // 位置：仅在跨秒时写入 Provider，减少级联重建
-    final posSec = controller.value.position.inSeconds;
+    final posSec = controller.position.inSeconds;
     if (posSec != _lastPositionSecond) {
       _lastPositionSecond = posSec;
       ref.read(currentPositionProvider.notifier).state =
-          controller.value.position;
+          controller.position;
     }
     // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
     // 使“3 秒自动隐藏”永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。
     if (!_hasNotifiedEnded) {
-      final pos = controller.value.position;
-      final dur = controller.value.duration;
+      final pos = controller.position;
+      final dur = controller.duration;
       if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
         _hasNotifiedEnded = true;
         _reportPlaybackStopped();
@@ -425,11 +425,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }
     _lastProgressReport = now;
     final controller = _videoController;
-    final position = controller?.value.position;
+    final position = controller?.position;
     final positionTicks = (position?.inSeconds ?? 0) * 10000000;
-    final isPaused = controller != null && !controller.value.isPlaying;
-    final volume = controller?.value.volume;
-    final volumeLevel = volume != null ? (volume * 100).round() : null;
+    final isPaused = controller != null && !controller.isPlaying;
+    final volumeLevel = 100;
     _safeReport(
       () => _service.reportPlaybackPosition(
         itemId: widget.item.id,
@@ -451,7 +450,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     if (_hasStoppedReported) return;
     _hasStoppedReported = true;
     final controller = _videoController;
-    final position = controller?.value.position;
+    final position = controller?.position;
     final positionTicks = position != null ? position.inSeconds * 10000000 : 0;
     _safeReport(
       () => _service.reportPlaybackStopped(
@@ -581,7 +580,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // ===== 播放/暂停切换 =====
   void _togglePlay() {
     if (_videoController == null) return;
-    if (_videoController!.value.isPlaying) {
+    if (_videoController!.isPlaying) {
       _videoController!.pause();
       ref.read(isPlayingProvider.notifier).state = false;
       // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
@@ -804,13 +803,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
           // 倍速状态徽章
           if (_videoController != null &&
-              _videoController!.value.isInitialized &&
-              _videoController!.value.playbackSpeed > 1.0)
-            SpeedBadge(speed: _videoController!.value.playbackSpeed),
+              _videoController!.isInitialized &&
+              _videoController!.playbackSpeed > 1.0)
+            SpeedBadge(speed: _videoController!.playbackSpeed),
 
           // 底部细线进度条：仅在全屏 / 纯净模式且控制条隐藏时显示（VideoControls 显示时有自己的进度条）
           if (_videoController != null &&
-              _videoController!.value.isInitialized &&
+              _videoController!.isInitialized &&
               (isAutoPlay) &&
               !_controlsVisible)
             Positioned(
@@ -821,7 +820,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             ),
 
           // 控制层（VideoControls）：仅在无信息栏时显示（全屏 / 纯净模式），非全屏非纯净模式下信息栏已有进度条替代
-          if (_videoController != null && _videoController!.value.isInitialized && (isAutoPlay))
+          if (_videoController != null && _videoController!.isInitialized && (isAutoPlay))
             Positioned(
               left: 0,
               right: 0,
@@ -889,8 +888,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   children: [
                     // 横屏视频：居中显示「全屏观看」按钮
                     if (_videoController != null &&
-                        _videoController!.value.isInitialized &&
-                        _videoController!.value.size.width > _videoController!.value.size.height)
+                        _videoController!.isInitialized &&
+                        widget.item.isLandscape)
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -955,7 +954,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
-                    if (_videoController != null && _videoController!.value.isInitialized)
+                    if (_videoController != null && _videoController!.isInitialized)
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: SeekableProgressBar(
@@ -995,8 +994,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 children: [
                   // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
                   if (_videoController == null ||
-                      !_videoController!.value.isInitialized ||
-                      _videoController!.value.size.width <= _videoController!.value.size.height)
+                      !_videoController!.isInitialized ||
+                      !widget.item.isLandscape)
                     PressableActionButton(
                       icon: Icons.fullscreen,
                       label: '全屏',
@@ -1112,7 +1111,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 /// 将 [CenterPlayButton] 的显示逻辑拆分到独立 [ConsumerWidget]，
 /// 这样 isPlayingProvider 状态变化时只重建本组件，不会触发 [VideoPageItem] 重建。
 class _CenterPlayButtonWrapper extends ConsumerWidget {
-  final VideoPlayerController? controller;
+  final IPlaybackController? controller;
   final VoidCallback onPlay;
   // 由父组件控制显示状态（非纯净模式下的自动隐藏）
   final bool visible;
@@ -1131,7 +1130,7 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
     if (isAutoPlay) return const SizedBox.shrink();
     // 非纯净模式：由 visible 状态控制显示
     if (!visible) return const SizedBox.shrink();
-    if (controller == null || !controller!.value.isInitialized) {
+    if (controller == null || !controller!.isInitialized) {
       return const SizedBox.shrink();
     }
     final isPlaying = ref.watch(isPlayingProvider);

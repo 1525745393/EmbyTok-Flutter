@@ -2,16 +2,19 @@
 class MediaSource {
   final String id;
   final String name;
-  final String? directPlayUrl;       // 直接播放 URL
-  final String? transcodingUrl;       // 转码播放 URL
-  final String? container;             // 容器类型：mp4/mkv 等
-  final int? runTimeTicks;             // 总时长
-  final int? width;                   // 视频宽度
-  final int? height;                  // 视频高度
-  final int? size;                    // 文件大小（字节）
-  final int? bitrate;                 // 比特率（bps）
+  final String? directPlayUrl;
+  final String? transcodingUrl;
+  final String? container;
+  final int? runTimeTicks;
+  final int? width;
+  final int? height;
+  final int? size;
+  final int? bitrate;
+  final String? videoCodec;
+  final int? videoBitDepth;
+  final int? videoLevel;
   final List<MediaStream> mediaStreams;
-  final Map<String, String>? httpHeaders;  // 播放需要的请求头（如 X-Emby-Token）
+  final Map<String, String>? httpHeaders;
 
   const MediaSource({
     required this.id,
@@ -24,6 +27,9 @@ class MediaSource {
     this.height,
     this.size,
     this.bitrate,
+    this.videoCodec,
+    this.videoBitDepth,
+    this.videoLevel,
     this.mediaStreams = const [],
     this.httpHeaders,
   });
@@ -50,14 +56,19 @@ class MediaSource {
         .map((e) => MediaStream.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // 从 MediaStreams 中提取视频宽高
+    // 从 MediaStreams 中提取视频宽高和编解码信息
     int? videoWidth;
     int? videoHeight;
+    String? videoCodec;
+    int? videoBitDepth;
+    int? videoLevel;
     for (final stream in streams) {
-      if (stream.type == 'Video' && stream.width != null && stream.height != null) {
-        videoWidth = stream.width;
-        videoHeight = stream.height;
-        break;
+      if (stream.type == 'Video') {
+        videoWidth ??= stream.width;
+        videoHeight ??= stream.height;
+        videoCodec ??= stream.codec;
+        videoBitDepth ??= stream.bitDepth;
+        videoLevel ??= stream.level;
       }
     }
 
@@ -77,6 +88,9 @@ class MediaSource {
       height: videoHeight ?? (json['Height'] as int?) ?? (json['height'] as int?),
       size: (json['Size'] as int?) ?? (json['size'] as int?),
       bitrate: (json['Bitrate'] as int?) ?? (json['bitrate'] as int?),
+      videoCodec: videoCodec,
+      videoBitDepth: videoBitDepth,
+      videoLevel: videoLevel,
       mediaStreams: streams,
       httpHeaders: null,
     );
@@ -105,6 +119,8 @@ class MediaStream {
   final bool isExternal;          // 是否外挂字幕
   final String? deliveryUrl;      // 字幕轨的外部 URL
   final String? codec;            // 编码
+  final int? bitDepth;           // 色深 (8/10)
+  final int? level;              // 编码级别
   final int? width;               // 视频宽度
   final int? height;              // 视频高度
 
@@ -118,6 +134,8 @@ class MediaStream {
     this.isExternal = false,
     this.deliveryUrl,
     this.codec,
+    this.bitDepth,
+    this.level,
     this.width,
     this.height,
   });
@@ -142,6 +160,8 @@ class MediaStream {
       deliveryUrl: (json['DeliveryUrl'] as String?) ??
           (json['delivery_url'] as String?),
       codec: (json['Codec'] as String?) ?? (json['codec'] as String?),
+      bitDepth: (json['BitDepth'] as int?) ?? (json['bitDepth'] as int?),
+      level: (json['Level'] as int?) ?? (json['level'] as int?),
       width: (json['Width'] as int?) ?? (json['width'] as int?),
       height: (json['Height'] as int?) ?? (json['height'] as int?),
     );

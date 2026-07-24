@@ -519,7 +519,7 @@ class MediaItem {
         '$msIdParam$sessionParam';
   }
 
-  // 获取认证 HTTP 请求头（用于 video_player 插件和 CachedNetworkImage）
+  // 获取认证 HTTP 请求头（用于播放器插件和 CachedNetworkImage）
   //
   // 同时返回 X-Emby-Authorization（含 Token 内嵌，Emby 规范要求）
   // 和 X-Emby-Token（向后兼容旧版服务器）。

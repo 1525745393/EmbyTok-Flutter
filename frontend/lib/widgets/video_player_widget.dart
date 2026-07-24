@@ -1,4 +1,4 @@
-// 视频播放器 Widget：仅使用 Direct Play 模式
+// 视频播放器 Widget：使用 VLC 播放引擎
 
 import 'dart:async';
 
@@ -6,10 +6,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
+import 'package:flutter_vlc_player/flutter_vlc_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/playback/i_playback_controller.dart';
+import '../services/playback/controller_factory.dart';
+import '../services/playback/emby_playback_url_resolver.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import 'subtitle_renderer.dart';
@@ -23,9 +26,9 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final String? embyServerUrl;
   final String? token;
   // 预加载控制器（如果为 null，则动态创建）
-  final VideoPlayerController? preloadedController;
+  final IPlaybackController? preloadedController;
   // 控制回调：暴露给外部调用
-  final void Function(VideoPlayerController controller)? onControllerReady;
+  final void Function(IPlaybackController controller)? onControllerReady;
   // 控制器被释放（dispose）时回调，通知外部清理就绪状态
   final VoidCallback? onControllerReleased;
   final bool autoPlay;
@@ -54,7 +57,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
 }
 
 class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
-  VideoPlayerController? _controller;
+  IPlaybackController? _controller;
   bool _initialized = false;
   bool _hasError = false;
   // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
@@ -93,7 +96,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool get _canPlayVideo {
     final url = _playbackUrl;
     if (url == null || url.isEmpty) return false;
-    // web 环境下 video_player 需要额外配置，降级为缩略图展示
+    // web 环境下视频播放需要额外配置，降级为缩略图展示
     if (kIsWeb) return false;
     return true;
   }
@@ -147,14 +150,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
       final c = _controller;
       // 仅在 controller 已初始化时同步播放/暂停；未初始化时仍需处理计时器
-      if (c != null && c.value.isInitialized) {
+      if (c != null && c.isInitialized) {
         _syncPlaybackState(c);
       }
       if (!widget.isCurrentPage) {
-        // 非当前页：启动延迟释放计时器。
-        // 关键修复：不再以 c.value.isInitialized 为前提条件——
-        // 若此时 controller 仍在初始化中（c==null 或未 initialized），
-        // 旧逻辑会跳过计时器，导致 init 完成后 controller 永久驻留不释放（OOM 根因）。
         _backgroundReleaseTimer?.cancel();
         _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
           if (_isDisposed || !mounted) return;
@@ -171,7 +170,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       } else {
         // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
         _backgroundReleaseTimer?.cancel();
-        if (_controller == null || !_controller!.value.isInitialized) {
+        if (_controller == null || !_controller!.isInitialized) {
           _initialized = false;
           _hasError = false;
           _initVideo();
@@ -263,21 +262,19 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final controller = _controller;
     if (controller == null) return;
     // 错误处理：标记错误状态
-    if (controller.value.hasError && !_hasError) {
+    if (controller.hasError && !_hasError) {
       setState(() {
         _hasError = true;
         _errorMessage = AppError.playback(message: '播放出错');
       });
     }
     // 位置变化：更新字幕
-    final sec = controller.value.position.inSeconds;
+    final sec = controller.position.inSeconds;
     if (sec != _positionSeconds.value) {
       _positionSeconds.value = sec;
     }
     // 视频尺寸从 Size.zero 变为有效尺寸时，触发重建以隐藏加载指示器
-    if (controller.value.isInitialized &&
-        !controller.value.size.isEmpty &&
-        _sizeWasEmpty) {
+    if (controller.isInitialized && _sizeWasEmpty) {
       _sizeWasEmpty = false;
       setState(() {});
     }
@@ -297,7 +294,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // ---- 路径 1：有预加载控制器 ----
     // 由于 widget.preloadedController 是字段，Dart 流分析不会对其判空后续访问做类型提升。
     // 解决方式：在 if 块内用本地 lambda 包装，让 preloaded 作为非空参数传入，
-    // lambda 内部对 c 即为非空 VideoPlayerController，可正常调用方法。
+    // lambda 内部对 c 即为非空 IPlaybackController，可正常调用方法。
     final preloaded = widget.preloadedController;
     bool preloadedInitSucceeded = false;
     // 关键修复：如果预加载 controller 已被使用过（可能已被 dispose），
@@ -309,10 +306,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (preloaded != null && !_preloadedControllerUsed) {
       _preloadedControllerUsed = true;
       // IIFE：把非空参数传入，函数体内 Dart 会把形参 c 视为非空
-      Future<void> usePreloaded(VideoPlayerController c) async {
+      Future<void> usePreloaded(IPlaybackController c) async {
         _controller = c;
         c.addListener(_onControllerChanged);
-        if (!c.value.isInitialized) {
+        if (!c.isInitialized) {
           await c.initialize().timeout(
             const Duration(seconds: 15),
             onTimeout: () => throw TimeoutException('视频初始化超时'),
@@ -375,10 +372,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       final headers = widget.item.authHeaders(widget.token);
 
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(url),
+      final adapter = await VlcControllerAdapter.networkUrl(
+        url,
         httpHeaders: headers,
       );
+      final c = adapter;
       _controller = c;
 
       c.addListener(_onControllerChanged);
@@ -512,11 +510,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     //   - 竖屏视频：cover（填满容器，TikTok 风格）
     //   - 横屏视频：contain（完整显示，上下黑边，避免裁剪）
     final isLandscape = widget.item.isLandscape;
-    // 视频尺寸：使用 controller.value.size，若为空则使用 1x1 占位（避免 VideoPlayer 首次构建时尺寸为0导致渲染异常）
-    final videoSize = vc.value.size;
-    final hasValidSize = !videoSize.isEmpty;
-    // 记录尺寸是否曾为空，用于尺寸更新时触发重建以隐藏加载指示器
-    if (!hasValidSize) {
+    final isReady = vc.isInitialized;
+    if (!isReady) {
       _sizeWasEmpty = true;
     }
     // 监听选中的字幕轨道 ID，变化时异步加载
@@ -533,14 +528,20 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: FittedBox(
               fit: isLandscape ? BoxFit.contain : BoxFit.cover,
               child: SizedBox(
-                width: hasValidSize ? videoSize.width : 1,
-                height: hasValidSize ? videoSize.height : 1,
-                child: VideoPlayer(vc),
+                width: isReady ? 1920 : 1,
+                height: isReady ? 1080 : 1,
+                child: vc is VlcControllerAdapter
+                    ? VlcPlayer(
+                        controller: (vc as VlcControllerAdapter).vlcController,
+                        aspectRatio: 16 / 9,
+                        placeholder: const Center(child: CircularProgressIndicator()),
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
           ),
-          // 视频尺寸为空时显示加载指示器（视频仍在后台初始化）
-          if (!hasValidSize)
+          // 视频未就绪时显示加载指示器
+          if (!isReady)
             Center(
               child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
             ),
@@ -707,7 +708,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 应用初始音量：根据 isMutedProvider、autoPlay 和 isCurrentPage 决定音量
   // 预加载池中的 controller 默认 volume=0，取出播放时需要恢复
   // 非当前页始终静音，避免并发播放时双音
-  void _applyInitialVolume(VideoPlayerController c) {
+  void _applyInitialVolume(IPlaybackController c) {
     final isMuted = ref.read(isMutedProvider);
     try {
       if (!widget.isCurrentPage) {
@@ -724,8 +725,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   }
 
   // 根据 isCurrentPage 状态同步播放/暂停和音量
-  void _syncPlaybackState(VideoPlayerController c) {
-    if (!c.value.isInitialized) return;
+  void _syncPlaybackState(IPlaybackController c) {
+    if (!c.isInitialized) return;
     if (widget.isCurrentPage) {
       _applyInitialVolume(c);
       if (widget.autoPlay) {

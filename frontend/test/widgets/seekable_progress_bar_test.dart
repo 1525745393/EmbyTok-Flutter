@@ -1,32 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:video_player/video_player.dart';
+import 'package:embbytok_flutter/services/playback/i_playback_controller.dart';
 
 import 'package:embbytok_flutter/widgets/video/video_progress_bars.dart';
 
 void main() {
   group('SeekableProgressBar 拖动 seek 行为', () {
-    late MockVideoPlayerController mockController;
+    late MockPlaybackController mockController;
 
     /// 创建一个已初始化的 mock controller，指定时长和当前位置
     void stubController({
       required Duration duration,
       required Duration position,
     }) {
-      when(mockController.value).thenReturn(
-        VideoPlayerValue(
-          duration: duration,
-          position: position,
-          isInitialized: true,
-        ),
-      );
+      when(mockController.duration).thenReturn(duration);
+      when(mockController.position).thenReturn(position);
+      when(mockController.isInitialized).thenReturn(true);
       when(mockController.addListener(any)).thenReturn(null);
       when(mockController.removeListener(any)).thenReturn(null);
     }
 
     setUp(() {
-      mockController = MockVideoPlayerController();
+      mockController = MockPlaybackController();
     });
 
     /// 测试拖动开始时调用一次 seekTo
@@ -171,5 +167,5 @@ void main() {
   });
 }
 
-/// Mock VideoPlayerController
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+/// Mock IPlaybackController
+class MockPlaybackController extends Mock implements IPlaybackController {}

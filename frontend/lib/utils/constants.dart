@@ -192,7 +192,7 @@ String embyAuthHeader(String token) => '$kEmbyAuthPrefix, Token="$token"';
 /// - X-Emby-Authorization：规范要求，含 Token 内嵌
 /// - X-Emby-Token：向后兼容旧版 Emby 服务器
 ///
-/// 用于 VideoPlayerController.networkUrl(httpHeaders: ...)
+/// 用于播放控制器 httpHeaders 参数
 /// 和 CachedNetworkImage(httpHeaders: ...)
 Map<String, String> embyAuthHeaders(String token) => {
       'X-Emby-Authorization': embyAuthHeader(token),

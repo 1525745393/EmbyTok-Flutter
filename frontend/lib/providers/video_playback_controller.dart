@@ -1,10 +1,10 @@
 // 视频播放控制器：当前播放条目、播放位置、倍速、字幕、播放就绪状态
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
+import '../services/playback/i_playback_controller.dart';
 import '../utils/app_preferences.dart';
 import '../utils/constants.dart';
 
@@ -41,10 +41,10 @@ final isPlayingProvider = StateProvider<bool>((ref) => false);
 /// 是否全屏播放（控制横屏沉浸模式切换）
 final isFullscreenProvider = StateProvider<bool>((ref) => false);
 
-/// 当前播放的 [VideoPlayerController]：用于全局 seek、快捷键操作、播放结束连播
+/// 当前播放的 [IPlaybackController]：用于全局 seek、快捷键操作、播放结束连播
 ///
 /// 在 [VideoPageItem] 初始化成功后写入，组件 dispose 时清空。
-final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((ref) => null);
+final currentVideoControllerProvider = StateProvider<IPlaybackController?>((ref) => null);
 
 /// FeedView 外部跳页请求：全屏页（FullscreenVideoPage）等需要切换视频时设置目标 index
 ///

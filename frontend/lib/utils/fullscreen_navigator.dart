@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
 import '../views/fullscreen_video_page.dart';
+import '../services/playback/i_playback_controller.dart';
 
 /// 统一的全屏导航工具
 ///
@@ -27,17 +27,14 @@ class FullscreenNavigator {
   ///
   /// 尺寸检查：视频已初始化但尺寸尚未获取时，进入全屏会显示加载指示器而非视频画面，
   /// 因此必须等待尺寸有效后才允许进入全屏。
-  static bool isControllerUsableForFullscreen(VideoPlayerController? controller) {
+  static bool isControllerUsableForFullscreen(IPlaybackController? controller) {
     if (controller == null) return false;
     try {
-      final v = controller.value;
-      if (v.hasError) return false;
-      if (!v.isInitialized) return false;
-      // 关键修复：必须检查尺寸，否则进入全屏后画面可能不显示
-      if (v.size.isEmpty) return false;
+      if (controller.hasError) return false;
+      if (!controller.isInitialized) return false;
+      if (controller.duration == Duration.zero) return false;
       return true;
     } catch (_) {
-      // controller 已 disposed，访问 value 会抛异常
       return false;
     }
   }

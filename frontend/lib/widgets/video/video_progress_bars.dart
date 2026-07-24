@@ -3,12 +3,12 @@
 // - SeekableProgressBar: 可点击/可拖拽的进度条（底部信息栏内使用）
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
+import '../../services/playback/i_playback_controller.dart';
 
 /// TikTok 风格底部细线进度条
 /// 高度 2px，始终可见，颜色为 theme.primary，背景半透明 surface
 class ThinProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
+  final IPlaybackController controller;
 
   const ThinProgressBar({super.key, required this.controller});
 
@@ -36,8 +36,8 @@ class _ThinProgressBarState extends State<ThinProgressBar> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final duration = widget.controller.value.duration;
-    final position = widget.controller.value.position;
+    final duration = widget.controller.duration;
+    final position = widget.controller.position;
     final progress = duration.inMilliseconds > 0
         ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
@@ -58,7 +58,7 @@ class _ThinProgressBarState extends State<ThinProgressBar> {
 /// 可点击/可拖拽的进度条（用于底部信息栏）
 /// 支持点击跳转和水平拖拽 seek
 class SeekableProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
+  final IPlaybackController controller;
   final String Function(Duration) formatDuration;
 
   const SeekableProgressBar({
@@ -94,7 +94,7 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
 
   /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
   void _seekToPosition(double localDx, double totalWidth) {
-    final duration = widget.controller.value.duration;
+    final duration = widget.controller.duration;
     if (duration.inMilliseconds <= 0) return;
 
     final progress = (localDx / totalWidth).clamp(0.0, 1.0);
@@ -105,8 +105,8 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final duration = widget.controller.value.duration;
-    final position = widget.controller.value.position;
+    final duration = widget.controller.duration;
+    final position = widget.controller.position;
     final progress = duration.inMilliseconds > 0
         ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
@@ -140,7 +140,7 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                 // 避免高频调用导致 MediaCodec 崩溃，与 gesture_overlay.dart 设计原则一致
               },
               onHorizontalDragEnd: (_) {
-                final duration = widget.controller.value.duration;
+                final duration = widget.controller.duration;
                 if (duration.inMilliseconds > 0) {
                   final targetMs = (_dragProgress * duration.inMilliseconds).toInt();
                   widget.controller.seekTo(Duration(milliseconds: targetMs));

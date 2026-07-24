@@ -4,15 +4,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/playback/i_playback_controller.dart';
 import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
-  final VideoPlayerController controller;
+  final IPlaybackController controller;
   // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
   final List<SubtitleTrack> subtitleTracks;
   // 上一集回调（剧集类内容）
@@ -57,7 +57,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   @override
   void initState() {
     super.initState();
-    _lastIsPlaying = widget.controller.value.isPlaying;
+    _lastIsPlaying = widget.controller.isPlaying;
     widget.controller.addListener(_onControllerChanged);
   }
 
@@ -73,7 +73,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   void _onControllerChanged() {
     if (!mounted) return;
     // 仅在 isPlaying 实际变化时才同步到 Provider（供中央播放按钮显示/隐藏使用）
-    final isPlaying = widget.controller.value.isPlaying;
+    final isPlaying = widget.controller.isPlaying;
     if (isPlaying != _lastIsPlaying) {
       _lastIsPlaying = isPlaying;
       ref.read(isPlayingProvider.notifier).state = isPlaying;
@@ -95,13 +95,13 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
 
   // 切换播放/暂停
   void _togglePlay() {
-    if (widget.controller.value.isPlaying) {
+    if (widget.controller.isPlaying) {
       widget.controller.pause();
     } else {
       widget.controller.play();
     }
     ref.read(isPlayingProvider.notifier).state =
-        widget.controller.value.isPlaying;
+        widget.controller.isPlaying;
   }
 
   // 弹出倍速选择菜单（替代原先循环切换）
