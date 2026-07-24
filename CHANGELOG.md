@@ -1,3 +1,10 @@
+## [2.20.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.0...v2.20.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* VLC playback issues - autoInitialize, autoPlay, and fallback UI ([75237d5](https://github.com/1525745393/EmbyTok-Flutter/commit/75237d507882cff74089ca1267d21a593e6b6ad4))
+
 # [2.20.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.19.0...v2.20.0) (2026-07-24)
 
 
