@@ -521,6 +521,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
+    final isFullscreen = ref.watch(isFullscreenProvider);
     // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
     final displayCues = _subtitleCues.isNotEmpty
         ? _subtitleCues
@@ -544,7 +545,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             Center(
               child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
             ),
-          if (displayCues.isNotEmpty && selectedSubId != null)
+          if (displayCues.isNotEmpty && selectedSubId != null && !isFullscreen)
             RepaintBoundary(
               child: ValueListenableBuilder<int>(
                 valueListenable: _positionMs,
