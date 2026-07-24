@@ -309,11 +309,12 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _controller = c;
         c.addListener(_onControllerChanged);
         if (mounted) setState(() {});
-        if (!c.isInitialized) {
-          await c.initialize().timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => throw TimeoutException('视频初始化超时'),
-          );
+        while (!c.isInitialized) {
+          await Future.delayed(const Duration(milliseconds: 100));
+          if (_isDisposed) {
+            try { c.dispose(); } catch (_) {}
+            return;
+          }
         }
         if (_isDisposed) {
           try { c.dispose(); } catch (_) {}
@@ -383,12 +384,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mounted) setState(() {});
 
       c.setLooping(widget.loop);
-      await c.initialize().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('视频初始化超时');
-        },
-      );
+      while (!c.isInitialized) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (_isDisposed) {
+          try { c.dispose(); } catch (_) {}
+          return;
+        }
+      }
       if (_isDisposed) {
         try { c.dispose(); } catch (_) {}
         return;
