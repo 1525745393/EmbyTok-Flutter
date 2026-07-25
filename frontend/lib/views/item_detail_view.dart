@@ -522,6 +522,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   // 演员区：横向滚动头像 + 名称
   Widget _buildCast(List<Person> people, AuthState authState) {
     final scheme = Theme.of(context).colorScheme;
+    final httpHeaders = authState.token != null && authState.token!.isNotEmpty
+        ? embyAuthHeaders(authState.token!)
+        : <String, String>{};
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -551,6 +554,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 return _CastCard(
                   key: Key(person.id ?? person.name),
                   person: person,
+                  httpHeaders: httpHeaders,
                   onTap: () {
                     final pid = person.id;
                     if (pid == null || pid.isEmpty) return;
@@ -799,8 +803,9 @@ class _BackdropPlaceholder extends StatelessWidget {
 // 演员卡片：圆形头像 + 名称 + 角色
 class _CastCard extends StatelessWidget {
   final Person person;
+  final Map<String, String> httpHeaders;
   final VoidCallback? onTap;
-  const _CastCard({super.key, required this.person, this.onTap});
+  const _CastCard({super.key, required this.person, required this.httpHeaders, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -832,6 +837,7 @@ class _CastCard extends StatelessWidget {
                         cacheManager: AppImageCacheManager.thumbnail,
                         fit: BoxFit.cover,
                         memCacheWidth: 144,
+                        httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
                         placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
                         errorWidget: (_, __, ___) => _AvatarPlaceholder(scheme: scheme),
                       )

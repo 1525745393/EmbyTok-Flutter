@@ -572,6 +572,10 @@ class _PersonCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final authState = ref.watch(authProvider);
+    final httpHeaders = authState.token != null && authState.token!.isNotEmpty
+        ? embyAuthHeaders(authState.token!)
+        : <String, String>{};
 
     return GestureDetector(
       onTap: () {
@@ -587,6 +591,8 @@ class _PersonCard extends ConsumerWidget {
                       imageUrl: person.imageUrl!,
                       cacheManager: AppImageCacheManager.thumbnail,
                       fit: BoxFit.cover,
+                      memCacheWidth: 240,
+                      httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
                       placeholder: (ctx, __) => _personPlaceholder(ctx),
                       errorWidget: (ctx, ___, __) => _personPlaceholder(ctx),
                     )

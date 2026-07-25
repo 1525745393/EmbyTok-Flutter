@@ -196,7 +196,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                       child: imageUrl != null && imageUrl.isNotEmpty
                           ? CachedNetworkImage(
                               imageUrl: imageUrl,
-                              cacheManager: AppImageCacheManager.largeImage,
+                              cacheManager: AppImageCacheManager.thumbnail,
                               fit: BoxFit.cover,
                               httpHeaders: headers.isNotEmpty ? headers : null,
                               memCacheWidth: 240,
