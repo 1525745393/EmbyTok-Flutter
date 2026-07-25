@@ -837,6 +837,7 @@ class _CastCard extends StatelessWidget {
                         imageUrl: imageUrl,
                         cacheManager: AppImageCacheManager.thumbnail,
                         fit: BoxFit.cover,
+                        fadeInDuration: const Duration(milliseconds: 300),
                         memCacheWidth: 144,
                         httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
                         placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),

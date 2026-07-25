@@ -198,6 +198,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                               imageUrl: imageUrl,
                               cacheManager: AppImageCacheManager.thumbnail,
                               fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 300),
                               httpHeaders: headers.isNotEmpty ? headers : null,
                               memCacheWidth: 240,
                               placeholder: (_, __) => const _AvatarPlaceholder(),

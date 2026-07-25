@@ -585,13 +585,13 @@ class _PersonCard extends ConsumerWidget {
       child: Column(
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+            child: ClipOval(
               child: person.imageUrl != null && person.imageUrl!.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: person.imageUrl!,
                       cacheManager: AppImageCacheManager.thumbnail,
                       fit: BoxFit.cover,
+                      fadeInDuration: const Duration(milliseconds: 300),
                       memCacheWidth: 240,
                       httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
                       placeholder: (ctx, __) => _personPlaceholder(ctx),
@@ -615,7 +615,7 @@ class _PersonCard extends ConsumerWidget {
 
   Widget _personPlaceholder(BuildContext context) => Container(
         color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
-        child: Icon(Icons.person_outline,
+        child: Icon(Icons.person,
             color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), size: 32),
       );
 }

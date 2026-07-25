@@ -697,6 +697,7 @@ class _ActorCard extends StatelessWidget {
       imageUrl: img,
       cacheManager: AppImageCacheManager.thumbnail,
       fit: BoxFit.cover,
+      fadeInDuration: const Duration(milliseconds: 300),
       memCacheWidth: 240,
       httpHeaders: tk != null && tk.isNotEmpty
           ? embyAuthHeaders(tk)

@@ -1,12 +1,15 @@
 // 视频播放相关的底部弹出面板和对话框
 // 包含：倍速调节面板、字幕选择器、删除确认对话框、视频信息面板
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../utils/constants.dart';
+import '../../utils/image_cache_manager.dart';
 import '../subtitle_selector.dart';
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
@@ -475,13 +478,18 @@ class _VideoInfoSectionLabel extends StatelessWidget {
 }
 
 // ===== 人员 chips 列表 =====
-class _PersonChipList extends StatelessWidget {
+class _PersonChipList extends ConsumerWidget {
   final List<Person> people;
   const _PersonChipList({required this.people});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final authState = ref.watch(authProvider);
+    final token = authState.token;
+    final httpHeaders = token != null && token.isNotEmpty
+        ? embyAuthHeaders(token)
+        : <String, String>{};
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -491,14 +499,42 @@ class _PersonChipList extends StatelessWidget {
             role != null && role.isNotEmpty && role != p.name
                 ? '${p.name} ($role)'
                 : p.name;
+        final imageUrl = p.imageUrl;
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: scheme.surface.withOpacity(0.25),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(display,
-              style: TextStyle(color: scheme.onSurface, fontSize: 13)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipOval(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          cacheManager: AppImageCacheManager.thumbnail,
+                          fit: BoxFit.cover,
+                          fadeInDuration: const Duration(milliseconds: 300),
+                          memCacheWidth: 48,
+                          httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                          placeholder: (_, __) => Icon(Icons.person,
+                              color: scheme.onSurface.withOpacity(0.5), size: 16),
+                          errorWidget: (_, __, ___) => Icon(Icons.person,
+                              color: scheme.onSurface.withOpacity(0.5), size: 16),
+                        )
+                      : Icon(Icons.person,
+                          color: scheme.onSurface.withOpacity(0.5), size: 16),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(display,
+                  style: TextStyle(color: scheme.onSurface, fontSize: 13)),
+            ],
+          ),
         );
       }).toList(),
     );

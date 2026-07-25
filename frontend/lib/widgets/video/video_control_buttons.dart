@@ -102,6 +102,7 @@ class PosterAvatar extends ConsumerWidget {
                                 imageUrl: actorImageUrl,
                                 cacheManager: AppImageCacheManager.thumbnail,
                                 fit: BoxFit.cover,
+                                fadeInDuration: const Duration(milliseconds: 300),
                                 httpHeaders: headers.isNotEmpty ? headers : null,
                                 memCacheWidth: 96,
                                 placeholder: (_, __) => Icon(Icons.person,
