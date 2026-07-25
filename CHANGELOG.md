@@ -1,3 +1,11 @@
+## [2.20.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.6...v2.20.7) (2026-07-25)
+
+
+### Bug Fixes
+
+* add missing embyAuthHeaders import ([eeed03a](https://github.com/1525745393/EmbyTok-Flutter/commit/eeed03a22b990dc1154913f28c5242b1199b0322))
+* avatar loading issues ([6f6359f](https://github.com/1525745393/EmbyTok-Flutter/commit/6f6359f61a6660d6233c40112d979851adadaee9))
+
 ## [2.20.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.5...v2.20.6) (2026-07-24)
 
 
