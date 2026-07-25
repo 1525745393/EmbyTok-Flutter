@@ -71,7 +71,7 @@ class _FullscreenVideoPageState
 
   @override
   void onDoubleTapCenter() {
-    final item = ref.read(currentPlayingItemProvider);
+    final item = ref.read(playbackStateProvider).item;
     if (item != null) {
       try {
         ref.read(favoritesProvider.notifier).toggleFavorite(item);
@@ -117,7 +117,7 @@ class _FullscreenVideoPageState
   }
 
   @override
-  MediaItem? get currentItem => ref.read(currentPlayingItemProvider);
+  MediaItem? get currentItem => ref.read(playbackStateProvider).item;
 
   // ===== 全屏页特有状态 =====
 
@@ -471,7 +471,7 @@ class _FullscreenVideoPageState
       });
       return;
     }
-    final item = ref.read(currentPlayingItemProvider);
+    final item = ref.read(playbackStateProvider).item;
     if (item == null) return;
     final sources = item.mediaSources;
     final mediaSourceId =
@@ -527,7 +527,7 @@ class _FullscreenVideoPageState
   }
 
   void _autoLoadDefaultSubtitle() {
-    final item = ref.read(currentPlayingItemProvider);
+    final item = ref.read(playbackStateProvider).item;
     if (item == null) return;
     final tracks = item.subtitleTracks;
     if (tracks.isEmpty) return;
@@ -642,7 +642,7 @@ class _FullscreenVideoPageState
 
   void _retryVideo() {
     // 全屏页不拥有 controller，通过 Provider 通知 VideoPageItem 触发重试
-    final item = ref.read(currentPlayingItemProvider);
+    final item = ref.read(playbackStateProvider).item;
     if (item != null) {
       ref.read(videoRetryRequestProvider.notifier).state = item.id;
       setState(() => _retryKey++);
@@ -664,7 +664,7 @@ class _FullscreenVideoPageState
 
   int? _getCurrentIndex() {
     final items = ref.read(videoListProvider).items;
-    final current = ref.read(currentPlayingItemProvider);
+    final current = ref.read(playbackStateProvider).item;
     if (current == null) return null;
     for (int i = 0; i < items.length; i++) {
       if (items[i].id == current.id) return i;
@@ -686,7 +686,7 @@ class _FullscreenVideoPageState
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(currentVideoControllerProvider);
-    final playingItem = ref.watch(currentPlayingItemProvider);
+    final playingItem = ref.watch(playbackStateProvider.select((s) => s.item));
     final items = ref.watch(videoListProvider.select((s) => s.items));
 
     bool isControllerReady;

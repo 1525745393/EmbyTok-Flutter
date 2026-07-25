@@ -72,7 +72,7 @@ final gridSelectedItemIdProvider = StateProvider<String?>((ref) => null);
 
 /// 从 feed 切回网格时需要定位到的视频 ID
 ///
-/// 已废弃：feed → grid 的回显定位现在由 currentPlayingIdProvider 驱动。
-/// PosterGridView 监听 currentPlayingIdProvider 后自行滚动。
-@Deprecated('使用 currentPlayingIdProvider，不再需要此 provider')
+/// 已废弃：feed → grid 的回显定位现在由 playbackStateProvider 驱动。
+/// PosterGridView 监听 playbackStateProvider 后自行滚动。
+@Deprecated('使用 playbackStateProvider，不再需要此 provider')
 final feedToGridJumpItemIdProvider = StateProvider<String?>((ref) => null);

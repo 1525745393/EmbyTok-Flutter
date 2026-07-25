@@ -22,27 +22,7 @@ void main() {
     // FeedView 接收 widget.initialItemId 后调用 _waitForInitialItemToLoad → _jumpToPageWhenReady。
     // 相关 provider 仅作"已被 @Deprecated 标记"的兼容性保留，无任何业务调用方。
 
-    group('currentIndexProvider', () {
-      // 注：currentIndexProvider 已删除。视频流自管 currentIndex（feed_view 的 _currentIndex），
-      // 跨视图通过 itemId 透传，不再用全局 index 同步。
-
-      test('视频流自管 currentIndex，跨视图靠 itemId', () {
-        // 验证设计：currentIndexProvider 不再存在
-        // 这里改测 currentPlayingItemProvider 的 ID 透传能力
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
-
-        final testItem = MediaItem(id: 'item-99', title: '测试视频');
-        container.read(currentPlayingItemProvider.notifier).state = testItem;
-        expect(container.read(currentPlayingItemProvider)!.id, 'item-99');
-
-        // 清空时还原
-        container.read(currentPlayingItemProvider.notifier).state = null;
-        expect(container.read(currentPlayingItemProvider), isNull);
-      });
-    });
-
-    group('currentPlayingItemProvider', () {
+    group('playbackStateProvider（当前在播状态，合并 id+item）', () {
       late ProviderContainer container;
 
       setUp(() {
@@ -53,48 +33,36 @@ void main() {
         container.dispose();
       });
 
-      test('初始值为 null', () {
-        final item = container.read(currentPlayingItemProvider);
-        expect(item, isNull);
+      test('初始值为空 PlaybackState', () {
+        final state = container.read(playbackStateProvider);
+        expect(state.id, isNull);
+        expect(state.item, isNull);
       });
 
-      test('可以设置为 MediaItem', () {
+      test('setPlaying 同时设置 id 和 item', () {
         final testItem = MediaItem(id: 'test-1', title: '测试视频');
-        container.read(currentPlayingItemProvider.notifier).state = testItem;
-        final item = container.read(currentPlayingItemProvider);
-        expect(item, isNotNull);
-        expect(item!.id, 'test-1');
-        expect(item.title, '测试视频');
-      });
-    });
-
-    group('currentPlayingIdProvider（当前在播 session 状态）', () {
-      late ProviderContainer container;
-
-      setUp(() {
-        container = ProviderContainer();
+        container.read(playbackStateProvider.notifier).setPlaying(testItem.id, testItem);
+        final state = container.read(playbackStateProvider);
+        expect(state.id, 'test-1');
+        expect(state.item, isNotNull);
+        expect(state.item!.title, '测试视频');
       });
 
-      tearDown(() {
-        container.dispose();
+      test('setItem 仅更新 item，保持 id 不变', () {
+        container.read(playbackStateProvider.notifier).setPlaying('keep-id', MediaItem(id: 'keep-id', title: '旧'));
+        final newItem = MediaItem(id: 'keep-id', title: '新标题');
+        container.read(playbackStateProvider.notifier).setItem(newItem);
+        final state = container.read(playbackStateProvider);
+        expect(state.id, 'keep-id');
+        expect(state.item!.title, '新标题');
       });
 
-      test('初始值为 null', () {
-        final id = container.read(currentPlayingIdProvider);
-        expect(id, isNull);
-      });
-
-      test('设置后可以读取到正确的值', () {
-        container.read(currentPlayingIdProvider.notifier).state = 'item-42';
-        final id = container.read(currentPlayingIdProvider);
-        expect(id, 'item-42');
-      });
-
-      test('清空后回到 null', () {
-        container.read(currentPlayingIdProvider.notifier).state = 'item-42';
-        container.read(currentPlayingIdProvider.notifier).state = null;
-        final id = container.read(currentPlayingIdProvider);
-        expect(id, isNull);
+      test('clear 后回到空状态', () {
+        container.read(playbackStateProvider.notifier).setPlaying('item-42', MediaItem(id: 'item-42', title: '视频42'));
+        container.read(playbackStateProvider.notifier).clear();
+        final state = container.read(playbackStateProvider);
+        expect(state.id, isNull);
+        expect(state.item, isNull);
       });
     });
   });

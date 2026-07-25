@@ -56,7 +56,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   void _resetAndTryScroll({required String reason}) {
     _lastScrolledPlayingId = null;
     _lastScrolledGridItems = null;
-    final playingId = ref.read(currentPlayingIdProvider);
+    final playingId = ref.read(playbackStateProvider).id;
     if (playingId != null && playingId.isNotEmpty) {
       AppLogger.debug('网格：重置去重并重试滚动', data: {'reason': reason, 'itemId': playingId});
       _scrollToPlayingId(playingId);
@@ -64,9 +64,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
   }
 
   // 滚动到当前正在播放的视频位置
-  // 设计：feed 切回 grid 时，gridItems 已包含 currentPlayingIdProvider 指示的当前在播视频。
+  // 设计：feed 切回 grid 时，gridItems 已包含 playbackStateProvider 指示的当前在播视频。
   // 这里只需在 gridItems 中找到它并滚动到对应位置。
-  // 路径：feed.onPageChanged → currentPlayingIdProvider → 本视图 watch → 滚动。
+  // 路径：feed.onPageChanged → playbackStateProvider → 本视图 watch → 滚动。
   void _scrollToPlayingId(String playingId) {
     final controller = widget.scrollController;
     if (controller == null) return;
@@ -158,7 +158,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     final gridItems = videoState.gridItems;
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
     // 全局"当前在播"信号源：用于定位 + 高亮回显
-    final playingId = ref.watch(currentPlayingIdProvider);
+    final playingId = ref.watch(playbackStateProvider.select((s) => s.id));
     // 视图模式：用于检测 grid view 从 hidden → visible
     final viewMode = ref.watch(viewModeProvider);
     final isGridVisible = viewMode == ViewMode.grid;

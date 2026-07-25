@@ -57,10 +57,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           AppLogger.debug('媒体库变化：[$prevStr] -> [$nextStr]，刷新视频列表');
           // ★ 清除上一个媒体库的 playingItem（PR #61 修复）
           // 原因：换媒体库后旧视频不应再被 _ensurePlayingItemFirst 强制插入到新列表
-          // 之前 _ensurePlayingItemFirst 读到旧 currentPlayingIdProvider，
+          // 之前 _ensurePlayingItemFirst 读到旧 playbackStateProvider，
           // 在新 lib 数据中找不到就插入到 [0]，导致 feed 显示旧视频、grid 标"播放中"
-          _ref.read(currentPlayingIdProvider.notifier).state = null;
-          _ref.read(currentPlayingItemProvider.notifier).state = null;
+          _ref.read(playbackStateProvider.notifier).clear();
           refresh();
         }
       },
@@ -665,7 +664,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       }
 
       // ★ 关键：保留当前在播视频到 gridItems 首位
-      // 服务端返回的全量视频中可能不包含 currentPlayingItemProvider 指示的当前在播视频（如已被删除），
+      // 服务端返回的全量视频中可能不包含 playbackStateProvider 指示的当前在播视频（如已被删除），
       // 这会导致 PosterGridView 的 _scrollToPlayingId 找不到目标（indexWhere 返回 -1），
       // 切回 grid 时"播放中"定位 + 高亮失效。
       // 解决：调 _ensurePlayingItemFirst 把当前在播视频插到首位（保证能找到）。
@@ -700,15 +699,16 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   //   2. refresh: 切到"推荐"/"收藏"/"最新"等模式时 items 被替换 → 视频流 PageView
   //      仍在 index=N，但 N 对应的视频变了（"播放中"位置错位）
   // 实现：
-  //   - 读 currentPlayingIdProvider / currentPlayingItemProvider
+  //   - 读 playbackStateProvider
   //   - 如果当前在播视频不在 [items] 中，插入到首位
   //   - 已在 [items] 中则不动
   //   - 当前没有在播视频则不动
   void _ensurePlayingItemFirst(List<MediaItem> items, {required String source}) {
-    final playingId = _ref.read(currentPlayingIdProvider);
+    final playingState = _ref.read(playbackStateProvider);
+    final playingId = playingState.id;
     if (playingId == null || playingId.isEmpty) return;
     if (items.any((item) => item.id == playingId)) return; // 已在列表中
-    final playingItem = _ref.read(currentPlayingItemProvider);
+    final playingItem = playingState.item;
     if (playingItem == null) return; // 没有完整 item 引用，跳过
     items.insert(0, playingItem);
     AppLogger.debug('保留当前在播视频到列表首位', data: {

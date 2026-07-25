@@ -130,14 +130,12 @@ class PlaybackCoordinator {
   }) {
     if (index < 0 || index >= items.length) return;
     final playingItem = items[index];
-    _ref.read(currentPlayingIdProvider.notifier).state = playingItem.id;
-    _ref.read(currentPlayingItemProvider.notifier).state = playingItem;
+    _ref.read(playbackStateProvider.notifier).setPlaying(playingItem.id, playingItem);
   }
 
   /// 清除当前播放状态（用于媒体库切换、退出等场景）
   void clearCurrentPlaying() {
-    _ref.read(currentPlayingIdProvider.notifier).state = null;
-    _ref.read(currentPlayingItemProvider.notifier).state = null;
+    _ref.read(playbackStateProvider.notifier).clear();
   }
 
   // ==================== 视图切换协调 ====================

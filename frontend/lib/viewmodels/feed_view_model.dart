@@ -74,8 +74,10 @@ class FeedViewModel {
   /// 在 FeedView.initState 的末尾调用，此时 Widget 已挂载
   void init() {
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
-    _ref.listen<MediaItem?>(currentPlayingItemProvider, (prev, next) {
-      _saveCloudSyncIfNeeded(next);
+    _ref.listen(playbackStateProvider, (prev, next) {
+      if (prev.item != next.item) {
+        _saveCloudSyncIfNeeded(next.item);
+      }
     });
 
     // 监听外部跳页请求：全屏页等设置后跳到指定 index
@@ -231,7 +233,7 @@ class FeedViewModel {
   }
 
   void _toggleFavorite() {
-    final item = _ref.read(currentPlayingItemProvider);
+    final item = _ref.read(playbackStateProvider).item;
     if (item != null) {
       _ref.read(favoritesProvider.notifier).toggleFavorite(item);
     }
@@ -277,7 +279,7 @@ class FeedViewModel {
       final lastId = data['lastId'] as String?;
       final deviceName = (data['deviceName'] as String?) ?? '其他设备';
       if (lastId == null || lastId.isEmpty) return;
-      final current = _ref.read(currentPlayingItemProvider);
+      final current = _ref.read(playbackStateProvider).item;
       if (current != null && current.id == lastId) return;
       // 通知 UI 展示 SnackBar 提示
       onShowSnackBar?.call(

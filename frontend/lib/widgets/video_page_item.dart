@@ -287,7 +287,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       } catch (_) {}
       ref.read(isPlayingProvider.notifier).state = true;
     }
-    ref.read(currentPlayingItemProvider.notifier).state = widget.item;
+    ref.read(playbackStateProvider.notifier).setItem(widget.item);
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
     _resetInfoHideTimer();
     _ensureCapabilitiesReported();

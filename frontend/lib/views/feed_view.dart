@@ -3,8 +3,8 @@
 //
 // 路由 + 起始 itemId 透传模式：
 // - 路由 `/` 支持 `?initialId=<itemId>`，FeedView 接收后等待目标在 items 中出现，jumpToPage
-// - onPageChanged 同步写入 currentPlayingIdProvider（全局"当前在播"信号源）
-// - 网格等其他视图只读 currentPlayingIdProvider 用于高亮回显
+// - onPageChanged 同步写入 playbackStateProvider（全局"当前在播"信号源）
+// - 网格等其他视图只读 playbackStateProvider.id 用于高亮回显
 //
 // 架构说明（阶段 3 ViewModel 重构）：
 // - FeedView：纯 UI 层，负责 Widget 构建、PageController 管理、系统栏控制
@@ -514,13 +514,12 @@ class _FeedViewState extends ConsumerState<FeedView>
     final embyServerUrl = auth.embyServerUrl;
     final token = auth.token;
 
-    // 首次加载：items 可用但 currentPlayingId 尚未初始化时，设置第一个 item 为当前播放项
-    if (videoState.items.isNotEmpty && ref.read(currentPlayingIdProvider) == null) {
+    // 首次加载：items 可用但 playbackState 尚未初始化时，设置第一个 item 为当前播放项
+    if (videoState.items.isNotEmpty && ref.read(playbackStateProvider).id == null) {
       final firstItem = videoState.items[0];
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && ref.read(currentPlayingIdProvider) == null) {
-          ref.read(currentPlayingIdProvider.notifier).state = firstItem.id;
-          ref.read(currentPlayingItemProvider.notifier).state = firstItem;
+        if (mounted && ref.read(playbackStateProvider).id == null) {
+          ref.read(playbackStateProvider.notifier).setPlaying(firstItem.id, firstItem);
         }
       });
     }

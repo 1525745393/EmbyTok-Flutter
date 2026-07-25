@@ -11,26 +11,39 @@ import '../utils/constants.dart';
 /// 全局 EmbytokService 实例（用于加载字幕、上报播放状态等）
 final embbytokServiceProvider = Provider<EmbytokService>((ref) => EmbytokService());
 
-/// 当前正在播放的视频 ID（仅 ID，不存对象引用）
+/// 当前播放状态：当前在播视频的 ID 和 MediaItem
 ///
-/// 用途：作为"上一帧播了谁"的 session 状态，供其他视图（网格、收藏、历史）回显高亮。
-///
-/// 设计原则：
-/// - 仅存 ID，避免对象引用陈旧
-/// - 不持久化，进程内有效，重启清空
-/// - 由 feed_view.onPageChanged 写入（权威源）
-/// - 由 _jumpToPageWhenReady 写入（程序化跳转时）
-/// - 网格等视图只读不写
-final currentPlayingIdProvider = StateProvider<String?>((ref) => null);
+/// 合并原先的 currentPlayingIdProvider + currentPlayingItemProvider，
+/// 保证 id 和 item 原子性更新，消除两者不同步的中间态窗口。
+class PlaybackState {
+  final String? id;
+  final MediaItem? item;
 
-/// 当前正在播放的媒体条目（供详情页/控制层引用）
-///
-/// 这是"视频流内"的当前播放信号源：
-/// - 由 feed_view 的 onPageChanged 写入（PageView 真正切换完成时）
-/// - 由 _jumpToPageWhenReady 写入（程序化跳转时）
-/// - 由 video_page_item.onControllerReady 写入（兜底）
-/// - 跨视图（feed ↔ grid）时通过 itemId 透传，不依赖此 provider 的历史值
-final currentPlayingItemProvider = StateProvider<MediaItem?>((ref) => null);
+  const PlaybackState({this.id, this.item});
+}
+
+class PlaybackStateNotifier extends Notifier<PlaybackState> {
+  @override
+  PlaybackState build() => const PlaybackState();
+
+  void setPlaying(String id, MediaItem item) {
+    state = PlaybackState(id: id, item: item);
+  }
+
+  void clear() {
+    state = const PlaybackState();
+  }
+
+  /// 仅更新 item（保持 id 不变），用于 VideoPageItem 初始化完成后的兜底写入
+  void setItem(MediaItem item) {
+    state = PlaybackState(id: state.id, item: item);
+  }
+}
+
+final playbackStateProvider =
+    NotifierProvider<PlaybackStateNotifier, PlaybackState>(
+  PlaybackStateNotifier.new,
+);
 
 /// 当前播放位置（用于跳转后记忆续播进度）
 final currentPositionProvider = StateProvider<Duration>((ref) => Duration.zero);
