@@ -13,6 +13,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import '../widgets/video_page_item.dart';
+import '../widgets/person_avatar_image.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {
   final String itemId;
@@ -832,18 +833,12 @@ class _CastCard extends StatelessWidget {
                 ),
               ),
               child: ClipOval(
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        cacheManager: AppImageCacheManager.thumbnail,
-                        fit: BoxFit.cover,
-                        fadeInDuration: const Duration(milliseconds: 300),
-                        memCacheWidth: 144,
-                        httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
-                        placeholder: (_, __) => _AvatarPlaceholder(scheme: scheme),
-                        errorWidget: (_, __, ___) => _AvatarPlaceholder(scheme: scheme),
-                      )
-                    : _AvatarPlaceholder(scheme: scheme),
+                child: PersonAvatarImage(
+                  imageUrl: imageUrl,
+                  httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                  size: 72,
+                  memCacheWidth: 144,
+                ),
               ),
             ),
             const SizedBox(height: 6),
