@@ -117,6 +117,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 跟踪当前 widget.item.id，用于检测 item 切换
   String? _currentItemId;
 
+  // 重初始化令牌：防止 _reinitForNewItem 异步竞态导致并发初始化
+  // 每次调用 _reinitForNewItem 时递增，_initVideo 中每次 await 后检查令牌是否过期
+  int _reinitToken = 0;
+
   // didUpdateWidget：跟踪 widget.item.id 变化
   // 场景：用户看 video-X 播到 30s → 切到"推荐"模式 → items 列表被替换
   //   → video-X 被我们保留到 loadedItems[0]（见 video_list_provider._ensurePlayingItemFirst）
@@ -238,12 +242,14 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 释放旧 controller 并用新 widget.item 重新初始化
   Future<void> _reinitForNewItem() async {
     if (_isDisposed) return;
+    final token = ++_reinitToken;
     // 取消所有待执行的计时器
     _backgroundReleaseTimer?.cancel();
     // 释放旧 controller
     _releaseCurrentController();
     // 重置状态
     if (!mounted || _isDisposed) return;
+    if (_reinitToken != token) return;
     // item 切换时重置预加载标记，允许使用新 item 的预加载 controller
     _preloadedControllerUsed = false;
     setState(() {
@@ -254,7 +260,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     });
     // 重新初始化
     if (_canPlayVideo) {
-      await _initVideo();
+      await _initVideo(token: token);
     } else if (mounted && !_isDisposed) {
       setState(() {
         _hasError = true;
@@ -296,8 +302,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   //   1. 任何异常都降级到缩略图展示（不崩溃）
   //   2. 检查 mounted 避免在已释放的 widget 上 setState
   //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
-  Future<void> _initVideo() async {
+  Future<void> _initVideo({int token = 0}) async {
     if (_isDisposed) return;
+
+    bool _isCancelled() => _reinitToken != token || _isDisposed; 
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
 
@@ -325,6 +333,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             onTimeout: () => throw TimeoutException('视频初始化超时'),
           );
         }
+        if (_isCancelled()) {
+          try { c.dispose(); } catch (_) {}
+          return;
+        }
         if (_isDisposed) {
           try { c.dispose(); } catch (_) {}
           return;
@@ -338,6 +350,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             _autoLoadDefaultSubtitle();
             // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
             await _seekToResumePosition();
+            if (_isCancelled()) {
+              try { c.dispose(); } catch (_) {}
+              return;
+            }
             // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
             _syncPlaybackState(c);
             if (mounted && !_isDisposed) {
@@ -355,6 +371,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
       try {
         await usePreloaded(preloaded);
+        if (_isCancelled()) return;
         if (!_isDisposed) {
           preloadedInitSucceeded = true;
         }
@@ -397,6 +414,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           throw TimeoutException('视频初始化超时');
         },
       );
+      if (_isCancelled()) {
+        try { c.dispose(); } catch (_) {}
+        return;
+      }
       if (_isDisposed) {
         try { c.dispose(); } catch (_) {}
         return;
@@ -407,6 +428,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
+        if (_isCancelled()) {
+          try { c.dispose(); } catch (_) {}
+          return;
+        }
         // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
         _syncPlaybackState(c);
         if (mounted && !_isDisposed) {
