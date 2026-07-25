@@ -41,6 +41,9 @@ final isPlayingProvider = StateProvider<bool>((ref) => false);
 /// 是否全屏播放（控制横屏沉浸模式切换）
 final isFullscreenProvider = StateProvider<bool>((ref) => false);
 
+/// PageView 是否正在滚动（用于快速滑动时立即释放非当前页 controller）
+final isPageScrollingProvider = StateProvider<bool>((ref) => false);
+
 /// 当前播放的 [VideoPlayerController]：用于全局 seek、快捷键操作、播放结束连播
 ///
 /// 在 [VideoPageItem] 初始化成功后写入，组件 dispose 时清空。

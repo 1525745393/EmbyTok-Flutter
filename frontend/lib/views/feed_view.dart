@@ -111,10 +111,14 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (ref.read(viewModeProvider) == ViewMode.feed) {
       _hideSystemBars();
     }
+
+    // 监听 PageView 滚动状态，用于快速滑动时立即释放非当前页 controller
+    _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
   }
 
   @override
   void dispose() {
+    _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageChangeDebounce?.cancel();
     _currentIndexNotifier.dispose();
@@ -167,6 +171,12 @@ class _FeedViewState extends ConsumerState<FeedView>
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
+  }
+
+  // PageView 滚动状态变化回调：快速滑动时立即释放非当前页 controller
+  void _onScrollingChanged() {
+    ref.read(isPageScrollingProvider.notifier).state =
+        _pageController.position.isScrollingNotifier.value;
   }
 
   // ==================== 沉浸式系统栏控制（纯 UI 行为） ====================

@@ -73,8 +73,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
   // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
-  // 内存压力释放：收到系统内存警告时立即释放非当前页 controller
-  static const Duration _backgroundReleaseDelay = Duration(seconds: 2);
+  // 非当前页 controller 释放延迟（800ms，快速滑动时由 isPageScrollingProvider 触发即时释放）
+  static const Duration _backgroundReleaseDelay = Duration(milliseconds: 800);
   // 字幕选择变化监听订阅（在 initState 中注册，dispose 时关闭）
   ProviderSubscription<String?>? _subtitleSubscription;
 
@@ -151,12 +151,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _syncPlaybackState(c);
       }
       if (!widget.isCurrentPage) {
-        // 非当前页：启动延迟释放计时器。
-        // 关键修复：不再以 c.value.isInitialized 为前提条件——
-        // 若此时 controller 仍在初始化中（c==null 或未 initialized），
-        // 旧逻辑会跳过计时器，导致 init 完成后 controller 永久驻留不释放（OOM 根因）。
-        _backgroundReleaseTimer?.cancel();
-        _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
+        // 非当前页：滚动中立即释放，否则启动延迟释放计时器
+        // 滚动中释放防止快速滑动时累积 6-8 个已初始化的 controller（每个 20-50MB）
+        if (ref.read(isPageScrollingProvider)) {
+          _releaseCurrentController();
+        } else {
+          _backgroundReleaseTimer?.cancel();
+          _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
           if (_isDisposed || !mounted) return;
           if (!widget.isCurrentPage && _controller != null) {
             AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
@@ -168,6 +169,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             }
           }
         });
+        }
       } else {
         // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
         _backgroundReleaseTimer?.cancel();
@@ -202,6 +204,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   void _scheduleBackgroundReleaseIfNeeded() {
     if (widget.isCurrentPage || _isDisposed) return;
     _backgroundReleaseTimer?.cancel();
+    // 快速滑动中：立即释放，防止累积多个 controller 导致 OOM
+    if (ref.read(isPageScrollingProvider)) {
+      _releaseCurrentController();
+      return;
+    }
     _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
       if (_isDisposed || !mounted) return;
       if (!widget.isCurrentPage && _controller != null) {

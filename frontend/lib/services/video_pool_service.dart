@@ -50,7 +50,7 @@ class PlaybackSession {
 /// - `evictExcept()`: 清理距离当前索引较远的会话
 /// - `invalidate()`: Token 变更或退出登录时清理全部
 class VideoPoolService {
-  VideoPoolService({this.maxSize = 2})
+  VideoPoolService({this.maxSize = 1})
       : assert(maxSize >= 1, 'maxSize must be >= 1');
 
   /// 池中最多同时活跃的控制器数量（不含当前正在播放的那个）
