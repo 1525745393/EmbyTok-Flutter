@@ -1,3 +1,12 @@
+## [2.23.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.0...v2.23.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* AuthState.copyWith 无法清除 error 并完善 AppError 模型 ([c499ec1](https://github.com/1525745393/EmbyTok-Flutter/commit/c499ec1b4975323a512485a28d6541e4075ef255))
+* 修复 AuthState.copyWith error 参数类型为非空 Object 导致编译错误 ([a1dcdc3](https://github.com/1525745393/EmbyTok-Flutter/commit/a1dcdc31da2a6bd2bb2156c961986ab8add17c7c))
+* 补全 safeUnawaited 调用点 context 参数并简化 _safeReport ([0fd6297](https://github.com/1525745393/EmbyTok-Flutter/commit/0fd6297da32db991c50d5f235871c691052553f2))
+
 # [2.23.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.22.0...v2.23.0) (2026-07-26)
 
 
