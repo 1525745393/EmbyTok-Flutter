@@ -10,7 +10,7 @@ import 'logger.dart';
 /// [context] 可选标注调用位置，便于日志排查。
 void safeUnawaited(Future<void>? future, {String? context}) {
   if (future == null) return;
-  unawaited(future.catchError((error, stackTrace) {
+  unawaited(future.catchError((Object error, StackTrace stackTrace) {
     AppLogger.error(
       'unawaited 异步操作失败${context != null ? " ($context)" : ""}',
       error: error,

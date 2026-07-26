@@ -265,6 +265,8 @@ class AppError implements Exception {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
+        case DioExceptionType.transformTimeout:
+          // transformTimeout：响应数据转换阶段超时（如 JSON 解码超时）
           return AppError.timeout(debugMessage: debugMsg, stackTrace: stack);
         case DioExceptionType.connectionError:
         case DioExceptionType.unknown:

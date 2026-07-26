@@ -609,7 +609,7 @@ class EmbytokService {
         : '/Items';
     try {
     final resp = await _apiClient.get<dynamic>(
-      '/Items/Resume',
+      path,
         queryParameters: params,
       );
       final data = resp.data;

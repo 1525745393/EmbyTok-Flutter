@@ -528,13 +528,13 @@ class _FullscreenVideoPageState
           userId: authState.user?.id,
         );
       }
-      final format = selectedTrack!.format ?? 'srt';
+      final format = selectedTrack.format;
       List<SubtitleCue> cues;
       // 本地外挂字幕：从文件读取
-      if (isLocal && selectedTrack!.localFilePath != null &&
-          selectedTrack!.localFilePath!.isNotEmpty) {
+      if (isLocal && selectedTrack.localFilePath != null &&
+          selectedTrack.localFilePath!.isNotEmpty) {
         cues = await embService.getSubtitleCuesFromFile(
-          filePath: selectedTrack!.localFilePath!,
+          filePath: selectedTrack.localFilePath!,
           format: format,
         );
       } else {
@@ -1197,7 +1197,7 @@ class _FullscreenVideoPageState
                       icon: const Icon(Icons.subtitles,
                           color: Colors.white, size: 22),
                       onPressed: playingItem != null
-                          ? () => _showSubtitleMenu(playingItem!)
+                          ? () => _showSubtitleMenu(playingItem)
                           : null,
                       tooltip: '字幕',
                     ),

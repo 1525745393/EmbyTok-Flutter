@@ -250,7 +250,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     try {
       final apiClient = ApiClient(baseUrl: url);
-      final response = await apiClient.get('/System/Info/Public');
+      final response = await apiClient.get<dynamic>('/System/Info/Public');
       if (mounted) {
         setState(() {
           _connectionStatus = response.statusCode == 200;
