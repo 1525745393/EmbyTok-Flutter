@@ -17,6 +17,7 @@ import '../utils/formatters.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../widgets/person_avatar_image.dart';
 
 class SearchView extends ConsumerStatefulWidget {
   final bool useScaffold;
@@ -586,18 +587,12 @@ class _PersonCard extends ConsumerWidget {
         children: [
           Expanded(
             child: ClipOval(
-              child: person.imageUrl != null && person.imageUrl!.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: person.imageUrl!,
-                      cacheManager: AppImageCacheManager.thumbnail,
-                      fit: BoxFit.cover,
-                      fadeInDuration: const Duration(milliseconds: 300),
-                      memCacheWidth: 240,
-                      httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
-                      placeholder: (ctx, __) => _personPlaceholder(ctx),
-                      errorWidget: (ctx, ___, __) => _personPlaceholder(ctx),
-                    )
-                  : _personPlaceholder(context),
+              child: PersonAvatarImage(
+                imageUrl: person.imageUrl,
+                httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                size: 80,
+                memCacheWidth: 240,
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -612,12 +607,6 @@ class _PersonCard extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _personPlaceholder(BuildContext context) => Container(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
-        child: Icon(Icons.person,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), size: 32),
-      );
 }
 
 class _HistoryChip extends StatelessWidget {

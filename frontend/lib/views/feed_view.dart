@@ -115,12 +115,17 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
 
     // 监听 PageView 滚动状态，用于快速滑动时立即释放非当前页 controller
-    _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
+    // hasClients 检查：PageView 未挂载时 position 不可访问
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
+    }
   }
 
   @override
   void dispose() {
-    _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
+    if (_pageController.hasClients) {
+      _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
+    }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageChangeDebounce?.cancel();
     _currentIndexNotifier.dispose();

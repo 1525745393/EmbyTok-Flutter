@@ -20,6 +20,14 @@ class PlaybackState {
   final MediaItem? item;
 
   const PlaybackState({this.id, this.item});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PlaybackState && id == other.id && item == other.item;
+
+  @override
+  int get hashCode => Object.hash(id, item);
 }
 
 class PlaybackStateNotifier extends Notifier<PlaybackState> {

@@ -1,7 +1,6 @@
 // 视频播放相关的底部弹出面板和对话框
 // 包含：倍速调节面板、字幕选择器、删除确认对话框、视频信息面板
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -9,7 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
-import '../../utils/image_cache_manager.dart';
+import '../person_avatar_image.dart';
 import '../subtitle_selector.dart';
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
@@ -513,21 +512,12 @@ class _PersonChipList extends ConsumerWidget {
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          cacheManager: AppImageCacheManager.thumbnail,
-                          fit: BoxFit.cover,
-                          fadeInDuration: const Duration(milliseconds: 300),
-                          memCacheWidth: 48,
-                          httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
-                          placeholder: (_, __) => Icon(Icons.person,
-                              color: scheme.onSurface.withOpacity(0.5), size: 16),
-                          errorWidget: (_, __, ___) => Icon(Icons.person,
-                              color: scheme.onSurface.withOpacity(0.5), size: 16),
-                        )
-                      : Icon(Icons.person,
-                          color: scheme.onSurface.withOpacity(0.5), size: 16),
+                  child: PersonAvatarImage(
+                    imageUrl: imageUrl,
+                    httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                    size: 24,
+                    memCacheWidth: 48,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),

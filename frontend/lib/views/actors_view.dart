@@ -3,7 +3,6 @@
 
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
-import '../utils/image_cache_manager.dart';
+import '../widgets/person_avatar_image.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
   final bool useScaffold;
@@ -693,21 +692,11 @@ class _ActorCard extends StatelessWidget {
     }
     final img = url;
     final tk = token;
-    return CachedNetworkImage(
+    return PersonAvatarImage(
       imageUrl: img,
-      cacheManager: AppImageCacheManager.thumbnail,
-      fit: BoxFit.cover,
-      fadeInDuration: const Duration(milliseconds: 300),
+      httpHeaders: tk != null && tk.isNotEmpty ? embyAuthHeaders(tk) : null,
+      size: 80,
       memCacheWidth: 240,
-      httpHeaders: tk != null && tk.isNotEmpty
-          ? embyAuthHeaders(tk)
-          : null,
-      placeholder: (_, __) => Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
-      ),
-      errorWidget: (_, __, ___) => Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
-      ),
     );
   }
 

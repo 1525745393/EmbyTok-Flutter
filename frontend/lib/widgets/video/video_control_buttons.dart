@@ -11,6 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
+import '../person_avatar_image.dart';
 
 // ===== 响应式尺寸工具 =====
 double responsiveSize(BuildContext context, double base, [double maxScale = 1.7]) {
@@ -97,23 +98,12 @@ class PosterAvatar extends ConsumerWidget {
                         color: scheme.surface.withOpacity(0.15),
                       ),
                       child: ClipOval(
-                        child: actorImageUrl != null && actorImageUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: actorImageUrl,
-                                cacheManager: AppImageCacheManager.thumbnail,
-                                fit: BoxFit.cover,
-                                fadeInDuration: const Duration(milliseconds: 300),
-                                httpHeaders: headers.isNotEmpty ? headers : null,
-                                memCacheWidth: 96,
-                                placeholder: (_, __) => Icon(Icons.person,
-                                    color: scheme.onSurface.withOpacity(0.54),
-                                    size: rs(24)),
-                                errorWidget: (_, __, ___) => Icon(Icons.person,
-                                    color: scheme.onSurface.withOpacity(0.54),
-                                    size: rs(24)),
-                              )
-                            : Icon(Icons.person,
-                                color: scheme.onSurface.withOpacity(0.54)),
+                        child: PersonAvatarImage(
+                          imageUrl: actorImageUrl,
+                          httpHeaders: headers.isNotEmpty ? headers : null,
+                          size: rs(48),
+                          memCacheWidth: 96,
+                        ),
                       ),
                     ),
                   ),
