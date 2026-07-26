@@ -8,6 +8,7 @@ import 'package:mockito/mockito.dart;
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/providers/search_hints_provider.dart';
 import 'package:embytok_flutter/services/embytok_service.dart';
 
@@ -20,7 +21,8 @@ void main() {
   setUp(() {
     mockService = _MockEmbytokService();
     container = ProviderContainer(overrides: [
-      authProvider.overrideWith((ref) => AuthNotifier(ref, service: mockService)
+      embytokServiceProvider.overrideWithValue(mockService),
+      authProvider.overrideWith((ref) => AuthNotifier(ref)
         ..state = AuthState(
           isAuthenticated: true,
           embyServerUrl: 'http://test.local',
@@ -28,7 +30,7 @@ void main() {
           user: const User(id: 'user-1', name: 'Test'),
         )),
       searchHintsStateProvider.overrideWith((ref) {
-        return SearchHintsNotifier(ref, service: mockService);
+        return SearchHintsNotifier(ref);
       }),
     ]);
   });

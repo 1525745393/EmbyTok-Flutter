@@ -14,6 +14,7 @@ import '../services/embytok_service.dart';
 import '../utils/logger.dart';
 import '../utils/memory_cache.dart';
 import 'auth_provider.dart';
+import 'embytok_service_provider.dart';
 
 /// 搜索建议防抖时间
 const Duration _kSearchHintsDebounce = Duration(milliseconds: 300);
@@ -56,7 +57,7 @@ class SearchHintsState {
 // 搜索建议 Notifier
 class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
   final Ref _ref;
-  final EmbytokService _service;
+  late final EmbytokService _service;
 
   /// 防抖 Timer：连续输入时只保留最后一次
   Timer? _debounceTimer;
@@ -65,9 +66,9 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
   final MemoryCache<List<SearchHint>> _cache =
       MemoryCache<List<SearchHint>>(maxSize: _kSearchHintsCacheMaxSize);
 
-  SearchHintsNotifier(this._ref, {EmbytokService? service})
-      : _service = service ?? EmbytokService(),
-        super(const SearchHintsState());
+  SearchHintsNotifier(this._ref) : super(const SearchHintsState()) {
+    _service = _ref.read(embytokServiceProvider);
+  }
 
   AuthState get _auth => _ref.read(authProvider);
 

@@ -52,7 +52,7 @@ class FeedViewModel {
   final void Function(bool visible)? onUpdateHelpVisibility; // 更新帮助面板显隐
 
   // 云同步相关
-  final EmbytokService _cloudService = EmbytokService();
+  late final EmbytokService _cloudService;
   MediaItem? _lastReportedItem;
 
   // 网格滚动保存防抖
@@ -75,6 +75,7 @@ class FeedViewModel {
   ///
   /// 在 FeedView.initState 的末尾调用，此时 Widget 已挂载
   void init() {
+    _cloudService = _ref.read(embytokServiceProvider);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
     _ref.listen(playbackStateProvider, (prev, next) {
       if (prev?.item != next.item) {

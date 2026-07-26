@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/providers/favorites_provider.dart';
 import 'package:embytok_flutter/services/embytok_service.dart';
 
@@ -66,9 +67,10 @@ void main() {
     ProviderContainer createContainerWithAuth() {
       return ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith((ref) => _TestAuthNotifier(testAuthState)),
           favoritesProvider.overrideWith(
-            (ref) => FavoritesNotifier(ref, service: mockService),
+            (ref) => FavoritesNotifier(ref),
           ),
         ],
       );
@@ -148,11 +150,12 @@ void main() {
     test('未登录时 loadFavorites() 返回错误', () async {
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
             (ref) => _TestAuthNotifier(const AuthState()),
           ),
           favoritesProvider.overrideWith(
-            (ref) => FavoritesNotifier(ref, service: mockService),
+            (ref) => FavoritesNotifier(ref),
           ),
         ],
       );
@@ -354,11 +357,12 @@ void main() {
     test('未登录时 toggleFavorite() 返回错误', () async {
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
             (ref) => _TestAuthNotifier(const AuthState()),
           ),
           favoritesProvider.overrideWith(
-            (ref) => FavoritesNotifier(ref, service: mockService),
+            (ref) => FavoritesNotifier(ref),
           ),
         ],
       );

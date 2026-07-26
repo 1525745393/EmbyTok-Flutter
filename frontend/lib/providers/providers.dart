@@ -16,6 +16,7 @@ export 'cache_providers.dart';
 // ---- 列表与播放控制 ----
 export 'video_list_provider.dart';
 export 'video_playback_controller.dart';
+export 'embytok_service_provider.dart';
 export 'item_detail_provider.dart';
 export 'recommend_provider.dart';
 export 'recommend_signals.dart';

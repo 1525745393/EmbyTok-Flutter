@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/embytok_service.dart';
 import 'auth_provider.dart';
+import 'embytok_service_provider.dart';
 
 /// 基于 Emby Playlist 的收藏服务：管理媒体库级别的收藏列表
 class FavoritesService {
@@ -158,5 +159,6 @@ class FavoritesService {
 /// 顶层收藏服务 Provider
 final favoritesServiceProvider = Provider<FavoritesService>((ref) {
   final auth = ref.watch(authProvider);
-  return FavoritesService(EmbytokService(), auth);
+  final service = ref.watch(embytokServiceProvider);
+  return FavoritesService(service, auth);
 });

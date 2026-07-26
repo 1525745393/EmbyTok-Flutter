@@ -13,6 +13,7 @@ import '../services/embytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
+import 'embytok_service_provider.dart';
 
 // ============================================================
 // 状态
@@ -82,14 +83,16 @@ class ActorsState {
 
 class ActorsNotifier extends StateNotifier<ActorsState> {
   final Ref _ref;
-  final EmbytokService _service = EmbytokService();
+  late final EmbytokService _service;
   Timer? _debounceTimer;
 
   static const int _pageSize = 50;
 
   bool _isLoadingFavorites = false;
 
-  ActorsNotifier(this._ref) : super(const ActorsState());
+  ActorsNotifier(this._ref) : super(const ActorsState()) {
+    _service = _ref.read(embytokServiceProvider);
+  }
 
   // ---- 加载演员列表 ----
 

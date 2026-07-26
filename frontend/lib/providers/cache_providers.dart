@@ -11,12 +11,14 @@ import '../repositories/cached_media_repository.dart';
 import '../repositories/emby_repository.dart';
 import '../repositories/media_repository.dart';
 import '../utils/constants.dart';
+import 'embytok_service_provider.dart';
 
 /// 基础媒体仓库 Provider
 ///
 /// 默认提供 EmbyRepository 实例，测试时可 override 为 mock。
 final mediaRepositoryProvider = Provider<MediaRepository>((ref) {
-  return EmbyRepository();
+  final service = ref.watch(embytokServiceProvider);
+  return EmbyRepository(service: service);
 });
 
 /// 带缓存的媒体仓库 Provider

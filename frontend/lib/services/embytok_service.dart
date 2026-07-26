@@ -13,12 +13,7 @@ import '../utils/memory_cache.dart';
 import 'api_client.dart';
 
 class EmbytokService {
-  static final EmbytokService _instance = EmbytokService._internal();
-
-  factory EmbytokService() => _instance;
-
-  EmbytokService._internal()
-      : _apiClient = ApiClient();
+  EmbytokService() : _apiClient = ApiClient();
 
   EmbytokService.withClient(this._apiClient);
 

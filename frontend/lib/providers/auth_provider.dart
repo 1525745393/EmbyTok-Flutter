@@ -10,6 +10,7 @@ import '../services/embytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import 'cache_providers.dart';
+import 'embytok_service_provider.dart';
 
 // 认证状态类
 class AuthState {
@@ -58,11 +59,10 @@ class AuthState {
 // 认证 Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
-  final EmbytokService _service;
+  late final EmbytokService _service;
 
-  AuthNotifier(this._ref, {EmbytokService? service})
-      : _service = service ?? EmbytokService(),
-        super(const AuthState()) {
+  AuthNotifier(this._ref) : super(const AuthState()) {
+    _service = _ref.read(embytokServiceProvider);
     _loadFromStorage();
   }
 

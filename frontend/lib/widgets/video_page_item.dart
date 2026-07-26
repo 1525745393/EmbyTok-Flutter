@@ -77,7 +77,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   bool _isInfoVisible = true;
 
   // 播放上报相关
-  final EmbytokService _service = EmbytokService();
+  late final EmbytokService _service;
   Timer? _progressTimer;
   String? _playSessionId;
   bool _hasStartedReported = false;
@@ -111,6 +111,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   @override
   void initState() {
     super.initState();
+    _service = ref.read(embytokServiceProvider);
     WidgetsBinding.instance.addObserver(this);
     _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
     _discRotationCtrl = AnimationController(

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';
@@ -83,8 +84,9 @@ void main() {
     test('初始状态：isAuthenticated = false, user = null', () async {
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -114,8 +116,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -161,8 +164,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -199,8 +203,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -241,8 +246,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -288,8 +294,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );
@@ -314,8 +321,9 @@ void main() {
 
       container = ProviderContainer(
         overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
           authProvider.overrideWith(
-            (ref) => AuthNotifier(service: mockService),
+            (ref) => AuthNotifier(ref),
           ),
         ],
       );

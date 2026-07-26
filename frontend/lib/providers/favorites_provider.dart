@@ -15,6 +15,7 @@ import '../services/embytok_service.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
+import 'embytok_service_provider.dart';
 
 // 每页拉取数量
 const int _kFavoritesPageSize = 50;
@@ -128,7 +129,7 @@ enum FavoritesCategory { movie, boxSet, person }
 /// - 本地缓存：SharedPreferences 缓存 JSON，先展示缓存再后台刷新
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
   final Ref _ref;
-  final EmbytokService _service;
+  late final EmbytokService _service;
 
   bool _hasLoaded = false;
   bool _isLoading = false;
@@ -141,9 +142,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
 
   ProviderSubscription<AuthState>? _authSubscription;
 
-  FavoritesNotifier(this._ref, {EmbytokService? service})
-      : _service = service ?? EmbytokService(),
-        super(const FavoritesState()) {
+  FavoritesNotifier(this._ref) : super(const FavoritesState()) {
+    _service = _ref.read(embytokServiceProvider);
     // 监听认证状态变化：登录 → 自动加载；登出 → 清除缓存
     _authSubscription = _ref.listen<AuthState>(authProvider, (previous, next) {
       final wasAuthenticated = previous?.isAuthenticated ?? false;
