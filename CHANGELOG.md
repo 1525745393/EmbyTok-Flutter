@@ -1,3 +1,10 @@
+## [2.23.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.2...v2.23.3) (2026-07-26)
+
+
+### Performance Improvements
+
+* 多库加载从串行改为并行，提升首屏加载速度 ([4b1fdd4](https://github.com/1525745393/EmbyTok-Flutter/commit/4b1fdd4b50cf7b066fc2cb12239c082d369df28e))
+
 ## [2.23.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.1...v2.23.2) (2026-07-26)
 
 
