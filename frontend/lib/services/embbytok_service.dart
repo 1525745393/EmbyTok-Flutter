@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 
 import '../models/models.dart';
 import '../utils/logger.dart';
+import '../utils/memory_cache.dart';
 import 'api_client.dart';
 
 class EmbytokService {
@@ -26,8 +27,8 @@ class EmbytokService {
   // 保存当前登录用户的 userId，用于 Views 端点和云同步等需要用户身份的接口
   String? _defaultUserId;
 
-  // 字幕缓存：key = "itemId_mediaSourceId_index_format"
-  final Map<String, List<SubtitleCue>> _subtitleCache = {};
+  // 字幕缓存：LRU + TTL，max 50 条，30 分钟过期
+  final MemoryCache<List<SubtitleCue>> _subtitleCache = MemoryCache<List<SubtitleCue>>(maxSize: 50);
 
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
@@ -1072,7 +1073,7 @@ class EmbytokService {
     // 内存缓存：仅缓存成功且非空的结果，避免重复请求
     // 空结果和失败请求不缓存，确保下次可以重试
     final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
-    final cached = _subtitleCache[cacheKey];
+    final cached = _subtitleCache.get(cacheKey);
     if (cached != null) {
       AppLogger.debug('字幕缓存命中', data: {'cacheKey': cacheKey, 'count': cached.length});
       return cached;
@@ -1105,7 +1106,7 @@ class EmbytokService {
       });
       // 仅缓存非空结果
       if (cues.isNotEmpty) {
-        _subtitleCache[cacheKey] = cues;
+        _subtitleCache.put(cacheKey, cues);
       }
       return cues;
     } catch (e) {
