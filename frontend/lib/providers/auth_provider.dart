@@ -31,6 +31,9 @@ class AuthState {
     this.error,
   });
 
+  // sentinel：用于区分"未传参"和"传了 null"，使 copyWith(error: null) 能正确清除 error
+  static const Object _sentinel = Object();
+
   AuthState copyWith({
     bool? isAuthenticated,
     User? user,
@@ -38,7 +41,7 @@ class AuthState {
     String? embyServerUrl,
     String? token,
     bool? isLoading,
-    AppError? error,
+    Object error = _sentinel,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -47,7 +50,7 @@ class AuthState {
       embyServerUrl: embyServerUrl ?? this.embyServerUrl,
       token: token ?? this.token,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: identical(error, _sentinel) ? this.error : error as AppError?,
     );
   }
 }

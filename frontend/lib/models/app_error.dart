@@ -238,10 +238,14 @@ class AppError implements Exception {
         stackTrace: stackTrace,
       );
 
-  /// 从 DioException 或其他原始错误转换
+  /// 从任意错误包装为 AppError
   ///
-  /// 优先使用类型检查，字符串匹配作为兜底。
-  factory AppError.fromDioException(
+  /// 支持的输入类型：
+  /// - [AppError]：直接返回（无额外包装）
+  /// - [String]：按内容分类为 notAuthenticated 或 unknown
+  /// - [DioException]：按 type 字段精确分类（超时、网络、401/403/404/5xx 等）
+  /// - 其他类型：兜底为 unknown，并通过字符串匹配尝试识别网络/超时类错误
+  factory AppError.wrap(
     dynamic error, {
     StackTrace? stackTrace,
   }) {
@@ -350,6 +354,35 @@ class AppError implements Exception {
 
     return AppError.unknown(debugMessage: debugMsg, stackTrace: stack);
   }
+
+  /// 从 DioException 或其他原始错误转换
+  ///
+  /// 已弃用：请使用 [AppError.wrap]，名称更准确地描述了该方法的功能。
+  @Deprecated('Use AppError.wrap instead')
+  factory AppError.fromDioException(
+    dynamic error, {
+    StackTrace? stackTrace,
+  }) =>
+      AppError.wrap(error, stackTrace: stackTrace);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppError &&
+          type == other.type &&
+          message == other.message &&
+          debugMessage == other.debugMessage &&
+          statusCode == other.statusCode &&
+          timestamp == other.timestamp;
+
+  @override
+  int get hashCode => Object.hash(
+        type,
+        message,
+        debugMessage,
+        statusCode,
+        timestamp,
+      );
 
   @override
   String toString() => 'AppError($type): $message';
