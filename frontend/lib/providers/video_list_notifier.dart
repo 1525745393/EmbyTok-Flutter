@@ -38,6 +38,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // refresh 时清空，loadMore 时各库独立递增，避免多库共用全局 offset 导致的分页错误
   final Map<String, int> _libraryLoadedCounts = <String, int>{};
 
+  // 请求取消：refresh 前取消上一次未完成的 refresh 请求，防止旧数据覆盖新状态
+  CancelToken? _refreshCancelToken;
+
+  // refresh 代数计数器：即使 CancelToken 无法取消已在途中的请求（如网络已返回但
+  // 尚未解析），也能通过代数对比在 setState 前放弃陈旧结果
+  int _refreshGeneration = 0;
+
   ProviderSubscription<List<String>>? _libraryIdsSubscription;
   ProviderSubscription<FeedType>? _feedTypeSubscription;
   ProviderSubscription<bool>? _excludePlayedSubscription;
@@ -189,6 +196,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     required String sortOrder,
     required bool excludePlayed,
     String? searchTerm,
+    CancelToken? cancelToken,
   }) {
     final seenIds = <String, MediaItem>{};
     int totalItems = 0;
@@ -241,6 +249,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             serverUrl: serverUrl,
             token: token,
             userId: userId,
+            cancelToken: cancelToken,
           );
           for (final item in resp.items) {
             if (!freshSeenIds.containsKey(item.id)) {
@@ -277,6 +286,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   //
   // [forceRefresh] 为 true 时，先清除相关缓存再请求，确保获取最新数据
   Future<void> refresh({bool forceRefresh = false}) async {
+    // 取消上一次未完成的刷新请求，防止旧数据覆盖新状态
+    _refreshCancelToken?.cancel();
+    _refreshCancelToken = CancelToken();
+    final gen = ++_refreshGeneration;
+
     final currentFeedType = _ref.read(feedTypeProvider);
     final selectedIds = _ref.read(selectedLibraryIdsProvider);
 
@@ -343,6 +357,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             sortOrder: state.sortOrder,
             excludePlayed: _ref.read(feedExcludePlayedProvider),
             searchTerm: state.searchTerm.isEmpty ? null : state.searchTerm,
+            cancelToken: _refreshCancelToken,
           );
 
           // 有缓存：立即展示缓存数据，仍显示 loading 指示
@@ -360,6 +375,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           // 等待最新数据
           try {
             final fresh = await swr.freshFuture;
+            if (_refreshGeneration != gen) return; // 更新的 refresh 已启动，放弃本次结果
             if (fresh.allFailed) {
               if (swr.hasCache) {
                 state = state.copyWith(isLoading: false);
@@ -414,6 +430,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
                 serverUrl: serverUrl,
                 token: token,
                 userId: userId,
+                cancelToken: _refreshCancelToken,
               );
               merged.addAll(resp.items);
             } catch (e) {
@@ -431,6 +448,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             serverUrl: serverUrl,
             token: token,
             userId: userId,
+            cancelToken: _refreshCancelToken,
           );
           loadedItems = favResult.items;
           loadedTotal = favResult.items.length;
@@ -442,6 +460,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             offset: 0,
             serverUrl: serverUrl,
             token: token,
+            cancelToken: _refreshCancelToken,
           );
           loadedItems = resp.items;
           loadedTotal = resp.items.length;
@@ -458,6 +477,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       // 解决：把 currentPlayingItem 插到 loadedItems[0]，保持"当前在播视频在列表首位"
       // 注：推荐模式已独立（PR #57），不再走这个路径
       _ensurePlayingItemFirst(loadedItems, source: 'refresh/$currentFeedType');
+
+      if (_refreshGeneration != gen) return; // 更新的 refresh 已启动，放弃陈旧结果
 
       state = VideoListState(
         items: loadedItems,
@@ -476,6 +497,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'feedType': currentFeedType.toStorageString(),
       });
     } catch (e) {
+      if (CancelToken.isCancel(e)) return; // 请求被新版 refresh 取消，静默忽略
       AppLogger.error('刷新视频列表失败', error: e);
       state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
     }
@@ -899,6 +921,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   /// 间接持有整个 ProviderContainer 依赖链，导致大量对象无法释放。
   @override
   void dispose() {
+    _refreshCancelToken?.cancel();
     _searchDebounceTimer?.cancel();
     _libraryIdsSubscription?.close();
     _feedTypeSubscription?.close();

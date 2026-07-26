@@ -5,6 +5,8 @@
 // - 不包含业务逻辑（去重、分页合并等在上层处理）
 // - 便于未来替换为 Plex/Jellyfin 等其他实现
 
+import 'package:dio/dio.dart';
+
 import '../models/models.dart';
 import '../services/embbytok_service.dart';
 import 'media_repository.dart';
@@ -26,6 +28,7 @@ class EmbyRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   }) {
     return _service.getLibraryItems(
       params.libraryId,
@@ -34,11 +37,11 @@ class EmbyRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
-      // null 时回退到 EmbytokService 的默认排序（与 service 签名默认值保持一致）
       sortBy: params.sortBy ?? 'DateCreated,SortName',
       sortOrder: params.sortOrder ?? 'Descending',
       searchTerm: params.searchTerm,
       excludePlayed: params.excludePlayed,
+      cancelToken: cancelToken,
     );
   }
 
@@ -75,6 +78,7 @@ class EmbyRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   }) {
     return _service.getFavoriteMovies(
       limit: limit,
@@ -82,6 +86,7 @@ class EmbyRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
+      cancelToken: cancelToken,
     );
   }
 
@@ -128,12 +133,15 @@ class EmbyRepository implements MediaRepository {
     required String token,
     int limit = 50,
     int offset = 0,
+    CancelToken? cancelToken,
   }) {
     return _service.getResumeItems(
       limit: limit,
       offset: offset,
       serverUrl: serverUrl,
       token: token,
+      cancelToken: cancelToken,
+    );
     );
   }
 

@@ -12,6 +12,8 @@
 // ❌ 不包含业务逻辑（分页去重、播放状态同步等在 Service/Provider 层处理）
 // ❌ 不直接操作 UI 状态
 
+import 'package:dio/dio.dart';
+
 import '../models/models.dart';
 
 /// 分页参数：用于传递分页请求的通用参数
@@ -68,6 +70,7 @@ abstract class MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   });
 
   /// 纯缓存读取媒体库条目列表，同步，不触发网络请求
@@ -101,6 +104,7 @@ abstract class MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   });
 
   /// 纯缓存读取收藏的电影/视频列表，同步，不触发网络请求
@@ -144,6 +148,7 @@ abstract class MediaRepository {
     required String token,
     int limit = 50,
     int offset = 0,
+    CancelToken? cancelToken,
   });
 
   /// 获取媒体库列表（用户可用的 Views）

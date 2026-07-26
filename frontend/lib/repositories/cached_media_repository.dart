@@ -9,6 +9,8 @@
 // - 支持手动失效（invalidate）和全部清除（clearAll）
 // - 写操作（toggleFavorite 等）自动失效相关缓存
 
+import 'package:dio/dio.dart';
+
 import '../models/models.dart';
 import '../utils/memory_cache.dart';
 import 'media_repository.dart';
@@ -383,6 +385,7 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   }) {
     final key = _libraryItemsKey(params, serverUrl, token);
     return _withCache(_libraryItemsCache, key, () => _inner.getLibraryItems(
@@ -390,6 +393,7 @@ class CachedMediaRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
+      cancelToken: cancelToken,
     ));
   }
 
@@ -411,6 +415,7 @@ class CachedMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
+    CancelToken? cancelToken,
   }) {
     final key = _favoritesKey(serverUrl, token, userId, limit, offset);
     return _withCache(_favoritesCache, key, () => _inner.getFavoriteMovies(
@@ -419,6 +424,7 @@ class CachedMediaRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
+      cancelToken: cancelToken,
     ));
   }
 
@@ -470,6 +476,7 @@ class CachedMediaRepository implements MediaRepository {
     required String token,
     int limit = 50,
     int offset = 0,
+    CancelToken? cancelToken,
   }) {
     final key = _resumeKey(serverUrl, token, limit, offset);
     return _withCache(_resumeCache, key, () => _inner.getResumeItems(
@@ -477,6 +484,7 @@ class CachedMediaRepository implements MediaRepository {
       token: token,
       limit: limit,
       offset: offset,
+      cancelToken: cancelToken,
     ));
   }
 

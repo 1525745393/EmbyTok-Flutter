@@ -177,6 +177,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     dynamic data,
     Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   }) async {
     try {
       final response = await _dio.request<T>(
@@ -187,6 +188,7 @@ class ApiClient {
         ),
         queryParameters: queryParameters,
         data: data,
+        cancelToken: cancelToken,
       );
       return response;
     } on DioException catch (e, st) {
@@ -213,6 +215,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     bool retry = false,
+    CancelToken? cancelToken,
   }) async {
     // 生成请求去重 key：baseUrl + token + path + 排序后的 queryParameters
     // 加入 baseUrl 和 token 防止跨账号请求错误复用
@@ -232,8 +235,9 @@ class ApiClient {
               path,
               queryParameters: queryParameters,
               headers: headers,
+              cancelToken: cancelToken,
             )
-          : await _request<T>(path, method: 'GET', queryParameters: queryParameters, headers: headers);
+          : await _request<T>(path, method: 'GET', queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
       completer.complete(response);
       return response;
     } catch (e) {
@@ -256,6 +260,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   }) async {
     const maxRetries = 2;
 
@@ -267,6 +272,7 @@ class ApiClient {
           method: 'GET',
           queryParameters: queryParameters,
           headers: headers,
+          cancelToken: cancelToken,
         );
       } on AppError catch (e) {
         lastError = e;
@@ -312,22 +318,25 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'POST', data: data, queryParameters: queryParameters, headers: headers);
+      _request<T>(path, method: 'POST', data: data, queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
 
   Future<Response<T>> put<T>(
     String path, {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'PUT', data: data, queryParameters: queryParameters, headers: headers);
+      _request<T>(path, method: 'PUT', data: data, queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
 
   Future<Response<T>> delete<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     Map<String, dynamic>? headers,
     dynamic data,
+    CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'DELETE', queryParameters: queryParameters, headers: headers, data: data);
+      _request<T>(path, method: 'DELETE', queryParameters: queryParameters, headers: headers, data: data, cancelToken: cancelToken);
 }

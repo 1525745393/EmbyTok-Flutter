@@ -198,6 +198,7 @@ class EmbytokService {
     String sortOrder = 'Descending',
     String? searchTerm,
     bool excludePlayed = false,
+    CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
       'libraryId': libraryId,
@@ -280,6 +281,7 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
+    CancelToken? cancelToken,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -294,6 +296,7 @@ class EmbytokService {
     final resp = await _apiClient.get<dynamic>(
       '/Items/Resume',
       queryParameters: params,
+      cancelToken: cancelToken,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
@@ -603,10 +606,11 @@ class EmbytokService {
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
     try {
-      final resp = await _apiClient.get<dynamic>(
-        path,
-        queryParameters: params,
-      );
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+      cancelToken: cancelToken,
+    );
       final data = resp.data;
       final items = data is List
           ? data as List<dynamic>
@@ -775,6 +779,7 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
+    CancelToken? cancelToken,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -798,6 +803,7 @@ class EmbytokService {
     final resp = await _apiClient.get<dynamic>(
       path,
       queryParameters: params,
+      cancelToken: cancelToken,
     );
     final data = resp.data;
     final items = data is List
