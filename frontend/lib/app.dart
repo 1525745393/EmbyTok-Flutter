@@ -2,6 +2,7 @@
 // 阶段 1：接入 Material Design 3 动态色彩系统（seed 粉色 0xFFE91E63）
 // 阶段 2/3：后续逐步替换组件内硬编码颜色和尺寸 → colorScheme / theme tokens
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
