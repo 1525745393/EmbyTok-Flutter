@@ -18,8 +18,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
-import 'package:embbytok_flutter/providers/providers.dart';
-import 'package:embbytok_flutter/views/home_scaffold.dart';
+import 'package:embytok_flutter/providers/providers.dart';
+import 'package:embytok_flutter/views/home_scaffold.dart';
 
 void main() {
   group('applyLifecyclePlaybackChange：App 前后台切换的视频控制', () {

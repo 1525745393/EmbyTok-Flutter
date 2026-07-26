@@ -16,9 +16,9 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 
 /// 安全存储键名（仅用于凭据，服务器历史仍用 SharedPreferences）
-const _kSecureKeyServer = 'embbytok_secure_server';
-const _kSecureKeyUsername = 'embbytok_secure_username';
-const _kSecureKeyPassword = 'embbytok_secure_password';
+const _kSecureKeyServer = 'embytok_secure_server';
+const _kSecureKeyUsername = 'embytok_secure_username';
+const _kSecureKeyPassword = 'embytok_secure_password';
 
 /// 服务器类型
 enum ServerType {

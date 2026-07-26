@@ -11,8 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:embbytok_flutter/providers/subtitle_settings_provider.dart';
-import 'package:embbytok_flutter/utils/constants.dart';
+import 'package:embytok_flutter/providers/subtitle_settings_provider.dart';
+import 'package:embytok_flutter/utils/constants.dart';
 
 void main() {
   group('SubtitleSettings', () {

@@ -2,11 +2,11 @@
 
 const int kDefaultPageLimit = 20;
 const String kAppName = 'EmbyTok';
-const String kStorageKeyConfig = 'embbytok_config';
-const String kStorageKeyHistory = 'embbytok_history';
-const String kStorageKeySearchHistory = 'embbytok_search_history';
-const String kStorageKeySubtitle = 'embbytok_subtitle';
-const String kStorageKeyPlaybackRate = 'embbytok_playback_rate';
+const String kStorageKeyConfig = 'embytok_config';
+const String kStorageKeyHistory = 'embytok_history';
+const String kStorageKeySearchHistory = 'embytok_search_history';
+const String kStorageKeySubtitle = 'embytok_subtitle';
+const String kStorageKeyPlaybackRate = 'embytok_playback_rate';
 
 // 设备模式
 const String kDeviceModeTv = 'tv';
@@ -29,62 +29,62 @@ const String kOrientationModeHorizontal = 'horizontal';
 const String kOrientationModeBoth = 'both';
 
 // 存储键
-const String kStorageKeyForceDeviceMode = 'embbytok_force_device_mode';
-const String kStorageKeyFeedType = 'embbytok_feed_type';
-const String kStorageKeyViewMode = 'embbytok_view_mode';
-const String kStorageKeyOrientationMode = 'embbytok_orientation_mode';
-const String kStorageKeyIsMuted = 'embbytok_is_muted';
-const String kStorageKeyIsAutoPlay = 'embbytok_is_autoplay';
-const String kStorageKeyHiddenLibraryIds = 'embbytok_hidden_library_ids';
-const String kStorageKeyDefaultPlaybackRate = 'embbytok_default_playback_rate';
-const String kStorageKeyDefaultSubtitleLanguage = 'embbytok_default_subtitle_language';
-const String kStorageKeySubtitleSize = 'embbytok_subtitle_size';
+const String kStorageKeyForceDeviceMode = 'embytok_force_device_mode';
+const String kStorageKeyFeedType = 'embytok_feed_type';
+const String kStorageKeyViewMode = 'embytok_view_mode';
+const String kStorageKeyOrientationMode = 'embytok_orientation_mode';
+const String kStorageKeyIsMuted = 'embytok_is_muted';
+const String kStorageKeyIsAutoPlay = 'embytok_is_autoplay';
+const String kStorageKeyHiddenLibraryIds = 'embytok_hidden_library_ids';
+const String kStorageKeyDefaultPlaybackRate = 'embytok_default_playback_rate';
+const String kStorageKeyDefaultSubtitleLanguage = 'embytok_default_subtitle_language';
+const String kStorageKeySubtitleSize = 'embytok_subtitle_size';
 // PR #78：推荐规则偏好（评分阈值 / 时长过滤 / 排除已观看）
-const String kStorageKeyRecommendMinRating = 'embbytok_recommend_min_rating';
-const String kStorageKeyRecommendExcludePlayed = 'embbytok_recommend_exclude_played';
-const String kStorageKeyFeedExcludePlayed = 'embbytok_feed_exclude_played';
-const String kStorageKeyRecommendMinRuntimeSec = 'embbytok_recommend_min_runtime_sec';
+const String kStorageKeyRecommendMinRating = 'embytok_recommend_min_rating';
+const String kStorageKeyRecommendExcludePlayed = 'embytok_recommend_exclude_played';
+const String kStorageKeyFeedExcludePlayed = 'embytok_feed_exclude_played';
+const String kStorageKeyRecommendMinRuntimeSec = 'embytok_recommend_min_runtime_sec';
 // PR #79：推荐 - 类型偏好（Movie/Episode/Video/MusicVideo/Series 的子集）
-const String kStorageKeyRecommendIncludeTypes = 'embbytok_recommend_include_types';
+const String kStorageKeyRecommendIncludeTypes = 'embytok_recommend_include_types';
 // PR #85：推荐 - 用户控制（完播率门控开关 + 时间衰减半衰期）
 const String kStorageKeyRecommendUseWatchHistory =
-    'embbytok_recommend_use_watch_history';
+    'embytok_recommend_use_watch_history';
 const String kStorageKeyRecommendHalfLifeDays =
-    'embbytok_recommend_half_life_days';
+    'embytok_recommend_half_life_days';
 // PR #88：推荐 - 反推荐疲劳（30 天内不重推）
 const String kStorageKeyRecommendAntiFatigueEnabled =
-    'embbytok_recommend_anti_fatigue_enabled';
+    'embytok_recommend_anti_fatigue_enabled';
 const String kStorageKeyRecommendAntiFatigueDays =
-    'embbytok_recommend_anti_fatigue_days';
+    'embytok_recommend_anti_fatigue_days';
 const String kStorageKeyRecentlyShownItemIds =
-    'embbytok_recently_shown_item_ids';
+    'embytok_recently_shown_item_ids';
 // PR #89：推荐 - 用户评分加权（Emby UserData.Rating 0-10）
 // - 开启时：用户评分 < 阈值的 item 跳过（除非收藏）
 // - 关闭时：仅按 communityRating 过滤（已有逻辑）
 const String kStorageKeyRecommendUserRatingEnabled =
-    'embbytok_recommend_user_rating_enabled';
+    'embytok_recommend_user_rating_enabled';
 const String kStorageKeyRecommendUserRatingMin =
-    'embbytok_recommend_user_rating_min';
+    'embytok_recommend_user_rating_min';
 // PR #81：完播率统计（按 userId 分键，最多保留 500 条）
 const String kStorageKeyWatchStats = 'embytok_watch_stats';
-const String kStorageKeyLastPageIndex = 'embbytok_last_page_index';
-const String kStorageKeyLastGridScrollOffset = 'embbytok_last_grid_scroll_offset';
-const String kStorageKeySelectedLibraryId = 'embbytok_selected_library_id';
+const String kStorageKeyLastPageIndex = 'embytok_last_page_index';
+const String kStorageKeyLastGridScrollOffset = 'embytok_last_grid_scroll_offset';
+const String kStorageKeySelectedLibraryId = 'embytok_selected_library_id';
 // 媒体库选择：推荐页独立（PR #66：视频流 / 推荐可分别设置）
 const String kStorageKeySelectedLibraryIdForRecommend =
-    'embbytok_selected_library_id_for_recommend';
+    'embytok_selected_library_id_for_recommend';
 // 媒体库首次配置标记（PR #66：未配置时进入对应页面自动弹 LibrarySelector）
-const String kStorageKeyFeedLibraryConfigured = 'embbytok_feed_library_configured';
+const String kStorageKeyFeedLibraryConfigured = 'embytok_feed_library_configured';
 const String kStorageKeyRecommendLibraryConfigured =
-    'embbytok_recommend_library_configured';
-const String kStorageKeyActorsSelectedType = 'embbytok_actors_selected_type';
-const String kStorageKeyActorsSelectedTab = 'embbytok_actors_selected_tab';
-const String kStorageKeyActorsSearchQuery = 'embbytok_actors_search_query';
-const String kStorageKeyActorsScrollOffset = 'embbytok_actors_scroll_offset';
+    'embytok_recommend_library_configured';
+const String kStorageKeyActorsSelectedType = 'embytok_actors_selected_type';
+const String kStorageKeyActorsSelectedTab = 'embytok_actors_selected_tab';
+const String kStorageKeyActorsSearchQuery = 'embytok_actors_search_query';
+const String kStorageKeyActorsScrollOffset = 'embytok_actors_scroll_offset';
 
 // 登录页：服务器历史 & 记住凭据
-const String kStorageKeyServerHistory = 'embbytok_server_history';
-const String kStorageKeySavedCredentials = 'embbytok_saved_credentials';
+const String kStorageKeyServerHistory = 'embytok_server_history';
+const String kStorageKeySavedCredentials = 'embytok_saved_credentials';
 
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
@@ -154,7 +154,7 @@ const int kSubtitleTimeOffsetDefault = 0;
 
 // ===== Design Tokens：间距 / 圆角 =====
 // 与 theme/theme_extensions.dart 同步，为组件提供语义化间距/圆角常量
-// 导入方式：import 'package:embbytok_flutter/utils/constants.dart';
+// 导入方式：import 'package:embytok_flutter/utils/constants.dart';
 
 // 间距（8px 基准，适用于 EdgeInsets.all / symmetric / only）
 const double kSpacingXs = 4.0;
@@ -192,7 +192,7 @@ const double kFontSizeTitleLarge = 22.0;
 /// Emby 客户端标识前缀（不含 Token，用于登录前的匿名请求）
 const String kEmbyAuthPrefix =
     'MediaBrowser Client="EmbyTok", Device="Mobile",'
-    ' DeviceId="embbytok-client", Version="1.0.0"';
+    ' DeviceId="embytok-client", Version="1.0.0"';
 
 /// 构造含 Token 的完整 X-Emby-Authorization 头值
 ///

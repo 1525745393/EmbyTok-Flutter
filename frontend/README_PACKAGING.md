@@ -76,13 +76,13 @@ sh scripts/build_android.sh debug
 
 ```bash
 keytool -genkey -v \
-  -keystore android/embbytok-keystore.jks \
+  -keystore android/embytok-keystore.jks \
   -keyalg RSA -keysize 2048 -validity 36500 \
-  -alias embbytok
+  -alias embytok
 ```
 
-> 按提示填写国家、组织、名称等信息，注意两次输入的 keystore 密码与 key 密码。建议 alias 固定使用 `embbytok` 与模板一致。
-> 生成后 **立即把 `android/embbytok-keystore.jks` 离线备份**，并确认 `.gitignore` 已忽略。
+> 按提示填写国家、组织、名称等信息，注意两次输入的 keystore 密码与 key 密码。建议 alias 固定使用 `embytok` 与模板一致。
+> 生成后 **立即把 `android/embytok-keystore.jks` 离线备份**，并确认 `.gitignore` 已忽略。
 
 #### 3.2.2 配置 key.properties
 
@@ -91,11 +91,11 @@ keytool -genkey -v \
 ```properties
 storePassword=你的keystore密码
 keyPassword=你的key密码
-keyAlias=embbytok
-storeFile=embbytok-keystore.jks
+keyAlias=embytok
+storeFile=embytok-keystore.jks
 ```
 
-> `storeFile` 建议写相对路径，让 Gradle 在 `android/` 目录下找到 jks；如写绝对路径请使用 `/Users/xxx/.../android/embbytok-keystore.jks`。
+> `storeFile` 建议写相对路径，让 Gradle 在 `android/` 目录下找到 jks；如写绝对路径请使用 `/Users/xxx/.../android/embytok-keystore.jks`。
 
 > **自动化提示**：若 CI/CD 设置了环境变量 `ANDROID_KEYSTORE_PATH`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`，脚本会自动生成 `android/key.properties`（仅当文件不存在时）。
 
@@ -163,7 +163,7 @@ build/app/outputs/bundle/release/app-release.aab
 | 依赖解析失败 | Gradle 镜像不通、代理错误 | 见「7. 阿里云镜像配置」 |
 | 路径含中文（`mergeDebugResources` 报错） | Windows 用户名含中文、项目路径含中文 | 在 `android/gradle.properties` 中添加 `android.overridePathCheck=true`；或把项目移动到英文路径 |
 | keystore 丢失 | 硬盘损坏、误删 | 使用离线备份重新放置；否则应用商店无法以相同签名更新 |
-| 签名失败 | `key.properties` 中密码/别名错误、jks 路径找不到 | 使用 `keytool -list -v -keystore android/embbytok-keystore.jks` 手动验证 jks |
+| 签名失败 | `key.properties` 中密码/别名错误、jks 路径找不到 | 使用 `keytool -list -v -keystore android/embytok-keystore.jks` 手动验证 jks |
 | ProGuard 混淆崩溃 | 插件 native 代码被误删 | 在 `android/app/proguard-rules.pro` 添加插件文档提供的 `-keep` 规则 |
 
 ---
@@ -187,7 +187,7 @@ open Runner.xcworkspace    # 在 Xcode 中打开
 1. Xcode → 打开项目 → 左侧 `Runner` → 顶部 `Signing & Capabilities`
 2. 勾选 **Automatically manage signing**
 3. 选择你的 **Team**（Apple Developer 账号）
-4. 修改 **Bundle Identifier**（例如 `com.embbytok.app`），必须与 App Store Connect 中已登记的 ID 一致
+4. 修改 **Bundle Identifier**（例如 `com.embytok.app`），必须与 App Store Connect 中已登记的 ID 一致
 5. 选中 Deployment Target ≥ 12.0，确保覆盖绝大多数设备
 
 ### 4.3 Archive 流程
@@ -248,7 +248,7 @@ xcrun altool --upload-app \
 Flutter 项目的版本号统一在 `pubspec.yaml` 中定义：
 
 ```yaml
-name: embbytok_flutter
+name: embytok_flutter
 description: "EmbyTok Flutter"
 publish_to: 'none'
 version: 0.1.0+1        # ← 这里控制版本号

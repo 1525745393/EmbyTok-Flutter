@@ -5,7 +5,7 @@
 /// - toJson 序列化
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/user_data.dart';
+import 'package:embytok_flutter/models/user_data.dart';
 
 void main() {
   group('UserData', () {

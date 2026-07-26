@@ -1,7 +1,7 @@
 /// WatchHistoryItem 模型测试
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/watch_history_item.dart';
+import 'package:embytok_flutter/models/watch_history_item.dart';
 
 void main() {
   group('WatchHistoryItem', () {

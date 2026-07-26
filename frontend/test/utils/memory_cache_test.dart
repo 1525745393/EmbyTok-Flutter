@@ -2,7 +2,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:embbytok_flutter/utils/memory_cache.dart';
+import 'package:embytok_flutter/utils/memory_cache.dart';
 
 void main() {
   group('MemoryCache', () {

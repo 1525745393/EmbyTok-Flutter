@@ -3,9 +3,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/repositories/media_repository.dart';
-import 'package:embbytok_flutter/repositories/cached_media_repository.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/repositories/media_repository.dart';
+import 'package:embytok_flutter/repositories/cached_media_repository.dart';
 
 import '../mocks/mock_services.dart';
 

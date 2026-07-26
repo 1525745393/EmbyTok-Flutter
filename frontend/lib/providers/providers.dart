@@ -2,7 +2,7 @@
 ///
 /// 导入此文件即可访问整个项目的全局状态：
 /// ```dart
-/// import 'package:embbytok/providers/providers.dart';
+/// import 'package:embytok/providers/providers.dart';
 /// ```
 library;
 

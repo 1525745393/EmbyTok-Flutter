@@ -517,7 +517,7 @@ class _FullscreenVideoPageState
     if (selectedTrack == null) return;
 
     try {
-      final embService = ref.read(embbytokServiceProvider);
+      final embService = ref.read(embytokServiceProvider);
       final authState = ref.read(authProvider);
       final serverUrl = authState.embyServerUrl;
       final token = authState.token;

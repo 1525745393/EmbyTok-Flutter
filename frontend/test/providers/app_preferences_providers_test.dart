@@ -11,8 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:embbytok_flutter/providers/app_preferences_providers.dart';
-import 'package:embbytok_flutter/utils/app_preferences.dart';
+import 'package:embytok_flutter/providers/app_preferences_providers.dart';
+import 'package:embytok_flutter/utils/app_preferences.dart';
 
 void main() {
   group('DeviceModeNotifier', () {

@@ -3,7 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
+import '../services/embytok_service.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
 

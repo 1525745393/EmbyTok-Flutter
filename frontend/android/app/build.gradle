@@ -43,7 +43,7 @@ if (pubspecVersion.contains("+")) {
 }
 
 android {
-    namespace "com.embbytok.app"
+    namespace "com.embytok.app"
     compileSdk 34
 
     compileOptions {
@@ -56,7 +56,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.embbytok.app"
+        applicationId "com.embytok.app"
         minSdk 21
         targetSdk 34
         // 从 pubspec.yaml 显式解析：version: X.Y.Z+B

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/media_item.dart';
+import 'package:embytok_flutter/models/media_item.dart';
 
 void main() {
   group('MediaItem', () {

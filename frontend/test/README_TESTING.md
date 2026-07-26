@@ -19,7 +19,7 @@ test/
 │   └── video_list_provider_test.dart
 ├── services/                 # 服务测试
 │   ├── api_client_test.dart
-│   └── embbytok_service_test.dart
+│   └── embytok_service_test.dart
 ├── utils/                    # 工具函数测试
 │   └── formatters_test.dart
 ├── widgets/                  # Widget 测试

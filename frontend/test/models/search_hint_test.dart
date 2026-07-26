@@ -1,7 +1,7 @@
 /// SearchHint 模型测试
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/search_hint.dart';
+import 'package:embytok_flutter/models/search_hint.dart';
 
 void main() {
   group('SearchHint', () {

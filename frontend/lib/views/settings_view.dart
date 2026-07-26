@@ -1692,7 +1692,7 @@ class SettingsView extends ConsumerWidget {
 
       // 写入临时文件以便系统查看器打开
       final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/embbytok_export.log');
+      final tempFile = File('${tempDir.path}/embytok_export.log');
       await tempFile.writeAsString(logContent);
 
       if (!context.mounted) return;

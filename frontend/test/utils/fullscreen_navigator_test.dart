@@ -13,7 +13,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
-import 'package:embbytok_flutter/utils/fullscreen_navigator.dart';
+import 'package:embytok_flutter/utils/fullscreen_navigator.dart';
 
 void main() {
   group('FullscreenNavigator.isControllerUsableForFullscreen', () {

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
 
-import 'package:embbytok_flutter/widgets/video/video_progress_bars.dart';
+import 'package:embytok_flutter/widgets/video/video_progress_bars.dart';
 
 void main() {
   group('SeekableProgressBar 拖动 seek 行为', () {

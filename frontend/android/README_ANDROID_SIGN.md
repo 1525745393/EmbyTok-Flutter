@@ -13,15 +13,15 @@ cd /workspace/frontend/android
 然后执行 `keytool` 生成密钥（JKS 格式的 keystore 文件：
 
 ```bash
-keytool -genkey -v -keystore embbytok-keystore.jks -keyalg RSA -keysize 2048 -validity 36500 -alias embbytok
+keytool -genkey -v -keystore embytok-keystore.jks -keyalg RSA -keysize 2048 -validity 36500 -alias embytok
 ```
 
 参数说明：
-- `-keystore embbytok-keystore.jks`：输出的密钥库文件名（请在 android/ 目录下生成）
+- `-keystore embytok-keystore.jks`：输出的密钥库文件名（请在 android/ 目录下生成）
 - `-keyalg RSA`：使用 RSA 算法
 - `-keysize 2048`：密钥长度 2048 位
 - `-validity 36500`：有效期约 100 年（36500 天）
-- `-alias embbytok`：密钥别名
+- `-alias embytok`：密钥别名
 
 执行过程中需要填写以下信息：
 
@@ -45,9 +45,9 @@ Is CN=EmbyTok, OU=EmbyTok, O=EmbyTok, L=Beijing, ST=Beijing, C=CN correct?
 
 Generating 2,048 bit RSA key pair and self-signed certificate (SHA256withRSA) with a validity of 36,500 days
 	for: CN=EmbyTok, OU=EmbyTok, O=EmbyTok, L=Beijing, ST=Beijing, C=CN
-Enter key password for <embbytok>
+Enter key password for <embytok>
 	(RETURN if same as keystore password):  <回车或输入 keyPassword>
-[Storing embbytok-keystore.jks]
+[Storing embytok-keystore.jks]
 ```
 
 ## 2. 配置 key.properties
@@ -63,8 +63,8 @@ cp key.properties.template key.properties
 ```properties
 storePassword=your_store_password_here
 keyPassword=your_key_password_here
-keyAlias=embbytok
-storeFile=embbytok-keystore.jks
+keyAlias=embytok
+storeFile=embytok-keystore.jks
 ```
 
 ## 3. 执行 Release 构建
@@ -84,7 +84,7 @@ cd android
 
 ## 4. 安全提示
 
-- **keystore 文件（`embbytok-keystore.jks`）和密码必须离线备份（例如加密压缩后上传到私人密码管理器），丢失后无法更新已上架的应用
+- **keystore 文件（`embytok-keystore.jks`）和密码必须离线备份（例如加密压缩后上传到私人密码管理器），丢失后无法更新已上架的应用
 - **绝不要** 将 `key.properties` 和 `*.jks`/`*.keystore` 文件提交到 Git，已经在 `.gitignore` 中忽略
 - **团队成员共享时请使用安全的传输方式，不要在公开渠道传播
 

@@ -529,7 +529,7 @@ class MediaItem {
     return {
       'X-Emby-Authorization':
           'MediaBrowser Client="EmbyTok", Device="Mobile",'
-          ' DeviceId="embbytok-client", Version="1.0.0", Token="$token"',
+          ' DeviceId="embytok-client", Version="1.0.0", Token="$token"',
       'X-Emby-Token': token,
     };
   }

@@ -7,7 +7,7 @@
 /// - defaultAudioStream 默认音轨选择
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/media_source.dart';
+import 'package:embytok_flutter/models/media_source.dart';
 
 void main() {
   group('MediaStream', () {

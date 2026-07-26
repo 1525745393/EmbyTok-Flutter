@@ -2,8 +2,8 @@
 // 手动创建 mock 类，避免依赖 build_runner
 
 import 'package:mockito/mockito.dart';
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/services/embytok_service.dart';
 
 /// EmbytokService 的 Mock 实现
 /// 注意：只覆盖测试实际需要的方法，其他方法继承自 EmbytokService

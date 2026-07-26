@@ -7,9 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/providers/auth_provider.dart';
-import 'package:embbytok_flutter/utils/constants.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';
 

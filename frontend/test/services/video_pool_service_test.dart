@@ -16,8 +16,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/services/video_pool_service.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/services/video_pool_service.dart';
 
 // Fake VideoPlayerController：仅实现 PlaybackSession 调用的方法（value、dispose）
 // 通过 disposed 字段跟踪 dispose 调用，替代 mockito 的 verify

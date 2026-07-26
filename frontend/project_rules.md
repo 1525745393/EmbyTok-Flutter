@@ -45,7 +45,7 @@ frontend/
 | Provider | `snake_case.dart` | `favorites_provider.dart` |
 | View/Page | `snake_case_view.dart` | `favorites_view.dart` |
 | Widget | `snake_case.dart` 或 `snake_case_widget.dart` | `video_grid_card.dart` |
-| 测试文件 | `xxx_test.dart`（单元测试） | `embbytok_service_test.dart` |
+| 测试文件 | `xxx_test.dart`（单元测试） | `embytok_service_test.dart` |
 
 ---
 
@@ -84,7 +84,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 
 // 5. 本项目 services
-import '../services/embbytok_service.dart';
+import '../services/embytok_service.dart';
 
 // 6. 本项目 widgets（相对路径）
 import '../widgets/video_page_item.dart';

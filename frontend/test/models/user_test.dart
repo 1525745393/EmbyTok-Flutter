@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/user.dart';
+import 'package:embytok_flutter/models/user.dart';
 
 void main() {
   group('User', () {

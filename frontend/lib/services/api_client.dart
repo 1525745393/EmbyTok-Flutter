@@ -46,7 +46,7 @@ class ApiClient {
   // Token 在拦截器中动态内嵌，避免登录前后头部格式不一致
   static const _clientAuthPrefix =
       'MediaBrowser Client="EmbyTok", Device="Mobile",'
-      ' DeviceId="embbytok-client", Version="1.0.0"';
+      ' DeviceId="embytok-client", Version="1.0.0"';
 
   // 注册拦截器：自动注入符合 Emby 规范的 X-Emby-Authorization 头
   //

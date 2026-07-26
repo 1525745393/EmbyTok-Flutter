@@ -10,7 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/theme/app_theme.dart';
+import 'package:embytok_flutter/theme/app_theme.dart';
 
 void main() {
   group('全面屏手势适配：系统栏样式', () {

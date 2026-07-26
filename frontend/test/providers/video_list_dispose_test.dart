@@ -18,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:embbytok_flutter/providers/video_list_provider.dart';
+import 'package:embytok_flutter/providers/video_list_provider.dart';
 
 @GenerateMocks([Timer])
 void main() {

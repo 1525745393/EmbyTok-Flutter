@@ -8,7 +8,7 @@
 // 和人工来回滑动验证。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/services/video_pool_service.dart';
+import 'package:embytok_flutter/services/video_pool_service.dart';
 
 void main() {
   group('VideoPoolService 智能释放契约', () {

@@ -1,4 +1,4 @@
-package com.embbytok.app
+package com.embytok.app
 
 import android.os.Bundle
 import androidx.core.view.WindowCompat

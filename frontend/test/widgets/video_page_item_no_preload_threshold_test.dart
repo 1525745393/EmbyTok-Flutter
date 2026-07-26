@@ -7,8 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/widgets/video_page_item.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/widgets/video_page_item.dart';
 
 void main() {
   testWidgets('VideoPageItem 构造函数不接受 onPreloadThreshold 参数',

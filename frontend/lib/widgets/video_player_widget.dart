@@ -682,7 +682,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       'isLocal': isLocal,
     });
 
-    final embService = ref.read(embbytokServiceProvider);
+    final embService = ref.read(embytokServiceProvider);
     // 注入当前认证信息（确保字幕请求头包含 Token）
     final authState = ref.read(authProvider);
     final serverUrl = authState.embyServerUrl;

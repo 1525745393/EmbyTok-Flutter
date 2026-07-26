@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/services/api_client.dart';
-import 'package:embbytok_flutter/services/embbytok_service.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/services/api_client.dart';
+import 'package:embytok_flutter/services/embytok_service.dart';
 
 void main() {
   late Dio dio;

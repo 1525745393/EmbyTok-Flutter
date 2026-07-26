@@ -6,11 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/app.dart';
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/providers/auth_provider.dart';
-import 'package:embbytok_flutter/views/home_scaffold.dart';
-import 'package:embbytok_flutter/views/feed_view.dart';
+import 'package:embytok_flutter/app.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/providers/auth_provider.dart';
+import 'package:embytok_flutter/views/home_scaffold.dart';
+import 'package:embytok_flutter/views/feed_view.dart';
 
 void main() {
   group('退出确认对话框', () {

@@ -4,7 +4,7 @@
 /// 此处测试其基本构造和时间边界行为。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/widgets/subtitle_renderer.dart';
+import 'package:embytok_flutter/widgets/subtitle_renderer.dart';
 
 void main() {
   group('SubtitleCue', () {

@@ -8,7 +8,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
+import '../services/embytok_service.dart';
 import 'media_repository.dart';
 
 /// Emby 媒体仓库实现

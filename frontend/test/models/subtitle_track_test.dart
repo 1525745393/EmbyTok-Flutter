@@ -1,7 +1,7 @@
 /// SubtitleTrack 模型测试
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/subtitle_track.dart';
+import 'package:embytok_flutter/models/subtitle_track.dart';
 
 void main() {
   group('SubtitleTrack', () {

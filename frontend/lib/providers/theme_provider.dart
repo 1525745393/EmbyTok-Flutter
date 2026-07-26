@@ -3,7 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const String _kStorageKeyTheme = 'embbytok_theme_mode';
+const String _kStorageKeyTheme = 'embytok_theme_mode';
 
 /// 主题模式 Provider：控制应用的亮/暗/跟随系统主题
 ///

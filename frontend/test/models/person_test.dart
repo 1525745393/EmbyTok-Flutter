@@ -1,7 +1,7 @@
 /// Person 模型测试
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/models/person.dart';
+import 'package:embytok_flutter/models/person.dart';
 
 void main() {
   group('Person', () {

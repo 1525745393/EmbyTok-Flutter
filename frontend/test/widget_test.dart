@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:embbytok_flutter/app.dart';
+import 'package:embytok_flutter/app.dart';
 
 void main() {
   testWidgets('app smoke test', (WidgetTester tester) async {

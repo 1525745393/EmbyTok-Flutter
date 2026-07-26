@@ -9,7 +9,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
-import '../services/embbytok_service.dart';
+import '../services/embytok_service.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../utils/memory_cache.dart';

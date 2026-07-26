@@ -6,7 +6,7 @@
 // - [playback_list_provider.dart]   全局播放列表（完全独立）
 // - 本文件：派生 Provider + 统一导出
 //
-// 导入方式不变：import 'package:embbytok/providers/video_list_provider.dart'
+// 导入方式不变：import 'package:embytok/providers/video_list_provider.dart'
 // 所有原有符号（VideoListState、videoListProvider、filteredVideoListProvider 等）
 // 均通过本文件重新导出，保持向后兼容。
 

@@ -12,7 +12,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 /// - 内存缓存由 Flutter ImageCache 统一管理（main.dart 中设置为 50 张 / 30MB）
 /// - 降低缓存数量以适配 512MB heap 限制的 Android 设备
 class AppImageCacheManager {
-  static const String _cacheKey = 'embbytokImageCache';
+  static const String _cacheKey = 'embytokImageCache';
 
   /// 缩略图缓存（网格视图、搜索结果等小图）
   static final CacheManager thumbnail = CacheManager(

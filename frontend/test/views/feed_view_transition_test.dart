@@ -11,9 +11,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:embbytok_flutter/models/models.dart';
-import 'package:embbytok_flutter/providers/providers.dart';
-import 'package:embbytok_flutter/utils/app_preferences.dart';
+import 'package:embytok_flutter/models/models.dart';
+import 'package:embytok_flutter/providers/providers.dart';
+import 'package:embytok_flutter/utils/app_preferences.dart';
 
 void main() {
   group('功能一：网格→视频流跳转', () {

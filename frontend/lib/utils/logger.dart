@@ -268,7 +268,7 @@ class AppLogger {
         // ignore: avoid_print
         print('日志路径初始化失败: $e');
       }
-      _logFilePath = '/tmp/embbytok_app.log';
+      _logFilePath = '/tmp/embytok_app.log';
       _initialized = true;
     }
     return _logFilePath!;

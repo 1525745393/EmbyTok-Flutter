@@ -76,7 +76,7 @@ EOF
 
     if [ ! -f "android/key.properties" ]; then
         log_err "release 构建需要签名密钥。请先："
-        echo -e "${RED}${PREFIX}   1. 生成 keystore：keytool -genkey -v -keystore android/embbytok-keystore.jks -keyalg RSA -keysize 2048 -validity 36500 -alias embbytok${NC}"
+        echo -e "${RED}${PREFIX}   1. 生成 keystore：keytool -genkey -v -keystore android/embytok-keystore.jks -keyalg RSA -keysize 2048 -validity 36500 -alias embytok${NC}"
         echo -e "${RED}${PREFIX}   2. 复制 android/key.properties.template 为 android/key.properties 并填写真实值${NC}"
         exit 1
     fi

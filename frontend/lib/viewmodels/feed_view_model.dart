@@ -23,7 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../coordinators/playback_coordinator.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/embbytok_service.dart';
+import '../services/embytok_service.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/logger.dart';
