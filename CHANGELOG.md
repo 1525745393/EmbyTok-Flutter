@@ -1,3 +1,10 @@
+## [2.20.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.8...v2.20.9) (2026-07-26)
+
+
+### Bug Fixes
+
+* 补充 app.dart 缺失的 package:flutter/foundation.dart 导入 ([57e7ccd](https://github.com/1525745393/EmbyTok-Flutter/commit/57e7ccd51c89a8755f387db46071bf698e402dd3))
+
 ## [2.20.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.7...v2.20.8) (2026-07-25)
 
 
