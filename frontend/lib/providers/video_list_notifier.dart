@@ -420,6 +420,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           // 多库混合：每个库独立 try-catch
           final merged = <MediaItem>[];
           for (final libId in libIds) {
+            // 每次 await 后检查代数：新的 refresh 已启动则提前终止，节约资源
+            if (_refreshGeneration != gen) return;
             try {
               final resp = await _repo.getLibraryItems(
                 MediaQueryParams(
@@ -438,6 +440,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
               AppLogger.error('加载库 $libId 失败，跳过', error: e);
             }
           }
+          if (_refreshGeneration != gen) return;
           final shuffled = List<MediaItem>.from(merged);
           shuffled.shuffle();
           loadedItems = shuffled;
@@ -445,17 +448,20 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           canPaginate = false;
 
         case FeedType.favorites:
+          if (_refreshGeneration != gen) return;
           final favResult = await _repo.getFavoriteMovies(
             serverUrl: serverUrl,
             token: token,
             userId: userId,
             cancelToken: _refreshCancelToken,
           );
+          if (_refreshGeneration != gen) return;
           loadedItems = favResult.items;
           loadedTotal = favResult.items.length;
           canPaginate = false;
 
         case FeedType.resume:
+          if (_refreshGeneration != gen) return;
           final resp = await _repo.getResumeItems(
             limit: 50,
             offset: 0,
@@ -463,6 +469,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             token: token,
             cancelToken: _refreshCancelToken,
           );
+          if (_refreshGeneration != gen) return;
           loadedItems = resp.items;
           loadedTotal = resp.items.length;
           canPaginate = false;

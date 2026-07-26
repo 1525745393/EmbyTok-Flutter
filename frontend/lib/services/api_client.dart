@@ -210,6 +210,8 @@ class ApiClient {
   /// - [retry] 是否启用指数退避重试，默认 false
   ///   启用后对可重试错误（网络错误/超时/5xx）自动重试，最多 2 次
   ///   初始延迟 500ms，退避因子 2.0（500ms → 1000ms）
+  /// - [cancelToken] 传了 cancelToken 的请求不参与去重，
+  ///   避免一个调用方取消导致所有复用方都被取消的问题。
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -217,6 +219,22 @@ class ApiClient {
     bool retry = false,
     CancelToken? cancelToken,
   }) async {
+    // 有 cancelToken 的请求不参与去重：避免一个调用方取消导致所有复用方都被取消
+    if (cancelToken != null) {
+      return retry
+          ? await _requestWithRetry<T>(
+              path,
+              queryParameters: queryParameters,
+              headers: headers,
+              cancelToken: cancelToken,
+            )
+          : await _request<T>(path,
+              method: 'GET',
+              queryParameters: queryParameters,
+              headers: headers,
+              cancelToken: cancelToken);
+    }
+
     // 生成请求去重 key：baseUrl + token + path + 排序后的 queryParameters
     // 加入 baseUrl 和 token 防止跨账号请求错误复用
     final key = _buildDedupeKey(path, queryParameters, headers);
@@ -235,9 +253,9 @@ class ApiClient {
               path,
               queryParameters: queryParameters,
               headers: headers,
-              cancelToken: cancelToken,
             )
-          : await _request<T>(path, method: 'GET', queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
+          : await _request<T>(path,
+              method: 'GET', queryParameters: queryParameters, headers: headers);
       completer.complete(response);
       return response;
     } catch (e) {

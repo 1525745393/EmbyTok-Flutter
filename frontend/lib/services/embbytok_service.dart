@@ -1129,6 +1129,11 @@ class EmbytokService {
     _subtitleCache.clear();
   }
 
+  /// 本地字幕文件最大大小（字节），默认 5MB
+  ///
+  /// 防止用户选择过大的文件导致内存问题
+  static const int maxSubtitleFileSize = 5 * 1024 * 1024;
+
   /// 从本地文件加载字幕（外挂字幕）
   ///
   /// [filePath] 本地文件路径
@@ -1142,6 +1147,16 @@ class EmbytokService {
       final file = File(filePath);
       if (!await file.exists()) {
         AppLogger.warn('本地字幕文件不存在', data: {'filePath': filePath});
+        return const <SubtitleCue>[];
+      }
+      // 文件大小校验：避免过大文件导致内存问题
+      final fileSize = await file.length();
+      if (fileSize > maxSubtitleFileSize) {
+        AppLogger.warn('本地字幕文件过大', data: {
+          'filePath': filePath,
+          'fileSize': fileSize,
+          'maxSize': maxSubtitleFileSize,
+        });
         return const <SubtitleCue>[];
       }
       final content = await file.readAsString();

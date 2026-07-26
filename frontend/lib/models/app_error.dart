@@ -6,6 +6,8 @@
 // - 同时携带用户可读提示和调试用原始信息
 // - 支持日志上报和本地持久化
 
+import 'package:dio/dio.dart';
+
 /// 错误类型枚举
 ///
 /// 覆盖项目所有常见错误场景，UI 层可按类型展示不同提示和操作
@@ -238,7 +240,7 @@ class AppError implements Exception {
 
   /// 从 DioException 或其他原始错误转换
   ///
-  /// 供 ApiClient 内部使用，将 DioException 分类为 AppError
+  /// 优先使用类型检查，字符串匹配作为兜底。
   factory AppError.fromDioException(
     dynamic error, {
     StackTrace? stackTrace,
@@ -257,23 +259,91 @@ class AppError implements Exception {
       return AppError.unknown(message: error, debugMessage: debugMsg, stackTrace: stack);
     }
 
-    // DioException 分类
-    if (error.toString().contains('DioException') ||
-        error.toString().contains('SocketException') ||
-        error.toString().contains('HandshakeException')) {
-      // 超时类
-      if (error.toString().contains('Timeout') ||
-          error.toString().contains('connectionTimeout') ||
-          error.toString().contains('sendTimeout') ||
-          error.toString().contains('receiveTimeout')) {
-        return AppError.timeout(debugMessage: debugMsg, stackTrace: stack);
+    // DioException：按 type 字段精确分类
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return AppError.timeout(debugMessage: debugMsg, stackTrace: stack);
+        case DioExceptionType.connectionError:
+        case DioExceptionType.unknown:
+          // connectionError：DNS 失败、连接被拒绝等网络层错误
+          // unknown：SocketException、HandshakeException 等通常也会归到这里
+          final msg = error.toString().toLowerCase();
+          if (msg.contains('socketexception') ||
+              msg.contains('handshakeexception') ||
+              msg.contains('connectionerror') ||
+              error.type == DioExceptionType.connectionError) {
+            return AppError.network(debugMessage: debugMsg, stackTrace: stack);
+          }
+          // 有 HTTP 响应的按状态码分类
+          final statusCode = error.response?.statusCode;
+          if (statusCode != null) {
+            if (statusCode == 401) {
+              return AppError.unauthorized(debugMessage: debugMsg, stackTrace: stack);
+            }
+            if (statusCode == 403) {
+              return AppError.forbidden(debugMessage: debugMsg, stackTrace: stack);
+            }
+            if (statusCode == 404) {
+              return AppError.notFound(debugMessage: debugMsg, stackTrace: stack);
+            }
+            if (statusCode >= 500) {
+              return AppError.serverError(
+                statusCode: statusCode,
+                debugMessage: debugMsg,
+                stackTrace: stack,
+              );
+            }
+          }
+          return AppError.unknown(debugMessage: debugMsg, stackTrace: stack);
+        case DioExceptionType.badResponse:
+          // 有 HTTP 响应但状态码不在 2xx 范围
+          final statusCode = error.response?.statusCode;
+          if (statusCode == 401) {
+            return AppError.unauthorized(debugMessage: debugMsg, stackTrace: stack);
+          }
+          if (statusCode == 403) {
+            return AppError.forbidden(debugMessage: debugMsg, stackTrace: stack);
+          }
+          if (statusCode == 404) {
+            return AppError.notFound(debugMessage: debugMsg, stackTrace: stack);
+          }
+          if (statusCode != null && statusCode >= 500) {
+            return AppError.serverError(
+              statusCode: statusCode,
+              debugMessage: debugMsg,
+              stackTrace: stack,
+            );
+          }
+          return AppError.unknown(debugMessage: debugMsg, stackTrace: stack);
+        case DioExceptionType.cancel:
+          // 请求被取消：当作未知错误，上层通常会静默忽略
+          return AppError.unknown(
+            message: '请求已取消',
+            debugMessage: debugMsg,
+            stackTrace: stack,
+          );
+        case DioExceptionType.badCertificate:
+          return AppError.network(
+            message: '证书验证失败',
+            debugMessage: debugMsg,
+            stackTrace: stack,
+          );
       }
-      // 连接错误
-      if (error.toString().contains('connectionError') ||
-          error.toString().contains('SocketException') ||
-          error.toString().contains('HandshakeException')) {
-        return AppError.network(debugMessage: debugMsg, stackTrace: stack);
-      }
+    }
+
+    // 兜底：字符串匹配（处理非 DioException 的网络异常）
+    final errStr = error?.toString() ?? '';
+    if (errStr.contains('SocketException') ||
+        errStr.contains('HandshakeException') ||
+        errStr.contains('ConnectionError')) {
+      return AppError.network(debugMessage: debugMsg, stackTrace: stack);
+    }
+    if (errStr.contains('TimeoutException') ||
+        errStr.contains('timeout')) {
+      return AppError.timeout(debugMessage: debugMsg, stackTrace: stack);
     }
 
     return AppError.unknown(debugMessage: debugMsg, stackTrace: stack);
