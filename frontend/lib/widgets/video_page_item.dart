@@ -653,19 +653,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _titleText() {
-    if (widget.item.year != null) return '${widget.item.title} (${widget.item.year})';
-    return widget.item.title;
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
-    // 使用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化时触发重建
-    final favorited = ref.watch(
-        favoritesProvider.select((s) => s.favoriteIds.contains(widget.item.id)));
     // 使用 select 仅监听当前 item 的就绪状态，避免其他 item 就绪状态变化时触发重建
     final isReady = ref.watch(
         videoReadyProvider.select((s) => s.contains(widget.item.id)));
@@ -705,86 +697,89 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         // 视频播放区（Gestures + VideoPlayer）
         // 全屏时 VideoPlayer 保持渲染，画面通过透明 FullscreenVideoPage 覆盖层显示，
         // 避免移除 VideoPlayer 后 Texture 无法重新注册导致黑屏
-        AnimatedOpacity(
-          opacity: isReady ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          child: GestureOverlay(
-            controller: _videoController,
-            item: widget.item,
-            enableGestures: !_controlsVisible,
-            onSingleTap: () {
-              if (isAutoPlay) {
-                // 纯净模式：单击屏幕切换控制条显示/隐藏，与全屏页行为一致
-                // 用户可通过控制条暂停/播放、拖动进度、调节倍速、切换字幕等
-                _toggleControls();
-                _cleanActionsKey.currentState?.show();
-              } else {
-                // 非纯净模式：单击切换播放/暂停
-                // 信息条始终可见，无需单击控制显隐
-                _togglePlay();
-              }
-            },
-            child: VideoPlayerWidget(
-              key: _videoPlayerKey,
+        // RepaintBoundary：视频渲染是独立图层，与控制层隔离，避免控制层状态变化触发视频重绘
+        RepaintBoundary(
+          child: AnimatedOpacity(
+            opacity: isReady ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            child: GestureOverlay(
+              controller: _videoController,
               item: widget.item,
-              isCurrentPage: widget.isCurrentPage,
-              embyServerUrl: embyServerUrl,
-              token: token,
-              preloadedController: widget.preloadedSession?.controller,
-              startFromResumePosition: widget.startFromResumePosition,
-              onControllerReleased: () {
-                ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-                // 关键修复：controller 被 VideoPlayerWidget 释放时，必须清除本组件的引用，
-                // 否则 _videoController 会指向已 dispose 的 controller，
-                // 导致 didUpdateWidget 中 _startPlaybackIfCurrent() 对已 dispose 的 controller
-                // 调用 play() 无效，视频无法播放。
-                // 同时移除 listener 避免对已 dispose 的 controller 持有 listener 造成泄漏。
-                if (!mounted) return;
-                final old = _videoController;
-                if (old != null) {
-                  try { old.removeListener(_onVideoChanged); } catch (_) {}
-                  // 同步清除 currentVideoControllerProvider（如果持有相同引用）
-                  // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
-                  // 进入全屏页后 isControllerReady=false，导致黑屏
-                  final current = ref.read(currentVideoControllerProvider);
-                  if (current != null && identical(current, old)) {
-                    ref.read(currentVideoControllerProvider.notifier).state = null;
-                  }
+              enableGestures: !_controlsVisible,
+              onSingleTap: () {
+                if (isAutoPlay) {
+                  // 纯净模式：单击屏幕切换控制条显示/隐藏，与全屏页行为一致
+                  // 用户可通过控制条暂停/播放、拖动进度、调节倍速、切换字幕等
+                  _toggleControls();
+                  _cleanActionsKey.currentState?.show();
+                } else {
+                  // 非纯净模式：单击切换播放/暂停
+                  // 信息条始终可见，无需单击控制显隐
+                  _togglePlay();
                 }
-                setState(() => _videoController = null);
               },
-              onControllerReady: (c) {
-                // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
-                if (!mounted) return;
-                // 判断是否为新的 controller 实例（非当前持有的）
-                // 场景：首次初始化（_videoController==null）、controller 被释放后重新初始化、
-                // 用户切换画质后 _userInitiatedReinit 创建新 controller
-                final isNewController = !identical(_videoController, c);
-                // 切换 controller 前先移除旧 controller 上的 listener，
-                // 避免内存泄漏和旧 controller 状态变化时误触发 _onVideoChanged
-                if (isNewController && _videoController != null) {
-                  _videoController!.removeListener(_onVideoChanged);
-                }
-                setState(() => _videoController = c);
-                ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
-                c.addListener(_onVideoChanged);
-                // 仅当前页启动播放上报/进度上报，避免相邻预加载页并发有声播放与重复上报
-                if (widget.isCurrentPage) {
-                  // 如果是新 controller 实例，重置上报状态并重新上报
-                  if (isNewController) {
-                    // 先上报旧会话结束（如果之前有开始上报过）
-                    if (_hasStartedReported && !_hasStoppedReported) {
-                      _reportPlaybackStopped();
+              child: VideoPlayerWidget(
+                key: _videoPlayerKey,
+                item: widget.item,
+                isCurrentPage: widget.isCurrentPage,
+                embyServerUrl: embyServerUrl,
+                token: token,
+                preloadedController: widget.preloadedSession?.controller,
+                startFromResumePosition: widget.startFromResumePosition,
+                onControllerReleased: () {
+                  ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+                  // 关键修复：controller 被 VideoPlayerWidget 释放时，必须清除本组件的引用，
+                  // 否则 _videoController 会指向已 dispose 的 controller，
+                  // 导致 didUpdateWidget 中 _startPlaybackIfCurrent() 对已 dispose 的 controller
+                  // 调用 play() 无效，视频无法播放。
+                  // 同时移除 listener 避免对已 dispose 的 controller 持有 listener 造成泄漏。
+                  if (!mounted) return;
+                  final old = _videoController;
+                  if (old != null) {
+                    try { old.removeListener(_onVideoChanged); } catch (_) {}
+                    // 同步清除 currentVideoControllerProvider（如果持有相同引用）
+                    // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
+                    // 进入全屏页后 isControllerReady=false，导致黑屏
+                    final current = ref.read(currentVideoControllerProvider);
+                    if (current != null && identical(current, old)) {
+                      ref.read(currentVideoControllerProvider.notifier).state = null;
                     }
-                    _hasStartedReported = false;
-                    _hasStoppedReported = false;
-                    _playSessionId = null;
-                    _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
                   }
-                  _startPlaybackIfCurrent();
-                }
-              },
+                  setState(() => _videoController = null);
+                },
+                onControllerReady: (c) {
+                  // 异步回调中 setState 前必须检查 mounted，避免 widget 已销毁时抛异常
+                  if (!mounted) return;
+                  // 判断是否为新的 controller 实例（非当前持有的）
+                  // 场景：首次初始化（_videoController==null）、controller 被释放后重新初始化、
+                  // 用户切换画质后 _userInitiatedReinit 创建新 controller
+                  final isNewController = !identical(_videoController, c);
+                  // 切换 controller 前先移除旧 controller 上的 listener，
+                  // 避免内存泄漏和旧 controller 状态变化时误触发 _onVideoChanged
+                  if (isNewController && _videoController != null) {
+                    _videoController!.removeListener(_onVideoChanged);
+                  }
+                  setState(() => _videoController = c);
+                  ref.read(videoReadyProvider.notifier).markReady(widget.item.id);
+                  c.addListener(_onVideoChanged);
+                  // 仅当前页启动播放上报/进度上报，避免相邻预加载页并发有声播放与重复上报
+                  if (widget.isCurrentPage) {
+                    // 如果是新 controller 实例，重置上报状态并重新上报
+                    if (isNewController) {
+                      // 先上报旧会话结束（如果之前有开始上报过）
+                      if (_hasStartedReported && !_hasStoppedReported) {
+                        _reportPlaybackStopped();
+                      }
+                      _hasStartedReported = false;
+                      _hasStoppedReported = false;
+                      _playSessionId = null;
+                      _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
+                    }
+                    _startPlaybackIfCurrent();
+                  }
+                },
+              ),
             ),
           ),
         ),
@@ -856,203 +851,37 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
         // 底部渐变 + 标题/简介/类型标签（非纯净模式）
         if ((_isInfoExpanded || !isAutoPlay) && !isInFullscreen)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedOpacity(
-              opacity: _isInfoVisible ? 1.0 : 0.0,
-              duration: Duration(milliseconds: _isInfoVisible ? 300 : 500),
-              curve: Curves.easeOut,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  80,
-                  rs(80, 2.0) + 16,
-                  toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      scheme.surface.withOpacity(0.8),
-                      scheme.surface.withOpacity(0.5),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 横屏视频：居中显示「全屏观看」按钮
-                    if (_videoController != null &&
-                        _videoController!.value.isInitialized &&
-                        _videoController!.value.size.width > _videoController!.value.size.height)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GestureDetector(
-                            onTap: _openFullscreenPage,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: scheme.surface.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.fullscreen, color: scheme.onSurface, size: 16),
-                                  const SizedBox(width: 6),
-                                  Text('全屏观看', style: TextStyle(color: scheme.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(widget.item.type,
-                          style: TextStyle(
-                              color: scheme.onPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Expanded(
-                          child: Text(_titleText(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  color: scheme.onSurface,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700)),
-                        ),
-                        const SizedBox(width: 12),
-                        if (widget.item.displayRating != null && widget.item.displayRating! > 0)
-                          Text('★ ${widget.item.displayRating!.toStringAsFixed(1)}',
-                              style: TextStyle(
-                                  color: scheme.primary,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    if (widget.item.overview != null && widget.item.overview!.isNotEmpty)
-                      Text(widget.item.overview!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14)),
-                    if (_videoController != null && _videoController!.value.isInitialized)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: SeekableProgressBar(
-                          controller: _videoController!,
-                          formatDuration: _formatDuration,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+          RepaintBoundary(
+            child: _BottomInfoBar(
+              item: widget.item,
+              controller: _videoController,
+              isVisible: _isInfoVisible,
+              toolbarVisible: toolbarVisible,
+              bottomPadding: bottomPadding,
+              onToggleFullscreen: _openFullscreenPage,
+              formatDuration: _formatDuration,
             ),
           ),
 
         // 右侧操作按钮（非纯净模式）
         if (!isAutoPlay && !isInFullscreen)
-          Positioned(
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: rs(80, 2.0),
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                0,
-                toolbarVisible ? MediaQuery.of(context).padding.top + rs(48) : rs(32),
-                rs(6),
-                toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
-                  colors: [scheme.surface.withOpacity(0.54), Colors.transparent],
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
-                  if (_videoController == null ||
-                      !_videoController!.value.isInitialized ||
-                      _videoController!.value.size.width <= _videoController!.value.size.height)
-                    PressableActionButton(
-                      icon: Icons.fullscreen,
-                      label: '全屏',
-                      color: scheme.onSurface,
-                      onTap: _openFullscreenPage,
-                    ),
-                  SizedBox(height: rs(16, 1.5)),
-                  const AutoPlayButton(),
-                  SizedBox(height: rs(16, 1.5)),
-                  PosterAvatar(item: widget.item),
-                  SizedBox(height: rs(16, 1.5)),
-                  PressableActionButton(
-                    icon: favorited ? Icons.favorite : Icons.favorite_border,
-                    label: '点赞',
-                    color: favorited ? scheme.primary : scheme.onSurface,
-                    onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(widget.item),
-                  ),
-                  SizedBox(height: rs(16, 1.5)),
-                  PressableActionButton(
-                    icon: Icons.info_outline,
-                    label: '信息',
-                    color: scheme.onSurface,
-                    onTap: () {
-                      setState(() => _isInfoExpanded = !_isInfoExpanded);
-                      sheet_utils.showVideoInfoSheet(context, widget.item);
-                    },
-                  ),
-                  SizedBox(height: rs(16, 1.5)),
-                  PressableActionButton(
-                    icon: Icons.delete_outline,
-                    label: '删除',
-                    color: scheme.error,
-                    onTap: _showDeleteConfirmDialog,
-                  ),
-                  SizedBox(height: rs(16, 1.5)),
-                  SpeedControlButton(
-                    controller: _videoController,
-                    onTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
-                  ),
-                  SizedBox(height: rs(16, 1.5)),
-
-                  SizedBox(height: rs(16, 1.5)),
-                  SubtitleButton(
-                    // 有服务器字幕或支持导入本地字幕时都显示
-                    hasSubtitles: true,
-                    onTap: () => sheet_utils.showSubtitleSelector(context, widget.item.subtitleTracks),
-                  ),
-                  SizedBox(height: rs(16, 1.5)),
-                  DiscMuteButton(
-                    discRotation: _discRotation,
-                    controller: _videoController,
-                    posterUrl: posterUrl,
-                    httpHeaders: posterHeaders,
-                  ),
-                ],
-              ),
+          RepaintBoundary(
+            child: _RightActionButtons(
+              item: widget.item,
+              controller: _videoController,
+              discRotation: _discRotation,
+              posterUrl: posterUrl,
+              posterHeaders: posterHeaders,
+              toolbarVisible: toolbarVisible,
+              bottomPadding: bottomPadding,
+              onToggleFullscreen: _openFullscreenPage,
+              onInfoTap: () {
+                setState(() => _isInfoExpanded = !_isInfoExpanded);
+                sheet_utils.showVideoInfoSheet(context, widget.item);
+              },
+              onDeleteTap: _showDeleteConfirmDialog,
+              onSpeedTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
+              onSubtitleTap: () => sheet_utils.showSubtitleSelector(context, widget.item.subtitleTracks),
             ),
           ),
 
@@ -1137,6 +966,304 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
     }
     final isPlaying = ref.watch(isPlayingProvider);
     return CenterPlayButton(onPlay: onPlay, isPlaying: isPlaying);
+  }
+}
+
+/// 底部信息条：标题/简介/类型标签/进度条（非纯净模式）
+///
+/// 从 [VideoPageItem] 提取为独立 Widget，减少父组件 build 复杂度。
+/// 内部大部分子组件不随父组件状态变化而重建，提升 PageView 滑动性能。
+class _BottomInfoBar extends StatelessWidget {
+  final MediaItem item;
+  final VideoPlayerController? controller;
+  final bool isVisible;
+  final bool toolbarVisible;
+  final double bottomPadding;
+  final VoidCallback onToggleFullscreen;
+  final String Function(Duration) formatDuration;
+
+  const _BottomInfoBar({
+    required this.item,
+    required this.controller,
+    required this.isVisible,
+    required this.toolbarVisible,
+    required this.bottomPadding,
+    required this.onToggleFullscreen,
+    required this.formatDuration,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
+
+    final hasController = controller != null && controller!.value.isInitialized;
+    final isLandscapeVideo = hasController &&
+        controller!.value.size.width > controller!.value.size.height;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: AnimatedOpacity(
+        opacity: isVisible ? 1.0 : 0.0,
+        duration: Duration(milliseconds: isVisible ? 300 : 500),
+        curve: Curves.easeOut,
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            80,
+            rs(80, 2.0) + 16,
+            toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                scheme.surface.withOpacity(0.8),
+                scheme.surface.withOpacity(0.5),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.45, 1.0],
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 横屏视频：居中显示「全屏观看」按钮
+              if (isLandscapeVideo)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      onTap: onToggleFullscreen,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: scheme.surface.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.fullscreen, color: scheme.onSurface, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              '全屏观看',
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // 类型标签
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  item.type,
+                  style: TextStyle(
+                    color: scheme.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // 标题 + 评分
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.year != null ? '${item.title} (${item.year})' : item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (item.displayRating != null && item.displayRating! > 0)
+                    Text(
+                      '★ ${item.displayRating!.toStringAsFixed(1)}',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // 简介
+              if (item.overview != null && item.overview!.isNotEmpty)
+                Text(
+                  item.overview!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
+                ),
+              // 进度条
+              if (hasController)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: SeekableProgressBar(
+                    controller: controller!,
+                    formatDuration: formatDuration,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 右侧操作按钮组（非纯净模式）
+///
+/// 从 [VideoPageItem] 提取为独立 ConsumerWidget，
+/// 收藏状态等局部变化只重建本组件，不触发父组件重建。
+class _RightActionButtons extends ConsumerWidget {
+  final MediaItem item;
+  final VideoPlayerController? controller;
+  final Animation<double> discRotation;
+  final String posterUrl;
+  final Map<String, String>? posterHeaders;
+  final bool toolbarVisible;
+  final double bottomPadding;
+  final VoidCallback onToggleFullscreen;
+  final VoidCallback onInfoTap;
+  final VoidCallback onDeleteTap;
+  final VoidCallback? onSpeedTap;
+  final VoidCallback? onSubtitleTap;
+
+  const _RightActionButtons({
+    required this.item,
+    required this.controller,
+    required this.discRotation,
+    required this.posterUrl,
+    required this.posterHeaders,
+    required this.toolbarVisible,
+    required this.bottomPadding,
+    required this.onToggleFullscreen,
+    required this.onInfoTap,
+    required this.onDeleteTap,
+    this.onSpeedTap,
+    this.onSubtitleTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
+    // 用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化触发重建
+    final favorited = ref.watch(
+      favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
+    );
+
+    final hasController = controller != null && controller!.value.isInitialized;
+    final isPortraitVideo = !hasController ||
+        controller!.value.size.width <= controller!.value.size.height;
+
+    return Positioned(
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: rs(80, 2.0),
+      child: RepaintBoundary(
+        child: Container(
+          padding: EdgeInsets.fromLTRB(
+            0,
+            toolbarVisible ? MediaQuery.of(context).padding.top + rs(48) : rs(32),
+            rs(6),
+            toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerRight,
+              end: Alignment.centerLeft,
+              colors: [scheme.surface.withOpacity(0.54), Colors.transparent],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
+              if (isPortraitVideo)
+                PressableActionButton(
+                  icon: Icons.fullscreen,
+                  label: '全屏',
+                  color: scheme.onSurface,
+                  onTap: onToggleFullscreen,
+                ),
+              SizedBox(height: rs(16, 1.5)),
+              const AutoPlayButton(),
+              SizedBox(height: rs(16, 1.5)),
+              PosterAvatar(item: item),
+              SizedBox(height: rs(16, 1.5)),
+              PressableActionButton(
+                icon: favorited ? Icons.favorite : Icons.favorite_border,
+                label: '点赞',
+                color: favorited ? scheme.primary : scheme.onSurface,
+                onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(item),
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              PressableActionButton(
+                icon: Icons.info_outline,
+                label: '信息',
+                color: scheme.onSurface,
+                onTap: onInfoTap,
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              PressableActionButton(
+                icon: Icons.delete_outline,
+                label: '删除',
+                color: scheme.error,
+                onTap: onDeleteTap,
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              SpeedControlButton(
+                controller: controller,
+                onTap: onSpeedTap ?? () {},
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              SizedBox(height: rs(16, 1.5)),
+              SubtitleButton(
+                hasSubtitles: true,
+                onTap: onSubtitleTap,
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              DiscMuteButton(
+                discRotation: discRotation,
+                controller: controller,
+                posterUrl: posterUrl,
+                httpHeaders: posterHeaders,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
