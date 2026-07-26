@@ -12,6 +12,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/models.dart';
+import '../utils/safe_unawaited.dart';
 import '../utils/memory_cache.dart';
 import 'media_repository.dart';
 
@@ -351,7 +352,7 @@ class CachedMediaRepository implements MediaRepository {
   }) {
     if (_pendingRefreshes.contains(key)) return;
     _pendingRefreshes.add(key);
-    unawaited(fetcher().then((result) {
+    safeUnawaited(fetcher().then((result) {
       cache.set(key, result, ttl: ttl ?? _ttl);
       cache.recordSwrRefresh();
     }).whenComplete(() {

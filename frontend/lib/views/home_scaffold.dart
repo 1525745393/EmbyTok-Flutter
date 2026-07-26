@@ -28,6 +28,7 @@ import '../utils/constants.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
+import '../utils/safe_unawaited.dart';
 import 'history_view.dart';
 import 'settings_view.dart';
 import 'actors_view.dart';
@@ -117,7 +118,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     // 切后台时清理预加载池，释放网络和解码资源
     if (wasForeground && !isForeground) {
       try {
-        unawaited(ref.read(videoPoolProvider).disposeAll());
+        safeUnawaited(ref.read(videoPoolProvider).disposeAll());
       } catch (_) {}
     }
 

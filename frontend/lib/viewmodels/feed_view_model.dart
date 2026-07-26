@@ -14,6 +14,8 @@
 
 import 'dart:async';
 
+import '../utils/safe_unawaited.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -255,7 +257,7 @@ class FeedViewModel {
       FeedType.resume => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
-    unawaited(_playbackCoordinator.disposeAllPreloads());
+    safeUnawaited(_playbackCoordinator.disposeAllPreloads());
     _ref.read(feedTypeProvider.notifier).setType(next);
     onShowSnackBar?.call('切换到：${next.zhLabel}');
   }
@@ -302,7 +304,7 @@ class FeedViewModel {
     _lastReportedItem = newItem;
     if (oldItem == null) return;
     if (newItem != null && oldItem.id == newItem.id) return;
-    unawaited(
+    safeUnawaited(
       _cloudService.saveCloudSync(
         itemId: oldItem.id,
         libraryId: _currentLibraryId(),

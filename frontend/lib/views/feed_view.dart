@@ -13,6 +13,8 @@
 
 import 'dart:async';
 
+import '../utils/safe_unawaited.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -101,7 +103,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
 
     // 跨设备续播：进入页面时检查其它设备是否存在续播信息
-    unawaited(_viewModel.checkCloudSyncOnStartup());
+    safeUnawaited(_viewModel.checkCloudSyncOnStartup());
 
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
@@ -126,7 +128,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
     _viewModel.dispose();
-    unawaited(_playbackCoordinator.disposeAllPreloads());
+    safeUnawaited(_playbackCoordinator.disposeAllPreloads());
     _playbackCoordinator.detach();
     _restoreSystemBars();
     super.dispose();
@@ -565,7 +567,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           if (1 < videoState.items.length && embyServerUrl != null && token != null) {
             final nextItem = videoState.items[1];
             final pool = ref.read(videoPoolProvider);
-            unawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));
+            safeUnawaited(pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token));
           }
         }
         return RepaintBoundary(

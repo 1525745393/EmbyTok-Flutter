@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../utils/safe_unawaited.dart';
 import '../utils/logger.dart';
 
 /// 单个播放会话：绑定 VideoPlayerController + PlaySessionId
@@ -92,7 +93,7 @@ class VideoPoolService {
     _disposed = true;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
     // 异步释放，不阻塞当前调用链；disposeAll 完成后会自动重置 _disposed 和 _disposing
-    unawaited(disposeAll());
+    safeUnawaited(disposeAll());
   }
 
   /// 预加载一个媒体条目

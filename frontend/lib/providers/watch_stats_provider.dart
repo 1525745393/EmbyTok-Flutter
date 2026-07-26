@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import '../utils/safe_unawaited.dart';
 import 'auth_provider.dart';
 
 /// 单次观看记录
@@ -262,7 +263,7 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
     });
 
     // 异步持久化（不阻塞）
-    unawaited(_saveToCache(state.records));
+    safeUnawaited(_saveToCache(state.records));
   }
 
   /// 清除所有记录
