@@ -851,38 +851,34 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
         // 底部渐变 + 标题/简介/类型标签（非纯净模式）
         if ((_isInfoExpanded || !isAutoPlay) && !isInFullscreen)
-          RepaintBoundary(
-            child: _BottomInfoBar(
-              item: widget.item,
-              controller: _videoController,
-              isVisible: _isInfoVisible,
-              toolbarVisible: toolbarVisible,
-              bottomPadding: bottomPadding,
-              onToggleFullscreen: _openFullscreenPage,
-              formatDuration: _formatDuration,
-            ),
+          _BottomInfoBar(
+            item: widget.item,
+            controller: _videoController,
+            isVisible: _isInfoVisible,
+            toolbarVisible: toolbarVisible,
+            bottomPadding: bottomPadding,
+            onToggleFullscreen: _openFullscreenPage,
+            formatDuration: _formatDuration,
           ),
 
         // 右侧操作按钮（非纯净模式）
         if (!isAutoPlay && !isInFullscreen)
-          RepaintBoundary(
-            child: _RightActionButtons(
-              item: widget.item,
-              controller: _videoController,
-              discRotation: _discRotation,
-              posterUrl: posterUrl,
-              posterHeaders: posterHeaders,
-              toolbarVisible: toolbarVisible,
-              bottomPadding: bottomPadding,
-              onToggleFullscreen: _openFullscreenPage,
-              onInfoTap: () {
-                setState(() => _isInfoExpanded = !_isInfoExpanded);
-                sheet_utils.showVideoInfoSheet(context, widget.item);
-              },
-              onDeleteTap: _showDeleteConfirmDialog,
-              onSpeedTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
-              onSubtitleTap: () => sheet_utils.showSubtitleSelector(context, widget.item.subtitleTracks),
-            ),
+          _RightActionButtons(
+            item: widget.item,
+            controller: _videoController,
+            discRotation: _discRotation,
+            posterUrl: posterUrl,
+            posterHeaders: posterHeaders,
+            toolbarVisible: toolbarVisible,
+            bottomPadding: bottomPadding,
+            onToggleFullscreen: _openFullscreenPage,
+            onInfoTap: () {
+              setState(() => _isInfoExpanded = !_isInfoExpanded);
+              sheet_utils.showVideoInfoSheet(context, widget.item);
+            },
+            onDeleteTap: _showDeleteConfirmDialog,
+            onSpeedTap: () => sheet_utils.showSpeedControlPanel(context, _videoController),
+            onSubtitleTap: () => sheet_utils.showSubtitleSelector(context, widget.item.subtitleTracks),
           ),
 
         // 纯净模式：可拖动按钮组
@@ -982,7 +978,7 @@ class _BottomInfoBar extends StatelessWidget {
   final VoidCallback onToggleFullscreen;
   final String Function(Duration) formatDuration;
 
-  const _BottomInfoBar({
+  _BottomInfoBar({
     required this.item,
     required this.controller,
     required this.isVisible,
@@ -1005,133 +1001,137 @@ class _BottomInfoBar extends StatelessWidget {
       left: 0,
       right: 0,
       bottom: 0,
-      child: AnimatedOpacity(
-        opacity: isVisible ? 1.0 : 0.0,
-        duration: Duration(milliseconds: isVisible ? 300 : 500),
-        curve: Curves.easeOut,
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            80,
-            rs(80, 2.0) + 16,
-            toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              colors: [
-                scheme.surface.withOpacity(0.8),
-                scheme.surface.withOpacity(0.5),
-                Colors.transparent,
-              ],
-              stops: const [0.0, 0.45, 1.0],
+      // RepaintBoundary 放在 Positioned 内部，避免定位失效
+      // 控制层与视频渲染层隔离，减少不必要的重绘
+      child: RepaintBoundary(
+        child: AnimatedOpacity(
+          opacity: isVisible ? 1.0 : 0.0,
+          duration: Duration(milliseconds: isVisible ? 300 : 500),
+          curve: Curves.easeOut,
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              80,
+              rs(80, 2.0) + 16,
+              toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 横屏视频：居中显示「全屏观看」按钮
-              if (isLandscapeVideo)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
-                      onTap: onToggleFullscreen,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: scheme.surface.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.fullscreen, color: scheme.onSurface, size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              '全屏观看',
-                              style: TextStyle(
-                                color: scheme.onSurface,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              // 类型标签
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: scheme.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  item.type,
-                  style: TextStyle(
-                    color: scheme.onPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              // 标题 + 评分
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.year != null ? '${item.title} (${item.year})' : item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  if (item.displayRating != null && item.displayRating! > 0)
-                    Text(
-                      '★ ${item.displayRating!.toStringAsFixed(1)}',
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  scheme.surface.withOpacity(0.8),
+                  scheme.surface.withOpacity(0.5),
+                  Colors.transparent,
                 ],
+                stops: const [0.0, 0.45, 1.0],
               ),
-              const SizedBox(height: 6),
-              // 简介
-              if (item.overview != null && item.overview!.isNotEmpty)
-                Text(
-                  item.overview!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 14,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 横屏视频：居中显示「全屏观看」按钮
+                if (isLandscapeVideo)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: onToggleFullscreen,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: scheme.surface.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.fullscreen, color: scheme.onSurface, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                '全屏观看',
+                                style: TextStyle(
+                                  color: scheme.onSurface,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // 类型标签
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    item.type,
+                    style: TextStyle(
+                      color: scheme.onPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              // 进度条
-              if (hasController)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: SeekableProgressBar(
-                    controller: controller!,
-                    formatDuration: formatDuration,
-                  ),
+                const SizedBox(height: 8),
+                // 标题 + 评分
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.year != null ? '${item.title} (${item.year})' : item.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    if (item.displayRating != null && item.displayRating! > 0)
+                      Text(
+                        '★ ${item.displayRating!.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
                 ),
-            ],
+                const SizedBox(height: 6),
+                // 简介
+                if (item.overview != null && item.overview!.isNotEmpty)
+                  Text(
+                    item.overview!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                // 进度条
+                if (hasController)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: SeekableProgressBar(
+                      controller: controller!,
+                      formatDuration: formatDuration,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1157,7 +1157,7 @@ class _RightActionButtons extends ConsumerWidget {
   final VoidCallback? onSpeedTap;
   final VoidCallback? onSubtitleTap;
 
-  const _RightActionButtons({
+  _RightActionButtons({
     required this.item,
     required this.controller,
     required this.discRotation,
