@@ -1,3 +1,10 @@
+# [2.21.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.9...v2.21.0) (2026-07-26)
+
+
+### Features
+
+* 字幕能力升级 - 多格式支持/样式扩展/时间微调/本地外挂字幕 ([b552585](https://github.com/1525745393/EmbyTok-Flutter/commit/b552585543f5e2c9949a8d9e4922a0b62ed5ef87))
+
 ## [2.20.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.20.8...v2.20.9) (2026-07-26)
 
 
