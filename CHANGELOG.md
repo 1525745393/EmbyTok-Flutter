@@ -1,3 +1,10 @@
+## [2.23.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.3...v2.23.4) (2026-07-26)
+
+
+### Performance Improvements
+
+* **video_page_item:** 提取静态 UI 组件并添加 RepaintBoundary 优化 ([eaefba4](https://github.com/1525745393/EmbyTok-Flutter/commit/eaefba464b704389ad3805cc73390a744a88df65))
+
 ## [2.23.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.2...v2.23.3) (2026-07-26)
 
 
