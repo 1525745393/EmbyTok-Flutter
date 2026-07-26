@@ -1106,7 +1106,7 @@ class EmbytokService {
       });
       // 仅缓存非空结果
       if (cues.isNotEmpty) {
-        _subtitleCache.put(cacheKey, cues);
+        _subtitleCache.set(cacheKey, cues);
       }
       return cues;
     } catch (e) {
