@@ -75,7 +75,7 @@ class FeedViewModel {
   void init() {
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
     _ref.listen(playbackStateProvider, (prev, next) {
-      if (prev.item != next.item) {
+      if (prev?.item != next.item) {
         _saveCloudSyncIfNeeded(next.item);
       }
     });

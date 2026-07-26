@@ -142,7 +142,6 @@ class EmbyRepository implements MediaRepository {
       token: token,
       cancelToken: cancelToken,
     );
-    );
   }
 
   @override

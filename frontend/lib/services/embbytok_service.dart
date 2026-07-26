@@ -294,9 +294,8 @@ class EmbytokService {
       'ExcludeItemTypes': 'Playlist',
     };
     final resp = await _apiClient.get<dynamic>(
-      '/Items/Resume',
+      path,
       queryParameters: params,
-      cancelToken: cancelToken,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
@@ -606,11 +605,10 @@ class EmbytokService {
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
     try {
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
-      cancelToken: cancelToken,
-    );
+      final resp = await _apiClient.get<dynamic>(
+        path,
+        queryParameters: params,
+      );
       final data = resp.data;
       final items = data is List
           ? data as List<dynamic>
