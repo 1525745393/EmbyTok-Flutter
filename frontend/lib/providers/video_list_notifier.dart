@@ -498,7 +498,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'feedType': currentFeedType.toStorageString(),
       });
     } catch (e) {
-      if (CancelToken.isCancel(e)) return; // 请求被新版 refresh 取消，静默忽略
+      if (e is DioException && CancelToken.isCancel(e)) return; // 请求被新版 refresh 取消，静默忽略
       AppLogger.error('刷新视频列表失败', error: e);
       state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
     }
