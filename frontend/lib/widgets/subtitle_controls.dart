@@ -1,4 +1,4 @@
-// 字幕控制面板：切换语言、字号、颜色、位置
+// 字幕控制面板：语言、字号、颜色、位置、描边、阴影、背景透明度、时间偏移
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,6 +136,78 @@ class SubtitleControls extends ConsumerWidget {
                     scheme: scheme),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // 描边宽度
+            _sectionWithValue('描边宽度', '${settings.strokeWidth.toStringAsFixed(1)}px', scheme),
+            const SizedBox(height: 8),
+            Slider(
+              value: settings.strokeWidth,
+              min: kSubtitleStrokeWidthMin,
+              max: kSubtitleStrokeWidthMax,
+              divisions: 10,
+              activeColor: scheme.primary,
+              inactiveColor: scheme.outlineVariant,
+              onChanged: (v) => notifier.setStrokeWidth(v),
+            ),
+            const SizedBox(height: 12),
+
+            // 阴影开关
+            _section('阴影', scheme),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _chip(
+                  label: '开启',
+                  selected: settings.shadowEnabled,
+                  onTap: () => notifier.setShadowEnabled(true),
+                  scheme: scheme,
+                ),
+                const SizedBox(width: 8),
+                _chip(
+                  label: '关闭',
+                  selected: !settings.shadowEnabled,
+                  onTap: () => notifier.setShadowEnabled(false),
+                  scheme: scheme,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 背景透明度
+            _sectionWithValue('背景透明度', '${settings.bgOpacity}%', scheme),
+            const SizedBox(height: 8),
+            Slider(
+              value: settings.bgOpacity.toDouble(),
+              min: kSubtitleBgOpacityMin.toDouble(),
+              max: kSubtitleBgOpacityMax.toDouble(),
+              divisions: 20,
+              activeColor: scheme.primary,
+              inactiveColor: scheme.outlineVariant,
+              onChanged: (v) => notifier.setBgOpacity(v.toInt()),
+            ),
+            const SizedBox(height: 12),
+
+            // 时间轴微调
+            _sectionWithValue('时间微调', _formatTimeOffset(settings.timeOffset), scheme),
+            const SizedBox(height: 8),
+            Slider(
+              value: settings.timeOffset.toDouble(),
+              min: kSubtitleTimeOffsetMin.toDouble(),
+              max: kSubtitleTimeOffsetMax.toDouble(),
+              divisions: 20,
+              activeColor: scheme.primary,
+              inactiveColor: scheme.outlineVariant,
+              onChanged: (v) => notifier.setTimeOffset(v.toInt()),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '负数提前显示，正数延迟显示',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ),
@@ -146,6 +218,32 @@ class SubtitleControls extends ConsumerWidget {
         title,
         style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
       );
+
+  Widget _sectionWithValue(String title, String value, ColorScheme scheme) =>
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: scheme.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+
+  String _formatTimeOffset(int offsetMs) {
+    if (offsetMs == 0) return '0.0s';
+    final sign = offsetMs > 0 ? '+' : '-';
+    final seconds = offsetMs.abs() / 1000.0;
+    return '$sign${seconds.toStringAsFixed(1)}s';
+  }
 
   Widget _chip({
     required String label,

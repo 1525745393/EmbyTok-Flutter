@@ -1042,7 +1042,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
                   SizedBox(height: rs(16, 1.5)),
                   SubtitleButton(
-                    hasSubtitles: widget.item.subtitleTracks.isNotEmpty,
+                    // 有服务器字幕或支持导入本地字幕时都显示
+                    hasSubtitles: true,
                     onTap: () => sheet_utils.showSubtitleSelector(context, widget.item.subtitleTracks),
                   ),
                   SizedBox(height: rs(16, 1.5)),

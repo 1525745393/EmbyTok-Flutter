@@ -79,6 +79,31 @@ final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 /// 当前选中的字幕轨道（语言或轨道 ID，null 表示关闭字幕）
 final selectedSubtitleProvider = StateProvider<String?>((ref) => null);
 
+/// 当前视频的本地外挂字幕轨道列表
+/// 用户通过文件选择器导入的字幕会添加到这里
+final localSubtitleTracksProvider =
+    StateNotifierProvider<LocalSubtitleTracksNotifier, List<SubtitleTrack>>(
+        (ref) => LocalSubtitleTracksNotifier());
+
+class LocalSubtitleTracksNotifier extends StateNotifier<List<SubtitleTrack>> {
+  LocalSubtitleTracksNotifier() : super(const []);
+
+  /// 添加本地字幕轨道
+  void add(SubtitleTrack track) {
+    state = [...state, track];
+  }
+
+  /// 移除指定 ID 的本地字幕轨道
+  void remove(String trackId) {
+    state = state.where((t) => t.id != trackId).toList();
+  }
+
+  /// 清空所有本地字幕轨道（视频切换时调用）
+  void clear() {
+    state = const [];
+  }
+}
+
 /// videoReadyProvider：记录哪些 item 的视频已就绪
 ///
 /// 用于驱动页面切换的渐入动画：

@@ -137,6 +137,20 @@ const String kSubtitleSizeLarge = 'large';
 const String kSubtitlePosBottom = 'bottom';
 const String kSubtitlePosLower = 'lower';
 const String kSubtitlePosCenter = 'center';
+// 字幕描边宽度（像素）
+const double kSubtitleStrokeWidthMin = 0.0;
+const double kSubtitleStrokeWidthMax = 5.0;
+const double kSubtitleStrokeWidthDefault = 3.0;
+// 字幕阴影
+const bool kSubtitleShadowDefault = true;
+// 字幕背景透明度（0-100）
+const int kSubtitleBgOpacityMin = 0;
+const int kSubtitleBgOpacityMax = 100;
+const int kSubtitleBgOpacityDefault = 72;
+// 字幕时间轴微调（毫秒）
+const int kSubtitleTimeOffsetMin = -500;
+const int kSubtitleTimeOffsetMax = 500;
+const int kSubtitleTimeOffsetDefault = 0;
 
 // ===== Design Tokens：间距 / 圆角 =====
 // 与 theme/theme_extensions.dart 同步，为组件提供语义化间距/圆角常量

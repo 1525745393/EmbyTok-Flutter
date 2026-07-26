@@ -252,6 +252,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (_reinitToken != token) return;
     // item 切换时重置预加载标记，允许使用新 item 的预加载 controller
     _preloadedControllerUsed = false;
+    // 视频切换时清空本地字幕轨道（本地字幕是针对特定视频的）
+    ref.read(localSubtitleTracksProvider.notifier).clear();
     setState(() {
       _initialized = false;
       _hasError = false;
@@ -609,43 +611,66 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       });
       return;
     }
-    final sources = widget.item.mediaSources;
-    final mediaSourceId =
-        (sources != null && sources.isNotEmpty)
-            ? sources.first.id
-            : null;
-    if (mediaSourceId == null || mediaSourceId.isEmpty) {
-      AppLogger.warn('字幕加载失败：无有效 mediaSourceId', data: {
-        'itemId': widget.item.id,
-        'sourcesCount': sources?.length ?? 0,
-      });
-      return;
-    }
-    // 从 item 的 subtitleTracks 中找到对应 track
-    final tracks = widget.item.subtitleTracks;
-    AppLogger.debug('字幕轨道列表', data: {
-      'tracksCount': tracks.length,
-      'tracks': tracks.map((t) => '${t.id}:${t.language}:${t.displayName}').toList(),
-    });
+
+    // 先从本地字幕轨道中查找
+    final localTracks = ref.read(localSubtitleTracksProvider);
     SubtitleTrack? selectedTrack;
     int? trackIndex;
-    for (int i = 0; i < tracks.length; i++) {
-      if (tracks[i].id == selectedTrackId) {
-        selectedTrack = tracks[i];
-        // track.id 本身就是 stream.index 的字符串形式，直接解析
-        trackIndex = int.tryParse(tracks[i].id);
+    bool isLocal = false;
+
+    for (final track in localTracks) {
+      if (track.id == selectedTrackId) {
+        selectedTrack = track;
+        isLocal = true;
         break;
       }
     }
-    // 如果没找到匹配的 track，尝试直接解析 selectedTrackId 作为索引
-    trackIndex ??= int.tryParse(selectedTrackId);
-    if (trackIndex == null || selectedTrack == null) {
+
+    // 本地没找到，再从服务器字幕轨道中查找
+    if (selectedTrack == null) {
+      final tracks = widget.item.subtitleTracks;
+      AppLogger.debug('字幕轨道列表（服务器）', data: {
+        'tracksCount': tracks.length,
+        'tracks': tracks.map((t) => '${t.id}:${t.language}:${t.displayName}').toList(),
+      });
+      for (int i = 0; i < tracks.length; i++) {
+        if (tracks[i].id == selectedTrackId) {
+          selectedTrack = tracks[i];
+          trackIndex = int.tryParse(tracks[i].id);
+          break;
+        }
+      }
+      // 如果没找到匹配的 track，尝试直接解析 selectedTrackId 作为索引
+      trackIndex ??= int.tryParse(selectedTrackId);
+    }
+
+    if (selectedTrack == null) {
       AppLogger.warn('字幕加载失败：找不到匹配的字幕轨道', data: {
         'itemId': widget.item.id,
         'selectedTrackId': selectedTrackId,
-        'availableTrackIds': tracks.map((t) => t.id).toList(),
       });
       return;
+    }
+
+    // 服务器字幕需要 mediaSourceId
+    String? mediaSourceId;
+    if (!isLocal) {
+      final sources = widget.item.mediaSources;
+      mediaSourceId = (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+      if (mediaSourceId == null || mediaSourceId.isEmpty) {
+        AppLogger.warn('字幕加载失败：无有效 mediaSourceId', data: {
+          'itemId': widget.item.id,
+          'sourcesCount': sources?.length ?? 0,
+        });
+        return;
+      }
+      if (trackIndex == null) {
+        AppLogger.warn('字幕加载失败：无效的轨道索引', data: {
+          'itemId': widget.item.id,
+          'selectedTrackId': selectedTrackId,
+        });
+        return;
+      }
     }
 
     AppLogger.debug('开始加载字幕', data: {
@@ -654,6 +679,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       'trackIndex': trackIndex,
       'format': selectedTrack.format,
       'language': selectedTrack.language,
+      'isLocal': isLocal,
     });
 
     final embService = ref.read(embbytokServiceProvider);
@@ -669,15 +695,27 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       );
     }
     try {
-      // Emby 字幕 API 支持通过 format 参数请求输出格式，统一请求 srt
-      final cues = await embService.getSubtitleCues(
-        itemId: widget.item.id,
-        mediaSourceId: mediaSourceId,
-        index: trackIndex,
-      );
+      List<SubtitleCue> cues;
+      // 本地外挂字幕：从文件读取
+      if (isLocal && selectedTrack.localFilePath != null && selectedTrack.localFilePath!.isNotEmpty) {
+        cues = await embService.getSubtitleCuesFromFile(
+          filePath: selectedTrack.localFilePath!,
+          format: selectedTrack.format,
+        );
+      } else {
+        // 服务器字幕：按轨道的原始格式请求，保留原生样式（ASS/VTT 等）
+        cues = await embService.getSubtitleCues(
+          itemId: widget.item.id,
+          mediaSourceId: mediaSourceId!,
+          index: trackIndex!,
+          format: selectedTrack.format,
+        );
+      }
       AppLogger.debug('字幕加载完成', data: {
         'itemId': widget.item.id,
         'trackIndex': trackIndex,
+        'format': selectedTrack.format,
+        'isLocal': selectedTrack.localFilePath != null,
         'cuesCount': cues.length,
       });
       // 双重检查：避免 dispose 后 setState

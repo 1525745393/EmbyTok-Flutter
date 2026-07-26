@@ -130,15 +130,9 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     }
   }
 
-  // 弹出字幕选择菜单（从 subtitleTracks 中挑选）
+  // 弹出字幕选择菜单（从 subtitleTracks + 本地字幕中挑选）
   Future<void> _showSubtitleMenu() async {
-    if (widget.subtitleTracks.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未检测到可用字幕'), duration: Duration(seconds: 1)),
-      );
-      return;
-    }
+    // 即使没有服务器字幕也可以打开字幕选择器（支持导入本地字幕）
     await showSubtitleSelector(
       context: context,
       tracks: widget.subtitleTracks,

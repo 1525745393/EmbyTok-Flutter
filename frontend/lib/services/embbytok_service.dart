@@ -2,6 +2,7 @@
 // 设计思路：每个方法都接受可选的 serverUrl / token 参数，调用方可以显式传入，
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
 
+import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -1097,10 +1098,11 @@ class EmbytokService {
         AppLogger.debug('字幕内容为空', data: {'url': url, 'statusCode': resp.statusCode});
         return const <SubtitleCue>[];
       }
-      // 调用 parseSrt 解析
-      final cues = parseSrt(text);
+      // 根据格式动态选择解析器
+      final cues = parseSubtitle(text, format);
       AppLogger.debug('字幕解析完成', data: {
         'url': url,
+        'format': format,
         'cuesCount': cues.length,
         'rawLength': text.length,
       });
@@ -1125,6 +1127,61 @@ class EmbytokService {
   /// 清空字幕缓存（视频切换或用户登出时调用）
   void clearSubtitleCache() {
     _subtitleCache.clear();
+  }
+
+  /// 从本地文件加载字幕（外挂字幕）
+  ///
+  /// [filePath] 本地文件路径
+  /// [format] 字幕格式（srt/vtt/ass/ssa），不传则从文件扩展名推断
+  Future<List<SubtitleCue>> getSubtitleCuesFromFile({
+    required String filePath,
+    String? format,
+  }) async {
+    AppLogger.debug('从本地文件加载字幕', data: {'filePath': filePath, 'format': format});
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        AppLogger.warn('本地字幕文件不存在', data: {'filePath': filePath});
+        return const <SubtitleCue>[];
+      }
+      final content = await file.readAsString();
+      if (content.isEmpty) {
+        AppLogger.warn('本地字幕文件为空', data: {'filePath': filePath});
+        return const <SubtitleCue>[];
+      }
+      // 从文件扩展名推断格式
+      final effectiveFormat = format ?? _detectFormatFromPath(filePath);
+      final cues = parseSubtitle(content, effectiveFormat);
+      AppLogger.debug('本地字幕加载完成', data: {
+        'filePath': filePath,
+        'format': effectiveFormat,
+        'cuesCount': cues.length,
+      });
+      return cues;
+    } catch (e) {
+      AppLogger.warn('本地字幕加载失败', data: {
+        'filePath': filePath,
+        'error': e.toString(),
+      });
+      return const <SubtitleCue>[];
+    }
+  }
+
+  /// 从文件路径推断字幕格式
+  String _detectFormatFromPath(String filePath) {
+    final ext = filePath.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'vtt':
+      case 'webvtt':
+        return 'vtt';
+      case 'ass':
+      case 'ssa':
+        return 'ass';
+      case 'srt':
+      case 'subrip':
+      default:
+        return 'srt';
+    }
   }
 
   // ============================

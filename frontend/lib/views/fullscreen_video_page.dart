@@ -25,6 +25,7 @@ import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../widgets/subtitle_renderer.dart';
+import '../widgets/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
 
 /// 全屏视频播放页
@@ -473,26 +474,47 @@ class _FullscreenVideoPageState
     }
     final item = ref.read(playbackStateProvider).item;
     if (item == null) return;
-    final sources = item.mediaSources;
-    final mediaSourceId =
-        (sources != null && sources.isNotEmpty) ? sources.first.id : null;
-    if (mediaSourceId == null || mediaSourceId.isEmpty) return;
 
-    final tracks = item.subtitleTracks;
+    // 先从本地字幕轨道中查找
+    final localTracks = ref.read(localSubtitleTracksProvider);
+    SubtitleTrack? selectedTrack;
     int? trackIndex;
-    for (int i = 0; i < tracks.length; i++) {
-      if (tracks[i].id == selectedTrackId) {
-        final maybeIndex = int.tryParse(tracks[i].id);
-        if (maybeIndex != null) {
-          trackIndex = maybeIndex;
-          break;
-        }
-        trackIndex = i;
+    bool isLocal = false;
+
+    for (final track in localTracks) {
+      if (track.id == selectedTrackId) {
+        selectedTrack = track;
+        isLocal = true;
         break;
       }
     }
-    trackIndex ??= int.tryParse(selectedTrackId);
-    if (trackIndex == null) return;
+
+    // 本地没找到，再从服务器字幕轨道中查找
+    String? mediaSourceId;
+    if (selectedTrack == null) {
+      final sources = item.mediaSources;
+      mediaSourceId =
+          (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+      if (mediaSourceId == null || mediaSourceId.isEmpty) return;
+
+      final tracks = item.subtitleTracks;
+      for (int i = 0; i < tracks.length; i++) {
+        if (tracks[i].id == selectedTrackId) {
+          selectedTrack = tracks[i];
+          final maybeIndex = int.tryParse(tracks[i].id);
+          if (maybeIndex != null) {
+            trackIndex = maybeIndex;
+            break;
+          }
+          trackIndex = i;
+          break;
+        }
+      }
+      trackIndex ??= int.tryParse(selectedTrackId);
+      if (trackIndex == null) return;
+    }
+
+    if (selectedTrack == null) return;
 
     try {
       final embService = ref.read(embbytokServiceProvider);
@@ -506,11 +528,24 @@ class _FullscreenVideoPageState
           userId: authState.user?.id,
         );
       }
-      final cues = await embService.getSubtitleCues(
-        itemId: item.id,
-        mediaSourceId: mediaSourceId,
-        index: trackIndex,
-      );
+      final format = selectedTrack!.format ?? 'srt';
+      List<SubtitleCue> cues;
+      // 本地外挂字幕：从文件读取
+      if (isLocal && selectedTrack!.localFilePath != null &&
+          selectedTrack!.localFilePath!.isNotEmpty) {
+        cues = await embService.getSubtitleCuesFromFile(
+          filePath: selectedTrack!.localFilePath!,
+          format: format,
+        );
+      } else {
+        // 服务器字幕：按轨道的原始格式请求，保留原生样式（ASS/VTT 等）
+        cues = await embService.getSubtitleCues(
+          itemId: item.id,
+          mediaSourceId: mediaSourceId!,
+          index: trackIndex!,
+          format: format,
+        );
+      }
       if (mounted) {
         setState(() {
           _subtitleCues = cues;
@@ -1161,7 +1196,7 @@ class _FullscreenVideoPageState
                     IconButton(
                       icon: const Icon(Icons.subtitles,
                           color: Colors.white, size: 22),
-                      onPressed: playingItem?.subtitleTracks.isNotEmpty == true
+                      onPressed: playingItem != null
                           ? () => _showSubtitleMenu(playingItem!)
                           : null,
                       tooltip: '字幕',
@@ -1445,46 +1480,24 @@ class _FullscreenVideoPageState
     final selectedSubId = ref.read(selectedSubtitleProvider);
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.black.withOpacity(0.9),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('关闭字幕',
-                  style: TextStyle(color: Colors.white)),
-              leading: const Icon(Icons.close, color: Colors.white54),
-              onTap: () {
-                ref.read(subtitleSettingsProvider.notifier).setLanguage('');
-                ref.read(selectedSubtitleProvider.notifier).state = null;
-                Navigator.pop(context);
-              },
-            ),
-            ...item.subtitleTracks.map((track) {
-              final selected = track.id == selectedSubId;
-              return ListTile(
-                title: Text(
-                  track.name,
-                  style: TextStyle(
-                    color: selected ? Colors.blue : Colors.white,
-                    fontWeight:
-                        selected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                leading: Icon(
-                  selected ? Icons.check : Icons.subtitles,
-                  color: selected ? Colors.blue : Colors.white54,
-                ),
-                onTap: () {
-                  // 保存偏好语言（用于跨视频自动匹配）
-                  ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
-                  ref.read(selectedSubtitleProvider.notifier).state = track.id;
-                  Navigator.pop(context);
-                },
-              );
-            }),
-          ],
-        ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => SubtitleSelector(
+        tracks: item.subtitleTracks,
+        selectedTrackId: selectedSubId,
+        onSelected: (track) {
+          if (track == null) {
+            ref.read(subtitleSettingsProvider.notifier).setLanguage('');
+            ref.read(selectedSubtitleProvider.notifier).state = null;
+          } else {
+            // 本地字幕不保存语言偏好（语言代码为 'local'）
+            if (track.language != 'local') {
+              ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
+            }
+            ref.read(selectedSubtitleProvider.notifier).state = track.id;
+          }
+        },
+        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }
