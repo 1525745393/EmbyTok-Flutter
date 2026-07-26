@@ -1,0 +1,1739 @@
+// Emby 服务器 API 适配层：实现 MediaServerApi 接口，封装所有 Emby 原生 API 调用
+// 设计思路：纯 API 适配层，只负责 HTTP 请求和响应解析，不包含业务逻辑状态
+// （如字幕缓存、播放状态等保留在 EmbytokService 中）
+
+import 'dart:io';
+import 'dart:math';
+
+import 'package:dio/dio.dart';
+
+import '../models/models.dart';
+import '../utils/logger.dart';
+import 'api_client.dart';
+import 'media_server_api.dart';
+
+class EmbyServerApi implements MediaServerApi {
+  EmbyServerApi() : _apiClient = ApiClient();
+
+  EmbyServerApi.withClient(this._apiClient);
+
+  final ApiClient _apiClient;
+  String? _defaultServerUrl;
+  String? _defaultToken;
+  String? _defaultUserId;
+
+  // ============================
+  // 认证配置（设置默认 server/token，后续调用可省略参数）
+  // ============================
+  @override
+  void setupAuth({
+    required String embyServerUrl,
+    required String apiKey,
+    String? userId,
+  }) {
+    _defaultServerUrl = embyServerUrl;
+    _defaultToken = apiKey;
+    _defaultUserId = userId;
+    _apiClient.setBaseUrl(embyServerUrl);
+    _apiClient.setToken(apiKey);
+  }
+
+  @override
+  void clearAuth() {
+    _defaultServerUrl = null;
+    _defaultToken = null;
+    _defaultUserId = null;
+  }
+
+  // ============================
+  // 登录：Emby /Users/AuthenticateByName
+  // ============================
+  @override
+  Future<User> login({
+    required String embyServerUrl,
+    required String username,
+    required String password,
+  }) async {
+    AppLogger.info('发送登录请求', data: {
+      'serverUrl': embyServerUrl,
+      'username': username,
+    });
+
+    try {
+      _apiClient.setBaseUrl(embyServerUrl);
+
+      final resp = await _apiClient.post<Map<String, dynamic>>(
+        '/Users/AuthenticateByName',
+        data: {
+          'Username': username,
+          'Pw': password,
+        },
+      );
+
+      final data = resp.data as Map<String, dynamic>;
+      final userInfo = data['User'] as Map<String, dynamic>? ?? {};
+      final accessToken = (data['AccessToken'] as String?) ?? '';
+
+      final user = User(
+        id: (userInfo['Id'] as String?) ?? '',
+        name: (userInfo['Name'] as String?) ?? username,
+        accessToken: accessToken,
+      );
+
+      _defaultServerUrl = embyServerUrl;
+      _defaultToken = accessToken;
+      _defaultUserId = user.id;
+      _apiClient.setToken(accessToken);
+
+      AppLogger.info('登录成功', data: {'userId': user.id});
+      return user;
+    } catch (e) {
+      AppLogger.error('登录请求失败', error: e);
+      rethrow;
+    }
+  }
+
+  // ============================
+  // 媒体库列表：默认使用 /Users/{userId}/Views（用户视角），向后兼容 /Library/VirtualFolders
+  // ============================
+  @override
+  Future<List<Library>> getLibraries({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('请求媒体库列表');
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = effectiveUserId != null && effectiveUserId.isNotEmpty
+        ? '/Users/$effectiveUserId/Views'
+        : '/Library/VirtualFolders';
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: {},
+    );
+
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+
+    final libraries = items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => Library(
+              id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: (e['CollectionType'] as String?) ?? 'movies',
+              itemCount: e['RecursiveItemCount'] as int?,
+              coverImageUrl: e['ImageTags']?['Primary'] as String?,
+            ))
+        .toList();
+
+    final needsCount = libraries.any((lib) => lib.itemCount == null);
+    if (needsCount && effectiveUserId != null && effectiveUserId.isNotEmpty) {
+      for (var i = 0; i < libraries.length; i++) {
+        final lib = libraries[i];
+        if (lib.itemCount == null) {
+          try {
+            final resp = await getLibraryItems(
+              lib.id,
+              limit: 0,
+              userId: effectiveUserId,
+              serverUrl: serverUrl,
+              token: token,
+            );
+            libraries[i] = Library(
+              id: lib.id,
+              name: lib.name,
+              type: lib.type,
+              itemCount: resp.total,
+              coverImageUrl: lib.coverImageUrl,
+            );
+          } catch (e) {
+            AppLogger.debug('获取库 ${lib.name} 视频数量失败', data: {'error': e.toString()});
+          }
+        }
+      }
+    }
+
+    AppLogger.debug('媒体库列表响应', data: {'count': libraries.length});
+    return libraries;
+  }
+
+  // ============================
+  // 用户视图：GET /Users/{userId}/Views（getLibraries 的别名，语义更明确）
+  // ============================
+  @override
+  Future<List<Library>> getUserViews({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return getLibraries(
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  // ============================
+  // 获取某媒体库下的视频列表
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getLibraryItems(
+    String libraryId, {
+    int limit = 20,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    String sortBy = 'DateCreated,SortName',
+    String sortOrder = 'Descending',
+    String? searchTerm,
+    bool excludePlayed = false,
+    CancelToken? cancelToken,
+  }) async {
+    AppLogger.debug('请求视频列表', data: {
+      'libraryId': libraryId,
+      'limit': limit,
+      'offset': offset,
+      'sortBy': sortBy,
+      'sortOrder': sortOrder,
+      if (searchTerm != null) 'searchTerm': searchTerm,
+      'excludePlayed': excludePlayed,
+    });
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'ParentId': libraryId,
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'SortBy': sortBy,
+      'SortOrder': sortOrder,
+      'Recursive': 'true',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+      if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
+      if (excludePlayed) 'Filters': 'IsPlayed=false',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    AppLogger.debug('视频列表响应', data: {
+      'count': result.items.length,
+      'total': result.total,
+    });
+    return result;
+  }
+
+  // ============================
+  // 获取项详情
+  // ============================
+  @override
+  Future<MediaItem> getItemDetail(
+    String itemId, {
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Fields':
+          'Overview,Genres,People,CommunityRating,CriticRating,OfficialRating,'
+              'RunTimeTicks,ProductionYear,PremiereDate,DateCreated,Studios,'
+              'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
+              'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
+    };
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/$itemId'
+        : '/Items/$itemId';
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final data = resp.data is Map
+        ? Map<String, dynamic>.from(resp.data as Map)
+        : <String, dynamic>{};
+    return MediaItem.fromJson(data);
+  }
+
+  // ============================
+  // 获取子项（孩子节点）
+  // ============================
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentId, {
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('获取子项', data: {'parentId': parentId, 'limit': limit});
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'limit': '$limit',
+      'startIndex': '$offset',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$parentId/Children',
+      queryParameters: params,
+    );
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    return result.items;
+  }
+
+  // ============================
+  // 删除媒体项
+  // ============================
+  @override
+  Future<void> deleteItem({
+    required String itemId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    AppLogger.debug('删除媒体项', data: {'itemId': itemId});
+    _ensureConfig(serverUrl, token);
+    await _apiClient.delete<dynamic>('/Items/$itemId');
+    AppLogger.info('媒体项已删除', data: {'itemId': itemId});
+  }
+
+  // ============================
+  // 继续观看列表
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getResumeItems({
+    int limit = 20,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+    CancelToken? cancelToken,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/Resume',
+      queryParameters: params,
+      cancelToken: cancelToken,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 推荐列表：按社区评分从高到低排序，评分阈值 4.0（满分 10）
+  // 默认排除已观看（IsPlayed=false），避免推已完结的视频
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getRecommendations({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    double minCommunityRating = 4.0,
+    bool excludePlayed = true,
+    Set<String>? includeItemTypes,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final types = includeItemTypes ??
+        const <String>{'Movie', 'Episode', 'Video', 'MusicVideo', 'Series'};
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      if (libraryId != null) 'ParentId': libraryId,
+      'Recursive': 'true',
+      'SortBy': 'CommunityRating,SortName',
+      'SortOrder': 'Descending',
+      'MinCommunityRating': minCommunityRating.toStringAsFixed(1),
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': types.join(','),
+      'ExcludeItemTypes': 'Playlist',
+      if (excludePlayed) 'Filters': 'IsPlayed=false',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 个性化推荐：基于 Emby Suggestions API，利用观看历史做智能推荐
+  // ============================
+  @override
+  Future<List<MediaItem>> getSuggestions({
+    int limit = 20,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      return <MediaItem>[];
+    }
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+    };
+
+    final resp = await _apiClient.get<dynamic>(
+      '/Users/$effectiveUserId/Suggestions',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    if (data is! Map<String, dynamic>) {
+      return <MediaItem>[];
+    }
+    final items = (data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // Next Up（下一步看什么）—— 剧集的下一集
+  // 可选 seriesId：传入则只返回指定剧集的下一集
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getNextUp({
+    int limit = 20,
+    String? seriesId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Fields':
+          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber,People',
+      'IncludeItemTypes': 'Episode',
+    };
+    if (seriesId != null && seriesId.isNotEmpty) {
+      params['SeriesId'] = seriesId;
+    }
+    final resp = await _apiClient.get<dynamic>(
+      '/Shows/NextUp',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: 0, limit: limit);
+  }
+
+  // ============================
+  // 最近添加
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getRecentlyAdded({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      if (libraryId != null) 'ParentId': libraryId,
+      'Recursive': 'true',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/Latest'
+        : '/Items/Latest';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+
+    if (resp.data is List) {
+      final items = resp.data as List<dynamic>;
+      return PaginatedResponse(
+        items: items
+            .whereType<Map<String, dynamic>>()
+            .map((e) => MediaItem.fromJson(e))
+            .toList(),
+        total: items.length,
+        offset: offset,
+        limit: limit,
+      );
+    }
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 相似影片
+  // ============================
+  @override
+  Future<List<MediaItem>> getSimilarItems(
+    String itemId, {
+    int limit = 20,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items/$itemId/Similar',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 预告片
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getTrailers({
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'IncludeItemTypes': 'Trailer',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 剧集季列表
+  // ============================
+  @override
+  Future<List<MediaItem>> getSeasons(
+    String seriesId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Fields':
+          'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Shows/$seriesId/Seasons',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 剧集集列表
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getEpisodes(
+    String seriesId, {
+    String? seasonId,
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Fields':
+          'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber,ParentIndexNumber,SeriesName',
+      if (seasonId != null && seasonId.isNotEmpty) 'SeasonId': seasonId,
+    };
+    final path = '/Shows/$seriesId/Episodes';
+    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 人员（演员/导演）列表
+  // ============================
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int limit = 50,
+    int startIndex = 0,
+    List<String>? personTypes,
+    String? searchTerm,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$startIndex',
+      'Recursive': 'true',
+      if (personTypes != null && personTypes.isNotEmpty)
+        'PersonTypes': personTypes.join(','),
+      if (searchTerm != null && searchTerm.isNotEmpty)
+        'SearchTerm': searchTerm,
+      'Fields': 'PrimaryImageTag,Overview',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Persons',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    final total = (resp.data is Map<String, dynamic>)
+        ? (resp.data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
+    final effectiveToken = token ?? _defaultToken;
+    final people = items
+        .whereType<Map<String, dynamic>>()
+        .map((e) {
+          final id = (e['Id'] as String?) ?? '';
+          final name = (e['Name'] as String?) ?? '';
+          final imageTag = (e['PrimaryImageTag'] as String?) ??
+              (e['ImageTags']?['Primary'] as String?);
+          String? imgUrl;
+          if (imageTag != null && baseUrl.isNotEmpty) {
+            imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
+                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
+                '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
+          }
+          return Person(
+            id: id,
+            name: name,
+            type: (e['Type'] as String?) ?? 'Actor',
+            imageUrl: imgUrl,
+          );
+        })
+        .toList();
+    return PaginatedResponse<Person>(
+      items: people,
+      total: total,
+      offset: startIndex,
+      limit: limit,
+    );
+  }
+
+  // ============================
+  // 某演员出演的作品
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'PersonIds': personId,
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 获取单个演员详情（包含 overview）
+  //
+  // 注意：Emby 的 /Items/{id} 端点对 Person 类型可能不返回 Overview，
+  // 但 /Users/{userId}/Items 列表端点会返回。因此使用列表端点 + Ids 参数
+  // 获取单条记录，保证 Overview 字段。
+  // ============================
+  @override
+  Future<MediaItem?> getPersonDetail(
+    String personId, {
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Ids': personId,
+      'Recursive': 'true',
+      'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
+    };
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        path,
+        queryParameters: params,
+      );
+      final data = resp.data;
+      final items = data is List
+          ? data
+          : (data['Items'] as List<dynamic>?) ?? [];
+      if (items.isNotEmpty && items.first is Map<String, dynamic>) {
+        return MediaItem.fromJson(items.first as Map<String, dynamic>);
+      }
+      return null;
+    } catch (e) {
+      AppLogger.error('获取演员详情失败', error: e);
+      return null;
+    }
+  }
+
+  // ============================
+  // 类型列表（Genres）
+  // ============================
+  @override
+  Future<List<Library>> getGenres({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Genres',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => Library(
+              id: (e['Id'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: 'Genre',
+            ))
+        .toList();
+  }
+
+  // ============================
+  // 某类型下的影片
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByGenre(
+    String genre, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Genres': genre,
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 工作室列表
+  // ============================
+  @override
+  Future<List<Library>> getStudios({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Studios',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => Library(
+              id: (e['Id'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: 'Studio',
+            ))
+        .toList();
+  }
+
+  // ============================
+  // 某工作室下的影片
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByStudio(
+    String studio, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Studios': studio,
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
+  // 收藏列表（从 Emby 获取）
+  // ============================
+  @override
+  Future<List<MediaItem>> getFavorites({
+    int limit = 100,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 收藏影片（按类型：电影/剧集/音乐视频/单集，使用用户视图路径，与 EmbyX 对齐）
+  // ============================
+  @override
+  Future<FavoritesPageResult> getFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    CancelToken? cancelToken,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+      cancelToken: cancelToken,
+    );
+    final data = resp.data;
+    final items = data is List
+        ? data
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
+  }
+
+  // ============================
+  // 收藏合集（BoxSet，使用用户视图路径，与 EmbyX 对齐）
+  // ============================
+  @override
+  Future<FavoritesPageResult> getFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'BoxSet',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final data = resp.data;
+    final items = data is List
+        ? data
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
+  }
+
+  // ============================
+  // 收藏人物（Person，使用用户视图路径，与 EmbyX 对齐）
+  // ============================
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Person',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final data = resp.data;
+    final items = data is List
+        ? data
+        : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
+  }
+
+  // ============================
+  // 切换收藏状态（带 userId 端点，与 EmbyX 对齐）
+  // ============================
+  @override
+  Future<void> toggleFavorite({
+    required String itemId,
+    required bool isFavorite,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('切换收藏状态请求', data: {
+      'itemId': itemId,
+      'isFavorite': isFavorite,
+    });
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId ?? '').isNotEmpty
+        ? '/Users/$effectiveUserId/FavoriteItems/$itemId'
+        : '/UserFavoriteItems/$itemId';
+    if (isFavorite) {
+      await _apiClient.post<dynamic>(path);
+    } else {
+      await _apiClient.delete<dynamic>(path);
+    }
+    AppLogger.debug('收藏状态已更新');
+  }
+
+  // ============================
+  // 标记已看 / 未看
+  // ============================
+  @override
+  Future<void> markAsPlayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.post<dynamic>('/UserPlayedItems/$itemId');
+  }
+
+  @override
+  Future<void> markAsUnplayed(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    await _apiClient.delete<dynamic>('/UserPlayedItems/$itemId');
+  }
+
+  // ============================
+  // 播放信息（通过 getItemDetail 获取，MediaSources 在详情中已包含）
+  // ============================
+  @override
+  Future<MediaItem?> getPlaybackInfo(
+    String itemId, {
+    String? serverUrl,
+    String? token,
+  }) async {
+    return getItemDetail(itemId, serverUrl: serverUrl, token: token);
+  }
+
+  // ============================
+  // 字幕 Cues 加载（从 Emby 获取并解析 SRT/VTT）
+  // - index: 字幕轨道 index（与 MediaStream.index）
+  // - mediaSourceId: 媒体源 ID
+  //
+  // 字幕 URL 格式：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/Stream.{format}
+  // 返回：按 start / end / text
+  // ============================
+  @override
+  Future<List<SubtitleCue>> getSubtitleCues({
+    required String itemId,
+    required String mediaSourceId,
+    required int index,
+    String format = 'srt',
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    try {
+      final url =
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
+      AppLogger.debug('请求字幕', data: {'url': url});
+      final resp = await _apiClient.dio.get<String>(
+        url,
+        options: Options(
+          headers: {
+            'Accept': 'text/plain',
+          },
+        ),
+      );
+      final text = resp.data;
+      if (text == null || text.isEmpty) {
+        AppLogger.debug('字幕内容为空', data: {'url': url, 'statusCode': resp.statusCode});
+        return const <SubtitleCue>[];
+      }
+      final cues = parseSubtitle(text, format);
+      AppLogger.debug('字幕解析完成', data: {
+        'url': url,
+        'format': format,
+        'cuesCount': cues.length,
+        'rawLength': text.length,
+      });
+      return cues;
+    } catch (e) {
+      AppLogger.warn('字幕请求失败', data: {
+        'itemId': itemId,
+        'mediaSourceId': mediaSourceId,
+        'index': index,
+        'format': format,
+        'error': e.toString(),
+      });
+      return const <SubtitleCue>[];
+    }
+  }
+
+  /// 清空字幕缓存（视频切换或用户登出时调用）
+  /// 注意：EmbyServerApi 是纯 API 适配层，不维护字幕缓存状态。
+  /// 此方法为接口兼容保留，实际无操作。字幕缓存由 EmbytokService 管理。
+  @override
+  void clearSubtitleCache() {
+    // 纯 API 层不维护缓存，空实现
+  }
+
+  /// 本地字幕文件最大大小（字节），默认 5MB
+  static const int maxSubtitleFileSize = 5 * 1024 * 1024;
+
+  /// 从本地文件加载字幕（外挂字幕）
+  ///
+  /// [filePath] 本地文件路径
+  /// [format] 字幕格式（srt/vtt/ass/ssa），不传则从文件扩展名推断
+  @override
+  Future<List<SubtitleCue>> getSubtitleCuesFromFile({
+    required String filePath,
+    String? format,
+  }) async {
+    AppLogger.debug('从本地文件加载字幕', data: {'filePath': filePath, 'format': format});
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        AppLogger.warn('本地字幕文件不存在', data: {'filePath': filePath});
+        return const <SubtitleCue>[];
+      }
+      final fileSize = await file.length();
+      if (fileSize > maxSubtitleFileSize) {
+        AppLogger.warn('本地字幕文件过大', data: {
+          'filePath': filePath,
+          'fileSize': fileSize,
+          'maxSize': maxSubtitleFileSize,
+        });
+        return const <SubtitleCue>[];
+      }
+      final content = await file.readAsString();
+      if (content.isEmpty) {
+        AppLogger.warn('本地字幕文件为空', data: {'filePath': filePath});
+        return const <SubtitleCue>[];
+      }
+      final effectiveFormat = format ?? _detectFormatFromPath(filePath);
+      final cues = parseSubtitle(content, effectiveFormat);
+      AppLogger.debug('本地字幕加载完成', data: {
+        'filePath': filePath,
+        'format': effectiveFormat,
+        'cuesCount': cues.length,
+      });
+      return cues;
+    } catch (e) {
+      AppLogger.warn('本地字幕加载失败', data: {
+        'filePath': filePath,
+        'error': e.toString(),
+      });
+      return const <SubtitleCue>[];
+    }
+  }
+
+  /// 从文件路径推断字幕格式
+  String _detectFormatFromPath(String filePath) {
+    final ext = filePath.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'vtt':
+      case 'webvtt':
+        return 'vtt';
+      case 'ass':
+      case 'ssa':
+        return 'ass';
+      case 'srt':
+      case 'subrip':
+      default:
+        return 'srt';
+    }
+  }
+
+  // ============================
+  // 上报播放进度 / 停止位置
+  // ============================
+
+  // 上报播放能力（播放开始前调用）
+  @override
+  Future<void> reportCapabilities({
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Capabilities/Full',
+        data: {
+          'PlayableMediaTypes': ['Video'],
+          'SupportsMediaControl': true,
+          'SupportsPersistentConnections': false,
+        },
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放能力失败', data: {'error': e.toString()});
+    }
+  }
+
+  // 上报播放开始
+  @override
+  Future<void> reportPlaybackStart({
+    required String itemId,
+    String? mediaSourceId,
+    String? playSessionId,
+    bool isPaused = false,
+    bool isMuted = false,
+    int? volumeLevel,
+    String playMethod = 'DirectPlay',
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
+    final body = <String, dynamic>{
+      'ItemId': itemId,
+      'PositionTicks': 0,
+      'IsPaused': isPaused,
+      'IsMuted': isMuted,
+      'PlayMethod': playMethod,
+      'EventName': 'TimeUpdate',
+      'CanSeek': true,
+      'QueueableMediaTypes': ['Video'],
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
+      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
+    };
+    try {
+      await _retry(
+        () => _apiClient.post<dynamic>(
+          '/Sessions/Playing',
+          data: body,
+        ),
+        operationName: '上报播放开始',
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放开始失败', data: {'error': e.toString()});
+    }
+  }
+
+  @override
+  Future<void> reportPlaybackPosition({
+    required String itemId,
+    required int positionTicks,
+    String? mediaSourceId,
+    String? playSessionId,
+    bool isPaused = false,
+    bool isMuted = false,
+    int? volumeLevel,
+    String playMethod = 'DirectPlay',
+    String eventName = 'TimeUpdate',
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('上报播放进度', data: {
+      'itemId': itemId,
+      'positionTicks': positionTicks,
+    });
+    _ensureConfig(serverUrl, token);
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
+    final body = <String, dynamic>{
+      'ItemId': itemId,
+      'PositionTicks': positionTicks,
+      'IsPaused': isPaused,
+      'IsMuted': isMuted,
+      'PlayMethod': playMethod,
+      'EventName': eventName,
+      'CanSeek': true,
+      'QueueableMediaTypes': ['Video'],
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
+      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
+    };
+    try {
+      await _apiClient.post<dynamic>(
+        '/Sessions/Playing/Progress',
+        data: body,
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放进度失败', data: {'error': e.toString()});
+    }
+  }
+
+  @override
+  Future<void> reportPlaybackStopped({
+    required String itemId,
+    required int positionTicks,
+    String? mediaSourceId,
+    String? playSessionId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('上报播放停止', data: {
+      'itemId': itemId,
+      'positionTicks': positionTicks,
+    });
+    _ensureConfig(serverUrl, token);
+    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
+    final body = <String, dynamic>{
+      'ItemId': itemId,
+      'PositionTicks': positionTicks,
+      'MediaSourceId': mediaSourceId ?? itemId,
+      'PlaySessionId': effectiveSessionId,
+    };
+    try {
+      await _retry(
+        () => _apiClient.post<dynamic>(
+          '/Sessions/Playing/Stopped',
+          data: body,
+        ),
+        operationName: '上报播放停止',
+      );
+    } catch (e) {
+      AppLogger.debug('上报播放停止失败', data: {'error': e.toString()});
+    }
+  }
+
+  // ============================
+  // 搜索提示
+  // ============================
+  @override
+  Future<List<SearchHint>> searchHints(
+    String query, {
+    int limit = 20,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    if (query.isEmpty) return [];
+    final params = <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'Recursive': 'true',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Search/Hints',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['SearchHints'] as List<dynamic>?) ??
+            (resp.data['Items'] as List<dynamic>?) ??
+            [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => SearchHint(
+              id: (e['Id'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: (e['Type'] as String?),
+              year: (e['ProductionYear'] as int?) ?? (e['year'] as int?),
+              seriesName: (e['SeriesName'] as String?),
+              thumbnailUrl: _defaultServerUrl != null
+                  ? '$_defaultServerUrl/Items/${e['Id']}/Images/Primary'
+                      '?MaxWidth=200&Format=jpg'
+                      '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}'
+                  : null,
+            ))
+        .toList();
+  }
+
+  // ============================
+  // 通用搜索（获取完整 MediaItem 对象，使用用户视图路径，与 EmbyX 对齐）
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> searchItems(
+    String query, {
+    int limit = 30,
+    int offset = 0,
+    List<String>? includeTypes,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.info('发送搜索请求', data: {
+      'query': query,
+      'limit': limit,
+    });
+    _ensureConfig(serverUrl, token);
+    if (query.isEmpty) {
+      return PaginatedResponse(
+        items: const [],
+        total: 0,
+        offset: offset,
+        limit: limit,
+      );
+    }
+    final params = <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      if (includeTypes != null && includeTypes.isNotEmpty)
+        'IncludeItemTypes': includeTypes.join(','),
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    AppLogger.debug('搜索响应', data: {
+      'results': result.items.length,
+      'total': result.total,
+    });
+    return result;
+  }
+
+  // ============================
+  // 搜索人物（演员/导演/编剧）
+  // ============================
+  @override
+  Future<List<Map<String, dynamic>>> searchPersons(
+    String query, {
+    int limit = 20,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    if (query.isEmpty) return [];
+
+    final params = <String, dynamic>{
+      'SearchTerm': query,
+      'Limit': '$limit',
+      'Fields': 'Overview,ImageTags,Name',
+    };
+
+    final resp = await _apiClient.get<dynamic>(
+      '/Persons',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    if (data is Map<String, dynamic>) {
+      final items = data['Items'];
+      if (items is List) {
+        return items.cast<Map<String, dynamic>>();
+      }
+    }
+    return [];
+  }
+
+  // ============================
+  // 观看历史（从 Emby 获取最近观看的条目）
+  //
+  // 优先使用用户级路径 /Users/{userId}/Items，该路径在多数 Emby 服务器上
+  // 对继续观看列表的权限更明确。若 userId 为空，则降级到全局 /Items
+  // 并附加 UserId 查询参数保证向后兼容。
+  // ============================
+  @override
+  Future<List<MediaItem>> getWatchHistory({
+    int limit = 50,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+
+    final isUserPath = effectiveUserId != null && effectiveUserId.isNotEmpty;
+    final path = isUserPath ? '/Users/$effectiveUserId/Items' : '/Items';
+
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+      'SortBy': 'DatePlayed',
+      'SortOrder': 'Descending',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'ExcludeItemTypes': 'Playlist',
+      if (!isUserPath && effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
+    };
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
+  // 续播云同步：使用 DisplayPreferences 实现跨设备续播同步
+  // ============================
+
+  // 保存续播位置到云端（DisplayPreferences）
+  @override
+  Future<void> saveCloudSync({
+    required String itemId,
+    required String libraryId,
+    String? libraryType,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('保存续播云同步', data: {'itemId': itemId});
+    _ensureConfig(serverUrl, token);
+    final userId = _defaultUserId;
+    if (userId == null || userId.isEmpty) {
+      AppLogger.warn('未配置 userId，跳过云同步');
+      return;
+    }
+    final body = <String, dynamic>{
+      'Id': 'EmbyTok-Resume',
+      'CustomPrefs': {
+        'lastId': itemId,
+        'libId': libraryId,
+        'libType': libraryType ?? '',
+        'date': DateTime.now().millisecondsSinceEpoch.toString(),
+      },
+    };
+    await _apiClient.post<dynamic>(
+      '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
+      data: body,
+    );
+  }
+
+  // 从云端获取续播位置
+  @override
+  Future<Map<String, dynamic>?> checkCloudSync({
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('检查续播云同步');
+    _ensureConfig(serverUrl, token);
+    final userId = _defaultUserId;
+    if (userId == null || userId.isEmpty) return null;
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
+      );
+      final data = resp.data is Map
+          ? Map<String, dynamic>.from(resp.data as Map)
+          : <String, dynamic>{};
+      final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
+      return customPrefs;
+    } catch (e) {
+      AppLogger.debug('云同步数据不存在或获取失败', data: {'error': e.toString()});
+      return null;
+    }
+  }
+
+  // ============================
+  // 通用 POST 请求
+  // ============================
+  @override
+  Future<dynamic> postRaw(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    dynamic data,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('POST 请求', data: {'path': path});
+    _ensureConfig(serverUrl, token);
+    final resp = await _apiClient.post<dynamic>(
+      path,
+      queryParameters: queryParameters,
+      data: data,
+    );
+    return resp.data;
+  }
+
+  // ============================
+  // 通用 DELETE 请求
+  // ============================
+  @override
+  Future<dynamic> deleteRaw(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('DELETE 请求', data: {'path': path});
+    _ensureConfig(serverUrl, token);
+    final resp = await _apiClient.delete<dynamic>(
+      path,
+      queryParameters: queryParameters,
+    );
+    return resp.data;
+  }
+
+  // ============================
+  // 内部辅助方法
+  // ============================
+
+  // 生成播放会话 ID：时间戳 + 真随机数，降低碰撞概率
+  String _generatePlaySessionId() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    final rand = Random().nextInt(0xFFFF).toRadixString(16).padLeft(4, '0');
+    return 'emb-$now-$rand';
+  }
+
+  // 指数退避重试：用于播放上报等关键操作
+  // - maxAttempts: 最多重试次数（含首次），默认 3 次
+  // - delayMs: 初始延迟毫秒数，每次翻倍，带 50% 抖动
+  Future<void> _retry(
+    Future<void> Function() fn, {
+    int maxAttempts = 3,
+    int initialDelayMs = 1000,
+    String operationName = 'operation',
+  }) async {
+    var attempt = 0;
+    var delay = initialDelayMs;
+    final random = Random();
+    while (true) {
+      attempt++;
+      try {
+        await fn();
+        return;
+      } catch (e) {
+        if (attempt >= maxAttempts) {
+          AppLogger.warn('$operationName 失败（$maxAttempts 次尝试均失败）',
+              data: {'error': e.toString()});
+          rethrow;
+        }
+        final jitter = (delay * 0.5 * random.nextDouble()).toInt();
+        final waitMs = delay + jitter;
+        AppLogger.debug('$operationName 第 $attempt 次失败，${waitMs}ms 后重试',
+            data: {'error': e.toString()});
+        await Future<void>.delayed(Duration(milliseconds: waitMs));
+        delay *= 2;
+      }
+    }
+  }
+
+  // 确保 API client 已配置 serverUrl 和 token
+  void _ensureConfig(String? serverUrl, String? token) {
+    final url = serverUrl ?? _defaultServerUrl;
+    final tk = token ?? _defaultToken;
+    if (url == null || url.isEmpty) {
+      AppLogger.warn('服务器地址未配置');
+      throw AppError.notAuthenticated(message: '请先登录或提供 Emby 服务器地址');
+    }
+    if (url != _apiClient.optionsBaseUrl) {
+      _apiClient.setBaseUrl(url);
+    }
+    if (tk != null && tk.isNotEmpty) {
+      _apiClient.setToken(tk);
+    }
+  }
+
+  // 解析分页响应
+  PaginatedResponse<MediaItem> _parsePaginatedResponse(
+    dynamic data, {
+    int offset = 0,
+    int limit = 20,
+  }) {
+    if (data is! Map<String, dynamic>) {
+      return PaginatedResponse<MediaItem>(
+        items: const <MediaItem>[],
+        total: 0,
+        offset: offset,
+        limit: limit,
+      );
+    }
+    final items = (data['Items'] as List<dynamic>?) ?? [];
+    final total = (data['TotalRecordCount'] as int?) ?? items.length;
+    return PaginatedResponse(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      total: total,
+      offset: offset,
+      limit: limit,
+    );
+  }
+}

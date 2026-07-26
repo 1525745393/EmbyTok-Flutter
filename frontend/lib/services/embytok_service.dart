@@ -1,6 +1,7 @@
-// 核心业务服务：直接调用 Emby 原生 API（不再经过后端）
+// 核心业务服务：业务门面，依赖 MediaServerApi 接口
 // 设计思路：每个方法都接受可选的 serverUrl / token 参数，调用方可以显式传入，
 // 也可以先调用 setupAuth 后使用无参方法。这样既有灵活性又便于 Provider 使用。
+// 业务逻辑（字幕缓存、播放上报重试等）保留在此层，纯 API 调用委托给 _api。
 
 import 'dart:io';
 import 'dart:math';
@@ -11,20 +12,20 @@ import '../models/models.dart';
 import '../utils/logger.dart';
 import '../utils/memory_cache.dart';
 import 'api_client.dart';
+import 'emby_server_api.dart';
+import 'media_server_api.dart';
 
 class EmbytokService {
-  EmbytokService() : _apiClient = ApiClient();
+  EmbytokService({MediaServerApi? api}) : _api = api ?? EmbyServerApi();
 
-  EmbytokService.withClient(this._apiClient);
+  EmbytokService.withClient(ApiClient client)
+      : _api = EmbyServerApi.withClient(client);
 
-  final ApiClient _apiClient;
-  String? _defaultServerUrl;
-  String? _defaultToken;
-  // 保存当前登录用户的 userId，用于 Views 端点和云同步等需要用户身份的接口
-  String? _defaultUserId;
+  final MediaServerApi _api;
 
   // 字幕缓存：LRU + TTL，max 50 条，30 分钟过期
-  final MemoryCache<List<SubtitleCue>> _subtitleCache = MemoryCache<List<SubtitleCue>>(maxSize: 50);
+  final MemoryCache<List<SubtitleCue>> _subtitleCache =
+      MemoryCache<List<SubtitleCue>>(maxSize: 50);
 
   // ============================
   // 认证配置（设置默认 server/token，后续调用可省略参数）
@@ -34,19 +35,16 @@ class EmbytokService {
     required String apiKey,
     String? userId,
   }) {
-    _defaultServerUrl = embyServerUrl;
-    _defaultToken = apiKey;
-    // 保存 userId 供后续 Views 端点和云同步使用
-    _defaultUserId = userId;
-    _apiClient.setBaseUrl(embyServerUrl);
-    _apiClient.setToken(apiKey);
+    _api.setupAuth(
+      embyServerUrl: embyServerUrl,
+      apiKey: apiKey,
+      userId: userId,
+    );
   }
 
   // 清除认证信息
   void clearAuth() {
-    _defaultServerUrl = null;
-    _defaultToken = null;
-    _defaultUserId = null;
+    _api.clearAuth();
   }
 
   // ============================
@@ -56,46 +54,12 @@ class EmbytokService {
     required String embyServerUrl,
     required String username,
     required String password,
-  }) async {
-    AppLogger.info('发送登录请求', data: {
-      'serverUrl': embyServerUrl,
-      'username': username,
-    });
-
-    try {
-      _apiClient.setBaseUrl(embyServerUrl);
-
-      final resp = await _apiClient.post<Map<String, dynamic>>(
-        '/Users/AuthenticateByName',
-        data: {
-          'Username': username,
-          'Pw': password,
-        },
-      );
-
-      final data = resp.data as Map<String, dynamic>;
-      final userInfo = data['User'] as Map<String, dynamic>? ?? {};
-      final accessToken = (data['AccessToken'] as String?) ?? '';
-
-      final user = User(
-        id: (userInfo['Id'] as String?) ?? '',
-        name: (userInfo['Name'] as String?) ?? username,
-        accessToken: accessToken,
-      );
-
-      // 保存配置方便后续直接调用
-      _defaultServerUrl = embyServerUrl;
-      _defaultToken = accessToken;
-      // 保存登录用户的 userId，供 Views 端点和云同步使用
-      _defaultUserId = user.id;
-      _apiClient.setToken(accessToken);
-
-      AppLogger.info('登录成功', data: {'userId': user.id});
-      return user;
-    } catch (e) {
-      AppLogger.error('登录请求失败', error: e);
-      rethrow;
-    }
+  }) {
+    return _api.login(
+      embyServerUrl: embyServerUrl,
+      username: username,
+      password: password,
+    );
   }
 
   // ============================
@@ -105,65 +69,12 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('请求媒体库列表');
-    _ensureConfig(serverUrl, token);
-    // 优先使用传入的 userId，其次使用登录后保存的 _defaultUserId
-    // 都没有时回退到管理员视角的 /Library/VirtualFolders
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = effectiveUserId != null && effectiveUserId.isNotEmpty
-        ? '/Users/$effectiveUserId/Views'
-        : '/Library/VirtualFolders';
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: {},
+  }) {
+    return _api.getLibraries(
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-
-    final libraries = items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => Library(
-              id: (e['Id'] as String?) ?? (e['ItemId'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: (e['CollectionType'] as String?) ?? 'movies',
-              itemCount: e['RecursiveItemCount'] as int?,
-              coverImageUrl: e['ImageTags']?['Primary'] as String?,
-            ))
-        .toList();
-
-    // 如果接口没有返回视频数量，为每个库单独请求一次
-    final needsCount = libraries.any((lib) => lib.itemCount == null);
-    if (needsCount && effectiveUserId != null && effectiveUserId.isNotEmpty) {
-      for (var i = 0; i < libraries.length; i++) {
-        final lib = libraries[i];
-        if (lib.itemCount == null) {
-          try {
-            final resp = await getLibraryItems(
-              lib.id,
-              limit: 0,
-              userId: effectiveUserId,
-              serverUrl: serverUrl,
-              token: token,
-            );
-            libraries[i] = Library(
-              id: lib.id,
-              name: lib.name,
-              type: lib.type,
-              itemCount: resp.total,
-              coverImageUrl: lib.coverImageUrl,
-            );
-          } catch (e) {
-            AppLogger.debug('获取库 ${lib.name} 视频数量失败', data: {'error': e.toString()});
-          }
-        }
-      }
-    }
-
-    AppLogger.debug('媒体库列表响应', data: {'count': libraries.length});
-    return libraries;
   }
 
   // ============================
@@ -174,7 +85,7 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) {
-    return getLibraries(
+    return _api.getUserViews(
       userId: userId,
       serverUrl: serverUrl,
       token: token,
@@ -196,47 +107,20 @@ class EmbytokService {
     String? searchTerm,
     bool excludePlayed = false,
     CancelToken? cancelToken,
-  }) async {
-    AppLogger.debug('请求视频列表', data: {
-      'libraryId': libraryId,
-      'limit': limit,
-      'offset': offset,
-      'sortBy': sortBy,
-      'sortOrder': sortOrder,
-      if (searchTerm != null) 'searchTerm': searchTerm,
-      'excludePlayed': excludePlayed,
-    });
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'ParentId': libraryId,
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'SortBy': sortBy,
-      'SortOrder': sortOrder,
-      'Recursive': 'true',
-      'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
-      if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
-      if (excludePlayed) 'Filters': 'IsPlayed=false',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getLibraryItems(
+      libraryId,
+      limit: limit,
+      offset: offset,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      searchTerm: searchTerm,
+      excludePlayed: excludePlayed,
+      cancelToken: cancelToken,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
-    AppLogger.debug('视频列表响应', data: {
-      'count': result.items.length,
-      'total': result.total,
-    });
-    return result;
   }
 
   // ============================
@@ -247,27 +131,13 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Fields':
-          'Overview,Genres,People,CommunityRating,CriticRating,OfficialRating,'
-              'RunTimeTicks,ProductionYear,PremiereDate,DateCreated,Studios,'
-              'MediaSources,UserData,ParentIndexNumber,IndexNumber,SeriesName,'
-              'SeasonName,SeriesId,SeasonId,ImageTags,BackdropImageTags',
-    };
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items/$itemId'
-        : '/Items/$itemId';
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getItemDetail(
+      itemId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final data = resp.data is Map
-        ? Map<String, dynamic>.from(resp.data as Map)
-        : <String, dynamic>{};
-    return MediaItem.fromJson(data);
   }
 
   // ============================
@@ -279,23 +149,14 @@ class EmbytokService {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items/Resume',
-      queryParameters: params,
+  }) {
+    return _api.getResumeItems(
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
       cancelToken: cancelToken,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -314,37 +175,18 @@ class EmbytokService {
     double minCommunityRating = 4.0,
     bool excludePlayed = true,
     Set<String>? includeItemTypes,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final types = includeItemTypes ??
-        const <String>{'Movie', 'Episode', 'Video', 'MusicVideo', 'Series'};
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      if (libraryId != null) 'ParentId': libraryId,
-      'Recursive': 'true',
-      'SortBy': 'CommunityRating,SortName',
-      'SortOrder': 'Descending',
-      'MinCommunityRating': minCommunityRating.toStringAsFixed(1),
-      'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': types.join(','),
-      'ExcludeItemTypes': 'Playlist',
-      // 过滤已观看视频（避免推荐已看完的影片）
-      // 注：Resume 列表不受此影响，由 getResumeItems 单独处理
-      if (excludePlayed) 'Filters': 'IsPlayed=false',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getRecommendations(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      minCommunityRating: minCommunityRating,
+      excludePlayed: excludePlayed,
+      includeItemTypes: includeItemTypes,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -355,32 +197,13 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final effectiveUserId = userId ?? _defaultUserId;
-    if (effectiveUserId == null || effectiveUserId.isEmpty) {
-      return <MediaItem>[];
-    }
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-    };
-
-    final resp = await _apiClient.get<dynamic>(
-      '/Users/$effectiveUserId/Suggestions',
-      queryParameters: params,
+  }) {
+    return _api.getSuggestions(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final data = resp.data;
-    if (data is! Map<String, dynamic>) {
-      return <MediaItem>[];
-    }
-    final items = (data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
   }
 
   // ============================
@@ -392,23 +215,13 @@ class EmbytokService {
     String? seriesId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Fields':
-          'Overview,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,ParentIndexNumber,IndexNumber,People',
-      'IncludeItemTypes': 'Episode',
-    };
-    // 指定 seriesId 时只查询该剧集的下一集
-    if (seriesId != null && seriesId.isNotEmpty) {
-      params['SeriesId'] = seriesId;
-    }
-    final resp = await _apiClient.get<dynamic>(
-      '/Shows/NextUp',
-      queryParameters: params,
+  }) {
+    return _api.getNextUp(
+      limit: limit,
+      seriesId: seriesId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return _parsePaginatedResponse(resp.data, offset: 0, limit: limit);
   }
 
   // ============================
@@ -421,44 +234,15 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      if (libraryId != null) 'ParentId': libraryId,
-      'Recursive': 'true',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items/Latest'
-        : '/Items/Latest';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getRecentlyAdded(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-
-    if (resp.data is List) {
-      final items = resp.data as List<dynamic>;
-      return PaginatedResponse(
-        items: items
-            .whereType<Map<String, dynamic>>()
-            .map((e) => MediaItem.fromJson(e))
-            .toList(),
-        total: items.length,
-        offset: offset,
-        limit: limit,
-      );
-    }
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -469,24 +253,13 @@ class EmbytokService {
     int limit = 20,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items/$itemId/Similar',
-      queryParameters: params,
+  }) {
+    return _api.getSimilarItems(
+      itemId,
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
   }
 
   // ============================
@@ -499,57 +272,14 @@ class EmbytokService {
     String? searchTerm,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$startIndex',
-      'Recursive': 'true',
-      if (personTypes != null && personTypes.isNotEmpty)
-        'PersonTypes': personTypes.join(','),
-      if (searchTerm != null && searchTerm.isNotEmpty)
-        'SearchTerm': searchTerm,
-      'Fields': 'PrimaryImageTag,Overview',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Persons',
-      queryParameters: params,
-    );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    final total = (resp.data is Map<String, dynamic>)
-        ? (resp.data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
-    final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
-    // 使用传入的 token 或默认 token
-    final effectiveToken = token ?? _defaultToken;
-    final people = items
-        .whereType<Map<String, dynamic>>()
-        .map((e) {
-          final id = (e['Id'] as String?) ?? '';
-          final name = (e['Name'] as String?) ?? '';
-          final imageTag = (e['PrimaryImageTag'] as String?) ??
-              (e['ImageTags']?['Primary'] as String?);
-          String? imgUrl;
-          if (imageTag != null && baseUrl.isNotEmpty) {
-            imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
-                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-                '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
-          }
-          return Person(
-            id: id,
-            name: name,
-            type: (e['Type'] as String?) ?? 'Actor',
-            imageUrl: imgUrl,
-          );
-        })
-        .toList();
-    return PaginatedResponse<Person>(
-      items: people,
-      total: total,
-      offset: startIndex,
+  }) {
+    return _api.getPeople(
       limit: limit,
+      startIndex: startIndex,
+      personTypes: personTypes,
+      searchTerm: searchTerm,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
@@ -562,21 +292,14 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'PersonIds': personId,
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
+  }) {
+    return _api.getPersonItems(
+      personId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -591,34 +314,13 @@ class EmbytokService {
     String? serverUrl,
     String? token,
     String? userId,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Ids': personId,
-      'Recursive': 'true',
-      'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
-    };
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-    try {
-    final resp = await _apiClient.get<dynamic>(
-      path,
-        queryParameters: params,
-      );
-      final data = resp.data;
-      final items = data is List
-          ? data
-          : (data['Items'] as List<dynamic>?) ?? [];
-      if (items.isNotEmpty && items.first is Map<String, dynamic>) {
-        return MediaItem.fromJson(items.first as Map<String, dynamic>);
-      }
-      return null;
-    } catch (e) {
-      AppLogger.error('获取演员详情失败', error: e);
-      return null;
-    }
+  }) {
+    return _api.getPersonDetail(
+      personId,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
   }
 
   // ============================
@@ -628,27 +330,12 @@ class EmbytokService {
     int limit = 100,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Recursive': 'true',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Genres',
-      queryParameters: params,
+  }) {
+    return _api.getGenres(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => Library(
-              id: (e['Id'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: 'Genre',
-            ))
-        .toList();
   }
 
   // ============================
@@ -660,21 +347,14 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Genres': genre,
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
+  }) {
+    return _api.getItemsByGenre(
+      genre,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -684,27 +364,12 @@ class EmbytokService {
     int limit = 100,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Recursive': 'true',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Studios',
-      queryParameters: params,
+  }) {
+    return _api.getStudios(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => Library(
-              id: (e['Id'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: 'Studio',
-            ))
-        .toList();
   }
 
   // ============================
@@ -716,21 +381,14 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Studios': studio,
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
+  }) {
+    return _api.getItemsByStudio(
+      studio,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -741,29 +399,13 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
+  }) {
+    return _api.getFavorites(
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
   }
 
   // ============================
@@ -776,44 +418,14 @@ class EmbytokService {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getFavoriteMovies(
+      limit: limit,
+      offset: offset,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
       cancelToken: cancelToken,
-    );
-    final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
-    final totalCount = data is Map
-        ? (data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
-    return FavoritesPageResult(
-      items: items
-          .whereType<Map<String, dynamic>>()
-          .map((e) => MediaItem.fromJson(e))
-          .toList(),
-      totalCount: totalCount,
     );
   }
 
@@ -826,42 +438,13 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'BoxSet',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
-    );
-    final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
-    final totalCount = data is Map
-        ? (data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
-    return FavoritesPageResult(
-      items: items
-          .whereType<Map<String, dynamic>>()
-          .map((e) => MediaItem.fromJson(e))
-          .toList(),
-      totalCount: totalCount,
+  }) {
+    return _api.getFavoriteBoxSets(
+      limit: limit,
+      offset: offset,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
@@ -874,42 +457,13 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Person',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
-    );
-    final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
-    final totalCount = data is Map
-        ? (data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
-    return FavoritesPageResult(
-      items: items
-          .whereType<Map<String, dynamic>>()
-          .map((e) => MediaItem.fromJson(e))
-          .toList(),
-      totalCount: totalCount,
+  }) {
+    return _api.getFavoritePeople(
+      limit: limit,
+      offset: offset,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
@@ -922,24 +476,14 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('切换收藏状态请求', data: {
-      'itemId': itemId,
-      'isFavorite': isFavorite,
-    });
-    _ensureConfig(serverUrl, token);
-    // 使用带 userId 端点：/Users/{userId}/FavoriteItems/{itemId}
-    // 无 userId 时回退到无 userId 的短路径
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId ?? '').isNotEmpty
-        ? '/Users/$effectiveUserId/FavoriteItems/$itemId'
-        : '/UserFavoriteItems/$itemId';
-    if (isFavorite) {
-      await _apiClient.post<dynamic>(path);
-    } else {
-      await _apiClient.delete<dynamic>(path);
-    }
-    AppLogger.debug('收藏状态已更新');
+  }) {
+    return _api.toggleFavorite(
+      itemId: itemId,
+      isFavorite: isFavorite,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -949,18 +493,24 @@ class EmbytokService {
     String itemId, {
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    await _apiClient.post<dynamic>('/UserPlayedItems/$itemId');
+  }) {
+    return _api.markAsPlayed(
+      itemId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   Future<void> markAsUnplayed(
     String itemId, {
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    await _apiClient.delete<dynamic>('/UserPlayedItems/$itemId');
+  }) {
+    return _api.markAsUnplayed(
+      itemId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -970,23 +520,12 @@ class EmbytokService {
     String seriesId, {
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Fields':
-          'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Shows/$seriesId/Seasons',
-      queryParameters: params,
+  }) {
+    return _api.getSeasons(
+      seriesId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
   }
 
   // ============================
@@ -999,18 +538,15 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Fields':
-          'Overview,RunTimeTicks,ProductionYear,ImageTags,UserData,IndexNumber,ParentIndexNumber,SeriesName',
-      if (seasonId != null && seasonId.isNotEmpty) 'SeasonId': seasonId,
-    };
-    final path = '/Shows/$seriesId/Episodes';
-    final resp = await _apiClient.get<dynamic>(path, queryParameters: params);
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }) {
+    return _api.getEpisodes(
+      seriesId,
+      seasonId: seasonId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -1021,21 +557,13 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'IncludeItemTypes': 'Trailer',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items',
-      queryParameters: params,
+  }) {
+    return _api.getTrailers(
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
   // ============================
@@ -1045,8 +573,12 @@ class EmbytokService {
     String itemId, {
     String? serverUrl,
     String? token,
-  }) async {
-    return getItemDetail(itemId, serverUrl: serverUrl, token: token);
+  }) {
+    return _api.getPlaybackInfo(
+      itemId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -1065,42 +597,24 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
-    _ensureConfig(serverUrl, token);
     // 内存缓存：仅缓存成功且非空的结果，避免重复请求
     // 空结果和失败请求不缓存，确保下次可以重试
     final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
     final cached = _subtitleCache.get(cacheKey);
     if (cached != null) {
-      AppLogger.debug('字幕缓存命中', data: {'cacheKey': cacheKey, 'count': cached.length});
+      AppLogger.debug('字幕缓存命中',
+          data: {'cacheKey': cacheKey, 'count': cached.length});
       return cached;
     }
     try {
-      // Emby 字幕 API：/Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/0/Stream.{format}
-      // 0 = startPositionTicks，Stream.{format} 返回完整字幕
-      final url =
-          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
-      AppLogger.debug('请求字幕', data: {'url': url});
-      final resp = await _apiClient.dio.get<String>(
-        url,
-        options: Options(
-          headers: {
-            'Accept': 'text/plain',
-          },
-        ),
+      final cues = await _api.getSubtitleCues(
+        itemId: itemId,
+        mediaSourceId: mediaSourceId,
+        index: index,
+        format: format,
+        serverUrl: serverUrl,
+        token: token,
       );
-      final text = resp.data;
-      if (text == null || text.isEmpty) {
-        AppLogger.debug('字幕内容为空', data: {'url': url, 'statusCode': resp.statusCode});
-        return const <SubtitleCue>[];
-      }
-      // 根据格式动态选择解析器
-      final cues = parseSubtitle(text, format);
-      AppLogger.debug('字幕解析完成', data: {
-        'url': url,
-        'format': format,
-        'cuesCount': cues.length,
-        'rawLength': text.length,
-      });
       // 仅缓存非空结果
       if (cues.isNotEmpty) {
         _subtitleCache.set(cacheKey, cues);
@@ -1137,7 +651,8 @@ class EmbytokService {
     required String filePath,
     String? format,
   }) async {
-    AppLogger.debug('从本地文件加载字幕', data: {'filePath': filePath, 'format': format});
+    AppLogger.debug('从本地文件加载字幕',
+        data: {'filePath': filePath, 'format': format});
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -1202,24 +717,14 @@ class EmbytokService {
   Future<void> reportCapabilities({
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    try {
-      await _apiClient.post<dynamic>(
-        '/Sessions/Capabilities/Full',
-        data: {
-          'PlayableMediaTypes': ['Video'],
-          'SupportsMediaControl': true,
-          'SupportsPersistentConnections': false,
-        },
-      );
-    } catch (e) {
-      // 上报失败不中断播放：仅记录日志，不抛到 UI 层
-      AppLogger.debug('上报播放能力失败', data: {'error': e.toString()});
-    }
+  }) {
+    return _api.reportCapabilities(
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
-  // 上报播放开始
+  // 上报播放开始（带指数退避重试）
   Future<void> reportPlaybackStart({
     required String itemId,
     String? mediaSourceId,
@@ -1231,27 +736,18 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
-    _ensureConfig(serverUrl, token);
-    // 未传 playSessionId 时自动生成（时间戳 + 短随机数，不依赖 uuid 包）
-    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
-    final body = <String, dynamic>{
-      'ItemId': itemId,
-      'PositionTicks': 0,
-      'IsPaused': isPaused,
-      'IsMuted': isMuted,
-      'PlayMethod': playMethod,
-      'EventName': 'TimeUpdate',
-      'CanSeek': true,
-      'QueueableMediaTypes': ['Video'],
-      'MediaSourceId': mediaSourceId ?? itemId,
-      'PlaySessionId': effectiveSessionId,
-      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
-    };
     try {
       await _retry(
-        () => _apiClient.post<dynamic>(
-          '/Sessions/Playing',
-          data: body,
+        () => _api.reportPlaybackStart(
+          itemId: itemId,
+          mediaSourceId: mediaSourceId,
+          playSessionId: playSessionId,
+          isPaused: isPaused,
+          isMuted: isMuted,
+          volumeLevel: volumeLevel,
+          playMethod: playMethod,
+          serverUrl: serverUrl,
+          token: token,
         ),
         operationName: '上报播放开始',
       );
@@ -1272,34 +768,20 @@ class EmbytokService {
     String eventName = 'TimeUpdate',
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('上报播放进度', data: {
-      'itemId': itemId,
-      'positionTicks': positionTicks,
-    });
-    _ensureConfig(serverUrl, token);
-    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
-    final body = <String, dynamic>{
-      'ItemId': itemId,
-      'PositionTicks': positionTicks,
-      'IsPaused': isPaused,
-      'IsMuted': isMuted,
-      'PlayMethod': playMethod,
-      'EventName': eventName,
-      'CanSeek': true,
-      'QueueableMediaTypes': ['Video'],
-      'MediaSourceId': mediaSourceId ?? itemId,
-      'PlaySessionId': effectiveSessionId,
-      if (volumeLevel != null) 'VolumeLevel': volumeLevel,
-    };
-    try {
-      await _apiClient.post<dynamic>(
-        '/Sessions/Playing/Progress',
-        data: body,
-      );
-    } catch (e) {
-      AppLogger.debug('上报播放进度失败', data: {'error': e.toString()});
-    }
+  }) {
+    return _api.reportPlaybackPosition(
+      itemId: itemId,
+      positionTicks: positionTicks,
+      mediaSourceId: mediaSourceId,
+      playSessionId: playSessionId,
+      isPaused: isPaused,
+      isMuted: isMuted,
+      volumeLevel: volumeLevel,
+      playMethod: playMethod,
+      eventName: eventName,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   Future<void> reportPlaybackStopped({
@@ -1310,23 +792,15 @@ class EmbytokService {
     String? serverUrl,
     String? token,
   }) async {
-    AppLogger.debug('上报播放停止', data: {
-      'itemId': itemId,
-      'positionTicks': positionTicks,
-    });
-    _ensureConfig(serverUrl, token);
-    final effectiveSessionId = playSessionId ?? _generatePlaySessionId();
-    final body = <String, dynamic>{
-      'ItemId': itemId,
-      'PositionTicks': positionTicks,
-      'MediaSourceId': mediaSourceId ?? itemId,
-      'PlaySessionId': effectiveSessionId,
-    };
     try {
       await _retry(
-        () => _apiClient.post<dynamic>(
-          '/Sessions/Playing/Stopped',
-          data: body,
+        () => _api.reportPlaybackStopped(
+          itemId: itemId,
+          positionTicks: positionTicks,
+          mediaSourceId: mediaSourceId,
+          playSessionId: playSessionId,
+          serverUrl: serverUrl,
+          token: token,
         ),
         operationName: '上报播放停止',
       );
@@ -1347,39 +821,13 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    final effectiveUserId = userId ?? _defaultUserId;
-
-    // 先决定路径：用户级路径优先，降级到全局 /Items
-    final isUserPath = effectiveUserId != null && effectiveUserId.isNotEmpty;
-    final path = isUserPath ? '/Users/$effectiveUserId/Items' : '/Items';
-
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Recursive': 'true',
-      'SortBy': 'DatePlayed',
-      'SortOrder': 'Descending',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
-      // 仅在降级到全局 /Items 路径时附加 UserId 参数
-      if (!isUserPath && effectiveUserId != null && effectiveUserId.isNotEmpty)
-        'UserId': effectiveUserId,
-    };
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.getWatchHistory(
+      limit: limit,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => MediaItem.fromJson(e))
-        .toList();
   }
 
   // ============================
@@ -1390,38 +838,13 @@ class EmbytokService {
     int limit = 20,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    if (query.isEmpty) return [];
-    final params = <String, dynamic>{
-      'SearchTerm': query,
-      'Limit': '$limit',
-      'Recursive': 'true',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Search/Hints',
-      queryParameters: params,
+  }) {
+    return _api.searchHints(
+      query,
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['SearchHints'] as List<dynamic>?) ??
-            (resp.data['Items'] as List<dynamic>?) ??
-            [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => SearchHint(
-              id: (e['Id'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: (e['Type'] as String?),
-              year: (e['ProductionYear'] as int?) ?? (e['year'] as int?),
-              seriesName: (e['SeriesName'] as String?),
-              thumbnailUrl: _defaultServerUrl != null
-                  ? '$_defaultServerUrl/Items/${e['Id']}/Images/Primary'
-                      '?MaxWidth=200&Format=jpg'
-                      '${_defaultToken != null ? '&api_key=$_defaultToken' : ''}'
-                  : null,
-            ))
-        .toList();
   }
 
   // ============================
@@ -1435,46 +858,16 @@ class EmbytokService {
     String? userId,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.info('发送搜索请求', data: {
-      'query': query,
-      'limit': limit,
-    });
-    _ensureConfig(serverUrl, token);
-    if (query.isEmpty) {
-      return PaginatedResponse(
-        items: const [],
-        total: 0,
-        offset: offset,
-        limit: limit,
-      );
-    }
-    final params = <String, dynamic>{
-      'SearchTerm': query,
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      if (includeTypes != null && includeTypes.isNotEmpty)
-        'IncludeItemTypes': includeTypes.join(','),
-    };
-
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
-
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+  }) {
+    return _api.searchItems(
+      query,
+      limit: limit,
+      offset: offset,
+      includeTypes: includeTypes,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
-    AppLogger.debug('搜索响应', data: {
-      'results': result.items.length,
-      'total': result.total,
-    });
-    return result;
   }
 
   // ============================
@@ -1485,28 +878,13 @@ class EmbytokService {
     int limit = 20,
     String? serverUrl,
     String? token,
-  }) async {
-    _ensureConfig(serverUrl, token);
-    if (query.isEmpty) return [];
-
-    final params = <String, dynamic>{
-      'SearchTerm': query,
-      'Limit': '$limit',
-      'Fields': 'Overview,ImageTags,Name',
-    };
-
-    final resp = await _apiClient.get<dynamic>(
-      '/Persons',
-      queryParameters: params,
+  }) {
+    return _api.searchPersons(
+      query,
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final data = resp.data;
-    if (data is Map<String, dynamic>) {
-      final items = data['Items'];
-      if (items is List) {
-        return items.cast<Map<String, dynamic>>();
-      }
-    }
-    return [];
   }
 
   // ============================
@@ -1518,19 +896,14 @@ class EmbytokService {
     int offset = 0,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('获取子项', data: {'parentId': parentId, 'limit': limit});
-    _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'limit': '$limit',
-      'startIndex': '$offset',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Items/$parentId/Children',
-      queryParameters: params,
+  }) {
+    return _api.getChildren(
+      parentId,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
-    return result.items;
   }
 
   // ============================
@@ -1544,27 +917,13 @@ class EmbytokService {
     String? libraryType,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('保存续播云同步', data: {'itemId': itemId});
-    _ensureConfig(serverUrl, token);
-    // 使用登录后保存的 userId，未配置则跳过云同步
-    final userId = _defaultUserId;
-    if (userId == null || userId.isEmpty) {
-      AppLogger.warn('未配置 userId，跳过云同步');
-      return;
-    }
-    final body = <String, dynamic>{
-      'Id': 'EmbyTok-Resume',
-      'CustomPrefs': {
-        'lastId': itemId,
-        'libId': libraryId,
-        'libType': libraryType ?? '',
-        'date': DateTime.now().millisecondsSinceEpoch.toString(),
-      },
-    };
-    await _apiClient.post<dynamic>(
-      '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
-      data: body,
+  }) {
+    return _api.saveCloudSync(
+      itemId: itemId,
+      libraryId: libraryId,
+      libraryType: libraryType,
+      serverUrl: serverUrl,
+      token: token,
     );
   }
 
@@ -1572,25 +931,11 @@ class EmbytokService {
   Future<Map<String, dynamic>?> checkCloudSync({
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('检查续播云同步');
-    _ensureConfig(serverUrl, token);
-    // 使用登录后保存的 userId，未配置则返回 null
-    final userId = _defaultUserId;
-    if (userId == null || userId.isEmpty) return null;
-    try {
-      final resp = await _apiClient.get<dynamic>(
-        '/DisplayPreferences/EmbyTok-Resume?userId=$userId',
-      );
-      final data = resp.data is Map
-          ? Map<String, dynamic>.from(resp.data as Map)
-          : <String, dynamic>{};
-      final customPrefs = data['CustomPrefs'] as Map<String, dynamic>?;
-      return customPrefs;
-    } catch (e) {
-      AppLogger.debug('云同步数据不存在或获取失败', data: {'error': e.toString()});
-      return null;
-    }
+  }) {
+    return _api.checkCloudSync(
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
@@ -1602,15 +947,14 @@ class EmbytokService {
     dynamic data,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('POST 请求', data: {'path': path});
-    _ensureConfig(serverUrl, token);
-    final resp = await _apiClient.post<dynamic>(
+  }) {
+    return _api.postRaw(
       path,
       queryParameters: queryParameters,
       data: data,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return resp.data;
   }
 
   // ============================
@@ -1621,14 +965,13 @@ class EmbytokService {
     Map<String, dynamic>? queryParameters,
     String? serverUrl,
     String? token,
-  }) async {
-    AppLogger.debug('DELETE 请求', data: {'path': path});
-    _ensureConfig(serverUrl, token);
-    final resp = await _apiClient.delete<dynamic>(
+  }) {
+    return _api.deleteRaw(
       path,
       queryParameters: queryParameters,
+      serverUrl: serverUrl,
+      token: token,
     );
-    return resp.data;
   }
 
   // ============================
@@ -1639,23 +982,17 @@ class EmbytokService {
     required String itemId,
     required String serverUrl,
     required String token,
-  }) async {
-    AppLogger.debug('删除媒体项', data: {'itemId': itemId});
-    _ensureConfig(serverUrl, token);
-    await _apiClient.delete<dynamic>('/Items/$itemId');
-    AppLogger.info('媒体项已删除', data: {'itemId': itemId});
+  }) {
+    return _api.deleteItem(
+      itemId: itemId,
+      serverUrl: serverUrl,
+      token: token,
+    );
   }
 
   // ============================
   // 内部辅助方法
   // ============================
-
-  // 生成播放会话 ID：时间戳 + 真随机数，降低碰撞概率
-  String _generatePlaySessionId() {
-    final now = DateTime.now().microsecondsSinceEpoch;
-    final rand = Random().nextInt(0xFFFF).toRadixString(16).padLeft(4, '0');
-    return 'emb-$now-$rand';
-  }
 
   // 指数退避重试：用于播放上报等关键操作
   // - maxAttempts: 最多重试次数（含首次），默认 3 次
@@ -1689,48 +1026,5 @@ class EmbytokService {
         delay *= 2;
       }
     }
-  }
-
-  // 确保 API client 已配置 serverUrl 和 token
-  void _ensureConfig(String? serverUrl, String? token) {
-    final url = serverUrl ?? _defaultServerUrl;
-    final tk = token ?? _defaultToken;
-    if (url == null || url.isEmpty) {
-      AppLogger.warn('服务器地址未配置');
-      throw AppError.notAuthenticated(message: '请先登录或提供 Emby 服务器地址');
-    }
-    if (url != _apiClient.optionsBaseUrl) {
-      _apiClient.setBaseUrl(url);
-    }
-    if (tk != null && tk.isNotEmpty) {
-      _apiClient.setToken(tk);
-    }
-  }
-
-  // 解析分页响应
-  PaginatedResponse<MediaItem> _parsePaginatedResponse(
-    dynamic data, {
-    int offset = 0,
-    int limit = 20,
-  }) {
-    if (data is! Map<String, dynamic>) {
-      return PaginatedResponse<MediaItem>(
-        items: const <MediaItem>[],
-        total: 0,
-        offset: offset,
-        limit: limit,
-      );
-    }
-    final items = (data['Items'] as List<dynamic>?) ?? [];
-    final total = (data['TotalRecordCount'] as int?) ?? items.length;
-    return PaginatedResponse(
-      items: items
-          .whereType<Map<String, dynamic>>()
-          .map((e) => MediaItem.fromJson(e))
-          .toList(),
-      total: total,
-      offset: offset,
-      limit: limit,
-    );
   }
 }
