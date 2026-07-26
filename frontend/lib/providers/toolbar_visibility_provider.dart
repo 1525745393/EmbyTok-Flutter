@@ -33,8 +33,11 @@ class ToolbarVisibilityNotifier extends StateNotifier<bool> {
 
   /// 显示工具栏
   void show() {
-    if (_hideCount > 0) _hideCount--;
-    else if (_hideCount < 0) _hideCount = 0;
+    if (_hideCount > 0) {
+      _hideCount--;
+    } else if (_hideCount < 0) {
+      _hideCount = 0;
+    }
     _setVisible(_recompute());
   }
 

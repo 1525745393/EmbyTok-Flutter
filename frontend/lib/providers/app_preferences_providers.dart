@@ -2,6 +2,7 @@
 ///
 /// 负责：feedType、viewMode、orientationMode、deviceMode、hiddenLibraryIds 的状态管理。
 /// 所有状态变化时自动持久化到 SharedPreferences。
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';

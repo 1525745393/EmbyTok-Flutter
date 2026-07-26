@@ -78,7 +78,7 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
 
   // 切换到搜索页面（覆盖层）
   void goToSearch() {
-    state = PageNavigationState(
+    state = const PageNavigationState(
       currentIndex: PageIndices.search,
       isOverlayPage: true,
     );
@@ -86,7 +86,7 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
 
   // 切换到历史页面（覆盖层）
   void goToHistory() {
-    state = PageNavigationState(
+    state = const PageNavigationState(
       currentIndex: PageIndices.history,
       isOverlayPage: true,
     );

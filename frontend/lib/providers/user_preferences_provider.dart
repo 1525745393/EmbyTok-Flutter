@@ -1,4 +1,5 @@
 /// 用户偏好设置 Provider：主题模式、默认倍速、默认字幕语言等
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

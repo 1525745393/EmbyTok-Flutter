@@ -3,6 +3,7 @@
 /// 此文件由发布脚本自动维护，请勿手动编辑
 /// 同步于 pubspec.yaml 中的 version 字段
 /// ============================================================
+library;
 
 /// 语义化版本号 (MAJOR.MINOR.PATCH)
 const String embbytokVersion = '1.3.2';

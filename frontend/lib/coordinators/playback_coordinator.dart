@@ -20,7 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../services/video_pool_service.dart';
 import '../utils/safe_unawaited.dart';
 import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/logger.dart';

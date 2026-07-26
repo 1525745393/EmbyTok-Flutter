@@ -1,4 +1,5 @@
 /// 搜索历史 Provider：本地持久化最近 10 条搜索关键词
+library;
 
 import 'dart:convert';
 

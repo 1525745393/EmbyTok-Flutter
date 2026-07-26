@@ -4,6 +4,7 @@
 /// ```dart
 /// import 'package:embbytok/providers/providers.dart';
 /// ```
+library;
 
 // ---- 认证与媒体库 ----
 export 'auth_provider.dart';

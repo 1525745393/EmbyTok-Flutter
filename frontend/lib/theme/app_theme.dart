@@ -55,13 +55,6 @@ SystemUiOverlayStyle _lightSystemOverlayStyle() {
   );
 }
 
-/// ---- 工具：根据 brightness 选择 overlay style ----
-SystemUiOverlayStyle _overlayStyleFor(Brightness brightness) {
-  return brightness == Brightness.dark
-      ? _darkSystemOverlayStyle()
-      : _lightSystemOverlayStyle();
-}
-
 /// ---- 统一 ThemeData 构建器（共享配置） ----
 /// surfaceContainerHighest 在 Flutter 3.22 才引入，这里用 surface + 不透明度代替
 /// [systemOverlayStyle] 全面屏适配：根据主题 brightness 选 dark / light foreground

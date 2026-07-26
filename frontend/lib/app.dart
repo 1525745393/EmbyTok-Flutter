@@ -111,7 +111,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/search',
         builder: (context, state) => PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             // 尝试 pop 保留浏览历史，失败则回到首页
             if (Navigator.of(context).canPop()) {
@@ -128,7 +128,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/favorites',
         builder: (context, state) => PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -158,7 +158,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/history',
         builder: (context, state) => PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -174,7 +174,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/actors',
         builder: (context, state) => PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
@@ -188,9 +188,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       // 推荐：独立路由（PR #57），与 FeedType / video_list_provider 完全解耦
       GoRoute(
         path: '/recommend',
-        builder: (context, state) => PopScope(
+        builder: (context, state) => const PopScope(
           canPop: true,
-          child: const RecommendView(),
+          child: RecommendView(),
         ),
       ),
       // 设置
@@ -198,7 +198,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/settings',
         builder: (context, state) => PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();

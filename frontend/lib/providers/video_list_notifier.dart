@@ -179,7 +179,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       );
     } catch (e) {
       AppLogger.error('刷新网格失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
+      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -507,7 +507,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     } catch (e) {
       if (e is DioException && CancelToken.isCancel(e)) return; // 请求被新版 refresh 取消，静默忽略
       AppLogger.error('刷新视频列表失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
+      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -616,7 +616,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('加载更多成功', data: {'newCount': newItems.length});
     } catch (e) {
       AppLogger.error('加载更多失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
+      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -717,7 +717,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('换一批成功', data: {'count': merged.length});
     } catch (e) {
       AppLogger.error('换一批失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
+      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -897,7 +897,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('网格分页加载成功', data: {'newCount': merged.length, 'currentPage': currentPage});
     } catch (e) {
       AppLogger.error('网格分页加载失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.fromDioException(e, stackTrace: StackTrace.current));
+      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 

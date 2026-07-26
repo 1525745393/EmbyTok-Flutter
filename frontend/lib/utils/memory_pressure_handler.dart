@@ -5,11 +5,9 @@
 // 2. 收到警告时清空图片缓存、释放视频池、清除内存缓存
 // 3. 避免在低内存设备上因缓存积累导致 OOM 崩溃
 
-import 'package:flutter/painting.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/cache_providers.dart';
 import '../providers/providers.dart';
 import 'logger.dart';
 

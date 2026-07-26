@@ -614,7 +614,7 @@ class EmbytokService {
       );
       final data = resp.data;
       final items = data is List
-          ? data as List<dynamic>
+          ? data
           : (data['Items'] as List<dynamic>?) ?? [];
       if (items.isNotEmpty && items.first is Map<String, dynamic>) {
         return MediaItem.fromJson(items.first as Map<String, dynamic>);
@@ -808,7 +808,7 @@ class EmbytokService {
     );
     final data = resp.data;
     final items = data is List
-        ? data as List<dynamic>
+        ? data
         : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length
@@ -856,7 +856,7 @@ class EmbytokService {
     );
     final data = resp.data;
     final items = data is List
-        ? data as List<dynamic>
+        ? data
         : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length
@@ -904,7 +904,7 @@ class EmbytokService {
     );
     final data = resp.data;
     final items = data is List
-        ? data as List<dynamic>
+        ? data
         : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length

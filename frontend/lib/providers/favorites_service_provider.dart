@@ -3,6 +3,7 @@
 /// 替代方案：将每个媒体库的收藏项目保存在名为 `Tok-{libraryName}` 的 Playlist 中。
 /// 注意：当前项目默认使用基于 UserData（favorite=true）的方式管理收藏，
 /// 本模块目前未集成到 UI，保留供后续扩展使用。
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

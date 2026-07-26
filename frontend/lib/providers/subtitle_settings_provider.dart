@@ -1,4 +1,5 @@
 /// 字幕设置 Provider：语言、字号、颜色、位置，持久化到本地
+library;
 
 import 'dart:convert';
 

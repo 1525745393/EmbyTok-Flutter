@@ -142,7 +142,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       AppLogger.error('登录失败', error: e);
       state = state.copyWith(
         isLoading: false,
-        error: AppError.fromDioException(e, stackTrace: stackTrace),
+        error: AppError.wrap(e, stackTrace: stackTrace),
       );
       rethrow;
     }
