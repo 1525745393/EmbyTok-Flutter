@@ -219,7 +219,7 @@ class ApiClient {
   }) async {
     // 生成请求去重 key：baseUrl + token + path + 排序后的 queryParameters
     // 加入 baseUrl 和 token 防止跨账号请求错误复用
-    final key = _buildDedupeKey(path, queryParameters);
+    final key = _buildDedupeKey(path, queryParameters, headers);
     // 如果已有相同 key 的请求在进行中，等待其完成并复用结果
     final existing = _pendingGets[key];
     if (existing != null) {
@@ -293,24 +293,32 @@ class ApiClient {
     throw lastError ?? AppError.unknown(message: '重试失败');
   }
 
-  /// 生成 GET 请求去重 key：baseUrl + token + path + 排序后的 queryParameters
+  /// 生成 GET 请求去重 key：baseUrl + token + path + queryParameters + headers
   ///
-  /// 加入 baseUrl 和 token 的原因：
-  /// 防止多账号/多服务器场景下，相同 path 的请求错误复用结果
-  /// （如用户A的 /Users/Me/Views 和用户B的同路径请求不应共享）
-  String _buildDedupeKey(String path, Map<String, dynamic>? queryParameters) {
+  /// 加入 headers 防止同路径不同 Accept 类型等场景下错误复用。
+  String _buildDedupeKey(String path, Map<String, dynamic>? queryParameters, Map<String, dynamic>? headers) {
     final baseUrl = _dio.options.baseUrl;
     final token = _token ?? '';
     final prefix = '$baseUrl|$token|';
-    if (queryParameters == null || queryParameters.isEmpty) {
-      return '$prefix$path';
+    String key = '$prefix$path';
+    if (queryParameters != null && queryParameters.isNotEmpty) {
+      final sortedKeys = queryParameters.keys.toList()..sort();
+      final parts = <String>[];
+      for (final k in sortedKeys) {
+        parts.add('$k=${queryParameters[k]}');
+      }
+      key += '?${parts.join('&')}';
     }
-    final sortedKeys = queryParameters.keys.toList()..sort();
-    final parts = <String>[];
-    for (final k in sortedKeys) {
-      parts.add('$k=${queryParameters[k]}');
+    // 将自定义 headers 也纳入 key，区分不同 Accept 等配置的请求
+    if (headers != null && headers.isNotEmpty) {
+      final headerKeys = headers.keys.toList()..sort();
+      final headerParts = <String>[];
+      for (final k in headerKeys) {
+        headerParts.add('$k:${headers[k]}');
+      }
+      key += '#${headerParts.join(';')}';
     }
-    return '$prefix$path?${parts.join('&')}';
+    return key;
   }
 
   Future<Response<T>> post<T>(
