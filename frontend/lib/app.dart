@@ -42,15 +42,14 @@ class EmbyTokApp extends ConsumerStatefulWidget {
 class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   final _refreshNotifier = _AuthRefreshNotifier();
   late final GoRouter _router;
-  MemoryPressureHandler? _memoryHandler;
+  late final MemoryPressureHandler _memoryHandler;
 
   @override
   void initState() {
     super.initState();
     // 挂载内存压力监听器：系统内存警告时主动清缓存 + 释放视频池
-    if (!kIsWeb) {
-      _memoryHandler = MemoryPressureHandler(ref);
-    }
+    // Web 平台在 Handler 内部自动跳过注册
+    _memoryHandler = MemoryPressureHandler(ref);
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
@@ -84,7 +83,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
 
   @override
   void dispose() {
-    _memoryHandler?.dispose();
+    _memoryHandler.dispose();
     _refreshNotifier.dispose();
     super.dispose();
   }
