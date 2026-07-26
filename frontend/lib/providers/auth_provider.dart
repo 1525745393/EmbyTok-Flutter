@@ -19,7 +19,7 @@ class AuthState {
   final String? embyServerUrl;
   final String? token;
   final bool isLoading;
-  final String? error;
+  final AppError? error;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -38,7 +38,7 @@ class AuthState {
     String? embyServerUrl,
     String? token,
     bool? isLoading,
-    String? error,
+    AppError? error,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
@@ -135,11 +135,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token: user.accessToken,
       );
       AppLogger.info('登录成功', data: {'userId': user.id, 'userName': user.name});
-    } catch (e) {
+    } catch (e, stackTrace) {
       AppLogger.error('登录失败', error: e);
       state = state.copyWith(
         isLoading: false,
-        error: e is String ? e : '登录失败：$e',
+        error: AppError.fromDioException(e, stackTrace: stackTrace),
       );
       rethrow;
     }
