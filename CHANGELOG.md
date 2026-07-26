@@ -1,3 +1,10 @@
+## [2.23.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.1...v2.23.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* 修复静态分析警告（deprecated/未使用/import/const 等） ([88dd892](https://github.com/1525745393/EmbyTok-Flutter/commit/88dd892d0a469cecea206f08bcd769639afd2cfd))
+
 ## [2.23.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.0...v2.23.1) (2026-07-26)
 
 
