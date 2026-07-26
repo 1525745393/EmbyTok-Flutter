@@ -183,6 +183,58 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     }
   }
 
+  /// 多库并行加载 + 合并去重（内部辅助方法）
+  ///
+  /// 对 [libIds] 中的每个库调用 [loader] 发起请求，全部并行执行。
+  /// 返回合并后的去重结果及各库独立的加载结果。
+  /// 部分失败不影响整体（失败的库会被标记并跳过），全部失败时 allFailed = true。
+  ///
+  /// [onEachResult] 可选回调：每个库加载完成后调用（无论成功失败），
+  /// 用于更新 _libraryLoadedCounts 等副作用，不参与合并逻辑。
+  Future<_ParallelLoadResult> _parallelLoadLibraries(
+    List<String> libIds,
+    Future<PaginatedResponse<MediaItem>> Function(String libId) loader, {
+    void Function(_LibLoadResult result)? onEachResult,
+  }) async {
+    final results = await Future.wait<_LibLoadResult>(
+      libIds.map((libId) async {
+        try {
+          final resp = await loader(libId);
+          return _LibLoadResult.success(libId, resp.items, resp.total);
+        } catch (e) {
+          AppLogger.error('加载库 $libId 失败', error: e);
+          return _LibLoadResult.failure(libId, e);
+        }
+      }),
+      eagerError: false,
+    );
+
+    final seenIds = <String, MediaItem>{};
+    int total = 0;
+    int failedCount = 0;
+
+    for (final result in results) {
+      onEachResult?.call(result);
+      if (result.isSuccess) {
+        for (final item in result.items!) {
+          if (!seenIds.containsKey(item.id)) {
+            seenIds[item.id] = item;
+          }
+        }
+        total += result.total!;
+      } else {
+        failedCount++;
+      }
+    }
+
+    return _ParallelLoadResult(
+      items: seenIds.values.toList(),
+      total: total,
+      allFailed: failedCount == libIds.length,
+      perLibraryResults: results,
+    );
+  }
+
   /// SWR 模式加载最新视频（FeedType.latest 多库混合）
   ///
   /// 先从缓存读取并立即展示（加速首屏），然后发起网络请求获取最新数据。
@@ -230,45 +282,35 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       }
     }
 
-    // 第二步：发起网络请求获取最新数据
+    // 第二步：并行加载所有媒体库，合并去重
+    // 使用 Future.wait 并行执行，总耗时 = 最慢的单个库，而非各库之和
     final freshFuture = () async {
-      final freshSeenIds = <String, MediaItem>{};
-      int freshTotal = 0;
-      int failedCount = 0;
-      for (final libId in libIds) {
-        try {
-          final resp = await _repo.getLibraryItems(
-            MediaQueryParams(
-              libraryId: libId,
-              limit: limit,
-              offset: 0,
-              sortBy: sortBy,
-              sortOrder: sortOrder,
-              searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
-              excludePlayed: excludePlayed,
-            ),
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-            cancelToken: cancelToken,
-          );
-          for (final item in resp.items) {
-            if (!freshSeenIds.containsKey(item.id)) {
-              freshSeenIds[item.id] = item;
-            }
-          }
-          _libraryLoadedCounts[libId] = resp.items.length;
-          freshTotal += resp.total;
-        } catch (e) {
-          failedCount++;
-          _libraryLoadedCounts[libId] = 0;
-          AppLogger.error('SWR: 加载库 $libId 失败', error: e);
-        }
-      }
+      final result = await _parallelLoadLibraries(
+        libIds,
+        (libId) => _repo.getLibraryItems(
+          MediaQueryParams(
+            libraryId: libId,
+            limit: limit,
+            offset: 0,
+            sortBy: sortBy,
+            sortOrder: sortOrder,
+            searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
+            excludePlayed: excludePlayed,
+          ),
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+          cancelToken: cancelToken,
+        ),
+        onEachResult: (r) {
+          // refresh 从 offset=0 开始，计数直接等于本次返回数量
+          _libraryLoadedCounts[r.libId] = r.isSuccess ? r.items!.length : 0;
+        },
+      );
       return _SWRLatestFreshResult(
-        items: freshSeenIds.values.toList(),
-        total: freshTotal,
-        allFailed: failedCount == libIds.length,
+        items: result.items,
+        total: result.total,
+        allFailed: result.allFailed,
       );
     }();
 
@@ -417,31 +459,25 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             state = state.copyWith(isLoading: false, hasMore: false);
             return;
           }
-          // 多库混合：每个库独立 try-catch
-          final merged = <MediaItem>[];
-          for (final libId in libIds) {
-            // 每次 await 后检查代数：新的 refresh 已启动则提前终止，节约资源
-            if (_refreshGeneration != gen) return;
-            try {
-              final resp = await _repo.getLibraryItems(
-                MediaQueryParams(
-                  libraryId: libId,
-                  limit: (80 / libIds.length).ceil(),
-                  offset: 0,
-                  excludePlayed: _ref.read(feedExcludePlayedProvider),
-                ),
-                serverUrl: serverUrl,
-                token: token,
-                userId: userId,
-                cancelToken: _refreshCancelToken,
-              );
-              merged.addAll(resp.items);
-            } catch (e) {
-              AppLogger.error('加载库 $libId 失败，跳过', error: e);
-            }
-          }
+          // 多库混合：并行加载，每库约 80/n 条，汇总后洗牌
+          final perLibLimit = (80 / libIds.length).ceil();
+          final randomResult = await _parallelLoadLibraries(
+            libIds,
+            (libId) => _repo.getLibraryItems(
+              MediaQueryParams(
+                libraryId: libId,
+                limit: perLibLimit,
+                offset: 0,
+                excludePlayed: _ref.read(feedExcludePlayedProvider),
+              ),
+              serverUrl: serverUrl,
+              token: token,
+              userId: userId,
+              cancelToken: _refreshCancelToken,
+            ),
+          );
           if (_refreshGeneration != gen) return;
-          final shuffled = List<MediaItem>.from(merged);
+          final shuffled = List<MediaItem>.from(randomResult.items);
           shuffled.shuffle();
           loadedItems = shuffled;
           loadedTotal = shuffled.length;
@@ -547,15 +583,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'perLibLoaded': _libraryLoadedCounts.toString(),
       });
       final perLibLimit = state.limit;
-      // 按 id 去重，与 refresh 逻辑一致
-      final seenIds = <String, MediaItem>{};
-      int totalAvailable = 0;
-      bool allEmpty = true;
-      int failedCount = 0;
-      for (final libId in selectedIds) {
-        try {
+      // 多库并行加载：每个库独立 offset（_libraryLoadedCounts）
+      final loadMoreResult = await _parallelLoadLibraries(
+        selectedIds,
+        (libId) {
           final libOffset = _libraryLoadedCounts[libId] ?? 0;
-          final resp = await _repo.getLibraryItems(
+          return _repo.getLibraryItems(
             MediaQueryParams(
               libraryId: libId,
               limit: perLibLimit,
@@ -569,23 +602,23 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             token: token,
             userId: userId,
           );
-          for (final item in resp.items) {
-            if (!seenIds.containsKey(item.id)) {
-              seenIds[item.id] = item;
-            }
+        },
+        onEachResult: (r) {
+          // loadMore 在原有 offset 基础上累加
+          if (r.isSuccess) {
+            final libOffset = _libraryLoadedCounts[r.libId] ?? 0;
+            _libraryLoadedCounts[r.libId] = libOffset + r.items!.length;
           }
-          _libraryLoadedCounts[libId] = libOffset + resp.items.length;
-          totalAvailable += resp.total;
-          if (resp.items.isNotEmpty) allEmpty = false;
-        } catch (e) {
-          failedCount++;
-          AppLogger.error('加载库 $libId 失败，跳过', error: e);
-        }
-      }
-      final newItems = seenIds.values.toList();
+        },
+      );
+      final newItems = loadMoreResult.items;
+      // 所有库都返回空 → hasMore=false，避免无限空加载循环
+      final allEmpty = loadMoreResult.perLibraryResults
+          .every((r) => !r.isSuccess || r.items!.isEmpty);
+      final totalAvailable = loadMoreResult.total;
 
       // 所有库都失败 → 视为加载失败
-      if (failedCount == selectedIds.length) {
+      if (loadMoreResult.allFailed) {
         state = state.copyWith(
           isLoading: false,
           error: AppError.network(message: '加载更多失败，请检查网络连接'),
@@ -965,6 +998,44 @@ class _SWRLatestFreshResult {
     required this.items,
     required this.total,
     required this.allFailed,
+  });
+}
+
+/// 单库加载结果（成功 / 失败 二选一）
+///
+/// 用于并行加载时的单库状态包装，便于统一合并。
+/// 成功时 [items] 和 [total] 非空，失败时 [error] 非空。
+class _LibLoadResult {
+  final String libId;
+  final List<MediaItem>? items;
+  final int? total;
+  final Object? error;
+
+  const _LibLoadResult.success(this.libId, this.items, this.total)
+      : error = null;
+
+  const _LibLoadResult.failure(this.libId, this.error)
+      : items = null,
+        total = null;
+
+  bool get isSuccess => error == null;
+}
+
+/// 多库并行加载合并结果
+///
+/// [items] 和 [total] 是跨库去重后的合并结果；
+/// [perLibraryResults] 保留每个库的原始结果，供调用方做计数等副作用。
+class _ParallelLoadResult {
+  final List<MediaItem> items;
+  final int total;
+  final bool allFailed;
+  final List<_LibLoadResult> perLibraryResults;
+
+  const _ParallelLoadResult({
+    required this.items,
+    required this.total,
+    required this.allFailed,
+    required this.perLibraryResults,
   });
 }
 
