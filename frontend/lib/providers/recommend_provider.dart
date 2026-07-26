@@ -252,7 +252,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // 缓存仅用于本会话内的 MemoryCache 加速（CachedMediaRepository），
   // 不做跨会话磁盘缓存，确保数据始终以 Emby 为准
   Future<void> _init() async {
-    safeUnawaited(load());
+    safeUnawaited(load(), context: 'RecommendNotifier._init');
   }
 
   // 推荐每次加载数量（PR #78：20 → 30，提升推荐质量）
@@ -340,7 +340,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     bool antiFatigueEnabled,
   ) {
     if (antiFatigueEnabled && itemIds.isNotEmpty) {
-      safeUnawaited(_ref.read(recentlyShownItemIdsProvider.notifier).addAll(itemIds));
+      safeUnawaited(
+        _ref.read(recentlyShownItemIdsProvider.notifier).addAll(itemIds),
+        context: 'RecommendNotifier._recordRecentlyShownItems',
+      );
     }
   }
 

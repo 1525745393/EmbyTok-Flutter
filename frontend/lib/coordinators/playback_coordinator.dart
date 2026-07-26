@@ -71,22 +71,28 @@ class PlaybackCoordinator {
     if (index - 1 >= 0) {
       final prevItem = items[index - 1];
       if (!pool.hasSession(prevItem.id)) {
-        safeUnawaited(pool.preload(
-          item: prevItem,
-          serverUrl: serverUrl,
-          token: token,
-        ));
+        safeUnawaited(
+          pool.preload(
+            item: prevItem,
+            serverUrl: serverUrl,
+            token: token,
+          ),
+          context: 'PlaybackCoordinator.preloadNeighbors.prev',
+        );
       }
     }
     // 预加载下一条
     if (index + 1 < items.length) {
       final nextItem = items[index + 1];
       if (!pool.hasSession(nextItem.id)) {
-        safeUnawaited(pool.preload(
-          item: nextItem,
-          serverUrl: serverUrl,
-          token: token,
-        ));
+        safeUnawaited(
+          pool.preload(
+            item: nextItem,
+            serverUrl: serverUrl,
+            token: token,
+          ),
+          context: 'PlaybackCoordinator.preloadNeighbors.next',
+        );
       }
     }
   }

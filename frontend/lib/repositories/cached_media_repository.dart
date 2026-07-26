@@ -352,12 +352,15 @@ class CachedMediaRepository implements MediaRepository {
   }) {
     if (_pendingRefreshes.contains(key)) return;
     _pendingRefreshes.add(key);
-    safeUnawaited(fetcher().then((result) {
-      cache.set(key, result, ttl: ttl ?? _ttl);
-      cache.recordSwrRefresh();
-    }).whenComplete(() {
-      _pendingRefreshes.remove(key);
-    }));
+    safeUnawaited(
+      fetcher().then((result) {
+        cache.set(key, result, ttl: ttl ?? _ttl);
+        cache.recordSwrRefresh();
+      }).whenComplete(() {
+        _pendingRefreshes.remove(key);
+      }),
+      context: 'CachedMediaRepository._refreshInBackground',
+    );
   }
 
   // ============================

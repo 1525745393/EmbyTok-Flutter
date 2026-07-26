@@ -257,7 +257,10 @@ class FeedViewModel {
       FeedType.resume => FeedType.latest,
     };
     // 切换前清理预加载缓存（不同 feedType 下的视频完全不同）
-    safeUnawaited(_playbackCoordinator.disposeAllPreloads());
+    safeUnawaited(
+      _playbackCoordinator.disposeAllPreloads(),
+      context: 'FeedViewModel.switchFeedType.disposeAllPreloads',
+    );
     _ref.read(feedTypeProvider.notifier).setType(next);
     onShowSnackBar?.call('切换到：${next.zhLabel}');
   }
@@ -312,6 +315,7 @@ class FeedViewModel {
         serverUrl: serverUrl,
         token: token,
       ),
+      context: 'FeedViewModel._saveCloudSyncIfNeeded',
     );
   }
 

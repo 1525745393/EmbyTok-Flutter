@@ -499,15 +499,13 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   /// 安全执行上报类异步操作：捕获异常并记录日志，避免未捕获的 Future 错误
   /// 用于 markAsPlayed、report* 等不阻塞主流程的后台请求
+  ///
+  /// 简化说明：错误处理统一交给 [safeUnawaited] 内层的 catchError 完成，
+  /// 不再额外包一层 catchError，避免冗余。operation 作为 context 传入便于日志排查。
   void _safeReport(Future<void> Function() action, String operation) {
     safeUnawaited(
-      action().catchError((Object e, StackTrace st) {
-        AppLogger.warn('上报操作失败', data: {
-          'operation': operation,
-          'itemId': widget.item.id,
-          'error': e.toString(),
-        });
-      }),
+      action(),
+      context: 'report:$operation(itemId:${widget.item.id})',
     );
   }
 
@@ -1258,8 +1256,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
       }
     }
 
-    safeUnawaited(maybePreload(index - 1));
-    safeUnawaited(maybePreload(index + 1));
+    safeUnawaited(maybePreload(index - 1), context: 'PlaybackShell.maybePreload.prev');
+    safeUnawaited(maybePreload(index + 1), context: 'PlaybackShell.maybePreload.next');
     final keep = <String>[];
     if (index - 1 >= 0) keep.add(_items[index - 1].id);
     if (index + 1 < _items.length) keep.add(_items[index + 1].id);

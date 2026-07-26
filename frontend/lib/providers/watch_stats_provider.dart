@@ -263,7 +263,10 @@ class WatchStatsNotifier extends StateNotifier<WatchStatsState> {
     });
 
     // 异步持久化（不阻塞）
-    safeUnawaited(_saveToCache(state.records));
+    safeUnawaited(
+      _saveToCache(state.records),
+      context: 'WatchStatsNotifier._saveToCache',
+    );
   }
 
   /// 清除所有记录

@@ -93,7 +93,7 @@ class VideoPoolService {
     _disposed = true;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
     // 异步释放，不阻塞当前调用链；disposeAll 完成后会自动重置 _disposed 和 _disposing
-    safeUnawaited(disposeAll());
+    safeUnawaited(disposeAll(), context: 'VideoPoolService.updateAuth.disposeAll');
   }
 
   /// 预加载一个媒体条目

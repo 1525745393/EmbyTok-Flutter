@@ -118,7 +118,10 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     // 切后台时清理预加载池，释放网络和解码资源
     if (wasForeground && !isForeground) {
       try {
-        safeUnawaited(ref.read(videoPoolProvider).disposeAll());
+        safeUnawaited(
+          ref.read(videoPoolProvider).disposeAll(),
+          context: 'HomeScaffold._onAppLifecycle.disposeAll',
+        );
       } catch (_) {}
     }
 
