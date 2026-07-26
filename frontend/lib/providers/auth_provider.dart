@@ -41,7 +41,7 @@ class AuthState {
     String? embyServerUrl,
     String? token,
     bool? isLoading,
-    Object error = _sentinel,
+    Object? error = _sentinel,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
