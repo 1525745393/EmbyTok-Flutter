@@ -1,3 +1,10 @@
+## [2.23.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.4...v2.23.5) (2026-07-26)
+
+
+### Bug Fixes
+
+* **video_page_item:** 修复 RepaintBoundary 位置错误导致的定位失效问题 ([379b31e](https://github.com/1525745393/EmbyTok-Flutter/commit/379b31e71f187e3224abe608b2c5fe039d036f8d))
+
 ## [2.23.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.23.3...v2.23.4) (2026-07-26)
 
 
