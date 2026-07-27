@@ -13,6 +13,7 @@ import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
 import '../mocks/mock_services.dart';
+import '../mocks/mock_secure_storage.dart';
 
 void main() {
   group('AuthState', () {
@@ -333,6 +334,358 @@ void main() {
       final state = container.read(authProvider);
       expect(state.isAuthenticated, false);
       expect(state.user, isNull);
+    });
+  });
+
+  group('AuthProvider 持久化测试', () {
+    late MockEmbytokService mockService;
+    late MockFlutterSecureStorage mockSecureStorage;
+    late ProviderContainer container;
+
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      mockService = MockEmbytokService();
+      mockSecureStorage = MockFlutterSecureStorage();
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    ProviderContainer createContainer() {
+      return ProviderContainer(
+        overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
+          secureStorageProvider.overrideWithValue(mockSecureStorage),
+          authProvider.overrideWith(
+            (ref) => AuthNotifier(ref),
+          ),
+        ],
+      );
+    }
+
+    test('5.1 损坏 JSON 数据恢复：格式错误的 JSON 不崩溃', () async {
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyConfig: 'invalid json {{{',
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: 'not valid json {{{',
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, false);
+      expect(state.user, isNull);
+      expect(state.error, isNull);
+    });
+
+    test('5.2 缺少 token 字段时降级：进入未登录状态', () async {
+      mockSecureStorage.setValue(kStorageKeyAccessToken, '');
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-123',
+          'user_name': 'testuser',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, false);
+      expect(state.user, isNull);
+    });
+
+    test('5.3 旧数据迁移：从 SharedPreferences 迁移到 flutter_secure_storage', () async {
+      final oldConfig = {
+        'backend_url': 'http://backend.example.com',
+        'emby_server_url': 'http://emby.example.com',
+        'user_id': 'user-migrate',
+        'user_name': 'migrated_user',
+        'access_token': 'migrated-token-123',
+      };
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyConfig: json.encode(oldConfig),
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-migrate',
+          'user_name': 'migrated_user',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, true);
+      expect(state.user, isNotNull);
+      expect(state.user!.id, 'user-migrate');
+      expect(state.user!.name, 'migrated_user');
+      expect(state.user!.accessToken, 'migrated-token-123');
+      expect(state.backendUrl, 'http://backend.example.com');
+      expect(state.embyServerUrl, 'http://emby.example.com');
+      expect(state.token, 'migrated-token-123');
+
+      expect(
+        mockSecureStorage.getValue(kStorageKeyAccessToken),
+        'migrated-token-123',
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(kStorageKeyConfig), false);
+      expect(prefs.containsKey(kStorageKeyEmbyServerUrl), true);
+      expect(prefs.getString(kStorageKeyEmbyServerUrl), 'http://emby.example.com');
+      expect(prefs.containsKey(kStorageKeyUser), true);
+    });
+
+    test('5.3.2 旧数据迁移：只执行一次', () async {
+      final oldConfig = {
+        'backend_url': 'http://backend.example.com',
+        'emby_server_url': 'http://emby.example.com',
+        'user_id': 'user-migrate',
+        'user_name': 'migrated_user',
+        'access_token': 'migrated-token-123',
+      };
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyConfig: json.encode(oldConfig),
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-migrate',
+          'user_name': 'migrated_user',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final firstState = container.read(authProvider);
+      expect(firstState.isAuthenticated, true);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(kStorageKeyConfig), false);
+      expect(
+        mockSecureStorage.getValue(kStorageKeyAccessToken),
+        'migrated-token-123',
+      );
+
+      container.dispose();
+
+      final newMockStorage = MockFlutterSecureStorage();
+      newMockStorage.setValue(kStorageKeyAccessToken, 'migrated-token-123');
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-migrate',
+          'user_name': 'migrated_user',
+        }),
+      });
+
+      container = ProviderContainer(
+        overrides: [
+          embytokServiceProvider.overrideWithValue(mockService),
+          secureStorageProvider.overrideWithValue(newMockStorage),
+          authProvider.overrideWith(
+            (ref) => AuthNotifier(ref),
+          ),
+        ],
+      );
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final secondState = container.read(authProvider);
+      expect(secondState.isAuthenticated, true);
+      expect(secondState.token, 'migrated-token-123');
+      expect(secondState.user!.id, 'user-migrate');
+    });
+
+    test('5.4 secure_storage 读取失败降级：不崩溃', () async {
+      mockSecureStorage.setShouldThrowOnRead(true);
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-123',
+          'user_name': 'testuser',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.error, isNull);
+      expect(state.isLoading, false);
+      expect(state.isAuthenticated, false);
+    });
+
+    test('5.4.2 secure_storage 读取失败：旧数据仍可迁移', () async {
+      mockSecureStorage.setShouldThrowOnRead(true);
+      mockSecureStorage.setShouldThrowOnWrite(false);
+
+      final oldConfig = {
+        'backend_url': 'http://backend.example.com',
+        'emby_server_url': 'http://emby.example.com',
+        'user_id': 'user-fallback',
+        'user_name': 'fallback_user',
+        'access_token': 'fallback-token',
+      };
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyConfig: json.encode(oldConfig),
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-fallback',
+          'user_name': 'fallback_user',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, true);
+      expect(state.user!.id, 'user-fallback');
+      expect(state.token, 'fallback-token');
+      expect(
+        mockSecureStorage.getValue(kStorageKeyAccessToken),
+        'fallback-token',
+      );
+    });
+
+    test('5.4.3 secure_storage 写入失败：登录失败并抛出异常', () async {
+      final testUser = User(
+        id: 'user-123',
+        name: 'testuser',
+        accessToken: 'test-token',
+      );
+
+      when(mockService.login(
+        embyServerUrl: anyNamed('embyServerUrl'),
+        username: anyNamed('username'),
+        password: anyNamed('password'),
+      )).thenAnswer((_) async => testUser);
+
+      mockSecureStorage.setShouldThrowOnWrite(true);
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final notifier = container.read(authProvider.notifier);
+
+      expect(
+        () => notifier.login(
+          'http://emby.example.com',
+          'testuser',
+          'password',
+          backendUrl: 'http://backend.example.com',
+        ),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('5.5 登出清除数据完整性：所有存储都被清除', () async {
+      mockSecureStorage.setValue(kStorageKeyAccessToken, 'logout-token');
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-logout',
+          'user_name': 'logout_user',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(container.read(authProvider).isAuthenticated, true);
+      expect(mockSecureStorage.getValue(kStorageKeyAccessToken), 'logout-token');
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey(kStorageKeyEmbyServerUrl), true);
+      expect(prefs.containsKey(kStorageKeyUser), true);
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.logout();
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, false);
+      expect(state.user, isNull);
+      expect(state.backendUrl, isNull);
+      expect(state.embyServerUrl, isNull);
+      expect(state.token, isNull);
+
+      expect(mockSecureStorage.getValue(kStorageKeyAccessToken), isNull);
+      expect(prefs.containsKey(kStorageKeyEmbyServerUrl), false);
+      expect(prefs.containsKey(kStorageKeyUser), false);
+      expect(prefs.containsKey(kStorageKeyConfig), false);
+    });
+
+    test('5.5.2 登出时 secure_storage 删除失败：仍能正常登出', () async {
+      mockSecureStorage.setValue(kStorageKeyAccessToken, 'test-token');
+      mockSecureStorage.setShouldThrowOnDelete(true);
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-123',
+          'user_name': 'testuser',
+        }),
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(container.read(authProvider).isAuthenticated, true);
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.logout();
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, false);
+      expect(state.user, isNull);
+    });
+
+    test('5.6 部分数据损坏：user JSON 损坏但 token 和 url 正常时已登录', () async {
+      mockSecureStorage.setValue(kStorageKeyAccessToken, 'partial-token');
+
+      SharedPreferences.setMockInitialValues({
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: 'corrupted user json {{{',
+      });
+
+      container = createContainer();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final state = container.read(authProvider);
+      expect(state.isAuthenticated, true);
+      expect(state.user, isNull);
+      expect(state.embyServerUrl, 'http://emby.example.com');
+      expect(state.token, 'partial-token');
+      expect(state.error, isNull);
     });
   });
 }

@@ -14,7 +14,7 @@
 
 ## 建议补充的测试（按优先级）
 
-## [ ] Task 1: MediaItem.fromJson 解析测试增强
+## [x] Task 1: MediaItem.fromJson 解析测试增强
 - **Priority**: high
 - **Depends On**: None
 - **Description**: 
@@ -31,7 +31,7 @@
   - `programmatic` TR-1.5: 类型不匹配时优雅降级（如 string 转 int）
 - **Notes**: Emby API 原生使用 PascalCase，这是最常见的实际输入格式
 
-## [ ] Task 2: 字幕解析测试增强
+## [x] Task 2: 字幕解析测试增强
 - **Priority**: high
 - **Depends On**: None
 - **Description**: 
@@ -50,7 +50,7 @@
   - `programmatic` TR-2.8: 损坏格式不崩溃，返回空列表或部分结果
 - **Notes**: 字幕解析是播放体验的核心组件，需重点覆盖
 
-## [ ] Task 3: VideoListNotifier 竞态测试
+## [x] Task 3: VideoListNotifier 竞态测试
 - **Priority**: high
 - **Depends On**: None
 - **Description**: 
@@ -66,7 +66,7 @@
   - `programmatic` TR-3.4: 并发请求中 isLoading 状态正确
 - **Notes**: 快速滑动 feed 是高频场景，竞态问题影响用户体验
 
-## [ ] Task 4: FavoritesNotifier 并发测试
+## [x] Task 4: FavoritesNotifier 并发测试
 - **Priority**: high
 - **Depends On**: None
 - **Description**: 
@@ -81,7 +81,7 @@
   - `programmatic` TR-4.4: 同时对不同 item 操作互不干扰
 - **Notes**: 收藏是高频操作，连点去重是常见需求
 
-## [ ] Task 5: AuthProvider 持久化测试
+## [x] Task 5: AuthProvider 持久化测试
 - **Priority**: medium
 - **Depends On**: None
 - **Description**: 
@@ -96,7 +96,7 @@
   - `programmatic` TR-5.4: secure_storage 读取失败时降级处理
 - **Notes**: 与刚完成的 access_token 安全存储修复配套
 
-## [ ] Task 6: Widget 测试 - GestureOverlay 手势交互
+## [x] Task 6: Widget 测试 - GestureOverlay 手势交互
 - **Priority**: medium
 - **Depends On**: None
 - **Description**: 
@@ -113,7 +113,7 @@
   - `programmatic` TR-6.6: 滑动距离小于阈值不触发手势
 - **Notes**: 手势交互是竖屏视频播放器的核心 UI，需重点测试
 
-## [ ] Task 7: 集成测试 - 完整流程
+## [x] Task 7: 集成测试 - 完整流程
 - **Priority**: low
 - **Depends On**: None
 - **Description**: 

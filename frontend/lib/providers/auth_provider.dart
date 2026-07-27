@@ -57,14 +57,22 @@ class AuthState {
   }
 }
 
+/// 安全存储 Provider：提供 FlutterSecureStorage 实例
+/// 
+/// 测试时可 override 为 Mock 实现
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+  return const FlutterSecureStorage();
+});
+
 // 认证 Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
   late final EmbytokService _service;
-  final _secureStorage = const FlutterSecureStorage();
+  late final FlutterSecureStorage _secureStorage;
 
   AuthNotifier(this._ref) : super(const AuthState()) {
     _service = _ref.read(embytokServiceProvider);
+    _secureStorage = _ref.read(secureStorageProvider);
     _loadFromStorage();
   }
 
