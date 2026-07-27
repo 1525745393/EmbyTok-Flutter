@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
@@ -17,7 +18,7 @@ void main() {
   // - 512MB heap 限制的设备需更保守，避免 OOM
   // - 配合各组件的 memCacheWidth 限制图片解码尺寸，进一步降低占用
   if (!kIsWeb) {
-    WidgetsBinding.instance.imageCache
+    PaintingBinding.instance.imageCache
       ..maximumSize = 50
       ..maximumSizeBytes = 30 * 1024 * 1024; // 30MB
   }
