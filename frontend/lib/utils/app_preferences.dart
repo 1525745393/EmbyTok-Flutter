@@ -129,6 +129,9 @@ class AppPreferences {
   final OrientationMode orientationMode;
   final bool isMuted;
   final bool isAutoPlay;
+  // 焦点恢复自动续播（来电结束后是否自动恢复播放，默认 true）
+  // 由 AudioSessionHandler 在中断结束时读取，决定是否调用 controller.play()
+  final bool autoResumeAfterInterruption;
   final Set<String> hiddenLibraryIds;
   final double defaultPlaybackRate;
   final String defaultSubtitleLanguage;
@@ -175,6 +178,7 @@ class AppPreferences {
     this.orientationMode = OrientationMode.both,
     this.isMuted = true,
     this.isAutoPlay = false,
+    this.autoResumeAfterInterruption = true,
     this.hiddenLibraryIds = const <String>{},
     this.defaultPlaybackRate = 1.0,
     this.defaultSubtitleLanguage = '',
@@ -205,6 +209,7 @@ class AppPreferences {
     OrientationMode? orientationMode,
     bool? isMuted,
     bool? isAutoPlay,
+    bool? autoResumeAfterInterruption,
     Set<String>? hiddenLibraryIds,
     double? defaultPlaybackRate,
     String? defaultSubtitleLanguage,
@@ -228,6 +233,8 @@ class AppPreferences {
       orientationMode: orientationMode ?? this.orientationMode,
       isMuted: isMuted ?? this.isMuted,
       isAutoPlay: isAutoPlay ?? this.isAutoPlay,
+      autoResumeAfterInterruption:
+          autoResumeAfterInterruption ?? this.autoResumeAfterInterruption,
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate ?? this.defaultPlaybackRate,
       defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
@@ -280,6 +287,9 @@ class AppPreferencesService {
     );
     final isMuted = prefs.getBool(kStorageKeyIsMuted) ?? true;
     final isAutoPlay = prefs.getBool(kStorageKeyIsAutoPlay) ?? false;
+    // 焦点恢复自动续播（默认 true）
+    final autoResumeAfterInterruption =
+        prefs.getBool(kStorageKeyAutoResumeAfterInterruption) ?? true;
 
     // 隐藏媒体库 ID 列表以 JSON 数组字符串存储
     final rawHiddenIds = prefs.getString(kStorageKeyHiddenLibraryIds);
@@ -342,6 +352,7 @@ class AppPreferencesService {
       orientationMode: orientationMode,
       isMuted: isMuted,
       isAutoPlay: isAutoPlay,
+      autoResumeAfterInterruption: autoResumeAfterInterruption,
       hiddenLibraryIds: hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate,
       defaultSubtitleLanguage: defaultSubtitleLanguage,
@@ -370,6 +381,8 @@ class AppPreferencesService {
       prefs.setString(kStorageKeyOrientationMode, preferences.orientationMode.toStorageString()),
       prefs.setBool(kStorageKeyIsMuted, preferences.isMuted),
       prefs.setBool(kStorageKeyIsAutoPlay, preferences.isAutoPlay),
+      prefs.setBool(kStorageKeyAutoResumeAfterInterruption,
+          preferences.autoResumeAfterInterruption),
       prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
       prefs.setDouble(kStorageKeyDefaultPlaybackRate, preferences.defaultPlaybackRate),
       prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
@@ -418,6 +431,7 @@ class AppPreferencesService {
       kStorageKeyOrientationMode,
       kStorageKeyIsMuted,
       kStorageKeyIsAutoPlay,
+      kStorageKeyAutoResumeAfterInterruption,
       kStorageKeyHiddenLibraryIds,
       kStorageKeyDefaultPlaybackRate,
       kStorageKeyDefaultSubtitleLanguage,

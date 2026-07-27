@@ -153,6 +153,38 @@ final hiddenLibraryIdsProvider =
 /// 注意：[isMutedProvider] 和 [isAutoPlayProvider] 在 `video_playback_controller.dart` 中定义，
 /// 避免重复定义导致编译错误。
 
+// ---------------- 焦点恢复自动续播 ----------------
+
+/// 焦点恢复自动续播开关（默认 true）
+///
+/// 来电/其他 App 抢占音频焦点结束后，是否自动恢复播放。
+/// 由 [AudioSessionHandler] 的 onResumeRequested 回调读取，
+/// 关闭后中断结束不会自动续播，需用户手动点击播放。
+class AutoResumeAfterInterruptionNotifier extends StateNotifier<bool> {
+  AutoResumeAfterInterruptionNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.autoResumeAfterInterruption;
+  }
+
+  Future<void> set(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(autoResumeAfterInterruption: value),
+    );
+  }
+}
+
+/// 顶层焦点恢复自动续播 Provider
+final autoResumeAfterInterruptionProvider =
+    StateNotifierProvider<AutoResumeAfterInterruptionNotifier, bool>(
+  (ref) => AutoResumeAfterInterruptionNotifier(),
+);
+
 // ---------------- 视频流排除已观看 ----------------
 
 /// 视频流排除已观看开关（默认 false）

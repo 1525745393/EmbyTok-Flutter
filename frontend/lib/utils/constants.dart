@@ -35,6 +35,9 @@ const String kStorageKeyViewMode = 'embytok_view_mode';
 const String kStorageKeyOrientationMode = 'embytok_orientation_mode';
 const String kStorageKeyIsMuted = 'embytok_is_muted';
 const String kStorageKeyIsAutoPlay = 'embytok_is_autoplay';
+// 焦点恢复自动续播（来电结束后是否自动恢复播放，默认 true）
+const String kStorageKeyAutoResumeAfterInterruption =
+    'embytok_auto_resume_after_interruption';
 const String kStorageKeyHiddenLibraryIds = 'embytok_hidden_library_ids';
 const String kStorageKeyDefaultPlaybackRate = 'embytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage = 'embytok_default_subtitle_language';

@@ -9,6 +9,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/audio_session_handler.dart';
+import 'app_preferences_providers.dart';
 import 'video_playback_controller.dart';
 
 /// 音频焦点处理器单例 Provider
@@ -36,9 +37,11 @@ final audioSessionHandlerProvider = Provider<AudioSessionHandler>((ref) {
   };
 
   // 焦点恢复时续播
-  // 说明：此处直接续播；如未来需要"用户偏好控制是否自动续播"，
-  // 可在此处读取偏好 Provider 后决定是否调用 play()。
+  // 读取用户偏好：关闭后中断结束不自动续播，需用户手动点击播放
   handler.onResumeRequested = () {
+    final autoResume = ref.read(autoResumeAfterInterruptionProvider);
+    if (!autoResume) return;
+
     final controller = ref.read(currentVideoControllerProvider);
     // 仅在 controller 存在且当前未播放时续播，避免重复调用
     if (controller != null && !controller.value.isPlaying) {

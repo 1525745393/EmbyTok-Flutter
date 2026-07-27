@@ -100,6 +100,7 @@ class SettingsView extends ConsumerWidget {
             Colors.green,
             [
               _buildAutoPlayTile(context, ref),
+              _buildAutoResumeAfterInterruptionTile(context, ref),
               _buildPlaybackRateTile(context, ref),
               _buildGestureControlTile(context, ref),
             ],
@@ -801,6 +802,22 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 播放 - 焦点恢复自动续播（来电结束后是否自动恢复播放）
+  Widget _buildAutoResumeAfterInterruptionTile(
+      BuildContext context, WidgetRef ref) {
+    final autoResume = ref.watch(autoResumeAfterInterruptionProvider);
+    return _SwitchTile(
+      icon: Icons.phone_in_talk_outlined,
+      iconColor: Colors.green,
+      title: '焦点恢复自动续播',
+      subtitle: '来电结束后自动恢复播放',
+      value: autoResume,
+      onChanged: (value) {
+        ref.read(autoResumeAfterInterruptionProvider.notifier).set(value);
+      },
+    );
+  }
+
   // 播放 - 默认倍速
   Widget _buildPlaybackRateTile(BuildContext context, WidgetRef ref) {
     final rate = ref.watch(defaultPlaybackRateProvider);
@@ -1151,6 +1168,15 @@ class SettingsView extends ConsumerWidget {
         onTap: (ctx) {
           final value = ref.read(isAutoPlayProvider);
           ref.read(isAutoPlayProvider.notifier).setEnabled(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '焦点恢复自动续播',
+        section: '播放',
+        keywords: '播放 焦点 来电 恢复 续播 resume interruption',
+        onTap: (ctx) {
+          final value = ref.read(autoResumeAfterInterruptionProvider);
+          ref.read(autoResumeAfterInterruptionProvider.notifier).set(!value);
         },
       ),
       _SettingEntry(

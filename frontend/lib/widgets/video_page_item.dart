@@ -149,7 +149,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     });
   }
 
-  // App 进入后台时暂停视频和唱片动画，回到前台时恢复
+  // App 进入后台时仅停止唱片动画，音频由 AudioHandler 接管继续播放；回到前台时恢复画面渲染
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
@@ -161,13 +161,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     final isForeground = state == AppLifecycleState.resumed;
 
     if (wasForeground && !isForeground) {
+      // 进入后台：不主动暂停，由 AudioHandler 接管音频播放
       _wasPlayingBeforeBackground = _videoController?.value.isPlaying ?? false;
-      if (_videoController != null &&
-          _videoController!.value.isInitialized &&
-          _videoController!.value.isPlaying) {
-        _videoController!.pause();
-      }
+      // 仅停止唱片旋转动画（UI 相关）
       _discRotationCtrl.stop();
+      // 注意：不暂停 _videoController，音频继续播放（后台听剧场景）
     } else if (!wasForeground && isForeground) {
       if (_wasPlayingBeforeBackground) {
         if (_videoController != null &&
@@ -202,7 +200,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     super.didUpdateWidget(oldWidget);
     if (widget.isCurrentPage && !oldWidget.isCurrentPage && _videoController != null && _videoController!.value.isInitialized) {
       ref.read(currentVideoControllerProvider.notifier).state = _videoController;
-      _startPlaybackIfCurrent();
+      // _startPlaybackIfCurrent 现为 async（需等待服务端进度拉取与 seek），
+      // 此处为事件回调上下文，使用 safeUnawaited fire-and-forget
+      safeUnawaited(
+        _startPlaybackIfCurrent(),
+        context: 'didUpdateWidget._startPlaybackIfCurrent(itemId:${widget.item.id})',
+      );
     } else if (!widget.isCurrentPage && oldWidget.isCurrentPage) {
       _progressTimer?.cancel();
       _progressTimer = null;
@@ -279,7 +282,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   // 仅当本页为当前可见页时启动播放上报与进度上报，
   // 避免相邻预加载页并发以有声方式播放并重复向 Emby 上报播放
-  void _startPlaybackIfCurrent() {
+  //
+  // 进度双向同步：在播放启动流程中先从服务端拉取最新播放进度，
+  // 与本地进度取较新者后执行 seek，确保多端观看进度互通。
+  // 拉取失败时降级到本地进度，不影响播放。
+  Future<void> _startPlaybackIfCurrent() async {
     if (!widget.isCurrentPage) return;
     final controller = _videoController;
     if (controller != null && controller.value.isInitialized) {
@@ -293,9 +300,84 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     ref.read(playbackStateProvider.notifier).setItem(widget.item);
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
     _resetInfoHideTimer();
+
+    // === 进度双向同步：从服务端拉取最新进度 ===
+    int resumePositionTicks = 0;
+    try {
+      final auth = ref.read(authProvider);
+      final serverPosition = await _service.getPlaybackPosition(
+        widget.item.id,
+        userId: auth.user?.id,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+      final localPosition =
+          widget.item.userData?.playbackPositionTicks?.toInt() ?? 0;
+      // 取较新者：服务端进度更大说明其他设备看了更多
+      resumePositionTicks =
+          serverPosition > localPosition ? serverPosition : localPosition;
+    } catch (_) {
+      // 拉取失败，使用本地进度降级
+      resumePositionTicks =
+          widget.item.userData?.playbackPositionTicks?.toInt() ?? 0;
+    }
+
+    // 使用合并后的进度执行 seek，覆盖 VideoPlayerWidget 中基于本地 userData 的初次 seek
+    // 确保播放器定位到最新进度（其他设备的观看位置）
+    if (resumePositionTicks > 0 &&
+        controller != null &&
+        controller.value.isInitialized) {
+      final posMs = (resumePositionTicks / 10000.0).round();
+      if (posMs > 0) {
+        try {
+          await controller.seekTo(Duration(milliseconds: posMs));
+        } catch (_) {}
+      }
+    }
+
+    // 异步等待后 widget 可能已被 dispose，避免在 dispose 后访问 ref
+    if (!mounted) return;
+
     _ensureCapabilitiesReported();
     _reportPlaybackStart();
     _startProgressTimer();
+
+    // 同步 MediaSession：播放开始时设置媒体项并更新播放状态，
+    // 使锁屏/通知栏显示标题、封面与播放控件
+    _syncMediaSessionOnStart();
+  }
+
+  /// 播放开始时同步 MediaSession 媒体项与播放状态
+  ///
+  /// 字段映射说明（基于 MediaItem 实际模型，与任务描述的伪代码有差异）：
+  /// - title：MediaItem.title（必填，无 name 字段）
+  /// - artist：MediaItem.seriesName（无 album/artist 字段，剧集名副标题即可）
+  /// - artUri：通过 primaryUrl() 构造完整 URL（含 api_key），无 primaryImageThumbUrl 字段
+  /// - duration：MediaItem.runtimeTicks（小写 r），1 tick = 100ns = 0.1μs
+  void _syncMediaSessionOnStart() {
+    final audioHandler = ref.read(audioHandlerProvider);
+    // 封面图 URL：需带 serverUrl 与 token 才能被系统 MediaSession 访问
+    final serverUrl = _authServerUrl();
+    final token = _authToken();
+    final artUri = widget.item.primaryUrl(
+      embyServerUrl: serverUrl,
+      apiKey: token,
+    );
+    // ticks → Duration：1 tick = 100ns = 0.1μs，故 microseconds = ticks / 10
+    final ticks = widget.item.runtimeTicks;
+    final duration = ticks != null
+        ? Duration(microseconds: (ticks / 10).round())
+        : null;
+    audioHandler.setMediaItem(
+      title: widget.item.title,
+      artist: widget.item.seriesName,
+      artUri: artUri,
+      duration: duration,
+    );
+    audioHandler.updatePlaybackState(
+      isPlaying: true,
+      position: Duration.zero,
+    );
   }
 
   /// 记录观看统计（完播率）
@@ -448,6 +530,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       ),
       'reportPlaybackPosition',
     );
+
+    // 同步 MediaSession 位置：与 Emby 上报同频（每 5 秒或暂停时），
+    // 使锁屏进度条与实际播放位置保持一致
+    // 注意：节流 return 时不会执行到此，避免无谓的 MediaSession 写入
+    final audioHandler = ref.read(audioHandlerProvider);
+    audioHandler.updatePlaybackState(
+      isPlaying: !isPaused,
+      position: position != null
+          ? Duration(seconds: position.inSeconds)
+          : Duration.zero,
+    );
   }
 
   void _reportPlaybackStopped() {
@@ -466,6 +559,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         token: _authToken(),
       ),
       'reportPlaybackStopped',
+    );
+
+    // 清除 MediaSession：播放停止后通知栏移除播放控件，
+    // 避免锁屏仍显示已结束媒体的播放按钮
+    final audioHandler = ref.read(audioHandlerProvider);
+    audioHandler.updatePlaybackState(
+      isPlaying: false,
+      position: Duration.zero,
     );
     // 播放停止后续播进度已变，失效续播、详情和观看历史缓存确保下次获取最新数据
     // watchHistory 列表（含 Resume）依赖播放进度，必须失效
@@ -777,7 +878,12 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                       _playSessionId = null;
                       _lastProgressReport = DateTime.fromMicrosecondsSinceEpoch(0);
                     }
-                    _startPlaybackIfCurrent();
+                    // _startPlaybackIfCurrent 现为 async（需等待服务端进度拉取与 seek），
+                    // 此处为 controller 就绪回调上下文，使用 safeUnawaited fire-and-forget
+                    safeUnawaited(
+                      _startPlaybackIfCurrent(),
+                      context: 'onControllerReady._startPlaybackIfCurrent(itemId:${widget.item.id})',
+                    );
                   }
                 },
               ),
