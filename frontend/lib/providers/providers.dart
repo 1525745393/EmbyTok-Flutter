@@ -22,6 +22,10 @@ export 'item_detail_provider.dart';
 export 'recommend_provider.dart';
 export 'recommend_signals.dart';
 export '../services/video_pool_service.dart';
+// 音频焦点管理：来电/其他 App 播放时自动暂停与恢复
+export 'audio_focus_provider.dart';
+// AudioHandler / MediaSession：锁屏/通知栏媒体控制
+export 'audio_handler_provider.dart';
 
 // ---- 收藏与历史 ----
 export 'favorites_provider.dart';

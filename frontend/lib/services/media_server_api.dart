@@ -323,6 +323,19 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 从服务端获取指定项的最新播放进度
+  ///
+  /// 通过 GET /Users/{userId}/Items/{itemId} 获取 UserData.PlaybackPositionTicks。
+  /// 用于播放开始时拉取服务端最新进度，实现多端进度互通。
+  /// 返回值：PlaybackPositionTicks（单位：ticks，1 tick = 100 ns）
+  /// 若无播放记录返回 0。
+  Future<int> getPlaybackPosition(
+    String itemId, {
+    String? userId,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 字幕 Cues 加载（从服务器获取并解析 SRT/VTT）
   Future<List<SubtitleCue>> getSubtitleCues({
     required String itemId,

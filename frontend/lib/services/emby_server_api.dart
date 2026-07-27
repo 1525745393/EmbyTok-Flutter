@@ -1102,6 +1102,41 @@ class EmbyServerApi implements MediaServerApi {
   }
 
   // ============================
+  // 从服务端获取最新播放进度
+  //
+  // 复用 getItemDetail 获取 MediaItem，从 UserData.PlaybackPositionTicks 提取进度。
+  // 用于播放开始时拉取服务端最新进度，实现多端进度互通。
+  // 异常或无播放记录时返回 0，保证调用方可以安全地以 0 作为初始进度。
+  // ============================
+  @override
+  Future<int> getPlaybackPosition(
+    String itemId, {
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    try {
+      final item = await getItemDetail(
+        itemId,
+        userId: userId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final ticks = item.userData?.playbackPositionTicks;
+      if (ticks == null || ticks <= 0) {
+        return 0;
+      }
+      return ticks.toInt();
+    } catch (e) {
+      AppLogger.warn('获取服务端播放进度失败', data: {
+        'itemId': itemId,
+        'error': e.toString(),
+      });
+      return 0;
+    }
+  }
+
+  // ============================
   // 字幕 Cues 加载（从 Emby 获取并解析 SRT/VTT）
   // - index: 字幕轨道 index（与 MediaStream.index）
   // - mediaSourceId: 媒体源 ID

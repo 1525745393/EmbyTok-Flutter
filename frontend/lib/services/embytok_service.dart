@@ -582,6 +582,23 @@ class EmbytokService {
   }
 
   // ============================
+  // 从服务端获取最新播放进度
+  // ============================
+  Future<int> getPlaybackPosition(
+    String itemId, {
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getPlaybackPosition(
+      itemId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  // ============================
   // 字幕 Cues 加载（从 Emby 获取并解析 SRT/VTT）
   // - index: 字幕轨道 index（与 MediaStream.index）
   // - mediaSourceId: 媒体源 ID

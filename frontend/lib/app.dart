@@ -2,6 +2,7 @@
 // 阶段 1：接入 Material Design 3 动态色彩系统（seed 粉色 0xFFE91E63）
 // 阶段 2/3：后续逐步替换组件内硬编码颜色和尺寸 → colorScheme / theme tokens
 
+import 'package:audio_service/audio_service.dart' show AudioService, AudioServiceConfig;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../utils/logger.dart';
 import '../utils/memory_pressure_handler.dart';
+import '../utils/safe_unawaited.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
 import 'views/actors_view.dart';
@@ -50,6 +52,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     // 挂载内存压力监听器：系统内存警告时主动清缓存 + 释放视频池
     // Web 平台在 Handler 内部自动跳过注册
     _memoryHandler = MemoryPressureHandler(ref);
+    // 初始化 AudioService：注册 EmbytokAudioHandler，启用锁屏/通知栏媒体控制
+    // Web 平台不支持 audio_service，跳过初始化
+    if (!kIsWeb) {
+      safeUnawaited(
+        _initAudioService(),
+        context: 'EmbyTokApp.initState.AudioService.init',
+      );
+    }
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
@@ -86,6 +96,28 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     _memoryHandler.dispose();
     _refreshNotifier.dispose();
     super.dispose();
+  }
+
+  /// 初始化 AudioService：注册 EmbytokAudioHandler 到系统媒体控制
+  ///
+  /// 必须在 App 启动后调用一次。注册后系统媒体按钮事件（锁屏/通知栏/蓝牙耳机）
+  /// 才会路由到 EmbytokAudioHandler 的 play/pause/stop/skipToNext 方法。
+  ///
+  /// 失败时不影响主流程，仅记录日志（用户仍可在 App 内正常播放）。
+  Future<void> _initAudioService() async {
+    try {
+      await AudioService.init(
+        builder: () => ref.read(audioHandlerProvider),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.embytok.app.audio',
+          androidNotificationChannelName: 'EmbyTok 播放',
+          androidNotificationOngoing: true,
+          androidStopForegroundOnPause: true,
+        ),
+      );
+    } catch (e, st) {
+      AppLogger.error('AudioService 初始化失败', error: e, stackTrace: st);
+    }
   }
 
   /// 构建路由表（静态配置，不依赖 widget 状态）
