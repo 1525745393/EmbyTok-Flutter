@@ -1,3 +1,17 @@
+# [2.27.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.26.0...v2.27.0) (2026-07-27)
+
+
+### Bug Fixes
+
+* 代码审查问题修复 ([ccdae65](https://github.com/1525745393/EmbyTok-Flutter/commit/ccdae656a80606ed48dba069a378b737a46fc35c))
+* 修复 WidgetsBinding.imageCache 未定义错误 ([25d50d1](https://github.com/1525745393/EmbyTok-Flutter/commit/25d50d107694d1e2bed874c0741f0bafd7469856))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([7d657e2](https://github.com/1525745393/EmbyTok-Flutter/commit/7d657e2dfbd4431d711289e5614233c314248c47))
+* EmbyX 媒体库网格视图实现 ([b615f63](https://github.com/1525745393/EmbyTok-Flutter/commit/b615f63a7e236ab1d71ef164140b625211a41c33))
+
 # [2.26.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.25.0...v2.26.0) (2026-07-27)
 
 
