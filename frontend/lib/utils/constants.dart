@@ -89,6 +89,11 @@ const String kStorageKeyActorsScrollOffset = 'embytok_actors_scroll_offset';
 const String kStorageKeyServerHistory = 'embytok_server_history';
 const String kStorageKeySavedCredentials = 'embytok_saved_credentials';
 
+// 安全存储键（用于 flutter_secure_storage）
+const String kStorageKeyAccessToken = 'embytok_access_token';
+const String kStorageKeyEmbyServerUrl = 'embytok_emby_server_url';
+const String kStorageKeyUser = 'embytok_user';
+
 const int kMaxSearchHistory = 10;
 const double kDefaultPlaybackRate = 1.0;
 const double kLongPressPlaybackRate = 2.0;

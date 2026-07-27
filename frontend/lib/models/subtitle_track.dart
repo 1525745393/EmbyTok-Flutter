@@ -71,7 +71,7 @@ class SubtitleCue {
 
 List<SubtitleCue> parseSrt(String content) {
   final result = <SubtitleCue>[];
-  final blocks = content.replaceAll('\r\n', '\n').split('\n\n');
+  final blocks = content.replaceAll('\r\n', '\n').split(RegExp(r'\n{2,}'));
   for (final block in blocks) {
     final lines = block.split('\n');
     // SRT 格式至少需要 3 行：序号、时间轴、至少一行文本

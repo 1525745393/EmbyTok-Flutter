@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
@@ -60,6 +61,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref _ref;
   late final EmbytokService _service;
+  final _secureStorage = const FlutterSecureStorage();
 
   AuthNotifier(this._ref) : super(const AuthState()) {
     _service = _ref.read(embytokServiceProvider);
@@ -71,35 +73,63 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       AppLogger.debug('从本地存储恢复登录状态');
       final prefs = await SharedPreferences.getInstance();
-      final configStr = prefs.getString(kStorageKeyConfig);
-      if (configStr == null || configStr.isEmpty) return;
 
-      final Map<String, dynamic> config =
-          json.decode(configStr) as Map<String, dynamic>;
+      // 从安全存储读取 token
+      String? token;
+      try {
+        token = await _secureStorage.read(key: kStorageKeyAccessToken);
+      } catch (_) {}
 
-      final backendUrl = config['backend_url'] as String?;
-      final embyServerUrl = config['emby_server_url'] as String?;
-      final userId = config['user_id'] as String?;
-      final userName = config['user_name'] as String?;
-      final accessToken = config['access_token'] as String?;
+      // 旧数据迁移：如果安全存储中没有，从旧配置中读取并迁移
+      if (token == null || token.isEmpty) {
+        final configStr = prefs.getString(kStorageKeyConfig);
+        if (configStr != null && configStr.isNotEmpty) {
+          try {
+            final Map<String, dynamic> config =
+                json.decode(configStr) as Map<String, dynamic>;
+            final oldToken = config['access_token'] as String?;
+            if (oldToken != null && oldToken.isNotEmpty) {
+              // 迁移到安全存储
+              await _secureStorage.write(key: kStorageKeyAccessToken, value: oldToken);
+              // 删除旧的明文存储
+              await prefs.remove(kStorageKeyConfig);
+              token = oldToken;
+              AppLogger.info('完成 token 从明文存储迁移到安全存储');
+            }
+          } catch (_) {}
+        }
+      }
 
-      if (accessToken != null && accessToken.isNotEmpty && userId != null) {
+      final embyServerUrl = prefs.getString(kStorageKeyEmbyServerUrl);
+      final userJson = prefs.getString(kStorageKeyUser);
+
+      User? user;
+      if (userJson != null) {
+        try {
+          final Map<String, dynamic> userMap =
+              json.decode(userJson) as Map<String, dynamic>;
+          user = User(
+            id: userMap['user_id'] as String? ?? '',
+            name: userMap['user_name'] as String? ?? '',
+            accessToken: token ?? '',
+          );
+        } catch (_) {}
+      }
+
+      if (token != null && token.isNotEmpty && embyServerUrl != null) {
         state = AuthState(
           isAuthenticated: true,
-          user: User(
-            id: userId,
-            name: userName ?? '',
-            accessToken: accessToken,
-          ),
-          backendUrl: backendUrl,
+          user: user,
+          backendUrl: userJson != null
+              ? (json.decode(userJson) as Map<String, dynamic>)['backend_url'] as String?
+              : null,
           embyServerUrl: embyServerUrl,
-          token: accessToken,
+          token: token,
         );
-        AppLogger.info('登录状态恢复成功', data: {'userId': userId, 'hasToken': true});
+        AppLogger.info('登录状态恢复成功', data: {'userId': user?.id, 'hasToken': true});
       }
     } catch (e) {
       AppLogger.error('恢复登录状态失败', error: e);
-      // 读取失败不中断启动，仅忽略已损坏的缓存
     }
   }
 
@@ -119,16 +149,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      // 持久化到 shared_preferences
+      // 持久化：敏感信息存储到安全存储，非敏感信息存储到 SharedPreferences
+      await _secureStorage.write(key: kStorageKeyAccessToken, value: user.accessToken);
       final prefs = await SharedPreferences.getInstance();
-      final config = <String, dynamic>{
+      await prefs.setString(kStorageKeyEmbyServerUrl, embyServerUrl);
+      await prefs.setString(kStorageKeyUser, json.encode({
         'backend_url': backendUrl ?? '',
-        'emby_server_url': embyServerUrl,
         'user_id': user.id,
         'user_name': user.name,
-        'access_token': user.accessToken,
-      };
-      await prefs.setString(kStorageKeyConfig, json.encode(config));
+      }));
 
       state = AuthState(
         isAuthenticated: true,
@@ -151,8 +180,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // 退出登录：清除本地 Token 和内存缓存
   Future<void> logout() async {
     AppLogger.info('用户登出');
+    // 清除安全存储中的敏感信息
+    try {
+      await _secureStorage.delete(key: kStorageKeyAccessToken);
+    } catch (_) {}
+    // 清除 SharedPreferences
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(kStorageKeyEmbyServerUrl);
+      await prefs.remove(kStorageKeyUser);
       await prefs.remove(kStorageKeyConfig);
     } catch (_) {}
     // 登出时清除所有内存缓存，避免账号切换后数据污染
