@@ -20,6 +20,13 @@ import 'package:embytok_flutter/widgets/poster_grid_view.dart';
 import '../mocks/mock_services.dart';
 import '../mocks/mock_secure_storage.dart';
 
+/// 通过索引定位 LoginView 中的 TextFormField
+/// 字段顺序与 LoginView 中构建顺序一致：
+/// 0: Emby 服务器地址，1: 用户名，2: 密码
+Finder findFormFieldByIndex(int index) {
+  return find.byType(TextFormField).at(index);
+}
+
 void main() {
   group('完整流程集成测试', () {
     late MockEmbytokService mockService;
@@ -79,29 +86,17 @@ void main() {
       expect(find.text('EmbyTok'), findsOneWidget);
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == 'Emby 服务器地址',
-        ),
+        findFormFieldByIndex(0),
         'http://emby.example.com',
       );
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '用户名',
-        ),
+        findFormFieldByIndex(1),
         'testuser',
       );
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '密码',
-        ),
+        findFormFieldByIndex(2),
         'password123',
       );
 
@@ -172,27 +167,15 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == 'Emby 服务器地址',
-        ),
+        findFormFieldByIndex(0),
         'http://emby.example.com',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '用户名',
-        ),
+        findFormFieldByIndex(1),
         'testuser',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '密码',
-        ),
+        findFormFieldByIndex(2),
         'password123',
       );
       await tester.tap(find.text('登录'));
@@ -264,27 +247,15 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == 'Emby 服务器地址',
-        ),
+        findFormFieldByIndex(0),
         'http://emby.example.com',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '用户名',
-        ),
+        findFormFieldByIndex(1),
         'testuser',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '密码',
-        ),
+        findFormFieldByIndex(2),
         'password123',
       );
       await tester.tap(find.text('登录'));
@@ -370,27 +341,15 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == 'Emby 服务器地址',
-        ),
+        findFormFieldByIndex(0),
         'http://emby.example.com',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '用户名',
-        ),
+        findFormFieldByIndex(1),
         'testuser',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '密码',
-        ),
+        findFormFieldByIndex(2),
         'password123',
       );
       await tester.tap(find.text('登录'));
@@ -458,27 +417,15 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == 'Emby 服务器地址',
-        ),
+        findFormFieldByIndex(0),
         'http://emby.example.com',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '用户名',
-        ),
+        findFormFieldByIndex(1),
         'testuser',
       );
       await tester.enterText(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is TextFormField &&
-              widget.decoration?.labelText == '密码',
-        ),
+        findFormFieldByIndex(2),
         'password123',
       );
       await tester.tap(find.text('登录'));

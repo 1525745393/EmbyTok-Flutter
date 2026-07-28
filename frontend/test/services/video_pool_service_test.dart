@@ -48,7 +48,6 @@ PlaybackSession _session(String itemId) {
     itemId: itemId,
     controller: _fakeController(),
     playSessionId: 'sid-$itemId',
-    playbackLevel: 0,
   );
 }
 
@@ -70,14 +69,12 @@ void main() {
         itemId: 'a',
         controller: existingController,
         playSessionId: 'sid-a',
-        playbackLevel: 0,
       );
       final incomingController = _fakeController();
       final incoming = PlaybackSession(
         itemId: 'a',
         controller: incomingController,
         playSessionId: 'sid-a',
-        playbackLevel: 0,
       );
       pool.returnSession(existing);
       pool.returnSession(incoming);

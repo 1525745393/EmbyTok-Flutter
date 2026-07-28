@@ -113,6 +113,34 @@ class _MockMediaRepository implements MediaRepository {
     String? userId,
   }) => null;
 
+  // 以下 peek* 方法为空实现：测试不依赖缓存读取路径，统一返回 null
+  @override
+  FavoritesPageResult? peekFavoriteMovies({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) => null;
+
+  @override
+  FavoritesPageResult? peekFavoriteBoxSets({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) => null;
+
+  @override
+  FavoritesPageResult? peekFavoritePeople({
+    int limit = 50,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) => null;
+
   @override
   Future<MediaItem> getItemDetail(
     String itemId, {
@@ -514,30 +542,49 @@ PaginatedResponse<MediaItem> _paginatedResponse(
     );
 
 /// 测试用 AuthNotifier：直接返回预设状态
-class _TestAuthNotifier extends StateNotifier<AuthState> {
-  _TestAuthNotifier(AuthState initialState) : super(initialState);
+///
+/// 继承 AuthNotifier 以满足 authProvider 的类型约束，
+/// 调用 super(ref) 后再用预设状态覆盖 state，避免触发 _loadFromStorage 的副作用影响断言。
+class _TestAuthNotifier extends AuthNotifier {
+  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+    state = initialState;
+  }
 }
 
 /// 测试用 SelectedLibraryIdsNotifier：直接返回预设状态
-class _TestSelectedLibraryIdsNotifier extends StateNotifier<List<String>> {
-  _TestSelectedLibraryIdsNotifier(List<String> initialState) : super(initialState);
+///
+/// 继承 SelectedLibraryNotifier 以满足 selectedLibraryIdsProvider 的类型约束。
+class _TestSelectedLibraryIdsNotifier extends SelectedLibraryNotifier {
+  _TestSelectedLibraryIdsNotifier(Ref ref, List<String> initialState)
+      : super(ref) {
+    state = initialState;
+  }
 
+  @override
   void setLibraries(List<String> ids) => state = ids;
 }
 
 /// 测试用 FeedTypeNotifier
-class _TestFeedTypeNotifier extends StateNotifier<FeedType> {
-  _TestFeedTypeNotifier(FeedType initialState) : super(initialState);
+///
+/// 继承 FeedTypeNotifier 以满足 feedTypeProvider 的类型约束。
+class _TestFeedTypeNotifier extends FeedTypeNotifier {
+  _TestFeedTypeNotifier(FeedType initialState) : super() {
+    state = initialState;
+  }
 }
 
 /// 测试用 ExcludePlayedNotifier
-class _TestExcludePlayedNotifier extends StateNotifier<bool> {
-  _TestExcludePlayedNotifier(bool initialState) : super(initialState);
+class _TestExcludePlayedNotifier extends FeedExcludePlayedNotifier {
+  _TestExcludePlayedNotifier(bool initialState) : super() {
+    state = initialState;
+  }
 }
 
 /// 测试用 ViewModeNotifier
-class _TestViewModeNotifier extends StateNotifier<ViewMode> {
-  _TestViewModeNotifier(ViewMode initialState) : super(initialState);
+class _TestViewModeNotifier extends ViewModeNotifier {
+  _TestViewModeNotifier(ViewMode initialState) : super() {
+    state = initialState;
+  }
 }
 
 // ============================
@@ -545,6 +592,9 @@ class _TestViewModeNotifier extends StateNotifier<ViewMode> {
 // ============================
 
 void main() {
+  // 初始化 Flutter binding，供 SharedPreferences 等插件使用
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('VideoListNotifier 竞态测试', () {
     late _MockMediaRepository mockRepo;
     late ProviderContainer container;
@@ -574,9 +624,11 @@ void main() {
       return ProviderContainer(
         overrides: [
           mediaRepositoryProvider.overrideWithValue(mockRepo),
-          authProvider.overrideWith((ref) => _TestAuthNotifier(_testAuthState())),
+          authProvider.overrideWith(
+            (ref) => _TestAuthNotifier(ref, _testAuthState()),
+          ),
           selectedLibraryIdsProvider.overrideWith(
-            (ref) => _TestSelectedLibraryIdsNotifier(libraryIds),
+            (ref) => _TestSelectedLibraryIdsNotifier(ref, libraryIds),
           ),
           feedTypeProvider.overrideWith(
             (ref) => _TestFeedTypeNotifier(feedType),

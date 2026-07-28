@@ -66,14 +66,22 @@ void main() {
     /// 设置一个"已初始化且正在播放"的 mock controller
     void stubPlaying(MockVideoPlayerController ctrl) {
       when(ctrl.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: true),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: true,
+          isPlaying: true,
+        ),
       );
     }
 
     /// 设置一个"已初始化但已暂停"的 mock controller
     void stubPaused(MockVideoPlayerController ctrl) {
       when(ctrl.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: false),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: true,
+          isPlaying: false,
+        ),
       );
     }
 
@@ -225,7 +233,11 @@ void main() {
     test('controller 未初始化：不调用任何方法', () {
       // 模拟 controller 存在但 value.isInitialized=false
       when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: false, isPlaying: false),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: false,
+          isPlaying: false,
+        ),
       );
 
       const prev = PageNavigationState();

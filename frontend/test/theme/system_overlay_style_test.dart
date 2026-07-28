@@ -54,7 +54,7 @@ void main() {
         );
         expect(captured, isNotNull);
         expect(captured!.statusBarIconBrightness, Brightness.dark);
-        expect(captured.systemNavigationBarIconBrightness, Brightness.dark);
+        expect(captured!.systemNavigationBarIconBrightness, Brightness.dark);
       },
     );
 
@@ -78,7 +78,7 @@ void main() {
         );
         expect(captured, isNotNull);
         expect(captured!.statusBarIconBrightness, Brightness.light);
-        expect(captured.systemNavigationBarIconBrightness, Brightness.light);
+        expect(captured!.systemNavigationBarIconBrightness, Brightness.light);
       },
     );
   });

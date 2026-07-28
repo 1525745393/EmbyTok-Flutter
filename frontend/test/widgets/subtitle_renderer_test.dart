@@ -2,22 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:embytok_flutter/models/subtitle_track.dart';
 import 'package:embytok_flutter/widgets/subtitle_renderer.dart';
 import 'package:embytok_flutter/providers/subtitle_settings_provider.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('SubtitleRenderer Widget', () {
     /// 创建测试用的 ProviderContainer
+    /// 通过 override + update 注入指定的初始字幕设置
     ProviderContainer createContainer({
       SubtitleSettings? settings,
     }) {
-      return ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           subtitleSettingsProvider.overrideWith(
-            () => _TestSubtitleSettingsNotifier(settings),
+            (ref) => SubtitleSettingsNotifier(),
           ),
         ],
       );
+      if (settings != null) {
+        // 同步写入初始 state，跳过 SharedPreferences 加载流程
+        container
+            .read(subtitleSettingsProvider.notifier)
+            .update(language: settings.language);
+        if (settings.color.isNotEmpty) {
+          container.read(subtitleSettingsProvider.notifier).setColor(settings.color);
+        }
+        if (settings.size.isNotEmpty) {
+          container.read(subtitleSettingsProvider.notifier).setSize(settings.size);
+        }
+      }
+      return container;
     }
 
     /// 测试空字幕时不显示
@@ -53,7 +70,7 @@ void main() {
         settings: const SubtitleSettings(language: 'zh'),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -89,7 +106,7 @@ void main() {
         settings: const SubtitleSettings(language: ''), // 空语言表示禁用
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -124,7 +141,7 @@ void main() {
         settings: const SubtitleSettings(language: 'zh'),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -164,7 +181,7 @@ void main() {
         settings: const SubtitleSettings(language: 'zh'),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -239,7 +256,7 @@ void main() {
         settings: const SubtitleSettings(language: 'zh'),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -281,7 +298,7 @@ void main() {
         settings: const SubtitleSettings(language: 'zh'),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -321,7 +338,7 @@ void main() {
         ),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -358,7 +375,7 @@ void main() {
         ),
       );
 
-      final cues = [
+      final cues = <SubtitleCue>[
         const SubtitleCue(
           Duration(seconds: 0),
           Duration(seconds: 5),
@@ -446,24 +463,4 @@ void main() {
       expect(cues[0].end, const Duration(minutes: 1, seconds: 26, milliseconds: 789));
     });
   });
-}
-
-/// 测试用的字幕设置 Notifier
-class _TestSubtitleSettingsNotifier extends SubtitleSettingsNotifier {
-  final SubtitleSettings? _initialSettings;
-
-  _TestSubtitleSettingsNotifier(this._initialSettings);
-
-  @override
-  Future<void> _load() async {
-    // 测试时不从 SharedPreferences 加载
-    if (_initialSettings != null) {
-      state = _initialSettings!;
-    }
-  }
-
-  @override
-  Future<void> _persist() async {
-    // 测试时不持久化
-  }
 }

@@ -40,7 +40,11 @@ void main() {
     test('有错误的 controller 应返回 false', () {
       final mockController = MockVideoPlayerController();
       when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: true, hasError: true),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: true,
+          errorDescription: 'controller error',
+        ),
       );
 
       expect(
@@ -53,7 +57,10 @@ void main() {
     test('未初始化的 controller 应返回 false', () {
       final mockController = MockVideoPlayerController();
       when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: false),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: false,
+        ),
       );
 
       expect(
@@ -66,7 +73,11 @@ void main() {
     test('已初始化且无错误的 controller 应返回 true', () {
       final mockController = MockVideoPlayerController();
       when(mockController.value).thenReturn(
-        const VideoPlayerValue(initialized: true, isPlaying: true),
+        const VideoPlayerValue(
+          duration: Duration.zero,
+          isInitialized: true,
+          isPlaying: true,
+        ),
       );
 
       expect(

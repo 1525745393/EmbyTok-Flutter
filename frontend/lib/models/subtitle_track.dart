@@ -11,7 +11,7 @@ class SubtitleTrack {
   /// 本地外挂字幕文件路径（服务器字幕为 null）
   final String? localFilePath;
 
-  SubtitleTrack({
+  const SubtitleTrack({
     required this.id,
     required this.name,
     required this.language,

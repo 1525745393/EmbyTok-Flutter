@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 /// 创建测试用的 Dio Mock Adapter
-class MockDioAdapter extends HttpClientAdapter {
+class MockDioAdapter implements HttpClientAdapter {
   final List<MockResponse> _responses = [];
   int _requestCount = 0;
 
@@ -32,7 +32,7 @@ class MockDioAdapter extends HttpClientAdapter {
   }
 
   @override
-  void close() {}
+  void close({bool force = false}) {}
 }
 
 class MockResponse {

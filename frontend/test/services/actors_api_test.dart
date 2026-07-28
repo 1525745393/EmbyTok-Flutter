@@ -81,11 +81,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Persons',
-              query: buildPeopleQuery(),
-            )
-            .reply(200, response);
+            .onGet('/Persons', (server) => server.reply(200, response), queryParameters: buildPeopleQuery());
 
         final result = await service.getPeople(
           serverUrl: testEmbyUrl,
@@ -105,14 +101,10 @@ void main() {
 
       test('分页参数正确传递', () async {
         dioAdapter
-            .onGet(
-              '/Persons',
-              query: buildPeopleQuery(limit: 20, startIndex: 40),
-            )
-            .reply(200, <String, dynamic>{
+            .onGet('/Persons', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 100,
-            });
+            }), queryParameters: buildPeopleQuery(limit: 20, startIndex: 40));
 
         final result = await service.getPeople(
           limit: 20,
@@ -128,16 +120,12 @@ void main() {
 
       test('PersonTypes 筛选参数正确传递', () async {
         dioAdapter
-            .onGet(
-              '/Persons',
-              query: buildPeopleQuery(personTypes: ['Director']),
-            )
-            .reply(200, <String, dynamic>{
+            .onGet('/Persons', (server) => server.reply(200, <String, dynamic>{
               'Items': [
                 buildPersonJson(id: 'dir-1', name: '导演X', type: 'Director'),
               ],
               'TotalRecordCount': 1,
-            });
+            }), queryParameters: buildPeopleQuery(personTypes: ['Director']));
 
         final result = await service.getPeople(
           personTypes: ['Director'],
@@ -163,8 +151,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet('/Persons')
-            .reply(200, response);
+            .onGet('/Persons', (server) => server.reply(200, response));
 
         final result = await service.getPeople(
           serverUrl: testEmbyUrl,
@@ -177,11 +164,10 @@ void main() {
 
       test('空演员列表返回空结果', () async {
         dioAdapter
-            .onGet('/Persons')
-            .reply(200, <String, dynamic>{
+            .onGet('/Persons', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 0,
-            });
+            }));
 
         final result = await service.getPeople(
           serverUrl: testEmbyUrl,
@@ -193,9 +179,9 @@ void main() {
       });
 
       test('API错误时抛出异常', () async {
-        dioAdapter.onGet('/Persons').reply(500, {
+        dioAdapter.onGet('/Persons', (server) => server.reply(500, {
           'detail': '服务器内部错误',
-        });
+        }));
 
         expect(
           () => service.getPeople(
@@ -248,11 +234,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items',
-              query: buildFavoritePeopleQuery(),
-            )
-            .reply(200, response);
+            .onGet('/Users/$testUserId/Items', (server) => server.reply(200, response), queryParameters: buildFavoritePeopleQuery());
 
         final result = await service.getFavoritePeople(
           userId: testUserId,
@@ -260,21 +242,17 @@ void main() {
           token: testToken,
         );
 
-        expect(result.length, 1);
-        expect(result[0].id, 'fav-1');
-        expect(result[0].title, '已关注演员A');
+        expect(result.items.length, 1);
+        expect(result.items[0].id, 'fav-1');
+        expect(result.items[0].title, '已关注演员A');
       });
 
       test('无userId时降级到 /Items 路径', () async {
         dioAdapter
-            .onGet(
-              '/Items',
-              query: buildFavoritePeopleQuery(),
-            )
-            .reply(200, <String, dynamic>{
+            .onGet('/Items', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 0,
-            });
+            }), queryParameters: buildFavoritePeopleQuery());
 
         final result = await service.getFavoritePeople(
           serverUrl: testEmbyUrl,
@@ -285,9 +263,9 @@ void main() {
       });
 
       test('API错误时抛出异常', () async {
-        dioAdapter.onGet('/Users/$testUserId/Items').reply(401, {
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(401, {
           'detail': 'Token已过期',
-        });
+        }));
 
         expect(
           () => service.getFavoritePeople(
@@ -337,11 +315,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Items',
-              query: buildPersonItemsQuery(),
-            )
-            .reply(200, response);
+            .onGet('/Items', (server) => server.reply(200, response), queryParameters: buildPersonItemsQuery());
 
         final result = await service.getPersonItems(
           personId,
@@ -358,11 +332,10 @@ void main() {
 
       test('演员无作品返回空列表', () async {
         dioAdapter
-            .onGet('/Items')
-            .reply(200, <String, dynamic>{
+            .onGet('/Items', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 0,
-            });
+            }));
 
         final result = await service.getPersonItems(
           'unknown-person',

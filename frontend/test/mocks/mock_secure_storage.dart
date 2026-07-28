@@ -40,7 +40,7 @@ class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {
   @override
   Future<void> write({
     required String key,
-    required String value,
+    required String? value,
     IOSOptions? iOptions,
     AndroidOptions? aOptions,
     LinuxOptions? lOptions,
@@ -51,7 +51,11 @@ class MockFlutterSecureStorage extends Mock implements FlutterSecureStorage {
     if (_shouldThrowOnWrite) {
       throw Exception('Simulated write failure');
     }
-    _storage[key] = value;
+    if (value != null) {
+      _storage[key] = value;
+    } else {
+      _storage.remove(key);
+    }
   }
 
   @override

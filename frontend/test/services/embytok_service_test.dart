@@ -133,14 +133,10 @@ void main() {
         };
 
         dioAdapter
-            .onPost(
-              '/Users/AuthenticateByName',
-              body: <String, dynamic>{
+            .onPost('/Users/AuthenticateByName', (server) => server.reply(200, loginResponse), data: <String, dynamic>{
                 'Username': 'testuser',
                 'Pw': 'password123',
-              },
-            )
-            .reply(200, loginResponse);
+              });
 
         final user = await service.login(
           embyServerUrl: testEmbyUrl,
@@ -154,9 +150,9 @@ void main() {
       });
 
       test('登录失败抛出异常', () async {
-        dioAdapter.onPost('/Users/AuthenticateByName').reply(401, {
+        dioAdapter.onPost('/Users/AuthenticateByName', (server) => server.reply(401, {
           'detail': '用户名或密码错误',
-        });
+        }));
 
         expect(
           () => service.login(
@@ -187,11 +183,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Views',
-              query: <String, dynamic>{},
-            )
-            .reply(200, librariesResponse);
+            .onGet('/Users/$testUserId/Views', (server) => server.reply(200, librariesResponse));
 
         final libraries = await service.getLibraries(
           userId: testUserId,
@@ -217,11 +209,7 @@ void main() {
         ];
 
         dioAdapter
-            .onGet(
-              '/Library/VirtualFolders',
-              query: <String, dynamic>{},
-            )
-            .reply(200, librariesResponse);
+            .onGet('/Library/VirtualFolders', (server) => server.reply(200, librariesResponse));
 
         final libraries = await service.getLibraries(
           serverUrl: testEmbyUrl,
@@ -234,9 +222,9 @@ void main() {
       });
 
       test('获取媒体库列表失败', () async {
-        dioAdapter.onGet('/Library/VirtualFolders').reply(500, {
+        dioAdapter.onGet('/Library/VirtualFolders', (server) => server.reply(500, {
           'detail': '服务器内部错误',
-        });
+        }));
 
         expect(
           () => service.getLibraries(
@@ -263,11 +251,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items',
-              query: buildLibraryItemsQuery(libraryId: testLibraryId),
-            )
-            .reply(200, response);
+            .onGet('/Users/$testUserId/Items', (server) => server.reply(200, response), queryParameters: buildLibraryItemsQuery(libraryId: testLibraryId));
 
         final result = await service.getLibraryItems(
           testLibraryId,
@@ -285,14 +269,10 @@ void main() {
 
       test('无 userId 时降级到 /Items 路径', () async {
         dioAdapter
-            .onGet(
-              '/Items',
-              query: buildLibraryItemsQuery(libraryId: testLibraryId),
-            )
-            .reply(200, <String, dynamic>{
+            .onGet('/Items', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 0,
-            });
+            }), queryParameters: buildLibraryItemsQuery(libraryId: testLibraryId));
 
         final result = await service.getLibraryItems(
           testLibraryId,
@@ -306,18 +286,14 @@ void main() {
 
       test('分页参数正确传递', () async {
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items',
-              query: buildLibraryItemsQuery(
+            .onGet('/Users/$testUserId/Items', (server) => server.reply(200, <String, dynamic>{
+              'Items': [],
+              'TotalRecordCount': 100,
+            }), queryParameters: buildLibraryItemsQuery(
                 libraryId: testLibraryId,
                 limit: 10,
                 offset: 20,
-              ),
-            )
-            .reply(200, <String, dynamic>{
-              'Items': [],
-              'TotalRecordCount': 100,
-            });
+              ));
 
         final result = await service.getLibraryItems(
           testLibraryId,
@@ -334,9 +310,9 @@ void main() {
       });
 
       test('获取媒体库条目失败', () async {
-        dioAdapter.onGet('/Items').reply(404, {
+        dioAdapter.onGet('/Items', (server) => server.reply(404, {
           'detail': '媒体库不存在',
-        });
+        }));
 
         expect(
           () => service.getLibraryItems(
@@ -361,11 +337,7 @@ void main() {
         );
 
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items/$testItemId',
-              query: <String, dynamic>{'Fields': itemDetailFields},
-            )
-            .reply(200, response);
+            .onGet('/Users/$testUserId/Items/$testItemId', (server) => server.reply(200, response), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
         final item = await service.getItemDetail(
           testItemId,
@@ -384,15 +356,11 @@ void main() {
 
       test('无 userId 时降级到 /Items/{id}', () async {
         dioAdapter
-            .onGet(
-              '/Items/$testItemId',
-              query: <String, dynamic>{'Fields': itemDetailFields},
-            )
-            .reply(200, buildMediaItemJson(
+            .onGet('/Items/$testItemId', (server) => server.reply(200, buildMediaItemJson(
               id: testItemId,
               name: '测试电影',
               type: 'Movie',
-            ));
+            )), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
         final item = await service.getItemDetail(
           testItemId,
@@ -405,13 +373,9 @@ void main() {
 
       test('获取媒体项失败', () async {
         dioAdapter
-            .onGet(
-              '/Items/not-found',
-              query: <String, dynamic>{'Fields': itemDetailFields},
-            )
-            .reply(404, {
+            .onGet('/Items/not-found', (server) => server.reply(404, {
               'detail': '媒体项不存在',
-            });
+            }), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
         expect(
           () => service.getItemDetail(
@@ -443,11 +407,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items',
-              query: buildSearchItemsQuery(query: '测试'),
-            )
-            .reply(200, response);
+            .onGet('/Users/$testUserId/Items', (server) => server.reply(200, response), queryParameters: buildSearchItemsQuery(query: '测试'));
 
         final result = await service.searchItems(
           '测试',
@@ -464,17 +424,13 @@ void main() {
 
       test('带 IncludeItemTypes 参数', () async {
         dioAdapter
-            .onGet(
-              '/Users/$testUserId/Items',
-              query: buildSearchItemsQuery(
-                query: 'test',
-                includeTypes: <String>['Movie', 'Series'],
-              ),
-            )
-            .reply(200, <String, dynamic>{
+            .onGet('/Users/$testUserId/Items', (server) => server.reply(200, <String, dynamic>{
               'Items': [],
               'TotalRecordCount': 0,
-            });
+            }), queryParameters: buildSearchItemsQuery(
+                query: 'test',
+                includeTypes: <String>['Movie', 'Series'],
+              ));
 
         final result = await service.searchItems(
           'test',
@@ -500,9 +456,9 @@ void main() {
       });
 
       test('搜索失败', () async {
-        dioAdapter.onGet('/Users/$testUserId/Items').reply(400, {
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(400, {
           'detail': '搜索关键词不能为空',
-        });
+        }));
 
         expect(
           () => service.searchItems(
@@ -530,11 +486,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Search/Hints',
-              query: buildSearchHintsQuery(query: '提示'),
-            )
-            .reply(200, response);
+            .onGet('/Search/Hints', (server) => server.reply(200, response), queryParameters: buildSearchHintsQuery(query: '提示'));
 
         final hints = await service.searchHints(
           '提示',
@@ -560,9 +512,9 @@ void main() {
       });
 
       test('搜索提示失败', () async {
-        dioAdapter.onGet('/Search/Hints').reply(500, {
+        dioAdapter.onGet('/Search/Hints', (server) => server.reply(500, {
           'detail': '服务器内部错误',
-        });
+        }));
 
         expect(
           () => service.searchHints(
@@ -578,8 +530,7 @@ void main() {
     group('toggleFavorite', () {
       test('传入 userId 时添加收藏调用 POST', () async {
         dioAdapter
-            .onPost('/Users/$testUserId/FavoriteItems/$testItemId')
-            .reply(200, {});
+            .onPost('/Users/$testUserId/FavoriteItems/$testItemId', (server) => server.reply(200, {}));
 
         await service.toggleFavorite(
           itemId: testItemId,
@@ -592,8 +543,7 @@ void main() {
 
       test('传入 userId 时移除收藏调用 DELETE', () async {
         dioAdapter
-            .onDelete('/Users/$testUserId/FavoriteItems/$testItemId')
-            .reply(200, {});
+            .onDelete('/Users/$testUserId/FavoriteItems/$testItemId', (server) => server.reply(200, {}));
 
         await service.toggleFavorite(
           itemId: testItemId,
@@ -606,8 +556,7 @@ void main() {
 
       test('无 userId 时回退到 /UserFavoriteItems/{id}', () async {
         dioAdapter
-            .onPost('/UserFavoriteItems/$testItemId')
-            .reply(200, {});
+            .onPost('/UserFavoriteItems/$testItemId', (server) => server.reply(200, {}));
 
         await service.toggleFavorite(
           itemId: testItemId,
@@ -619,10 +568,9 @@ void main() {
 
       test('添加收藏失败', () async {
         dioAdapter
-            .onPost('/Users/$testUserId/FavoriteItems/$testItemId')
-            .reply(404, {
+            .onPost('/Users/$testUserId/FavoriteItems/$testItemId', (server) => server.reply(404, {
               'detail': '媒体项不存在',
-            });
+            }));
 
         expect(
           () => service.toggleFavorite(
@@ -655,11 +603,7 @@ void main() {
         };
 
         dioAdapter
-            .onGet(
-              '/Items',
-              query: buildFavoritesQuery(),
-            )
-            .reply(200, response);
+            .onGet('/Items', (server) => server.reply(200, response), queryParameters: buildFavoritesQuery());
 
         final favorites = await service.getFavorites(
           serverUrl: testEmbyUrl,
@@ -672,9 +616,9 @@ void main() {
       });
 
       test('获取收藏列表失败', () async {
-        dioAdapter.onGet('/Items').reply(401, {
+        dioAdapter.onGet('/Items', (server) => server.reply(401, {
           'detail': 'Token 已过期',
-        });
+        }));
 
         expect(
           () => service.getFavorites(
@@ -689,8 +633,7 @@ void main() {
     group('markAsPlayed', () {
       test('标记已看成功调用 POST', () async {
         dioAdapter
-            .onPost('/UserPlayedItems/$testItemId')
-            .reply(200, {});
+            .onPost('/UserPlayedItems/$testItemId', (server) => server.reply(200, {}));
 
         await service.markAsPlayed(
           testItemId,
@@ -700,9 +643,9 @@ void main() {
       });
 
       test('标记已看失败', () async {
-        dioAdapter.onPost('/UserPlayedItems/$testItemId').reply(500, {
+        dioAdapter.onPost('/UserPlayedItems/$testItemId', (server) => server.reply(500, {
           'detail': '数据库写入失败',
-        });
+        }));
 
         expect(
           () => service.markAsPlayed(
@@ -718,8 +661,7 @@ void main() {
     group('markAsUnplayed', () {
       test('标记未看成功调用 DELETE', () async {
         dioAdapter
-            .onDelete('/UserPlayedItems/$testItemId')
-            .reply(200, {});
+            .onDelete('/UserPlayedItems/$testItemId', (server) => server.reply(200, {}));
 
         await service.markAsUnplayed(
           testItemId,
@@ -729,9 +671,9 @@ void main() {
       });
 
       test('标记未看失败', () async {
-        dioAdapter.onDelete('/UserPlayedItems/$testItemId').reply(403, {
+        dioAdapter.onDelete('/UserPlayedItems/$testItemId', (server) => server.reply(403, {
           'detail': '无权限操作',
-        });
+        }));
 
         expect(
           () => service.markAsUnplayed(
@@ -810,10 +752,7 @@ void main() {
           'TotalRecordCount': 2,
         };
 
-        dioAdapter.onGet(
-          '/Users/$testUserId/Items',
-          query: buildExpectedQueryParams(userId: testUserId),
-        ).reply(200, embyResponse);
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(200, embyResponse), queryParameters: buildExpectedQueryParams(userId: testUserId));
 
         final history = await service.getWatchHistory(
           userId: testUserId,
@@ -836,10 +775,7 @@ void main() {
       });
 
       test('空历史：Emby 返回空 Items 列表时返回空列表', () async {
-        dioAdapter.onGet(
-          '/Users/$testUserId/Items',
-          query: buildExpectedQueryParams(userId: testUserId),
-        ).reply(200, {'Items': []});
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(200, {'Items': []}), queryParameters: buildExpectedQueryParams(userId: testUserId));
 
         final history = await service.getWatchHistory(
           userId: testUserId,
@@ -851,10 +787,7 @@ void main() {
       });
 
       test('userId 为空时降级到 /Items 路径', () async {
-        dioAdapter.onGet(
-          '/Items',
-          query: buildExpectedQueryParams(),
-        ).reply(200, {'Items': []});
+        dioAdapter.onGet('/Items', (server) => server.reply(200, {'Items': []}), queryParameters: buildExpectedQueryParams());
 
         final history = await service.getWatchHistory(
           serverUrl: testEmbyUrl,
@@ -867,11 +800,15 @@ void main() {
       test('网络错误时抛出异常', () async {
         dioAdapter.onGet(
           '/Users/$testUserId/Items',
-          query: buildExpectedQueryParams(userId: testUserId),
-        ).throwDioError(
-          DioException.connectionError(
-            requestOptions: RequestOptions(path: '/Users/$testUserId/Items'),
+          (server) => server.throws(
+            500,
+            DioException(
+              requestOptions: RequestOptions(path: '/Users/$testUserId/Items'),
+              type: DioExceptionType.connectionError,
+              message: 'Connection failed',
+            ),
           ),
+          queryParameters: buildExpectedQueryParams(userId: testUserId),
         );
 
         expect(
@@ -885,10 +822,7 @@ void main() {
       });
 
       test('401 未授权时抛出异常', () async {
-        dioAdapter.onGet(
-          '/Users/$testUserId/Items',
-          query: buildExpectedQueryParams(userId: testUserId),
-        ).reply(401, {'detail': 'Token 已过期'});
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(401, {'detail': 'Token 已过期'}), queryParameters: buildExpectedQueryParams(userId: testUserId));
 
         expect(
           () => service.getWatchHistory(
@@ -901,10 +835,7 @@ void main() {
       });
 
       test('500 服务器错误时抛出异常', () async {
-        dioAdapter.onGet(
-          '/Users/$testUserId/Items',
-          query: buildExpectedQueryParams(userId: testUserId),
-        ).reply(500, {'detail': '服务器内部错误'});
+        dioAdapter.onGet('/Users/$testUserId/Items', (server) => server.reply(500, {'detail': '服务器内部错误'}), queryParameters: buildExpectedQueryParams(userId: testUserId));
 
         expect(
           () => service.getWatchHistory(

@@ -4,22 +4,21 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart;
+import 'package:mockito/mockito.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/providers/search_hints_provider.dart';
-import 'package:embytok_flutter/services/embytok_service.dart';
 
 import '../mocks/mock_services.dart';
 
 void main() {
-  late _MockEmbytokService mockService;
+  late MockEmbytokService mockService;
   late ProviderContainer container;
 
   setUp(() {
-    mockService = _MockEmbytokService();
+    mockService = MockEmbytokService();
     container = ProviderContainer(overrides: [
       embytokServiceProvider.overrideWithValue(mockService),
       authProvider.overrideWith((ref) => AuthNotifier(ref)
@@ -27,7 +26,11 @@ void main() {
           isAuthenticated: true,
           embyServerUrl: 'http://test.local',
           token: 'test-token',
-          user: const User(id: 'user-1', name: 'Test'),
+          user: User(
+            id: 'user-1',
+            name: 'Test',
+            accessToken: 'test-token',
+          ),
         )),
       searchHintsStateProvider.overrideWith((ref) {
         return SearchHintsNotifier(ref);
@@ -218,6 +221,3 @@ void main() {
     });
   });
 }
-
-// 自定义 Mock，避免依赖 generated mock
-class _MockEmbytokService extends Mock implements EmbytokService {}

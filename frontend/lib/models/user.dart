@@ -5,7 +5,7 @@ class User {
   final String name;
   final String accessToken;
 
-  User({
+  const User({
     required this.id,
     required this.name,
     required this.accessToken,

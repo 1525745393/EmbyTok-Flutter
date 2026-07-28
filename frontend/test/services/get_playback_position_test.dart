@@ -69,11 +69,7 @@ void main() {
       );
 
       dioAdapter
-          .onGet(
-            '/Users/$testUserId/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .reply(200, response);
+          .onGet('/Users/$testUserId/Items/$testItemId', (server) => server.reply(200, response), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
       final ticks = await service.getPlaybackPosition(
         testItemId,
@@ -95,11 +91,7 @@ void main() {
       );
 
       dioAdapter
-          .onGet(
-            '/Users/$testUserId/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .reply(200, response);
+          .onGet('/Users/$testUserId/Items/$testItemId', (server) => server.reply(200, response), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
       final ticks = await service.getPlaybackPosition(
         testItemId,
@@ -127,11 +119,7 @@ void main() {
       );
 
       dioAdapter
-          .onGet(
-            '/Users/$testUserId/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .reply(200, response);
+          .onGet('/Users/$testUserId/Items/$testItemId', (server) => server.reply(200, response), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
       final ticks = await service.getPlaybackPosition(
         testItemId,
@@ -145,17 +133,19 @@ void main() {
 
     test('网络错误时返回 0 不抛出异常', () async {
       // 模拟网络连接错误
-      dioAdapter
-          .onGet(
-            '/Users/$testUserId/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .throwDioError(
-            DioException.connectionError(
-              requestOptions:
-                  RequestOptions(path: '/Users/$testUserId/Items/$testItemId'),
-            ),
-          );
+      dioAdapter.onGet(
+        '/Users/$testUserId/Items/$testItemId',
+        (server) => server.throws(
+          500,
+          DioException(
+            requestOptions:
+                RequestOptions(path: '/Users/$testUserId/Items/$testItemId'),
+            type: DioExceptionType.connectionError,
+            message: 'Connection failed',
+          ),
+        ),
+        queryParameters: <String, dynamic>{'Fields': itemDetailFields},
+      );
 
       // 不应抛出异常，而应返回 0
       final ticks = await service.getPlaybackPosition(
@@ -170,13 +160,9 @@ void main() {
 
     test('服务器返回 500 错误时返回 0 不抛出异常', () async {
       dioAdapter
-          .onGet(
-            '/Users/$testUserId/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .reply(500, <String, dynamic>{
+          .onGet('/Users/$testUserId/Items/$testItemId', (server) => server.reply(500, <String, dynamic>{
             'detail': '服务器内部错误',
-          });
+          }), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
       final ticks = await service.getPlaybackPosition(
         testItemId,
@@ -201,11 +187,7 @@ void main() {
       );
 
       dioAdapter
-          .onGet(
-            '/Items/$testItemId',
-            query: <String, dynamic>{'Fields': itemDetailFields},
-          )
-          .reply(200, response);
+          .onGet('/Items/$testItemId', (server) => server.reply(200, response), queryParameters: <String, dynamic>{'Fields': itemDetailFields});
 
       final ticks = await service.getPlaybackPosition(
         testItemId,

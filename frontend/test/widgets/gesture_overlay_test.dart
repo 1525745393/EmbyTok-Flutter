@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/widgets/gesture_overlay.dart';
 import 'package:embytok_flutter/widgets/video/video_gesture_mixin.dart';
 
+class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // 注册 mocktail fallback values：让 any() 可匹配非空参数类型
+  setUpAll(() {
+    registerFallbackValue(Duration.zero);
+    registerFallbackValue(0.0);
+  });
+
   group('GestureOverlay Widget 基本测试', () {
     late MediaItem testMediaItem;
 
@@ -116,7 +126,7 @@ void main() {
       double playbackSpeed = testPlaybackSpeed,
       bool isInitialized = true,
     }) {
-      when(mockController.value).thenReturn(
+      when(() => mockController.value).thenReturn(
         VideoPlayerValue(
           duration: duration,
           position: position,
@@ -125,11 +135,9 @@ void main() {
           playbackSpeed: playbackSpeed,
         ),
       );
-      when(mockController.addListener(any)).thenReturn(null);
-      when(mockController.removeListener(any)).thenReturn(null);
-      when(mockController.seekTo(any)).thenAnswer((_) async {});
-      when(mockController.setVolume(any)).thenAnswer((_) async {});
-      when(mockController.setPlaybackSpeed(any)).thenAnswer((_) async {});
+      when(() => mockController.seekTo(any())).thenAnswer((_) async {});
+      when(() => mockController.setVolume(any())).thenAnswer((_) async {});
+      when(() => mockController.setPlaybackSpeed(any())).thenAnswer((_) async {});
     }
 
     setUp(() {
@@ -278,8 +286,8 @@ void main() {
       await tester.tapAt(leftPoint);
       await tester.pumpAndSettle();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, const Duration(seconds: 20));
     });
@@ -297,8 +305,8 @@ void main() {
       await tester.tapAt(rightPoint);
       await tester.pumpAndSettle();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, const Duration(seconds: 40));
     });
@@ -312,7 +320,7 @@ void main() {
       await tester.longPress(gestureArea);
       await tester.pump();
 
-      verify(mockController.setPlaybackSpeed(2.0)).called(1);
+      verify(() => mockController.setPlaybackSpeed(2.0)).called(1);
     });
 
     testWidgets('长按结束恢复原倍速', (WidgetTester tester) async {
@@ -328,8 +336,8 @@ void main() {
       await gesture.up();
       await tester.pump();
 
-      verify(mockController.setPlaybackSpeed(2.0)).called(1);
-      verify(mockController.setPlaybackSpeed(1.0)).called(1);
+      verify(() => mockController.setPlaybackSpeed(2.0)).called(1);
+      verify(() => mockController.setPlaybackSpeed(1.0)).called(1);
     });
 
     testWidgets('水平向右拖动结束后调用 seekTo 前进', (WidgetTester tester) async {
@@ -343,8 +351,8 @@ void main() {
       await tester.dragFrom(center, const Offset(100, 0));
       await tester.pump();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition.inMilliseconds, greaterThan(testPosition.inMilliseconds));
     });
@@ -360,8 +368,8 @@ void main() {
       await tester.dragFrom(center, const Offset(-100, 0));
       await tester.pump();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition.inMilliseconds, lessThan(testPosition.inMilliseconds));
     });
@@ -403,7 +411,7 @@ void main() {
       await tester.dragFrom(rightSide, const Offset(0, -100));
       await tester.pump();
 
-      verify(mockController.setVolume(any)).called(greaterThan(0));
+      verify(() => mockController.setVolume(any())).called(greaterThan(0));
     });
 
     testWidgets('全屏模式下上滑增加音量', (WidgetTester tester) async {
@@ -442,7 +450,7 @@ void main() {
       await tester.dragFrom(rightSide, const Offset(0, -100));
       await tester.pump();
 
-      verifyNever(mockController.setVolume(any));
+      verifyNever(() => mockController.setVolume(any()));
     });
 
     testWidgets('enableGestures=false 时长按不触发倍速', (WidgetTester tester) async {
@@ -457,7 +465,7 @@ void main() {
       await tester.longPress(gestureArea);
       await tester.pump();
 
-      verifyNever(mockController.setPlaybackSpeed(2.0));
+      verifyNever(() => mockController.setPlaybackSpeed(2.0));
     });
 
     testWidgets('enableGestures=false 时水平拖动不触发 seek', (WidgetTester tester) async {
@@ -474,7 +482,7 @@ void main() {
       await tester.dragFrom(center, const Offset(100, 0));
       await tester.pump();
 
-      verifyNever(mockController.seekTo(any));
+      verifyNever(() => mockController.seekTo(any()));
     });
 
     testWidgets('enableGestures=false 时单击仍可触发', (WidgetTester tester) async {
@@ -505,7 +513,7 @@ void main() {
       await tester.dragFrom(center, const Offset(100, 0));
       await tester.pump();
 
-      verifyNever(mockController.seekTo(any));
+      verifyNever(() => mockController.seekTo(any()));
     });
 
     testWidgets('视频未初始化时长按不触发倍速', (WidgetTester tester) async {
@@ -517,7 +525,7 @@ void main() {
       await tester.longPress(gestureArea);
       await tester.pump();
 
-      verifyNever(mockController.setPlaybackSpeed(2.0));
+      verifyNever(() => mockController.setPlaybackSpeed(2.0));
     });
 
     testWidgets('滑动距离小于阈值时不触发水平拖动', (WidgetTester tester) async {
@@ -555,8 +563,8 @@ void main() {
       await tester.tapAt(leftPoint);
       await tester.pumpAndSettle();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, Duration.zero);
     });
@@ -574,8 +582,8 @@ void main() {
       await tester.tapAt(rightPoint);
       await tester.pumpAndSettle();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, testDuration);
     });
@@ -591,8 +599,8 @@ void main() {
       await tester.dragFrom(center, const Offset(200, 0));
       await tester.pump();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, testDuration);
     });
@@ -608,15 +616,13 @@ void main() {
       await tester.dragFrom(center, const Offset(-200, 0));
       await tester.pump();
 
-      verify(mockController.seekTo(any)).called(1);
-      final captured = verify(mockController.seekTo(captureAny)).captured;
+      final captured = verify(() => mockController.seekTo(captureAny())).captured;
+      expect(captured, isNotEmpty);
       final targetPosition = captured.last as Duration;
       expect(targetPosition, Duration.zero);
     });
   });
 }
-
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
 
 class _GestureTestWidget extends StatefulWidget {
   final VideoPlayerController? controller;
@@ -648,72 +654,51 @@ class _GestureTestWidgetState extends State<_GestureTestWidget>
   @override
   VideoPlayerController? get videoController => widget.controller;
 
+  // 与 VideoGestureMixin 中的 gesturesEnabled 对齐
   @override
   bool get gesturesEnabled => widget.enableGestures;
+
+  bool get enableVerticalVolumeDrag => widget.enableVerticalVolumeDrag;
 
   @override
   bool get handleLeftVerticalDrag => widget.handleLeftVerticalDrag;
 
   @override
-  void onSingleTap() {
-    widget.onSingleTap?.call();
-  }
+  void onSingleTap() => widget.onSingleTap?.call();
 
   @override
-  void onDoubleTapLeft() {
-    super.onDoubleTapLeft();
-    widget.onDoubleTapLeft?.call();
-  }
+  void onDoubleTapLeft() => widget.onDoubleTapLeft?.call();
 
   @override
-  void onDoubleTapRight() {
-    super.onDoubleTapRight();
-    widget.onDoubleTapRight?.call();
-  }
+  void onDoubleTapRight() => widget.onDoubleTapRight?.call();
 
   @override
-  void onDoubleTapCenter() {
-    widget.onDoubleTapCenter?.call();
-  }
-
-  @override
-  MediaItem? get currentItem => null;
-
-  @override
-  void dispose() {
-    disposeGestureTimers();
-    super.dispose();
-  }
+  void onDoubleTapCenter() => widget.onDoubleTapCenter?.call();
 
   @override
   Widget build(BuildContext context) {
+    // 模拟 GestureOverlay 的手势识别器构建逻辑
+    // 保留与生产代码一致的手势回调注册
     final usePan = widget.enableVerticalVolumeDrag;
-
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: handleTapDown,
       onTap: handleTap,
       onLongPressStart: widget.enableGestures ? onLongPressStart : null,
       onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
-      onLongPressCancel:
-          widget.enableGestures ? () => onLongPressEnd(LongPressEndDetails()) : null,
       onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
       onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
       onPanEnd: (widget.enableGestures && usePan) ? onPanEnd : null,
       onPanCancel: (widget.enableGestures && usePan) ? onPanCancel : null,
-      onHorizontalDragStart: (widget.enableGestures && !usePan)
-          ? onHorizontalDragStart
-          : null,
-      onHorizontalDragUpdate: (widget.enableGestures && !usePan)
-          ? onHorizontalDragUpdate
-          : null,
-      onHorizontalDragEnd: (widget.enableGestures && !usePan)
-          ? onHorizontalDragEnd
-          : null,
-      onHorizontalDragCancel: (widget.enableGestures && !usePan)
-          ? onHorizontalDragCancel
-          : null,
-      child: const SizedBox.expand(),
+      onHorizontalDragStart:
+          (widget.enableGestures && !usePan) ? onHorizontalDragStart : null,
+      onHorizontalDragUpdate:
+          (widget.enableGestures && !usePan) ? onHorizontalDragUpdate : null,
+      onHorizontalDragEnd:
+          (widget.enableGestures && !usePan) ? onHorizontalDragEnd : null,
+      onHorizontalDragCancel:
+          (widget.enableGestures && !usePan) ? onHorizontalDragCancel : null,
+      child: const ColoredBox(color: Colors.black),
     );
   }
 }

@@ -1,5 +1,6 @@
 // 缓存 Repository 装饰器测试：验证装饰器透明添加缓存能力
 
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 
@@ -12,120 +13,122 @@ import '../mocks/mock_services.dart';
 class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<PaginatedResponse<MediaItem>> getLibraryItems(
-    MediaQueryParams params, {
-    required String serverUrl,
-    required String token,
+    MediaQueryParams? params, {
+    String? serverUrl,
+    String? token,
     String? userId,
+    CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getLibraryItems, [params], {
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
+          #cancelToken: cancelToken,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: params.limit,
+          limit: params?.limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: params.limit,
+          limit: params?.limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   @override
   Future<FavoritesPageResult> getFavoriteMovies({
-    int limit = 50,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
     String? userId,
+    CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteMovies, [], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
+          #cancelToken: cancelToken,
         }),
-        returnValue: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
+        returnValue: Future.value(const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
         )),
-        returnValueForMissingStub: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
-        )),
+        returnValueForMissingStub: const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
+        ),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<FavoritesPageResult> getFavoriteBoxSets({
-    int limit = 50,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteBoxSets, [], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
         }),
-        returnValue: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
+        returnValue: Future.value(const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
         )),
-        returnValueForMissingStub: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
-        )),
+        returnValueForMissingStub: const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
+        ),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<PaginatedResponse<MediaItem>> getResumeItems({
-    required String serverUrl,
-    required String token,
-    int limit = 50,
-    int offset = 0,
+    String? serverUrl,
+    String? token,
+    int? limit,
+    int? offset,
+    CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getResumeItems, [], {
           #serverUrl: serverUrl,
           #token: token,
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
+          #cancelToken: cancelToken,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   @override
   Future<MediaItem> getItemDetail(
-    String itemId, {
-    required String serverUrl,
-    required String token,
+    String? itemId, {
+    String? serverUrl,
+    String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
@@ -141,14 +144,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<MediaItem>> getSimilarItems(
-    String itemId, {
-    int limit = 12,
-    required String serverUrl,
-    required String token,
+    String? itemId, {
+    int? limit,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSimilarItems, [itemId], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -158,16 +161,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<PaginatedResponse<Person>> getPeople({
-    int limit = 50,
-    int startIndex = 0,
+    int? limit,
+    int? startIndex,
     List<String>? personTypes,
     String? searchTerm,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPeople, [], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #startIndex: startIndex,
           #personTypes: personTypes,
           #searchTerm: searchTerm,
@@ -177,22 +180,22 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValue: Future.value(PaginatedResponse<Person>(
           items: const <Person>[],
           total: 0,
-          offset: startIndex,
-          limit: limit,
+          offset: startIndex ?? 0,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<Person>(
           items: const <Person>[],
           total: 0,
-          offset: startIndex,
-          limit: limit,
+          offset: startIndex ?? 0,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<Person>>;
 
   @override
   Future<MediaItem?> getPersonDetail(
-    String personId, {
-    required String serverUrl,
-    required String token,
+    String? personId, {
+    String? serverUrl,
+    String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
@@ -207,77 +210,75 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<PaginatedResponse<MediaItem>> getPersonItems(
-    String personId, {
-    int limit = 30,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? personId, {
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPersonItems, [personId], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: const <MediaItem>[],
           total: 0,
-          offset: offset,
-          limit: limit,
+          offset: offset ?? 0,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: const <MediaItem>[],
           total: 0,
-          offset: offset,
-          limit: limit,
+          offset: offset ?? 0,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   @override
   Future<FavoritesPageResult> getFavoritePeople({
-    int limit = 50,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoritePeople, [], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
         }),
-        returnValue: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
+        returnValue: Future.value(const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
         )),
-        returnValueForMissingStub: Future.value(FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [],
-        )),
+        returnValueForMissingStub: const FavoritesPageResult(
+          items: [],
+          totalCount: 0,
+        ),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({
-    int limit = 20,
-    int offset = 0,
+    int? limit,
+    int? offset,
     String? libraryId,
     String? userId,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
     double minCommunityRating = 4.0,
     bool excludePlayed = true,
     Set<String>? includeItemTypes,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getRecommendations, [], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #libraryId: libraryId,
           #userId: userId,
           #serverUrl: serverUrl,
@@ -289,27 +290,27 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: const <MediaItem>[],
           total: 0,
-          offset: offset,
-          limit: limit,
+          offset: offset ?? 0,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: const <MediaItem>[],
           total: 0,
-          offset: offset,
-          limit: limit,
+          offset: offset ?? 0,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   @override
   Future<List<MediaItem>> getSuggestions({
-    int limit = 20,
+    int? limit,
     String? userId,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSuggestions, [], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #userId: userId,
           #serverUrl: serverUrl,
           #token: token,
@@ -320,14 +321,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<MediaItem>> getWatchHistory({
-    int limit = 50,
+    int? limit,
     String? userId,
-    required String serverUrl,
-    required String token,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getWatchHistory, [], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #userId: userId,
           #serverUrl: serverUrl,
           #token: token,
@@ -338,16 +339,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<MediaItem>> getChildren(
-    String parentId, {
-    int limit = 100,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? parentId, {
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getChildren, [parentId], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -357,13 +358,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<Library>> getGenres({
-    int limit = 100,
-    required String serverUrl,
-    required String token,
+    int? limit,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getGenres, [], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -373,16 +374,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
-    String genre, {
-    int limit = 30,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? genre, {
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getItemsByGenre, [genre], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -390,25 +391,25 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   @override
   Future<List<Library>> getStudios({
-    int limit = 100,
-    required String serverUrl,
-    required String token,
+    int? limit,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getStudios, [], {
-          #limit: limit,
+          #limit: limit ?? 50,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -418,16 +419,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<PaginatedResponse<MediaItem>> getItemsByStudio(
-    String studio, {
-    int limit = 30,
-    int offset = 0,
-    required String serverUrl,
-    required String token,
+    String? studio, {
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getItemsByStudio, [studio], {
-          #limit: limit,
-          #offset: offset,
+          #limit: limit ?? 50,
+          #offset: offset ?? 0,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -435,13 +436,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
           items: [],
           total: 0,
           offset: 0,
-          limit: limit,
+          limit: limit ?? 50,
         )),
       ) as Future<PaginatedResponse<MediaItem>>;
 }
@@ -793,9 +794,8 @@ void main() {
 
     group('getFavoriteMovies', () {
       final testFavResult = FavoritesPageResult(
-        movies: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
-        boxSets: [],
-        people: [],
+        items: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
+        totalCount: 1,
       );
 
       test('首次请求：转发到底层 Repository', () async {
@@ -811,8 +811,8 @@ void main() {
           userId: 'user-1',
         );
 
-        expect(result.movies.length, 1);
-        expect(result.movies.first.id, 'fav-1');
+        expect(result.items.length, 1);
+        expect(result.items.first.id, 'fav-1');
         verify(mockRepo.getFavoriteMovies(
           serverUrl: testServerUrl,
           token: testToken,
@@ -841,7 +841,7 @@ void main() {
           userId: 'user-1',
         );
 
-        expect(result.movies.length, 1);
+        expect(result.items.length, 1);
         verify(mockRepo.getFavoriteMovies(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1047,7 +1047,7 @@ void main() {
           serverUrl: testServerUrl,
           token: testToken,
           userId: 'user-1',
-        )).thenAnswer((_) async => FavoritesPageResult(movies: [], boxSets: [], people: []));
+        )).thenAnswer((_) async => const FavoritesPageResult(items: [], totalCount: 0));
         when(mockRepo.getResumeItems(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1676,9 +1676,8 @@ void main() {
 
     group('getFavoritePeople', () {
       final testFavPeopleResult = FavoritesPageResult(
-        movies: [],
-        boxSets: [],
-        people: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+        items: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+        totalCount: 1,
       );
 
       test('首次请求：转发到底层 Repository', () async {
@@ -1694,8 +1693,8 @@ void main() {
           userId: 'user-1',
         );
 
-        expect(result.people.length, 1);
-        expect(result.people.first.id, 'fav-person-1');
+        expect(result.items.length, 1);
+        expect(result.items.first.id, 'fav-person-1');
         verify(mockRepo.getFavoritePeople(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1713,7 +1712,7 @@ void main() {
         await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
         final result = await cachedRepo.getFavoritePeople(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
 
-        expect(result.people.length, 1);
+        expect(result.items.length, 1);
         verify(mockRepo.getFavoritePeople(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1749,7 +1748,7 @@ void main() {
       test('不同 offset：不命中缓存（分页隔离）', () async {
         when(mockRepo.getFavoritePeople(
           limit: 50,
-          offset: anyThat(isNonZero),
+          offset: argThat(isNonZero),
           serverUrl: testServerUrl,
           token: testToken,
           userId: 'user-1',
@@ -1765,9 +1764,8 @@ void main() {
 
     group('getFavoriteBoxSets', () {
       final testFavBoxSetsResult = FavoritesPageResult(
-        movies: [],
-        boxSets: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
-        people: [],
+        items: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
+        totalCount: 1,
       );
 
       test('首次请求：转发到底层 Repository', () async {
@@ -1783,8 +1781,8 @@ void main() {
           userId: 'user-1',
         );
 
-        expect(result.boxSets.length, 1);
-        expect(result.boxSets.first.id, 'fav-boxset-1');
+        expect(result.items.length, 1);
+        expect(result.items.first.id, 'fav-boxset-1');
         verify(mockRepo.getFavoriteBoxSets(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1802,7 +1800,7 @@ void main() {
         await cachedRepo.getFavoriteBoxSets(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
         final result = await cachedRepo.getFavoriteBoxSets(serverUrl: testServerUrl, token: testToken, userId: 'user-1');
 
-        expect(result.boxSets.length, 1);
+        expect(result.items.length, 1);
         verify(mockRepo.getFavoriteBoxSets(
           serverUrl: testServerUrl,
           token: testToken,
@@ -1813,7 +1811,7 @@ void main() {
       test('不同 offset：不命中缓存（分页隔离）', () async {
         when(mockRepo.getFavoriteBoxSets(
           limit: 50,
-          offset: anyThat(isNonZero),
+          offset: argThat(isNonZero),
           serverUrl: testServerUrl,
           token: testToken,
           userId: 'user-1',
@@ -1854,9 +1852,8 @@ void main() {
     group('peek 收藏三栏', () {
       group('peekFavoriteMovies', () {
         final testFavResult = FavoritesPageResult(
-          movies: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
-          boxSets: [],
-          people: [],
+          items: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
+          totalCount: 1,
         );
 
         test('缓存未命中返回 null', () {
@@ -1889,8 +1886,8 @@ void main() {
           );
 
           expect(result, isNotNull);
-          expect(result!.movies.length, 1);
-          expect(result.movies.first.id, 'fav-1');
+          expect(result!.items.length, 1);
+          expect(result.items.first.id, 'fav-1');
           verify(mockRepo.getFavoriteMovies(
             serverUrl: testServerUrl,
             token: testToken,
@@ -1901,9 +1898,8 @@ void main() {
 
       group('peekFavoriteBoxSets', () {
         final testFavBoxSetsResult = FavoritesPageResult(
-          movies: [],
-          boxSets: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
-          people: [],
+          items: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
+          totalCount: 1,
         );
 
         test('缓存未命中返回 null', () {
@@ -1936,8 +1932,8 @@ void main() {
           );
 
           expect(result, isNotNull);
-          expect(result!.boxSets.length, 1);
-          expect(result.boxSets.first.id, 'fav-boxset-1');
+          expect(result!.items.length, 1);
+          expect(result.items.first.id, 'fav-boxset-1');
           verify(mockRepo.getFavoriteBoxSets(
             serverUrl: testServerUrl,
             token: testToken,
@@ -1948,9 +1944,8 @@ void main() {
 
       group('peekFavoritePeople', () {
         final testFavPeopleResult = FavoritesPageResult(
-          movies: [],
-          boxSets: [],
-          people: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+          items: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+          totalCount: 1,
         );
 
         test('缓存未命中返回 null', () {
@@ -1983,8 +1978,8 @@ void main() {
           );
 
           expect(result, isNotNull);
-          expect(result!.people.length, 1);
-          expect(result.people.first.id, 'fav-person-1');
+          expect(result!.items.length, 1);
+          expect(result.items.first.id, 'fav-person-1');
           verify(mockRepo.getFavoritePeople(
             serverUrl: testServerUrl,
             token: testToken,

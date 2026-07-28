@@ -4,6 +4,7 @@
 //         导致 HomeScaffold 的退出确认弹窗永远不会被触发）
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/app.dart';
@@ -12,7 +13,20 @@ import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/views/home_scaffold.dart';
 import 'package:embytok_flutter/views/feed_view.dart';
 
+/// 模拟系统返回键：通过 platform channel 发送 popRoute 事件
+Future<void> _simulateSystemBack(WidgetTester tester) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/platform',
+    SystemChannels.platform.codec.encodeMethodCall(
+      const MethodCall('popRoute'),
+    ),
+    (ByteData? data) {},
+  );
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('退出确认对话框', () {
     testWidgets('首页按系统返回键应显示退出确认', (WidgetTester tester) async {
       await tester.pumpWidget(
@@ -20,7 +34,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.binding.messageBack();
+      await _simulateSystemBack(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('退出应用？'), findsOneWidget);
@@ -37,6 +51,7 @@ void main() {
             overrides: [
               authProvider.overrideWith(
                 (ref) => _FakeAuthNotifier(
+                  ref,
                   const AuthState(
                     isAuthenticated: true,
                     user: User(
@@ -60,7 +75,7 @@ void main() {
         expect(find.byType(FeedView), findsOneWidget);
 
         // 模拟系统返回键
-        await tester.binding.messageBack();
+        await _simulateSystemBack(tester);
         await tester.pumpAndSettle();
 
         // 关键断言：必须弹出退出确认弹窗
@@ -73,7 +88,9 @@ void main() {
   });
 }
 
-// 测试用 AuthNotifier：直接返回预设的已登录状态，跳过 SharedPreferences 读取
-class _FakeAuthNotifier extends StateNotifier<AuthState> {
-  _FakeAuthNotifier(AuthState initialState) : super(initialState);
+// 测试用 AuthNotifier：继承 AuthNotifier，跳过 _loadFromStorage 异步加载
+class _FakeAuthNotifier extends AuthNotifier {
+  _FakeAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+    state = initialState;
+  }
 }
