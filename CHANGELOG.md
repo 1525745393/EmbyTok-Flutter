@@ -1,3 +1,10 @@
+## [2.27.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.27.0...v2.27.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* 移除多余的空安全操作符 ([6218dd4](https://github.com/1525745393/EmbyTok-Flutter/commit/6218dd43a4e3ec594b37eb448d9a85d255975cdf))
+
 # [2.27.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.26.0...v2.27.0) (2026-07-27)
 
 
