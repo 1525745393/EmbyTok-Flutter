@@ -312,14 +312,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         token: auth.token,
       );
       final localPosition =
-          widget.item.userData?.playbackPositionTicks?.toInt() ?? 0;
+          widget.item.userData?.playbackPositionTicks.toInt() ?? 0;
       // 取较新者：服务端进度更大说明其他设备看了更多
       resumePositionTicks =
           serverPosition > localPosition ? serverPosition : localPosition;
     } catch (_) {
       // 拉取失败，使用本地进度降级
       resumePositionTicks =
-          widget.item.userData?.playbackPositionTicks?.toInt() ?? 0;
+          widget.item.userData?.playbackPositionTicks.toInt() ?? 0;
     }
 
     // 使用合并后的进度执行 seek，覆盖 VideoPlayerWidget 中基于本地 userData 的初次 seek
