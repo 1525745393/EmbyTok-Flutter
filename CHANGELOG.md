@@ -1,3 +1,10 @@
+## [2.30.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.0...v2.30.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* 修复 values-v28/styles.xml 主题继承自身导致构建失败 ([acc4d45](https://github.com/1525745393/EmbyTok-Flutter/commit/acc4d45f480c2834acb2f2816e93b7a1031b3a8b))
+
 # [2.30.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.29.1...v2.30.0) (2026-08-01)
 
 
