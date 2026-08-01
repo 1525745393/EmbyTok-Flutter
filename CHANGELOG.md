@@ -1,3 +1,10 @@
+## [2.29.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.29.0...v2.29.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* 修复类型安全解析、测试断言、缓存逻辑与手势交互问题 ([e1ea399](https://github.com/1525745393/EmbyTok-Flutter/commit/e1ea399f2f5b968861a4ba4077141347ac06b70e))
+
 # [2.29.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.28.0...v2.29.0) (2026-07-28)
 
 
