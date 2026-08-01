@@ -44,7 +44,9 @@ if (pubspecVersion.contains("+")) {
 
 android {
     namespace "com.embytok.app"
-    compileSdk 34
+    // flutter_plugin_android_lifecycle 等插件要求 compileSdk 35，
+    // 向后兼容，不影响运行在更低 SDK 版本的设备
+    compileSdk 35
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
