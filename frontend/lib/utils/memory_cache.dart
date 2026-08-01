@@ -259,16 +259,19 @@ class MemoryCache<T> {
   int get length => _cache.length;
 
   /// 检查 key 是否存在（未过期）
-  /// 注意：纯存在性检查，不记录命中/未命中统计，统计仅在 get() 时累计
+  /// 命中/未命中会计入统计（与 get 行为一致），便于准确反映缓存命中率
   bool containsKey(String key) {
     final entry = _cache[key];
     if (entry == null) {
+      _recordMiss();
       return false;
     }
     if (entry.isExpired) {
+      _recordMiss();
       _removeEntry(key);
       return false;
     }
+    _recordHit();
     return true;
   }
 

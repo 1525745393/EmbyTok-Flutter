@@ -259,6 +259,11 @@ class ApiClient {
       completer.complete(response);
       return response;
     } catch (e) {
+      // 注册默认错误处理 listener，避免 completeError 在没有其他监听者时
+      // 产生未处理异步错误（测试框架会因此失败）。
+      // 当有复用方在 await existing.future 时，它也会收到错误
+      // （Future 支持多个 listener，错误会广播到所有 listener）。
+      unawaited(completer.future.then((_) {}, onError: (Object _) {}));
       completer.completeError(e);
       rethrow;
     } finally {

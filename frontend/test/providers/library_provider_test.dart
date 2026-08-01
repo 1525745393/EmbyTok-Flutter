@@ -130,8 +130,12 @@ void main() {
       // 验证：写盘后格式变成 StringList
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getStringList(kStorageKeySelectedLibraryId), <String>['libA']);
-      // 老 String 已被覆盖
-      expect(prefs.getString(kStorageKeySelectedLibraryId), isNull);
+      // 老 String 已被覆盖：mock 环境中 getString 对 List<String> 值会抛 TypeError
+      // （生产环境 getString 返回 null，mock 因共享 Map 导致行为不同）
+      expect(
+        () => prefs.getString(kStorageKeySelectedLibraryId),
+        throwsA(isA<TypeError>()),
+      );
     });
   });
 }

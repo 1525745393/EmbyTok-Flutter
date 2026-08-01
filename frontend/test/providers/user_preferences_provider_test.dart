@@ -7,10 +7,18 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/providers/user_preferences_provider.dart';
 
 void main() {
+  // 初始化 Flutter binding 和 SharedPreferences mock，
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('DefaultPlaybackRateNotifier', () {
     late ProviderContainer container;
 

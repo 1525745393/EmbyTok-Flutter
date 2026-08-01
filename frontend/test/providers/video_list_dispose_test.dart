@@ -17,9 +17,17 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:embytok_flutter/providers/video_list_provider.dart';
 
 void main() {
+  // 初始化 Flutter binding 和 SharedPreferences mock，
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('VideoListNotifier.dispose：Timer 必须 cancel', () {
     late ProviderContainer container;
 
@@ -27,29 +35,41 @@ void main() {
       container = ProviderContainer();
     });
 
-    tearDown(() {
+    // 等待 _load() 等异步操作完成，避免 dispose 后异步写入 state 触发 Bad state
+    tearDown(() async {
+      await Future.delayed(const Duration(milliseconds: 10));
       container.dispose();
     });
 
-    test('dispose 不抛异常', () {
-      // 创建 notifier，验证 dispose 不抛异常
-      final notifier = container.read(videoListProvider.notifier);
+    test('dispose 不抛异常', () async {
+      // 用独立的 container，避免 notifier.dispose() 后 tearDown 的
+      // container.dispose() 重复 dispose 已销毁的 VideoListNotifier
+      final localContainer = ProviderContainer();
+      final notifier = localContainer.read(videoListProvider.notifier);
+      // 等待依赖的 Notifier（如 ViewModeNotifier）的 _load() 完成
+      await Future.delayed(const Duration(milliseconds: 10));
 
       expect(
         () => notifier.dispose(),
         returnsNormally,
       );
+      // 等待 pending 微任务完成
+      await Future.delayed(Duration.zero);
     });
 
-    test('StateNotifier 销毁后 Timer 闭包不再持有 _ref', () {
+    test('StateNotifier 销毁后 Timer 闭包不再持有 _ref', () async {
       // 验证策略：创建一个 ProviderContainer，获取 notifier，
       // dispose container（触发 notifier.dispose），
       // 确保没有内存泄漏的迹象
       final localContainer = ProviderContainer();
       final notifier = localContainer.read(videoListProvider.notifier);
+      // 等待 _load() 完成，避免 dispose 后异步写入 state
+      await Future.delayed(const Duration(milliseconds: 10));
 
       // dispose container 会触发 StateNotifier.dispose
       localContainer.dispose();
+      // 等待 pending 微任务完成
+      await Future.delayed(Duration.zero);
 
       // 不再有直接引用（这里无法直接验证 Timer.cancel，
       // 但可以通过代码覆盖率确认 dispose 正确实现）

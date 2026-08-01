@@ -21,7 +21,9 @@ class AuthState {
   final String? embyServerUrl;
   final String? token;
   final bool isLoading;
-  final AppError? error;
+  // error 使用 Object? 以兼容 String 与 AppError 两种错误形式，
+  // 避免调用方传入 String 时触发类型转换异常
+  final Object? error;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -52,7 +54,8 @@ class AuthState {
       embyServerUrl: embyServerUrl ?? this.embyServerUrl,
       token: token ?? this.token,
       isLoading: isLoading ?? this.isLoading,
-      error: identical(error, _sentinel) ? this.error : error as AppError?,
+      // 不再强制转换为 AppError?，保留原始错误类型（String / AppError / null）
+      error: identical(error, _sentinel) ? this.error : error,
     );
   }
 }
@@ -112,10 +115,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final userJson = prefs.getString(kStorageKeyUser);
 
       User? user;
+      // 保存已解析的 userMap，避免对损坏的 userJson 二次 json.decode 时抛异常
+      Map<String, dynamic>? userMap;
       if (userJson != null) {
         try {
-          final Map<String, dynamic> userMap =
-              json.decode(userJson) as Map<String, dynamic>;
+          userMap = json.decode(userJson) as Map<String, dynamic>;
           user = User(
             id: userMap['user_id'] as String? ?? '',
             name: userMap['user_name'] as String? ?? '',
@@ -128,9 +132,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState(
           isAuthenticated: true,
           user: user,
-          backendUrl: userJson != null
-              ? (json.decode(userJson) as Map<String, dynamic>)['backend_url'] as String?
-              : null,
+          backendUrl: userMap?['backend_url'] as String?,
           embyServerUrl: embyServerUrl,
           token: token,
         );

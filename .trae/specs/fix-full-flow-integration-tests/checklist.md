@@ -1,0 +1,21 @@
+# 修复完整流程集成测试 - 验证清单
+
+- [x] 已收集 4 个失败测试的完整错误输出与 hit test 结果，并明确 `RenderAbsorbPointer` 的来源
+- [x] 已确认 `dismissLibrarySelectorIfNeeded` 在弹窗 loading/error 态下的行为，并修复为可正确关闭弹窗
+- [x] 测试 2/3/5 中 `tap()` 不再命中 `RenderAbsorbPointer` + `_RenderTheater`，弹窗不再残留
+- [x] 测试 2 中点击「网格」后 `PosterGridView` 出现在 widget 树中（`find.byType(PosterGridView)` 命中）
+- [x] 测试 3 中点击「网格」后 `PosterGridView` 出现在 widget 树中
+- [x] 测试 4 中 `videoListProvider.items.length` 等于 mock 返回的视频数量
+- [x] 测试 4 中点击收藏后 `toggleFavorite` mock 被调用 1 次
+- [x] 测试 5 中点击「设置」后 `SettingsView` 出现在 widget 树中
+- [x] 测试 5 中退出登录流程完整：弹出确认对话框 → 点击「退出」→ 回到 LoginView
+- [x] `flutter test test/integration/full_flow_test.dart --concurrency=1` 输出 `All tests passed!`，5 个测试全部通过
+- [x] `flutter test`（全量）未引入新的测试失败（9 个前期已修复的目标测试文件 159 用例仍全绿；4 个预先存在失败不在目标范围）
+- [x] `flutter analyze` 无 error 级别诊断（0 个 error，853 个 warning/info 可接受）
+- [x] 实现层修复已添加简明中文注释说明修改原因
+- [x] 本次修复未删除或 skip 任何测试用例（全部真实修复）
+- [x] 本次修复未修改 `pubspec.yaml` 依赖版本
+- [x] 本次修复未修改 CI 工作流文件
+- [x] 未执行 git commit/push/stash 操作（仅代码编辑）
+- [x] `run-flutter-tests/tasks.md` 中 Task 6.2 已标记完成
+- [x] `run-flutter-tests/checklist.md` 中 `flutter test` 全绿检查点已标记通过

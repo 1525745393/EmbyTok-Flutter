@@ -98,9 +98,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: items,
         totalCount: items.length,
@@ -118,24 +121,34 @@ void main() {
       expect(state.favoriteIds, {'fav-1', 'fav-2', 'fav-3'});
 
       verify(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: 'user-1',
         serverUrl: 'http://emby.example.com',
         token: 'test-token',
+        cancelToken: anyNamed('cancelToken'),
       )).called(1);
     });
 
     test('loadFavorites() 失败：error 包含错误信息', () async {
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenThrow(Exception('网络错误'));
       when(mockService.getFavoriteBoxSets(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
       )).thenThrow(Exception('网络错误'));
       when(mockService.getFavoritePeople(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
@@ -155,16 +168,23 @@ void main() {
 
     test('loadFavorites() 失败：字符串错误信息', () async {
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenThrow('服务器维护中');
       when(mockService.getFavoriteBoxSets(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
       )).thenThrow('服务器维护中');
       when(mockService.getFavoritePeople(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
@@ -203,9 +223,12 @@ void main() {
       expect(state.isLoading, false);
 
       verifyNever(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       ));
     });
 
@@ -215,9 +238,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -269,9 +295,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -322,9 +351,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -369,9 +401,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -414,9 +449,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: items,
         totalCount: items.length,
@@ -467,9 +505,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -541,9 +582,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -594,9 +638,12 @@ void main() {
       ];
 
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async => FavoritesPageResult(
         items: existingItems,
         totalCount: existingItems.length,
@@ -631,9 +678,12 @@ void main() {
 
     test('不同 item 并发操作互不干扰', () async {
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async =>
           const FavoritesPageResult(items: <MediaItem>[], totalCount: 0));
 
@@ -685,9 +735,12 @@ void main() {
 
     test('请求进行中再次调用同一 item 被忽略', () async {
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async =>
           const FavoritesPageResult(items: <MediaItem>[], totalCount: 0));
 
@@ -726,9 +779,12 @@ void main() {
 
     test('多个 item 批量切换收藏并发操作', () async {
       when(mockService.getFavoriteMovies(
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
         userId: anyNamed('userId'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
+        cancelToken: anyNamed('cancelToken'),
       )).thenAnswer((_) async =>
           const FavoritesPageResult(items: <MediaItem>[], totalCount: 0));
 

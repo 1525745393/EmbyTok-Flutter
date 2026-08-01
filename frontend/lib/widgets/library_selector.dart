@@ -75,7 +75,12 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     // 背景：libraryListProvider 之前某次加载失败（网络/401 等）会留下 error 状态
     //       且 Riverpod 不会自动重试 FutureProvider，导致 LibrarySelector
     //       永远显示「加载失败」。这里 invalidate 强制重跑，error 时给「重试」按钮
-    ref.invalidate(libraryListProvider);
+    // 修复：ref.invalidate 内部会访问 ProviderScope 容器（dependOnInheritedWidgetOfExactType），
+    // 不能在 initState 中直接调用，否则触发断言。延迟到首帧后执行。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(libraryListProvider);
+    });
   }
 
   @override
@@ -128,17 +133,21 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 children: [
                   Icon(Icons.video_library, color: scheme.primary, size: 22),
                   const SizedBox(width: 10),
-                  Text(
-                    _localSelectedIds.isEmpty
-                        ? '选择媒体库 - ${widget.scope.title}'
-                        : '选择媒体库 - ${widget.scope.title} (已选 ${_localSelectedIds.length} 个)',
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                  // 修复：标题在窄屏（竖屏手机）上会溢出 Row，用 Expanded 约束宽度并截断
+                  Expanded(
+                    child: Text(
+                      _localSelectedIds.isEmpty
+                          ? '选择媒体库 - ${widget.scope.title}'
+                          : '选择媒体库 - ${widget.scope.title} (已选 ${_localSelectedIds.length} 个)',
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
                   // 全选/取消全选按钮
                   TextButton(
                     onPressed: () {

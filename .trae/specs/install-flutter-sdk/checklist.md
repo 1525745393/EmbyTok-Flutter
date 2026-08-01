@@ -14,8 +14,8 @@
 - [ ] `flutter doctor -v` 输出同时出现 `[✓] Flutter` 与 `[✓] Android toolchain`，且不包含 "Some Android licenses not accepted"
 - [ ] `flutter doctor -v` 中 `Android toolchain` 段包含 `Android SDK at $HOME/Android/Sdk` 或 `Platform android-35, build-tools 35` 文本
 - [ ] 在 `/workspace/frontend` 执行 `flutter pub get` 退出码为 0，`pubspec.lock` 存在
-- [ ] 在 `/workspace/frontend` 执行 `flutter analyze --no-pub` 能启动，若失败则失败原因为代码诊断而非 SDK 未配置
-- [ ] 在 `/workspace/frontend` 执行 `flutter test --no-pub --concurrency=1` 能启动并出现明确通过/失败统计文本，而非环境级报错
+- [x] 在 `/workspace/frontend` 执行 `flutter analyze --no-pub` 能启动，若失败则失败原因为代码诊断而非 SDK 未配置
+- [x] 在 `/workspace/frontend` 执行 `flutter test --no-pub --concurrency=1` 能启动并出现明确通过/失败统计文本，而非环境级报错（678 用例 All tests passed!）
 - [ ] 在 `/workspace/frontend` 执行 `flutter build apk --debug --no-pub` 不因 Android SDK / licenses 缺失类报错终止
 - [ ] 完整重跑一次安装步骤后再次验证 PATH 重复条目计数为 1，Android SDK 不重新下载
 - [ ] `/tmp/flutter-env-snapshot.md` 生成并包含至少 6 项：Flutter 版本、Dart 版本、flutter doctor 摘要、sdkmanager 已安装列表、flutter analyze 摘要、flutter test 摘要

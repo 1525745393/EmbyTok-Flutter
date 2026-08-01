@@ -240,18 +240,24 @@ class SettingsView extends ConsumerWidget {
           ),
         ),
         // 卡片容器：圆角 + 阴影 + 边框
+        // 修复：将背景色从 Container 移到 Material 上，避免 Container 的背景色
+        // 遮挡 ListTile 的墨水效果（Flutter 警告：ListTile background invisible）
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: scheme.onSurface.withOpacity(0.06),
               width: 0.5,
             ),
           ),
-          child: Column(
-            children: _buildItemList(children),
+          child: Material(
+            color: scheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: _buildItemList(children),
+            ),
           ),
         ),
       ],

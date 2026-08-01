@@ -828,7 +828,9 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(_throwsAppError(message: '网络连接失败，请检查服务器地址')),
+          // 修复：connectionError 走 AppError.network() 默认 message，
+          // 实际值为 '网络连接失败，请检查网络设置'（见 app_error.dart）
+          throwsA(_throwsAppError(message: '网络连接失败，请检查网络设置')),
         );
       });
 

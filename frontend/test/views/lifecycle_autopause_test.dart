@@ -355,4 +355,35 @@ void main() {
 ///
 /// video_player 包的 controller 依赖 native platform channel，
 /// 单元测试中无法构造真实实例。用 mockito Mock 类拦截方法调用。
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+///
+/// 必须显式 override [value] getter 与 [pause]/[play] 方法：
+/// 这些成员的返回类型均为 non-nullable（[VideoPlayerValue] / [Future]<void>）。
+/// Mock 默认通过 [noSuchMethod] 返回 null，会触发类型错误
+/// （`type 'Null' is not a subtype of type ...`），进而污染 mockito 内部
+/// stub response / verification 状态，导致后续 `when`/`verify` 调用抛出
+/// `Bad state: Cannot call when within a stub response` 或
+/// `Bad state: Verification appears to be in progress`。
+/// 这里通过 [super.noSuchMethod] 提供有效的 [returnValue] 兜底，避免上述问题。
+class MockVideoPlayerController extends Mock implements VideoPlayerController {
+  @override
+  VideoPlayerValue get value => super.noSuchMethod(
+        Invocation.getter(#value),
+        returnValue: const VideoPlayerValue(duration: Duration.zero),
+        returnValueForMissingStub:
+            const VideoPlayerValue(duration: Duration.zero),
+      ) as VideoPlayerValue;
+
+  @override
+  Future<void> pause() => super.noSuchMethod(
+        Invocation.method(#pause, []),
+        returnValue: Future<void>.value(),
+        returnValueForMissingStub: Future<void>.value(),
+      ) as Future<void>;
+
+  @override
+  Future<void> play() => super.noSuchMethod(
+        Invocation.method(#play, []),
+        returnValue: Future<void>.value(),
+        returnValueForMissingStub: Future<void>.value(),
+      ) as Future<void>;
+}

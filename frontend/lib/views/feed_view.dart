@@ -64,6 +64,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 视图模型：业务逻辑层
   late final FeedViewModel _viewModel;
 
+  // 保存 listenManual 订阅引用，dispose 时显式 close 避免内存泄漏
+  // 修复：ref.listen 只能在 build 中调用，initState 中必须用 ref.listenManual
+  ProviderSubscription<ViewMode>? _viewModeSubscription;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -93,7 +97,8 @@ class _FeedViewState extends ConsumerState<FeedView>
 
     // 监听视图模式变化：系统栏显隐是 UI 行为，由本视图处理
     // 播放暂停/恢复已委托给 ViewModel → PlaybackCoordinator
-    ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+    // 修复：使用 listenManual 替代 listen，避免在 initState 中调用 ref.listen 触发断言
+    _viewModeSubscription = ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
       if (prev == null) return;
       if (prev == ViewMode.feed && next == ViewMode.grid) {
         _restoreSystemBars();
@@ -136,6 +141,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     _gridScrollController.removeListener(_onGridScrollChanged);
     _gridScrollController.dispose();
     _viewModel.dispose();
+    // 显式取消 listenManual 订阅，避免内存泄漏
+    _viewModeSubscription?.close();
     safeUnawaited(
       _playbackCoordinator.disposeAllPreloads(),
       context: 'FeedView.dispose.disposeAllPreloads',

@@ -10,12 +10,20 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/providers.dart';
 import 'package:embytok_flutter/utils/app_preferences.dart';
 
 void main() {
+  // 初始化 Flutter binding 和 SharedPreferences mock，
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('功能一：网格→视频流跳转', () {
     // 注：gridSelectedItemIdProvider 已废弃。
     // 网格 → 视频流跳转现在通过 GoRouter `/?initialId=<itemId>` 透传，
@@ -71,11 +79,18 @@ void main() {
     group('VideoListState 初始状态', () {
       late ProviderContainer container;
 
-      setUp(() {
+      setUp(() async {
+        SharedPreferences.setMockInitialValues({});
         container = ProviderContainer();
+        // 触发 VideoListNotifier 构造和依赖 Notifier 的 _load()，等待完成
+        // 避免 _load() 在 tearDown dispose 后完成写入 state 触发 Bad state
+        container.read(videoListProvider);
+        await Future.delayed(const Duration(milliseconds: 10));
       });
 
-      tearDown(() {
+      // 等待 _load() 等异步操作完成，避免 dispose 后异步写入 state
+      tearDown(() async {
+        await Future.delayed(const Duration(milliseconds: 10));
         container.dispose();
       });
 
@@ -152,8 +167,12 @@ void main() {
   group('视图模式切换', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setMode 后被 _load 覆盖
+      container.read(viewModeProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {

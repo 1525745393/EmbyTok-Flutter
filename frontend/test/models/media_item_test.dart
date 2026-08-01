@@ -116,7 +116,8 @@ void main() {
               'Thumb': 'thumb_tag',
               'Backdrop': 'backdrop_tag',
             },
-            'backdrop_image_tags': ['backdrop1', 'backdrop2'],
+            // 实现仅读取 PascalCase 的 BackdropImageTags，不读取 snake_case
+            'BackdropImageTags': ['backdrop1', 'backdrop2'],
           };
           final item = MediaItem.fromJson(json);
           expect(item.imageTags, isNotNull);
@@ -544,7 +545,9 @@ void main() {
           title: '测试',
           type: 'Movie',
           durationSeconds: 3600.0,
-          year: 2024,
+          // 实现的 toJson() 将 productionYear 写入 'year' 键，
+          // 直接传 year 参数不会设置 productionYear，需传 productionYear
+          productionYear: 2024,
         );
         final json = item.toJson();
         expect(json['id'], 'item-1');

@@ -74,8 +74,9 @@ List<SubtitleCue> parseSrt(String content) {
   final blocks = content.replaceAll('\r\n', '\n').split(RegExp(r'\n{2,}'));
   for (final block in blocks) {
     final lines = block.split('\n');
-    // SRT 格式至少需要 3 行：序号、时间轴、至少一行文本
-    if (lines.length < 3) continue;
+    // SRT 格式至少需要 2 行：时间轴 + 至少一行文本
+    // （序号可选，缺失时通过时间行识别）
+    if (lines.length < 2) continue;
 
     // 找到时间轴行（包含 -->）
     int timingLineIndex = -1;

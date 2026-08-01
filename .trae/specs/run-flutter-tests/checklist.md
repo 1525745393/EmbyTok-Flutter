@@ -1,0 +1,26 @@
+# 运行测试套件 - 验证清单
+
+- [x] `flutter test --concurrency=1` 在 `/workspace/frontend` 可正常启动，输出包含通过/失败统计而非环境报错
+- [x] 所有测试文件均可编译通过，无编译错误（dart 编译阶段不报错）
+- [x] 所有 mock HTTP 路径与 Emby API 实际路径一致（如 `/Users/AuthenticateByName`、`/Users/{userId}/Views`）
+- [x] 所有 mock 响应字段名与当前实现解析逻辑一致（PascalCase）
+- [x] 所有 mock 服务方法签名与当前实现一致（如 login 使用命名参数）
+- [x] 断言值与实际实现逻辑匹配（如时间衰减算法、黑名单阈值、缓存淘汰策略）
+- [x] 断言对象类型匹配（如 AppError 类型断言而非字符串直接比较）
+- [x] 若存在实现层 bug，已修复且测试验证通过
+- [x] `flutter test` 全量运行输出 `All tests passed!`，退出码 0（678 个用例全部通过）
+- [x] `flutter analyze` 无 error 级别诊断（0 个 error，853 个 warning/info 可接受）
+- [x] `fix-embbytok-service-tests` 遗留的 SubTask 5.2/5.3 已标记完成
+- [x] `install-flutter-sdk` checklist 检查点 18 已标记通过
+- [x] 本次修复未删除或 skip 任何测试用例（全部真实修复）
+- [x] 本次修复未修改 pubspec.yaml 生产依赖版本
+- [x] 9 个目标测试文件全部通过：
+  - test/providers/auth_provider_test.dart
+  - test/providers/favorites_provider_test.dart
+  - test/providers/library_provider_test.dart
+  - test/widgets/subtitle_renderer_test.dart
+  - test/widgets/heart_animation_test.dart
+  - test/providers/auto_play_test.dart
+  - test/models/media_item_test.dart
+  - test/providers/recommend_signals_test.dart
+  - test/widgets/gesture_overlay_test.dart

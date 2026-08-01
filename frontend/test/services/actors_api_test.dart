@@ -193,12 +193,15 @@ void main() {
           'detail': '服务器内部错误',
         }));
 
+        // 修复：ApiClient 统一抛出 AppError 对象而非字符串，
+        // contains matcher 仅适用于 String/Map/Iterable，
+        // 改用 _throwsAppError helper 匹配 AppError.message 字段
         expect(
           () => service.getPeople(
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(contains('服务器错误')),
+          throwsA(_throwsAppError(message: '服务器错误', partialMatch: true)),
         );
       });
     });

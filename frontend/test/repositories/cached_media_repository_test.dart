@@ -42,8 +42,11 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoriteMovies({
-    int? limit,
-    int? offset,
+    // 默认值与 MediaRepository.getFavoriteMovies 保持一致：
+    // 让 when/verify 不传 limit/offset 时收到默认值，与 cachedRepo 实际调用匹配；
+    // 同时 anyNamed 仍可显式传 null 触发 matcher（默认值不生效）。
+    int? limit = 50,
+    int? offset = 0,
     String? serverUrl,
     String? token,
     String? userId,
@@ -51,8 +54,8 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteMovies, [], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
@@ -62,24 +65,26 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           items: [],
           totalCount: 0,
         )),
-        returnValueForMissingStub: const FavoritesPageResult(
+        // returnValueForMissingStub 必须与返回类型 Future<FavoritesPageResult> 匹配，
+        // 否则当 stub 未命中时 as Future<FavoritesPageResult> 转型会失败。
+        returnValueForMissingStub: Future.value(const FavoritesPageResult(
           items: [],
           totalCount: 0,
-        ),
+        )),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<FavoritesPageResult> getFavoriteBoxSets({
-    int? limit,
-    int? offset,
+    int? limit = 50,
+    int? offset = 0,
     String? serverUrl,
     String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteBoxSets, [], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
@@ -88,26 +93,26 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           items: [],
           totalCount: 0,
         )),
-        returnValueForMissingStub: const FavoritesPageResult(
+        returnValueForMissingStub: Future.value(const FavoritesPageResult(
           items: [],
           totalCount: 0,
-        ),
+        )),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<PaginatedResponse<MediaItem>> getResumeItems({
     String? serverUrl,
     String? token,
-    int? limit,
-    int? offset,
+    int? limit = 50,
+    int? offset = 0,
     CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getResumeItems, [], {
           #serverUrl: serverUrl,
           #token: token,
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #cancelToken: cancelToken,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
@@ -145,13 +150,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<List<MediaItem>> getSimilarItems(
     String? itemId, {
-    int? limit,
+    int? limit = 12,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSimilarItems, [itemId], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -161,8 +166,8 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<PaginatedResponse<Person>> getPeople({
-    int? limit,
-    int? startIndex,
+    int? limit = 50,
+    int? startIndex = 0,
     List<String>? personTypes,
     String? searchTerm,
     String? serverUrl,
@@ -170,7 +175,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPeople, [], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #startIndex: startIndex,
           #personTypes: personTypes,
           #searchTerm: searchTerm,
@@ -211,15 +216,15 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<PaginatedResponse<MediaItem>> getPersonItems(
     String? personId, {
-    int? limit,
-    int? offset,
+    int? limit = 30,
+    int? offset = 0,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPersonItems, [personId], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -239,16 +244,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<FavoritesPageResult> getFavoritePeople({
-    int? limit,
-    int? offset,
+    int? limit = 50,
+    int? offset = 0,
     String? serverUrl,
     String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoritePeople, [], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,
@@ -257,16 +262,16 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           items: [],
           totalCount: 0,
         )),
-        returnValueForMissingStub: const FavoritesPageResult(
+        returnValueForMissingStub: Future.value(const FavoritesPageResult(
           items: [],
           totalCount: 0,
-        ),
+        )),
       ) as Future<FavoritesPageResult>;
 
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({
-    int? limit,
-    int? offset,
+    int? limit = 20,
+    int? offset = 0,
     String? libraryId,
     String? userId,
     String? serverUrl,
@@ -277,8 +282,8 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   }) =>
       super.noSuchMethod(
         Invocation.method(#getRecommendations, [], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #libraryId: libraryId,
           #userId: userId,
           #serverUrl: serverUrl,
@@ -303,14 +308,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<MediaItem>> getSuggestions({
-    int? limit,
+    int? limit = 20,
     String? userId,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSuggestions, [], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #userId: userId,
           #serverUrl: serverUrl,
           #token: token,
@@ -321,14 +326,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<MediaItem>> getWatchHistory({
-    int? limit,
+    int? limit = 50,
     String? userId,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getWatchHistory, [], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #userId: userId,
           #serverUrl: serverUrl,
           #token: token,
@@ -340,15 +345,15 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<List<MediaItem>> getChildren(
     String? parentId, {
-    int? limit,
-    int? offset,
+    int? limit = 100,
+    int? offset = 0,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getChildren, [parentId], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -358,13 +363,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<Library>> getGenres({
-    int? limit,
+    int? limit = 100,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getGenres, [], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -375,15 +380,15 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String? genre, {
-    int? limit,
-    int? offset,
+    int? limit = 30,
+    int? offset = 0,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getItemsByGenre, [genre], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -403,13 +408,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
   @override
   Future<List<Library>> getStudios({
-    int? limit,
+    int? limit = 100,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getStudios, [], {
-          #limit: limit ?? 50,
+          #limit: limit,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -420,15 +425,15 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<PaginatedResponse<MediaItem>> getItemsByStudio(
     String? studio, {
-    int? limit,
-    int? offset,
+    int? limit = 30,
+    int? offset = 0,
     String? serverUrl,
     String? token,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getItemsByStudio, [studio], {
-          #limit: limit ?? 50,
-          #offset: offset ?? 0,
+          #limit: limit,
+          #offset: offset,
           #serverUrl: serverUrl,
           #token: token,
         }),
@@ -1748,7 +1753,7 @@ void main() {
       test('不同 offset：不命中缓存（分页隔离）', () async {
         when(mockRepo.getFavoritePeople(
           limit: 50,
-          offset: argThat(isNonZero),
+          offset: argThat(isNonZero, named: 'offset'),
           serverUrl: testServerUrl,
           token: testToken,
           userId: 'user-1',
@@ -1811,7 +1816,7 @@ void main() {
       test('不同 offset：不命中缓存（分页隔离）', () async {
         when(mockRepo.getFavoriteBoxSets(
           limit: 50,
-          offset: argThat(isNonZero),
+          offset: argThat(isNonZero, named: 'offset'),
           serverUrl: testServerUrl,
           token: testToken,
           userId: 'user-1',

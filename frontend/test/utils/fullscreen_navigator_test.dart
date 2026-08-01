@@ -10,6 +10,8 @@
 // - 修复后：FullscreenNavigator.open 增加 isControllerUsableForFullscreen
 //   防御性检查，已 disposed / 有错误 / 未初始化的 controller 不进入全屏。
 
+import 'dart:ui' show Size;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
@@ -77,6 +79,8 @@ void main() {
           duration: Duration.zero,
           isInitialized: true,
           isPlaying: true,
+          // 实现要求 size 非空才允许进入全屏，避免初始化后尺寸未就绪导致黑屏
+          size: Size(1920, 1080),
         ),
       );
 
@@ -90,4 +94,20 @@ void main() {
 }
 
 /// Mock VideoPlayerController：拦截 value 调用
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+///
+/// 必须显式 override [value] getter：
+/// [VideoPlayerController] 继承自 [ValueNotifier]<[VideoPlayerValue]>，
+/// `value` 为 non-nullable 类型。Mock 默认通过 [noSuchMethod] 返回 null，
+/// 触发 `type 'Null' is not a subtype of type 'VideoPlayerValue'` 类型错误，
+/// 进而污染 mockito 内部 stub response 状态，导致后续 `when` 调用抛出
+/// `Bad state: Cannot call when within a stub response`。
+/// 这里通过 [super.noSuchMethod] 提供有效的 [returnValue] 兜底，避免上述问题。
+class MockVideoPlayerController extends Mock implements VideoPlayerController {
+  @override
+  VideoPlayerValue get value => super.noSuchMethod(
+        Invocation.getter(#value),
+        returnValue: const VideoPlayerValue(duration: Duration.zero),
+        returnValueForMissingStub:
+            const VideoPlayerValue(duration: Duration.zero),
+      ) as VideoPlayerValue;
+}

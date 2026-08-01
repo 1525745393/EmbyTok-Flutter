@@ -91,7 +91,8 @@ ThemeData _buildBaseTheme(
       systemOverlayStyle: systemOverlayStyle,
     ),
     // 卡片统一风格
-    cardTheme: CardTheme(
+    // Flutter 3.44 将 CardTheme 拆分为 CardThemeData，这里仅做 API 名称迁移
+    cardTheme: CardThemeData(
       color: surfaceHighest,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -173,7 +174,8 @@ ThemeData _buildBaseTheme(
       ),
     ),
     // 对话框风格
-    dialogTheme: DialogTheme(
+    // Flutter 3.44 将 DialogTheme 拆分为 DialogThemeData，这里仅做 API 名称迁移
+    dialogTheme: DialogThemeData(
       backgroundColor: surfaceElevated,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),

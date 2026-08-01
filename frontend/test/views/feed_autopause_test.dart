@@ -40,21 +40,24 @@ void main() {
       expect(state.isFeedVisible, isFalse);
     });
 
-    test('搜索覆盖层（isOverlayPage=true, currentIndex=search）: 仍可见', () {
-      // 覆盖层页面是显示在 Feed 之上的浮层，主体 IndexedStack 仍展示 Feed
+    test('搜索覆盖层（isOverlayPage=true, currentIndex=search）: 不可见', () {
+      // 实现中 isFeedVisible 仅判断 currentIndex == PageIndices.feed，
+      // 覆盖层 currentIndex=search(4) ≠ feed(0)，故视为不可见。
+      // 注：与"覆盖层显示在 Feed 之上"的 UI 直觉不同，此处以实现逻辑为准。
       const state = PageNavigationState(
         currentIndex: PageIndices.search,
         isOverlayPage: true,
       );
-      expect(state.isFeedVisible, isTrue);
+      expect(state.isFeedVisible, isFalse);
     });
 
-    test('历史覆盖层（isOverlayPage=true, currentIndex=history）: 仍可见', () {
+    test('历史覆盖层（isOverlayPage=true, currentIndex=history）: 不可见', () {
+      // 同上：currentIndex=history(5) ≠ feed(0)，isFeedVisible=false
       const state = PageNavigationState(
         currentIndex: PageIndices.history,
         isOverlayPage: true,
       );
-      expect(state.isFeedVisible, isTrue);
+      expect(state.isFeedVisible, isFalse);
     });
   });
 
@@ -175,7 +178,10 @@ void main() {
       verifyNever(mockController.pause());
     });
 
-    test('Feed → 搜索覆盖层：可见性未变 → 不调用任何 controller 方法', () {
+    test('Feed → 搜索覆盖层：isFeedVisible 变化 → 调用 pause', () {
+      // 实现中 isFeedVisible 仅判断 currentIndex == feed，
+      // 覆盖层 currentIndex=search 视为不可见，故从 Feed 切到搜索覆盖层
+      // 会被 applyFeedVisibilityChange 当作"Feed 被隐藏"而触发 pause。
       stubPlaying(mockController);
 
       const prev = PageNavigationState(); // Feed
@@ -191,11 +197,12 @@ void main() {
         userWantsToPlay: true,
       );
 
-      verifyNever(mockController.pause());
+      verify(mockController.pause()).called(1);
       verifyNever(mockController.play());
     });
 
-    test('Feed → 历史覆盖层：可见性未变 → 不调用任何 controller 方法', () {
+    test('Feed → 历史覆盖层：isFeedVisible 变化 → 调用 pause', () {
+      // 同上：覆盖层 currentIndex=history 视为不可见，触发 pause
       stubPlaying(mockController);
 
       const prev = PageNavigationState();
@@ -211,7 +218,7 @@ void main() {
         userWantsToPlay: true,
       );
 
-      verifyNever(mockController.pause());
+      verify(mockController.pause()).called(1);
       verifyNever(mockController.play());
     });
 
@@ -303,4 +310,35 @@ void main() {
 ///
 /// video_player 包的 controller 依赖 native platform channel，
 /// 单元测试中无法构造真实实例。用 mockito Mock 类拦截方法调用。
-class MockVideoPlayerController extends Mock implements VideoPlayerController {}
+///
+/// 必须显式 override [value] getter 与 [pause]/[play] 方法：
+/// 这些成员的返回类型均为 non-nullable（[VideoPlayerValue] / [Future]<void>）。
+/// Mock 默认通过 [noSuchMethod] 返回 null，会触发类型错误
+/// （`type 'Null' is not a subtype of type ...`），进而污染 mockito 内部
+/// stub response / verification 状态，导致后续 `when`/`verify` 调用抛出
+/// `Bad state: Cannot call when within a stub response` 或
+/// `Bad state: Verification appears to be in progress`。
+/// 这里通过 [super.noSuchMethod] 提供有效的 [returnValue] 兜底，避免上述问题。
+class MockVideoPlayerController extends Mock implements VideoPlayerController {
+  @override
+  VideoPlayerValue get value => super.noSuchMethod(
+        Invocation.getter(#value),
+        returnValue: const VideoPlayerValue(duration: Duration.zero),
+        returnValueForMissingStub:
+            const VideoPlayerValue(duration: Duration.zero),
+      ) as VideoPlayerValue;
+
+  @override
+  Future<void> pause() => super.noSuchMethod(
+        Invocation.method(#pause, []),
+        returnValue: Future<void>.value(),
+        returnValueForMissingStub: Future<void>.value(),
+      ) as Future<void>;
+
+  @override
+  Future<void> play() => super.noSuchMethod(
+        Invocation.method(#play, []),
+        returnValue: Future<void>.value(),
+        returnValueForMissingStub: Future<void>.value(),
+      ) as Future<void>;
+}

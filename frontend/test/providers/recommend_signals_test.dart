@@ -311,7 +311,7 @@ void main() {
       // 验证 14 天前记录的权重恰好为 0.5
       // 构造：1 条 14 天前 rate 0.0 + 1 条今天 rate 1.0
       // 加权平均 = (0.5*0 + 1.0*1) / (0.5 + 1.0) = 1/1.5 ≈ 0.667
-      // 0.667 在 [0.3, 0.8] → 线性插值 ≈ 0.3 + (0.667-0.3)/(0.8-0.3) * 1.2 ≈ 1.08
+      // 0.667 在 [0.3, 0.8] → 线性插值 ≈ 0.3 + (0.667-0.3)/(0.8-0.3) * 1.2 ≈ 1.18
       final records = <WatchRecord>[
         _recordAgo(id: 'old', rate: 0.0, daysAgo: 14, source: 'nextUp'),
         _recordAgo(id: 'new', rate: 1.0, daysAgo: 0, source: 'nextUp'),
@@ -323,10 +323,10 @@ void main() {
           UserBehaviorSignalCalculator.compute(records, now: _refNow);
       // nextUp source 只有 old + new 两条
       // 加权平均 = (0.5*0 + 1.0*1) / (0.5 + 1.0) = 0.667
-      // 0.667 → 0.3 + (0.667-0.3)/0.5 * 1.2 = 0.3 + 0.88 = 1.08
+      // 0.667 → 0.3 + (0.667-0.3)/0.5 * 1.2 = 0.3 + 0.88 = 1.18
       expect(
         signal.sourceWeights[RecommendSource.nextUp],
-        closeTo(1.08, 0.01),
+        closeTo(1.18, 0.01),
       );
     });
 

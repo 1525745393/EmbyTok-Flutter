@@ -17,6 +17,12 @@ import 'package:embytok_flutter/providers/search_history_provider.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
 void main() {
+  // 初始化 Flutter binding，供 SharedPreferences 等插件使用
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+  });
+
   group('SearchHistoryNotifier', () {
     late ProviderContainer container;
 
@@ -103,11 +109,16 @@ void main() {
       });
 
       final newContainer = ProviderContainer();
+      // 先触发 Notifier 构造和 _load()，再等待异步加载完成
+      // 避免 read 在 _load 完成前返回默认空列表
+      newContainer.read(searchHistoryProvider);
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = newContainer.read(searchHistoryProvider);
       expect(state.length, 3);
       expect(state.first, '最近搜索 1');
+      // 等待 pending 微任务完成，避免 dispose 后异步写入 state 触发 Bad state
+      await Future.delayed(Duration.zero);
       newContainer.dispose();
     });
 
@@ -117,11 +128,15 @@ void main() {
       });
 
       final newContainer = ProviderContainer();
+      // 先触发 Notifier 构造和 _load()，再等待异步加载完成
+      newContainer.read(searchHistoryProvider);
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = newContainer.read(searchHistoryProvider);
       // 损坏的配置被忽略，使用空列表
       expect(state, isEmpty);
+      // 等待 pending 微任务完成，避免 dispose 后异步写入 state 触发 Bad state
+      await Future.delayed(Duration.zero);
       newContainer.dispose();
     });
   });

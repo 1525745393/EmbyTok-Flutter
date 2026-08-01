@@ -15,11 +15,22 @@ import 'package:embytok_flutter/providers/app_preferences_providers.dart';
 import 'package:embytok_flutter/utils/app_preferences.dart';
 
 void main() {
+  // 初始化 Flutter binding 和 SharedPreferences mock，
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('DeviceModeNotifier', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setMode 后被 _load 覆盖
+      container.read(deviceModeProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -42,8 +53,12 @@ void main() {
   group('FeedTypeNotifier', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setType 后被 _load 覆盖
+      container.read(feedTypeProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -80,8 +95,12 @@ void main() {
   group('ViewModeNotifier', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setMode 后被 _load 覆盖
+      container.read(viewModeProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -104,8 +123,12 @@ void main() {
   group('OrientationModeNotifier', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setMode 后被 _load 覆盖
+      container.read(orientationModeProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -135,8 +158,12 @@ void main() {
   group('HiddenLibraryIdsNotifier', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 toggle 后被 _load 覆盖
+      container.read(hiddenLibraryIdsProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -179,9 +206,12 @@ void main() {
   group('RecommendUseWatchHistoryNotifier (PR #85)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setUse 后被 _load 覆盖
+      container.read(recommendUseWatchHistoryProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -204,9 +234,12 @@ void main() {
   group('RecommendHalfLifeDaysNotifier (PR #85)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setDays 后被 _load 覆盖
+      container.read(recommendHalfLifeDaysProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -238,9 +271,12 @@ void main() {
   group('RecommendAntiFatigueEnabledNotifier (PR #88)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setEnabled 后被 _load 覆盖
+      container.read(recommendAntiFatigueEnabledProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -263,9 +299,12 @@ void main() {
   group('RecommendAntiFatigueDaysNotifier (PR #88)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setDays 后被 _load 覆盖
+      container.read(recommendAntiFatigueDaysProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -296,9 +335,12 @@ void main() {
   group('RecentlyShownItemIdsNotifier (PR #88)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 addAll 后被 _load 覆盖
+      container.read(recentlyShownItemIdsProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -359,9 +401,12 @@ void main() {
   group('RecommendUserRatingEnabledNotifier (PR #89)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setEnabled 后被 _load 覆盖
+      container.read(recommendUserRatingEnabledProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {
@@ -384,9 +429,12 @@ void main() {
   group('RecommendUserRatingMinNotifier (PR #89)', () {
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
       container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 setMin 后被 _load 覆盖
+      container.read(recommendUserRatingMinProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
     });
 
     tearDown(() {

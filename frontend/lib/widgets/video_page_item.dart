@@ -118,19 +118,22 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _discRotationCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..repeat();
+    );
     _discRotation = Tween<double>(begin: 0.0, end: 1.0)
         .animate(CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
 
     // 监听播放状态变化（播放时旋转唱片，暂停时停止）
     // 放在 initState 中通过 listenManual 注册，避免每次 build 重复注册
+    // 修复：原先 initState 中无条件 ..repeat() 会让唱片在未播放时也持续旋转，
+    // 既浪费电量又使集成测试 pumpAndSettle 永不收敛（无限帧调度）。
+    // 改为 fireImmediately，依据当前 isPlayingProvider（初始 false）决定是否旋转。
     _isPlayingSubscription = ref.listenManual<bool>(isPlayingProvider, (previous, next) {
       if (next) {
         if (!_discRotationCtrl.isAnimating) _discRotationCtrl.repeat();
       } else {
         if (_discRotationCtrl.isAnimating) _discRotationCtrl.stop();
       }
-    });
+    }, fireImmediately: true);
 
     // PR #72：监听纯净模式（isAutoPlay）变化，同步到工具栏可见性
     // - isAutoPlay=true → setAutoPlayActive(true)，顶部工具栏 + 底部导航栏持续隐藏
@@ -139,15 +142,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _isAutoPlaySubscription = ref.listenManual<bool>(isAutoPlayProvider, (prev, next) {
       ref.read(toolbarVisibilityProvider.notifier).setAutoPlayActive(next);
     }, fireImmediately: true);
-
-    // 监听全屏页的重试请求
-    ref.listen<String?>(videoRetryRequestProvider, (prev, next) {
-      if (next != null && next == widget.item.id) {
-        _videoPlayerKey.currentState?.retryInitialization();
-        // 清除请求，避免重复触发
-        ref.read(videoRetryRequestProvider.notifier).state = null;
-      }
-    });
   }
 
   // App 进入后台时仅停止唱片动画，音频由 AudioHandler 接管继续播放；回到前台时恢复画面渲染
@@ -226,10 +220,17 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // deactivate 可能被多次调用（widget 从 tree 移除又重新插入），用 _providerCleaned 做幂等。
     if (!_providerCleaned) {
       _providerCleaned = true;
-      ref.read(videoReadyProvider.notifier).clear(widget.item.id);
-      final ctrl = ref.read(currentVideoControllerProvider);
-      if (ctrl != null && identical(ctrl, _videoController)) {
-        ref.read(currentVideoControllerProvider.notifier).state = null;
+      // 修复：ProviderContainer 可能已 dispose（如测试环境 addTearDown 后），
+      // 或 widget 已 deactivate 导致 ancestor lookup 失败。
+      // 此时 provider 状态会随 container 一起清理，无需手动清除。
+      try {
+        ref.read(videoReadyProvider.notifier).clear(widget.item.id);
+        final ctrl = ref.read(currentVideoControllerProvider);
+        if (ctrl != null && identical(ctrl, _videoController)) {
+          ref.read(currentVideoControllerProvider.notifier).state = null;
+        }
+      } catch (_) {
+        // ProviderContainer 已 dispose，provider 状态随 container 一起清理
       }
     }
     // 观看统计：在 deactivate 中记录（避免 dispose 中调用 ref.read 违反 Riverpod 规范）
@@ -769,6 +770,15 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 监听全屏状态：进入全屏时隐藏本页 UI 控件，但 VideoPlayer 保持渲染
     // 画面通过透明 FullscreenVideoPage 覆盖层显示，避免纹理释放/重新注册导致黑屏
     final isInFullscreen = ref.watch(isFullscreenProvider);
+    // 监听全屏页的重试请求：ref.listen 必须在 build 中调用，
+    // Riverpod 会自动管理订阅生命周期（initState 中调用会触发 debugDoingBuild 断言）
+    ref.listen<String?>(videoRetryRequestProvider, (prev, next) {
+      if (next != null && next == widget.item.id) {
+        _videoPlayerKey.currentState?.retryInitialization();
+        // 清除请求，避免重复触发
+        ref.read(videoRetryRequestProvider.notifier).state = null;
+      }
+    });
     final scheme = Theme.of(context).colorScheme;
     // 沉浸式（immersiveSticky）下 MediaQuery.padding 会被系统置 0，
     // 但物理刘海 / 手势条仍存在，故用 SafeInsets 取物理避让值。
@@ -833,6 +843,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 preloadedController: widget.preloadedSession?.controller,
                 startFromResumePosition: widget.startFromResumePosition,
                 onControllerReleased: () {
+                  // 修复：deactivate() 中已清理 Provider 状态，dispose 阶段不再重复清理。
+                  // 避免 VideoPlayerWidget.dispose → _releaseCurrentController → 此回调
+                  // 时 ref.read 访问已 deactivate 的 widget ancestor 导致断言失败。
+                  if (_providerCleaned) return;
                   ref.read(videoReadyProvider.notifier).clear(widget.item.id);
                   // 关键修复：controller 被 VideoPlayerWidget 释放时，必须清除本组件的引用，
                   // 否则 _videoController 会指向已 dispose 的 controller，

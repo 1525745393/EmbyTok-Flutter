@@ -15,6 +15,12 @@ import 'package:embytok_flutter/providers/subtitle_settings_provider.dart';
 import 'package:embytok_flutter/utils/constants.dart';
 
 void main() {
+  // 初始化 Flutter binding，供 SharedPreferences 等插件使用
+  // 避免 SharedPreferences.getInstance 抛出 Binding has not yet been initialized
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+  });
+
   group('SubtitleSettings', () {
     test('初始状态正确（语言为空，其他为默认值）', () {
       const settings = SubtitleSettings();
@@ -137,6 +143,9 @@ void main() {
       });
 
       final newContainer = ProviderContainer();
+      // 先触发 Notifier 构造和 _load()，再等待异步加载完成
+      // 避免 read 在 _load 完成前返回默认值
+      newContainer.read(subtitleSettingsProvider);
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = newContainer.read(subtitleSettingsProvider);
@@ -145,6 +154,8 @@ void main() {
       expect(state.color, kSubtitleColorYellow);
       expect(state.position, kSubtitlePosCenter);
 
+      // 等待 pending 微任务完成，避免 dispose 后异步写入 state 触发 Bad state
+      await Future.delayed(Duration.zero);
       newContainer.dispose();
     });
 
@@ -154,6 +165,8 @@ void main() {
       });
 
       final newContainer = ProviderContainer();
+      // 先触发 Notifier 构造和 _load()，再等待异步加载完成
+      newContainer.read(subtitleSettingsProvider);
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = newContainer.read(subtitleSettingsProvider);
@@ -161,6 +174,8 @@ void main() {
       expect(state.language, '');
       expect(state.size, kSubtitleSizeMedium);
 
+      // 等待 pending 微任务完成，避免 dispose 后异步写入 state 触发 Bad state
+      await Future.delayed(Duration.zero);
       newContainer.dispose();
     });
   });

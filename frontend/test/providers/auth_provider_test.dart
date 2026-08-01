@@ -16,6 +16,9 @@ import '../mocks/mock_services.dart';
 import '../mocks/mock_secure_storage.dart';
 
 void main() {
+  // 初始化测试绑定：FlutterSecureStorage 依赖平台通道，必须先初始化 binding
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('AuthState', () {
     test('初始状态正确', () {
       const state = AuthState();
@@ -70,27 +73,36 @@ void main() {
 
   group('AuthNotifier', () {
     late MockEmbytokService mockService;
+    // 注入 mock secure storage，避免触发真实平台通道调用
+    late MockFlutterSecureStorage mockSecureStorage;
     late ProviderContainer container;
 
     setUp(() {
       // 设置 SharedPreferences 初始值（空）
       SharedPreferences.setMockInitialValues({});
       mockService = MockEmbytokService();
+      mockSecureStorage = MockFlutterSecureStorage();
     });
 
     tearDown(() {
       container.dispose();
     });
 
-    test('初始状态：isAuthenticated = false, user = null', () async {
-      container = ProviderContainer(
+    // 统一创建带 secure storage override 的容器
+    ProviderContainer createContainer() {
+      return ProviderContainer(
         overrides: [
           embytokServiceProvider.overrideWithValue(mockService),
+          secureStorageProvider.overrideWithValue(mockSecureStorage),
           authProvider.overrideWith(
             (ref) => AuthNotifier(ref),
           ),
         ],
       );
+    }
+
+    test('初始状态：isAuthenticated = false, user = null', () async {
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -115,14 +127,7 @@ void main() {
         password: anyNamed('password'),
       )).thenAnswer((_) async => testUser);
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -163,14 +168,7 @@ void main() {
         password: anyNamed('password'),
       )).thenThrow(Exception('网络错误'));
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -192,7 +190,9 @@ void main() {
       expect(state.isAuthenticated, false);
       expect(state.user, isNull);
       expect(state.isLoading, false);
-      expect(state.error, contains('登录失败'));
+      // AuthState.error 为 Object?，实现层将异常包装为 AppError
+      // AppError.wrap(Exception) → AppError.unknown，message 为默认提示
+      expect(state.error, isA<AppError>());
     });
 
     test('login() 失败：字符串错误信息', () async {
@@ -202,14 +202,7 @@ void main() {
         password: anyNamed('password'),
       )).thenThrow('用户名或密码错误');
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -229,7 +222,8 @@ void main() {
 
       final state = container.read(authProvider);
       expect(state.isAuthenticated, false);
-      expect(state.error, '用户名或密码错误');
+      // AppError.wrap('用户名或密码错误') → AppError.unknown(message: '用户名或密码错误')
+      expect((state.error as AppError).message, '用户名或密码错误');
     });
 
     test('logout()：清除状态', () async {
@@ -245,14 +239,7 @@ void main() {
         password: anyNamed('password'),
       )).thenAnswer((_) async => testUser);
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 50));
 
@@ -289,18 +276,23 @@ void main() {
         'access_token': 'restored-token',
       };
 
+      // 实现层从独立键 kStorageKeyEmbyServerUrl / kStorageKeyUser 读取，
+      // kStorageKeyConfig 仅用于旧 token 迁移，故需同时设置这三个键
       SharedPreferences.setMockInitialValues({
         kStorageKeyConfig: json.encode(config),
+        kStorageKeyEmbyServerUrl: 'http://emby.example.com',
+        kStorageKeyUser: json.encode({
+          'backend_url': 'http://backend.example.com',
+          'user_id': 'user-456',
+          'user_name': 'restored_user',
+        }),
       });
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
+
+      // 先触发 AuthNotifier 创建，启动 _loadFromStorage() 异步恢复流程；
+      // Riverpod provider 懒加载，不在此时读取则延迟期间 Notifier 尚未创建
+      container.read(authProvider);
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -320,14 +312,7 @@ void main() {
         kStorageKeyConfig: 'invalid json {{{',
       });
 
-      container = ProviderContainer(
-        overrides: [
-          embytokServiceProvider.overrideWithValue(mockService),
-          authProvider.overrideWith(
-            (ref) => AuthNotifier(ref),
-          ),
-        ],
-      );
+      container = createContainer();
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -423,6 +408,9 @@ void main() {
 
       container = createContainer();
 
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
+
       await Future.delayed(const Duration(milliseconds: 100));
 
       final state = container.read(authProvider);
@@ -468,6 +456,9 @@ void main() {
 
       container = createContainer();
 
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
+
       await Future.delayed(const Duration(milliseconds: 100));
 
       final firstState = container.read(authProvider);
@@ -503,6 +494,9 @@ void main() {
           ),
         ],
       );
+
+      // 触发第二个 AuthNotifier 创建
+      container.read(authProvider);
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -557,6 +551,9 @@ void main() {
       });
 
       container = createContainer();
+
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -616,6 +613,9 @@ void main() {
 
       container = createContainer();
 
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
+
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(container.read(authProvider).isAuthenticated, true);
@@ -656,6 +656,9 @@ void main() {
 
       container = createContainer();
 
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
+
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(container.read(authProvider).isAuthenticated, true);
@@ -677,6 +680,9 @@ void main() {
       });
 
       container = createContainer();
+
+      // 触发 AuthNotifier 创建，启动异步 _loadFromStorage() 恢复流程
+      container.read(authProvider);
 
       await Future.delayed(const Duration(milliseconds: 100));
 

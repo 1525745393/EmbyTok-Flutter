@@ -24,8 +24,8 @@
 
 - [x] Task 5: 统一测试风格并验证
   - [x] SubTask 5.1: 确保常量命名、helper 函数与 `getWatchHistory` 新增测试风格一致
-  - [ ] SubTask 5.2: 在本地/CI 运行 `flutter test test/services/embbytok_service_test.dart`（当前环境无 Flutter SDK）
-  - [ ] SubTask 5.3: 运行 `flutter analyze` 确保无新增问题（当前环境无 Flutter SDK）
+  - [x] SubTask 5.2: 在本地运行 `flutter test test/services/embbytok_service_test.dart`（Flutter SDK 已安装，测试全部通过）
+  - [x] SubTask 5.3: 运行 `flutter analyze` 确保无新增问题（0 个 error，853 个 warning/info）
 
 # Task Dependencies
 - Task 2 依赖 Task 1

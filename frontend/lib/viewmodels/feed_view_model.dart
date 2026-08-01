@@ -58,6 +58,20 @@ class FeedViewModel {
   // 网格滚动保存防抖
   Timer? _gridScrollSaveTimer;
 
+  // 修复：防止 LibrarySelector 重复弹出。
+  // libraryListProvider 被 invalidate 后会重新加载并再次触发监听器，
+  // 若不拦截会导致弹窗无限循环（invalidate → reload → listen → showDialog → invalidate…）。
+  // 设计意图为「首次未配置时弹一次」，故用标记保证每个 FeedViewModel 实例只弹一次。
+  bool _librarySelectorShown = false;
+
+  // 保存 listenManual 订阅引用，dispose 时显式 close 避免内存泄漏
+  // 修复：ref.listen 只能在 build 中调用，init() 由 initState 触发，
+  // 必须改用 ref.listenManual（Riverpod 2.x）显式管理订阅生命周期
+  ProviderSubscription<PlaybackState>? _playbackStateSubscription;
+  ProviderSubscription<int?>? _pageJumpRequestSubscription;
+  ProviderSubscription<ViewMode>? _viewModeSubscription;
+  ProviderSubscription<AsyncValue<List<Library>>>? _libraryListSubscription;
+
   FeedViewModel(
     this._ref,
     this._playbackCoordinator, {
@@ -77,14 +91,15 @@ class FeedViewModel {
   void init() {
     _cloudService = _ref.read(embytokServiceProvider);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
-    _ref.listen(playbackStateProvider, (prev, next) {
+    // 修复：使用 listenManual 替代 listen，避免在 initState 中调用 ref.listen 触发断言
+    _playbackStateSubscription = _ref.listenManual(playbackStateProvider, (prev, next) {
       if (prev?.item != next.item) {
         _saveCloudSyncIfNeeded(next.item);
       }
     });
 
     // 监听外部跳页请求：全屏页等设置后跳到指定 index
-    _ref.listen<int?>(feedViewPageJumpRequestProvider, (prev, next) {
+    _pageJumpRequestSubscription = _ref.listenManual<int?>(feedViewPageJumpRequestProvider, (prev, next) {
       if (next != null && next != prev) {
         AppLogger.debug('外部请求跳页', data: {'index': next});
         final targetIndex = _playbackCoordinator.consumeJumpRequest();
@@ -96,17 +111,26 @@ class FeedViewModel {
 
     // 监听视图模式变化：feed↔grid 切换时的播放协调
     // 系统栏显隐是 UI 行为，由 View 层处理
-    _ref.listen<ViewMode>(viewModeProvider, (prev, next) {
+    _viewModeSubscription = _ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
       if (prev == null) return;
       _playbackCoordinator.handleViewModeChange(prev, next);
     });
 
     // 监听媒体库列表加载：首次未配置时弹选择器
-    _ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
+    // 使用 Future.microtask 延迟检查，让 feedLibraryConfiguredProvider 的异步 _load()
+    // 有机会完成。否则监听器读取的 configured 始终是初始值 false（_load 尚未完成），
+    // 导致已配置用户也弹出选择器
+    _libraryListSubscription = _ref.listenManual<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
       next.whenData((_) {
-        final configured = _ref.read(feedLibraryConfiguredProvider);
-        if (configured) return;
-        onShowLibrarySelector?.call();
+        if (_librarySelectorShown) return;
+        Future.microtask(() {
+          if (_librarySelectorShown) return;
+          final configured = _ref.read(feedLibraryConfiguredProvider);
+          // 已配置或已弹过一次则不再弹，避免 invalidate 导致的无限循环
+          if (configured) return;
+          _librarySelectorShown = true;
+          onShowLibrarySelector?.call();
+        });
       });
     });
   }
@@ -115,6 +139,11 @@ class FeedViewModel {
   void dispose() {
     _gridScrollSaveTimer?.cancel();
     _lastReportedItem = null;
+    // 显式取消 listenManual 订阅，避免内存泄漏
+    _playbackStateSubscription?.close();
+    _pageJumpRequestSubscription?.close();
+    _viewModeSubscription?.close();
+    _libraryListSubscription?.close();
   }
 
   // ==================== 路由跳转辅助 ====================
