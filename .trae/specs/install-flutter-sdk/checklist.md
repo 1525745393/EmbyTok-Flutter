@@ -1,0 +1,22 @@
+# Flutter SDK 本地环境安装 - 验证清单
+
+- [x] 任意新 shell 会话 `zsh -lc "which flutter"` 返回 `/opt/flutter/bin/flutter`，退出码为 0
+- [x] `flutter --version` 中 Flutter 版本号 `>= 3.10.0`，Dart 版本在 `[3.0.0, 4.0.0)` 区间（Flutter 3.44.8，Dart 3.12.2）
+- [x] `~/.zshrc` 与 `~/.profile` 中均包含 `PATH` 追加 `/opt/flutter/bin`，且重复执行安装不会导致 PATH 产生重复条目（最终 PATH 去重后仅 1 条）
+- [x] `ANDROID_HOME`、`ANDROID_SDK_ROOT`、`PUB_CACHE` 环境变量在新 shell 中可读且指向正确目录（均为用户级路径）
+- [x] 系统依赖已安装：`clang`、`cmake`、`ninja-build`、`pkg-config`、`libgtk-3-dev`、`liblzma-dev`、`libstdc++-12-dev`、`curl`、`unzip`、`git`、`xz-utils`（apt 确认均为最新版本）
+- [x] `flutter precache --android --linux` 退出码为 0，Dart SDK 二进制存在（`/opt/flutter/bin/cache/dart-sdk/bin/dart`）
+- [x] Android SDK 目录结构正确：`$HOME/Android/Sdk/cmdline-tools/latest/bin/sdkmanager` 可执行（版本 22.0）
+- [x] Android Platform 35 存在：`$HOME/Android/Sdk/platforms/android-35/android.jar` 文件存在（27MB）
+- [x] Android Build-Tools 35.x 存在：`$HOME/Android/Sdk/build-tools/35.*/aapt` 文件存在（35.0.0）
+- [x] `sdkmanager --list_installed` 的输出包含 `platforms;android-35` 与 `build-tools;35.0.0`
+- [x] `flutter doctor --android-licenses` 以非交互方式执行后无剩余许可证待接受（All SDK package licenses accepted）
+- [ ] `flutter doctor -v` 输出同时出现 `[✓] Flutter` 与 `[✓] Android toolchain`，且不包含 "Some Android licenses not accepted"
+- [ ] `flutter doctor -v` 中 `Android toolchain` 段包含 `Android SDK at $HOME/Android/Sdk` 或 `Platform android-35, build-tools 35` 文本
+- [ ] 在 `/workspace/frontend` 执行 `flutter pub get` 退出码为 0，`pubspec.lock` 存在
+- [ ] 在 `/workspace/frontend` 执行 `flutter analyze --no-pub` 能启动，若失败则失败原因为代码诊断而非 SDK 未配置
+- [ ] 在 `/workspace/frontend` 执行 `flutter test --no-pub --concurrency=1` 能启动并出现明确通过/失败统计文本，而非环境级报错
+- [ ] 在 `/workspace/frontend` 执行 `flutter build apk --debug --no-pub` 不因 Android SDK / licenses 缺失类报错终止
+- [ ] 完整重跑一次安装步骤后再次验证 PATH 重复条目计数为 1，Android SDK 不重新下载
+- [ ] `/tmp/flutter-env-snapshot.md` 生成并包含至少 6 项：Flutter 版本、Dart 版本、flutter doctor 摘要、sdkmanager 已安装列表、flutter analyze 摘要、flutter test 摘要
+- [ ] 本次安装未向仓库提交任何私有配置（`local.properties`、私钥、git 凭证等均未进入 git 追踪）
