@@ -10,6 +10,8 @@
           App 内容延伸到系统栏背后。
         - statusBarColor / navigationBarColor 在 Android 15+ 强制 edge-to-edge 时无效，
           保留仅为兼容 Android < 15 设备。
+        - 刘海屏 / 挖孔屏的 windowLayoutInDisplayCutoutMode 不在此处声明（API 28+
+          专属属性），由 values-v28/styles.xml 覆盖为 shortEdges，保证旧设备不受影响。
     -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">@drawable/launch_background</item>

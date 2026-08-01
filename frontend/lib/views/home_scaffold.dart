@@ -25,6 +25,7 @@ import 'package:video_player/video_player.dart';
 import '../providers/providers.dart';
 import '../services/video_pool_service.dart';
 import '../utils/constants.dart';
+import '../utils/safe_insets.dart';
 import 'feed_view.dart';
 import 'search_view.dart';
 import 'favorites_view.dart';
@@ -157,7 +158,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
     final pageNavState = ref.watch(pageNavigationProvider);
     // 监听工具栏可见性：用于驱动底部导航栏的折叠动画
     final toolbarVisible = ref.watch(toolbarVisibilityProvider);
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    // 底部留白取自 SafeInsets 而非 MediaQuery.padding：
+    // 沉浸式（immersiveSticky）下系统会把 MediaQuery.padding.bottom 置 0，
+    // 而物理手势条 / 导航栏依旧存在，导致从沉浸式视频返回首页时
+    // 底部导航栏高度突变跳动。SafeInsets 取 viewPadding.bottom，
+    // 在两种模式下都返回稳定的物理避让值，消除跳动。
+    final bottomPadding = SafeInsets.bottomOf(context);
     final scheme = Theme.of(context).colorScheme;
 
     // 当前显示的页面索引
@@ -238,9 +244,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                   // 路由透传：把 initialItemId 传给 FeedView 用于 jumpToPage
                   FeedView(initialItemId: widget.initialItemId),
                   // 索引 1: 收藏页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
+                  // 顶部 padding 同样用 SafeInsets.topOf 统一数据源：
+                  // 沉浸式下 MediaQuery.padding.top 被置 0，SafeInsets 取
+                  // viewPadding.top 保持稳定，避免模式切换时顶部留白抖动
                   Padding(
                     padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top,
+                      top: SafeInsets.topOf(context),
                       bottom: kBottomNavHeight + bottomPadding,
                     ),
                     child: const FavoritesView(),
@@ -248,7 +257,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                   // 索引 2: 演员页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top,
+                      top: SafeInsets.topOf(context),
                       bottom: kBottomNavHeight + bottomPadding,
                     ),
                     child: const ActorsView(),
@@ -256,7 +265,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                   // 索引 3: 设置页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top,
+                      top: SafeInsets.topOf(context),
                       bottom: kBottomNavHeight + bottomPadding,
                     ),
                     child: const SettingsView(),

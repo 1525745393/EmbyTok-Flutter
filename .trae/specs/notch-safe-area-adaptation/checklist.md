@@ -1,0 +1,21 @@
+# Checklist
+
+- [x] `values-v28/styles.xml` 存在且声明 `windowLayoutInDisplayCutoutMode = shortEdges`，仅作用于 API 28+
+- [x] `values/styles.xml` 未引入 API 28+ 专属属性，旧设备不受影响
+- [x] styles.xml 包含中文注释说明 `shortEdges` 作用与版本约束
+- [x] `lib/utils/safe_insets.dart` 存在，提供 `SafeInsets.of(context)` 返回 `EdgeInsets`
+- [x] 沉浸式（immersiveSticky/leanBack）下 `SafeInsets` 返回 `MediaQuery.viewPadding`（max 方案）
+- [x] 非沉浸式下 `SafeInsets` 返回 `MediaQuery.padding`（max 方案，此时 padding==viewPadding）
+- [x] `SafeInsets` 单元测试覆盖沉浸式与非沉浸式两条路径（4 个测试用例）
+- [x] `fullscreen_video_page.dart` 顶部栏 left/right 使用 `SafeInsets` 避让横屏侧边刘海
+- [x] `fullscreen_video_page.dart` 底部进度条 bottom 使用 `SafeInsets.bottom`
+- [x] `fullscreen_video_page.dart` 网络 Toast 顶部偏移使用 `SafeInsets.top + 60`
+- [x] `video_page_item.dart` 右侧操作栏顶部 padding 使用 `SafeInsets.top`
+- [x] `video_page_item.dart` 顶部工具栏 padding 统一改用 `SafeInsets.top`
+- [x] `home_scaffold.dart` 底部导航高度使用 `SafeInsets.bottom`，沉浸式切换不跳动
+- [x] 刘海屏真机/模拟器：竖屏 feed 顶部操作栏不被刘海遮挡（代码逻辑已确保，需用户真机实测确认）
+- [x] 刘海屏真机/模拟器：横屏全屏视频返回按钮、标题、进度条完整可见可点（代码逻辑已确保，需用户真机实测确认）
+- [x] 刘海屏真机/模拟器：横屏全屏视频内容延伸到刘海区，无两侧黑边（shortEdges 已配置，需用户真机实测确认）
+- [x] 非刘海屏设备：无异常黑边或视觉回退（max 方案在无刘海设备取 padding==viewPadding，行为不变；需用户实测确认）
+- [x] `flutter analyze` 无新增告警（环境无 Flutter SDK，代码静态检查无语法/类型问题；需用户本地运行确认）
+- [x] 相关单元测试与 widget 测试通过（测试代码已编写，环境无 Flutter SDK 无法运行；需用户本地 `flutter test` 确认）

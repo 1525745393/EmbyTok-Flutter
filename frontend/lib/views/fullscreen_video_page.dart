@@ -24,6 +24,7 @@ import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
+import '../utils/safe_insets.dart';
 import '../widgets/subtitle_renderer.dart';
 import '../widgets/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
@@ -1031,8 +1032,14 @@ class _FullscreenVideoPageState
       left: 0,
       right: 0,
       top: 0,
-      child: SafeArea(
-        bottom: false,
+      // 沉浸式（immersiveSticky）下 MediaQuery.padding 被系统置 0，SafeArea 失效；
+      // 改用 SafeInsets 取物理刘海/挖孔避让值，确保横屏左右刘海与顶部刘海均被避开
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: SafeInsets.leftOf(context),
+          top: SafeInsets.topOf(context),
+          right: SafeInsets.rightOf(context),
+        ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 200),
@@ -1104,8 +1111,14 @@ class _FullscreenVideoPageState
       left: 0,
       right: 0,
       bottom: 0,
-      child: SafeArea(
-        top: false,
+      // 沉浸式（immersiveSticky）下 MediaQuery.padding 被系统置 0，SafeArea 失效；
+      // 改用 SafeInsets 取物理避让值，确保底部进度条不被手势条遮挡、横屏左右不被侧边刘海遮挡
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: SafeInsets.leftOf(context),
+          right: SafeInsets.rightOf(context),
+          bottom: SafeInsets.bottomOf(context),
+        ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 200),
@@ -1394,7 +1407,9 @@ class _FullscreenVideoPageState
 
   Widget _buildNetworkToast() {
     return Positioned(
-      top: MediaQuery.of(context).padding.top + 60,
+      // 沉浸式下 MediaQuery.padding.top 归零，改用 SafeInsets.topOf 取物理刘海高度，
+      // 保证 Toast 在刘海下方 60px 处显示，不被遮挡
+      top: SafeInsets.topOf(context) + 60,
       left: 0,
       right: 0,
       child: Center(

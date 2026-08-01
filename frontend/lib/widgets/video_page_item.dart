@@ -4,6 +4,7 @@
 
 import 'dart:async';
 
+import '../utils/safe_insets.dart';
 import '../utils/safe_unawaited.dart';
 
 import 'package:flutter/material.dart';
@@ -769,7 +770,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 画面通过透明 FullscreenVideoPage 覆盖层显示，避免纹理释放/重新注册导致黑屏
     final isInFullscreen = ref.watch(isFullscreenProvider);
     final scheme = Theme.of(context).colorScheme;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    // 沉浸式（immersiveSticky）下 MediaQuery.padding 会被系统置 0，
+    // 但物理刘海 / 手势条仍存在，故用 SafeInsets 取物理避让值。
+    final bottomPadding = SafeInsets.bottomOf(context);
 
     final rs = (double base, [double maxScale = 1.7]) => responsiveSize(context, base, maxScale);
 
@@ -1301,7 +1304,8 @@ class _RightActionButtons extends ConsumerWidget {
         child: Container(
           padding: EdgeInsets.fromLTRB(
             0,
-            toolbarVisible ? MediaQuery.of(context).padding.top + rs(48) : rs(32),
+            // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
+            toolbarVisible ? SafeInsets.topOf(context) + rs(48) : rs(32),
             rs(6),
             toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
           ),
@@ -1551,7 +1555,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
           ),
           // 返回按钮
           Positioned(
-            top: MediaQuery.of(context).padding.top + 8,
+            // 顶部按钮需避开刘海（沉浸式下 padding 归零，用 SafeInsets 取物理高度）
+            top: SafeInsets.topOf(context) + 8,
             left: 8,
             child: IconButton(
               icon: Icon(Icons.arrow_back, color: scheme.onSurface),
@@ -1561,7 +1566,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
           // 当前位置指示器
           if (_items.length > 1)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
+              // 同样需避开顶部刘海
+              top: SafeInsets.topOf(context) + 8,
               right: 16,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
