@@ -1247,11 +1247,12 @@ class _FullscreenVideoPageState
   }
 
   Widget _buildSettingsPanel(VideoPlayerController controller) {
+    // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
+    final safeInsets = SafeInsets.of(context);
     return Positioned(
-      right: 16,
-      bottom: 100,
-      child: SafeArea(
-        child: AnimatedOpacity(
+      right: 16 + safeInsets.right,
+      bottom: 100 + safeInsets.bottom,
+      child: AnimatedOpacity(
           opacity: _showSettingsPanel ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 200),
           child: Container(
@@ -1271,7 +1272,6 @@ class _FullscreenVideoPageState
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -1366,12 +1366,13 @@ class _FullscreenVideoPageState
   }
 
   Widget _buildLockUI() {
+    // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
+    final safeInsets = SafeInsets.of(context);
     return Positioned(
-      left: 12,
-      top: 0,
-      bottom: 0,
-      child: SafeArea(
-        child: Center(
+      left: 12 + safeInsets.left,
+      top: safeInsets.top,
+      bottom: safeInsets.bottom,
+      child: Center(
           child: GestureDetector(
             onTap: _unlockScreen,
             child: Container(
@@ -1401,7 +1402,6 @@ class _FullscreenVideoPageState
             ),
           ),
         ),
-      ),
     );
   }
 
