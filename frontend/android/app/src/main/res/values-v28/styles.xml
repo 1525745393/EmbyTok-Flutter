@@ -6,16 +6,26 @@
     - windowLayoutInDisplayCutoutMode = shortEdges 让窗口内容延伸到刘海 /
       挖孔区域，配合 Flutter 端 SafeInsets（取 viewPadding）对交互控件做避让，
       避免横屏全屏视频出现两侧黑边或控件被刘海物理遮挡。
+    - 注意：不能使用 parent="@style/LaunchTheme" 继承自身，否则会触发
+      Lint ResourceCycle 错误导致构建失败。此处完整复制 values/styles.xml
+      中的主题属性并追加 cutout 模式项。
     - 仅在此文件（values-v28）声明该属性，values/styles.xml 不声明，
       确保运行在 API < 28 的设备上不会因未知属性导致编译或运行异常。
-    - 继承 values/styles.xml 中的同名主题，仅追加 cutout 模式一项。
 -->
 <resources>
-    <style name="LaunchTheme" parent="@style/LaunchTheme">
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
-    <style name="NormalTheme" parent="@style/NormalTheme">
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>
