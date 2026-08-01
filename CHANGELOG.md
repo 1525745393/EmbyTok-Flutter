@@ -1,3 +1,10 @@
+## [2.30.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.1...v2.30.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* compileSdk 升级到 35 消除插件兼容性警告 ([05474bc](https://github.com/1525745393/EmbyTok-Flutter/commit/05474bc9191cacf795cc754f7daa0c498968cac2))
+
 ## [2.30.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.0...v2.30.1) (2026-08-01)
 
 
