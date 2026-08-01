@@ -1,3 +1,10 @@
+## [2.30.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.2...v2.30.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* 全屏页设置面板和锁屏按钮改用 SafeInsets 避让刘海 ([b611b14](https://github.com/1525745393/EmbyTok-Flutter/commit/b611b141b08bd729f9e5ecf22ba722430cadff95))
+
 ## [2.30.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.1...v2.30.2) (2026-08-01)
 
 
