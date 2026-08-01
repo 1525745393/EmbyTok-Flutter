@@ -8,6 +8,16 @@ import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/services/api_client.dart';
 import 'package:embytok_flutter/services/embytok_service.dart';
 
+// 辅助：构造 AppError 断言 Matcher，统一匹配 AppError 的 message 字段
+TypeMatcher<AppError> _throwsAppError({
+  required String message,
+  bool partialMatch = false,
+}) {
+  final msgMatcher =
+      partialMatch ? contains(message) : equals(message);
+  return isA<AppError>().having((e) => e.message, 'message', msgMatcher);
+}
+
 void main() {
   late Dio dio;
   late DioAdapter dioAdapter;
@@ -209,7 +219,7 @@ void main() {
       }
 
       Map<String, dynamic> buildFavoritePeopleQuery({
-        int limit = 100,
+        int limit = 50,
         int offset = 0,
       }) {
         return <String, dynamic>{
@@ -259,7 +269,7 @@ void main() {
           token: testToken,
         );
 
-        expect(result, isEmpty);
+        expect(result.items, isEmpty);
       });
 
       test('API错误时抛出异常', () async {
@@ -273,7 +283,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('Token已过期')),
+          throwsA(_throwsAppError(message: 'Token已过期')),
         );
       });
     });
@@ -291,7 +301,7 @@ void main() {
           'Recursive': 'true',
           'PersonIds': personId,
           'Fields':
-              'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+              'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
         };
       }
 

@@ -153,11 +153,14 @@ void main() {
 
   group('黑名单计算', () {
     test('同一 item 3 次低完播率（< 0.2）→ 加入黑名单', () {
-      final records = [
+      final records = <WatchRecord>[
         _recordAgo(id: 'bad1', rate: 0.1, daysAgo: 1, source: 'feed'),
         _recordAgo(id: 'bad1', rate: 0.15, daysAgo: 2, source: 'feed'),
         _recordAgo(id: 'bad1', rate: 0.18, daysAgo: 3, source: 'feed'),
       ];
+      // 加 2 条 filler 满足 _minRecordsForSignal (5)
+      records.addAll(List.generate(
+          2, (i) => _recordAgo(id: 'filler$i', rate: 0.5, daysAgo: i + 4, source: 'feed')));
       final signal =
           UserBehaviorSignalCalculator.compute(records, now: _refNow);
       expect(signal.blacklist.contains('bad1'), true);

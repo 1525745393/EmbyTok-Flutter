@@ -408,7 +408,13 @@ void main() {
       final gestureArea = find.byType(_GestureTestWidget);
       final rightSide = tester.getTopRight(gestureArea) + const Offset(-50, 300);
 
-      await tester.dragFrom(rightSide, const Offset(0, -100));
+      // 分两次 moveBy：第一次触发 dragAxis 判定，第二次触发音量调节
+      final gesture = await tester.startGesture(rightSide);
+      await gesture.moveBy(const Offset(0, -50));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -50));
+      await tester.pump();
+      await gesture.up();
       await tester.pump();
 
       verify(() => mockController.setVolume(any())).called(greaterThan(0));
@@ -680,25 +686,35 @@ class _GestureTestWidgetState extends State<_GestureTestWidget>
     // 模拟 GestureOverlay 的手势识别器构建逻辑
     // 保留与生产代码一致的手势回调注册
     final usePan = widget.enableVerticalVolumeDrag;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: handleTapDown,
-      onTap: handleTap,
-      onLongPressStart: widget.enableGestures ? onLongPressStart : null,
-      onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
-      onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
-      onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
-      onPanEnd: (widget.enableGestures && usePan) ? onPanEnd : null,
-      onPanCancel: (widget.enableGestures && usePan) ? onPanCancel : null,
-      onHorizontalDragStart:
-          (widget.enableGestures && !usePan) ? onHorizontalDragStart : null,
-      onHorizontalDragUpdate:
-          (widget.enableGestures && !usePan) ? onHorizontalDragUpdate : null,
-      onHorizontalDragEnd:
-          (widget.enableGestures && !usePan) ? onHorizontalDragEnd : null,
-      onHorizontalDragCancel:
-          (widget.enableGestures && !usePan) ? onHorizontalDragCancel : null,
-      child: const ColoredBox(color: Colors.black),
+    // 占满父容器尺寸，确保手势区域不为 0
+    return SizedBox.expand(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: handleTapDown,
+        onTap: handleTap,
+        onLongPressStart: widget.enableGestures ? onLongPressStart : null,
+        onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
+        onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
+        onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
+        onPanEnd: (widget.enableGestures && usePan) ? onPanEnd : null,
+        onPanCancel: (widget.enableGestures && usePan) ? onPanCancel : null,
+        onHorizontalDragStart:
+            (widget.enableGestures && !usePan) ? onHorizontalDragStart : null,
+        onHorizontalDragUpdate:
+            (widget.enableGestures && !usePan) ? onHorizontalDragUpdate : null,
+        onHorizontalDragEnd:
+            (widget.enableGestures && !usePan) ? onHorizontalDragEnd : null,
+        onHorizontalDragCancel:
+            (widget.enableGestures && !usePan) ? onHorizontalDragCancel : null,
+        child: const ColoredBox(color: Colors.black),
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    // 清理 VideoGestureMixin 中的定时器，避免测试泄漏
+    disposeGestureTimers();
+    super.dispose();
   }
 }

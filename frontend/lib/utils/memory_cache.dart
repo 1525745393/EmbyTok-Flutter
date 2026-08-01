@@ -272,6 +272,23 @@ class MemoryCache<T> {
     return true;
   }
 
+  /// 判断缓存条目是否存在（不关心值，用于区分 "没有缓存" 和 "缓存值为 null"）
+  ///
+  /// - key 不存在 → false
+  /// - key 存在但已过期 → false（并清理该条目）
+  /// - key 存在且未过期 → true（无论 value 是否为 null）
+  ///
+  /// 不记录统计，不影响 LRU 顺序。
+  bool hasEntry(String key) {
+    final entry = _cache[key];
+    if (entry == null) return false;
+    if (entry.isExpired) {
+      _removeEntry(key);
+      return false;
+    }
+    return true;
+  }
+
   /// 移除单个条目（同时从 cache 和 accessOrder 中删除）
   void _removeEntry(String key) {
     _cache.remove(key);

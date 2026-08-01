@@ -1,9 +1,20 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
+import 'package:http_mock_adapter/src/matchers/matchers.dart' as http_match show Matchers;
 import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/services/api_client.dart';
 import 'package:embytok_flutter/services/embytok_service.dart';
+
+// 辅助：构造 AppError 断言 Matcher，统一匹配 AppError 的 message 字段
+TypeMatcher<AppError> _throwsAppError({
+  required String message,
+  bool partialMatch = false,
+}) {
+  final msgMatcher =
+      partialMatch ? contains(message) : equals(message);
+  return isA<AppError>().having((e) => e.message, 'message', msgMatcher);
+}
 
 void main() {
   late Dio dio;
@@ -152,7 +163,7 @@ void main() {
       test('登录失败抛出异常', () async {
         dioAdapter.onPost('/Users/AuthenticateByName', (server) => server.reply(401, {
           'detail': '用户名或密码错误',
-        }));
+        }), data: http_match.Matchers.any);
 
         expect(
           () => service.login(
@@ -160,7 +171,7 @@ void main() {
             username: 'wronguser',
             password: 'wrongpass',
           ),
-          throwsA(equals('用户名或密码错误')),
+          throwsA(_throwsAppError(message: '用户名或密码错误')),
         );
       });
     });
@@ -231,7 +242,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(contains('服务器错误')),
+          throwsA(_throwsAppError(message: '服务器错误', partialMatch: true)),
         );
       });
     });
@@ -320,7 +331,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('媒体库不存在')),
+          throwsA(_throwsAppError(message: '媒体库不存在')),
         );
       });
     });
@@ -383,7 +394,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('媒体项不存在')),
+          throwsA(_throwsAppError(message: '媒体项不存在')),
         );
       });
     });
@@ -467,7 +478,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('搜索关键词不能为空')),
+          throwsA(_throwsAppError(message: '搜索关键词不能为空')),
         );
       });
     });
@@ -522,7 +533,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(contains('服务器错误')),
+          throwsA(_throwsAppError(message: '服务器错误', partialMatch: true)),
         );
       });
     });
@@ -580,7 +591,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('媒体项不存在')),
+          throwsA(_throwsAppError(message: '媒体项不存在')),
         );
       });
     });
@@ -625,7 +636,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('Token 已过期')),
+          throwsA(_throwsAppError(message: 'Token 已过期')),
         );
       });
     });
@@ -653,7 +664,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(contains('服务器错误')),
+          throwsA(_throwsAppError(message: '服务器错误', partialMatch: true)),
         );
       });
     });
@@ -681,7 +692,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('无权限操作')),
+          throwsA(_throwsAppError(message: '无权限操作')),
         );
       });
     });
@@ -817,7 +828,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('网络连接失败，请检查服务器地址')),
+          throwsA(_throwsAppError(message: '网络连接失败，请检查服务器地址')),
         );
       });
 
@@ -830,7 +841,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(equals('Token 已过期')),
+          throwsA(_throwsAppError(message: 'Token 已过期')),
         );
       });
 
@@ -843,7 +854,7 @@ void main() {
             serverUrl: testEmbyUrl,
             token: testToken,
           ),
-          throwsA(contains('服务器错误')),
+          throwsA(_throwsAppError(message: '服务器错误', partialMatch: true)),
         );
       });
     });

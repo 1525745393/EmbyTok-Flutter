@@ -71,15 +71,16 @@ void main() {
     });
 
     test('TTL 过期后条目会被从缓存中移除（不占用容量）', () async {
-      cache = MemoryCache<String>(maxSize: 2);
+      // maxSize=3：a 过期后剩余 b（1 个有效条目）
+      // 再插入 c、d（共 3 个有效条目）刚好不超容量，b 不应被淘汰
+      cache = MemoryCache<String>(maxSize: 3);
 
       cache.set('a', '1', ttl: const Duration(milliseconds: 50));
       cache.set('b', '2');
 
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // a 已过期，现在缓存只有 1 个有效条目
-      // 再插入 2 个新条目应该都能放进去
+      // a 已过期且会被 _cleanExpired 清理，不占用容量
       cache.set('c', '3');
       cache.set('d', '4');
 

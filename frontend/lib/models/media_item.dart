@@ -5,6 +5,24 @@ import 'person.dart';
 import 'subtitle_track.dart';
 import 'user_data.dart';
 
+// 类型安全转换：将动态值解析为 int，支持 String 形式的数字（如 "2023"）
+// 避免脏数据导致 type 'String' is not a subtype of type 'int?' 崩溃
+int? _parseIntDynamic(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+// 类型安全转换：将动态值解析为 num，支持 String 形式的数字（如 "8.5"）
+num? _parseNumDynamic(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value);
+  return null;
+}
+
 class MediaItem {
   // 基本信息
   final String id;
@@ -88,33 +106,36 @@ class MediaItem {
     final seriesId = (json['SeriesId'] as String?) ??
         (json['series_id'] as String?) ??
         (json['seriesId'] as String?);
-    final indexNumber = (json['IndexNumber'] as int?) ??
-        (json['index_number'] as int?) ??
-        (json['indexNumber'] as int?);
-    final parentIndexNumber = (json['ParentIndexNumber'] as int?) ??
-        (json['parent_index_number'] as int?) ??
-        (json['parentIndexNumber'] as int?);
+    // 类型安全：IndexNumber 字段可能是字符串数字（如脏数据），需降级处理避免崩溃
+    final indexNumber = _parseIntDynamic(json['IndexNumber']) ??
+        _parseIntDynamic(json['index_number']) ??
+        _parseIntDynamic(json['indexNumber']);
+    final parentIndexNumber = _parseIntDynamic(json['ParentIndexNumber']) ??
+        _parseIntDynamic(json['parent_index_number']) ??
+        _parseIntDynamic(json['parentIndexNumber']);
 
     // 年份
-    final productionYear = (json['ProductionYear'] as int?) ??
-        (json['production_year'] as int?) ??
-        (json['year'] as int?) ??
-        (json['year'] as int?);
+    final productionYear = _parseIntDynamic(json['ProductionYear']) ??
+        _parseIntDynamic(json['production_year']) ??
+        _parseIntDynamic(json['year']);
 
     // 评分
-    final communityRating = (json['CommunityRating'] as num?)?.toDouble() ??
-        (json['community_rating'] as num?)?.toDouble() ??
-        (json['communityRating'] as num?)?.toDouble() ??
-        (json['rating'] as num?)?.toDouble();
+    final communityRatingNum = _parseNumDynamic(json['CommunityRating']) ??
+        _parseNumDynamic(json['community_rating']) ??
+        _parseNumDynamic(json['communityRating']) ??
+        _parseNumDynamic(json['rating']);
+    final communityRating = communityRatingNum?.toDouble();
 
     // 时长
-    final runtimeTicks = json['RunTimeTicks'] as int? ??
-        json['run_time_ticks'] as int? ??
-        json['runtimeTicks'] as int?;
+    // 类型安全：RunTimeTicks 可能是字符串数字，需降级处理
+    final runtimeTicks = _parseIntDynamic(json['RunTimeTicks']) ??
+        _parseIntDynamic(json['run_time_ticks']) ??
+        _parseIntDynamic(json['runtime_ticks']) ??
+        _parseIntDynamic(json['runtimeTicks']);
     final runtimeSec = runtimeTicks != null
         ? runtimeTicks / 10000000.0
-        : (json['duration_seconds'] as num?)?.toDouble() ??
-            (json['durationSeconds'] as num?)?.toDouble();
+        : (_parseNumDynamic(json['duration_seconds']) ??
+            _parseNumDynamic(json['durationSeconds']))?.toDouble();
 
     // 简介
     final overview = (json['Overview'] as String?) ??
@@ -123,8 +144,11 @@ class MediaItem {
     // 类型
     List<String>? genres;
     List<String>? genreNames;
-    final genresDynamic = json['Genres'] as List<dynamic>? ??
-        json['genres'] as List<dynamic>?;
+    // 类型安全：Genres 字段可能不是 List（如脏数据返回 String），需降级处理避免崩溃
+    final genresDynamic = (json['Genres'] is List
+            ? json['Genres'] as List<dynamic>
+            : null) ??
+        (json['genres'] is List ? json['genres'] as List<dynamic> : null);
     if (genresDynamic != null) {
       genreNames = genresDynamic.map((e) => e.toString()).toList();
       genres = genreNames;
@@ -151,8 +175,14 @@ class MediaItem {
 
     // 图片 tags
     Map<String, String>? imageTags;
-    final imageTagsDynamic = json['ImageTags'] as Map<String, dynamic>? ??
-        json['image_tags'] as Map<String, dynamic>?;
+    // 类型安全：ImageTags 字段可能不是 Map（如脏数据返回 String），需降级处理避免崩溃
+    final imageTagsDynamic =
+        (json['ImageTags'] is Map<String, dynamic>
+                ? json['ImageTags'] as Map<String, dynamic>
+                : null) ??
+            (json['image_tags'] is Map<String, dynamic>
+                ? json['image_tags'] as Map<String, dynamic>
+                : null);
     if (imageTagsDynamic != null && imageTagsDynamic.isNotEmpty) {
       final tags = <String, String>{};
       imageTagsDynamic.forEach((key, value) {
@@ -184,8 +214,14 @@ class MediaItem {
     }
 
     // 用户数据
-    final userDataDynamic = json['UserData'] as Map<String, dynamic>? ??
-        json['user_data'] as Map<String, dynamic>?;
+    // 类型安全：UserData 字段可能不是 Map（如脏数据返回 String），需降级处理避免崩溃
+    final userDataDynamic =
+        (json['UserData'] is Map<String, dynamic>
+                ? json['UserData'] as Map<String, dynamic>
+                : null) ??
+            (json['user_data'] is Map<String, dynamic>
+                ? json['user_data'] as Map<String, dynamic>
+                : null);
     final userData = userDataDynamic != null
         ? UserData.fromJson(userDataDynamic)
         : null;

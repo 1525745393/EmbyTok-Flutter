@@ -100,7 +100,9 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   // ==================== 单击/双击 ====================
 
   void handleTap() {
-    if (!gesturesEnabled) return;
+    // 注意：单击始终允许执行（即便 gesturesEnabled=false）
+    // 这是为了让 enableGestures=false 时用户仍可通过点击呼出控制栏
+    // 其他手势（长按/拖动等）仍受 gesturesEnabled 开关控制
     if (isDragging) return;
     if (_pendingSingleTap) {
       _singleTapTimer?.cancel();

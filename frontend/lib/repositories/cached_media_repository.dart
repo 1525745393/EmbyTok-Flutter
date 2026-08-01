@@ -322,20 +322,26 @@ class CachedMediaRepository implements MediaRepository {
   /// 1. 新鲜命中 → 直接返回
   /// 2. 过期命中 → 返回过期数据 + 后台异步刷新
   /// 3. 完全未命中 → 同步等待获取
+  ///
+  /// 支持 null 值缓存：使用 hasEntry 区分 "key 不存在" 和 "value 为 null"，
+  /// 避免 getPersonDetail 返回 null 时每次都触发网络请求。
   Future<T> _withCache<T>(
     MemoryCache<T> cache,
     String key,
     Future<T> Function() fetcher, {
     Duration? ttl,
   }) async {
+    // 1. 判断是否有缓存（包括值为 null 的条目）
+    final hasCached = cache.hasEntry(key);
     final staleValue = cache.getStale(key);
-    if (staleValue != null) {
+    if (hasCached || staleValue != null) {
+      // 有缓存条目：判断是否过期
       if (!cache.isExpired(key)) {
-        return staleValue;
+        return staleValue as T;
       }
-      // 过期命中：返回旧数据 + 后台刷新
+      // 过期命中：返回旧数据 + 后台刷新（null 值同样适用）
       _refreshInBackground(cache, key, fetcher, ttl: ttl);
-      return staleValue;
+      return staleValue as T;
     }
     // 未命中：同步获取
     final result = await fetcher();
