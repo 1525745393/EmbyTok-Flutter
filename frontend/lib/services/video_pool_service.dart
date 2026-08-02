@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
+import '../utils/constants.dart';
 import '../utils/safe_unawaited.dart';
 import '../utils/logger.dart';
 
@@ -51,7 +52,7 @@ class PlaybackSession {
 /// - `evictExcept()`: 清理距离当前索引较远的会话
 /// - `invalidate()`: Token 变更或退出登录时清理全部
 class VideoPoolService {
-  VideoPoolService({this.maxSize = 1})
+  VideoPoolService({this.maxSize = kMaxPreloadControllers})
       : assert(maxSize >= 1, 'maxSize must be >= 1');
 
   /// 池中最多同时活跃的控制器数量（不含当前正在播放的那个）
@@ -158,7 +159,7 @@ class VideoPoolService {
             httpHeaders: headers,
           );
           await controller.initialize().timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: kVideoPreloadInitTimeoutSec),
             onTimeout: () {
               throw TimeoutException('preload initialize timeout');
             },
@@ -258,7 +259,7 @@ class VideoPoolService {
     _sessions.clear();
     _accessOrder.clear();
 
-    const batchSize = 2;
+    const int batchSize = kVideoPoolDisposeBatchSize;
     for (var i = 0; i < sessions.length; i += batchSize) {
       final end = (i + batchSize < sessions.length) ? i + batchSize : sessions.length;
       for (var j = i; j < end; j++) {

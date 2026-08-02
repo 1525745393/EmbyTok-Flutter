@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/constants.dart';
 import '../utils/safe_unawaited.dart';
 import '../utils/app_preferences.dart' show ViewMode;
 import '../utils/logger.dart';
@@ -193,14 +194,14 @@ class PlaybackCoordinator {
   /// 最多约 5 秒（50 次），超时放弃。
   void _waitForInitialItemViaTimer(String itemId, {required int tick}) {
     _waitTimer?.cancel();
-    _waitTimer = Timer(const Duration(milliseconds: 100), () {
+    _waitTimer = Timer(const Duration(milliseconds: kInitialItemPollIntervalMs), () {
       _tickInitialItem(itemId, tick: tick);
     });
   }
 
   void _tickInitialItem(String itemId, {required int tick}) {
     // 最多等待约 5 秒（50 次 × 100ms），超时则放弃
-    if (tick > 50) {
+    if (tick > kInitialItemPollMaxRetries) {
       AppLogger.error('路由初始项：等待目标视频超时', data: {'itemId': itemId});
       _processedInitialItemId = null;
       return;

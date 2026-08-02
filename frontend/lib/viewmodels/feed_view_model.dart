@@ -49,7 +49,7 @@ class FeedViewModel {
   final void Function(String message, {String? actionLabel, void Function()? onAction})? onShowSnackBar;
   final void Function()? onOpenFullscreen; // 打开全屏页
   final void Function()? onShowLibrarySelector; // 显示媒体库选择器
-  final void Function(bool visible)? onUpdateHelpVisibility; // 更新帮助面板显隐
+  final void Function()? onUpdateHelpVisibility; // 更新帮助面板显隐
 
   // 云同步相关
   late final EmbytokService _cloudService;
@@ -215,7 +215,7 @@ class FeedViewModel {
       case LogicalKeyboardKey.slash:
         final isVisible = _ref.read(feedHelpVisibleProvider);
         _ref.read(feedHelpVisibleProvider.notifier).state = !isVisible;
-        onUpdateHelpVisibility?.call(!isVisible);
+        onUpdateHelpVisibility?.call();
         return true;
       default:
         return false;

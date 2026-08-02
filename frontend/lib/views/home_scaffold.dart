@@ -182,7 +182,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
         }
 
         // 在 Feed 之外的 Tab 上按返回键，先回到 Feed
-        if (currentIndex != PageIndices.feed && currentIndex != PageIndices.search && currentIndex != PageIndices.history) {
+        if (currentIndex != PageIndices.feed) {
           ref.read(pageNavigationNotifierProvider).goToPage(PageIndices.feed);
           return;
         }

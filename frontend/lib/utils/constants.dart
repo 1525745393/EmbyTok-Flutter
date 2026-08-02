@@ -123,6 +123,27 @@ const double kDefaultPreloadThreshold = 0.6;
 const int kMaxPreloadControllers = 1;
 const int kPreloadFirstChunkBytes = 1048576; // 1MB
 
+/// PlaybackCoordinator 初始 item 轮询间隔（ms）
+/// 用于等待 playbackListProvider 初始化完成的轮询周期
+const int kInitialItemPollIntervalMs = 100;
+
+/// PlaybackCoordinator 初始 item 轮询重试上限
+/// 50 次 * 100ms = 约 5 秒超时（避免 playbackListProvider 永远不就绪时卡死）
+const int kInitialItemPollMaxRetries = 50;
+
+/// VideoPoolService disposeAll 分批释放每批数量
+/// 每批 dispose 2 个 controller，批次间让出主线程给 GC，避免低端设备卡顿/OOM
+const int kVideoPoolDisposeBatchSize = 2;
+
+/// 预加载 VideoPlayerController 初始化超时（秒）
+/// 预加载时 controller 初始化最长等待时间，超过则降级下一级播放协议
+/// 注意：该值比 kLoadTimeoutSeconds(8s) 略长是因为预加载在后台，允许更宽限
+const int kVideoPreloadInitTimeoutSec = 12;
+
+/// 全屏进入/退出过渡动画时长（ms）
+/// 从底部滑入动画的时长，略长于工具栏动画(kToolbarAnimMs=200)以获得更自然的感知
+const int kFullscreenTransitionMs = 300;
+
 // 错误重试参数
 const int kMaxRetryAttempts = 3;
 const int kLoadTimeoutSeconds = 8;

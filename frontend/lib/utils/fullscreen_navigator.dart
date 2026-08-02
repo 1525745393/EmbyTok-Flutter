@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
+import 'constants.dart';
 import '../views/fullscreen_video_page.dart';
 
 /// 统一的全屏导航工具
@@ -72,7 +73,7 @@ class FullscreenNavigator {
       barrierDismissible: false,
       barrierLabel: 'fullscreen',
       barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: const Duration(milliseconds: kFullscreenTransitionMs),
       transitionBuilder: (_, animation, __, child) {
         // 从底部滑入过渡，与 fullscreenDialog 行为一致
         return SlideTransition(

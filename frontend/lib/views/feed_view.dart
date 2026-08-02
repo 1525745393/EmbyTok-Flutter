@@ -68,6 +68,12 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 修复：ref.listen 只能在 build 中调用，initState 中必须用 ref.listenManual
   ProviderSubscription<ViewMode>? _viewModeSubscription;
 
+  // 防止多次 rebuild 重复触发 initialItemId 处理
+  bool _initialItemProcessed = false;
+
+  // 防止多次 rebuild 重复触发首 item 播放初始化
+  bool _firstItemInitProcessed = false;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -86,7 +92,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       onShowSnackBar: _showSnackBar,
       onOpenFullscreen: _openFullscreenPage,
       onShowLibrarySelector: () => LibrarySelector.show(context, scope: LibraryScope.feed),
-      onUpdateHelpVisibility: (visible) {
+      onUpdateHelpVisibility: () {
         if (mounted) setState(() {});
       },
     );
@@ -123,16 +129,46 @@ class _FeedViewState extends ConsumerState<FeedView>
     }
 
     // 监听 PageView 滚动状态，用于快速滑动时立即释放非当前页 controller
-    // hasClients 检查：PageView 未挂载时 position 不可访问
-    if (_pageController.hasClients) {
-      _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
-    }
+    // 延迟到首帧后注册：initState 时 PageView 尚未 build，hasClients 必为 false
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pageController.hasClients) {
+        _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
+      }
+    });
+
+    // 从 build 树移出的副作用：initialItemId 跳转 + 首 item 播放初始化
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // 1. 路由透传 initialId 跳转
+      final initialId = widget.initialItemId;
+      if (initialId != null && initialId.isNotEmpty && !_initialItemProcessed) {
+        _initialItemProcessed = true;
+        _viewModel.waitForInitialItem(initialId);
+      }
+
+      // 2. 首 item 播放初始化：延迟确保 videoState 已加载
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted) return;
+      if (_firstItemInitProcessed) return;
+      final videoState = ref.read(videoListProvider);
+      final playbackState = ref.read(playbackStateProvider);
+      if (videoState.items.isNotEmpty && playbackState.id == null) {
+        _firstItemInitProcessed = true;
+        final firstItem = videoState.items.first;
+        ref.read(playbackStateProvider.notifier).setPlaying(firstItem.id, firstItem);
+      }
+    });
   }
 
   @override
   void dispose() {
-    if (_pageController.hasClients) {
-      _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
+    try {
+      if (_pageController.hasClients) {
+        _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
+      }
+    } catch (_) {
+      // dispose 时 position 可能已被 Flutter 清理，忽略错误
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _pageChangeDebounce?.cancel();
@@ -195,8 +231,12 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // PageView 滚动状态变化回调：快速滑动时立即释放非当前页 controller
   void _onScrollingChanged() {
-    ref.read(isPageScrollingProvider.notifier).state =
-        _pageController.position.isScrollingNotifier.value;
+    try {
+      final isScrolling = _pageController.position.isScrollingNotifier.value;
+      ref.read(isPageScrollingProvider.notifier).state = isScrolling;
+    } catch (_) {
+      // dispose 后访问 position 可能抛错，忽略
+    }
   }
 
   // ==================== 沉浸式系统栏控制（纯 UI 行为） ====================
@@ -524,25 +564,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       return EmptyStateCard.noVideos();
     }
 
-    // 路由透传 initialId 跳转
-    final initialId = widget.initialItemId;
-    if (initialId != null && initialId.isNotEmpty) {
-      _viewModel.waitForInitialItem(initialId);
-    }
-
     final auth = ref.read(authProvider);
     final embyServerUrl = auth.embyServerUrl;
     final token = auth.token;
-
-    // 首次加载：items 可用但 playbackState 尚未初始化时，设置第一个 item 为当前播放项
-    if (videoState.items.isNotEmpty && ref.read(playbackStateProvider).id == null) {
-      final firstItem = videoState.items[0];
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && ref.read(playbackStateProvider).id == null) {
-          ref.read(playbackStateProvider.notifier).setPlaying(firstItem.id, firstItem);
-        }
-      });
-    }
 
     return PageView.builder(
       controller: _pageController,

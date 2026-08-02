@@ -42,7 +42,7 @@ class PageNavigationState {
   /// 真正的"Feed 不可见"是切到 Favorites/Actors/Settings 等其他 Tab。
   ///
   /// HomeScaffold 用此判定是否需要暂停 Feed 中的视频播放。
-  bool get isFeedVisible => currentIndex == PageIndices.feed;
+  bool get isFeedVisible => isOverlayPage || currentIndex == PageIndices.feed;
 }
 
 // 页面导航 Notifier
