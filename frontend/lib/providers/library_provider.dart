@@ -273,10 +273,17 @@ final recommendLibrariesProvider = Provider<List<Library>>((ref) {
 
 class _BoolConfigNotifier extends StateNotifier<bool> {
   _BoolConfigNotifier(this._storageKey) : super(false) {
-    _load();
+    _loadFuture = _load();
   }
 
   final String _storageKey;
+
+  /// 异步加载的 Future，供外部调用方等待 _load() 完成
+  /// 避免读取到初始值 false（_load 尚未完成时）
+  late Future<void> _loadFuture;
+
+  /// 确保异步加载已完成，调用方可 await 此方法后再读取 state
+  Future<void> ensureLoaded() => _loadFuture;
 
   Future<void> _load() async {
     try {

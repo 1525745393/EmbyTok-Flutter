@@ -121,17 +121,19 @@ class FeedViewModel {
     });
 
     // 监听媒体库列表加载：首次未配置时弹选择器
-    // 使用 Future.microtask 延迟检查，让 feedLibraryConfiguredProvider 的异步 _load()
-    // 有机会完成。否则监听器读取的 configured 始终是初始值 false（_load 尚未完成），
-    // 导致已配置用户也弹出选择器
+    // 修复：_BoolConfigNotifier 初始值为 false，_load() 是异步 I/O，
+    // 必须用 ensureLoaded() 等待 _load() 完成后再读取 state。
+    // 之前用 Future.microtask 不等异步 I/O，导致每次启动都读到 false → 重复弹窗
     _libraryListSubscription = _ref.listenManual<AsyncValue<List<Library>>>(
         libraryListProvider, (prev, next) {
       next.whenData((_) {
         if (_librarySelectorShown) return;
-        Future.microtask(() {
+        _ref
+            .read(feedLibraryConfiguredProvider.notifier)
+            .ensureLoaded()
+            .then((_) {
           if (_librarySelectorShown) return;
           final configured = _ref.read(feedLibraryConfiguredProvider);
-          // 已配置或已弹过一次则不再弹，避免 invalidate 导致的无限循环
           if (configured) return;
           _librarySelectorShown = true;
           onShowLibrarySelector?.call();

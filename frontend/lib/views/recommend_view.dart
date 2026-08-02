@@ -42,14 +42,15 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     _scrollController = ScrollController()..addListener(_onScroll);
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
-    // 使用 ref.listenManual 而非 ref.listen：ref.listen 在 initState 中
-    // 会触发 debugDoingBuild 断言（flutter_riverpod 2.5+ 限制），
-    // ref.listenManual 专为 initState / 生命周期方法设计
+    // 修复：用 ensureLoaded() 等待 _load() 异步 I/O 完成，
+    // 而非 addPostFrameCallback（后者不等异步 I/O，会读到初始值 false）
     ref.listenManual<AsyncValue<List<Library>>>(libraryListProvider,
         (prev, next) {
       next.whenData((_) {
-        // 等到下一帧再弹，避免 build 期间触发 setState
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(recommendLibraryConfiguredProvider.notifier)
+            .ensureLoaded()
+            .then((_) {
           if (!mounted) return;
           final configured = ref.read(recommendLibraryConfiguredProvider);
           if (configured) return;
