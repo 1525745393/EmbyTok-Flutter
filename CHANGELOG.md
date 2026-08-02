@@ -1,3 +1,10 @@
+# [2.33.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.32.1...v2.33.0) (2026-08-02)
+
+
+### Features
+
+* **ci:** 新增代码审查工作流系统 ([b7fb55e](https://github.com/1525745393/EmbyTok-Flutter/commit/b7fb55ec21571de0d875e35b587229f0299a3ac3))
+
 ## [2.32.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.32.0...v2.32.1) (2026-08-02)
 
 
