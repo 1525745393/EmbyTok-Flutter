@@ -23,7 +23,9 @@ pluginManagement {
 
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "8.3.0" apply false
+    // Flutter 3.44 起要求 Android Gradle Plugin >= 8.6.0，
+    // 与 Gradle wrapper 8.7 匹配（兼容矩阵 AGP 8.6.x ↔ Gradle 8.7+）
+    id "com.android.application" version "8.6.0" apply false
     id "org.jetbrains.kotlin.android" version "1.9.24" apply false
 }
 
