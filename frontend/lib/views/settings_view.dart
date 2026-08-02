@@ -16,6 +16,8 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../utils/app_preferences.dart' show AppPreferencesService, OrientationMode;
+import '../utils/donate_colors.dart';
+import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
 import '../widgets/library_selector.dart';
 
@@ -392,8 +394,11 @@ class SettingsView extends ConsumerWidget {
                   divisions: 20,
                   value: current,
                   label: current == 0 ? '不过滤' : current.toStringAsFixed(1),
+                  // 拖动时仅更新 UI 显示值，松手时才写入持久化，减少无效写入
                   onChanged: (v) {
                     setDialogState(() => current = v);
+                  },
+                  onChangeEnd: (v) {
                     ref.read(recommendMinRatingProvider.notifier).setRating(v);
                   },
                 ),
@@ -438,10 +443,14 @@ class SettingsView extends ConsumerWidget {
                   divisions: 30,
                   value: current.toDouble().clamp(0, 600),
                   label: current == 0 ? '不过滤' : '${current}s',
+                  // 拖动时仅更新 UI 显示值，松手时才写入持久化，减少无效写入
                   onChanged: (v) {
-                    final rounded = v.round();
-                    setDialogState(() => current = rounded);
-                    ref.read(recommendMinRuntimeSecProvider.notifier).setMinRuntime(rounded);
+                    setDialogState(() => current = v.round());
+                  },
+                  onChangeEnd: (v) {
+                    ref
+                        .read(recommendMinRuntimeSecProvider.notifier)
+                        .setMinRuntime(v.round());
                   },
                 ),
                 const Text(
@@ -578,46 +587,51 @@ class SettingsView extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('记忆半衰期'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  '越短 = 推荐越关注最近的偏好；越长 = 老的偏好也会影响推荐。\n0 = 不衰减',
-                  style: TextStyle(fontSize: 13),
-                ),
+        // StatefulBuilder：选中后立即更新选中态视觉反馈，不立即关闭对话框
+        return StatefulBuilder(
+          builder: (_, setLocalState) {
+            return AlertDialog(
+              title: const Text('记忆半衰期'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      '越短 = 推荐越关注最近的偏好；越长 = 老的偏好也会影响推荐。\n0 = 不衰减',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  ...options.map((days) {
+                    final selected = current == days;
+                    return RadioListTile<double>(
+                      value: days,
+                      groupValue: current,
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        await ref
+                            .read(recommendHalfLifeDaysProvider.notifier)
+                            .setDays(v);
+                        if (!dialogContext.mounted) return;
+                        setLocalState(() => current = v);
+                      },
+                      title: Text(days == 0
+                          ? '不衰减 (0 天)'
+                          : '$days 天'),
+                      dense: true,
+                      selected: selected,
+                    );
+                  }),
+                ],
               ),
-              ...options.map((days) {
-                final selected = current == days;
-                return RadioListTile<double>(
-                  value: days,
-                  groupValue: current,
-                  onChanged: (v) async {
-                    if (v == null) return;
-                    await ref
-                        .read(recommendHalfLifeDaysProvider.notifier)
-                        .setDays(v);
-                    if (!dialogContext.mounted) return;
-                    Navigator.of(dialogContext).pop();
-                  },
-                  title: Text(days == 0
-                      ? '不衰减 (0 天)'
-                      : '$days 天'),
-                  dense: true,
-                  selected: selected,
-                );
-              }),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('完成'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -664,44 +678,49 @@ class SettingsView extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('不重推天数'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  '越长 = 越不容易看到重复内容；越短 = 推荐变化越快。',
-                  style: TextStyle(fontSize: 13),
-                ),
+        // StatefulBuilder：选中后立即更新选中态视觉反馈，不立即关闭对话框
+        return StatefulBuilder(
+          builder: (_, setLocalState) {
+            return AlertDialog(
+              title: const Text('不重推天数'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      '越长 = 越不容易看到重复内容；越短 = 推荐变化越快。',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  ...options.map((d) {
+                    final selected = current == d;
+                    return RadioListTile<int>(
+                      value: d,
+                      groupValue: current,
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        await ref
+                            .read(recommendAntiFatigueDaysProvider.notifier)
+                            .setDays(v);
+                        if (!dialogContext.mounted) return;
+                        setLocalState(() => current = v);
+                      },
+                      title: Text('$d 天'),
+                      dense: true,
+                      selected: selected,
+                    );
+                  }),
+                ],
               ),
-              ...options.map((d) {
-                final selected = current == d;
-                return RadioListTile<int>(
-                  value: d,
-                  groupValue: current,
-                  onChanged: (v) async {
-                    if (v == null) return;
-                    await ref
-                        .read(recommendAntiFatigueDaysProvider.notifier)
-                        .setDays(v);
-                    if (!dialogContext.mounted) return;
-                    Navigator.of(dialogContext).pop();
-                  },
-                  title: Text('$d 天'),
-                  dense: true,
-                  selected: selected,
-                );
-              }),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('完成'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -750,44 +769,49 @@ class SettingsView extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('最低用户评分'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text(
-                  '用户评分 < 阈值的 item 不再推荐（收藏项豁免）。0 = 关闭该过滤。',
-                  style: TextStyle(fontSize: 13),
-                ),
+        // StatefulBuilder：选中后立即更新选中态视觉反馈，不立即关闭对话框
+        return StatefulBuilder(
+          builder: (_, setLocalState) {
+            return AlertDialog(
+              title: const Text('最低用户评分'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      '用户评分 < 阈值的 item 不再推荐（收藏项豁免）。0 = 关闭该过滤。',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  ...options.map((d) {
+                    final selected = (current - d).abs() < 0.01;
+                    return RadioListTile<double>(
+                      value: d,
+                      groupValue: current,
+                      onChanged: (v) async {
+                        if (v == null) return;
+                        await ref
+                            .read(recommendUserRatingMinProvider.notifier)
+                            .setMin(v);
+                        if (!dialogContext.mounted) return;
+                        setLocalState(() => current = v);
+                      },
+                      title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
+                      dense: true,
+                      selected: selected,
+                    );
+                  }),
+                ],
               ),
-              ...options.map((d) {
-                final selected = (current - d).abs() < 0.01;
-                return RadioListTile<double>(
-                  value: d,
-                  groupValue: current,
-                  onChanged: (v) async {
-                    if (v == null) return;
-                    await ref
-                        .read(recommendUserRatingMinProvider.notifier)
-                        .setMin(v);
-                    if (!dialogContext.mounted) return;
-                    Navigator.of(dialogContext).pop();
-                  },
-                  title: Text(d == 0 ? '0（关闭）' : '≥ $d'),
-                  dense: true,
-                  selected: selected,
-                );
-              }),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('完成'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -842,7 +866,7 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.touch_app_outlined,
       iconColor: Colors.purple,
       title: '手势控制',
-      subtitle: '配置滑动和双击手势',
+      subtitle: '查看手势说明',
       onTap: () => _showGestureControlDialog(context),
     );
   }
@@ -902,7 +926,7 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.cleaning_services_outlined,
       iconColor: Colors.grey,
       title: '清除缓存',
-      subtitle: _formatSize(cacheSize),
+      subtitle: formatBytes(cacheSize),
       onTap: () => _showClearCacheDialog(context, ref),
     );
   }
@@ -1661,8 +1685,7 @@ class SettingsView extends ConsumerWidget {
         title: Text('重置设置', style: TextStyle(color: scheme.onSurface)),
         content: Text(
           '将所有偏好设置恢复为默认值，包括：播放、字幕、外观、推荐、媒体库等。\n\n'
-          '不影响：登录信息、观看历史、搜索历史、收藏。\n\n'
-          '重置后需要重启应用以完全生效。',
+          '不影响：登录信息、观看历史、搜索历史、收藏。',
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
         actions: [
@@ -1679,7 +1702,7 @@ class SettingsView extends ConsumerWidget {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('设置已重置，请重启应用以完全生效'),
+                    content: const Text('设置已重置并立即生效'),
                     backgroundColor: scheme.primary,
                     duration: const Duration(seconds: 4),
                   ),
@@ -2246,7 +2269,7 @@ class SettingsView extends ConsumerWidget {
               if (!isDialogActive) return;
               progressNotifier.value = p;
               statusNotifier.value =
-                  '${(p * 100).toStringAsFixed(0)}%  ·  ${_formatSize(apkAsset.size)}';
+                  '${(p * 100).toStringAsFixed(0)}%  ·  ${formatBytes(apkAsset.size)}';
             },
             cancelToken: cancelToken,
           )
@@ -2568,11 +2591,11 @@ class SettingsView extends ConsumerWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.12),
+                  color: DonateColors.donateAccent.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.volunteer_activism,
-                    color: Colors.red, size: 32),
+                    color: DonateColors.donateAccent, size: 32),
               ),
               const SizedBox(height: 12),
               Text(
@@ -2606,7 +2629,7 @@ class SettingsView extends ConsumerWidget {
                     icon: Icons.chat_outlined,
                     label: '微信收款码',
                     hint: '尚未提供，敬请期待',
-                    color: const Color(0xFF07C160),
+                    color: DonateColors.wechat,
                   ),
                 ),
               ),
@@ -2623,7 +2646,7 @@ class SettingsView extends ConsumerWidget {
                     icon: Icons.account_balance_wallet_outlined,
                     label: '支付宝收款码',
                     hint: '尚未提供，敬请期待',
-                    color: const Color(0xFF1677FF),
+                    color: DonateColors.alipay,
                   ),
                 ),
               ),
@@ -2700,8 +2723,8 @@ class SettingsView extends ConsumerWidget {
                   color: scheme.primary,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.play_circle_filled,
-                    color: Colors.white, size: 44),
+                child: Icon(Icons.play_circle_filled,
+                    color: scheme.onPrimary, size: 44),
               ),
               const SizedBox(height: 12),
               // 应用名
@@ -2879,12 +2902,6 @@ class SettingsView extends ConsumerWidget {
     }
   }
 
-  String _formatSize(int bytes) {
-    if (bytes <= 0) return '暂无缓存';
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
 }
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
@@ -3285,10 +3302,23 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
         // 仅在展开时构建高级 tiles，避免折叠状态下触发不必要的 ref.watch
         if (_expanded) ...[
           const Divider(height: 1, indent: 56),
-          ...widget.advancedTilesBuilder().expand((tile) => [tile, const Divider(height: 1, indent: 56)]).toList()..removeLast(),
+          ..._buildAdvancedTilesWithDividers(),
         ],
       ],
     );
+  }
+
+  // 构建高级选项 tiles，每项之间插入分隔线（最后一项后无分隔线）
+  List<Widget> _buildAdvancedTilesWithDividers() {
+    final tiles = widget.advancedTilesBuilder();
+    final result = <Widget>[];
+    for (var i = 0; i < tiles.length; i++) {
+      if (i > 0) {
+        result.add(const Divider(height: 1, indent: 56));
+      }
+      result.add(tiles[i]);
+    }
+    return result;
   }
 }
 

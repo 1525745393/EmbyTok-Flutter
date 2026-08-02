@@ -1,7 +1,8 @@
 {
   "allowlist": [
     "lib/theme/",
-    "lib/utils/colors.dart"
+    "lib/utils/colors.dart",
+    "lib/utils/donate_colors.dart"
   ],
   "_comment": "白名单中的路径前缀匹配的文件跳过硬编码颜色检查。theme/ 目录和 colors.dart 是合法定义颜色的位置。"
 }

@@ -95,4 +95,47 @@ void main() {
       });
     });
   });
+
+  group('formatBytes', () {
+    test('零或负数返回暂无缓存', () {
+      expect(formatBytes(0), '暂无缓存');
+      expect(formatBytes(-1), '暂无缓存');
+      expect(formatBytes(-1024), '暂无缓存');
+    });
+
+    test('小于 1KB 显示 B', () {
+      expect(formatBytes(1), '1 B');
+      expect(formatBytes(512), '512 B');
+      expect(formatBytes(1023), '1023 B');
+    });
+
+    test('1KB 到 1MB 显示 KB', () {
+      expect(formatBytes(1024), '1.0 KB');
+      expect(formatBytes(2048), '2.0 KB');
+      expect(formatBytes(1048575), '1024.0 KB');
+    });
+
+    test('1MB 到 1GB 显示 MB', () {
+      expect(formatBytes(1048576), '1.0 MB');
+      expect(formatBytes(5242880), '5.0 MB');
+      expect(formatBytes(1073741823), '1024.0 MB');
+    });
+
+    test('超过 1GB 显示 GB（保留两位小数）', () {
+      expect(formatBytes(1073741824), '1.00 GB'); // 1 GB
+      expect(formatBytes(5368709120), '5.00 GB'); // 5 GB
+      expect(formatBytes(10737418240), '10.00 GB'); // 10 GB
+    });
+
+    test('边界值精确', () {
+      // 1023 B - 仍为 B
+      expect(formatBytes(1023), '1023 B');
+      // 1024 B = 1.0 KB 边界
+      expect(formatBytes(1024), '1.0 KB');
+      // 1024*1024 - 1 = 1024.0 KB（接近 1MB 但未达到）
+      expect(formatBytes(1048575), '1024.0 KB');
+      // 1024*1024 = 1.0 MB 边界
+      expect(formatBytes(1048576), '1.0 MB');
+    });
+  });
 }

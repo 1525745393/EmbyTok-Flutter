@@ -30,3 +30,14 @@ String htmlDecode(String input) {
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>');
 }
+
+// 格式化字节数为人类可读字符串：B / KB / MB / GB
+String formatBytes(int bytes) {
+  if (bytes <= 0) return '暂无缓存';
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+}
