@@ -71,18 +71,19 @@ jobs:
           echo "✅ 依赖安装完成"
         working-directory: frontend
 
-      - name: 安装 Semantic Release 及其插件
+      - name: 安装 Semantic Release 及其插件（锁 major 版本）
         run: |
-          echo "🔧 安装自动化发布工具 semantic-release..."
+          echo "🔧 安装自动化发布工具 semantic-release（锁 major 版本）..."
           echo "ℹ️  这个工具会分析 git 提交信息，自动决定版本号"
+          # 使用 ^major 版本范围，允许 minor/patch 更新但锁定 major，避免 breaking change
           npm install -g \
-            semantic-release \
-            @semantic-release/commit-analyzer \
-            @semantic-release/release-notes-generator \
-            @semantic-release/changelog \
-            @semantic-release/exec \
-            @semantic-release/git \
-            @semantic-release/github
+            semantic-release@^24 \
+            @semantic-release/commit-analyzer@^13 \
+            @semantic-release/release-notes-generator@^14 \
+            @semantic-release/changelog@^6 \
+            @semantic-release/exec@^6 \
+            @semantic-release/git@^10 \
+            @semantic-release/github@^11
           echo "✅ 发布工具安装完成"
 
       - name: 执行 Semantic Release（自动化发布流程）
@@ -98,3 +99,14 @@ jobs:
           echo "🔑 使用 GitHub Secrets 中的签名密钥构建 APK"
           npx semantic-release
           echo "🎉 发布完成！请查看 Releases 页面下载 APK"
+
+      - name: 失败时上传诊断日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-failure-logs
+          path: |
+            /tmp/analyze.log
+            /tmp/flutter-build-debug.log
+          retention-days: 7
+          if-no-files-found: ignore

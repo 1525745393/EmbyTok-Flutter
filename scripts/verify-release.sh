@@ -36,6 +36,8 @@ echo "--- 1/8 读取前端版本信息 ---"
 PUBSPEC_VERSION=""
 if [ -f "frontend/pubspec.yaml" ]; then
     PUBSPEC_VERSION=$(grep -E '^version:' frontend/pubspec.yaml | head -1 | sed 's/^version:[[:space:]]*//' | tr -d "'" | tr -d '"' | xargs)
+    # 裁剪 +BUILD 后缀（如 2.30.3+2303 → 2.30.3），仅保留语义版本号用于一致性比较
+    PUBSPEC_VERSION="${PUBSPEC_VERSION%%+*}"
 fi
 
 if [ -n "$PUBSPEC_VERSION" ]; then
@@ -98,7 +100,8 @@ fi
 echo ""
 echo "--- 5/8 检查前端版本号一致性 ---"
 
-if [ -n "$PUBSPEC_VERSION" ] && [ "$PUBSPEC_VERSION" = "$GRADLE_VERSION" ] && [ "$GRADLE_VERSION" = "$DART_VERSION" ]; then
+# 使用 ${VAR:-} 空替换，避免 set -u 下未定义变量直接退出
+if [ -n "${PUBSPEC_VERSION:-}" ] && [ "${PUBSPEC_VERSION:-}" = "${GRADLE_VERSION:-}" ] && [ "${GRADLE_VERSION:-}" = "${DART_VERSION:-}" ]; then
     log_success "前端版本号一致: $PUBSPEC_VERSION"
 else
     log_error "前端版本号不一致！"
@@ -113,7 +116,7 @@ echo ""
 echo "--- 6/8 检查前后端版本号一致性 ---"
 
 if [ -n "$PY_VERSION" ]; then
-    if [ "$PUBSPEC_VERSION" = "$PY_VERSION" ]; then
+    if [ "${PUBSPEC_VERSION:-}" = "${PY_VERSION:-}" ]; then
         log_success "前后端版本号一致: $PUBSPEC_VERSION"
     else
         log_error "前后端版本号不一致！"

@@ -131,19 +131,29 @@ test-backend: ## 运行 Python 后端测试
 	@echo "$(BOLD)$(CYAN)◆ 运行 Python 测试$(RESET)"
 	@echo "----------------------------------------"
 	@if [ -d "$(BACKEND_DIR)/tests" ]; then \
-		cd $(BACKEND_DIR) && python3 -m pytest -v || { \
-			echo "$(MAGENTA)后端测试完成（可能无测试或测试失败，详见上方输出)$(RESET)"; \
-		}; \
+		cd $(BACKEND_DIR) && python3 -m pytest -v; \
+		EXIT_CODE=$$?; \
+		if [ $$EXIT_CODE -ne 0 ]; then \
+			echo "$(RED)❌ 后端测试失败（退出码: $$EXIT_CODE）$(RESET)"; \
+			exit $$EXIT_CODE; \
+		fi; \
+		echo "$(GREEN)✅ 后端测试通过$(RESET)"; \
 	else \
 		echo "$(YELLOW)提示：backend/tests 目录不存在，跳过后端测试$(RESET)"; \
 	fi
 
-lint: ## 代码质量检查（flutter analyze）
+lint: ## 代码质量检查（flutter analyze，error 会中断）
 	@echo "$(BOLD)$(CYAN)◆ 代码质量检查$(RESET)"
 	@echo "----------------------------------------"
 	@echo "$(YELLOW)► Flutter 静态分析$(RESET)"
-	cd $(FRONTEND_DIR) && flutter analyze || true
-	@echo "$(GREEN)✅ 分析完成$(RESET)"
+	@cd $(FRONTEND_DIR) && flutter analyze 2>&1 | tee /tmp/flutter-analyze-$$.log; \
+	if grep -q 'error •' /tmp/flutter-analyze-$$.log; then \
+		echo "$(RED)❌ 发现编译错误$(RESET)"; \
+		rm -f /tmp/flutter-analyze-$$.log; \
+		exit 1; \
+	fi; \
+	rm -f /tmp/flutter-analyze-$$.log; \
+	echo "$(GREEN)✅ 分析完成（warning 可忽略）$(RESET)"
 
 # ===========================================================
 # 构建

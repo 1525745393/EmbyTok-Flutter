@@ -81,13 +81,10 @@ fi
 # ---------- 2. 找到最新的 release 提交 ----------
 log_step "查找最新 release 提交..."
 
-# 使用 commit message 模式查找
-RELEASE_COMMIT=$(git log --oneline --grep="chore(release): bump version" -1 2>/dev/null | awk '{print $1}')
-
-if [ -z "$RELEASE_COMMIT" ]; then
-    # 尝试更宽泛的匹配
-    RELEASE_COMMIT=$(git log --oneline --grep="release" -1 2>/dev/null | awk '{print $1}')
-fi
+# 严格匹配 semantic-release 生成的 release commit
+# 格式: "chore(release): X.Y.Z [skip ci]" 或 "chore(release): bump version to X.Y.Z"
+# 不使用宽泛 "release" 关键词，避免误选含 "release" 字样的非 release 提交
+RELEASE_COMMIT=$(git log --oneline --grep="^chore(release):" -1 2>/dev/null | awk '{print $1}')
 
 if [ -z "$RELEASE_COMMIT" ]; then
     log_error "未找到 release 提交，无法回滚"
@@ -111,7 +108,13 @@ log_info "当前版本:   $CURRENT_VERSION"
 
 # 找到前一个提交
 PREVIOUS_COMMIT=$(git rev-parse "$RELEASE_COMMIT^")
-PREVIOUS_VERSION=$(grep -E '^version:' frontend/pubspec.yaml | head -1 | sed 's/^version:[[:space:]]*//' | tr -d "'\"" | xargs)
+# 从父提交的 pubspec.yaml 读取版本号，而非当前工作树
+# 这样即使 release 后有人改了 pubspec，也能正确显示回滚目标版本
+PREVIOUS_VERSION=$(git show "$PREVIOUS_COMMIT:frontend/pubspec.yaml" 2>/dev/null | grep -E '^version:' | head -1 | sed 's/^version:[[:space:]]*//' | tr -d "'\"" | xargs)
+if [ -z "$PREVIOUS_VERSION" ]; then
+    log_warn "无法从父提交读取版本号，回退到当前工作树读取"
+    PREVIOUS_VERSION=$(grep -E '^version:' frontend/pubspec.yaml | head -1 | sed 's/^version:[[:space:]]*//' | tr -d "'\"" | xargs)
+fi
 
 log_info "上一版本:   $PREVIOUS_VERSION (基于当前 pubspec.yaml)"
 
@@ -125,8 +128,18 @@ echo "  3. 删除远程标签:  origin/v$CURRENT_VERSION (如果存在)"
 echo ""
 
 if [ "$DRY_RUN" = false ]; then
+    # 非交互环境下直接退出，防止 CI 或管道中误执行破坏性操作
+    if [ ! -t 0 ]; then
+        log_error "非交互式环境检测到，回滚操作需要人工确认"
+        log_info "如需预览，请使用: ./scripts/rollback-release.sh --dry-run"
+        exit 1
+    fi
     echo -n "请确认执行 (y/N): "
-    read -r CONFIRM
+    # 60 秒超时，防止无限等待
+    if ! read -r -t 60 CONFIRM; then
+        log_error "确认超时（60秒），操作取消"
+        exit 1
+    fi
     if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
         log_info "用户取消操作"
         exit 0
@@ -169,12 +182,27 @@ else
 fi
 
 # 4.3 回滚 release 提交
+# 仅当 release 提交恰好是 HEAD 时才允许 reset --hard
+# 否则使用 git revert 创建反向提交，避免丢失 release 之后的代码
 if [ "$DRY_RUN" = true ]; then
-    log_dry "git reset --hard $PREVIOUS_COMMIT (预览: 不会执行)"
+    CURRENT_HEAD=$(git rev-parse HEAD)
+    if [ "$RELEASE_COMMIT" = "$CURRENT_HEAD" ]; then
+        log_dry "git reset --hard $PREVIOUS_COMMIT (预览: 不会执行)"
+    else
+        log_dry "git revert --no-edit $RELEASE_COMMIT (预览: 不会执行)"
+    fi
 else
-    log_info "回滚到上一个提交: $PREVIOUS_COMMIT..."
-    git reset --hard "$PREVIOUS_COMMIT"
-    log_success "提交已回滚"
+    CURRENT_HEAD=$(git rev-parse HEAD)
+    if [ "$RELEASE_COMMIT" = "$CURRENT_HEAD" ]; then
+        log_info "release 提交是 HEAD，使用 reset --hard 回滚..."
+        git reset --hard "$PREVIOUS_COMMIT"
+        log_success "提交已回滚"
+    else
+        log_warn "release 提交 $RELEASE_COMMIT 不是当前 HEAD"
+        log_info "使用 git revert 创建反向提交（保留后续历史）..."
+        git revert --no-edit "$RELEASE_COMMIT"
+        log_success "已创建反向提交"
+    fi
 fi
 
 # ---------- 5. 总结 ----------
@@ -196,5 +224,7 @@ else
     echo "  • 如果远程分支已推送了 release 提交，需要强制推送回滚:"
     echo "    $ git push -f origin main"
     echo "  • 强制推送会重写历史，确保团队成员了解此操作"
+    echo "  • 如果使用了 git revert（非 reset --hard），则正常推送即可:"
+    echo "    $ git push origin main"
 fi
 echo "========================================"

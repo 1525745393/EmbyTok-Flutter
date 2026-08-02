@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================
-# EmbyTok 自动发布脚本
+# EmbyTok 发布前预检脚本
 # 用法: ./scripts/release.sh [--dry-run] <patch|minor|major>
 # 功能:
-#   1. 更新版本号 (pubspec.yaml / build.gradle / version.dart / version.py)
-#   2. 同步 Android versionCode (递增)
-#   3. 提交变更并打 tag (vX.Y.Z)
+#   1. 发布前预检：验证代码质量 + 预览版本号
+#   2. 更新版本号 (pubspec.yaml / build.gradle / version.dart / version.py)
+#   3. 同步 Android versionCode (递增)
+# 注意: 实际发布由 CI (semantic-release) 自动完成，本脚本不执行 git commit/tag
 # ============================================================
 
 set -euo pipefail
@@ -134,6 +135,25 @@ echo " 项目目录: $PROJECT_ROOT"
 echo "========================================"
 
 # ============================================================
+# 0. 工作环境预检
+# ============================================================
+log_step "检查工作环境..."
+
+# 检查当前分支：发布预检建议在 main 分支执行
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+if [ "$CURRENT_BRANCH" != "main" ]; then
+    log_warn "当前分支 '$CURRENT_BRANCH' 不是 main，CI 发布仅在 main 分支触发"
+    log_info "建议切换到 main 分支后再执行预检"
+fi
+
+# 检查工作树状态
+if ! git diff --quiet HEAD 2>/dev/null; then
+    log_warn "Git 工作树存在未提交的变更，建议先提交"
+else
+    log_success "Git 工作树干净"
+fi
+
+# ============================================================
 # 1. 解析当前版本号
 # ============================================================
 log_step "解析当前版本号..."
@@ -144,6 +164,10 @@ if [ -z "$PUBSPEC_VERSION" ]; then
     log_error "无法从 pubspec.yaml 读取版本号"
     exit 1
 fi
+
+# 裁剪 +BUILD 后缀（如 2.30.3+2303 → 2.30.3），仅保留语义版本号用于计算
+# pubspec.yaml 中 version 字段可能携带 build 号，但版本号计算只关心语义版本部分
+PUBSPEC_VERSION="${PUBSPEC_VERSION%%+*}"
 
 # 解析 MAJOR.MINOR.PATCH
 IFS='.' read -r MAJOR MINOR PATCH <<< "$PUBSPEC_VERSION"
@@ -171,6 +195,12 @@ esac
 
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 log_success "新版本: $NEW_VERSION"
+
+# 预检：检查目标 tag 是否已存在
+# 若已存在，CI semantic-release 可能跳过该版本，提前提示开发者注意
+if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+    log_warn "tag v$NEW_VERSION 已存在，CI 可能不会重新发布该版本"
+fi
 
 # 计算新的 versionCode（读取 build.gradle 当前值 +1）
 CURRENT_VERSION_CODE=$(grep -E 'versionCode' frontend/android/app/build.gradle | head -1 | sed 's/.*versionCode[[:space:]]*//' | xargs)
@@ -201,7 +231,15 @@ if command -v flutter >/dev/null 2>&1; then
 
     # 运行 flutter build --debug 验证构建
     log_info "执行 Debug 构建验证..."
-    if ! flutter build apk --debug 2>&1 | tee /tmp/flutter-build-debug.log; then
+    # 分离构建执行和日志输出，避免 pipefail 下 tee 失败误判构建结果
+    # 直接使用管道时，pipefail 会让整条管道在任一命令失败时返回失败，
+    # 但 tee 几乎不会失败，导致无法区分是 flutter 构建失败还是管道问题
+    set +e
+    flutter build apk --debug > /tmp/flutter-build-debug.log 2>&1
+    BUILD_EXIT_CODE=$?
+    set -e
+    cat /tmp/flutter-build-debug.log
+    if [ $BUILD_EXIT_CODE -ne 0 ]; then
         log_error "Flutter Debug 构建失败！"
         log_info "查看构建日志: /tmp/flutter-build-debug.log"
         cd "$PROJECT_ROOT"
@@ -241,11 +279,10 @@ if [ "$DRY_RUN" = true ]; then
     echo "$ sed_inplace \"s/__version__ = .*/__version__ = '$NEW_VERSION'/\" backend/core/version.py"
     echo "$ sed_inplace \"s/__build_number__ = .*/__build_number__ = $NEW_VERSION_CODE/\" backend/core/version.py"
     echo ""
-    echo "$ git add frontend/pubspec.yaml frontend/android/app/build.gradle frontend/lib/utils/version.dart backend/core/version.py CHANGELOG.md"
-    echo "$ git commit -m \"chore(release): bump version to $NEW_VERSION\""
-    echo "$ git tag -a v$NEW_VERSION -m \"Release v$NEW_VERSION\""
+    echo "# 以上为本地预检预览，实际版本号和文件修改由 CI semantic-release 自动完成"
+    echo "# CI 流程: push main → semantic-release 分析提交 → 决定版本号 → 更新四文件 → 构建 APK → 创建 Release"
     echo ""
-    log_dry "实际发布请移除 --dry-run 参数"
+    log_dry "实际发布由 CI 自动完成，请 push 代码到 main 分支"
     exit 0
 fi
 
@@ -281,77 +318,21 @@ sed_inplace "s/__build_number__ = .*/__build_number__ = $NEW_VERSION_CODE/" back
 log_success "已更新 version.py"
 
 # ============================================================
-# 5. Git 提交和打标签
+# 5. 发布预检总结
 # ============================================================
-log_step "Git 提交..."
-
-# Task 2 修复: 使用精确文件列表，而非 git add -A
-# 这样可以防止意外提交未跟踪的敏感文件（如密钥、临时文件等）
-RELEASE_FILES=(
-    "frontend/pubspec.yaml"
-    "frontend/android/app/build.gradle"
-    "frontend/lib/utils/version.dart"
-    "backend/core/version.py"
-    "CHANGELOG.md"
-)
-
-log_info "将添加以下文件:"
-for f in "${RELEASE_FILES[@]}"; do
-    if [ -f "$f" ]; then
-        log_info "  ✓ $f"
-    else
-        log_warn "  ✗ $f (不存在，将跳过)"
-    fi
-done
-
-# 只添加实际存在的文件
-EXISTING_FILES=()
-for f in "${RELEASE_FILES[@]}"; do
-    [ -f "$f" ] && EXISTING_FILES+=("$f")
-done
-
-if [ ${#EXISTING_FILES[@]} -gt 0 ]; then
-    git add "${EXISTING_FILES[@]}"
-    log_success "已添加 ${#EXISTING_FILES[@]} 个文件到暂存区"
-else
-    log_error "没有可提交的文件！"
-    exit 1
-fi
-
-# 确认当前工作树状态
-STAGED_FILES=$(git diff --cached --name-only)
-log_info "暂存区中的文件:"
-echo "$STAGED_FILES" | while read -r line; do
-    log_info "  • $line"
-done
-
-# 提交
-COMMIT_MSG="chore(release): bump version to $NEW_VERSION"
-git commit -m "$COMMIT_MSG"
-log_success "已提交: $COMMIT_MSG"
-
-# 打 tag
-TAG_NAME="v$NEW_VERSION"
-git tag -a "$TAG_NAME" -m "Release v$NEW_VERSION"
-log_success "已打标签: $TAG_NAME"
-
-# ============================================================
-# 6. 输出总结
-# ============================================================
+log_step "发布预检总结..."
 echo ""
 echo "========================================"
-log_success "发布准备完成！"
+log_success "发布预检完成！"
 echo ""
-echo "新版本: v$NEW_VERSION (versionCode: $NEW_VERSION_CODE)"
+echo "预览版本: v$NEW_VERSION (versionCode: $NEW_VERSION_CODE)"
 echo ""
 echo "后续步骤:"
-echo "  1. 推送变更和标签到远程:"
+echo "  1. 将代码 push 到 main 分支:"
 echo "     $ git push origin main"
-echo "     $ git push origin $TAG_NAME"
 echo ""
-echo "  2. 推送后将自动触发 GitHub Actions 工作流:"
-echo "     - Android Release: 构建签名 APK/AAB"
+echo "  2. CI 将自动分析提交并决定版本号、构建签名 APK、创建 Release"
 echo ""
-echo "  3. 在 GitHub Release 页面补充发布说明"
+echo "  3. 在 GitHub Release 页面查看发布结果"
 echo ""
 echo "========================================"
