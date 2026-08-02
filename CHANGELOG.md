@@ -1,3 +1,10 @@
+## [2.35.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.2...v2.35.3) (2026-08-02)
+
+
+### Bug Fixes
+
+* **android:** 升级 Android Gradle Plugin 8.3.0 → 8.6.0 ([34a020d](https://github.com/1525745393/EmbyTok-Flutter/commit/34a020d196a0ae6ca53ed4a27bbc062baeb66d1c))
+
 ## [2.35.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.1...v2.35.2) (2026-08-02)
 
 
