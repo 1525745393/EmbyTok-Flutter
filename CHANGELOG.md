@@ -1,3 +1,10 @@
+# [2.40.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.39.1...v2.40.0) (2026-08-02)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([30d8091](https://github.com/1525745393/EmbyTok-Flutter/commit/30d8091b8df6878e661dea09f58b6bebd30efab3))
+
 ## [2.39.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.39.0...v2.39.1) (2026-08-02)
 
 
