@@ -31,7 +31,10 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: "stable"
-          flutter-version: "3.24.0"
+          # 与代码使用的 API 匹配：
+          # - Color.withValues() 需要 Flutter 3.27+
+          # - CardThemeData/DialogThemeData 需要 Flutter 3.44+
+          flutter-version: "3.44.8"
           cache: true
 
       - name: 安装依赖

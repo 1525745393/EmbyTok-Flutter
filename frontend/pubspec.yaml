@@ -6,7 +6,9 @@ version: 2.35.1+629
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.10.0"
+  # 下限 3.44.0：代码使用 CardThemeData/DialogThemeData（3.44+）与
+  # Color.withValues（3.27+），取最严格约束以保证本地与 CI 一致
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
