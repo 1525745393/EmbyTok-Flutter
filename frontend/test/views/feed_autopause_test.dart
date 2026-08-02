@@ -40,24 +40,24 @@ void main() {
       expect(state.isFeedVisible, isFalse);
     });
 
-    test('搜索覆盖层（isOverlayPage=true, currentIndex=search）: 可见', () {
-      // 搜索覆盖层显示在 Feed 之上，主体 IndexedStack 仍展示 Feed，
-      // 所以 isOverlayPage=true 时 isFeedVisible=true，不会触发 pause。
+    test('搜索覆盖层（isOverlayPage=true, currentIndex=search）: 不可见', () {
+      // 搜索覆盖层时用户关注覆盖层内容，Feed 视频不应在后台播放，
+      // 所以 isOverlayPage=true 时 isFeedVisible=false，会触发暂停。
       const state = PageNavigationState(
         currentIndex: PageIndices.search,
         isOverlayPage: true,
       );
-      expect(state.isFeedVisible, isTrue);
+      expect(state.isFeedVisible, isFalse);
     });
 
-    test('历史覆盖层（isOverlayPage=true, currentIndex=history）: 可见', () {
-      // 历史覆盖层同搜索覆盖层：isOverlayPage=true 时 isFeedVisible=true，
-      // 用户在弹层中浏览时视频继续播放。
+    test('历史覆盖层（isOverlayPage=true, currentIndex=history）: 不可见', () {
+      // 历史覆盖层同搜索覆盖层：isOverlayPage=true 时 isFeedVisible=false，
+      // 会触发暂停，避免视频在覆盖层下后台播放。
       const state = PageNavigationState(
         currentIndex: PageIndices.history,
         isOverlayPage: true,
       );
-      expect(state.isFeedVisible, isTrue);
+      expect(state.isFeedVisible, isFalse);
     });
   });
 
@@ -178,10 +178,10 @@ void main() {
       verifyNever(mockController.pause());
     });
 
-    test('Feed → 搜索覆盖层：isFeedVisible 不变 → 不调用 pause', () {
-      // isOverlayPage=true 时 isFeedVisible=true，
-      // 所以 Feed→搜索覆盖层 isFeedVisible 没有变化（仍为 true），
-      // applyFeedVisibilityChange 不触发 pause/play，视频继续播放。
+    test('Feed → 搜索覆盖层：isFeedVisible 变为 false → 调用 pause', () {
+      // isOverlayPage=true 时 isFeedVisible=false，
+      // 所以 Feed→搜索覆盖层 isFeedVisible 从 true→false，
+      // applyFeedVisibilityChange 触发 pause，避免视频后台播放。
       stubPlaying(mockController);
 
       const prev = PageNavigationState(); // Feed
@@ -197,13 +197,13 @@ void main() {
         userWantsToPlay: true,
       );
 
-      verifyNever(mockController.pause());
+      verify(mockController.pause()).called(1);
       verifyNever(mockController.play());
     });
 
-    test('Feed → 历史覆盖层：isFeedVisible 不变 → 不调用 pause', () {
-      // 同搜索覆盖层：历史覆盖层 isOverlayPage=true → isFeedVisible=true，
-      // Feed→历史覆盖层 isFeedVisible 没有变化，不触发 pause，视频继续播放。
+    test('Feed → 历史覆盖层：isFeedVisible 变为 false → 调用 pause', () {
+      // 同搜索覆盖层：历史覆盖层 isOverlayPage=true → isFeedVisible=false，
+      // Feed→历史覆盖层 isFeedVisible 从 true→false，触发 pause。
       stubPlaying(mockController);
 
       const prev = PageNavigationState();
@@ -219,7 +219,7 @@ void main() {
         userWantsToPlay: true,
       );
 
-      verifyNever(mockController.pause());
+      verify(mockController.pause()).called(1);
       verifyNever(mockController.play());
     });
 
@@ -306,13 +306,13 @@ void main() {
     });
   });
 
-  test('TC-1: isFeedVisible 在搜索覆盖层(isOverlayPage=true)时返回 true', () {
+  test('TC-1: isFeedVisible 在搜索覆盖层(isOverlayPage=true)时返回 false', () {
     const state = PageNavigationState(
       currentIndex: PageIndices.search,
       isOverlayPage: true,
     );
-    expect(state.isFeedVisible, isTrue,
-        reason: '搜索覆盖层通过 IndexedStack 仍显示 Feed，应视为可见');
+    expect(state.isFeedVisible, isFalse,
+        reason: '搜索覆盖层时用户关注覆盖层内容，Feed 视频应暂停，视为不可见');
   });
 
   test('TC-2: isFeedVisible 在切到收藏 Tab 时返回 false', () {

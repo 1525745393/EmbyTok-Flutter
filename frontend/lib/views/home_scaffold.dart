@@ -396,8 +396,8 @@ void _playIfWantedAndPaused(
 /// 1. Feed 刚被隐藏（切到 Favorites/Actors/Settings）→ 主动 pause 防止后台播放
 /// 2. Feed 刚重新可见（切回首页）→ 仅当用户"原本想播放"（isPlayingProvider=true）才 play
 ///    - 避免覆盖用户主动暂停的意图
-/// 3. 搜索/历史覆盖层（isOverlayPage=true）→ isFeedVisible 仍为 true，
-///    不会触发 pause，让用户在弹层中浏览时视频继续播放
+/// 3. 搜索/历史覆盖层（isOverlayPage=true）→ isFeedVisible 为 false，
+///    会触发 pause，避免视频在覆盖层下后台播放
 ///
 /// 入参：
 /// - [prev] / [next]：前后两次导航状态
