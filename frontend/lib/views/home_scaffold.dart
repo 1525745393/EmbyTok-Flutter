@@ -172,7 +172,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (bool didPop) async {
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
         if (didPop) return;
 
         // 如果在覆盖层页面（搜索/历史），返回到 Feed
@@ -182,13 +182,15 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
         }
 
         // 在 Feed 之外的 Tab 上按返回键，先回到 Feed
-        if (currentIndex != 0 && currentIndex != PageIndices.search && currentIndex != PageIndices.history) {
-          ref.read(pageNavigationNotifierProvider).goToPage(0);
+        if (currentIndex != PageIndices.feed && currentIndex != PageIndices.search && currentIndex != PageIndices.history) {
+          ref.read(pageNavigationNotifierProvider).goToPage(PageIndices.feed);
           return;
         }
 
         // 在 Feed 上按返回键，弹出退出确认
-        final result = await showDialog<bool>(
+        // 注意：局部变量命名为 shouldExit 而非 result，
+        // 避免遮蔽 onPopInvokedWithResult 回调的 result 参数
+        final shouldExit = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             backgroundColor: scheme.surface,
@@ -214,7 +216,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
         // 对话框返回后检查context是否仍然有效
         if (!context.mounted) return;
 
-        if (result == true) {
+        if (shouldExit == true) {
           // 主动释放视频控制器池，避免 SystemNavigator.pop() 回收时序与
           // FeedView.dispose() 中的批量 dispose 叠加导致 OOM
           try {
@@ -279,7 +281,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
               Positioned.fill(
                 child: IndexedStack(
                   // search=4, history=5，映射到覆盖层索引 0/1
-                  index: currentIndex == 4 ? 0 : 1,
+                  index: currentIndex == PageIndices.search ? 0 : 1,
                   children: const [
                     SearchView(useScaffold: false),
                     HistoryView(useScaffold: false),
@@ -324,6 +326,8 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                               height: kBottomNavHeight,
                               onDestinationSelected: (index) {
+                                // 轻量触觉反馈，确认 Tab 切换操作（fire-and-forget，不阻塞 UI）
+                                HapticFeedback.selectionClick();
                                 ref.read(pageNavigationNotifierProvider).goToPage(index);
                               },
                               destinations: [

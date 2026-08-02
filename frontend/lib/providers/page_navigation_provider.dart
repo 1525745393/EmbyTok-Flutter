@@ -51,6 +51,12 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
     _load();
   }
 
+  // 异步加载上次保存的 Tab 索引。
+  //
+  // 设计说明：_load 是异步的，应用启动时 state 初始为 Feed (index=0)，
+  // _load 完成后（通常 <50ms）更新为保存的索引。
+  // 此期间用户可能短暂看到 Feed 后跳转到恢复的 Tab，这是已知行为。
+  // 覆盖层页面（search/history）不在此恢复，因为它们是临时操作不应持久化。
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -77,6 +83,9 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
   }
 
   // 切换到搜索页面（覆盖层）
+  //
+  // 注意：不调用 _saveIndex，因为覆盖层是临时操作，不应在下次启动时恢复。
+  // 用户下次启动应回到上次的主 Tab（Feed/Favorites/Actors/Settings）。
   void goToSearch() {
     state = const PageNavigationState(
       currentIndex: PageIndices.search,
@@ -85,6 +94,8 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
   }
 
   // 切换到历史页面（覆盖层）
+  //
+  // 注意：同 goToSearch，不持久化覆盖层索引。
   void goToHistory() {
     state = const PageNavigationState(
       currentIndex: PageIndices.history,
