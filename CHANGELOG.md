@@ -1,3 +1,10 @@
+## [2.35.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.3...v2.35.4) (2026-08-02)
+
+
+### Bug Fixes
+
+* **release:** 修复 semantic-release prepareCmd 2 处拼写错误，补齐 version.dart 历史错位 ([c8a41ba](https://github.com/1525745393/EmbyTok-Flutter/commit/c8a41baa475739c3257d61f777470888969f43a2))
+
 ## [2.35.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.2...v2.35.3) (2026-08-02)
 
 
