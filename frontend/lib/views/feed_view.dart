@@ -25,6 +25,7 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/fullscreen_navigator.dart';
+import '../utils/safe_insets.dart';
 import '../utils/keyboard_shortcuts.dart';
 import '../viewmodels/feed_view_model.dart';
 import '../widgets/empty_state_card.dart';
@@ -377,11 +378,12 @@ class _FeedViewState extends ConsumerState<FeedView>
               ),
             ),
 
-          // 当前位置指示
+          // 当前位置指示：放在顶部工具栏下沿右侧，避免与底部导航栏重叠。
+          // 原 bottom:16 会直接渲染在「设置」图标上方（截图中 47/50 压在图标上的根因）。
           if (viewMode == ViewMode.feed && videoState.items.isNotEmpty)
             Positioned(
               right: 12,
-              bottom: 16,
+              top: SafeInsets.topOf(context) + kAppToolbarHeight + 8,
               child: ValueListenableBuilder<int>(
                 valueListenable: _currentIndexNotifier,
                 builder: (context, idx, _) {
@@ -435,8 +437,11 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 顶部栏：视频流模式使用
   Widget _buildTopBar(ViewMode viewMode) {
     final scheme = Theme.of(context).colorScheme;
+    // 全面屏适配：沉浸式下 SafeArea.top = 0，必须用 SafeInsets 取物理刘海高度。
+    // 在刘海高度之上再加 8px 缓冲，保证按钮文字不与刘海下沿重叠。
+    final topInset = SafeInsets.topOf(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+      padding: EdgeInsets.fromLTRB(0, topInset + 8, 0, 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -448,8 +453,14 @@ class _FeedViewState extends ConsumerState<FeedView>
           ],
         ),
       ),
+      // SafeArea 保留：当不是沉浸式（如切到网格模式）时，提供一层兜底。
+      // 外层 EdgeInsets 已提供物理刘海，内层 SafeArea 在非沉浸式下若
+      // MediaQuery.padding.top > 0 会再加一点，双重保险不产生重复顶留白
+      // （因为 topInset = max(padding.top, viewPadding.top)，在非沉浸式下
+      // 两者接近相等，不会出现"加了 2 倍"的问题，安全）。
       child: SafeArea(
         bottom: false,
+        top: false,
         child: _buildFeedTopBar(scheme, viewMode),
       ),
     );
