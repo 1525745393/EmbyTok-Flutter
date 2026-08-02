@@ -1,3 +1,11 @@
+## [2.35.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.4...v2.35.5) (2026-08-02)
+
+
+### Bug Fixes
+
+* **android:** 升级 compileSdk 36 / AGP 8.9.1 / Gradle 8.11.1 / NDK 28.2 修复依赖兼容性 ([7608325](https://github.com/1525745393/EmbyTok-Flutter/commit/7608325b0e4608da4932571e9c342ba52a54dc46))
+* **ci:** 修复 NDK 安装步骤 sdkmanager 路径问题 ([363313b](https://github.com/1525745393/EmbyTok-Flutter/commit/363313b1889325ab72a52564d96f8a7919e0347d))
+
 ## [2.35.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.3...v2.35.4) (2026-08-02)
 
 
