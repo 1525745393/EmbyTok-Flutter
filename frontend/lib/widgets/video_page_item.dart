@@ -18,6 +18,7 @@ import '../services/embytok_service.dart';
 import '../services/video_pool_service.dart';
 import '../utils/logger.dart';
 import '../utils/fullscreen_navigator.dart';
+import '../utils/constants.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
@@ -1173,7 +1174,11 @@ class _BottomInfoBar extends StatelessWidget {
               16,
               80,
               rs(80, 2.0) + 16,
-              toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
+              // 全面屏适配：底部叠加导航栏高度，避免进度条 / 时间文字
+              // 与 HomeScaffold 底部导航栏发生视觉重叠。
+              toolbarVisible
+                  ? bottomPadding + 24 + 80 + kBottomNavHeight
+                  : bottomPadding + 24 + kBottomNavHeight,
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1363,7 +1368,11 @@ class _RightActionButtons extends ConsumerWidget {
             // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
             toolbarVisible ? SafeInsets.topOf(context) + rs(48) : rs(32),
             rs(6),
-            toolbarVisible ? bottomPadding + 24 + 80 : bottomPadding + 24,
+            // 全面屏适配：底部叠加导航栏高度 kBottomNavHeight，避免最下方 2 个按钮
+            // （字幕按钮 / DiscMute 唱片+头像）被 HomeScaffold 的底部导航栏吃掉一半。
+            toolbarVisible
+                ? bottomPadding + 24 + 80 + kBottomNavHeight
+                : bottomPadding + 24 + kBottomNavHeight,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
