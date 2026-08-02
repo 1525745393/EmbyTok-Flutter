@@ -1,3 +1,11 @@
+## [2.31.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.31.0...v2.31.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **release:** semantic-release 混淆 shell 变量与模板变量导致 ReferenceError ([d2f4e6a](https://github.com/1525745393/EmbyTok-Flutter/commit/d2f4e6a0a351b35b15a8b2b09879cc3d9ca500a5))
+* **release:** 修复发布流程审查发现的严重问题和中等问题 ([d6fd7dd](https://github.com/1525745393/EmbyTok-Flutter/commit/d6fd7dda66999b54aef03a2aff160db104ed4366))
+
 # [2.31.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.30.3...v2.31.0) (2026-08-01)
 
 
