@@ -1,6 +1,7 @@
 {
   "allowlist": [
     "lib/theme/",
+    "lib/theme/actor_type_colors.dart",
     "lib/utils/colors.dart",
     "lib/utils/donate_colors.dart"
   ],

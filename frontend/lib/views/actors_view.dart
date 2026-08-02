@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../theme/actor_type_colors.dart';
 import '../utils/constants.dart';
 import '../widgets/person_avatar_image.dart';
 
@@ -23,6 +24,9 @@ class ActorsView extends ConsumerStatefulWidget {
 }
 
 class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStateMixin {
+  /// 演员页 Tab 数量：全部 / 已关注 / 未关注
+  static const int _actorTabsCount = 3;
+
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   Timer? _scrollSaveTimer;
@@ -31,14 +35,20 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: _actorTabsCount, vsync: this);  // Task 5 同步修改
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _searchController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _restoreState();
       // 首次加载演员数据
-      ref.read(actorsProvider.notifier).loadActors();
+      await ref.read(actorsProvider.notifier).loadActors();
+      // 加载完成后恢复滚动位置：等待一帧让 CustomScrollView 完成布局
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _restoreScrollOffset();
+        });
+      }
     });
   }
 
@@ -60,15 +70,18 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       final prefs = await SharedPreferences.getInstance();
 
       // 恢复类型筛选
-      final savedType = prefs.getString(kStorageKeyActorsSelectedType);
-      if (savedType != null && savedType.isNotEmpty) {
-        final type = savedType == 'null' ? null : savedType;
-        ref.read(actorsProvider.notifier).setSelectedType(type);
+      // 用 containsKey 判断键是否存在，兼容旧版本可能写入的 'null' 字符串数据
+      if (prefs.containsKey(kStorageKeyActorsSelectedType)) {
+        final savedType = prefs.getString(kStorageKeyActorsSelectedType);
+        // 兼容旧版本写入的 'null' 字符串：视为无筛选（null）
+        if (savedType != null && savedType.isNotEmpty && savedType != 'null') {
+          ref.read(actorsProvider.notifier).setSelectedType(savedType);
+        }
       }
 
       // 恢复 Tab 索引
       final savedTab = prefs.getInt(kStorageKeyActorsSelectedTab);
-      if (savedTab != null && savedTab >= 0 && savedTab < 3) {
+      if (savedTab != null && savedTab >= 0 && savedTab < _actorTabsCount) {
         _tabController.index = savedTab;
       }
 
@@ -85,7 +98,12 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   Future<void> _saveSelectedType(String? type) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(kStorageKeyActorsSelectedType, type ?? 'null');
+      if (type == null) {
+        // "全部"类型：移除保存的键，而非写入 'null' 占位符
+        await prefs.remove(kStorageKeyActorsSelectedType);
+      } else {
+        await prefs.setString(kStorageKeyActorsSelectedType, type);
+      }
     } catch (_) {}
   }
 
@@ -191,12 +209,20 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   }
 
   // 构建演员网格列表（Tab 参数化，三个 Tab 共用）
-  Widget _buildActorGrid(List<Person> actors, String? embyServerUrl, String? token, Set<String> favoritedIds, bool isSearchActive) {
+  Widget _buildActorGrid(
+    List<Person> actors,
+    String? embyServerUrl,
+    String? token,
+    Set<String> favoritedIds,
+    bool isSearchActive, {
+    bool isFavoriteTab = false,
+  }) {
     if (actors.isEmpty) {
       return SliverFillRemaining(
         child: _buildEmptyState(
           isSearchEmpty: isSearchActive,
-          isFavoriteEmpty: false,
+          // "已关注"Tab 空列表且非搜索状态时显示"暂无关注的演员"引导
+          isFavoriteEmpty: isFavoriteTab && !isSearchActive,
         ),
       );
     }
@@ -352,6 +378,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             error: actorsState.error,
             scheme: scheme,
             hasScrollController: false,
+            isFavoriteTab: true,
           ),
           // 未关注 Tab
           _buildTabContent(
@@ -392,6 +419,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     required String? error,
     required ColorScheme scheme,
     required bool hasScrollController,
+    bool isFavoriteTab = false,
   }) {
     // 加载中
     if (loading) {
@@ -416,7 +444,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive),
+            _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive, isFavoriteTab: isFavoriteTab),
             // 已加载全部演员的提示
             if (!loading && actors.isNotEmpty)
               SliverToBoxAdapter(
@@ -442,7 +470,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive),
+        _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive, isFavoriteTab: isFavoriteTab),
       ],
     );
   }
@@ -785,13 +813,13 @@ class _ActorCard extends StatelessWidget {
     Color chipColor;
     switch (type) {
       case 'Director':
-        chipColor = Colors.orange;
+        chipColor = ActorTypeColors.director;
         break;
       case 'Writer':
-        chipColor = Colors.green;
+        chipColor = ActorTypeColors.writer;
         break;
       default: // 'Actor' 或其他
-        chipColor = Colors.blue;
+        chipColor = ActorTypeColors.actor;
         break;
     }
 

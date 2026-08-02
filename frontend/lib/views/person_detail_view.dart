@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
+import '../utils/logger.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
   final MediaItem person;
@@ -110,11 +111,18 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       });
 
       // 详情稍后更新（不阻塞作品列表）
-      final detail = await detailFuture;
-      if (mounted && detail != null) {
-        setState(() {
-          _personDetail = detail;
-        });
+      // 修复：详情加载失败不影响作品列表显示，仅 fallback 到原始 person 数据
+      try {
+        final detail = await detailFuture;
+        if (mounted && detail != null) {
+          setState(() {
+            _personDetail = detail;
+          });
+        }
+      } catch (e) {
+        // 详情加载失败，保留 widget.person 作为 fallback，不设置 _error
+        // 仅记录日志便于排查
+        AppLogger.error('加载人员详情失败', error: e);
       }
     } catch (e) {
       if (mounted) {
