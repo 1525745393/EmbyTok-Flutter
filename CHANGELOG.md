@@ -1,3 +1,10 @@
+## [2.39.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.39.0...v2.39.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **ui:** 收藏页搜索无结果无法返回全量列表 ([6a43a3f](https://github.com/1525745393/EmbyTok-Flutter/commit/6a43a3fba803f6c1d5b8f1e9adbcbbb026c1eb3a))
+
 # [2.39.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.38.0...v2.39.0) (2026-08-02)
 
 
