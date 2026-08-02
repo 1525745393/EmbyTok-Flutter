@@ -1454,12 +1454,14 @@ class PlaybackShell extends ConsumerStatefulWidget {
   final MediaItem item; // 当前播放的视频
   final List<MediaItem> items; // 视频列表（可选）
   final VoidCallback onBack; // 返回回调
+  final String source; // 数据源标识，用于观看统计，默认 'feed'
 
   const PlaybackShell({
     super.key,
     required this.item,
     this.items = const [],
     required this.onBack,
+    this.source = 'feed',
   });
 
   @override
@@ -1613,6 +1615,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
                 item: item,
                 isCurrentPage: index == _currentIndex,
                 preloadedSession: preloadedSession,
+                source: widget.source,
                 onVideoEnded: index < _items.length - 1
                     ? () {
                         // 自动播放下一个

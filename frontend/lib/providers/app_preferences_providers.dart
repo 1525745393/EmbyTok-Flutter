@@ -448,45 +448,91 @@ final recommendAntiFatigueDaysProvider =
 );
 
 // PR #88：最近展示过的 itemId 列表（用于反推荐疲劳）
-// - Set<String> 表示 itemId
-// - 持久化到 SharedPreferences
-// - 最多保留 500 个（FIFO 清理）
+// - Set<String> 表示 itemId（对外接口不变）
+// - 内部维护 _shownAtMap: Map<String, int> 记录 itemId → shownAt 时间戳（秒）
+// - 持久化格式：List<String>，每项 "itemId:timestamp"
+// - 最多保留 500 个（按 shownAt 升序 FIFO 清理）
+// - 兼容旧格式：不含 ":" 视为 shownAt=0（始终过期，下次 cleanExpired 时清除）
 class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
   RecentlyShownItemIdsNotifier() : super(<String>{}) {
     _load();
   }
 
+  // itemId → shownAt 时间戳（秒）；与 state.keys 保持同步
+  final Map<String, int> _shownAtMap = <String, int>{};
+
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList(kStorageKeyRecentlyShownItemIds) ??
         const <String>[];
-    state = list.toSet();
+    _shownAtMap.clear();
+    for (final raw in list) {
+      // 兼容旧格式：不含 ":" 视为 shownAt=0（始终过期，下次 cleanExpired 清除）
+      final colonIdx = raw.lastIndexOf(':');
+      if (colonIdx < 0) {
+        _shownAtMap[raw] = 0;
+        continue;
+      }
+      final itemId = raw.substring(0, colonIdx);
+      final ts = int.tryParse(raw.substring(colonIdx + 1));
+      if (itemId.isEmpty || ts == null) continue;
+      _shownAtMap[itemId] = ts;
+    }
+    state = _shownAtMap.keys.toSet();
   }
 
   Future<void> addAll(Iterable<String> itemIds) async {
     if (itemIds.isEmpty) return;
-    final next = <String>{...state, ...itemIds};
-    // 容量限制 500，超过则删除最早的部分（FIFO 通过 List 维护）
-    const int maxCount = 500;
-    if (next.length > maxCount) {
-      // 转换为 list 保留插入顺序，删除最前面的
-      final ordered = <String>[...next];
-      state = ordered.sublist(ordered.length - maxCount).toSet();
-    } else {
-      state = next;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    for (final id in itemIds) {
+      _shownAtMap[id] = now;
     }
+    // 容量限制 500，超过则按 shownAt 升序删除最早的（FIFO）
+    const int maxCount = 500;
+    if (_shownAtMap.length > maxCount) {
+      final sortedEntries = _shownAtMap.entries.toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+      final removeCount = _shownAtMap.length - maxCount;
+      for (int i = 0; i < removeCount; i++) {
+        _shownAtMap.remove(sortedEntries[i].key);
+      }
+    }
+    state = _shownAtMap.keys.toSet();
     await _persist();
   }
 
   Future<void> clear() async {
+    _shownAtMap.clear();
     state = <String>{};
+    await _persist();
+  }
+
+  // PR #88 Task 2：清理超过指定天数的展示记录
+  // now - shownAt > days * 86400 即视为过期
+  Future<void> cleanExpired(int days) async {
+    if (days <= 0 || _shownAtMap.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final threshold = days * 86400;
+    final expiredKeys = <String>[];
+    _shownAtMap.forEach((key, shownAt) {
+      if (now - shownAt > threshold) {
+        expiredKeys.add(key);
+      }
+    });
+    if (expiredKeys.isEmpty) return;
+    for (final key in expiredKeys) {
+      _shownAtMap.remove(key);
+    }
+    state = _shownAtMap.keys.toSet();
     await _persist();
   }
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(
-        kStorageKeyRecentlyShownItemIds, state.toList(growable: false));
+    final list = _shownAtMap.entries
+        .map((e) => '${e.key}:${e.value}')
+        .toList(growable: false);
+    await prefs.setStringList(kStorageKeyRecentlyShownItemIds, list);
   }
 }
 

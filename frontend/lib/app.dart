@@ -331,6 +331,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     final itemId = state.pathParameters['itemId'] ?? '';
     MediaItem item;
     List<MediaItem> items = [];
+    // 数据源标识，用于观看统计（完播率等），默认 'feed'
+    String source = 'feed';
     if (state.extra is Map<String, dynamic>) {
       final extra = state.extra as Map<String, dynamic>;
       final itemValue = extra['item'];
@@ -341,6 +343,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       if (itemsValue is List) {
         items = itemsValue.whereType<MediaItem>().toList();
       }
+      // 读取来源标识，空值或非字符串回退默认 'feed'
+      final sourceValue = extra['source'];
+      if (sourceValue is String && sourceValue.isNotEmpty) {
+        source = sourceValue;
+      }
     } else if (state.extra is MediaItem) {
       item = state.extra as MediaItem;
     } else {
@@ -349,6 +356,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     return PlaybackShell(
       item: item,
       items: items,
+      source: source,
       onBack: () => context.pop(),
     );
   }

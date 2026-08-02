@@ -171,10 +171,15 @@ class _PageLoadResult {
   final List<RecommendItem> tagged; // 带 source 标签的推荐项
   final int nextUpCount; // NextUp 数据源原始项数
   final int resumeCount; // Resume 数据源原始项数
+  final int suggestionsCount; // Task 3：Suggestions 数据源原始项数
+  // Task 4：所有数据源是否都已耗尽（true 表示服务器端无更多数据）
+  final bool allSourcesExhausted;
   const _PageLoadResult({
     required this.tagged,
     required this.nextUpCount,
     required this.resumeCount,
+    required this.suggestionsCount,
+    required this.allSourcesExhausted,
   });
 }
 
@@ -355,6 +360,12 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
+      // Task 2：清理过期的展示记录，使反疲劳天数偏好实际生效
+      final antiFatigueDays = _ref.read(recommendAntiFatigueDaysProvider);
+      await _ref
+          .read(recentlyShownItemIdsProvider.notifier)
+          .cleanExpired(antiFatigueDays);
+
       final ctx = _buildLoadContext();
       if (ctx == null) {
         final auth = _ref.read(authProvider);
@@ -382,9 +393,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         seenIds: seenIds,
       );
 
-      // 冷启动判定：建议数据源 + Resume 都为空
-      final isColdStart =
-          newItems.nextUpCount == 0 && newItems.resumeCount == 0;
+      // Task 3：冷启动判定增加 Suggestions 数据源检查
+      final isColdStart = newItems.nextUpCount == 0 &&
+          newItems.resumeCount == 0 &&
+          newItems.suggestionsCount == 0;
 
       // PR #79：首次加载启用冷启动降级
       List<RecommendItem> finalTagged = newItems.tagged;
@@ -399,8 +411,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         finalTagged = [...finalTagged, ...degradedItems];
       }
 
-      // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
-      final hasMore = finalTagged.length >= _pageSize;
+      // Task 4：只有所有数据源都耗尽时才认为无更多数据
+      final hasMore = !newItems.allSourcesExhausted;
 
       state = _withDerived(state.copyWith(
         taggedItems: finalTagged,
@@ -438,6 +450,12 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     try {
       state = state.copyWith(isLoadingMore: true);
 
+      // Task 2：清理过期的展示记录，使反疲劳天数偏好实际生效
+      final antiFatigueDays = _ref.read(recommendAntiFatigueDaysProvider);
+      await _ref
+          .read(recentlyShownItemIdsProvider.notifier)
+          .cleanExpired(antiFatigueDays);
+
       final ctx = _buildLoadContext();
       if (ctx == null) {
         state = state.copyWith(isLoadingMore: false, hasMore: false);
@@ -453,8 +471,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       );
 
       final merged = [...state.taggedItems, ...newItems.tagged];
-      // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
-      final hasMore = newItems.tagged.length >= _pageSize;
+      // Task 4：只有所有数据源都耗尽时才认为无更多数据
+      final hasMore = !newItems.allSourcesExhausted;
 
       state = _withDerived(state.copyWith(
         taggedItems: merged,
@@ -497,6 +515,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         tagged: [],
         nextUpCount: 0,
         resumeCount: 0,
+        suggestionsCount: 0,
+        allSourcesExhausted: true,
       );
     }
     final queues = <String, List<RecommendItem>>{
@@ -507,17 +527,22 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceSimilar: <RecommendItem>[],
     };
 
-    await Future.wait([
+    // Task 4：并发拉取各数据源，收集各源是否还有更多数据的标记
+    // _fetchNextUpByRecentSeries 也填充 NextUp 队列，但不参与 hasMore 判定
+    final nextUpByRecentFuture = _fetchNextUpByRecentSeries(
+      ctx: ctx,
+      queues: queues,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+    // 顺序对应 sourceHasMore 索引：
+    // [0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Similar, [4]=Recommendations
+    final sourceHasMore = await Future.wait<bool>([
       _fetchNextUpQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
       _fetchResumeQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchNextUpByRecentSeries(
-          ctx: ctx,
-          queues: queues,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId),
       _fetchSuggestionsQueue(
           ctx: ctx,
           queues: queues,
@@ -532,16 +557,19 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           userId: userId),
       _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
     ]);
+    await nextUpByRecentFuture;
 
     return _mergeRoundRobin(
       queues: queues,
       signal: ctx.signal,
       seenIds: seenIds,
+      sourceHasMore: sourceHasMore,
     );
   }
 
   // 填充 NextUp 追剧队列
-  Future<void> _fetchNextUpQueue({
+  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  Future<bool> _fetchNextUpQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
     required String serverUrl,
@@ -568,13 +596,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         nextUpQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
       }
+      return resp.items.isNotEmpty;
     } catch (e) {
       AppLogger.error('推荐：加载 NextUp 失败', error: e);
+      return false;
     }
   }
 
   // 填充 Resume 续看队列
-  Future<void> _fetchResumeQueue({
+  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  Future<bool> _fetchResumeQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
     required String serverUrl,
@@ -601,8 +632,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         resumeQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.resume));
       }
+      return resp.items.isNotEmpty;
     } catch (e) {
       AppLogger.error('推荐：加载 Resume 失败', error: e);
+      return false;
     }
   }
 
@@ -690,7 +723,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // 填充个性化推荐队列
-  Future<void> _fetchSuggestionsQueue({
+  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  Future<bool> _fetchSuggestionsQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
     required String serverUrl,
@@ -719,14 +753,17 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         suggestionsQueue?.add(
             RecommendItem(item: item, source: RecommendSource.suggestions));
       }
+      return suggestions.isNotEmpty;
     } catch (e) {
       AppLogger.error('推荐：加载个性化推荐失败', error: e);
+      return false;
     }
   }
 
   // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
   // PR #86：收藏项优先作为相似种子
-  Future<void> _fetchSimilarQueue({
+  // Task 4：返回该数据源是否还有更多数据（任一种子返回相似项 > 0）
+  Future<bool> _fetchSimilarQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
     required String serverUrl,
@@ -779,7 +816,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             (b.communityRating ?? 0).compareTo(a.communityRating ?? 0));
       final topSeeds = highRated.take(_similarSeedCount).toList();
       if (topSeeds.isEmpty) {
-        return;
+        return false;
       }
       // 并发限制：最多同时请求 _maxConcurrentRequests 个种子
       final tasks = topSeeds
@@ -798,7 +835,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
               })
           .toList();
       final similarLists = await _runWithConcurrencyLimit(tasks);
+      var hasMore = false;
       for (final list in similarLists) {
+        if (list.isNotEmpty) hasMore = true;
         final similarQueue = queues[_sourceSimilar];
         for (final item in list) {
           if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
@@ -815,13 +854,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
               ?.add(RecommendItem(item: item, source: RecommendSource.similar));
         }
       }
+      return hasMore;
     } catch (e) {
       AppLogger.error('推荐：Similar 流程失败', error: e);
+      return false;
     }
   }
 
   // 填充多库高分推荐队列
-  Future<void> _fetchRecommendationsQueue({
+  // Task 4：返回该数据源是否还有更多数据（任一库返回项数 > 0）
+  Future<bool> _fetchRecommendationsQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
     required Set<String> seenIds,
@@ -829,7 +871,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final serverUrl = ctx.auth.embyServerUrl;
     final token = ctx.auth.token;
     final userId = ctx.auth.user?.id;
-    if (serverUrl == null || token == null) return;
+    if (serverUrl == null || token == null) return false;
+    // Dart 单线程模型，闭包并发执行时共享变量安全
+    var hasMore = false;
     // 并发限制：最多同时请求 _maxConcurrentRequests 个库
     final tasks = ctx.selectedIds
         .map((libId) => () async {
@@ -845,6 +889,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                   excludePlayed: ctx.excludePlayed,
                   includeItemTypes: ctx.includeTypes,
                 );
+                if (resp.items.isNotEmpty) hasMore = true;
                 for (final item in resp.items) {
                   if (ctx.isTooShort(item)) continue;
                   if (_shouldSkipItem(
@@ -867,6 +912,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             })
         .toList();
     await _runWithConcurrencyLimit(tasks);
+    return hasMore;
   }
 
   // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
@@ -927,12 +973,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required Map<String, List<RecommendItem>> queues,
     required UserBehaviorSignal signal,
     required Set<String> seenIds,
+    // Task 4：各数据源是否还有更多数据
+    // 索引顺序：[0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Similar, [4]=Recommendations
+    required List<bool> sourceHasMore,
   }) {
     for (final list in queues.values) {
       list.shuffle();
     }
     final nextUpCount = queues[_sourceNextUp]?.length ?? 0;
     final resumeCount = queues[_sourceResume]?.length ?? 0;
+    final suggestionsCount = queues[_sourceSuggestions]?.length ?? 0;
     final sourceOrder = <RecommendSource>[
       RecommendSource.nextUp,
       RecommendSource.resume,
@@ -962,10 +1012,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         }
       }
     }
+    // Task 4：所有 5 个数据源都返回空结果时，认为服务器端已无更多数据
+    final allSourcesExhausted = !sourceHasMore.any((h) => h);
     return _PageLoadResult(
       tagged: tagged,
       nextUpCount: nextUpCount,
       resumeCount: resumeCount,
+      suggestionsCount: suggestionsCount,
+      allSourcesExhausted: allSourcesExhausted,
     );
   }
 
