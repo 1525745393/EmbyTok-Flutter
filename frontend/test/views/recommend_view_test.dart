@@ -187,4 +187,34 @@ void main() {
       expect(fakeNotifier.clearErrorCount, 1);
     });
   });
+
+  group('RecommendView 全面屏适配（P0-1）', () {
+    testWidgets('_buildBody 外层必须包 SafeArea，bottom=true 用于避让系统手势条',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      // 推荐页 Scaffold 的 body 是 _RecommendViewState.build 生成的第一个 widget
+      // 其必须以 SafeArea 开头，且 bottom=true（避免末行卡片被系统横条挡住）
+      final recommendView = find.byType(RecommendView);
+      expect(recommendView, findsOneWidget);
+
+      // 通过 Element 树拿到 RecommendView.build 返回的 Scaffold
+      final Scaffold scaffold = tester.widget(find.descendant(
+        of: recommendView,
+        matching: find.byType(Scaffold),
+      ));
+
+      // Scaffold.body 应该直接是 SafeArea
+      final body = scaffold.body;
+      expect(body, isA<SafeArea>(),
+          reason: 'P0-1: 推荐页 body 外层必须包 SafeArea，用于全面屏底部手势条避让');
+
+      final SafeArea safeArea = body as SafeArea;
+      expect(safeArea.bottom, isTrue,
+          reason: 'SafeArea.bottom=true 才能避让系统手势条');
+      expect(safeArea.top, isFalse,
+          reason: 'SafeArea.top=false：AppBar 已自动避开刘海，不需要额外 top 安全区');
+    });
+  });
 }

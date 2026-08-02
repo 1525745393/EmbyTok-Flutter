@@ -568,7 +568,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // 填充 NextUp 追剧队列
-  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
+  // 旧实现 items.isNotEmpty 会误判：恰好装满一页 (size=30) 时，服务器已无更多但被认为还有。
+  // 保守策略：只要 items 未达 limit 就认为已耗尽；后续若有 PaginatedResponse.totalRecordCount 可替换为精确判断。
   Future<bool> _fetchNextUpQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
@@ -596,7 +598,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         nextUpQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
       }
-      return resp.items.isNotEmpty;
+      return resp.items.length >= _pageSize;
     } catch (e) {
       AppLogger.error('推荐：加载 NextUp 失败', error: e);
       return false;
@@ -604,7 +606,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // 填充 Resume 续看队列
-  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
   Future<bool> _fetchResumeQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
@@ -632,7 +634,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         resumeQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.resume));
       }
-      return resp.items.isNotEmpty;
+      return resp.items.length >= _pageSize;
     } catch (e) {
       AppLogger.error('推荐：加载 Resume 失败', error: e);
       return false;
@@ -723,7 +725,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // 填充个性化推荐队列
-  // Task 4：返回该数据源是否还有更多数据（服务器返回项数 > 0）
+  // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
   Future<bool> _fetchSuggestionsQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
@@ -753,7 +755,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         suggestionsQueue?.add(
             RecommendItem(item: item, source: RecommendSource.suggestions));
       }
-      return suggestions.isNotEmpty;
+      return suggestions.length >= _pageSize;
     } catch (e) {
       AppLogger.error('推荐：加载个性化推荐失败', error: e);
       return false;

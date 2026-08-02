@@ -151,6 +151,23 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     RecommendState state,
     ColorScheme scheme,
   ) {
+    // P0-1：全面屏 SafeArea 底部避让（系统手势条/横条 18-34dp）
+    // top=false：AppBar 已自动避开刘海/状态栏，Banner/TagBar 不需要额外 top 安全区
+    // bottom=true：确保 GridView 末行卡片不被系统手势条遮挡
+    return SafeArea(
+      top: false,
+      bottom: true,
+      left: false,
+      right: false,
+      child: _buildBodyContent(context, state, scheme),
+    );
+  }
+
+  Widget _buildBodyContent(
+    BuildContext context,
+    RecommendState state,
+    ColorScheme scheme,
+  ) {
     // PR #79：冷启动 Banner（仅当 isColdStart=true 时显示）
     // 提示用户"先观看几个视频，推荐会更准"
     final showColdStartBanner =
@@ -200,6 +217,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
             onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
             child: GridView.builder(
               controller: _scrollController,
+              // 3 列小屏 109dp 卡片；padding.all(8) 已是默认，底部 SafeArea 已额外避开手势条
               padding: const EdgeInsets.all(8),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
