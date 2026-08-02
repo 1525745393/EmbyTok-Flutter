@@ -1,3 +1,10 @@
+## [2.32.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.32.0...v2.32.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* 将 publishCmd 提取为 bash 脚本，修复 dash 不支持 pipefail ([f97f55f](https://github.com/1525745393/EmbyTok-Flutter/commit/f97f55fd09a4b433b0f1c40a92c7958243d0dd39))
+
 # [2.32.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.31.1...v2.32.0) (2026-08-02)
 
 
