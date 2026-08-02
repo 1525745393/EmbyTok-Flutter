@@ -19,7 +19,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 // 显式从 pubspec.yaml 解析 version 字段，不依赖 Flutter Gradle 插件的自动注入
-// 格式：version: X.Y.Z+B  →  versionName "2.34.0"
+// 格式：version: X.Y.Z+B  →  versionName "2.35.0"
 def pubspecFile = new File("${rootProject.projectDir}/../pubspec.yaml")
 def pubspecVersion = ""
 if (pubspecFile.exists()) {
@@ -62,9 +62,9 @@ android {
         minSdkVersion flutter.minSdkVersion
         targetSdk 34
         // 从 pubspec.yaml 显式解析：version: X.Y.Z+B
-        // versionName "2.34.0"
-        versionCode 626
-        versionName "2.34.0"
+        // versionName "2.35.0"
+        versionCode 628
+        versionName "2.35.0"
     }
 
     signingConfigs {

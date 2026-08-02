@@ -1,3 +1,15 @@
+# [2.35.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.34.0...v2.35.0) (2026-08-02)
+
+
+### Bug Fixes
+
+* 修复首页审查发现的 2 个严重问题 + 5 个代码质量问题 ([bc9e12a](https://github.com/1525745393/EmbyTok-Flutter/commit/bc9e12ab159309ea5f6ebdd0a257704406826f33))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([bf8b88c](https://github.com/1525745393/EmbyTok-Flutter/commit/bf8b88c190abbfd2cd42e7632e135f49f79b9342))
+
 # [2.34.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.33.2...v2.34.0) (2026-08-02)
 
 
