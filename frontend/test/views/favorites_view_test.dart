@@ -712,5 +712,67 @@ void main() {
         );
       }
     });
+
+    testWidgets('搜索无结果仍保留搜索栏，并可通过「清空搜索词」按钮返回全量',
+        (tester) async {
+      stubLoadAllThree(movieCount: 3, boxSetCount: 1, personCount: 2);
+      when(mockService.toggleFavorite(
+        itemId: anyNamed('itemId'),
+        isFavorite: anyNamed('isFavorite'),
+        userId: anyNamed('userId'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+      )).thenAnswer((_) async {});
+
+      await tester.pumpWidget(
+        buildProviderScope(child: const FavoritesView()),
+      );
+      await tester.pumpAndSettle();
+
+      final grpMovie = find.byKey(const ValueKey('grp-movie'));
+      final movie1 = find.descendant(of: grpMovie, matching: find.text('影片1'));
+      expect(movie1, findsOneWidget);
+
+      final searchField = find.byWidgetPredicate((w) => w is TextField);
+      expect(searchField, findsOneWidget);
+
+      // 输入一个不存在的关键词 → 触发无结果状态
+      await tester.enterText(searchField.first, '###不存在###');
+      await tester.pumpAndSettle();
+
+      // 核心断言 1：搜索栏不能消失（否则无法清空返回）
+      expect(
+        find.byWidgetPredicate((w) => w is TextField),
+        findsOneWidget,
+        reason: '搜索无结果时搜索栏必须仍在页面上，保证可清空返回',
+      );
+      // 搜索框内的 × 清空按钮：Icons.cancel 直接挂在 _buildSearchField 的 Row 里，不是 TextField 的 descendant
+      final cancelClearBtn = find.byIcon(Icons.cancel);
+      expect(cancelClearBtn, findsOneWidget);
+
+      // 核心断言 2：无结果提示卡出现
+      expect(find.textContaining('没有找到'), findsOneWidget);
+      expect(find.text('###不存在###'), findsOneWidget);
+      // 核心断言 3：「清空搜索词」按钮出现（提供显式返回路径）
+      final clearBtn = find.widgetWithText(
+        OutlinedButton,
+        '清空搜索词',
+      );
+      expect(clearBtn, findsOneWidget);
+
+      // 影片列表在无结果时应不再出现
+      expect(movie1, findsNothing);
+
+      // 点击「清空搜索词」→ 回到全量
+      await tester.tap(clearBtn);
+      await tester.pumpAndSettle();
+
+      // 断言返回：影片1 重新可见，无结果文案消失
+      expect(
+        find.descendant(of: grpMovie, matching: find.text('影片1')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('没有找到'), findsNothing);
+    });
   });
 }

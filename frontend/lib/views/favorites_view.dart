@@ -400,36 +400,31 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       );
     }
 
-    // 搜索无结果
-    if (_searchQuery.isNotEmpty && filteredCount == 0) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_off, color: scheme.onSurfaceVariant, size: 64),
-            const SizedBox(height: 12),
-            Text(
-              '没有找到「$_searchQuery」',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 15),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 主内容：搜索框 + 统计卡 + 分组堆叠
+    // 主内容：搜索框 + 统计卡 + 内容区（分组堆叠 / 搜索无结果提示）
     final allAny = movies.isNotEmpty || boxSets.isNotEmpty || people.isNotEmpty;
+    final isSearchNoResult = _searchQuery.isNotEmpty && filteredCount == 0;
     return ListView(
       padding: EdgeInsets.fromLTRB(
           16, 12, 16, _selectMode ? 120 : 32),
       children: [
-        // 搜索框
+        // 搜索框（常驻：即使搜索无结果也保留，便于用户清空搜索词返回全量）
         _buildSearchField(scheme),
         const SizedBox(height: 14),
         // 统计概览卡
         _buildStatsRow(scheme, state),
         const SizedBox(height: 18),
-        if (!allAny)
+        // 搜索无结果：给出明确提示 + 一键清空搜索词返回全量
+        if (isSearchNoResult)
+          _SearchNoResultHint(
+            query: _searchQuery,
+            onClear: () {
+              setState(() {
+                _searchQuery = '';
+                _searchController.clear();
+              });
+            },
+          )
+        else if (!allAny)
           const SizedBox.shrink()
         else ...[
           // 分组：收藏影片
@@ -2052,6 +2047,87 @@ class _LoadMoreHint extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 搜索无结果提示卡：给出明确无结果文案 + 一键清空搜索词「返回」全量列表
+///
+/// 设计动机：用户输入一个不存在的词后，若直接让搜索框消失就会「无法返回」；
+/// 这里同时保留搜索框（用户可点 × 清空）并增加显式「清空搜索词」按钮，
+/// 提供双路径返回全量收藏内容。
+class _SearchNoResultHint extends StatelessWidget {
+  final String query;
+  final VoidCallback onClear;
+
+  const _SearchNoResultHint({
+    required this.query,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(18, 26, 18, 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        border:
+            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off, size: 56, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 14),
+          Text(
+            '没有找到「$query」',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '可以换个关键词试试，或直接清空搜索词返回全部收藏',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.35,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onClear,
+                icon: const Icon(Icons.clear_all, size: 16),
+                label: const Text('清空搜索词'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.primary,
+                  side: BorderSide(
+                      color: scheme.primary.withValues(alpha: 0.55)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  textStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
