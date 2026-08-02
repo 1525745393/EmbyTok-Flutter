@@ -1,3 +1,10 @@
+## [2.33.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.33.1...v2.33.2) (2026-08-02)
+
+
+### Bug Fixes
+
+* **nav:** 修复底部导航栏 magic number、废弃 API 与触觉反馈 ([e91764a](https://github.com/1525745393/EmbyTok-Flutter/commit/e91764a282ca18a11d68e6dc74e493a5cfdf8444))
+
 ## [2.33.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.33.0...v2.33.1) (2026-08-02)
 
 
