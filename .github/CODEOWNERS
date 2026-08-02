@@ -1,0 +1,21 @@
+# EmbyTok CODEOWNERS
+# 每行格式：<path-pattern>  @owner1 @owner2
+# 核心模块需要 ≥2 审批（由 scripts/ci/pr-gate.py 强制）
+
+# 核心模块 - 需 ≥2 审批（pr-gate.py 强制）
+frontend/lib/**/player*          @1525745393
+frontend/lib/**/auth*            @1525745393
+frontend/lib/services/           @1525745393
+backend/api/routes/*.py          @1525745393
+scripts/release*.sh              @1525745393
+.github/workflows/android-release.yml  @1525745393
+
+# 主题系统
+frontend/lib/theme/              @1525745393
+
+# CI/CD 配置
+.github/workflows/*.yml          @1525745393
+scripts/ci/                      @1525745393
+
+# 默认
+*                               @1525745393

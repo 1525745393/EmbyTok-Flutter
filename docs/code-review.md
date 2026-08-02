@@ -129,3 +129,40 @@
 - [ ] 符合主题基线（无硬编码色）与无障碍基线（对比度 AA、点击目标 ≥44）
 - [ ] 提交信息规范、PR 描述完整
 - [ ] UI 改动已自测暗色模式 / 手势 / 字幕
+
+---
+
+## 8. 自动化执行
+
+本仓库已通过两个 GitHub Actions workflow 将上述审查标准落地为可自动执行的 CI 门禁，无需人工逐项核对。部署与配置流程见 [`code-review-workflow-deploy.md`](./code-review-workflow-deploy.md)。
+
+### 8.1 pr-precheck：自动化检查层
+
+Workflow 文件：[`.github/workflows/pr-precheck.yml`](../.github/workflows/pr-precheck.yml)
+
+将以下条款从「人工勾选」变为「CI 硬门禁」，任一失败即阻断合并：
+
+| 本文档条款 | 对应检查项 | 脚本 |
+| --- | --- | --- |
+| 3.2 UI 与主题（禁止硬编码 hex） | `theme-tokens` | `scripts/ci/precheck-theme-tokens.sh` |
+| 3.5 测试（测试失败必须阻断） | `test` / `test-backend` | `scripts/ci/precheck-test.sh` / `precheck-test-backend.sh` |
+| 3.6 安全（密钥 / Token 不进代码） | `security` | `scripts/ci/precheck-security.sh`（bandit） |
+| 3.8 文档与提交（PR 描述完整） | `pr-template` | `scripts/ci/precheck-pr-template.sh` |
+| 第 6 节「建议强化 1」（测试硬门禁） | `test` | 已落地：`flutter test` 失败即 `exit 1`，不再 `|| echo` 豁免 |
+| 架构质量（analyze 0 error） | `analyze` | `scripts/ci/precheck-analyze.sh` |
+| Shell / YAML 规范 | `lint-shell` / `lint-yaml` | `scripts/ci/precheck-lint-shell.sh` / `precheck-lint-yaml.sh` |
+
+### 8.2 pr-gate：人工评审强门禁层
+
+Workflow 文件：[`.github/workflows/pr-gate.yml`](../.github/workflows/pr-gate.yml)
+
+将第 4 节（问题严重级别）与第 7 节（合并准入清单）变为可机器判定的 Status Check：
+
+- **评论前缀解析**：自动识别 `[Blocker]` / `[Major]` / `[Minor]` / `[Nit]` 前缀，统计未解决项。
+- **审批人数校验**：非核心模块 ≥1，核心模块（播放器 / 鉴权 / 后端路由 / 发布流程）≥2。
+- **Waiver 机制**：Maintainer 可在 PR 描述中签发 Waiver 证据块，抵消未解决的 Major。
+- **合并准入自动化**：0 个未关闭 Blocker + 0 个未 waiver Major + 审批人数达标 → Gate PASS，否则 FAIL。
+
+### 8.3 降级与容错
+
+工作流设计了工具缺失跳过、API 限流降级、Solo 模式、紧急绕过等降级策略，确保 CI 故障不阻塞开发。详见部署指南[第 5 节](./code-review-workflow-deploy.md#5-降级策略说明)。

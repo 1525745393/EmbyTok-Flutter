@@ -1,0 +1,14 @@
+# bandit 安全扫描配置文件
+# 用于 Python 后端代码的安全审计
+# 详见 https://bandit.readthedocs.io/
+[bandit]
+# 排除目录：测试目录与字节码缓存不参与扫描
+exclude_dirs = tests,test,__pycache__
+# 严重级别阈值（0=LOW, 1=MEDIUM, 2=HIGH）
+# 0 表示报告所有级别（LOW/MEDIUM/HIGH）
+severity_level = 0
+# 置信度阈值（0=LOW, 1=MEDIUM, 2=HIGH）
+# 0 表示报告所有置信度
+confidence_level = 0
+# 跳过 B101（assert 断言检查），测试代码中可接受
+skip = B101

@@ -1,11 +1,20 @@
-extends:
-  default
+# yamllint 配置文件
+# 适配 GitHub Actions / CI 工作流的 YAML 文件
+# 设计原则：宽松适度，避免对 CI 配置文件误报
+extends: default
 
 rules:
-  line-length:
-    max: 200
+  # 不要求 YAML 文件以 --- 开头
+  document-start: disable
+  # 关闭行长限制（GitHub Actions 常有长行，如 runs-on / permissions 等）
+  line-length: disable
+  # 关闭 truthy 检查：
+  # GitHub Actions 的 on: 触发器在 YAML 1.1 中是保留字，会被 yamllint 误报
+  truthy: disable
+  # 缩进：2 空格，序列缩进保持一致（避免 mixed/不一致告警）
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+  # 注释与内容之间至少 1 个空格
   comments:
     min-spaces-from-content: 1
-  document-start: disable
-  truthy:
-    level: warning

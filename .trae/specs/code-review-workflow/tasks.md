@@ -35,7 +35,7 @@
   - `programmatic` TR-2.4: 无硬编码颜色的代码上退出码 0
 - **Notes**: `package:analyzer` API 可能随 Flutter 版本变化，需确认当前 stable channel 的 API 兼容性。
 
-## [/] Task 3: 实现 pr-gate.py 评审流程强门禁主逻辑
+## [x] Task 3: 实现 pr-gate.py 评审流程强门禁主逻辑
 - **Priority**: high
 - **Depends On**: None
 - **Description**:
@@ -60,7 +60,7 @@
   - `human-judgement` TR-3.7: 代码审查 — 5 步校验逻辑清晰分离，每步独立可测试
 - **Notes**: GitHub GraphQL API 的 reviewThreads 查询需注意分页（cursor）。Waiver 和 emergency-bypass 块解析逻辑可共享。
 
-## [ ] Task 4: 创建配置文件（.yamllint + .bandit + CODEOWNERS + PR Template）
+## [x] Task 4: 创建配置文件（.yamllint + .bandit + CODEOWNERS + PR Template）
 - **Priority**: high
 - **Depends On**: None
 - **Description**:
@@ -76,7 +76,7 @@
   - `human-judgement` TR-4.4: PR 模板三栏清晰、Waiver 块格式注释正确
 - **Notes**: .yamllint 规则需兼容 GitHub Actions 的 YAML 格式（如 `on:` 是保留字在 YAML 1.1 中）。
 
-## [ ] Task 5: 创建 pr-precheck.yml workflow
+## [x] Task 5: 创建 pr-precheck.yml workflow
 - **Priority**: high
 - **Depends On**: Task 1, Task 2
 - **Description**:
@@ -94,7 +94,7 @@
   - `programmatic` TR-5.4: YAML 中 `permissions` 最小化（无 `packages: write` 等多余权限）
 - **Notes**: Flutter cache 用 `subosito/flutter-action@v2` 的 `cache: true`。Python 用 `actions/setup-python@v5`。
 
-## [ ] Task 6: 创建 pr-gate.yml workflow
+## [x] Task 6: 创建 pr-gate.yml workflow
 - **Priority**: high
 - **Depends On**: Task 3
 - **Description**:
@@ -112,7 +112,7 @@
   - `programmatic` TR-6.4: `GITHUB_TOKEN` 通过 `env` 传入而非直接写在 run 命令中
 - **Notes**: `issue_comment` 事件不包含 `pull_request` 对象，脚本需通过 `github.event.issue.pull_request.url` 反查 PR 编号。
 
-## [ ] Task 7: 部署文档与 Branch Protection 配置指南
+## [x] Task 7: 部署文档与 Branch Protection 配置指南
 - **Priority**: medium
 - **Depends On**: Task 5, Task 6
 - **Description**:

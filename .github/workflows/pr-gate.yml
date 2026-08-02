@@ -1,0 +1,40 @@
+name: PR Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+  issue_comment:
+    types: [created, edited, deleted]
+  schedule:
+    - cron: '0 */6 * * *'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+jobs:
+  gate-check:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r scripts/ci/requirements.txt
+      - name: Run PR Gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          REPO: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: python3 scripts/ci/pr-gate.py
