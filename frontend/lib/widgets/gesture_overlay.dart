@@ -104,9 +104,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   @override
   Widget build(BuildContext context) {
     final c = widget.controller;
-    final duration = (c != null && c.value.isInitialized)
-        ? c.value.duration
-        : Duration.zero;
+    final duration =
+        (c != null && c.value.isInitialized) ? c.value.duration : Duration.zero;
 
     final usePan = widget.enableVerticalVolumeDrag;
 
@@ -120,10 +119,10 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             onTapDown: handleTapDown,
             onTap: handleTap,
             onLongPressStart: widget.enableGestures ? onLongPressStart : null,
-            onLongPressEnd:
-                widget.enableGestures ? onLongPressEnd : null,
-            onLongPressCancel:
-                widget.enableGestures ? () => onLongPressEnd(LongPressEndDetails()) : null,
+            onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
+            onLongPressCancel: widget.enableGestures
+                ? () => onLongPressEnd(LongPressEndDetails())
+                : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
             onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
             onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
@@ -136,9 +135,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             onHorizontalDragUpdate: (widget.enableGestures && !usePan)
                 ? onHorizontalDragUpdate
                 : null,
-            onHorizontalDragEnd: (widget.enableGestures && !usePan)
-                ? onHorizontalDragEnd
-                : null,
+            onHorizontalDragEnd:
+                (widget.enableGestures && !usePan) ? onHorizontalDragEnd : null,
             onHorizontalDragCancel: (widget.enableGestures && !usePan)
                 ? onHorizontalDragCancel
                 : null,
@@ -176,7 +174,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                 return IgnorePointer(
                   child: Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 16),
                       decoration: BoxDecoration(
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(12),
@@ -199,7 +198,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                             child: LinearProgressIndicator(
                               value: volume,
                               backgroundColor: Colors.white24,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
                               minHeight: 4,
                             ),
                           ),
@@ -238,7 +238,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             return IgnorePointer(
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.black54,
                     borderRadius: BorderRadius.circular(16),
@@ -258,8 +259,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
           },
         ),
         // 双击心形动画
-        if (showHeart)
-          const IgnorePointer(child: _FlyingHeart()),
+        if (showHeart) const IgnorePointer(child: _FlyingHeart()),
         // 双击快进/快退视觉反馈
         if (showSeekFeedback)
           IgnorePointer(
@@ -280,7 +280,10 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
                     colors: [
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.22),
+                      Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.22),
                       Colors.transparent
                     ],
                   ),
@@ -289,9 +292,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isSeekForward
-                          ? Icons.fast_forward
-                          : Icons.fast_rewind,
+                      isSeekForward ? Icons.fast_forward : Icons.fast_rewind,
                       color: Theme.of(context).colorScheme.onPrimary,
                       size: 48,
                       shadows: [
@@ -299,7 +300,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurface
-                                .withOpacity(0.33),
+                                .withValues(alpha: 0.33),
                             blurRadius: 8),
                       ],
                     ),
@@ -316,7 +317,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.33),
+                                  .withValues(alpha: 0.33),
                               blurRadius: 4),
                         ],
                       ),
@@ -370,7 +371,7 @@ class _SeekPreviewBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
             color: Theme.of(context).colorScheme.primary, width: 1.5),
@@ -402,7 +403,7 @@ class _SeekPreviewBar extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.7),
+                      .withValues(alpha: 0.7),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
@@ -413,9 +414,9 @@ class _SeekPreviewBar extends StatelessWidget {
           LinearProgressIndicator(
             value: clampedProgress,
             backgroundColor:
-                Theme.of(context).colorScheme.onSurface.withOpacity(0.14),
-            valueColor:
-                AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.14),
+            valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary),
           ),
         ],
       ),
@@ -474,7 +475,10 @@ class _FlyingHeartState extends State<_FlyingHeart>
               size: 96,
               shadows: [
                 Shadow(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.33),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.33),
                     blurRadius: 16,
                     offset: Offset(0, 4)),
               ],

@@ -63,8 +63,8 @@ ThemeData _buildBaseTheme(
   required SystemUiOverlayStyle systemOverlayStyle,
 }) {
   final surfaceElevated = colorScheme.brightness == Brightness.dark
-      ? colorScheme.surface.withOpacity(1.0) // 暗色模式下保持纯深色
-      : colorScheme.surface.withOpacity(0.95); // 亮色模式下轻微加深
+      ? colorScheme.surface.withValues(alpha: 1.0) // 暗色模式下保持纯深色
+      : colorScheme.surface.withValues(alpha: 0.95); // 亮色模式下轻微加深
 
   final surfaceHighest = colorScheme.brightness == Brightness.dark
       ? const Color(0xFF121212) // 暗色：近似 MD3 surfaceContainerHighest
@@ -91,8 +91,9 @@ ThemeData _buildBaseTheme(
       systemOverlayStyle: systemOverlayStyle,
     ),
     // 卡片统一风格
-    // 类名使用 CardTheme（兼容 Flutter >=3.10.0 的所有版本；3.44 后该类别名到 CardThemeData）
-    cardTheme: CardTheme(
+    // Flutter 3.44 起 ThemeData.cardTheme 参数类型从 CardTheme? 改为 CardThemeData?，
+    // 这里使用 CardThemeData 适配新版 API（旧版 CardTheme 仅作别名保留）
+    cardTheme: CardThemeData(
       color: surfaceHighest,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -174,8 +175,9 @@ ThemeData _buildBaseTheme(
       ),
     ),
     // 对话框风格
-    // 类名使用 DialogTheme（兼容 Flutter >=3.10.0 的所有版本；3.44 后该类别名到 DialogThemeData）
-    dialogTheme: DialogTheme(
+    // Flutter 3.44 起 ThemeData.dialogTheme 参数类型从 DialogTheme? 改为 DialogThemeData?，
+    // 这里使用 DialogThemeData 适配新版 API（旧版 DialogTheme 仅作别名保留）
+    dialogTheme: DialogThemeData(
       backgroundColor: surfaceElevated,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),
@@ -198,7 +200,7 @@ ThemeData _buildBaseTheme(
       activeTrackColor: colorScheme.primary,
       inactiveTrackColor: surfaceHighest,
       thumbColor: colorScheme.primary,
-      overlayColor: colorScheme.primary.withOpacity(0.12),
+      overlayColor: colorScheme.primary.withValues(alpha: 0.12),
     ),
     // 导航栏（底部 tab）
     navigationBarTheme: NavigationBarThemeData(
@@ -224,7 +226,7 @@ ThemeData _buildBaseTheme(
     // 滚动条
     scrollbarTheme: ScrollbarThemeData(
       thumbColor: WidgetStatePropertyAll(
-        colorScheme.onSurface.withOpacity(0.2),
+        colorScheme.onSurface.withValues(alpha: 0.2),
       ),
       thickness: const WidgetStatePropertyAll(4.0),
       radius: const Radius.circular(2.0),
@@ -277,7 +279,8 @@ ThemeMode parseThemeMode(String mode) {
 /// 用 ThemeExtension 包装 SystemUiOverlayStyle，让 buildLightTheme/buildDarkTheme
 /// 能把"系统栏前景色"作为 ThemeData 的一部分传出。
 /// AnnotatedRegion 只需要 ThemeData，就能拿到对应主题的 overlay style。
-class _SystemOverlayStyleTheme extends ThemeExtension<_SystemOverlayStyleTheme> {
+class _SystemOverlayStyleTheme
+    extends ThemeExtension<_SystemOverlayStyleTheme> {
   final SystemUiOverlayStyle style;
   const _SystemOverlayStyleTheme(this.style);
 

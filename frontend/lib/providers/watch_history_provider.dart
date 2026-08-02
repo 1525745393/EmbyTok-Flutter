@@ -51,12 +51,13 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
     }
 
     try {
-      final items = await _ref.read(cachedMediaRepositoryProvider).getWatchHistory(
-        limit: 50,
-        userId: auth.user?.id,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
-      );
+      final items =
+          await _ref.read(cachedMediaRepositoryProvider).getWatchHistory(
+                limit: 50,
+                userId: auth.user?.id,
+                serverUrl: auth.embyServerUrl!,
+                token: auth.token!,
+              );
       state = WatchHistoryState(items: items);
       AppLogger.info('观看历史加载成功', data: {'count': items.length});
     } catch (e) {

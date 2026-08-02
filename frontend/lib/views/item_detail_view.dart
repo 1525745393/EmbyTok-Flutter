@@ -280,12 +280,13 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   // 顶部背景大图
   Widget _buildBackdrop(MediaItem item, AuthState authState) {
     final imageUrl = item.backdropUrl(
-      embyServerUrl: authState.embyServerUrl,
-      apiKey: authState.token,
-    ) ?? item.primaryUrl(
-      embyServerUrl: authState.embyServerUrl,
-      apiKey: authState.token,
-    );
+          embyServerUrl: authState.embyServerUrl,
+          apiKey: authState.token,
+        ) ??
+        item.primaryUrl(
+          embyServerUrl: authState.embyServerUrl,
+          apiKey: authState.token,
+        );
     final headers = item.authHeaders(authState.token);
     return AspectRatio(
       aspectRatio: 16 / 9,
@@ -297,8 +298,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               width: double.infinity,
               httpHeaders: headers.isNotEmpty ? headers : null,
               memCacheWidth: 1000,
-              placeholder: (_, __) => Container(color: Theme.of(context).colorScheme.surface),
-              errorWidget: (_, __, ___) => _BackdropPlaceholder(type: item.type),
+              placeholder: (_, __) =>
+                  Container(color: Theme.of(context).colorScheme.surface),
+              errorWidget: (_, __, ___) =>
+                  _BackdropPlaceholder(type: item.type),
             )
           : _BackdropPlaceholder(type: item.type),
     );
@@ -310,9 +313,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final year = item.productionYear ?? item.year;
     final rating = item.communityRating ?? item.rating;
     // 导演：从 people 中过滤 type 为 Director 的人，取第一个
-    final director = item.people
-        ?.where((p) => p.type == 'Director')
-        .firstOrNull;
+    final director =
+        item.people?.where((p) => p.type == 'Director').firstOrNull;
     final directorName = director?.name;
     // 时长
     final durationText = item.formattedDuration;
@@ -338,14 +340,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _buildTypeChip(item.type),
-              if (year != null)
-                _buildInfoChip(year.toString()),
-              if (rating != null && rating > 0)
-                _buildRatingChip(rating),
+              if (year != null) _buildInfoChip(year.toString()),
+              if (rating != null && rating > 0) _buildRatingChip(rating),
               if (directorName != null && directorName.isNotEmpty)
                 _buildInfoChip('导演：$directorName'),
-              if (durationText.isNotEmpty)
-                _buildInfoChip(durationText),
+              if (durationText.isNotEmpty) _buildInfoChip(durationText),
             ],
           ),
           const SizedBox(height: 16),
@@ -383,7 +382,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildFavoriteButton(bool favorited, ColorScheme scheme) {
     return Container(
       decoration: BoxDecoration(
-        color: scheme.onSurface.withOpacity(0.1),
+        color: scheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: scheme.outlineVariant),
       ),
@@ -425,7 +424,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: scheme.onSurface.withOpacity(0.1),
+        color: scheme.onSurface.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -441,7 +440,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: scheme.tertiary.withOpacity(0.2),
+        color: scheme.tertiary.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -621,16 +620,20 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? scheme.primary
-                            : scheme.onSurface.withOpacity(0.1),
+                            : scheme.onSurface.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? scheme.primary : scheme.outlineVariant,
+                          color: isSelected
+                              ? scheme.primary
+                              : scheme.outlineVariant,
                         ),
                       ),
                       child: Text(
                         season.title,
                         style: TextStyle(
-                          color: isSelected ? scheme.onPrimary : scheme.onSurfaceVariant,
+                          color: isSelected
+                              ? scheme.onPrimary
+                              : scheme.onSurfaceVariant,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -656,7 +659,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               child: Center(
                 child: Text(
                   '暂无集数',
-                  style: TextStyle(color: scheme.onSurfaceVariant.withOpacity(0.7), fontSize: 14),
+                  style: TextStyle(
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      fontSize: 14),
                 ),
               ),
             )
@@ -714,7 +719,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: 7,
                     separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (_, __) => _SimilarCardSkeleton(scheme: scheme),
+                    itemBuilder: (_, __) =>
+                        _SimilarCardSkeleton(scheme: scheme),
                   )
                 : ListView.separated(
                     scrollDirection: Axis.horizontal,
@@ -797,7 +803,9 @@ class _BackdropPlaceholder extends StatelessWidget {
     }
     return Container(
       color: scheme.surface,
-      child: Center(child: Icon(icon, color: scheme.onSurface.withOpacity(0.5), size: 80)),
+      child: Center(
+          child: Icon(icon,
+              color: scheme.onSurface.withValues(alpha: 0.5), size: 80)),
     );
   }
 }
@@ -807,7 +815,8 @@ class _CastCard extends StatelessWidget {
   final Person person;
   final Map<String, String> httpHeaders;
   final VoidCallback? onTap;
-  const _CastCard({super.key, required this.person, required this.httpHeaders, this.onTap});
+  const _CastCard(
+      {super.key, required this.person, required this.httpHeaders, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -828,7 +837,7 @@ class _CastCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: scheme.surface,
                 border: Border.all(
-                  color: scheme.onSurface.withOpacity(0.1),
+                  color: scheme.onSurface.withValues(alpha: 0.1),
                   width: 0.5,
                 ),
               ),
@@ -863,7 +872,7 @@ class _CastCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: scheme.onSurfaceVariant.withOpacity(0.7),
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                     fontSize: 11,
                   ),
                   textAlign: TextAlign.center,
@@ -884,7 +893,8 @@ class _AvatarPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: scheme.surface,
-      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 32),
+      child: Icon(Icons.person,
+          color: scheme.onSurface.withValues(alpha: 0.5), size: 32),
     );
   }
 }
@@ -911,10 +921,10 @@ class _EpisodeTile extends StatelessWidget {
       maxWidth: 300,
     );
     final headers = episode.authHeaders(authState.token);
-    final seasonEp = (episode.parentIndexNumber != null &&
-            episode.indexNumber != null)
-        ? 'S${episode.parentIndexNumber}E${episode.indexNumber}'
-        : null;
+    final seasonEp =
+        (episode.parentIndexNumber != null && episode.indexNumber != null)
+            ? 'S${episode.parentIndexNumber}E${episode.indexNumber}'
+            : null;
     final overview = episode.overview;
 
     return InkWell(
@@ -923,7 +933,7 @@ class _EpisodeTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.1),
+          color: scheme.onSurface.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: scheme.outlineVariant),
         ),
@@ -942,7 +952,8 @@ class _EpisodeTile extends StatelessWidget {
                       httpHeaders: headers.isNotEmpty ? headers : null,
                       memCacheWidth: 240,
                       placeholder: (_, __) => _ThumbPlaceholder(scheme: scheme),
-                      errorWidget: (_, __, ___) => _ThumbPlaceholder(scheme: scheme),
+                      errorWidget: (_, __, ___) =>
+                          _ThumbPlaceholder(scheme: scheme),
                     )
                   : _ThumbPlaceholder(scheme: scheme),
             ),
@@ -979,7 +990,7 @@ class _EpisodeTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: scheme.onSurfaceVariant.withOpacity(0.7),
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                           fontSize: 12,
                         ),
                       ),
@@ -1006,7 +1017,8 @@ class _ThumbPlaceholder extends StatelessWidget {
       width: 120,
       height: 72,
       color: scheme.surface,
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+      child: Icon(Icons.movie_outlined,
+          color: scheme.onSurface.withValues(alpha: 0.5)),
     );
   }
 }
@@ -1054,8 +1066,10 @@ class _SimilarCard extends StatelessWidget {
                         width: double.infinity,
                         httpHeaders: headers.isNotEmpty ? headers : null,
                         memCacheWidth: 200,
-                        placeholder: (_, __) => _PosterPlaceholder(scheme: scheme),
-                        errorWidget: (_, __, ___) => _PosterPlaceholder(scheme: scheme),
+                        placeholder: (_, __) =>
+                            _PosterPlaceholder(scheme: scheme),
+                        errorWidget: (_, __, ___) =>
+                            _PosterPlaceholder(scheme: scheme),
                       )
                     : _PosterPlaceholder(scheme: scheme),
               ),
@@ -1088,7 +1102,8 @@ class _PosterPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: scheme.surface,
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5), size: 32),
+      child: Icon(Icons.movie_outlined,
+          color: scheme.onSurface.withValues(alpha: 0.5), size: 32),
     );
   }
 }
@@ -1110,7 +1125,7 @@ class _SimilarCardSkeleton extends StatelessWidget {
             aspectRatio: 3 / 4,
             child: Container(
               decoration: BoxDecoration(
-                color: scheme.onSurface.withOpacity(0.05),
+                color: scheme.onSurface.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -1121,7 +1136,7 @@ class _SimilarCardSkeleton extends StatelessWidget {
             width: double.infinity,
             height: 12,
             decoration: BoxDecoration(
-              color: scheme.onSurface.withOpacity(0.05),
+              color: scheme.onSurface.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(4),
             ),
           ),

@@ -61,7 +61,7 @@ class AuthState {
 }
 
 /// 安全存储 Provider：提供 FlutterSecureStorage 实例
-/// 
+///
 /// 测试时可 override 为 Mock 实现
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage();
@@ -101,7 +101,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
             final oldToken = config['access_token'] as String?;
             if (oldToken != null && oldToken.isNotEmpty) {
               // 迁移到安全存储
-              await _secureStorage.write(key: kStorageKeyAccessToken, value: oldToken);
+              await _secureStorage.write(
+                  key: kStorageKeyAccessToken, value: oldToken);
               // 删除旧的明文存储
               await prefs.remove(kStorageKeyConfig);
               token = oldToken;
@@ -136,7 +137,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           embyServerUrl: embyServerUrl,
           token: token,
         );
-        AppLogger.info('登录状态恢复成功', data: {'userId': user?.id, 'hasToken': true});
+        AppLogger.info('登录状态恢复成功',
+            data: {'userId': user?.id, 'hasToken': true});
       }
     } catch (e) {
       AppLogger.error('恢复登录状态失败', error: e);
@@ -152,7 +154,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      AppLogger.info('开始登录', data: {'serverUrl': embyServerUrl, 'username': username});
+      AppLogger.info('开始登录',
+          data: {'serverUrl': embyServerUrl, 'username': username});
       final user = await _service.login(
         embyServerUrl: embyServerUrl,
         username: username,
@@ -160,14 +163,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       // 持久化：敏感信息存储到安全存储，非敏感信息存储到 SharedPreferences
-      await _secureStorage.write(key: kStorageKeyAccessToken, value: user.accessToken);
+      await _secureStorage.write(
+          key: kStorageKeyAccessToken, value: user.accessToken);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(kStorageKeyEmbyServerUrl, embyServerUrl);
-      await prefs.setString(kStorageKeyUser, json.encode({
-        'backend_url': backendUrl ?? '',
-        'user_id': user.id,
-        'user_name': user.name,
-      }));
+      await prefs.setString(
+          kStorageKeyUser,
+          json.encode({
+            'backend_url': backendUrl ?? '',
+            'user_id': user.id,
+            'user_name': user.name,
+          }));
 
       state = AuthState(
         isAuthenticated: true,

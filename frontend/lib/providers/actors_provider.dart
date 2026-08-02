@@ -67,7 +67,9 @@ class ActorsState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: clearError ? null : (error ?? this.error),
       favoritedIds: favoritedIds ?? this.favoritedIds,
-      selectedPersonType: clearSelectedType ? null : (selectedPersonType ?? this.selectedPersonType),
+      selectedPersonType: clearSelectedType
+          ? null
+          : (selectedPersonType ?? this.selectedPersonType),
       searchQuery: searchQuery ?? this.searchQuery,
       searchResults: searchResults ?? this.searchResults,
       isSearching: isSearching ?? this.isSearching,
@@ -308,6 +310,7 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 // Provider
 // ============================================================
 
-final actorsProvider = StateNotifierProvider<ActorsNotifier, ActorsState>((ref) {
+final actorsProvider =
+    StateNotifierProvider<ActorsNotifier, ActorsState>((ref) {
   return ActorsNotifier(ref);
 });

@@ -160,7 +160,7 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
 }
 
 /// 顶层搜索建议 Provider（状态管理版）
-/// 
+///
 /// 注意：与 item_detail_provider.dart 中的 searchHintsProvider（FutureProvider版）区分
 final searchHintsStateProvider =
     StateNotifierProvider<SearchHintsNotifier, SearchHintsState>((ref) {

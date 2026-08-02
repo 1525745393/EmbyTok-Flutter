@@ -233,14 +233,16 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       userId: userId,
     );
 
-    final hasAnyCache = cachedMovies != null || cachedBoxSets != null || cachedPeople != null;
+    final hasAnyCache =
+        cachedMovies != null || cachedBoxSets != null || cachedPeople != null;
 
     if (hasAnyCache) {
       // 有缓存：立即展示缓存数据，isLoading 保持 true 表示后台正在刷新
       final cachedMoviesList = cachedMovies?.items ?? <MediaItem>[];
       final cachedBoxSetsList = cachedBoxSets?.items ?? <MediaItem>[];
       final cachedPeopleList = cachedPeople?.items ?? <MediaItem>[];
-      final cachedIds = _mergeIds(cachedMoviesList, cachedBoxSetsList, cachedPeopleList);
+      final cachedIds =
+          _mergeIds(cachedMoviesList, cachedBoxSetsList, cachedPeopleList);
 
       _moviesLoaded = cachedMoviesList.length;
       _boxSetsLoaded = cachedBoxSetsList.length;
@@ -256,13 +258,17 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         boxSetsError: null,
         peopleError: null,
         favoriteIds: cachedIds,
-        hasMoreMovies: (cachedMovies?.totalCount ?? 0) > cachedMoviesList.length,
-        hasMoreBoxSets: (cachedBoxSets?.totalCount ?? 0) > cachedBoxSetsList.length,
-        hasMorePeople: (cachedPeople?.totalCount ?? 0) > cachedPeopleList.length,
+        hasMoreMovies:
+            (cachedMovies?.totalCount ?? 0) > cachedMoviesList.length,
+        hasMoreBoxSets:
+            (cachedBoxSets?.totalCount ?? 0) > cachedBoxSetsList.length,
+        hasMorePeople:
+            (cachedPeople?.totalCount ?? 0) > cachedPeopleList.length,
       );
       AppLogger.info('展示收藏缓存数据', data: {
         'movies': '${cachedMoviesList.length}/${cachedMovies?.totalCount ?? 0}',
-        'boxSets': '${cachedBoxSetsList.length}/${cachedBoxSets?.totalCount ?? 0}',
+        'boxSets':
+            '${cachedBoxSetsList.length}/${cachedBoxSets?.totalCount ?? 0}',
         'people': '${cachedPeopleList.length}/${cachedPeople?.totalCount ?? 0}',
       });
     } else {
@@ -367,31 +373,29 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       boxSets: boxSetsError == null ? boxSets : state.boxSets,
       people: peopleError == null ? people : state.people,
       isLoading: false,
-      error: allFailed
-          ? (hasCache ? '刷新失败，请稍后重试' : '全部收藏加载失败')
-          : null,
+      error: allFailed ? (hasCache ? '刷新失败，请稍后重试' : '全部收藏加载失败') : null,
       moviesError: moviesError,
       boxSetsError: boxSetsError,
       peopleError: peopleError,
       favoriteIds: ids,
-      hasMoreMovies:
-          moviesError == null
-              ? moviesTotal > movies.length
-              : state.hasMoreMovies,
-      hasMoreBoxSets:
-          boxSetsError == null
-              ? boxSetsTotal > boxSets.length
-              : state.hasMoreBoxSets,
-      hasMorePeople:
-          peopleError == null
-              ? peopleTotal > people.length
-              : state.hasMorePeople,
+      hasMoreMovies: moviesError == null
+          ? moviesTotal > movies.length
+          : state.hasMoreMovies,
+      hasMoreBoxSets: boxSetsError == null
+          ? boxSetsTotal > boxSets.length
+          : state.hasMoreBoxSets,
+      hasMorePeople: peopleError == null
+          ? peopleTotal > people.length
+          : state.hasMorePeople,
     );
     _hasLoaded = true;
     AppLogger.info('收藏列表加载完成', data: {
-      'movies': '${moviesError == null ? movies.length : state.movies.length}/${moviesError == null ? moviesTotal : (cachedMovies?.totalCount ?? 0)}',
-      'boxSets': '${boxSetsError == null ? boxSets.length : state.boxSets.length}/${boxSetsError == null ? boxSetsTotal : (cachedBoxSets?.totalCount ?? 0)}',
-      'people': '${peopleError == null ? people.length : state.people.length}/${peopleError == null ? peopleTotal : (cachedPeople?.totalCount ?? 0)}',
+      'movies':
+          '${moviesError == null ? movies.length : state.movies.length}/${moviesError == null ? moviesTotal : (cachedMovies?.totalCount ?? 0)}',
+      'boxSets':
+          '${boxSetsError == null ? boxSets.length : state.boxSets.length}/${boxSetsError == null ? boxSetsTotal : (cachedBoxSets?.totalCount ?? 0)}',
+      'people':
+          '${peopleError == null ? people.length : state.people.length}/${peopleError == null ? peopleTotal : (cachedPeople?.totalCount ?? 0)}',
       'fromCache': hasCache,
     });
     _isLoading = false;
@@ -528,8 +532,11 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
     final currentlyFavorite = isFavorite(item.id);
     final newIsFavorite = !currentlyFavorite;
 
-    AppLogger.info('切换收藏状态',
-        data: {'itemId': item.id, 'itemTitle': item.title, 'newState': newIsFavorite});
+    AppLogger.info('切换收藏状态', data: {
+      'itemId': item.id,
+      'itemTitle': item.title,
+      'newState': newIsFavorite
+    });
 
     // 2. 乐观更新 UI：先按目标状态渲染
     final newIds = Set<String>.from(state.favoriteIds);

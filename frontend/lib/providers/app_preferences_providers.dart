@@ -41,7 +41,8 @@ class DeviceModeNotifier extends StateNotifier<DeviceMode> {
 
 /// 顶层设备模式 Provider
 final deviceModeProvider =
-    StateNotifierProvider<DeviceModeNotifier, DeviceMode>((ref) => DeviceModeNotifier());
+    StateNotifierProvider<DeviceModeNotifier, DeviceMode>(
+        (ref) => DeviceModeNotifier());
 
 // ---------------- feedType（最新/随机/收藏） ----------------
 
@@ -63,8 +64,8 @@ class FeedTypeNotifier extends StateNotifier<FeedType> {
 }
 
 /// 顶层浏览模式 Provider
-final feedTypeProvider =
-    StateNotifierProvider<FeedTypeNotifier, FeedType>((ref) => FeedTypeNotifier());
+final feedTypeProvider = StateNotifierProvider<FeedTypeNotifier, FeedType>(
+    (ref) => FeedTypeNotifier());
 
 // ---------------- viewMode（视频流/网格） ----------------
 
@@ -86,8 +87,8 @@ class ViewModeNotifier extends StateNotifier<ViewMode> {
 }
 
 /// 顶层视图模式 Provider
-final viewModeProvider =
-    StateNotifierProvider<ViewModeNotifier, ViewMode>((ref) => ViewModeNotifier());
+final viewModeProvider = StateNotifierProvider<ViewModeNotifier, ViewMode>(
+    (ref) => ViewModeNotifier());
 
 // ---------------- orientationMode ----------------
 

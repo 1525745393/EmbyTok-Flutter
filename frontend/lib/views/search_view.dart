@@ -94,7 +94,9 @@ class _SearchViewState extends ConsumerState<SearchView>
   }
 
   void _doSearch(String value) {
-    ref.read(searchProvider.notifier).search(value, category: _selectedCategory);
+    ref
+        .read(searchProvider.notifier)
+        .search(value, category: _selectedCategory);
     if (value.isNotEmpty) {
       ref.read(searchHistoryProvider.notifier).add(value);
     }
@@ -107,7 +109,9 @@ class _SearchViewState extends ConsumerState<SearchView>
       _selectedCategory = category;
     });
     if (_controller.text.isNotEmpty) {
-      ref.read(searchProvider.notifier).search(_controller.text, category: category);
+      ref
+          .read(searchProvider.notifier)
+          .search(_controller.text, category: category);
     }
   }
 
@@ -181,13 +185,14 @@ class _SearchViewState extends ConsumerState<SearchView>
                 style: TextStyle(color: scheme.onSurface, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: '输入关键词搜索...',
-                  hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                  hintStyle:
+                      TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                   prefixIcon: Icon(Icons.search,
-                      color: scheme.onSurface.withOpacity(0.6)),
+                      color: scheme.onSurface.withValues(alpha: 0.6)),
                   suffixIcon: value.text.isNotEmpty
                       ? IconButton(
                           icon: Icon(Icons.clear,
-                              color: scheme.onSurface.withOpacity(0.6)),
+                              color: scheme.onSurface.withValues(alpha: 0.6)),
                           onPressed: () {
                             _controller.clear();
                             _onQueryChanged('');
@@ -195,7 +200,7 @@ class _SearchViewState extends ConsumerState<SearchView>
                         )
                       : null,
                   filled: true,
-                  fillColor: scheme.onSurface.withOpacity(0.05),
+                  fillColor: scheme.onSurface.withValues(alpha: 0.05),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(28),
                     borderSide: BorderSide.none,
@@ -228,15 +233,15 @@ class _SearchViewState extends ConsumerState<SearchView>
                       labelStyle: TextStyle(
                         color: isSelected
                             ? scheme.onPrimary
-                            : scheme.onSurface.withOpacity(0.7),
+                            : scheme.onSurface.withValues(alpha: 0.7),
                         fontSize: 13,
                       ),
-                      backgroundColor:
-                          scheme.onSurface.withOpacity(0.05),
+                      backgroundColor: scheme.onSurface.withValues(alpha: 0.05),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                     ),
                   );
                 }).toList(),
@@ -284,7 +289,9 @@ class _SearchViewState extends ConsumerState<SearchView>
       return _buildHistory(history);
     }
     // 加载中
-    if ((state.isLoading || state.isLoadingPersons) && state.results.isEmpty && state.persons.isEmpty) {
+    if ((state.isLoading || state.isLoadingPersons) &&
+        state.results.isEmpty &&
+        state.persons.isEmpty) {
       final scheme = Theme.of(context).colorScheme;
       return _Centered(
         child: Column(
@@ -293,7 +300,8 @@ class _SearchViewState extends ConsumerState<SearchView>
             CircularProgressIndicator(color: scheme.primary),
             const SizedBox(height: 12),
             Text('搜索中...',
-                style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
+                style:
+                    TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
           ],
         ),
       );
@@ -306,7 +314,9 @@ class _SearchViewState extends ConsumerState<SearchView>
           title: error,
           actionLabel: '重试',
           onAction: () {
-            ref.read(searchProvider.notifier).search(state.query, category: state.category);
+            ref
+                .read(searchProvider.notifier)
+                .search(state.query, category: state.category);
           },
         ),
       );
@@ -354,7 +364,7 @@ class _SearchViewState extends ConsumerState<SearchView>
             child: Text(
               '共找到 ${state.total} 条结果',
               style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.6),
+                color: scheme.onSurface.withValues(alpha: 0.6),
                 fontSize: 13,
               ),
             ),
@@ -365,8 +375,8 @@ class _SearchViewState extends ConsumerState<SearchView>
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: state.results.length + (state.hasMore ? 1 : 0),
-            separatorBuilder: (_, __) =>
-                Divider(color: scheme.onSurface.withOpacity(0.1), height: 1),
+            separatorBuilder: (_, __) => Divider(
+                color: scheme.onSurface.withValues(alpha: 0.1), height: 1),
             itemBuilder: (context, index) {
               // 底部加载更多指示器
               if (index == state.results.length) {
@@ -413,7 +423,8 @@ class _SearchViewState extends ConsumerState<SearchView>
               return Text(
                 seriesName,
                 style: TextStyle(
-                    color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
+                    color: scheme.onSurface.withValues(alpha: 0.6),
+                    fontSize: 12),
               );
             }
             return null;
@@ -422,7 +433,8 @@ class _SearchViewState extends ConsumerState<SearchView>
               ? Text(
                   hint.year.toString(),
                   style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 12),
                 )
               : null,
         );
@@ -443,7 +455,8 @@ class _SearchViewState extends ConsumerState<SearchView>
             children: [
               Text('搜索历史',
                   style: TextStyle(
-                      color: scheme.onSurface.withOpacity(0.7), fontSize: 14)),
+                      color: scheme.onSurface.withValues(alpha: 0.7),
+                      fontSize: 14)),
               if (history.isNotEmpty)
                 TextButton(
                   onPressed: _clearHistory,
@@ -550,7 +563,7 @@ class _SearchResultTile extends ConsumerWidget {
           Text(
             formatDuration(item.durationSeconds),
             style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.6), fontSize: 12),
+                color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
           ),
         ]),
       ),
@@ -561,9 +574,10 @@ class _SearchResultTile extends ConsumerWidget {
   Widget _thumbPlaceholder(BuildContext context) => Container(
         width: 120,
         height: 72,
-        color: Theme.of(context).colorScheme.surface.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
         child: Icon(Icons.movie_outlined,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
       );
 }
 
@@ -581,7 +595,8 @@ class _PersonCard extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        context.push('/person/${person.id}', extra: {'personId': person.id, 'personName': person.name});
+        context.push('/person/${person.id}',
+            extra: {'personId': person.id, 'personName': person.name});
       },
       child: Column(
         children: [
@@ -601,7 +616,9 @@ class _PersonCard extends ConsumerWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                color: scheme.onSurface, fontSize: 13, fontWeight: FontWeight.w500),
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -625,21 +642,22 @@ class _HistoryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.15)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.15)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label,
                 style: TextStyle(
-                    color: scheme.onSurface.withOpacity(0.8), fontSize: 13)),
+                    color: scheme.onSurface.withValues(alpha: 0.8),
+                    fontSize: 13)),
             const SizedBox(width: 6),
             GestureDetector(
               onTap: onRemove,
               child: Icon(Icons.close,
-                  size: 14, color: scheme.onSurface.withOpacity(0.5)),
+                  size: 14, color: scheme.onSurface.withValues(alpha: 0.5)),
             ),
           ],
         ),
@@ -662,12 +680,12 @@ class _ConfirmDialog extends StatelessWidget {
       backgroundColor: scheme.surface,
       title: Text(title, style: TextStyle(color: scheme.onSurface)),
       content: Text(message,
-          style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
+          style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text('取消',
-              style: TextStyle(color: scheme.onSurface.withOpacity(0.7))),
+              style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.7))),
         ),
         ElevatedButton(
           onPressed: onConfirm,

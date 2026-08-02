@@ -45,7 +45,7 @@ class _ThinProgressBarState extends State<ThinProgressBar> {
     return Container(
       height: 2,
       width: double.infinity,
-      color: scheme.surface.withOpacity(0.3),
+      color: scheme.surface.withValues(alpha: 0.3),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress,
@@ -142,7 +142,8 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
               onHorizontalDragEnd: (_) {
                 final duration = widget.controller.value.duration;
                 if (duration.inMilliseconds > 0) {
-                  final targetMs = (_dragProgress * duration.inMilliseconds).toInt();
+                  final targetMs =
+                      (_dragProgress * duration.inMilliseconds).toInt();
                   widget.controller.seekTo(Duration(milliseconds: targetMs));
                 }
                 setState(() => _isDragging = false);
@@ -156,7 +157,7 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                   height: 4,
                   width: totalWidth,
                   decoration: BoxDecoration(
-                    color: scheme.onSurface.withOpacity(0.2),
+                    color: scheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Stack(
@@ -180,12 +181,14 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                           width: indicatorRadius * 2,
                           height: indicatorRadius * 2,
                           decoration: BoxDecoration(
-                            color: _isDragging ? scheme.primary : scheme.onSurface,
+                            color:
+                                _isDragging ? scheme.primary : scheme.onSurface,
                             shape: BoxShape.circle,
                             boxShadow: _isDragging
                                 ? [
                                     BoxShadow(
-                                      color: scheme.primary.withOpacity(0.5),
+                                      color:
+                                          scheme.primary.withValues(alpha: 0.5),
                                       blurRadius: 6,
                                     ),
                                   ]

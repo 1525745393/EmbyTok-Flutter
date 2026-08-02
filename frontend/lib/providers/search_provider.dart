@@ -59,15 +59,18 @@ class SearchPerson {
     this.overview,
   });
 
-  factory SearchPerson.fromJson(Map<String, dynamic> json, String serverUrl, String? token) {
+  factory SearchPerson.fromJson(
+      Map<String, dynamic> json, String serverUrl, String? token) {
     final id = (json['Id'] as String?) ?? '';
     final imageTags = json['ImageTags'] as Map<String, dynamic>?;
     String? imageUrl;
     if (imageTags != null && imageTags.containsKey('Primary')) {
       final tag = imageTags['Primary'] as String?;
       if (tag != null && tag.isNotEmpty) {
-        final authParam = token != null && token.isNotEmpty ? '&api_key=$token' : '';
-        imageUrl = '$serverUrl/Items/$id/Images/Primary?MaxWidth=300&Format=jpg$authParam';
+        final authParam =
+            token != null && token.isNotEmpty ? '&api_key=$token' : '';
+        imageUrl =
+            '$serverUrl/Items/$id/Images/Primary?MaxWidth=300&Format=jpg$authParam';
       }
     }
     return SearchPerson(
@@ -201,14 +204,16 @@ class SearchNotifier extends StateNotifier<SearchState> {
   /// 实际执行搜索
   Future<void> _doSearch(String query, SearchCategory searchCategory) async {
     // 先检查缓存
-    final cacheKey = '$query:${searchCategory.name}:${_auth.embyServerUrl}:${_auth.token}';
+    final cacheKey =
+        '$query:${searchCategory.name}:${_auth.embyServerUrl}:${_auth.token}';
     final cached = _cache.get(cacheKey);
     if (cached != null) {
       state = cached;
       return;
     }
 
-    AppLogger.info('开始搜索', data: {'query': query, 'category': searchCategory.name});
+    AppLogger.info('开始搜索',
+        data: {'query': query, 'category': searchCategory.name});
 
     state = SearchState(
       results: const <MediaItem>[],
@@ -229,7 +234,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
     final token = auth.token;
     final userId = auth.user?.id;
     if (!auth.isAuthenticated || serverUrl == null || token == null) {
-      state = state.copyWith(isLoading: false, isLoadingPersons: false, error: '尚未登录');
+      state = state.copyWith(
+          isLoading: false, isLoadingPersons: false, error: '尚未登录');
       return;
     }
 
@@ -243,7 +249,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
       _cache.set(cacheKey, state, ttl: _kSearchCacheTtl);
     } catch (e) {
       final message = e is String ? e : '搜索失败：$e';
-      state = state.copyWith(isLoading: false, isLoadingPersons: false, error: message);
+      state = state.copyWith(
+          isLoading: false, isLoadingPersons: false, error: message);
       AppLogger.error('搜索失败', error: e);
     }
   }
@@ -262,7 +269,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   // 搜索媒体项
-  Future<void> _searchMedia(String query, String serverUrl, String token, String? userId, SearchCategory category) async {
+  Future<void> _searchMedia(String query, String serverUrl, String token,
+      String? userId, SearchCategory category) async {
     final includeTypes = _typesFromCategory(category);
     final resp = await _service.searchItems(
       query,
@@ -288,20 +296,21 @@ class SearchNotifier extends StateNotifier<SearchState> {
       persons: const [],
       isLoadingPersons: false,
     );
-    AppLogger.debug('搜索完成', data: {'results': resp.items.length, 'total': resp.total});
+    AppLogger.debug('搜索完成',
+        data: {'results': resp.items.length, 'total': resp.total});
   }
 
   // 搜索人物
-  Future<void> _searchPersons(String query, String serverUrl, String token) async {
+  Future<void> _searchPersons(
+      String query, String serverUrl, String token) async {
     final items = await _service.searchPersons(
       query,
       limit: 20,
       serverUrl: serverUrl,
       token: token,
     );
-    final persons = items
-        .map((e) => SearchPerson.fromJson(e, serverUrl, token))
-        .toList();
+    final persons =
+        items.map((e) => SearchPerson.fromJson(e, serverUrl, token)).toList();
     state = SearchState(
       results: const [],
       query: query,

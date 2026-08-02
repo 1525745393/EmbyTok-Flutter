@@ -13,10 +13,10 @@ import 'subtitle_renderer.dart';
 class SubtitleWidget extends ConsumerWidget {
   /// 当前播放位置
   final Duration position;
-  
+
   /// 字幕 cues 列表
   final List<SubtitleCue> cues;
-  
+
   /// 是否启用字幕显示
   final bool enabled;
 
@@ -83,11 +83,12 @@ class SubtitleStyle {
   }
 
   /// 从 SubtitleSettings 创建样式
-  factory SubtitleStyle.fromSettings(SubtitleSettings settings, ColorScheme scheme) {
+  factory SubtitleStyle.fromSettings(
+      SubtitleSettings settings, ColorScheme scheme) {
     return SubtitleStyle(
       fontSize: settings.fontSize,
       textColor: settings.textColor,
-      backgroundColor: scheme.surface.withOpacity(0.54),
+      backgroundColor: scheme.surface.withValues(alpha: 0.54),
       fontWeight: FontWeight.w600,
       lineHeight: 1.3,
       showBackground: true,

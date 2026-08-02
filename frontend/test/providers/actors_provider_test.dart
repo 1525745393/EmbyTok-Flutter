@@ -26,7 +26,99 @@ import '../mocks/mock_services.dart';
 /// getFavoritePeople / getPeople（搜索场景），需要 stub 这些方法。
 /// invalidateFavorites 是 CachedMediaRepository 自身方法（非 MediaRepository 接口），
 /// toggleFavorite 中通过 cacheControllerProvider 调用，stub 为 no-op 即可。
-class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {}
+///
+/// 覆写 getPeople / getPersonItems：将 required String / int 参数声明为可空，
+/// 以便测试中能用 anyNamed 匹配非空具名参数（mockito 5.x 在 Dart 3 严格 null
+/// 检查下，anyNamed 返回 Null 无法直接赋值给非空参数）。
+/// 模式参考 test/views/favorites_view_test.dart。
+class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int? limit,
+    int? startIndex,
+    List<String>? personTypes,
+    String? searchTerm,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPeople, [], {
+          #limit: limit,
+          #startIndex: startIndex,
+          #personTypes: personTypes,
+          #searchTerm: searchTerm,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future<PaginatedResponse<Person>>.value(
+          PaginatedResponse<Person>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+        returnValueForMissingStub: Future<PaginatedResponse<Person>>.value(
+          PaginatedResponse<Person>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+      ) as Future<PaginatedResponse<Person>>;
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getPersonItems(
+    String personId, {
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPersonItems, [personId], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future<PaginatedResponse<MediaItem>>.value(
+          PaginatedResponse<MediaItem>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+        returnValueForMissingStub: Future<PaginatedResponse<MediaItem>>.value(
+          PaginatedResponse<MediaItem>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoritePeople, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(
+            const FavoritesPageResult(items: <MediaItem>[], totalCount: 0)),
+        returnValueForMissingStub: Future.value(
+            const FavoritesPageResult(items: <MediaItem>[], totalCount: 0)),
+      ) as Future<FavoritesPageResult>;
+
+  @override
+  void invalidateFavorites({
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#invalidateFavorites, [], {
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: null,
+        returnValueForMissingStub: null,
+      );
+}
 
 void main() {
   group('ActorsState', () {

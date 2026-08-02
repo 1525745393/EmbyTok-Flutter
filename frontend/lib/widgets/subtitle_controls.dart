@@ -87,15 +87,21 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                _chip(label: '小', selected: settings.size == kSubtitleSizeSmall,
+                _chip(
+                    label: '小',
+                    selected: settings.size == kSubtitleSizeSmall,
                     onTap: () => notifier.setSize(kSubtitleSizeSmall),
                     scheme: scheme),
                 const SizedBox(width: 8),
-                _chip(label: '中', selected: settings.size == kSubtitleSizeMedium,
+                _chip(
+                    label: '中',
+                    selected: settings.size == kSubtitleSizeMedium,
                     onTap: () => notifier.setSize(kSubtitleSizeMedium),
                     scheme: scheme),
                 const SizedBox(width: 8),
-                _chip(label: '大', selected: settings.size == kSubtitleSizeLarge,
+                _chip(
+                    label: '大',
+                    selected: settings.size == kSubtitleSizeLarge,
                     onTap: () => notifier.setSize(kSubtitleSizeLarge),
                     scheme: scheme),
               ],
@@ -107,11 +113,15 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                _chip(label: '白', selected: settings.color == kSubtitleColorWhite,
+                _chip(
+                    label: '白',
+                    selected: settings.color == kSubtitleColorWhite,
                     onTap: () => notifier.setColor(kSubtitleColorWhite),
                     scheme: scheme),
                 const SizedBox(width: 8),
-                _chip(label: '黄', selected: settings.color == kSubtitleColorYellow,
+                _chip(
+                    label: '黄',
+                    selected: settings.color == kSubtitleColorYellow,
                     onTap: () => notifier.setColor(kSubtitleColorYellow),
                     scheme: scheme),
               ],
@@ -123,15 +133,21 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                _chip(label: '底部', selected: settings.position == kSubtitlePosBottom,
+                _chip(
+                    label: '底部',
+                    selected: settings.position == kSubtitlePosBottom,
                     onTap: () => notifier.setPosition(kSubtitlePosBottom),
                     scheme: scheme),
                 const SizedBox(width: 8),
-                _chip(label: '偏下', selected: settings.position == kSubtitlePosLower,
+                _chip(
+                    label: '偏下',
+                    selected: settings.position == kSubtitlePosLower,
                     onTap: () => notifier.setPosition(kSubtitlePosLower),
                     scheme: scheme),
                 const SizedBox(width: 8),
-                _chip(label: '居中', selected: settings.position == kSubtitlePosCenter,
+                _chip(
+                    label: '居中',
+                    selected: settings.position == kSubtitlePosCenter,
                     onTap: () => notifier.setPosition(kSubtitlePosCenter),
                     scheme: scheme),
               ],
@@ -139,7 +155,8 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // 描边宽度
-            _sectionWithValue('描边宽度', '${settings.strokeWidth.toStringAsFixed(1)}px', scheme),
+            _sectionWithValue(
+                '描边宽度', '${settings.strokeWidth.toStringAsFixed(1)}px', scheme),
             const SizedBox(height: 8),
             Slider(
               value: settings.strokeWidth,
@@ -189,7 +206,8 @@ class SubtitleControls extends ConsumerWidget {
             const SizedBox(height: 12),
 
             // 时间轴微调
-            _sectionWithValue('时间微调', _formatTimeOffset(settings.timeOffset), scheme),
+            _sectionWithValue(
+                '时间微调', _formatTimeOffset(settings.timeOffset), scheme),
             const SizedBox(height: 8),
             Slider(
               value: settings.timeOffset.toDouble(),
@@ -258,7 +276,7 @@ class SubtitleControls extends ConsumerWidget {
         decoration: BoxDecoration(
           color: selected
               ? scheme.primary
-              : scheme.onSurface.withOpacity(0.08),
+              : scheme.onSurface.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? scheme.primary : scheme.outlineVariant,

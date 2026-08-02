@@ -55,7 +55,7 @@ class LibrarySelector extends ConsumerStatefulWidget {
   }) {
     return showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (_) => LibrarySelector(scope: scope),
     );
   }
@@ -95,8 +95,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final currentFeedType = ref.watch(feedTypeProvider);
 
     // 判断是否为收藏夹模式（仅视频流有收藏夹）
-    final isFavoritesMode =
-        widget.scope == LibraryScope.feed && currentFeedType == FeedType.favorites;
+    final isFavoritesMode = widget.scope == LibraryScope.feed &&
+        currentFeedType == FeedType.favorites;
 
     // 初始化本地选中状态（仅首次打开弹窗时）
     if (_localSelectedIds.isEmpty && selectedIds.isNotEmpty) {
@@ -113,7 +113,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
         _localSelectedIds.length >= visibleLibraries.length;
 
     return Dialog(
-      backgroundColor: scheme.surface.withOpacity(0.95),
+      backgroundColor: scheme.surface.withValues(alpha: 0.95),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -159,7 +159,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                               : {};
                         } else {
                           // 全选
-                          _localSelectedIds = visibleLibraries.map((lib) => lib.id).toSet();
+                          _localSelectedIds =
+                              visibleLibraries.map((lib) => lib.id).toSet();
                         }
                       });
                     },
@@ -173,7 +174,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: scheme.onSurface.withOpacity(0.6)),
+                    icon: Icon(Icons.close,
+                        color: scheme.onSurface.withValues(alpha: 0.6)),
                     tooltip: '关闭',
                   ),
                 ],
@@ -200,7 +202,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                       children: [
                         Icon(
                           Icons.error_outline,
-                          color: scheme.onSurface.withOpacity(0.5),
+                          color: scheme.onSurface.withValues(alpha: 0.5),
                           size: 48,
                         ),
                         const SizedBox(height: 12),
@@ -219,7 +221,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: scheme.onSurface.withOpacity(0.6),
+                            color: scheme.onSurface.withValues(alpha: 0.6),
                             fontSize: 12,
                           ),
                         ),
@@ -231,8 +233,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                             backgroundColor: scheme.primary,
                           ),
                           // 重试 = 重新 invalidate，强制重跑 FutureProvider
-                          onPressed: () =>
-                              ref.invalidate(libraryListProvider),
+                          onPressed: () => ref.invalidate(libraryListProvider),
                         ),
                       ],
                     ),
@@ -264,7 +265,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           padding: const EdgeInsets.all(32),
           child: Text(
             '暂无可用媒体库',
-            style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
           ),
         ),
       );
@@ -298,15 +299,17 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   count: null,
                   isSelected: favoritesSelected,
                   onTap: () {
-                    ref.read(feedTypeProvider.notifier).setType(FeedType.favorites);
+                    ref
+                        .read(feedTypeProvider.notifier)
+                        .setType(FeedType.favorites);
                     ref.read(videoListProvider.notifier).refresh();
                     // PR #66：标记视频流媒体库已配置（避免再次弹引导）
                     ref.read(feedLibraryConfiguredProvider.notifier).set(true);
                     Navigator.of(context).pop();
                   },
                   gradientColors: [
-                    scheme.primary.withOpacity(0.6),
-                    scheme.primary.withOpacity(0.2),
+                    scheme.primary.withValues(alpha: 0.6),
+                    scheme.primary.withValues(alpha: 0.2),
                   ],
                 ),
               ],
@@ -324,7 +327,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             mainAxisSpacing: 12,
             childAspectRatio: 1.4,
             children: libraries.map((lib) {
-              final isSelected = !isFavoritesMode && _localSelectedIds.contains(lib.id);
+              final isSelected =
+                  !isFavoritesMode && _localSelectedIds.contains(lib.id);
               return _buildLibraryCard(
                 scheme: scheme,
                 icon: _getLibraryIcon(lib.type),
@@ -357,7 +361,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text(
                   '取消',
-                  style: TextStyle(color: scheme.onSurface.withOpacity(0.6)),
+                  style:
+                      TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -369,11 +374,19 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                         // 仅 setLibraries：selectedLibraryIdsProvider / recommendLibraryIdsProvider
                         // 监听器会自动触发 refresh（PR #60 修复过的逻辑）
                         if (widget.scope == LibraryScope.feed) {
-                          ref.read(selectedLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
-                          ref.read(feedLibraryConfiguredProvider.notifier).set(true);
+                          ref
+                              .read(selectedLibraryIdsProvider.notifier)
+                              .setLibraries(_localSelectedIds.toList());
+                          ref
+                              .read(feedLibraryConfiguredProvider.notifier)
+                              .set(true);
                         } else {
-                          ref.read(recommendLibraryIdsProvider.notifier).setLibraries(_localSelectedIds.toList());
-                          ref.read(recommendLibraryConfiguredProvider.notifier).set(true);
+                          ref
+                              .read(recommendLibraryIdsProvider.notifier)
+                              .setLibraries(_localSelectedIds.toList());
+                          ref
+                              .read(recommendLibraryConfiguredProvider.notifier)
+                              .set(true);
                         }
                         Navigator.of(context).pop();
                       },
@@ -393,7 +406,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       child: Text(
         title,
         style: TextStyle(
-          color: scheme.onSurface.withOpacity(0.5),
+          color: scheme.onSurface.withValues(alpha: 0.5),
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
@@ -414,8 +427,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   }) {
     final bgGradient = gradientColors ??
         [
-          scheme.primary.withOpacity(isSelected ? 0.25 : 0.15),
-          scheme.primary.withOpacity(isSelected ? 0.1 : 0.05),
+          scheme.primary.withValues(alpha: isSelected ? 0.25 : 0.15),
+          scheme.primary.withValues(alpha: isSelected ? 0.1 : 0.05),
         ];
 
     return TvFocusable(
@@ -432,7 +445,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           ),
           border: isSelected
               ? Border.all(color: scheme.primary, width: 2)
-              : Border.all(color: scheme.onSurface.withOpacity(0.1), width: 1),
+              : Border.all(
+                  color: scheme.onSurface.withValues(alpha: 0.1), width: 1),
         ),
         padding: const EdgeInsets.all(14),
         child: Stack(
@@ -446,12 +460,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.1),
+                    color: isSelected
+                        ? scheme.primary
+                        : scheme.onSurface.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     icon,
-                    color: isSelected ? scheme.onPrimary : scheme.onSurface.withOpacity(0.7),
+                    color: isSelected
+                        ? scheme.onPrimary
+                        : scheme.onSurface.withValues(alpha: 0.7),
                     size: 20,
                   ),
                 ),
@@ -474,7 +492,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                       Text(
                         '$count 个视频',
                         style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.5),
+                          color: scheme.onSurface.withValues(alpha: 0.5),
                           fontSize: 11,
                         ),
                       ),

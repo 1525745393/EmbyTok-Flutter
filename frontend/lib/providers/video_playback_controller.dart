@@ -65,7 +65,8 @@ final isPageScrollingProvider = StateProvider<bool>((ref) => false);
 /// 当前播放的 [VideoPlayerController]：用于全局 seek、快捷键操作、播放结束连播
 ///
 /// 在 [VideoPageItem] 初始化成功后写入，组件 dispose 时清空。
-final currentVideoControllerProvider = StateProvider<VideoPlayerController?>((ref) => null);
+final currentVideoControllerProvider =
+    StateProvider<VideoPlayerController?>((ref) => null);
 
 /// FeedView 外部跳页请求：全屏页（FullscreenVideoPage）等需要切换视频时设置目标 index
 ///
@@ -206,8 +207,7 @@ class IsAutoPlayNotifier extends StateNotifier<bool> {
   }
 }
 
-final isAutoPlayProvider =
-    StateNotifierProvider<IsAutoPlayNotifier, bool>(
+final isAutoPlayProvider = StateNotifierProvider<IsAutoPlayNotifier, bool>(
   (ref) => IsAutoPlayNotifier(),
 );
 

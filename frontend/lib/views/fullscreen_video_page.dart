@@ -45,8 +45,7 @@ class FullscreenVideoPage extends ConsumerStatefulWidget {
       _FullscreenVideoPageState();
 }
 
-class _FullscreenVideoPageState
-    extends ConsumerState<FullscreenVideoPage>
+class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     with WidgetsBindingObserver, VideoGestureMixin {
   // ===== VideoGestureMixin 钩子实现 =====
 
@@ -105,10 +104,13 @@ class _FullscreenVideoPageState
     super.endDrag();
     if (wasVerticalBrightness) {
       _brightnessHideTimer?.cancel();
-      _brightnessHideTimer = Timer(const Duration(milliseconds: 600), () {
-        if (!mounted) return;
-        _showBrightnessUINotifier.value = false;
-      });
+      _brightnessHideTimer = Timer(
+        const Duration(milliseconds: kFullscreenBrightnessHideMs),
+        () {
+          if (!mounted) return;
+          _showBrightnessUINotifier.value = false;
+        },
+      );
     }
   }
 
@@ -146,8 +148,10 @@ class _FullscreenVideoPageState
   double _brightnessValue = 1.0;
   double? _originalBrightness;
   double _dragStartBrightness = 0.0;
-  final ValueNotifier<bool> _showBrightnessUINotifier = ValueNotifier<bool>(false);
-  final ValueNotifier<double> _previewBrightnessNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<bool> _showBrightnessUINotifier =
+      ValueNotifier<bool>(false);
+  final ValueNotifier<double> _previewBrightnessNotifier =
+      ValueNotifier<double>(0.0);
   Timer? _brightnessHideTimer;
 
   // 功耗优化：状态缓存
@@ -159,6 +163,10 @@ class _FullscreenVideoPageState
   bool _lastHasSize = false;
   VideoPlayerController? _watchedController;
   int _lastPositionMs = -1;
+
+  // 进度条拖动防抖处理器：拖动期间仅更新预览，结束时才 seek 一次
+  // 顶层公开类，便于单元测试（参考 feed_autopause_test.dart 的可测试性设计）
+  final SliderSeekHandler _sliderSeekHandler = SliderSeekHandler();
 
   // 字幕
   List<SubtitleCue> _subtitleCues = const <SubtitleCue>[];
@@ -285,8 +293,9 @@ class _FullscreenVideoPageState
       if (ctrl != null && ctrl.value.isInitialized) {
         final size = ctrl.value.size;
         final isLandscapeVideo = size.width >= size.height;
-        _orientationPref =
-            isLandscapeVideo ? _OrientationPref.landscape : _OrientationPref.sensor;
+        _orientationPref = isLandscapeVideo
+            ? _OrientationPref.landscape
+            : _OrientationPref.sensor;
       }
       _applyOrientations();
       _applySystemUI();
@@ -326,8 +335,7 @@ class _FullscreenVideoPageState
   }
 
   void _initConnectivity() {
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((result) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
       _onConnectivityChanged(result);
     });
   }
@@ -351,9 +359,12 @@ class _FullscreenVideoPageState
   void _showNetworkToast(String message) {
     _networkToastTimer?.cancel();
     setState(() => _networkToastMessage = message);
-    _networkToastTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _networkToastMessage = null);
-    });
+    _networkToastTimer = Timer(
+      const Duration(seconds: kFullscreenNetworkToastSec),
+      () {
+        if (mounted) setState(() => _networkToastMessage = null);
+      },
+    );
   }
 
   void _applyOrientations() {
@@ -404,15 +415,18 @@ class _FullscreenVideoPageState
       _hideTimer?.cancel();
     }
     _rotateEndTimer?.cancel();
-    _rotateEndTimer = Timer(const Duration(milliseconds: 350), () {
-      _isRotating = false;
-      if (mounted) {
-        if (_controlsVisible && !_isScreenLocked && !_showSettingsPanel) {
-          _startHideTimer();
+    _rotateEndTimer = Timer(
+      const Duration(milliseconds: kFullscreenRotateEndMs),
+      () {
+        _isRotating = false;
+        if (mounted) {
+          if (_controlsVisible && !_isScreenLocked && !_showSettingsPanel) {
+            _startHideTimer();
+          }
+          setState(() {});
         }
-        setState(() {});
-      }
-    });
+      },
+    );
   }
 
   void _applySystemUI() {
@@ -454,13 +468,16 @@ class _FullscreenVideoPageState
 
     if (!wasForeground && isForeground && wasPlaying) {
       _resumePlayTimer?.cancel();
-      _resumePlayTimer = Timer(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          try {
-            controller?.play();
-          } catch (_) {}
-        }
-      });
+      _resumePlayTimer = Timer(
+        const Duration(milliseconds: kFullscreenResumePlayDelayMs),
+        () {
+          if (mounted) {
+            try {
+              controller?.play();
+            } catch (_) {}
+          }
+        },
+      );
     }
   }
 
@@ -532,7 +549,8 @@ class _FullscreenVideoPageState
       final format = selectedTrack.format;
       List<SubtitleCue> cues;
       // 本地外挂字幕：从文件读取
-      if (isLocal && selectedTrack.localFilePath != null &&
+      if (isLocal &&
+          selectedTrack.localFilePath != null &&
           selectedTrack.localFilePath!.isNotEmpty) {
         cues = await embService.getSubtitleCuesFromFile(
           filePath: selectedTrack.localFilePath!,
@@ -575,7 +593,8 @@ class _FullscreenVideoPageState
         (t) => t.language.toLowerCase() == settings.language.toLowerCase(),
         orElse: () => tracks.first,
       );
-      if (matchedTrack.language.toLowerCase() != settings.language.toLowerCase()) {
+      if (matchedTrack.language.toLowerCase() !=
+          settings.language.toLowerCase()) {
         matchedTrack = null;
       }
     }
@@ -623,11 +642,14 @@ class _FullscreenVideoPageState
 
   void _startHideTimer() {
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && !_isScreenLocked && !_showSettingsPanel) {
-        setState(() => _controlsVisible = false);
-      }
-    });
+    _hideTimer = Timer(
+      const Duration(seconds: kFullscreenControlsHideSec),
+      () {
+        if (mounted && !_isScreenLocked && !_showSettingsPanel) {
+          setState(() => _controlsVisible = false);
+        }
+      },
+    );
   }
 
   void _toggleControls() {
@@ -742,7 +764,8 @@ class _FullscreenVideoPageState
 
     final mediaOrientation = MediaQuery.orientationOf(context);
     final isActuallyLandscape = mediaOrientation == Orientation.landscape;
-    final gesturesEnabled = !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
+    final gesturesEnabled =
+        !_isScreenLocked && !_showSettingsPanel && !_controlsVisible;
 
     // 直接返回 Stack（非 Scaffold），因为本页作为覆盖层渲染在 VideoPageItem 的 Stack 中，
     // 不需要额外的 Scaffold 包装，避免导航 UI 干扰
@@ -752,226 +775,235 @@ class _FullscreenVideoPageState
         // 手势层：透明覆盖，接收所有触摸事件
         Positioned.fill(
           child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: handleTapDown,
-              onTap: handleTap,
-              onLongPressStart:
-                  gesturesEnabled && controller != null
-                      ? onLongPressStart
-                      : null,
-              onLongPressEnd:
-                  gesturesEnabled && controller != null
-                      ? onLongPressEnd
-                      : null,
-              onLongPressCancel:
-                  gesturesEnabled && controller != null
-                      ? () => onLongPressEnd(LongPressEndDetails())
-                      : null,
-              onPanStart: gesturesEnabled ? onPanStart : null,
-              onPanUpdate: gesturesEnabled ? onPanUpdate : null,
-              onPanEnd: gesturesEnabled ? onPanEnd : null,
-              onPanCancel: gesturesEnabled ? onPanCancel : null,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // 覆盖层架构：不做视频渲染，VideoPlayer 由底层 VideoPageItem 持续渲染
-                  // 本页为透明覆盖层，仅提供全屏控件和手势
+            behavior: HitTestBehavior.opaque,
+            onTapDown: handleTapDown,
+            onTap: handleTap,
+            onLongPressStart:
+                gesturesEnabled && controller != null ? onLongPressStart : null,
+            onLongPressEnd:
+                gesturesEnabled && controller != null ? onLongPressEnd : null,
+            onLongPressCancel: gesturesEnabled && controller != null
+                ? () => onLongPressEnd(LongPressEndDetails())
+                : null,
+            onPanStart: gesturesEnabled ? onPanStart : null,
+            onPanUpdate: gesturesEnabled ? onPanUpdate : null,
+            onPanEnd: gesturesEnabled ? onPanEnd : null,
+            onPanCancel: gesturesEnabled ? onPanCancel : null,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // 覆盖层架构：不做视频渲染，VideoPlayer 由底层 VideoPageItem 持续渲染
+                // 本页为透明覆盖层，仅提供全屏控件和手势
 
-                  // 错误状态：controller 有错误时显示
-                  if (hasError && controller != null)
-                    _buildErrorState(controller),
+                // 错误状态：controller 有错误时显示
+                if (hasError && controller != null)
+                  _buildErrorState(controller),
 
-                  // 加载指示器仅在控制器未初始化时显示
-                  // 已初始化但尺寸为空时，VideoPlayer 会用占位尺寸渲染，无需显示加载指示器
-                  if (!isControllerReady && !hasError)
-                    const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    ),
+                // 加载指示器仅在控制器未初始化时显示
+                // 已初始化但尺寸为空时，VideoPlayer 会用占位尺寸渲染，无需显示加载指示器
+                if (!isControllerReady && !hasError)
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
 
-                  if (isControllerReady && !hasError)
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _bufferingNotifier,
-                      builder: (context, isBuffering, child) {
-                        if (!isBuffering) return const SizedBox.shrink();
-                        return const Center(
-                          child: SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: CircularProgressIndicator(
-                              color: Colors.white70,
-                              strokeWidth: 2.5,
-                            ),
+                if (isControllerReady && !hasError)
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _bufferingNotifier,
+                    builder: (context, isBuffering, child) {
+                      if (!isBuffering) return const SizedBox.shrink();
+                      return const Center(
+                        child: SizedBox(
+                          width: kFullscreenLoadingIndicatorSize,
+                          height: kFullscreenLoadingIndicatorSize,
+                          child: CircularProgressIndicator(
+                            color: Colors.white70,
+                            strokeWidth: kFullscreenLoadingStrokeWidth,
                           ),
-                        );
-                      },
-                    ),
-
-                  // 字幕渲染层
-                  if (isControllerReady &&
-                      !hasError &&
-                      _subtitleCues.isNotEmpty &&
-                      ref.watch(selectedSubtitleProvider) != null)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 60,
-                      child: RepaintBoundary(
-                        child: ValueListenableBuilder<int>(
-                          valueListenable: _positionMsNotifier,
-                          builder: (_, ms, __) {
-                            return SubtitleRenderer(
-                              position: Duration(milliseconds: ms),
-                              cues: _subtitleCues,
-                              enabled: true,
-                            );
-                          },
                         ),
+                      );
+                    },
+                  ),
+
+                // 字幕渲染层
+                if (isControllerReady &&
+                    !hasError &&
+                    _subtitleCues.isNotEmpty &&
+                    ref.watch(selectedSubtitleProvider) != null)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: kFullscreenSubtitleBottom,
+                    child: RepaintBoundary(
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _positionMsNotifier,
+                        builder: (_, ms, __) {
+                          return SubtitleRenderer(
+                            position: Duration(milliseconds: ms),
+                            cues: _subtitleCues,
+                            enabled: true,
+                          );
+                        },
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
+        ),
 
-          // 顶部栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
-          if (_controlsVisible && isControllerReady && hasValidSize && !_isScreenLocked)
-            _buildTopBar(playingItem, isActuallyLandscape),
+        // 顶部栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
+        if (_controlsVisible &&
+            isControllerReady &&
+            hasValidSize &&
+            !_isScreenLocked)
+          _buildTopBar(playingItem, isActuallyLandscape),
 
-          // 底部控制栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
-          if (_controlsVisible && isControllerReady && hasValidSize && controller != null && !_isScreenLocked)
-            _buildBottomBar(controller, playingItem, items),
+        // 底部控制栏：尺寸有效时才显示，避免画面未就绪时显示控制栏
+        if (_controlsVisible &&
+            isControllerReady &&
+            hasValidSize &&
+            controller != null &&
+            !_isScreenLocked)
+          _buildBottomBar(controller, playingItem, items),
 
-          // 设置面板：尺寸有效时才显示，避免画面未就绪时显示设置面板
-          if (_showSettingsPanel && isControllerReady && hasValidSize && controller != null && !_isScreenLocked)
-            _buildSettingsPanel(controller),
+        // 设置面板：尺寸有效时才显示，避免画面未就绪时显示设置面板
+        if (_showSettingsPanel &&
+            isControllerReady &&
+            hasValidSize &&
+            controller != null &&
+            !_isScreenLocked)
+          _buildSettingsPanel(controller),
 
-          // 锁屏 UI
-          if (_isScreenLocked) _buildLockUI(),
+        // 锁屏 UI
+        if (_isScreenLocked) _buildLockUI(),
 
-          // 网络状态 Toast
-          if (_networkToastMessage != null) _buildNetworkToast(),
+        // 网络状态 Toast
+        if (_networkToastMessage != null) _buildNetworkToast(),
 
-          // 手势反馈 UI
-          ValueListenableBuilder<Duration>(
-            valueListenable: previewPositionNotifier,
-            builder: (context, previewPos, _) {
-              if (!isDragging || dragAxis != 'h' || controller == null) return const SizedBox.shrink();
-              return Positioned(
-                top: 48,
-                left: 32,
-                right: 32,
-                child: _SeekPreviewBar(
-                  current: previewPos,
-                  total: controller.value.duration,
-                  offset: previewPos - dragStartPosition,
-                ),
-              );
-            },
-          ),
+        // 手势反馈 UI
+        ValueListenableBuilder<Duration>(
+          valueListenable: previewPositionNotifier,
+          builder: (context, previewPos, _) {
+            if (!isDragging || dragAxis != 'h' || controller == null)
+              return const SizedBox.shrink();
+            return Positioned(
+              top: 48,
+              left: 32,
+              right: 32,
+              child: _SeekPreviewBar(
+                current: previewPos,
+                total: controller.value.duration,
+                offset: previewPos - dragStartPosition,
+              ),
+            );
+          },
+        ),
 
-          ValueListenableBuilder<double>(
-            valueListenable: _previewBrightnessNotifier,
-            builder: (context, brightness, _) {
-              if (!_showBrightnessUINotifier.value || isVolumeSide || dragAxis != 'v') return const SizedBox.shrink();
-              return _buildVerticalIndicator(
-                icon: _brightnessIconFor(brightness),
-                value: brightness,
-                label: '亮度',
-              );
-            },
-          ),
+        ValueListenableBuilder<double>(
+          valueListenable: _previewBrightnessNotifier,
+          builder: (context, brightness, _) {
+            if (!_showBrightnessUINotifier.value ||
+                isVolumeSide ||
+                dragAxis != 'v') return const SizedBox.shrink();
+            return _buildVerticalIndicator(
+              icon: _brightnessIconFor(brightness),
+              value: brightness,
+              label: '亮度',
+            );
+          },
+        ),
 
-          ValueListenableBuilder<double>(
-            valueListenable: previewVolumeNotifier,
-            builder: (context, volume, _) {
-              if (!showVolumeUINotifier.value || !isVolumeSide || dragAxis != 'v') return const SizedBox.shrink();
-              return _buildVerticalIndicator(
-                icon: _volumeIconFor(volume),
-                value: volume,
-                label: '音量',
-              );
-            },
-          ),
+        ValueListenableBuilder<double>(
+          valueListenable: previewVolumeNotifier,
+          builder: (context, volume, _) {
+            if (!showVolumeUINotifier.value || !isVolumeSide || dragAxis != 'v')
+              return const SizedBox.shrink();
+            return _buildVerticalIndicator(
+              icon: _volumeIconFor(volume),
+              value: volume,
+              label: '音量',
+            );
+          },
+        ),
 
-          ValueListenableBuilder<bool>(
-            valueListenable: showSpeedBadgeNotifier,
-            builder: (context, show, _) {
-              if (!show) return const SizedBox.shrink();
-              return IgnorePointer(
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          if (showHeart) const IgnorePointer(child: _FlyingHeart()),
-
-          if (showSeekFeedback)
-            IgnorePointer(
-              child: Positioned(
-                top: 0,
-                bottom: 0,
-                left: isSeekForward ? null : 0,
-                right: isSeekForward ? 0 : null,
-                width: MediaQuery.of(context).size.width / 3,
+        ValueListenableBuilder<bool>(
+          valueListenable: showSpeedBadgeNotifier,
+          builder: (context, show, _) {
+            if (!show) return const SizedBox.shrink();
+            return IgnorePointer(
+              child: Center(
                 child: Container(
-                  alignment: Alignment.center,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: isSeekForward
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      end: isSeekForward
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      colors: [
-                        Colors.white.withOpacity(0.15),
-                        Colors.transparent
-                      ],
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1,
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isSeekForward
-                            ? Icons.fast_forward
-                            : Icons.fast_rewind,
-                        color: Colors.white,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${isSeekForward ? '+' : '-'}${seekFeedbackCount * 10}s',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        if (showHeart) const IgnorePointer(child: _FlyingHeart()),
+
+        if (showSeekFeedback)
+          IgnorePointer(
+            child: Positioned(
+              top: 0,
+              bottom: 0,
+              left: isSeekForward ? null : 0,
+              right: isSeekForward ? 0 : null,
+              width: MediaQuery.of(context).size.width / 3,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: isSeekForward
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    end: isSeekForward
+                        ? Alignment.centerLeft
+                        : Alignment.centerRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.15),
+                      Colors.transparent
                     ],
                   ),
                 ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isSeekForward ? Icons.fast_forward : Icons.fast_rewind,
+                      color: Colors.white,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${isSeekForward ? '+' : '-'}${seekFeedbackCount * kDoubleTapSeekStepSec}s',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-        ],
-      );
+          ),
+      ],
+    );
   }
 
   Widget _buildErrorState(VideoPlayerController? controller) {
@@ -1042,14 +1074,14 @@ class _FullscreenVideoPageState
         ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: kToolbarAnimMs),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.7),
+                  Colors.black.withValues(alpha: 0.7),
                   Colors.transparent,
                 ],
               ),
@@ -1085,12 +1117,14 @@ class _FullscreenVideoPageState
                   tooltip: orientTooltip,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.white, size: 24),
+                  icon:
+                      const Icon(Icons.settings, color: Colors.white, size: 24),
                   onPressed: () => _toggleSettingsPanel(_SettingsTab.speed),
                   tooltip: '设置',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.lock_open, color: Colors.white, size: 24),
+                  icon: const Icon(Icons.lock_open,
+                      color: Colors.white, size: 24),
                   onPressed: _lockScreen,
                   tooltip: '锁屏',
                 ),
@@ -1107,6 +1141,8 @@ class _FullscreenVideoPageState
     MediaItem? playingItem,
     List<MediaItem> items,
   ) {
+    // 绑定最新 controller 的 seekTo，确保拖动结束时 seek 到当前 controller
+    _sliderSeekHandler.seekTo = controller.seekTo;
     return Positioned(
       left: 0,
       right: 0,
@@ -1121,7 +1157,7 @@ class _FullscreenVideoPageState
         ),
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: kToolbarAnimMs),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1129,7 +1165,7 @@ class _FullscreenVideoPageState
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withOpacity(0.7),
+                  Colors.black.withValues(alpha: 0.7),
                 ],
               ),
             ),
@@ -1145,10 +1181,15 @@ class _FullscreenVideoPageState
                     final progress = duration.inMilliseconds > 0
                         ? position.inMilliseconds / duration.inMilliseconds
                         : 0.0;
+                    // 拖动期间显示预览时间，否则显示真实播放位置
+                    final previewMs = _sliderSeekHandler.seekPreviewMs;
+                    final displayPosition = previewMs != null
+                        ? Duration(milliseconds: previewMs.round())
+                        : position;
                     return Row(
                       children: [
                         Text(
-                          _formatDuration(position),
+                          _formatDuration(displayPosition),
                           style: const TextStyle(
                               color: Colors.white, fontSize: 12),
                         ),
@@ -1156,12 +1197,21 @@ class _FullscreenVideoPageState
                         Expanded(
                           child: Slider(
                             value: progress.clamp(0.0, 1.0),
+                            // 拖动开始：标记进入拖动状态，初始化预览
+                            onChangeStart: (_) {
+                              _sliderSeekHandler.startDrag();
+                              setState(() {});
+                            },
+                            // 拖动中：仅更新预览时间，不发起 seek（防抖核心）
                             onChanged: (v) {
-                              final target = Duration(
-                                milliseconds:
-                                    (v * duration.inMilliseconds).round(),
-                              );
-                              controller.seekTo(target);
+                              setState(() {
+                                _sliderSeekHandler.updateDrag(v, duration);
+                              });
+                            },
+                            // 拖动结束：触发一次 seekTo 并清除预览
+                            onChangeEnd: (v) {
+                              _sliderSeekHandler.endDrag(v, duration);
+                              setState(() {});
                             },
                             activeColor: Theme.of(context).colorScheme.primary,
                             inactiveColor: Colors.white24,
@@ -1181,7 +1231,8 @@ class _FullscreenVideoPageState
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.skip_previous, color: Colors.white),
+                      icon:
+                          const Icon(Icons.skip_previous, color: Colors.white),
                       onPressed: _hasPrevious() ? _jumpToPrevious : null,
                     ),
                     ValueListenableBuilder<VideoPlayerValue>(
@@ -1250,28 +1301,28 @@ class _FullscreenVideoPageState
     // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
     final safeInsets = SafeInsets.of(context);
     return Positioned(
-      right: 16 + safeInsets.right,
-      bottom: 100 + safeInsets.bottom,
+      right: kSpacingLg + safeInsets.right,
+      bottom: kFullscreenSettingsPanelBottom + safeInsets.bottom,
       child: AnimatedOpacity(
-          opacity: _showSettingsPanel ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 200),
-          child: Container(
-            width: 200,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.88),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildSettingsTabBar(),
-                const Divider(color: Colors.white24, height: 1),
-                _buildSettingsContent(controller),
-              ],
-            ),
+        opacity: _showSettingsPanel ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: kToolbarAnimMs),
+        child: Container(
+          width: kFullscreenSettingsPanelWidth,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(kRadiusLg),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSettingsTabBar(),
+              const Divider(color: Colors.white24, height: 1),
+              _buildSettingsContent(controller),
+            ],
           ),
         ),
+      ),
     );
   }
 
@@ -1327,9 +1378,10 @@ class _FullscreenVideoPageState
     final currentRate = ref.watch(playbackRateProvider);
     return Column(
       children: rates.map((rate) {
-        final selected = (rate - currentRate).abs() < 0.01;
+        final selected = (rate - currentRate).abs() < kPlaybackRateTolerance;
         return _SettingsListItem(
-          label: '${rate.toStringAsFixed(rate.truncateToDouble() == rate ? 0 : 2)}x',
+          label:
+              '${rate.toStringAsFixed(rate.truncateToDouble() == rate ? 0 : 2)}x',
           selected: selected,
           onTap: () {
             controller.setPlaybackSpeed(rate);
@@ -1373,35 +1425,34 @@ class _FullscreenVideoPageState
       top: safeInsets.top,
       bottom: safeInsets.bottom,
       child: Center(
-          child: GestureDetector(
-            onTap: _unlockScreen,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.black38,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white24, width: 1),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.lock_outline, color: Colors.white, size: 28),
-                  SizedBox(height: 6),
-                  Text(
-                    '点击\n解锁',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                      height: 1.2,
-                    ),
+        child: GestureDetector(
+          onTap: _unlockScreen,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.black38,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white24, width: 1),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.lock_outline, color: Colors.white, size: 28),
+                SizedBox(height: 6),
+                Text(
+                  '点击\n解锁',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    height: 1.2,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -1416,7 +1467,7 @@ class _FullscreenVideoPageState
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
+            color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -1436,14 +1487,14 @@ class _FullscreenVideoPageState
   }
 
   IconData _brightnessIconFor(double value) {
-    if (value <= 0.1) return Icons.brightness_low;
-    if (value < 0.5) return Icons.brightness_medium;
+    if (value <= kBrightnessLowThreshold) return Icons.brightness_low;
+    if (value < kVolumeBrightnessMidThreshold) return Icons.brightness_medium;
     return Icons.brightness_high;
   }
 
   IconData _volumeIconFor(double value) {
     if (value <= 0) return Icons.volume_off;
-    if (value < 0.5) return Icons.volume_down;
+    if (value < kVolumeBrightnessMidThreshold) return Icons.volume_down;
     return Icons.volume_up;
   }
 
@@ -1466,12 +1517,11 @@ class _FullscreenVideoPageState
               Icon(icon, color: Colors.white, size: 36),
               const SizedBox(height: 8),
               SizedBox(
-                width: 120,
+                width: kFullscreenVolumeBarWidth,
                 child: LinearProgressIndicator(
                   value: value,
                   backgroundColor: Colors.white24,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                   minHeight: 4,
                 ),
               ),
@@ -1507,7 +1557,9 @@ class _FullscreenVideoPageState
           } else {
             // 本地字幕不保存语言偏好（语言代码为 'local'）
             if (track.language != 'local') {
-              ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
+              ref
+                  .read(subtitleSettingsProvider.notifier)
+                  .setLanguage(track.language);
             }
             ref.read(selectedSubtitleProvider.notifier).state = track.id;
           }
@@ -1559,7 +1611,7 @@ class _SeekPreviewBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
             color: Theme.of(context).colorScheme.primary, width: 1.5),
@@ -1626,12 +1678,15 @@ class _FlyingHeartState extends State<_FlyingHeart>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: kFullscreenFlyingHeartAnimMs),
     );
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
-    _scale = Tween<double>(begin: 0.6, end: 2.8).animate(
+    _scale = Tween<double>(
+      begin: kFlyingHeartScaleBegin,
+      end: kFlyingHeartScaleEnd,
+    ).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
     );
     _ctrl.forward();
@@ -1666,7 +1721,6 @@ class _FlyingHeartState extends State<_FlyingHeart>
 
 class _SettingsListItem extends StatelessWidget {
   final String label;
-  final String? subtitle;
   final bool selected;
   final VoidCallback onTap;
 
@@ -1674,7 +1728,6 @@ class _SettingsListItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.subtitle,
   });
 
   @override
@@ -1686,29 +1739,13 @@ class _SettingsListItem extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white70,
-                      fontSize: 14,
-                      fontWeight:
-                          selected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ],
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white70,
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
             if (selected)
@@ -1721,12 +1758,50 @@ class _SettingsListItem extends StatelessWidget {
 }
 
 enum _SettingsTab { speed, ratio }
+
 enum _AspectRatioMode { auto, contain, cover, fill, sixteenNine, fourThree }
+
 enum _OrientationPref { landscape, portrait, sensor }
 
-class _QualityOption {
-  final int level;
-  final String label;
-  final String desc;
-  const _QualityOption(this.level, this.label, this.desc);
+/// 进度条拖动防抖处理器
+///
+/// 封装 Slider 拖动期间的状态管理，确保单次拖动只在 [endDrag] 时
+/// 触发一次 seekTo，避免 [updateDrag] 每帧 seek 造成卡顿与资源浪费。
+///
+/// 抽出为顶层公开类便于单元测试（参考 feed_autopause_test.dart 中
+/// applyFeedVisibilityChange 的可测试性设计），无需构造 FullscreenVideoPage widget。
+class SliderSeekHandler {
+  /// 当前 seek 回调；widget 在每次 _buildBottomBar 时用最新 controller 绑定。
+  /// 设为可空以容忍 controller 尚未就绪的场景。
+  void Function(Duration target)? seekTo;
+
+  // 拖动进度条时的预览位置（毫秒），null 表示未在拖动。
+  // 拖动期间用此值显示预览时间，避免每帧 seek。
+  double? _seekPreviewMs;
+
+  /// 当前预览位置（毫秒）；null 表示未在拖动，UI 应回退到真实 position。
+  double? get seekPreviewMs => _seekPreviewMs;
+
+  /// 拖动开始：标记进入拖动状态。
+  void startDrag() {
+    _seekPreviewMs = 0.0;
+  }
+
+  /// 拖动中：仅更新预览位置，不调用 seekTo。
+  void updateDrag(double v, Duration duration) {
+    if (duration.inMilliseconds <= 0) return;
+    _seekPreviewMs = v * duration.inMilliseconds;
+  }
+
+  /// 拖动结束：清除预览状态，并触发一次 seekTo。
+  /// duration 无效或 seekTo 未绑定时安全跳过。
+  void endDrag(double v, Duration duration) {
+    _seekPreviewMs = null;
+    final fn = seekTo;
+    if (fn == null || duration.inMilliseconds <= 0) return;
+    final target = Duration(
+      milliseconds: (v * duration.inMilliseconds).round(),
+    );
+    fn(target);
+  }
 }

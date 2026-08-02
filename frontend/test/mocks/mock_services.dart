@@ -239,6 +239,34 @@ class MockEmbytokService extends Mock implements EmbytokService {
             const FavoritesPageResult(items: <MediaItem>[], totalCount: 0)),
       ) as Future<FavoritesPageResult>;
 
+  // 演员列表（getPeople）：参数声明为可空以便测试用 anyNamed 匹配
+  // （mockito 5.x 在 Dart 3 严格 null 检查下，anyNamed 返回 Null 无法赋值给非空参数）
+  @override
+  Future<PaginatedResponse<Person>> getPeople({
+    int? limit,
+    int? startIndex,
+    List<String>? personTypes,
+    String? searchTerm,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getPeople, [], {
+          #limit: limit,
+          #startIndex: startIndex,
+          #personTypes: personTypes,
+          #searchTerm: searchTerm,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future<PaginatedResponse<Person>>.value(
+          PaginatedResponse<Person>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+        returnValueForMissingStub: Future<PaginatedResponse<Person>>.value(
+          PaginatedResponse<Person>(items: const [], total: 0, offset: 0, limit: 0),
+        ),
+      ) as Future<PaginatedResponse<Person>>;
+
   @override
   Future<void> toggleFavorite({
     // 使用可空类型以便测试中能用 anyNamed 匹配 required 参数

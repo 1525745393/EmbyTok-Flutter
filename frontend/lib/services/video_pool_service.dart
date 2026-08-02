@@ -32,8 +32,7 @@ class PlaybackSession {
     required this.playSessionId,
   }) : createdAt = DateTime.now();
 
-  bool get isInitialized =>
-      !_isDisposed && controller.value.isInitialized;
+  bool get isInitialized => !_isDisposed && controller.value.isInitialized;
 
   void dispose() {
     if (_isDisposed) return;
@@ -94,7 +93,8 @@ class VideoPoolService {
     _disposed = true;
     // Token 变更：所有已存在的 controller 持有的 headers 已失效
     // 异步释放，不阻塞当前调用链；disposeAll 完成后会自动重置 _disposed 和 _disposing
-    safeUnawaited(disposeAll(), context: 'VideoPoolService.updateAuth.disposeAll');
+    safeUnawaited(disposeAll(),
+        context: 'VideoPoolService.updateAuth.disposeAll');
   }
 
   /// 预加载一个媒体条目
@@ -143,8 +143,7 @@ class VideoPoolService {
       final urls = <int, String?>{
         0: item.computePlaybackUrl(serverUrl, token),
         1: item.computeDirectStreamUrl(serverUrl, token),
-        2: item.computeHlsUrl(serverUrl, token,
-            playSessionId: playSessionId),
+        2: item.computeHlsUrl(serverUrl, token, playSessionId: playSessionId),
       };
       final headers = item.authHeaders(token);
 
@@ -165,7 +164,9 @@ class VideoPoolService {
             },
           );
           if (_disposed) {
-            try { controller.dispose(); } catch (_) {}
+            try {
+              controller.dispose();
+            } catch (_) {}
             return null;
           }
           created = PlaybackSession(
@@ -177,7 +178,8 @@ class VideoPoolService {
           _accessOrder.add(item.id);
           return created;
         } catch (e) {
-          AppLogger.debug('VideoPoolService preload failed', data: {'level': level, 'error': e.toString()});
+          AppLogger.debug('VideoPoolService preload failed',
+              data: {'level': level, 'error': e.toString()});
           try {
             controller?.dispose();
           } catch (_) {}
@@ -261,7 +263,8 @@ class VideoPoolService {
 
     const int batchSize = kVideoPoolDisposeBatchSize;
     for (var i = 0; i < sessions.length; i += batchSize) {
-      final end = (i + batchSize < sessions.length) ? i + batchSize : sessions.length;
+      final end =
+          (i + batchSize < sessions.length) ? i + batchSize : sessions.length;
       for (var j = i; j < end; j++) {
         sessions[j].dispose();
       }
@@ -300,4 +303,5 @@ class VideoPoolService {
 }
 
 /// 全局单例的 VideoPoolService（用 Provider 包装以便 Riverpod 访问）
-final videoPoolProvider = Provider<VideoPoolService>((ref) => VideoPoolService());
+final videoPoolProvider =
+    Provider<VideoPoolService>((ref) => VideoPoolService());

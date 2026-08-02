@@ -8,6 +8,7 @@ class SubtitleTrack {
   final String? url;
   final bool isDefault;
   final bool isForced;
+
   /// 本地外挂字幕文件路径（服务器字幕为 null）
   final String? localFilePath;
 
@@ -128,8 +129,9 @@ Duration? _parseSrtTime(String s) {
     // 毫秒：取前 3 位，不足补 0
     final millis = secondsParts.length > 1
         ? int.tryParse(
-            secondsParts[1].padRight(3, '0').substring(0, 3),
-          ) ?? 0
+              secondsParts[1].padRight(3, '0').substring(0, 3),
+            ) ??
+            0
         : 0;
     return Duration(
       hours: hours,
@@ -180,8 +182,11 @@ List<SubtitleCue> parseVtt(String content) {
   int i = 0;
   while (i < lines.length) {
     final line = lines[i].trim();
-    if (line.isEmpty || line.startsWith('WEBVTT') || line.startsWith('NOTE') ||
-        line.startsWith('STYLE') || line.startsWith('REGION')) {
+    if (line.isEmpty ||
+        line.startsWith('WEBVTT') ||
+        line.startsWith('NOTE') ||
+        line.startsWith('STYLE') ||
+        line.startsWith('REGION')) {
       i++;
       continue;
     }
@@ -258,7 +263,8 @@ Duration? _parseVttTime(String s) {
       final secParts = parts[2].split('.');
       seconds = int.tryParse(secParts[0]) ?? 0;
       if (secParts.length > 1) {
-        millis = int.tryParse(secParts[1].padRight(3, '0').substring(0, 3)) ?? 0;
+        millis =
+            int.tryParse(secParts[1].padRight(3, '0').substring(0, 3)) ?? 0;
       }
     } else if (parts.length == 2) {
       // MM:SS.mmm
@@ -266,7 +272,8 @@ Duration? _parseVttTime(String s) {
       final secParts = parts[1].split('.');
       seconds = int.tryParse(secParts[0]) ?? 0;
       if (secParts.length > 1) {
-        millis = int.tryParse(secParts[1].padRight(3, '0').substring(0, 3)) ?? 0;
+        millis =
+            int.tryParse(secParts[1].padRight(3, '0').substring(0, 3)) ?? 0;
       }
     } else {
       return null;
@@ -404,7 +411,8 @@ _AssTextResult _parseAssDialogueText(String raw) {
   // 移除所有大括号包裹的覆写代码 {\...}
   final cleanText = raw.replaceAll(RegExp(r'\{[^}]*\}'), '');
   // 替换 \N 和 \n 为换行
-  final withNewlines = cleanText.replaceAll('\\N', '\n').replaceAll('\\n', '\n');
+  final withNewlines =
+      cleanText.replaceAll('\\N', '\n').replaceAll('\\n', '\n');
 
   return _AssTextResult(
     text: withNewlines.trim(),

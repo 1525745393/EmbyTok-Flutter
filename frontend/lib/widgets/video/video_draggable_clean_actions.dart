@@ -90,7 +90,8 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
     if (oldWidget.containerSize != widget.containerSize) {
       setState(() {
         _offset = Offset(
-          _offset.dx.clamp(0.0, widget.containerSize.width - widget.buttonWidth),
+          _offset.dx
+              .clamp(0.0, widget.containerSize.width - widget.buttonWidth),
           _offset.dy.clamp(0.0, widget.containerSize.height - _measuredHeight),
         );
       });
@@ -116,7 +117,8 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
       setState(() {
         _measuredHeight = size.height;
         _offset = Offset(
-          _offset.dx.clamp(0.0, widget.containerSize.width - widget.buttonWidth),
+          _offset.dx
+              .clamp(0.0, widget.containerSize.width - widget.buttonWidth),
           _offset.dy.clamp(0.0, widget.containerSize.height - _measuredHeight),
         );
       });
@@ -140,7 +142,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
     if (_userInteracted) return;
     if (widget.autoHideAfter == Duration.zero) return;
     final delay = _isAutoPlay
-        ? const Duration(seconds: 10)  // 纯净模式：长延迟，便于操作后回归纯净
+        ? const Duration(seconds: 10) // 纯净模式：长延迟，便于操作后回归纯净
         : widget.autoHideAfter;
     _autoHideTimer = Timer(delay, () {
       if (!mounted) return;
@@ -226,8 +228,8 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                     double newY = startOffset.dy + delta.dy;
                     newX = newX.clamp(
                         0.0, widget.containerSize.width - widget.buttonWidth);
-                    newY = newY
-                        .clamp(0.0, widget.containerSize.height - _measuredHeight);
+                    newY = newY.clamp(
+                        0.0, widget.containerSize.height - _measuredHeight);
                     _offset = Offset(newX, newY);
                   });
                 }
@@ -254,7 +256,7 @@ class DraggableCleanActionsState extends ConsumerState<DraggableCleanActions> {
                         ? BoxDecoration(
                             boxShadow: [
                               BoxShadow(
-                                color: scheme.onSurface.withOpacity(0.25),
+                                color: scheme.onSurface.withValues(alpha: 0.25),
                                 blurRadius: 12,
                                 spreadRadius: 2,
                               ),

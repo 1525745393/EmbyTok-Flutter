@@ -2,10 +2,10 @@
 class Person {
   final String name;
   final String? id;
-  final String? role;        // 角色名（如 "主角"）
-  final String type;          // 类型：Actor/Director/Writer 等
-  final String? imageUrl;     // 头像图片 URL
-  final int? itemId;          // 关联的媒体项 ID（如存在）
+  final String? role; // 角色名（如 "主角"）
+  final String type; // 类型：Actor/Director/Writer 等
+  final String? imageUrl; // 头像图片 URL
+  final int? itemId; // 关联的媒体项 ID（如存在）
 
   const Person({
     required this.name,
@@ -23,8 +23,12 @@ class Person {
       id: (json['Id'] as String?) ?? (json['id'] as String?),
       role: (json['Role'] as String?) ?? (json['role'] as String?) ?? '',
       type: (json['Type'] as String?) ?? (json['type'] as String?) ?? 'Actor',
-      imageUrl: (json['ImageUrl'] as String?) ?? (json['image_url'] as String?) ?? (json['imageUrl'] as String?),
-      itemId: (json['ItemId'] as int?) ?? (json['itemId'] as int?) ?? (json['item_id'] as int?),
+      imageUrl: (json['ImageUrl'] as String?) ??
+          (json['image_url'] as String?) ??
+          (json['imageUrl'] as String?),
+      itemId: (json['ItemId'] as int?) ??
+          (json['itemId'] as int?) ??
+          (json['item_id'] as int?),
     );
   }
 

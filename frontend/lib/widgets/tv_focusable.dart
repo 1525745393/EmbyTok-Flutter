@@ -118,15 +118,14 @@ class _TvFocusableState extends State<TvFocusable> {
           child: AnimatedContainer(
             duration: widget.duration,
             // 始终预留 borderWidth 空间，避免未聚焦/无 borderColor 时尺寸跳变
-            padding: EdgeInsets.all(_isFocused || borderColor != null
-                ? widget.borderWidth
-                : 0),
+            padding: EdgeInsets.all(
+                _isFocused || borderColor != null ? widget.borderWidth : 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: _isFocused
                   ? Border.all(
-                      color: borderColor ??
-                          Theme.of(context).colorScheme.primary,
+                      color:
+                          borderColor ?? Theme.of(context).colorScheme.primary,
                       width: widget.borderWidth,
                     )
                   : borderColor != null

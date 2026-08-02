@@ -203,7 +203,8 @@ class UpdateCheckService {
 
     // 已下载过同名文件且大小匹配则直接返回
     final existingFile = File(savePath);
-    if (await existingFile.exists() && await existingFile.length() == asset.size) {
+    if (await existingFile.exists() &&
+        await existingFile.length() == asset.size) {
       onProgress(1.0);
       return savePath;
     }

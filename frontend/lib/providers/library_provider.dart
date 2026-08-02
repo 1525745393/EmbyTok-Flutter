@@ -101,17 +101,15 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   /// 提取为独立方法，便于 _loadSaved 完成后主动重放。
   void _onLibrariesLoaded(List<Library> libraries) {
     final hiddenIds = _ref.read(hiddenLibraryIdsProvider);
-    final visible = libraries
-        .where((lib) => !hiddenIds.contains(lib.id))
-        .toList();
+    final visible =
+        libraries.where((lib) => !hiddenIds.contains(lib.id)).toList();
     if (visible.isEmpty) return;
     // 如果当前没有选择，优先恢复上次保存的（PR #70：多选恢复整组 ID）
     if (state.isEmpty) {
       final savedIds = _savedLibraryIds;
       // 只保留磁盘上仍可见的 ID
-      final restored = savedIds
-          .where((id) => visible.any((lib) => lib.id == id))
-          .toList();
+      final restored =
+          savedIds.where((id) => visible.any((lib) => lib.id == id)).toList();
       if (restored.isNotEmpty) {
         state = restored;
       } else {
@@ -122,9 +120,8 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
       final stillExists = visible.any((lib) => state.contains(lib.id));
       if (!stillExists) {
         final savedIds = _savedLibraryIds;
-        final restored = savedIds
-            .where((id) => visible.any((lib) => lib.id == id))
-            .toList();
+        final restored =
+            savedIds.where((id) => visible.any((lib) => lib.id == id)).toList();
         if (restored.isNotEmpty) {
           state = restored;
         } else {

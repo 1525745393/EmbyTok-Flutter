@@ -110,7 +110,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final rate = await showDialog<double>(
       context: context,
       builder: (context) => SimpleDialog(
-        backgroundColor: scheme.surface.withOpacity(0.9),
+        backgroundColor: scheme.surface.withValues(alpha: 0.9),
         title: Text('播放速度',
             style: TextStyle(color: scheme.onSurface, fontSize: 16)),
         children: widget.playbackRates
@@ -154,9 +154,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final progressRow = ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (context, value, child) {
-        final position = _isSeeking
-            ? (_previewPosition ?? value.position)
-            : value.position;
+        final position =
+            _isSeeking ? (_previewPosition ?? value.position) : value.position;
         final duration = value.duration;
         final progress = duration.inMilliseconds > 0
             ? position.inMilliseconds / duration.inMilliseconds
@@ -251,9 +250,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     final fullscreenButton = widget.onToggleFullscreen != null
         ? IconButton(
             icon: Icon(
-              widget.isInFullscreen
-                  ? Icons.fullscreen_exit
-                  : Icons.fullscreen,
+              widget.isInFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
               color: scheme.onSurface,
               size: isCompact ? 20 : 24,
             ),
@@ -264,8 +261,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     // 三点菜单（紧凑模式：收纳字幕等低频功能）
     final moreButton = isCompact
         ? PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert,
-                color: scheme.onSurface, size: 20),
+            icon: Icon(Icons.more_vert, color: scheme.onSurface, size: 20),
             onSelected: (value) {
               if (value == 'subtitles') _showSubtitleMenu();
             },
@@ -278,8 +274,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                         color: scheme.onSurfaceVariant, size: 20),
                     const SizedBox(width: 10),
                     Text('字幕',
-                        style: TextStyle(
-                            color: scheme.onSurface, fontSize: 14)),
+                        style:
+                            TextStyle(color: scheme.onSurface, fontSize: 14)),
                   ],
                 ),
               ),
@@ -318,8 +314,8 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
           end: Alignment.bottomCenter,
           colors: [
             Colors.transparent,
-            scheme.surface.withOpacity(0.54),
-            scheme.surface.withOpacity(0.87),
+            scheme.surface.withValues(alpha: 0.54),
+            scheme.surface.withValues(alpha: 0.87),
           ],
         ),
       ),

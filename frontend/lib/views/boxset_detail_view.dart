@@ -65,12 +65,13 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final imageUrl = widget.item.backdropUrl(
-      embyServerUrl: authState.embyServerUrl,
-      apiKey: authState.token,
-    ) ?? widget.item.primaryUrl(
-      embyServerUrl: authState.embyServerUrl,
-      apiKey: authState.token,
-    );
+          embyServerUrl: authState.embyServerUrl,
+          apiKey: authState.token,
+        ) ??
+        widget.item.primaryUrl(
+          embyServerUrl: authState.embyServerUrl,
+          apiKey: authState.token,
+        );
     final headers = widget.item.authHeaders(authState.token);
 
     return Scaffold(
@@ -95,10 +96,9 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                       width: double.infinity,
                       httpHeaders: headers.isNotEmpty ? headers : null,
                       memCacheWidth: 1000,
-                      placeholder: (_, __) =>
-                          Container(color: scheme.surface.withOpacity(0.3)),
-                      errorWidget: (_, __, ___) =>
-                          const _CoverPlaceholder(),
+                      placeholder: (_, __) => Container(
+                          color: scheme.surface.withValues(alpha: 0.3)),
+                      errorWidget: (_, __, ___) => const _CoverPlaceholder(),
                     )
                   : const _CoverPlaceholder(),
             ),
@@ -123,17 +123,16 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                     Text(
                       _subtitleText,
                       style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 13,
                       ),
                     ),
-                    if (overview != null &&
-                        overview.isNotEmpty) ...[
+                    if (overview != null && overview.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Text(
                         overview,
                         style: TextStyle(
-                          color: scheme.onSurface.withOpacity(0.7),
+                          color: scheme.onSurface.withValues(alpha: 0.7),
                           fontSize: 14,
                           height: 1.4,
                         ),
@@ -173,7 +172,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                   child: Text(
                     '暂无影片',
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 14),
                   ),
                 ),
               )
@@ -186,7 +186,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final child = _children[index];
-                  return _ChildTile(key: Key(child.id), item: child, allItems: _children);
+                  return _ChildTile(
+                      key: Key(child.id), item: child, allItems: _children);
                 },
               ),
             const SizedBox(height: 32),
@@ -214,7 +215,7 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
           Text(
             _error ?? '加载失败',
             style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.7), fontSize: 14),
+                color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -243,9 +244,9 @@ class _CoverPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: scheme.surface.withOpacity(0.3),
-      child:
-          Icon(Icons.featured_play_list, color: scheme.onSurface.withOpacity(0.5), size: 80),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.featured_play_list,
+          color: scheme.onSurface.withValues(alpha: 0.5), size: 80),
     );
   }
 }
@@ -269,16 +270,18 @@ class _ChildTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         // 设置播放列表后再跳转
-        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
         ),
         child: Row(
           children: [
@@ -317,7 +320,8 @@ class _ChildTile extends ConsumerWidget {
                   Text(
                     _yearText,
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 12),
                   ),
                 ],
               ),
@@ -346,8 +350,9 @@ class _ThumbPlaceholder extends StatelessWidget {
     return Container(
       width: 120,
       height: 72,
-      color: scheme.surface.withOpacity(0.3),
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.movie_outlined,
+          color: scheme.onSurface.withValues(alpha: 0.5)),
     );
   }
 }

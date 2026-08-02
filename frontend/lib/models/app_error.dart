@@ -57,10 +57,7 @@ enum ErrorType {
   /// 可重试：网络错误、超时、服务器错误（瞬时性故障）
   /// 不可重试：401/403/404（重试无意义）、播放错误（需用户介入）
   bool get isRetryable => switch (this) {
-        ErrorType.network ||
-        ErrorType.timeout ||
-        ErrorType.serverError =>
-          true,
+        ErrorType.network || ErrorType.timeout || ErrorType.serverError => true,
         ErrorType.unauthorized ||
         ErrorType.forbidden ||
         ErrorType.notFound ||
@@ -258,9 +255,11 @@ class AppError implements Exception {
     // 字符串错误（EmbytokService 中 throw 'xxx' 的情况）
     if (error is String) {
       if (error.contains('登录') || error.contains('服务器地址')) {
-        return AppError.notAuthenticated(debugMessage: error, stackTrace: stack);
+        return AppError.notAuthenticated(
+            debugMessage: error, stackTrace: stack);
       }
-      return AppError.unknown(message: error, debugMessage: debugMsg, stackTrace: stack);
+      return AppError.unknown(
+          message: error, debugMessage: debugMsg, stackTrace: stack);
     }
 
     // DioException：按 type 字段精确分类
@@ -287,13 +286,16 @@ class AppError implements Exception {
           final statusCode = error.response?.statusCode;
           if (statusCode != null) {
             if (statusCode == 401) {
-              return AppError.unauthorized(debugMessage: debugMsg, stackTrace: stack);
+              return AppError.unauthorized(
+                  debugMessage: debugMsg, stackTrace: stack);
             }
             if (statusCode == 403) {
-              return AppError.forbidden(debugMessage: debugMsg, stackTrace: stack);
+              return AppError.forbidden(
+                  debugMessage: debugMsg, stackTrace: stack);
             }
             if (statusCode == 404) {
-              return AppError.notFound(debugMessage: debugMsg, stackTrace: stack);
+              return AppError.notFound(
+                  debugMessage: debugMsg, stackTrace: stack);
             }
             if (statusCode >= 500) {
               return AppError.serverError(
@@ -308,10 +310,12 @@ class AppError implements Exception {
           // 有 HTTP 响应但状态码不在 2xx 范围
           final statusCode = error.response?.statusCode;
           if (statusCode == 401) {
-            return AppError.unauthorized(debugMessage: debugMsg, stackTrace: stack);
+            return AppError.unauthorized(
+                debugMessage: debugMsg, stackTrace: stack);
           }
           if (statusCode == 403) {
-            return AppError.forbidden(debugMessage: debugMsg, stackTrace: stack);
+            return AppError.forbidden(
+                debugMessage: debugMsg, stackTrace: stack);
           }
           if (statusCode == 404) {
             return AppError.notFound(debugMessage: debugMsg, stackTrace: stack);
@@ -347,8 +351,7 @@ class AppError implements Exception {
         errStr.contains('ConnectionError')) {
       return AppError.network(debugMessage: debugMsg, stackTrace: stack);
     }
-    if (errStr.contains('TimeoutException') ||
-        errStr.contains('timeout')) {
+    if (errStr.contains('TimeoutException') || errStr.contains('timeout')) {
       return AppError.timeout(debugMessage: debugMsg, stackTrace: stack);
     }
 

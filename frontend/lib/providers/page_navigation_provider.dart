@@ -62,7 +62,9 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final index = prefs.getInt(kStorageKeyLastPageIndex);
-      if (index != null && index >= PageIndices.feed && index <= PageIndices.settings) {
+      if (index != null &&
+          index >= PageIndices.feed &&
+          index <= PageIndices.settings) {
         state = PageNavigationState(currentIndex: index, isOverlayPage: false);
       }
     } catch (_) {}
@@ -121,5 +123,5 @@ final pageNavigationProvider =
 );
 
 // 只暴露 Notifier 的 Provider（用于修改状态）
-final pageNavigationNotifierProvider =
-    Provider<PageNavigationNotifier>((ref) => ref.watch(pageNavigationProvider.notifier));
+final pageNavigationNotifierProvider = Provider<PageNavigationNotifier>(
+    (ref) => ref.watch(pageNavigationProvider.notifier));

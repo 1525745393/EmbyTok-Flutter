@@ -27,18 +27,18 @@ class MediaItem {
   // 基本信息
   final String id;
   final String title;
-  final String type;                    // Movie/Series/Episode/MusicVideo/...
-  final String? seriesName;             // 剧集名（集数项的归属剧集）
-  final String? seriesId;              // 剧集 ID（用于 NextUp 查询）
-  final int? indexNumber;              // 集序号（集数）
-  final int? parentIndexNumber;        // 季序号
-  final int? productionYear;            // 制作年份
-  final int? runtimeTicks;             // 时长（Emby tick，1 tick = 100ns）
-  final double? durationSeconds;        // 时长（秒），可选，若 runtimeTicks 存在则用其计算
-  final String? overview;               // 简介
-  final double? communityRating;        // 社区评分（1-10）
-  final double? rating;                 // 兼容字段，与 communityRating 同义
-  final int? year;                      // 兼容字段，与 productionYear 同义
+  final String type; // Movie/Series/Episode/MusicVideo/...
+  final String? seriesName; // 剧集名（集数项的归属剧集）
+  final String? seriesId; // 剧集 ID（用于 NextUp 查询）
+  final int? indexNumber; // 集序号（集数）
+  final int? parentIndexNumber; // 季序号
+  final int? productionYear; // 制作年份
+  final int? runtimeTicks; // 时长（Emby tick，1 tick = 100ns）
+  final double? durationSeconds; // 时长（秒），可选，若 runtimeTicks 存在则用其计算
+  final String? overview; // 简介
+  final double? communityRating; // 社区评分（1-10）
+  final double? rating; // 兼容字段，与 communityRating 同义
+  final int? year; // 兼容字段，与 productionYear 同义
   // 类型/演员/工作室
   final List<String>? genres;
   final List<String>? genreNames;
@@ -48,15 +48,15 @@ class MediaItem {
   // 图片
   final Map<String, String>? imageTags; // Primary/Backdrop/Thumb/Logo/Art...
   final List<String>? backdropImageTags; // 背景图列表
-  final String? thumbnailUrl;           // 兼容字段
+  final String? thumbnailUrl; // 兼容字段
 
   // 状态（收藏、播放进度等）
   final UserData? userData;
-  final bool? isFavorite;               // 兼容字段，与 userData.isFavorite 同义
+  final bool? isFavorite; // 兼容字段，与 userData.isFavorite 同义
 
   // 播放
   final List<MediaSource>? mediaSources;
-  final String? playbackUrl;            // 兼容字段
+  final String? playbackUrl; // 兼容字段
 
   // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
   final Map<String, dynamic>? rawJson;
@@ -94,12 +94,9 @@ class MediaItem {
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     // 字段兼容解析
     final id = (json['Id'] as String?) ?? (json['id'] as String?) ?? '';
-    final title = (json['Name'] as String?) ??
-        (json['title'] as String?) ??
-        '';
-    final type = (json['Type'] as String?) ??
-        (json['type'] as String?) ??
-        'Movie';
+    final title = (json['Name'] as String?) ?? (json['title'] as String?) ?? '';
+    final type =
+        (json['Type'] as String?) ?? (json['type'] as String?) ?? 'Movie';
     final seriesName = (json['SeriesName'] as String?) ??
         (json['series_name'] as String?) ??
         (json['seriesName'] as String?);
@@ -135,20 +132,20 @@ class MediaItem {
     final runtimeSec = runtimeTicks != null
         ? runtimeTicks / 10000000.0
         : (_parseNumDynamic(json['duration_seconds']) ??
-            _parseNumDynamic(json['durationSeconds']))?.toDouble();
+                _parseNumDynamic(json['durationSeconds']))
+            ?.toDouble();
 
     // 简介
-    final overview = (json['Overview'] as String?) ??
-        (json['overview'] as String?);
+    final overview =
+        (json['Overview'] as String?) ?? (json['overview'] as String?);
 
     // 类型
     List<String>? genres;
     List<String>? genreNames;
     // 类型安全：Genres 字段可能不是 List（如脏数据返回 String），需降级处理避免崩溃
-    final genresDynamic = (json['Genres'] is List
-            ? json['Genres'] as List<dynamic>
-            : null) ??
-        (json['genres'] is List ? json['genres'] as List<dynamic> : null);
+    final genresDynamic =
+        (json['Genres'] is List ? json['Genres'] as List<dynamic> : null) ??
+            (json['genres'] is List ? json['genres'] as List<dynamic> : null);
     if (genresDynamic != null) {
       genreNames = genresDynamic.map((e) => e.toString()).toList();
       genres = genreNames;
@@ -176,13 +173,12 @@ class MediaItem {
     // 图片 tags
     Map<String, String>? imageTags;
     // 类型安全：ImageTags 字段可能不是 Map（如脏数据返回 String），需降级处理避免崩溃
-    final imageTagsDynamic =
-        (json['ImageTags'] is Map<String, dynamic>
-                ? json['ImageTags'] as Map<String, dynamic>
-                : null) ??
-            (json['image_tags'] is Map<String, dynamic>
-                ? json['image_tags'] as Map<String, dynamic>
-                : null);
+    final imageTagsDynamic = (json['ImageTags'] is Map<String, dynamic>
+            ? json['ImageTags'] as Map<String, dynamic>
+            : null) ??
+        (json['image_tags'] is Map<String, dynamic>
+            ? json['image_tags'] as Map<String, dynamic>
+            : null);
     if (imageTagsDynamic != null && imageTagsDynamic.isNotEmpty) {
       final tags = <String, String>{};
       imageTagsDynamic.forEach((key, value) {
@@ -195,13 +191,12 @@ class MediaItem {
     List<String>? backdropImageTags;
     final backdropDynamic = json['BackdropImageTags'] as List<dynamic>?;
     if (backdropDynamic != null && backdropDynamic.isNotEmpty) {
-      backdropImageTags =
-          backdropDynamic.map((e) => e.toString()).toList();
+      backdropImageTags = backdropDynamic.map((e) => e.toString()).toList();
     }
 
     // 缩略图 URL（直接构造，简化字段）
-    final thumbnailUrl = json['thumbnail_url'] as String? ??
-        json['thumbnailUrl'] as String?;
+    final thumbnailUrl =
+        json['thumbnail_url'] as String? ?? json['thumbnailUrl'] as String?;
 
     // 播放源
     List<MediaSource>? mediaSources;
@@ -215,24 +210,22 @@ class MediaItem {
 
     // 用户数据
     // 类型安全：UserData 字段可能不是 Map（如脏数据返回 String），需降级处理避免崩溃
-    final userDataDynamic =
-        (json['UserData'] is Map<String, dynamic>
-                ? json['UserData'] as Map<String, dynamic>
-                : null) ??
-            (json['user_data'] is Map<String, dynamic>
-                ? json['user_data'] as Map<String, dynamic>
-                : null);
-    final userData = userDataDynamic != null
-        ? UserData.fromJson(userDataDynamic)
-        : null;
+    final userDataDynamic = (json['UserData'] is Map<String, dynamic>
+            ? json['UserData'] as Map<String, dynamic>
+            : null) ??
+        (json['user_data'] is Map<String, dynamic>
+            ? json['user_data'] as Map<String, dynamic>
+            : null);
+    final userData =
+        userDataDynamic != null ? UserData.fromJson(userDataDynamic) : null;
 
     // 兼容字段：收藏、播放 URL
     final isFavorite = userData?.isFavorite ??
         (json['is_favorite'] as bool?) ??
         (json['isFavorite'] as bool?) ??
         false;
-    final playbackUrl = json['playback_url'] as String? ??
-        json['playbackUrl'] as String?;
+    final playbackUrl =
+        json['playback_url'] as String? ?? json['playbackUrl'] as String?;
 
     return MediaItem(
       id: id,
@@ -317,8 +310,7 @@ class MediaItem {
   int? get displayYear => productionYear ?? year;
 
   // 合并的类型名称列表（取第一个非空）
-  List<String> get displayGenres =>
-      genreNames ?? genres ?? const <String>[];
+  List<String> get displayGenres => genreNames ?? genres ?? const <String>[];
 
   // 有效评分：取 communityRating / rating 第一个有效值
   double? get displayRating => communityRating ?? rating;
@@ -505,13 +497,17 @@ class MediaItem {
   }
 
   // 获取主要海报/封面 URL（Primary 类型）
-  String? primaryUrl({String? embyServerUrl, String? apiKey, int maxWidth = 500}) {
-    return imageUrl('Primary', embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+  String? primaryUrl(
+      {String? embyServerUrl, String? apiKey, int maxWidth = 500}) {
+    return imageUrl('Primary',
+        embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
   }
 
   // 获取背景图 URL
-  String? backdropUrl({String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
-    return imageUrl('Backdrop', embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+  String? backdropUrl(
+      {String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
+    return imageUrl('Backdrop',
+        embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
   }
 
   // 动态构造 Emby 视频流播放 URL
@@ -530,22 +526,28 @@ class MediaItem {
     if (token == null || token.isEmpty) return null;
     final encodedToken = Uri.encodeQueryComponent(token);
     final sources = mediaSources;
-    final mediaSourceId = sources != null && sources.isNotEmpty ? sources.first.id : null;
-    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
+    final mediaSourceId =
+        sources != null && sources.isNotEmpty ? sources.first.id : null;
+    final msIdParam =
+        mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
     return '$embyServerUrl/Videos/$id/stream.mp4?api_key=$encodedToken'
         '&VideoCodec=h264,hevc,av1&AudioCodec=aac,mp3,ac3'
         '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true$msIdParam';
   }
 
   // 构造 HLS 转码 URL（最后一级降级）
-  String? computeHlsUrl(String? embyServerUrl, String? token, {String? playSessionId}) {
+  String? computeHlsUrl(String? embyServerUrl, String? token,
+      {String? playSessionId}) {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
     if (token == null || token.isEmpty) return null;
     final encodedToken = Uri.encodeQueryComponent(token);
     final sources = mediaSources;
-    final mediaSourceId = sources != null && sources.isNotEmpty ? sources.first.id : null;
-    final msIdParam = mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
-    final sessionParam = playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
+    final mediaSourceId =
+        sources != null && sources.isNotEmpty ? sources.first.id : null;
+    final msIdParam =
+        mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
+    final sessionParam =
+        playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
     return '$embyServerUrl/Videos/$id/master.m3u8?api_key=$encodedToken'
         '&VideoCodec=h264&AudioCodec=aac,mp3,ac3'
         '&VideoBitrate=20000000&AudioBitrate=320000'
@@ -563,8 +565,7 @@ class MediaItem {
   Map<String, String> authHeaders(String? token) {
     if (token == null || token.isEmpty) return {};
     return {
-      'X-Emby-Authorization':
-          'MediaBrowser Client="EmbyTok", Device="Mobile",'
+      'X-Emby-Authorization': 'MediaBrowser Client="EmbyTok", Device="Mobile",'
           ' DeviceId="embytok-client", Version="1.0.0", Token="$token"',
       'X-Emby-Token': token,
     };
@@ -572,10 +573,12 @@ class MediaItem {
 
   // 获取缩略图 URL（带认证信息）
   // 优先使用 Emby 图片 URL，fallback 到 thumbnailUrl
-  String? thumbnailUrlWithAuth(String? embyServerUrl, String? apiKey, {int maxWidth = 400}) {
+  String? thumbnailUrlWithAuth(String? embyServerUrl, String? apiKey,
+      {int maxWidth = 400}) {
     // 如果有 Emby 服务器地址和图片标签，构造 Emby 图片 URL
     if (embyServerUrl != null && embyServerUrl.isNotEmpty) {
-      final embUrl = primaryUrl(embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+      final embUrl = primaryUrl(
+          embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
       if (embUrl != null) return embUrl;
     }
     // Fallback 到直接 URL

@@ -14,7 +14,8 @@ import '../../utils/image_cache_manager.dart';
 import '../person_avatar_image.dart';
 
 // ===== 响应式尺寸工具 =====
-double responsiveSize(BuildContext context, double base, [double maxScale = 1.7]) {
+double responsiveSize(BuildContext context, double base,
+    [double maxScale = 1.7]) {
   final screenWidth = MediaQuery.of(context).size.width;
   final double scale;
   if (screenWidth <= 480.0) {
@@ -46,14 +47,14 @@ class PosterAvatar extends ConsumerWidget {
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
 
     final people = item.people;
-    final Person? firstActor =
-        people != null && people.isNotEmpty
-            ? people.firstWhere((p) => p.type.toLowerCase() == 'actor',
-                orElse: () => people.first)
-            : null;
+    final Person? firstActor = people != null && people.isNotEmpty
+        ? people.firstWhere((p) => p.type.toLowerCase() == 'actor',
+            orElse: () => people.first)
+        : null;
 
     final actorId = firstActor?.id;
     if (firstActor != null && actorId != null && actorId.isNotEmpty) {
@@ -92,10 +93,10 @@ class PosterAvatar extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: scheme.onSurface.withOpacity(0.4),
+                          color: scheme.onSurface.withValues(alpha: 0.4),
                           width: 2,
                         ),
-                        color: scheme.surface.withOpacity(0.15),
+                        color: scheme.surface.withValues(alpha: 0.15),
                       ),
                       child: ClipOval(
                         child: PersonAvatarImage(
@@ -113,7 +114,9 @@ class PosterAvatar extends ConsumerWidget {
                   bottom: 0,
                   child: GestureDetector(
                     onTap: () {
-                      ref.read(favoritesProvider.notifier).toggleFavorite(actorMediaItem);
+                      ref
+                          .read(favoritesProvider.notifier)
+                          .toggleFavorite(actorMediaItem);
                     },
                     child: Container(
                       width: rs(20),
@@ -136,9 +139,11 @@ class PosterAvatar extends ConsumerWidget {
           ),
           SizedBox(height: rs(4)),
           Text(
-            firstActor.name.length > 4 ? '${firstActor.name.substring(0, 4)}..' : firstActor.name,
+            firstActor.name.length > 4
+                ? '${firstActor.name.substring(0, 4)}..'
+                : firstActor.name,
             style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.7),
+              color: scheme.onSurface.withValues(alpha: 0.7),
               fontSize: rs(9, 1.3),
               fontWeight: FontWeight.bold,
             ),
@@ -159,8 +164,9 @@ class PosterAvatar extends ConsumerWidget {
         height: rs(40),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: scheme.onSurface.withOpacity(0.4), width: 2),
-          color: scheme.surface.withOpacity(0.15),
+          border: Border.all(
+              color: scheme.onSurface.withValues(alpha: 0.4), width: 2),
+          color: scheme.surface.withValues(alpha: 0.15),
         ),
         child: ClipOval(
           child: posterUrl != null && posterUrl.isNotEmpty
@@ -171,11 +177,14 @@ class PosterAvatar extends ConsumerWidget {
                   httpHeaders: posterHeaders.isNotEmpty ? posterHeaders : null,
                   memCacheWidth: 80,
                   placeholder: (_, __) => Icon(Icons.music_video,
-                      color: scheme.onSurface.withOpacity(0.54), size: rs(20)),
+                      color: scheme.onSurface.withValues(alpha: 0.54),
+                      size: rs(20)),
                   errorWidget: (_, __, ___) => Icon(Icons.music_video,
-                      color: scheme.onSurface.withOpacity(0.54), size: rs(20)),
+                      color: scheme.onSurface.withValues(alpha: 0.54),
+                      size: rs(20)),
                 )
-              : Icon(Icons.music_video, color: scheme.onSurface.withOpacity(0.54)),
+              : Icon(Icons.music_video,
+                  color: scheme.onSurface.withValues(alpha: 0.54)),
         ),
       ),
     );
@@ -190,7 +199,8 @@ class AutoPlayButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isAutoPlayProvider.notifier).toggle();
@@ -199,8 +209,9 @@ class AutoPlayButton extends ConsumerWidget {
             SnackBar(
               content: Text(isAutoPlay ? '连播模式已关闭' : '连播模式已开启',
                   style: TextStyle(color: scheme.onPrimary)),
-              backgroundColor:
-                  isAutoPlay ? scheme.primary.withOpacity(0.8) : scheme.onSurface.withOpacity(0.6),
+              backgroundColor: isAutoPlay
+                  ? scheme.primary.withValues(alpha: 0.8)
+                  : scheme.onSurface.withValues(alpha: 0.6),
               duration: const Duration(seconds: 2),
               behavior: SnackBarBehavior.floating,
               margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
@@ -214,8 +225,8 @@ class AutoPlayButton extends ConsumerWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isAutoPlay
-              ? scheme.primary.withOpacity(0.8)
-              : scheme.surface.withOpacity(0.3),
+              ? scheme.primary.withValues(alpha: 0.8)
+              : scheme.surface.withValues(alpha: 0.3),
         ),
         child: Icon(Icons.all_inclusive, color: scheme.onSurface, size: rs(24)),
       ),
@@ -238,7 +249,8 @@ class SpeedControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final currentSpeed = controller?.value.playbackSpeed ?? 1.0;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -247,8 +259,8 @@ class SpeedControlButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: currentSpeed > 1.0
-              ? scheme.tertiary.withOpacity(0.8)
-              : scheme.surface.withOpacity(0.3),
+              ? scheme.tertiary.withValues(alpha: 0.8)
+              : scheme.surface.withValues(alpha: 0.3),
         ),
         child: Icon(Icons.speed, color: scheme.onSurface, size: rs(20)),
       ),
@@ -268,7 +280,8 @@ class QualityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -276,7 +289,7 @@ class QualityButton extends StatelessWidget {
         height: rs(40),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: scheme.surface.withOpacity(0.3),
+          color: scheme.surface.withValues(alpha: 0.3),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -313,7 +326,8 @@ class SubtitleButton extends ConsumerWidget {
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final scheme = Theme.of(context).colorScheme;
     final isEnabled = subtitleSelected != null;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: hasSubtitles ? onTap : null,
       child: Container(
@@ -322,10 +336,10 @@ class SubtitleButton extends ConsumerWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isEnabled
-              ? scheme.primary.withOpacity(0.8)
+              ? scheme.primary.withValues(alpha: 0.8)
               : (hasSubtitles
-                  ? scheme.surface.withOpacity(0.3)
-                  : scheme.surface.withOpacity(0.1)),
+                  ? scheme.surface.withValues(alpha: 0.3)
+                  : scheme.surface.withValues(alpha: 0.1)),
         ),
         child: Icon(Icons.subtitles, color: scheme.onSurface, size: rs(20)),
       ),
@@ -352,7 +366,8 @@ class DiscMuteButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMuted = ref.watch(isMutedProvider);
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
@@ -365,9 +380,11 @@ class DiscMuteButton extends ConsumerWidget {
           height: rs(40),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: scheme.surface.withOpacity(0.3),
+            color: scheme.surface.withValues(alpha: 0.3),
             border: Border.all(
-              color: isMuted ? scheme.primary : scheme.onSurface.withOpacity(0.4),
+              color: isMuted
+                  ? scheme.primary
+                  : scheme.onSurface.withValues(alpha: 0.4),
               width: 2,
             ),
             image: posterUrl.isNotEmpty
@@ -413,7 +430,8 @@ class CenterPlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return Positioned.fill(
       child: Center(
         child: GestureDetector(
@@ -422,7 +440,7 @@ class CenterPlayButton extends StatelessWidget {
             width: rs(60),
             height: rs(60),
             decoration: BoxDecoration(
-              color: scheme.surface.withOpacity(0.6),
+              color: scheme.surface.withValues(alpha: 0.6),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -446,7 +464,8 @@ class SpeedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return Positioned(
       top: rs(40),
       left: 0,
@@ -455,7 +474,7 @@ class SpeedBadge extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: rs(12), vertical: rs(6)),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.87),
+            color: scheme.surface.withValues(alpha: 0.87),
             borderRadius: BorderRadius.circular(rs(16)),
           ),
           child: Row(
@@ -485,7 +504,8 @@ class TopActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final rs = (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    final rs =
+        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
     final scheme = Theme.of(context).colorScheme;
     return Positioned(
       top: topPadding + 8,
@@ -496,9 +516,13 @@ class TopActions extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: EdgeInsets.all(rs(8)),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.4),
+            color: scheme.surface.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(rs(16)),
-            boxShadow: [BoxShadow(color: scheme.onSurface.withOpacity(0.15), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(
+                  color: scheme.onSurface.withValues(alpha: 0.15),
+                  blurRadius: 8)
+            ],
           ),
           child: Icon(Icons.fullscreen, color: scheme.onSurface, size: rs(40)),
         ),
@@ -506,5 +530,3 @@ class TopActions extends StatelessWidget {
     );
   }
 }
-
-

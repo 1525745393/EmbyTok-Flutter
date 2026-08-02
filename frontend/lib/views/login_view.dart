@@ -68,9 +68,8 @@ class _ServerHistoryEntry {
         orElse: () => ServerType.emby,
       ),
       displayName: json['n'] as String?,
-      lastUsed: json['d'] != null
-          ? DateTime.tryParse(json['d'] as String)
-          : null,
+      lastUsed:
+          json['d'] != null ? DateTime.tryParse(json['d'] as String) : null,
     );
   }
 }
@@ -201,7 +200,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
       // 移除同 URL 的旧条目
       _serverHistory.removeWhere((e) => e.url == url);
       // 插入到最前面
-      _serverHistory.insert(0, _ServerHistoryEntry(url: url, lastUsed: DateTime.now()));
+      _serverHistory.insert(
+          0, _ServerHistoryEntry(url: url, lastUsed: DateTime.now()));
       // 最多保留 5 条
       if (_serverHistory.length > 5) {
         _serverHistory = _serverHistory.sublist(0, 5);
@@ -220,7 +220,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 保存或清除凭据（使用 flutter_secure_storage 加密存储）
-  Future<void> _saveCredentials(String server, String username, String password) async {
+  Future<void> _saveCredentials(
+      String server, String username, String password) async {
     try {
       if (_rememberMe) {
         await _secureStorage.write(key: _kSecureKeyServer, value: server);
@@ -271,7 +272,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
   /// 友好的错误提示
   String _friendlyError(dynamic e) {
     final msg = e.toString().toLowerCase();
-    if (msg.contains('socket') || msg.contains('connection') || msg.contains('refused') || msg.contains('timeout')) {
+    if (msg.contains('socket') ||
+        msg.contains('connection') ||
+        msg.contains('refused') ||
+        msg.contains('timeout')) {
       return '无法连接到服务器，请检查地址和网络';
     }
     if (msg.contains('401') || msg.contains('unauthorized')) {
@@ -385,7 +389,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   const SizedBox(height: 8),
                   Text(
                     '浏览你的私人媒体库',
-                    style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
+                    style:
+                        TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
@@ -426,7 +431,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     onChanged: (_) => _clearError(),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                        _passwordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                         color: scheme.onSurfaceVariant,
                       ),
                       onPressed: () {
@@ -443,7 +450,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     children: [
                       Checkbox(
                         value: _rememberMe,
-                        onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                        onChanged: (v) =>
+                            setState(() => _rememberMe = v ?? false),
                         activeColor: scheme.primary,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -473,18 +481,21 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: scheme.error.withOpacity(0.1),
+                        color: scheme.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: scheme.error.withOpacity(0.3)),
+                        border: Border.all(
+                            color: scheme.error.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.error_outline, color: scheme.error, size: 18),
+                          Icon(Icons.error_outline,
+                              color: scheme.error, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _errorMessage!,
-                              style: TextStyle(color: scheme.error, fontSize: 13),
+                              style:
+                                  TextStyle(color: scheme.error, fontSize: 13),
                             ),
                           ),
                         ],
@@ -517,8 +528,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.4,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(scheme.onPrimary),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    scheme.onPrimary),
                               ),
                             )
                           : const Text('登录'),
@@ -536,7 +547,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
   /// 判断是否为 HTTP（非 HTTPS）以显示安全提示
   bool _isHttpWarning() {
     final url = _embyController.text.trim().toLowerCase();
-    return url.startsWith('http://') && !url.contains('localhost') && !url.contains('127.0.0.1') && !url.contains('192.168.');
+    return url.startsWith('http://') &&
+        !url.contains('localhost') &&
+        !url.contains('127.0.0.1') &&
+        !url.contains('192.168.');
   }
 
   /// 服务器地址输入框（带连接测试状态指示器）
@@ -555,7 +569,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         labelText: 'Emby 服务器地址',
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         hintText: 'http://192.168.1.1:8096',
-        hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         prefixIcon: Icon(Icons.dns_outlined, color: scheme.primary),
         suffixIcon: _buildConnectionIndicator(scheme),
         enabledBorder: OutlineInputBorder(
@@ -639,9 +653,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
           final entry = _serverHistory[index];
           final isFirst = index == 0;
           return Padding(
-            padding: EdgeInsets.only(bottom: index < _serverHistory.length - 1 ? 4 : 0),
+            padding: EdgeInsets.only(
+                bottom: index < _serverHistory.length - 1 ? 4 : 0),
             child: Material(
-              color: scheme.onSurface.withOpacity(isFirst ? 0.06 : 0.03),
+              color: scheme.onSurface.withValues(alpha: isFirst ? 0.06 : 0.03),
               borderRadius: BorderRadius.circular(10),
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
@@ -653,7 +668,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 },
                 onLongPress: () => _showDeleteConfirmDialog(index, scheme),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   child: Row(
                     children: [
                       // 服务器类型图标
@@ -693,9 +709,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         width: 32,
                         height: 32,
                         child: IconButton(
-                          icon: Icon(Icons.close, size: 16, color: scheme.onSurfaceVariant),
+                          icon: Icon(Icons.close,
+                              size: 16, color: scheme.onSurfaceVariant),
                           padding: EdgeInsets.zero,
-                          onPressed: () => _showDeleteConfirmDialog(index, scheme),
+                          onPressed: () =>
+                              _showDeleteConfirmDialog(index, scheme),
                         ),
                       ),
                     ],
@@ -717,7 +735,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: const Color(0xFF52B54B).withOpacity(0.15),
+            color: const Color(0xFF52B54B).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: const Icon(Icons.dns, size: 18, color: Color(0xFF52B54B)),
@@ -727,10 +745,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: const Color(0xFFE5A00D).withOpacity(0.15),
+            color: const Color(0xFFE5A00D).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.play_circle_outline, size: 18, color: Color(0xFFE5A00D)),
+          child: const Icon(Icons.play_circle_outline,
+              size: 18, color: Color(0xFFE5A00D)),
         );
     }
   }
@@ -794,7 +813,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         labelText: label,
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
         hintText: hint,
-        hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
+        hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         prefixIcon: Icon(icon, color: scheme.primary),
         suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(

@@ -28,7 +28,8 @@ class FullscreenNavigator {
   ///
   /// 尺寸检查：视频已初始化但尺寸尚未获取时，进入全屏会显示加载指示器而非视频画面，
   /// 因此必须等待尺寸有效后才允许进入全屏。
-  static bool isControllerUsableForFullscreen(VideoPlayerController? controller) {
+  static bool isControllerUsableForFullscreen(
+      VideoPlayerController? controller) {
     if (controller == null) return false;
     try {
       final v = controller.value;

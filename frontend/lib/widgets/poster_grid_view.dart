@@ -58,7 +58,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     _lastScrolledGridItems = null;
     final playingId = ref.read(playbackStateProvider).id;
     if (playingId != null && playingId.isNotEmpty) {
-      AppLogger.debug('网格：重置去重并重试滚动', data: {'reason': reason, 'itemId': playingId});
+      AppLogger.debug('网格：重置去重并重试滚动',
+          data: {'reason': reason, 'itemId': playingId});
       _scrollToPlayingId(playingId);
     }
   }
@@ -131,7 +132,8 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
       const crossAxisCount = 3;
       const childAspectRatio = 0.65;
 
-      final availableWidth = viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
+      final availableWidth =
+          viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
       final itemWidth = availableWidth / crossAxisCount;
       final itemHeight = itemWidth / childAspectRatio;
       final rowHeight = itemHeight + mainAxisSpacing;
@@ -182,7 +184,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     }
     if (gridItems.isEmpty) {
       return Center(
-        child: Text('暂无视频', style: TextStyle(color: scheme.onSurface.withOpacity(0.7), fontSize: 16)),
+        child: Text('暂无视频',
+            style: TextStyle(
+                color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 16)),
       );
     }
 
@@ -197,12 +201,9 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     // 计算分页信息（直接从 state 计算，确保 UI 响应式更新）
     const gridPageSize = 150;
     final gridStartIndex = videoState.gridStartIndex;
-    final currentPage = totalCount > 0
-        ? (gridStartIndex ~/ gridPageSize) + 1
-        : 1;
-    final totalPages = totalCount > 0
-        ? (totalCount / gridPageSize).ceil()
-        : 1;
+    final currentPage =
+        totalCount > 0 ? (gridStartIndex ~/ gridPageSize) + 1 : 1;
+    final totalPages = totalCount > 0 ? (totalCount / gridPageSize).ceil() : 1;
     final hasPrevPage = currentPage > 1;
     final hasNextPage = currentPage < totalPages;
 
@@ -225,9 +226,10 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(0.5),
+            color: scheme.surface.withValues(alpha: 0.5),
             border: Border(
-              bottom: BorderSide(color: scheme.onSurface.withOpacity(0.1)),
+              bottom:
+                  BorderSide(color: scheme.onSurface.withValues(alpha: 0.1)),
             ),
           ),
           child: SafeArea(
@@ -251,9 +253,10 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                     ref.read(videoListProvider.notifier).shuffleRandom();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheme.onSurface.withOpacity(0.1),
+                      color: scheme.onSurface.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -262,7 +265,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                         Text(
                           countStr,
                           style: TextStyle(
-                            color: scheme.primary.withOpacity(0.7),
+                            color: scheme.primary.withValues(alpha: 0.7),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -271,7 +274,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                         Icon(
                           Icons.auto_awesome,
                           size: 14,
-                          color: scheme.onSurface.withOpacity(0.7),
+                          color: scheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ],
                     ),
@@ -285,11 +288,12 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                   },
                   icon: Icon(
                     Icons.phone_android,
-                    color: scheme.onSurface.withOpacity(0.7),
+                    color: scheme.onSurface.withValues(alpha: 0.7),
                     size: 20,
                   ),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
                   tooltip: '切换到视频流',
                 ),
                 // 分页控件：仅在单库模式且多页时显示
@@ -302,12 +306,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                     icon: Icon(
                       Icons.chevron_left,
                       color: hasPrevPage
-                          ? scheme.onSurface.withOpacity(0.7)
-                          : scheme.onSurface.withOpacity(0.3),
+                          ? scheme.onSurface.withValues(alpha: 0.7)
+                          : scheme.onSurface.withValues(alpha: 0.3),
                     ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                     tooltip: '上一页',
                   ),
                   // 页码显示
@@ -327,12 +332,13 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
                     icon: Icon(
                       Icons.chevron_right,
                       color: hasNextPage
-                          ? scheme.onSurface.withOpacity(0.7)
-                          : scheme.onSurface.withOpacity(0.3),
+                          ? scheme.onSurface.withValues(alpha: 0.7)
+                          : scheme.onSurface.withValues(alpha: 0.3),
                     ),
                     iconSize: 20,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                     tooltip: '下一页',
                   ),
                 ],
@@ -351,10 +357,12 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
-            itemCount: gridItems.length + (videoState.hasMore && !showPager ? 1 : 0),
+            itemCount:
+                gridItems.length + (videoState.hasMore && !showPager ? 1 : 0),
             itemBuilder: (context, index) {
               if (index >= gridItems.length) {
-                return Center(child: CircularProgressIndicator(color: scheme.primary));
+                return Center(
+                    child: CircularProgressIndicator(color: scheme.primary));
               }
               final item = gridItems[index];
               return _PosterCard(
@@ -386,7 +394,8 @@ class _PosterCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    final thumbnailUrl = item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
+    final thumbnailUrl =
+        item.thumbnailUrlWithAuth(authState.embyServerUrl, authState.token);
 
     return TvFocusable(
       onTap: () {
@@ -420,27 +429,32 @@ class _PosterCard extends ConsumerWidget {
                 httpHeaders: item.authHeaders(authState.token),
                 memCacheWidth: 400,
                 placeholder: (_, __) => Container(
-                  color: scheme.surface.withOpacity(0.3),
+                  color: scheme.surface.withValues(alpha: 0.3),
                   child: Center(
-                    child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                        color: scheme.primary, strokeWidth: 2),
                   ),
                 ),
                 errorWidget: (_, __, ___) => Container(
-                  color: scheme.surface.withOpacity(0.3),
-                  child: Icon(Icons.broken_image, color: scheme.onSurface.withOpacity(0.4)),
+                  color: scheme.surface.withValues(alpha: 0.3),
+                  child: Icon(Icons.broken_image,
+                      color: scheme.onSurface.withValues(alpha: 0.4)),
                 ),
               )
             else
               Container(
-                color: scheme.surface.withOpacity(0.3),
-                child: Icon(Icons.movie, color: scheme.onSurface.withOpacity(0.4)),
+                color: scheme.surface.withValues(alpha: 0.3),
+                child: Icon(Icons.movie,
+                    color: scheme.onSurface.withValues(alpha: 0.4)),
               ),
             // "正在播放"角标：左上角小播放图标
             if (isPlaying)
               Positioned(
-                left: 6, top: 6,
+                left: 6,
+                top: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: scheme.primary,
                     borderRadius: BorderRadius.circular(10),
@@ -464,7 +478,9 @@ class _PosterCard extends ConsumerWidget {
               ),
             // 底部渐变 + 标题
             Positioned(
-              left: 0, right: 0, bottom: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -472,7 +488,7 @@ class _PosterCard extends ConsumerWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      scheme.surface.withOpacity(0.75),
+                      scheme.surface.withValues(alpha: 0.75),
                       Colors.transparent,
                     ],
                   ),
@@ -482,18 +498,22 @@ class _PosterCard extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: scheme.onSurface, fontSize: 12, fontWeight: FontWeight.w600),
+                      color: scheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
               ),
             ),
             // 继续观看进度条：当有播放位置时在底部显示细粉色条
             if (item.hasProgress)
               Positioned(
-                left: 0, right: 0, bottom: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: LinearProgressIndicator(
                   value: item.progressPercent,
                   minHeight: 3,
-                  backgroundColor: scheme.onSurface.withOpacity(0.15),
+                  backgroundColor: scheme.onSurface.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                 ),
               ),

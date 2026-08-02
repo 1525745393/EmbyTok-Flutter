@@ -13,18 +13,25 @@ import '../utils/constants.dart';
 class SubtitleSettings {
   /// 选中的字幕语言代码；空字符串表示关闭字幕
   final String language;
+
   /// 字号：'small' / 'medium' / 'large'
   final String size;
+
   /// 颜色：'white' / 'yellow'
   final String color;
+
   /// 位置：'bottom' / 'lower' / 'center'
   final String position;
+
   /// 描边宽度（像素）
   final double strokeWidth;
+
   /// 是否启用阴影
   final bool shadowEnabled;
+
   /// 背景透明度（0-100）
   final int bgOpacity;
+
   /// 时间轴微调偏移（毫秒，正数延迟，负数提前）
   final int timeOffset;
 
@@ -121,10 +128,12 @@ class SubtitleSettings {
   }
 
   /// 背景颜色透明度（0.0-1.0）
-  double get bgOpacityValue => bgOpacity.clamp(
+  double get bgOpacityValue =>
+      bgOpacity.clamp(
         kSubtitleBgOpacityMin,
         kSubtitleBgOpacityMax,
-      ) / 100.0;
+      ) /
+      100.0;
 
   /// 时间偏移 Duration
   Duration get timeOffsetDuration => Duration(
@@ -184,22 +193,30 @@ class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
 
   /// 设置字幕语言
   void setLanguage(String language) => update(language: language);
+
   /// 设置字号
   void setSize(String size) => update(size: size);
+
   /// 设置颜色
   void setColor(String color) => update(color: color);
+
   /// 设置位置
   void setPosition(String position) => update(position: position);
+
   /// 设置描边宽度
   void setStrokeWidth(double width) => update(strokeWidth: width);
+
   /// 设置阴影开关
   void setShadowEnabled(bool enabled) => update(shadowEnabled: enabled);
+
   /// 设置背景透明度（0-100）
   void setBgOpacity(int opacity) => update(bgOpacity: opacity);
+
   /// 设置时间偏移（毫秒）
   void setTimeOffset(int offset) => update(timeOffset: offset);
 }
 
 /// 顶层字幕设置 Provider
-final subtitleSettingsProvider = StateNotifierProvider<SubtitleSettingsNotifier,
-    SubtitleSettings>((ref) => SubtitleSettingsNotifier());
+final subtitleSettingsProvider =
+    StateNotifierProvider<SubtitleSettingsNotifier, SubtitleSettings>(
+        (ref) => SubtitleSettingsNotifier());

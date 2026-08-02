@@ -58,8 +58,7 @@ class AppLogger {
   ///
   /// Debug 模式：记录 DEBUG 及以上
   /// Release 模式：仅记录 WARN 及以上
-  static LogLevel _minLevel =
-      kDebugMode ? LogLevel.debug : LogLevel.warn;
+  static LogLevel _minLevel = kDebugMode ? LogLevel.debug : LogLevel.warn;
 
   // ============ 本地日志持久化 ============
   // 环形缓冲：最多保留 500 条 WARN/ERROR 日志
@@ -91,7 +90,8 @@ class AppLogger {
   /// 记录 DEBUG 级别日志
   ///
   /// 用于开发调试信息，仅在 Debug 模式下输出
-  static void debug(String message, {
+  static void debug(
+    String message, {
     Map<String, dynamic>? data,
     String? tag,
   }) {
@@ -101,7 +101,8 @@ class AppLogger {
   /// 记录 INFO 级别日志
   ///
   /// 用于常规操作信息，如用户登录、API 请求等
-  static void info(String message, {
+  static void info(
+    String message, {
     Map<String, dynamic>? data,
     String? tag,
   }) {
@@ -111,7 +112,8 @@ class AppLogger {
   /// 记录 WARN 级别日志
   ///
   /// 用于警告信息，如降级策略触发、超时等
-  static void warn(String message, {
+  static void warn(
+    String message, {
     Map<String, dynamic>? data,
     String? tag,
   }) {
@@ -255,7 +257,8 @@ class AppLogger {
         // 只保留最新的 _maxPersistedLogs 条
         if (lines.length > _maxPersistedLogs) {
           _persistedBuffer.clear();
-          _persistedBuffer.addAll(lines.sublist(lines.length - _maxPersistedLogs));
+          _persistedBuffer
+              .addAll(lines.sublist(lines.length - _maxPersistedLogs));
         } else {
           _persistedBuffer.clear();
           _persistedBuffer.addAll(lines);

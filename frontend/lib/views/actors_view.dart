@@ -23,7 +23,8 @@ class ActorsView extends ConsumerStatefulWidget {
   ConsumerState<ActorsView> createState() => _ActorsViewState();
 }
 
-class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStateMixin {
+class _ActorsViewState extends ConsumerState<ActorsView>
+    with TickerProviderStateMixin {
   /// 演员页 Tab 数量：全部 / 已关注 / 未关注
   static const int _actorTabsCount = 3;
 
@@ -35,7 +36,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _actorTabsCount, vsync: this);  // Task 5 同步修改
+    _tabController =
+        TabController(length: _actorTabsCount, vsync: this); // Task 5 同步修改
     _tabController.addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
     _searchController = TextEditingController();
@@ -130,7 +132,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
       try {
         if (!_scrollController.hasClients) return;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setDouble(kStorageKeyActorsScrollOffset, _scrollController.offset);
+        await prefs.setDouble(
+            kStorageKeyActorsScrollOffset, _scrollController.offset);
       } catch (_) {}
     });
   }
@@ -195,7 +198,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           ref.read(actorsProvider.notifier).searchActors(state.searchQuery);
         }
       },
-      backgroundColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
       selectedColor: scheme.primaryContainer,
       labelStyle: TextStyle(
         color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
@@ -243,7 +246,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               embyServerUrl: embyServerUrl,
               token: token,
               isFavorited: favoritedIds.contains(actor.id),
-              onFavoriteTap: () => ref.read(actorsProvider.notifier).toggleFavorite(actor),
+              onFavoriteTap: () =>
+                  ref.read(actorsProvider.notifier).toggleFavorite(actor),
               onTap: () => _navigateToPersonDetail(actor),
             );
           },
@@ -265,17 +269,24 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     final isSearchActive = actorsState.searchQuery.isNotEmpty;
 
     // 当前显示的演员列表（搜索时用搜索结果，否则用全量列表）
-    final displayActors = isSearchActive ? actorsState.searchResults : actorsState.actors;
+    final displayActors =
+        isSearchActive ? actorsState.searchResults : actorsState.actors;
 
     // 各 Tab 过滤后的演员列表
     final allActors = displayActors;
-    final favoritedActors = displayActors.where((a) => actorsState.favoritedIds.contains(a.id)).toList();
-    final unfavoritedActors = displayActors.where((a) => !actorsState.favoritedIds.contains(a.id)).toList();
+    final favoritedActors = displayActors
+        .where((a) => actorsState.favoritedIds.contains(a.id))
+        .toList();
+    final unfavoritedActors = displayActors
+        .where((a) => !actorsState.favoritedIds.contains(a.id))
+        .toList();
 
     // 各 Tab 计数
     final allCount = actorsState.actors.length;
     final favoritedCount = actorsState.favoritedIds.length;
-    final unfavoritedCount = actorsState.actors.where((a) => !actorsState.favoritedIds.contains(a.id)).length;
+    final unfavoritedCount = actorsState.actors
+        .where((a) => !actorsState.favoritedIds.contains(a.id))
+        .length;
 
     final content = NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) => [
@@ -291,7 +302,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               children: [
                 // 搜索框
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: TextField(
                     controller: _searchController,
                     onChanged: (value) {
@@ -300,15 +312,19 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                     },
                     decoration: InputDecoration(
                       hintText: '搜索演员...',
-                      hintStyle: TextStyle(color: scheme.onSurface.withOpacity(0.5)),
-                      prefixIcon: Icon(Icons.search, color: scheme.onSurface.withOpacity(0.5)),
+                      hintStyle: TextStyle(
+                          color: scheme.onSurface.withValues(alpha: 0.5)),
+                      prefixIcon: Icon(Icons.search,
+                          color: scheme.onSurface.withValues(alpha: 0.5)),
                       filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+                      fillColor:
+                          scheme.surfaceContainerHighest.withValues(alpha: 0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       isDense: true,
                     ),
                     style: TextStyle(color: scheme.onSurface, fontSize: 14),
@@ -316,7 +332,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                 ),
                 // 类型筛选器
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -336,7 +353,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                 TabBar(
                   controller: _tabController,
                   labelColor: scheme.primary,
-                  unselectedLabelColor: scheme.onSurface.withOpacity(0.6),
+                  unselectedLabelColor: scheme.onSurface.withValues(alpha: 0.6),
                   indicatorColor: scheme.primary,
                   indicatorWeight: 2,
                   tabs: [
@@ -444,7 +461,9 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive, isFavoriteTab: isFavoriteTab),
+            _buildActorGrid(
+                actors, embyServerUrl, token, favoritedIds, isSearchActive,
+                isFavoriteTab: isFavoriteTab),
             // 已加载全部演员的提示
             if (!loading && actors.isNotEmpty)
               SliverToBoxAdapter(
@@ -454,7 +473,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
                     child: Text(
                       '已加载全部 ${actors.length} 位演员',
                       style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
                         fontSize: 12,
                       ),
                     ),
@@ -470,7 +489,9 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        _buildActorGrid(actors, embyServerUrl, token, favoritedIds, isSearchActive, isFavoriteTab: isFavoriteTab),
+        _buildActorGrid(
+            actors, embyServerUrl, token, favoritedIds, isSearchActive,
+            isFavoriteTab: isFavoriteTab),
       ],
     );
   }
@@ -493,7 +514,10 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Text(
             message,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
               fontSize: 14,
             ),
           ),
@@ -503,7 +527,8 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
   }
 
   // 构建空状态提示
-  Widget _buildEmptyState({bool isSearchEmpty = false, bool isFavoriteEmpty = false}) {
+  Widget _buildEmptyState(
+      {bool isSearchEmpty = false, bool isFavoriteEmpty = false}) {
     final scheme = Theme.of(context).colorScheme;
 
     if (isSearchEmpty) {
@@ -514,7 +539,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             Icon(
               Icons.search_off,
               size: 64,
-              color: scheme.onSurface.withOpacity(0.3),
+              color: scheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -530,7 +555,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               '换个关键词试试吧',
               style: TextStyle(
                 fontSize: 14,
-                color: scheme.onSurface.withOpacity(0.6),
+                color: scheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -546,7 +571,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             Icon(
               Icons.favorite_border,
               size: 64,
-              color: scheme.onSurface.withOpacity(0.3),
+              color: scheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -562,14 +587,14 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
               '快去关注你喜欢的演员吧',
               style: TextStyle(
                 fontSize: 14,
-                color: scheme.onSurface.withOpacity(0.6),
+                color: scheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: scheme.primaryContainer.withOpacity(0.5),
+                color: scheme.primaryContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -604,7 +629,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Icon(
             Icons.people_outline,
             size: 64,
-            color: scheme.onSurface.withOpacity(0.3),
+            color: scheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -620,7 +645,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
             '请检查 Emby 服务器是否正常',
             style: TextStyle(
               fontSize: 14,
-              color: scheme.onSurface.withOpacity(0.6),
+              color: scheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -651,7 +676,7 @@ class _ActorsViewState extends ConsumerState<ActorsView> with TickerProviderStat
           Text(
             '请检查 Emby 服务器是否正常运行',
             style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.6),
+              color: scheme.onSurface.withValues(alpha: 0.6),
               fontSize: 14,
             ),
           ),
@@ -715,7 +740,8 @@ class _ActorCard extends StatelessWidget {
     }
     if (url == null || url.isEmpty) {
       return Center(
-        child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5)),
+        child:
+            Icon(Icons.person, color: scheme.onSurface.withValues(alpha: 0.5)),
       );
     }
     final img = url;
@@ -745,7 +771,7 @@ class _ActorCard extends StatelessWidget {
                 ClipOval(
                   child: Container(
                     width: double.infinity,
-                    color: scheme.surface.withOpacity(0.3),
+                    color: scheme.surface.withValues(alpha: 0.3),
                     child: _buildAvatarImage(scheme),
                   ),
                 ),
@@ -762,11 +788,14 @@ class _ActorCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isFavorited ? scheme.primary : scheme.surface,
-                        border: Border.all(color: scheme.onSurface.withOpacity(0.3), width: 2),
+                        border: Border.all(
+                            color: scheme.onSurface.withValues(alpha: 0.3),
+                            width: 2),
                       ),
                       child: Icon(
                         isFavorited ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorited ? scheme.onPrimary : scheme.onSurface,
+                        color:
+                            isFavorited ? scheme.onPrimary : scheme.onSurface,
                         size: 20,
                       ),
                     ),
@@ -799,7 +828,9 @@ class _ActorCard extends StatelessWidget {
           Text(
             isFavorited ? '已关注' : '未关注',
             style: TextStyle(
-              color: isFavorited ? scheme.primary : scheme.onSurface.withOpacity(0.5),
+              color: isFavorited
+                  ? scheme.primary
+                  : scheme.onSurface.withValues(alpha: 0.5),
               fontSize: 11,
             ),
           ),
@@ -826,9 +857,9 @@ class _ActorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.15),
+        color: chipColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: chipColor.withOpacity(0.4), width: 0.5),
+        border: Border.all(color: chipColor.withValues(alpha: 0.4), width: 0.5),
       ),
       child: Text(
         type,

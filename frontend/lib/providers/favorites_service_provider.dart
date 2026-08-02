@@ -147,7 +147,8 @@ class FavoritesService {
   }
 
   /// 切换某 item 的收藏状态
-  Future<void> toggle(String itemId, bool isCurrentlyFavorite, String libraryName) async {
+  Future<void> toggle(
+      String itemId, bool isCurrentlyFavorite, String libraryName) async {
     if (isCurrentlyFavorite) {
       await removeFromFavorites(itemId, libraryName);
     } else {

@@ -77,7 +77,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       feedTypeProvider,
       (previous, next) {
         if (next != previous) {
-          AppLogger.debug('浏览模式变化：${previous?.zhLabel} -> ${next.zhLabel}，刷新视频列表');
+          AppLogger.debug(
+              '浏览模式变化：${previous?.zhLabel} -> ${next.zhLabel}，刷新视频列表');
           refresh();
         }
       },
@@ -103,7 +104,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           _searchDebounceTimer?.cancel();
           _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () {
             final currentFeedType = _ref.read(feedTypeProvider);
-            AppLogger.debug('网格搜索变化："$previous" -> "$next"，feedType=$currentFeedType，只刷新网格');
+            AppLogger.debug(
+                '网格搜索变化："$previous" -> "$next"，feedType=$currentFeedType，只刷新网格');
             _refreshGridOnly(next);
           });
         }
@@ -112,7 +114,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     // 监听 viewModeProvider 变化：处理视图切换时的视频播放/暂停
     // 核心原则：视频流(feed)的 items 是主数据源，网格只是入口和定位目标
     // 切回 feed 时，feed 的 items 保持不变（不 refresh），无需重置
-    _viewModeSubscription = _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
+    _viewModeSubscription =
+        _ref.listen<ViewMode>(viewModeProvider, (previous, next) {
       if (next == ViewMode.feed && previous == ViewMode.grid) {
         // 切回 feed：feed 的 items 不变，无需操作
         AppLogger.debug('切回 feed 模式：保留 feed 数据', data: {
@@ -179,7 +182,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       );
     } catch (e) {
       AppLogger.error('刷新网格失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
+      state = state.copyWith(
+          isLoading: false,
+          error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -541,9 +546,12 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'feedType': currentFeedType.toStorageString(),
       });
     } catch (e) {
-      if (e is DioException && CancelToken.isCancel(e)) return; // 请求被新版 refresh 取消，静默忽略
+      if (e is DioException && CancelToken.isCancel(e))
+        return; // 请求被新版 refresh 取消，静默忽略
       AppLogger.error('刷新视频列表失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
+      state = state.copyWith(
+          isLoading: false,
+          error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -571,7 +579,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     final token = auth.token;
     final userId = auth.user?.id;
     if (!auth.isAuthenticated || serverUrl == null || token == null) {
-      state = state.copyWith(isLoading: false, error: AppError.notAuthenticated());
+      state =
+          state.copyWith(isLoading: false, error: AppError.notAuthenticated());
       return;
     }
 
@@ -640,7 +649,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         items: [...state.items, ...newItems],
         // 只有当网格还没有手动翻页（gridStartIndex == 0）时，才同步追加到 gridItems
         // 一旦用户翻了网格页，gridItems 就保持独立，不再跟随 feed 追加
-        gridItems: state.gridStartIndex == 0 ? [...state.gridItems, ...newItems] : state.gridItems,
+        gridItems: state.gridStartIndex == 0
+            ? [...state.gridItems, ...newItems]
+            : state.gridItems,
         isLoading: false,
         hasMore: hasMore,
         error: null,
@@ -649,7 +660,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('加载更多成功', data: {'newCount': newItems.length});
     } catch (e) {
       AppLogger.error('加载更多失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
+      state = state.copyWith(
+          isLoading: false,
+          error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -750,7 +763,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       AppLogger.debug('换一批成功', data: {'count': merged.length});
     } catch (e) {
       AppLogger.error('换一批失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
+      state = state.copyWith(
+          isLoading: false,
+          error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 
@@ -766,7 +781,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   //   - 如果当前在播视频不在 [items] 中，插入到首位
   //   - 已在 [items] 中则不动
   //   - 当前没有在播视频则不动
-  void _ensurePlayingItemFirst(List<MediaItem> items, {required String source}) {
+  void _ensurePlayingItemFirst(List<MediaItem> items,
+      {required String source}) {
     final playingState = _ref.read(playbackStateProvider);
     final playingId = playingState.id;
     if (playingId == null || playingId.isEmpty) return;
@@ -927,10 +943,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         isLoading: false,
         error: null,
       );
-      AppLogger.debug('网格分页加载成功', data: {'newCount': merged.length, 'currentPage': currentPage});
+      AppLogger.debug('网格分页加载成功',
+          data: {'newCount': merged.length, 'currentPage': currentPage});
     } catch (e) {
       AppLogger.error('网格分页加载失败', error: e);
-      state = state.copyWith(isLoading: false, error: AppError.wrap(e, stackTrace: StackTrace.current));
+      state = state.copyWith(
+          isLoading: false,
+          error: AppError.wrap(e, stackTrace: StackTrace.current));
     }
   }
 

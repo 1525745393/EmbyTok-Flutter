@@ -173,9 +173,8 @@ class UserBehaviorSignalCalculator {
       );
     }
 
-    final strength = records.length < 20
-        ? SignalStrength.medium
-        : SignalStrength.strong;
+    final strength =
+        records.length < 20 ? SignalStrength.medium : SignalStrength.strong;
     final reference = now ?? DateTime.now();
 
     return UserBehaviorSignal(
@@ -277,7 +276,8 @@ class UserBehaviorSignalCalculator {
     if (avg >= _strongPositiveRate) return _maxWeight;
     if (avg < _strongNegativeRate) return _minWeight;
     // 线性插值：[0.3, 0.8] → [0.3, 1.5]
-    final t = (avg - _strongNegativeRate) / (_strongPositiveRate - _strongNegativeRate);
+    final t = (avg - _strongNegativeRate) /
+        (_strongPositiveRate - _strongNegativeRate);
     return _minWeight + t * (_maxWeight - _minWeight);
   }
 
@@ -337,10 +337,7 @@ class UserBehaviorSignalCalculator {
         .where((e) => e.value >= _seedMinCompletion)
         .toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return sorted
-        .take(_seedMaxCount)
-        .map((e) => e.key)
-        .toList(growable: false);
+    return sorted.take(_seedMaxCount).map((e) => e.key).toList(growable: false);
   }
 
   /// 字符串 source key → RecommendSource 枚举

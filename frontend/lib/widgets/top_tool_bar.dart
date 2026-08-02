@@ -61,9 +61,8 @@ class TopToolBar extends ConsumerWidget {
             Expanded(
               child: Center(
                 child: PopupMenuButton<String>(
-                  color: scheme.surface.withOpacity(0.95),
-                  onSelected: (libraryId) =>
-                      _selectLibrary(ref, libraryId),
+                  color: scheme.surface.withValues(alpha: 0.95),
+                  onSelected: (libraryId) => _selectLibrary(ref, libraryId),
                   itemBuilder: (context) {
                     if (visibleLibraries.isEmpty) {
                       return [
@@ -99,9 +98,10 @@ class TopToolBar extends ConsumerWidget {
                                         color: selectedLibrary?.id == lib.id
                                             ? scheme.primary
                                             : scheme.onSurfaceVariant,
-                                        fontWeight: selectedLibrary?.id == lib.id
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
+                                        fontWeight:
+                                            selectedLibrary?.id == lib.id
+                                                ? FontWeight.w600
+                                                : FontWeight.normal,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -115,10 +115,10 @@ class TopToolBar extends ConsumerWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: scheme.primary.withOpacity(0.12),
+                      color: scheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: scheme.primary.withOpacity(0.4),
+                        color: scheme.primary.withValues(alpha: 0.4),
                         width: 1,
                       ),
                     ),
@@ -128,7 +128,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.folder_outlined,
                           size: 16,
-                          color: scheme.onSurface.withOpacity(0.9),
+                          color: scheme.onSurface.withValues(alpha: 0.9),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -144,7 +144,7 @@ class TopToolBar extends ConsumerWidget {
                         Icon(
                           Icons.expand_more,
                           size: 18,
-                          color: scheme.onSurface.withOpacity(0.7),
+                          color: scheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ],
                     ),
@@ -165,7 +165,7 @@ class TopToolBar extends ConsumerWidget {
                         : scheme.onSurface,
                   ),
                   tooltip: '方向过滤',
-                  color: scheme.surface.withOpacity(0.95),
+                  color: scheme.surface.withValues(alpha: 0.95),
                   onSelected: (mode) => _setOrientationMode(ref, mode),
                   itemBuilder: (context) => [
                     _buildOrientationMenuItem(
@@ -196,14 +196,11 @@ class TopToolBar extends ConsumerWidget {
                   icon: Icon(
                     viewMode == ViewMode.feed
                         ? Icons.grid_view // 视频流模式 -> 切换到网格
-                        : Icons
-                            .phone_android, // 网格模式 -> 切换到视频流
+                        : Icons.phone_android, // 网格模式 -> 切换到视频流
                     color: scheme.onSurface,
                   ),
                   onPressed: () => _toggleViewMode(ref, viewMode),
-                  tooltip: viewMode == ViewMode.feed
-                      ? '切换到网格视图'
-                      : '切换到视频流',
+                  tooltip: viewMode == ViewMode.feed ? '切换到网格视图' : '切换到视频流',
                 ),
                 // 全屏按钮
                 IconButton(

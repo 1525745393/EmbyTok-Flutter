@@ -67,12 +67,12 @@ class SubtitleRenderer extends ConsumerWidget {
               Shadow(
                 offset: const Offset(0, 1),
                 blurRadius: 2.0,
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
               ),
               Shadow(
                 offset: const Offset(0, 2),
                 blurRadius: 4.0,
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
               ),
             ]
           : null,
@@ -85,7 +85,7 @@ class SubtitleRenderer extends ConsumerWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: scheme.surface.withOpacity(bgOpacity),
+            color: scheme.surface.withValues(alpha: bgOpacity),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Stack(
@@ -100,7 +100,7 @@ class SubtitleRenderer extends ConsumerWidget {
                       ..style = PaintingStyle.stroke
                       ..strokeWidth = strokeWidth
                       ..strokeJoin = StrokeJoin.round
-                      ..color = Colors.black.withOpacity(0.85),
+                      ..color = Colors.black.withValues(alpha: 0.85),
                     // 描边时取消文字阴影，避免双重阴影
                     shadows: null,
                   ),
@@ -131,5 +131,3 @@ class SubtitleRenderer extends ConsumerWidget {
     return Colors.white;
   }
 }
-
-

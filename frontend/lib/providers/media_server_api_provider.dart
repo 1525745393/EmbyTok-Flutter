@@ -12,4 +12,5 @@ import '../services/media_server_api.dart';
 /// 全局 MediaServerApi 实例
 ///
 /// 默认提供 EmbyServerApi 实现，测试或需要替换服务端时可 override。
-final mediaServerApiProvider = Provider<MediaServerApi>((ref) => EmbyServerApi());
+final mediaServerApiProvider =
+    Provider<MediaServerApi>((ref) => EmbyServerApi());

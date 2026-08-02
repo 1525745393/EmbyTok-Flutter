@@ -46,7 +46,8 @@ class FeedViewModel {
   // UI 回调：通知 View 层执行操作
   final void Function(int index)? onJumpToPage; // 跳转到指定页（带动画）
   final void Function(int index)? onJumpToPageInstant; // 立即跳页（无动画）
-  final void Function(String message, {String? actionLabel, void Function()? onAction})? onShowSnackBar;
+  final void Function(String message,
+      {String? actionLabel, void Function()? onAction})? onShowSnackBar;
   final void Function()? onOpenFullscreen; // 打开全屏页
   final void Function()? onShowLibrarySelector; // 显示媒体库选择器
   final void Function()? onUpdateHelpVisibility; // 更新帮助面板显隐
@@ -92,14 +93,16 @@ class FeedViewModel {
     _cloudService = _ref.read(embytokServiceProvider);
     // 监听当前播放条目变化：切换到新视频时保存旧条目的续播信息
     // 修复：使用 listenManual 替代 listen，避免在 initState 中调用 ref.listen 触发断言
-    _playbackStateSubscription = _ref.listenManual(playbackStateProvider, (prev, next) {
+    _playbackStateSubscription =
+        _ref.listenManual(playbackStateProvider, (prev, next) {
       if (prev?.item != next.item) {
         _saveCloudSyncIfNeeded(next.item);
       }
     });
 
     // 监听外部跳页请求：全屏页等设置后跳到指定 index
-    _pageJumpRequestSubscription = _ref.listenManual<int?>(feedViewPageJumpRequestProvider, (prev, next) {
+    _pageJumpRequestSubscription =
+        _ref.listenManual<int?>(feedViewPageJumpRequestProvider, (prev, next) {
       if (next != null && next != prev) {
         AppLogger.debug('外部请求跳页', data: {'index': next});
         final targetIndex = _playbackCoordinator.consumeJumpRequest();
@@ -111,7 +114,8 @@ class FeedViewModel {
 
     // 监听视图模式变化：feed↔grid 切换时的播放协调
     // 系统栏显隐是 UI 行为，由 View 层处理
-    _viewModeSubscription = _ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
+    _viewModeSubscription =
+        _ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
       if (prev == null) return;
       _playbackCoordinator.handleViewModeChange(prev, next);
     });
@@ -120,7 +124,8 @@ class FeedViewModel {
     // 使用 Future.microtask 延迟检查，让 feedLibraryConfiguredProvider 的异步 _load()
     // 有机会完成。否则监听器读取的 configured 始终是初始值 false（_load 尚未完成），
     // 导致已配置用户也弹出选择器
-    _libraryListSubscription = _ref.listenManual<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
+    _libraryListSubscription = _ref.listenManual<AsyncValue<List<Library>>>(
+        libraryListProvider, (prev, next) {
       next.whenData((_) {
         if (_librarySelectorShown) return;
         Future.microtask(() {
@@ -356,9 +361,7 @@ class FeedViewModel {
       final libValue = libs.value;
       if (!libs.hasValue || libValue == null || libValue.isEmpty) return '';
       final selectedIds = _ref.read(selectedLibraryIdsProvider);
-      return selectedIds.isNotEmpty
-          ? selectedIds.first
-          : libValue.first.id;
+      return selectedIds.isNotEmpty ? selectedIds.first : libValue.first.id;
     } catch (_) {
       return '';
     }
@@ -412,7 +415,8 @@ class FeedViewModel {
   /// 页面切换完成时调用（同步播放状态、触发预加载、加载更多等）
   ///
   /// 返回是否需要加载更多
-  bool onPageChanged(int index, List<MediaItem> items, bool hasMore, bool isLoading) {
+  bool onPageChanged(
+      int index, List<MediaItem> items, bool hasMore, bool isLoading) {
     // 同步当前播放 ID
     _playbackCoordinator.syncCurrentPlaying(index: index, items: items);
     // 更新当前索引（供键盘快捷键等使用）

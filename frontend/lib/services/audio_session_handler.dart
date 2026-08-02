@@ -57,7 +57,8 @@ class AudioSessionHandler {
       _session = await AudioSession.instance;
       await _session!.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
-        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.allowBluetooth,
+        avAudioSessionCategoryOptions:
+            AVAudioSessionCategoryOptions.allowBluetooth,
         androidAudioAttributes: AndroidAudioAttributes(
           contentType: AndroidAudioContentType.movie,
           usage: AndroidAudioUsage.media,

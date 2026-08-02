@@ -149,7 +149,8 @@ class EmbyServerApi implements MediaServerApi {
               coverImageUrl: lib.coverImageUrl,
             );
           } catch (e) {
-            AppLogger.debug('获取库 ${lib.name} 视频数量失败', data: {'error': e.toString()});
+            AppLogger.debug('获取库 ${lib.name} 视频数量失败',
+                data: {'error': e.toString()});
           }
         }
       }
@@ -226,7 +227,8 @@ class EmbyServerApi implements MediaServerApi {
       path,
       queryParameters: params,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result =
+        _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
     AppLogger.debug('视频列表响应', data: {
       'count': result.items.length,
       'total': result.total,
@@ -287,7 +289,8 @@ class EmbyServerApi implements MediaServerApi {
       '/Items/$parentId/Children',
       queryParameters: params,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result =
+        _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
     return result.items;
   }
 
@@ -623,8 +626,7 @@ class EmbyServerApi implements MediaServerApi {
       'Recursive': 'true',
       if (personTypes != null && personTypes.isNotEmpty)
         'PersonTypes': personTypes.join(','),
-      if (searchTerm != null && searchTerm.isNotEmpty)
-        'SearchTerm': searchTerm,
+      if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
       'Fields': 'PrimaryImageTag,Overview',
     };
     final resp = await _apiClient.get<dynamic>(
@@ -639,27 +641,24 @@ class EmbyServerApi implements MediaServerApi {
         : items.length;
     final baseUrl = _defaultServerUrl ?? serverUrl ?? '';
     final effectiveToken = token ?? _defaultToken;
-    final people = items
-        .whereType<Map<String, dynamic>>()
-        .map((e) {
-          final id = (e['Id'] as String?) ?? '';
-          final name = (e['Name'] as String?) ?? '';
-          final imageTag = (e['PrimaryImageTag'] as String?) ??
-              (e['ImageTags']?['Primary'] as String?);
-          String? imgUrl;
-          if (imageTag != null && baseUrl.isNotEmpty) {
-            imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
-                '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
-                '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
-          }
-          return Person(
-            id: id,
-            name: name,
-            type: (e['Type'] as String?) ?? 'Actor',
-            imageUrl: imgUrl,
-          );
-        })
-        .toList();
+    final people = items.whereType<Map<String, dynamic>>().map((e) {
+      final id = (e['Id'] as String?) ?? '';
+      final name = (e['Name'] as String?) ?? '';
+      final imageTag = (e['PrimaryImageTag'] as String?) ??
+          (e['ImageTags']?['Primary'] as String?);
+      String? imgUrl;
+      if (imageTag != null && baseUrl.isNotEmpty) {
+        imgUrl = '$baseUrl/Items/$id/Images/Primary?MaxWidth=300'
+            '&Tag=${Uri.encodeQueryComponent(imageTag)}&Format=jpg'
+            '${effectiveToken != null && effectiveToken.isNotEmpty ? '&api_key=$effectiveToken' : ''}';
+      }
+      return Person(
+        id: id,
+        name: name,
+        type: (e['Type'] as String?) ?? 'Actor',
+        imageUrl: imgUrl,
+      );
+    }).toList();
     return PaginatedResponse<Person>(
       items: people,
       total: total,
@@ -713,7 +712,8 @@ class EmbyServerApi implements MediaServerApi {
     final params = <String, dynamic>{
       'Ids': personId,
       'Recursive': 'true',
-      'Fields': 'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
+      'Fields':
+          'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
     };
     final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
@@ -725,9 +725,8 @@ class EmbyServerApi implements MediaServerApi {
         queryParameters: params,
       );
       final data = resp.data;
-      final items = data is List
-          ? data
-          : (data['Items'] as List<dynamic>?) ?? [];
+      final items =
+          data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
       if (items.isNotEmpty && items.first is Map<String, dynamic>) {
         return MediaItem.fromJson(items.first as Map<String, dynamic>);
       }
@@ -925,9 +924,7 @@ class EmbyServerApi implements MediaServerApi {
       cancelToken: cancelToken,
     );
     final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
+    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length
         : items.length;
@@ -974,9 +971,7 @@ class EmbyServerApi implements MediaServerApi {
       queryParameters: params,
     );
     final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
+    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length
         : items.length;
@@ -1023,9 +1018,7 @@ class EmbyServerApi implements MediaServerApi {
       queryParameters: params,
     );
     final data = resp.data;
-    final items = data is List
-        ? data
-        : (data['Items'] as List<dynamic>?) ?? [];
+    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
     final totalCount = data is Map
         ? (data['TotalRecordCount'] as int?) ?? items.length
         : items.length;
@@ -1168,7 +1161,8 @@ class EmbyServerApi implements MediaServerApi {
       );
       final text = resp.data;
       if (text == null || text.isEmpty) {
-        AppLogger.debug('字幕内容为空', data: {'url': url, 'statusCode': resp.statusCode});
+        AppLogger.debug('字幕内容为空',
+            data: {'url': url, 'statusCode': resp.statusCode});
         return const <SubtitleCue>[];
       }
       final cues = parseSubtitle(text, format);
@@ -1211,7 +1205,8 @@ class EmbyServerApi implements MediaServerApi {
     required String filePath,
     String? format,
   }) async {
-    AppLogger.debug('从本地文件加载字幕', data: {'filePath': filePath, 'format': format});
+    AppLogger.debug('从本地文件加载字幕',
+        data: {'filePath': filePath, 'format': format});
     try {
       final file = File(filePath);
       if (!await file.exists()) {
@@ -1498,7 +1493,8 @@ class EmbyServerApi implements MediaServerApi {
       path,
       queryParameters: params,
     );
-    final result = _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+    final result =
+        _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
     AppLogger.debug('搜索响应', data: {
       'results': result.items.length,
       'total': result.total,

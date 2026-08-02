@@ -2,10 +2,10 @@
 class SearchHint {
   final String id;
   final String name;
-  final String? type;          // 类型：Movie/Series/Episode/Person/MusicAlbum 等
-  final String? thumbnailUrl;  // 缩略图 URL
+  final String? type; // 类型：Movie/Series/Episode/Person/MusicAlbum 等
+  final String? thumbnailUrl; // 缩略图 URL
   final int? year;
-  final String? seriesName;    // 如果是剧集/集数
+  final String? seriesName; // 如果是剧集/集数
 
   const SearchHint({
     required this.id,

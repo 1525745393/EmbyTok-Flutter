@@ -42,7 +42,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     _scrollController = ScrollController()..addListener(_onScroll);
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
-    ref.listen<AsyncValue<List<Library>>>(libraryListProvider, (prev, next) {
+    // 使用 ref.listenManual 而非 ref.listen：ref.listen 在 initState 中
+    // 会触发 debugDoingBuild 断言（flutter_riverpod 2.5+ 限制），
+    // ref.listenManual 专为 initState / 生命周期方法设计
+    ref.listenManual<AsyncValue<List<Library>>>(libraryListProvider,
+        (prev, next) {
       next.whenData((_) {
         // 等到下一帧再弹，避免 build 期间触发 setState
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -52,6 +56,27 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           // 媒体库列表已加载但用户没配置过 → 弹 LibrarySelector
           LibrarySelector.show(context, scope: LibraryScope.recommend);
         });
+      });
+    });
+
+    // 监听推荐页错误状态变化，error 非空时弹 SnackBar 提示
+    // 使用 ref.listenManual 在 initState 中注册（Riverpod 推荐模式），
+    // 而非在 build 中调用 _maybeShowError，避免每次 rebuild 重复注册 postFrameCallback。
+    // ref.listenManual 订阅在 widget dispose 时自动关闭，无需手动 close。
+    ref.listenManual<RecommendState>(recommendProvider, (prev, next) {
+      final error = next.error;
+      if (error == null || error.isEmpty) return;
+      // 等到下一帧再弹 SnackBar，避免 build 期间触发 setState
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        ref.read(recommendProvider.notifier).clearError();
       });
     });
   }
@@ -120,33 +145,15 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     );
   }
 
-  // 错误监听：弹出 SnackBar
-  void _maybeShowError(String? error) {
-    if (error == null || error.isEmpty) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error),
-          backgroundColor: Colors.red.shade700,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      ref.read(recommendProvider.notifier).clearError();
-    });
-  }
-
   Widget _buildBody(
     BuildContext context,
     RecommendState state,
     ColorScheme scheme,
   ) {
-    // 错误监听
-    _maybeShowError(state.error);
-
     // PR #79：冷启动 Banner（仅当 isColdStart=true 时显示）
     // 提示用户"先观看几个视频，推荐会更准"
-    final showColdStartBanner = state.isColdStart && state.taggedItems.isNotEmpty;
+    final showColdStartBanner =
+        state.isColdStart && state.taggedItems.isNotEmpty;
 
     // 首次加载
     if (state.isLoading && state.taggedItems.isEmpty) {
@@ -178,8 +185,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // 性能优化：displayItems 和 tagCounts 由 Provider 预计算
     // 避免在 build 中同步执行 where + map + length（O(n) × 7 次）
     final displayItems = state.displayItems;
-    final mediaItems =
-        displayItems.map((r) => r.item).toList(growable: false);
+    final mediaItems = displayItems.map((r) => r.item).toList(growable: false);
     final hasMoreSlot = state.hasMore;
 
     // 网格：3 列（PR #79：顶部加冷启动 Banner + PR #80：标签栏 + 滚到底自动 loadMore）
@@ -293,7 +299,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
             side: BorderSide(
               color: isSelected
                   ? scheme.primary
-                  : scheme.outlineVariant.withOpacity(0.3),
+                  : scheme.outlineVariant.withValues(alpha: 0.3),
               width: 1,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -311,9 +317,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withOpacity(0.4),
+        color: scheme.primaryContainer.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: scheme.primary.withOpacity(0.3), width: 1),
+        border:
+            Border.all(color: scheme.primary.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         children: [
@@ -468,7 +475,7 @@ class _LoadMoreIndicator extends StatelessWidget {
     if (isLoading) {
       return Container(
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withOpacity(0.3),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(

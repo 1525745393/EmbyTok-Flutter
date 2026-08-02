@@ -85,13 +85,31 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
 
     // 空状态（无过滤结果）
     if (displayItems.isEmpty) {
+      // 区分两种空状态：
+      // 1. 未配置媒体库（items 为空）→ 显示"选择媒体库"按钮引导
+      // 2. 筛选无结果（items 非空但 displayItems 为空）→ 仅文字提示
+      final isLibraryEmpty = videoState.items.isEmpty;
       return Center(
-        child: Text(
-          videoState.items.isEmpty
-              ? '暂无视频，请选择其他媒体库'
-              : '没有符合筛选条件的视频',
-          style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.6), fontSize: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              isLibraryEmpty ? '暂无视频，请选择媒体库' : '没有符合筛选条件的视频',
+              style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 16),
+            ),
+            if (isLibraryEmpty) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => LibrarySelector.show(
+                  context,
+                  scope: LibraryScope.feed,
+                ),
+                icon: const Icon(Icons.library_add_outlined),
+                label: const Text('选择媒体库'),
+              ),
+            ],
+          ],
         ),
       );
     }
@@ -101,7 +119,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   }
 
   // 构建网格视图
-  Widget _buildGridView(VideoListState videoState, List<MediaItem> displayItems) {
+  Widget _buildGridView(
+      VideoListState videoState, List<MediaItem> displayItems) {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 根据屏幕方向计算列数：竖屏2列，横屏4列
@@ -167,7 +186,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
             Text(
               error,
               style: TextStyle(
-                  color: scheme.onSurface.withOpacity(0.7), fontSize: 16),
+                  color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

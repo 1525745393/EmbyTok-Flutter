@@ -152,6 +152,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
       userWantsToPlay: userWantsToPlay,
     );
   }
+
   @override
   Widget build(BuildContext context) {
     // 监听页面导航状态
@@ -312,43 +313,55 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               end: Alignment.topCenter,
                               colors: [
                                 scheme.surface,
-                                scheme.surface.withOpacity(0.0),
+                                scheme.surface.withValues(alpha: 0.0),
                               ],
                             ),
                           ),
                           child: Padding(
                             padding: EdgeInsets.only(bottom: bottomPadding),
-                          child: NavigationBar(
+                            child: NavigationBar(
                               selectedIndex: currentIndex,
                               backgroundColor: Colors.transparent,
                               elevation: 0,
-                              indicatorColor: scheme.primary.withOpacity(0.15),
-                              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                              indicatorColor:
+                                  scheme.primary.withValues(alpha: 0.15),
+                              labelBehavior:
+                                  NavigationDestinationLabelBehavior.alwaysShow,
                               height: kBottomNavHeight,
                               onDestinationSelected: (index) {
                                 // 轻量触觉反馈，确认 Tab 切换操作（fire-and-forget，不阻塞 UI）
                                 HapticFeedback.selectionClick();
-                                ref.read(pageNavigationNotifierProvider).goToPage(index);
+                                ref
+                                    .read(pageNavigationNotifierProvider)
+                                    .goToPage(index);
                               },
                               destinations: [
                                 NavigationDestination(
-                                  icon: Icon(Icons.home_outlined, color: scheme.onSurfaceVariant),
-                                  selectedIcon: Icon(Icons.home, color: scheme.primary),
+                                  icon: Icon(Icons.home_outlined,
+                                      color: scheme.onSurfaceVariant),
+                                  selectedIcon:
+                                      Icon(Icons.home, color: scheme.primary),
                                   label: '首页',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.favorite_border, color: scheme.onSurfaceVariant),
-                                  selectedIcon: Icon(Icons.favorite, color: scheme.primary),
+                                  icon: Icon(Icons.favorite_border,
+                                      color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.favorite,
+                                      color: scheme.primary),
                                   label: '收藏',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.person_outline, color: scheme.onSurfaceVariant),
-                                  selectedIcon: Icon(Icons.person, color: scheme.primary),
+                                  icon: Icon(Icons.person_outline,
+                                      color: scheme.onSurfaceVariant),
+                                  selectedIcon:
+                                      Icon(Icons.person, color: scheme.primary),
                                   label: '演员',
                                 ),
                                 NavigationDestination(
-                                  icon: Icon(Icons.settings_outlined, color: scheme.onSurfaceVariant),
-                                  selectedIcon: Icon(Icons.settings, color: scheme.primary),
+                                  icon: Icon(Icons.settings_outlined,
+                                      color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.settings,
+                                      color: scheme.primary),
                                   label: '设置',
                                 ),
                               ],

@@ -104,7 +104,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 监听字幕选择变化：用户选择新字幕轨道时异步加载
     // 必须在 initState 中通过 listenManual 注册，不能在 build 中，
     // 否则会因 build 时序问题导致选择事件被遗漏
-    _subtitleSubscription = ref.listenManual<String?>(selectedSubtitleProvider, (previous, next) {
+    _subtitleSubscription =
+        ref.listenManual<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {
         _loadSubtitle(next);
       }
@@ -162,17 +163,18 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         } else {
           _backgroundReleaseTimer?.cancel();
           _backgroundReleaseTimer = Timer(_backgroundReleaseDelay, () {
-          if (_isDisposed || !mounted) return;
-          if (!widget.isCurrentPage && _controller != null) {
-            AppLogger.debug('非当前页超时，释放 controller 资源', data: {'itemId': widget.item.id});
-            _releaseCurrentController();
-            if (mounted) {
-              setState(() {
-                _initialized = false;
-              });
+            if (_isDisposed || !mounted) return;
+            if (!widget.isCurrentPage && _controller != null) {
+              AppLogger.debug('非当前页超时，释放 controller 资源',
+                  data: {'itemId': widget.item.id});
+              _releaseCurrentController();
+              if (mounted) {
+                setState(() {
+                  _initialized = false;
+                });
+              }
             }
-          }
-        });
+          });
         }
       } else {
         // 回到当前页：取消释放计时器，如 controller 已被释放则重新初始化
@@ -219,7 +221,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         AppLogger.debug('非当前页初始化完成后超时，释放 controller 资源',
             data: {'itemId': widget.item.id});
         _releaseCurrentController();
-        if (mounted) setState(() { _initialized = false; });
+        if (mounted)
+          setState(() {
+            _initialized = false;
+          });
       }
     });
   }
@@ -230,9 +235,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   void _releaseCurrentController() {
     final c = _controller;
     if (c != null) {
-      try { c.removeListener(_onControllerChanged); } catch (_) {}
-      try { c.pause(); } catch (_) {}
-      try { c.dispose(); } catch (_) {}
+      try {
+        c.removeListener(_onControllerChanged);
+      } catch (_) {}
+      try {
+        c.pause();
+      } catch (_) {}
+      try {
+        c.dispose();
+      } catch (_) {}
     }
     _controller = null;
     _sizeWasEmpty = false;
@@ -307,7 +318,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Future<void> _initVideo({int token = 0}) async {
     if (_isDisposed) return;
 
-    bool _isCancelled() => _reinitToken != token || _isDisposed; 
+    bool _isCancelled() => _reinitToken != token || _isDisposed;
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
 
@@ -331,44 +342,50 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         c.addListener(_onControllerChanged);
         if (!c.value.isInitialized) {
           await c.initialize().timeout(
-            const Duration(seconds: 15),
-            onTimeout: () => throw TimeoutException('视频初始化超时'),
-          );
+                const Duration(seconds: 15),
+                onTimeout: () => throw TimeoutException('视频初始化超时'),
+              );
         }
         if (_isCancelled()) {
-          try { c.dispose(); } catch (_) {}
+          try {
+            c.dispose();
+          } catch (_) {}
           return;
         }
         if (_isDisposed) {
-          try { c.dispose(); } catch (_) {}
+          try {
+            c.dispose();
+          } catch (_) {}
           return;
         }
         c.setLooping(widget.loop);
         if (mounted && !_isDisposed) {
-            // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
-            // 原顺序：setState → onControllerReady → seek → play
-            //   导致 VideoPlayer 首次构建时 controller 未播放，纹理不初始化，画面黑屏
-            _applyInitialVolume(c);
-            _autoLoadDefaultSubtitle();
-            // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
-            await _seekToResumePosition();
-            if (_isCancelled()) {
-              try { c.dispose(); } catch (_) {}
-              return;
-            }
-            // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
-            _syncPlaybackState(c);
-            if (mounted && !_isDisposed) {
-              setState(() {
-                _initialized = true;
-                _hasError = false;
-              });
-              widget.onControllerReady?.call(c);
-              // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
-              // 立即调度释放计时器，防止 controller 永久驻留
-              _scheduleBackgroundReleaseIfNeeded();
-            }
+          // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
+          // 原顺序：setState → onControllerReady → seek → play
+          //   导致 VideoPlayer 首次构建时 controller 未播放，纹理不初始化，画面黑屏
+          _applyInitialVolume(c);
+          _autoLoadDefaultSubtitle();
+          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+          await _seekToResumePosition();
+          if (_isCancelled()) {
+            try {
+              c.dispose();
+            } catch (_) {}
+            return;
           }
+          // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
+          _syncPlaybackState(c);
+          if (mounted && !_isDisposed) {
+            setState(() {
+              _initialized = true;
+              _hasError = false;
+            });
+            widget.onControllerReady?.call(c);
+            // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+            // 立即调度释放计时器，防止 controller 永久驻留
+            _scheduleBackgroundReleaseIfNeeded();
+          }
+        }
       }
 
       try {
@@ -378,7 +395,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           preloadedInitSucceeded = true;
         }
       } catch (e) {
-        AppLogger.debug('VideoPlayer preloaded init error，回退到动态创建', data: {'error': e.toString()});
+        AppLogger.debug('VideoPlayer preloaded init error，回退到动态创建',
+            data: {'error': e.toString()});
         // 预加载失败：清理可能已被赋值的 _controller 后回退到动态创建
         _releaseCurrentController();
       }
@@ -417,11 +435,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         },
       );
       if (_isCancelled()) {
-        try { c.dispose(); } catch (_) {}
+        try {
+          c.dispose();
+        } catch (_) {}
         return;
       }
       if (_isDisposed) {
-        try { c.dispose(); } catch (_) {}
+        try {
+          c.dispose();
+        } catch (_) {}
         return;
       }
       if (mounted && !_isDisposed) {
@@ -431,7 +453,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
         if (_isCancelled()) {
-          try { c.dispose(); } catch (_) {}
+          try {
+            c.dispose();
+          } catch (_) {}
           return;
         }
         // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
@@ -448,7 +472,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         }
       }
     } catch (e) {
-      AppLogger.debug('VideoPlayer initialization error', data: {'error': e.toString()});
+      AppLogger.debug('VideoPlayer initialization error',
+          data: {'error': e.toString()});
       if (_isDisposed) return;
       if (mounted && !_isDisposed) {
         setState(() {
@@ -537,7 +562,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 场景 2：视频正在初始化，显示加载指示器
     if (vc == null || !_initialized) {
       return Center(
-        child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+        child: CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary),
       );
     }
 
@@ -577,7 +603,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           // 视频尺寸为空时显示加载指示器（视频仍在后台初始化）
           if (!hasValidSize)
             Center(
-              child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
+              child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary),
             ),
           if (displayCues.isNotEmpty && selectedSubId != null && !isFullscreen)
             RepaintBoundary(
@@ -631,7 +658,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       final tracks = widget.item.subtitleTracks;
       AppLogger.debug('字幕轨道列表（服务器）', data: {
         'tracksCount': tracks.length,
-        'tracks': tracks.map((t) => '${t.id}:${t.language}:${t.displayName}').toList(),
+        'tracks': tracks
+            .map((t) => '${t.id}:${t.language}:${t.displayName}')
+            .toList(),
       });
       for (int i = 0; i < tracks.length; i++) {
         if (tracks[i].id == selectedTrackId) {
@@ -656,7 +685,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     String? mediaSourceId;
     if (!isLocal) {
       final sources = widget.item.mediaSources;
-      mediaSourceId = (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+      mediaSourceId =
+          (sources != null && sources.isNotEmpty) ? sources.first.id : null;
       if (mediaSourceId == null || mediaSourceId.isEmpty) {
         AppLogger.warn('字幕加载失败：无有效 mediaSourceId', data: {
           'itemId': widget.item.id,
@@ -697,7 +727,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     try {
       List<SubtitleCue> cues;
       // 本地外挂字幕：从文件读取
-      if (isLocal && selectedTrack.localFilePath != null && selectedTrack.localFilePath!.isNotEmpty) {
+      if (isLocal &&
+          selectedTrack.localFilePath != null &&
+          selectedTrack.localFilePath!.isNotEmpty) {
         cues = await embService.getSubtitleCuesFromFile(
           filePath: selectedTrack.localFilePath!,
           format: selectedTrack.format,
@@ -759,7 +791,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         orElse: () => tracks.first,
       );
       // firstWhere 的 orElse 会返回 first，但需要验证是否真的匹配到了
-      if (matchedTrack.language.toLowerCase() != settings.language.toLowerCase()) {
+      if (matchedTrack.language.toLowerCase() !=
+          settings.language.toLowerCase()) {
         matchedTrack = null;
       }
     }
@@ -800,11 +833,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (widget.isCurrentPage) {
       _applyInitialVolume(c);
       if (widget.autoPlay) {
-        try { c.play(); } catch (_) {}
+        try {
+          c.play();
+        } catch (_) {}
       }
     } else {
-      try { c.pause(); } catch (_) {}
-      try { c.setVolume(0.0); } catch (_) {}
+      try {
+        c.pause();
+      } catch (_) {}
+      try {
+        c.setVolume(0.0);
+      } catch (_) {}
     }
   }
 
@@ -818,7 +857,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 优先使用带认证信息的缩略图 URL，maxWidth 与 memCacheWidth 对齐，
     // 让服务端也缩放到对应尺寸，减少网络传输量
     final url = widget.item.thumbnailUrlWithAuth(
-      widget.embyServerUrl, widget.token,
+      widget.embyServerUrl,
+      widget.token,
       maxWidth: cacheWidth,
     );
     // 获取认证头用于图片请求
@@ -844,21 +884,23 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             httpHeaders: headers.isNotEmpty ? headers : null,
             memCacheWidth: cacheWidth,
             placeholder: (_, __) => Container(
-              color: scheme.surface.withOpacity(0.3),
+              color: scheme.surface.withValues(alpha: 0.3),
               child: Center(
-                child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
+                child: CircularProgressIndicator(
+                    color: scheme.primary, strokeWidth: 2),
               ),
             ),
             errorWidget: (_, __, ___) => Container(
-              color: scheme.surface.withOpacity(0.3),
+              color: scheme.surface.withValues(alpha: 0.3),
               child: Center(
-                child: Icon(Icons.broken_image, size: 64, color: scheme.onSurface.withOpacity(0.4)),
+                child: Icon(Icons.broken_image,
+                    size: 64, color: scheme.onSurface.withValues(alpha: 0.4)),
               ),
             ),
           )
         else
           Container(
-            color: scheme.surface.withOpacity(0.3),
+            color: scheme.surface.withValues(alpha: 0.3),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -867,14 +909,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                     errorIcon,
                     size: 64,
                     color: _hasError
-                        ? scheme.error.withOpacity(0.7)
-                        : scheme.onSurface.withOpacity(0.4),
+                        ? scheme.error.withValues(alpha: 0.7)
+                        : scheme.onSurface.withValues(alpha: 0.4),
                   ),
                   if (_hasError && errMsg != null) ...[
                     const SizedBox(height: 8),
                     Text(
                       errMsg.message,
-                      style: TextStyle(color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                      style: TextStyle(
+                          color: scheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
                     // 可重试错误显示重试按钮
@@ -886,7 +930,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                         label: const Text('重试', style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(
                           minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                         ),
                       ),
                     ],
@@ -901,10 +946,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             child: Icon(
               Icons.play_circle_fill,
               size: 96,
-              color: scheme.onSurface.withOpacity(0.7),
+              color: scheme.onSurface.withValues(alpha: 0.7),
               shadows: [
                 Shadow(
-                  color: scheme.surface.withOpacity(0.54),
+                  color: scheme.surface.withValues(alpha: 0.54),
                   blurRadius: 12,
                 ),
               ],

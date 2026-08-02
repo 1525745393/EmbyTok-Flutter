@@ -142,7 +142,8 @@ class _HistoryViewState extends ConsumerState<HistoryView>
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _HistoryTile(key: Key(item.id), item: item, allItems: state.items);
+        return _HistoryTile(
+            key: Key(item.id), item: item, allItems: state.items);
       },
     );
   }
@@ -167,23 +168,24 @@ class _HistoryTile extends ConsumerWidget {
     final durationSec = item.durationSeconds ?? 0.0;
     final progressTicks = item.userData?.playbackPositionTicks ?? 0.0;
     final progressSec = progressTicks / 10000000.0;
-    final progressPct = durationSec > 0
-        ? (progressSec / durationSec).clamp(0.0, 1.0)
-        : 0.0;
+    final progressPct =
+        durationSec > 0 ? (progressSec / durationSec).clamp(0.0, 1.0) : 0.0;
 
     return InkWell(
       onTap: () {
         // 设置播放列表后再跳转
-        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
         ),
         child: Row(
           children: [
@@ -238,7 +240,8 @@ class _HistoryTile extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
                                 value: progressPct,
-                                backgroundColor: scheme.onSurface.withOpacity(0.08),
+                                backgroundColor:
+                                    scheme.onSurface.withValues(alpha: 0.08),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   scheme.primary,
                                 ),
@@ -250,7 +253,8 @@ class _HistoryTile extends ConsumerWidget {
                           Text(
                             '${(progressPct * 100).toInt()}%',
                             style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                                color: scheme.onSurface.withValues(alpha: 0.5),
+                                fontSize: 12),
                           ),
                         ],
                       ),
@@ -260,7 +264,8 @@ class _HistoryTile extends ConsumerWidget {
                       Text(
                         '上次观看：${lastPlayedDate.split('T').first}',
                         style: TextStyle(
-                            color: scheme.onSurface.withOpacity(0.4), fontSize: 11),
+                            color: scheme.onSurface.withValues(alpha: 0.4),
+                            fontSize: 11),
                       ),
                   ],
                 );
@@ -275,8 +280,9 @@ class _HistoryTile extends ConsumerWidget {
   Widget _thumbPlaceholder(ColorScheme scheme) => Container(
         width: 120,
         height: 72,
-        color: scheme.surface.withOpacity(0.3),
-        child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+        color: scheme.surface.withValues(alpha: 0.3),
+        child: Icon(Icons.movie_outlined,
+            color: scheme.onSurface.withValues(alpha: 0.5)),
       );
 }
 

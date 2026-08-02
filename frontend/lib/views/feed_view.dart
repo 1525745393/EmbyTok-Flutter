@@ -82,7 +82,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
     // 创建播放协调器
-    _playbackCoordinator = PlaybackCoordinator(ref, onPageIndexReady: _jumpToPageByIndex);
+    _playbackCoordinator =
+        PlaybackCoordinator(ref, onPageIndexReady: _jumpToPageByIndex);
     // 创建视图模型
     _viewModel = FeedViewModel(
       ref,
@@ -91,7 +92,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       onJumpToPageInstant: _jumpToPageWhenReady,
       onShowSnackBar: _showSnackBar,
       onOpenFullscreen: _openFullscreenPage,
-      onShowLibrarySelector: () => LibrarySelector.show(context, scope: LibraryScope.feed),
+      onShowLibrarySelector: () =>
+          LibrarySelector.show(context, scope: LibraryScope.feed),
       onUpdateHelpVisibility: () {
         if (mounted) setState(() {});
       },
@@ -104,7 +106,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 监听视图模式变化：系统栏显隐是 UI 行为，由本视图处理
     // 播放暂停/恢复已委托给 ViewModel → PlaybackCoordinator
     // 修复：使用 listenManual 替代 listen，避免在 initState 中调用 ref.listen 触发断言
-    _viewModeSubscription = ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
+    _viewModeSubscription =
+        ref.listenManual<ViewMode>(viewModeProvider, (prev, next) {
       if (prev == null) return;
       if (prev == ViewMode.feed && next == ViewMode.grid) {
         _restoreSystemBars();
@@ -132,7 +135,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     // 延迟到首帧后注册：initState 时 PageView 尚未 build，hasClients 必为 false
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _pageController.hasClients) {
-        _pageController.position.isScrollingNotifier.addListener(_onScrollingChanged);
+        _pageController.position.isScrollingNotifier
+            .addListener(_onScrollingChanged);
       }
     });
 
@@ -156,7 +160,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (videoState.items.isNotEmpty && playbackState.id == null) {
         _firstItemInitProcessed = true;
         final firstItem = videoState.items.first;
-        ref.read(playbackStateProvider.notifier).setPlaying(firstItem.id, firstItem);
+        ref
+            .read(playbackStateProvider.notifier)
+            .setPlaying(firstItem.id, firstItem);
       }
     });
   }
@@ -165,7 +171,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   void dispose() {
     try {
       if (_pageController.hasClients) {
-        _pageController.position.isScrollingNotifier.removeListener(_onScrollingChanged);
+        _pageController.position.isScrollingNotifier
+            .removeListener(_onScrollingChanged);
       }
     } catch (_) {
       // dispose 时 position 可能已被 Flutter 清理，忽略错误
@@ -275,14 +282,18 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // ==================== SnackBar（UI 层职责） ====================
 
-  void _showSnackBar(String message, {String? actionLabel, void Function()? onAction}) {
+  void _showSnackBar(String message,
+      {String? actionLabel, void Function()? onAction}) {
     if (!mounted) return;
     final scheme = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: actionLabel != null ? const Duration(seconds: 6) : const Duration(seconds: 1),
-        backgroundColor: actionLabel != null ? null : scheme.surface.withOpacity(0.9),
+        duration: actionLabel != null
+            ? const Duration(seconds: 6)
+            : const Duration(seconds: 1),
+        backgroundColor:
+            actionLabel != null ? null : scheme.surface.withValues(alpha: 0.9),
         action: actionLabel != null && onAction != null
             ? SnackBarAction(label: actionLabel, onPressed: onAction)
             : null,
@@ -348,7 +359,9 @@ class _FeedViewState extends ConsumerState<FeedView>
           // 顶部工具栏
           if (viewMode == ViewMode.feed)
             Positioned(
-              left: 0, right: 0, top: 0,
+              left: 0,
+              right: 0,
+              top: 0,
               child: AnimatedSlide(
                 duration: const Duration(milliseconds: kToolbarAnimMs),
                 curve: Curves.easeOut,
@@ -375,15 +388,16 @@ class _FeedViewState extends ConsumerState<FeedView>
                   final total = videoState.items.length;
                   final pos = (idx + 1).clamp(1, total);
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: scheme.surface.withOpacity(0.6),
+                      color: scheme.surface.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '$pos / $total',
                       style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.9),
+                        color: scheme.onSurface.withValues(alpha: 0.9),
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -397,9 +411,13 @@ class _FeedViewState extends ConsumerState<FeedView>
           if (helpVisible)
             Positioned.fill(
               child: GestureDetector(
-                onTap: () => ref.read(feedHelpVisibleProvider.notifier).state = false,
+                onTap: () =>
+                    ref.read(feedHelpVisibleProvider.notifier).state = false,
                 child: Container(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.54),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surface
+                      .withValues(alpha: 0.54),
                   alignment: Alignment.center,
                   child: GestureDetector(
                     onTap: () {},
@@ -424,8 +442,8 @@ class _FeedViewState extends ConsumerState<FeedView>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            scheme.surface.withOpacity(0.92),
-            scheme.surface.withOpacity(0.62),
+            scheme.surface.withValues(alpha: 0.92),
+            scheme.surface.withValues(alpha: 0.62),
             Colors.transparent,
           ],
         ),
@@ -477,9 +495,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             label: viewMode == ViewMode.feed ? '网格' : '视频流',
             onTap: () {
               ref.read(viewModeProvider.notifier).setMode(
-                    viewMode == ViewMode.feed
-                        ? ViewMode.grid
-                        : ViewMode.feed,
+                    viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
                   );
             },
           ),
@@ -495,7 +511,7 @@ class _FeedViewState extends ConsumerState<FeedView>
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final color = scheme.onSurface.withOpacity(0.85);
+    final color = scheme.onSurface.withValues(alpha: 0.85);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: InkWell(
@@ -529,7 +545,9 @@ class _FeedViewState extends ConsumerState<FeedView>
     final error = videoState.error;
     final errorMsg = error?.message;
     if (videoState.items.isEmpty && videoState.isLoading) {
-      return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+      return Center(
+          child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary));
     }
     if (videoState.items.isEmpty && errorMsg != null) {
       return ErrorStateCard(
@@ -597,20 +615,29 @@ class _FeedViewState extends ConsumerState<FeedView>
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
-          return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+          return Center(
+              child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary));
         }
         final item = videoState.items[index];
         // 从协调器取出预加载的会话
         final rawSession = _playbackCoordinator.takePreloadedSession(item.id);
         final preloadedSession =
-            (rawSession != null && rawSession.isInitialized) ? rawSession : null;
+            (rawSession != null && rawSession.isInitialized)
+                ? rawSession
+                : null;
         // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
-        if (index == 0 && preloadedSession == null && ref.read(videoPoolProvider).size == 0) {
-          if (1 < videoState.items.length && embyServerUrl != null && token != null) {
+        if (index == 0 &&
+            preloadedSession == null &&
+            ref.read(videoPoolProvider).size == 0) {
+          if (1 < videoState.items.length &&
+              embyServerUrl != null &&
+              token != null) {
             final nextItem = videoState.items[1];
             final pool = ref.read(videoPoolProvider);
             safeUnawaited(
-              pool.preload(item: nextItem, serverUrl: embyServerUrl, token: token),
+              pool.preload(
+                  item: nextItem, serverUrl: embyServerUrl, token: token),
               context: 'FeedView._buildFeedItem.preloadNext',
             );
           }

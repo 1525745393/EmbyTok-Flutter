@@ -13,7 +13,8 @@ enum DeviceMode {
   standard,
   tv;
 
-  static DeviceMode fromString(String? s, {DeviceMode fallback = DeviceMode.standard}) {
+  static DeviceMode fromString(String? s,
+      {DeviceMode fallback = DeviceMode.standard}) {
     if (s == null || s.isEmpty) return fallback;
     return switch (s.trim().toLowerCase()) {
       kDeviceModeTv => DeviceMode.tv,
@@ -95,7 +96,8 @@ enum OrientationMode {
   horizontal,
   both;
 
-  static OrientationMode fromString(String? s, {OrientationMode fallback = OrientationMode.both}) {
+  static OrientationMode fromString(String? s,
+      {OrientationMode fallback = OrientationMode.both}) {
     if (s == null || s.isEmpty) return fallback;
     return switch (s.trim().toLowerCase()) {
       kOrientationModeVertical => OrientationMode.vertical,
@@ -237,12 +239,15 @@ class AppPreferences {
           autoResumeAfterInterruption ?? this.autoResumeAfterInterruption,
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate ?? this.defaultPlaybackRate,
-      defaultSubtitleLanguage: defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
+      defaultSubtitleLanguage:
+          defaultSubtitleLanguage ?? this.defaultSubtitleLanguage,
       subtitleSize: subtitleSize ?? this.subtitleSize,
       feedExcludePlayed: feedExcludePlayed ?? this.feedExcludePlayed,
       recommendMinRating: recommendMinRating ?? this.recommendMinRating,
-      recommendExcludePlayed: recommendExcludePlayed ?? this.recommendExcludePlayed,
-      recommendMinRuntimeSec: recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
+      recommendExcludePlayed:
+          recommendExcludePlayed ?? this.recommendExcludePlayed,
+      recommendMinRuntimeSec:
+          recommendMinRuntimeSec ?? this.recommendMinRuntimeSec,
       recommendIncludeTypes:
           recommendIncludeTypes ?? this.recommendIncludeTypes,
       recommendUseWatchHistory:
@@ -305,17 +310,23 @@ class AppPreferencesService {
       }
     }
 
-    final defaultPlaybackRate = prefs.getDouble(kStorageKeyDefaultPlaybackRate) ?? 1.0;
-    final defaultSubtitleLanguage = prefs.getString(kStorageKeyDefaultSubtitleLanguage) ?? '';
+    final defaultPlaybackRate =
+        prefs.getDouble(kStorageKeyDefaultPlaybackRate) ?? 1.0;
+    final defaultSubtitleLanguage =
+        prefs.getString(kStorageKeyDefaultSubtitleLanguage) ?? '';
     final subtitleSize = prefs.getString(kStorageKeySubtitleSize) ?? 'medium';
 
     // 视频流排除已观看（默认 false）
-    final feedExcludePlayed = prefs.getBool(kStorageKeyFeedExcludePlayed) ?? false;
+    final feedExcludePlayed =
+        prefs.getBool(kStorageKeyFeedExcludePlayed) ?? false;
 
     // PR #78：推荐规则偏好
-    final recommendMinRating = prefs.getDouble(kStorageKeyRecommendMinRating) ?? 4.0;
-    final recommendExcludePlayed = prefs.getBool(kStorageKeyRecommendExcludePlayed) ?? true;
-    final recommendMinRuntimeSec = prefs.getInt(kStorageKeyRecommendMinRuntimeSec) ?? 30;
+    final recommendMinRating =
+        prefs.getDouble(kStorageKeyRecommendMinRating) ?? 4.0;
+    final recommendExcludePlayed =
+        prefs.getBool(kStorageKeyRecommendExcludePlayed) ?? true;
+    final recommendMinRuntimeSec =
+        prefs.getInt(kStorageKeyRecommendMinRuntimeSec) ?? 30;
     // PR #79：类型偏好（默认全部）
     final recommendIncludeTypesJson =
         prefs.getStringList(kStorageKeyRecommendIncludeTypes);
@@ -375,32 +386,43 @@ class AppPreferencesService {
   Future<void> save(AppPreferences preferences) async {
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
-      prefs.setString(kStorageKeyForceDeviceMode, preferences.forceDeviceMode.toStorageString()),
-      prefs.setString(kStorageKeyFeedType, preferences.feedType.toStorageString()),
-      prefs.setString(kStorageKeyViewMode, preferences.viewMode.toStorageString()),
-      prefs.setString(kStorageKeyOrientationMode, preferences.orientationMode.toStorageString()),
+      prefs.setString(kStorageKeyForceDeviceMode,
+          preferences.forceDeviceMode.toStorageString()),
+      prefs.setString(
+          kStorageKeyFeedType, preferences.feedType.toStorageString()),
+      prefs.setString(
+          kStorageKeyViewMode, preferences.viewMode.toStorageString()),
+      prefs.setString(kStorageKeyOrientationMode,
+          preferences.orientationMode.toStorageString()),
       prefs.setBool(kStorageKeyIsMuted, preferences.isMuted),
       prefs.setBool(kStorageKeyIsAutoPlay, preferences.isAutoPlay),
       prefs.setBool(kStorageKeyAutoResumeAfterInterruption,
           preferences.autoResumeAfterInterruption),
-      prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
-      prefs.setDouble(kStorageKeyDefaultPlaybackRate, preferences.defaultPlaybackRate),
-      prefs.setString(kStorageKeyDefaultSubtitleLanguage, preferences.defaultSubtitleLanguage),
+      prefs.setString(kStorageKeyHiddenLibraryIds,
+          json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
+      prefs.setDouble(
+          kStorageKeyDefaultPlaybackRate, preferences.defaultPlaybackRate),
+      prefs.setString(kStorageKeyDefaultSubtitleLanguage,
+          preferences.defaultSubtitleLanguage),
       prefs.setString(kStorageKeySubtitleSize, preferences.subtitleSize),
       // 视频流排除已观看
-      prefs.setBool(kStorageKeyFeedExcludePlayed, preferences.feedExcludePlayed),
+      prefs.setBool(
+          kStorageKeyFeedExcludePlayed, preferences.feedExcludePlayed),
       // PR #78：推荐规则偏好
-      prefs.setDouble(kStorageKeyRecommendMinRating, preferences.recommendMinRating),
-      prefs.setBool(kStorageKeyRecommendExcludePlayed, preferences.recommendExcludePlayed),
-      prefs.setInt(kStorageKeyRecommendMinRuntimeSec, preferences.recommendMinRuntimeSec),
+      prefs.setDouble(
+          kStorageKeyRecommendMinRating, preferences.recommendMinRating),
+      prefs.setBool(kStorageKeyRecommendExcludePlayed,
+          preferences.recommendExcludePlayed),
+      prefs.setInt(kStorageKeyRecommendMinRuntimeSec,
+          preferences.recommendMinRuntimeSec),
       // PR #79：类型偏好
       prefs.setStringList(
         kStorageKeyRecommendIncludeTypes,
         preferences.recommendIncludeTypes.toList(growable: false),
       ),
       // PR #85：用户控制推荐门控
-      prefs.setBool(
-          kStorageKeyRecommendUseWatchHistory, preferences.recommendUseWatchHistory),
+      prefs.setBool(kStorageKeyRecommendUseWatchHistory,
+          preferences.recommendUseWatchHistory),
       prefs.setDouble(
           kStorageKeyRecommendHalfLifeDays, preferences.recommendHalfLifeDays),
       // PR #88：用户控制反推荐疲劳
@@ -492,7 +514,8 @@ class AppPreferencesService {
   // 更新隐藏的媒体库 ID 集合
   Future<void> setHiddenLibraryIds(Set<String> ids) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kStorageKeyHiddenLibraryIds, json.encode(ids.toList(growable: false)));
+    await prefs.setString(
+        kStorageKeyHiddenLibraryIds, json.encode(ids.toList(growable: false)));
   }
 
   // 单独更新默认播放速度

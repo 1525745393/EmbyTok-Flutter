@@ -15,7 +15,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
-import '../utils/app_preferences.dart' show AppPreferencesService, OrientationMode;
+import '../utils/app_preferences.dart'
+    show AppPreferencesService, OrientationMode;
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
@@ -223,7 +224,7 @@ class SettingsView extends ConsumerWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: sectionColor.withOpacity(0.15),
+                  color: sectionColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child: Icon(sectionIcon, color: sectionColor, size: 16),
@@ -249,7 +250,7 @@ class SettingsView extends ConsumerWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: scheme.onSurface.withOpacity(0.06),
+              color: scheme.onSurface.withValues(alpha: 0.06),
               width: 0.5,
             ),
           ),
@@ -288,8 +289,7 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.deepPurple,
       title: '视频流使用',
       subtitle: subtitle,
-      onTap: () =>
-          LibrarySelector.show(context, scope: LibraryScope.feed),
+      onTap: () => LibrarySelector.show(context, scope: LibraryScope.feed),
     );
   }
 
@@ -317,8 +317,7 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.pink,
       title: '推荐使用',
       subtitle: subtitle,
-      onTap: () =>
-          LibrarySelector.show(context, scope: LibraryScope.recommend),
+      onTap: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
     );
   }
 
@@ -386,7 +385,8 @@ class SettingsView extends ConsumerWidget {
               children: [
                 Text(
                   current == 0 ? '不过滤' : '≥ ${current.toStringAsFixed(1)}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Slider(
                   min: 0,
@@ -435,7 +435,8 @@ class SettingsView extends ConsumerWidget {
               children: [
                 Text(
                   current == 0 ? '不过滤' : '$current 秒以上',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Slider(
                   min: 0,
@@ -494,10 +495,7 @@ class SettingsView extends ConsumerWidget {
 
   String _formatTypes(Set<String> types) {
     if (types.length == 5) return '全部类型';
-    return types
-        .map((t) => _kRecommendTypeLabels[t] ?? t)
-        .toList()
-        .join('、');
+    return types.map((t) => _kRecommendTypeLabels[t] ?? t).toList().join('、');
   }
 
   void _showRecommendTypesDialog(
@@ -552,9 +550,8 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.history_toggle_off_outlined,
       iconColor: Colors.deepPurple,
       title: '使用观看历史优化推荐',
-      subtitle: useWatchHistory
-          ? '已开启：黑名单、源权重、相似种子生效'
-          : '已关闭：推荐结果仅由 Emby 服务器决定',
+      subtitle:
+          useWatchHistory ? '已开启：黑名单、源权重、相似种子生效' : '已关闭：推荐结果仅由 Emby 服务器决定',
       value: useWatchHistory,
       onChanged: (value) {
         ref.read(recommendUseWatchHistoryProvider.notifier).setUse(value);
@@ -566,16 +563,14 @@ class SettingsView extends ConsumerWidget {
   // - 0 天 = 不衰减（所有完播记录等权重）
   // - 14 天 = 默认（14 天前的记录权重衰减到 0.5）
   // - 范围 0-90 天
-  Widget _buildRecommendHalfLifeDaysTile(
-      BuildContext context, WidgetRef ref) {
+  Widget _buildRecommendHalfLifeDaysTile(BuildContext context, WidgetRef ref) {
     final halfLifeDays = ref.watch(recommendHalfLifeDaysProvider);
     return _TapTile(
       icon: Icons.timelapse_outlined,
       iconColor: Colors.brown,
       title: '记忆半衰期（天）',
-      subtitle: halfLifeDays == 0
-          ? '不衰减，所有记录等权重'
-          : '$halfLifeDays 天前的记录权重衰减到 0.5',
+      subtitle:
+          halfLifeDays == 0 ? '不衰减，所有记录等权重' : '$halfLifeDays 天前的记录权重衰减到 0.5',
       onTap: () => _showHalfLifeDaysDialog(context, ref, halfLifeDays),
     );
   }
@@ -615,9 +610,7 @@ class SettingsView extends ConsumerWidget {
                         if (!dialogContext.mounted) return;
                         setLocalState(() => current = v);
                       },
-                      title: Text(days == 0
-                          ? '不衰减 (0 天)'
-                          : '$days 天'),
+                      title: Text(days == 0 ? '不衰减 (0 天)' : '$days 天'),
                       dense: true,
                       selected: selected,
                     );
@@ -653,7 +646,9 @@ class SettingsView extends ConsumerWidget {
           : '已关闭：所有 item 都可能被推荐',
       value: enabled,
       onChanged: (value) {
-        ref.read(recommendAntiFatigueEnabledProvider.notifier).setEnabled(value);
+        ref
+            .read(recommendAntiFatigueEnabledProvider.notifier)
+            .setEnabled(value);
       },
     );
   }
@@ -748,16 +743,13 @@ class SettingsView extends ConsumerWidget {
   }
 
   // PR #89：用户评分最低阈值（0-10，默认 4.0）
-  Widget _buildRecommendUserRatingMinTile(
-      BuildContext context, WidgetRef ref) {
+  Widget _buildRecommendUserRatingMinTile(BuildContext context, WidgetRef ref) {
     final minRating = ref.watch(recommendUserRatingMinProvider);
     return _TapTile(
       icon: Icons.star_half,
       iconColor: Colors.deepPurple,
       title: '最低用户评分',
-      subtitle: minRating == 0
-          ? '不过滤'
-          : '≥ $minRating（0-10）',
+      subtitle: minRating == 0 ? '不过滤' : '≥ $minRating（0-10）',
       onTap: () => _showUserRatingMinDialog(context, ref, minRating),
     );
   }
@@ -1109,15 +1101,16 @@ class SettingsView extends ConsumerWidget {
         title: '推荐使用',
         section: '媒体库',
         keywords: '推荐 媒体库 recommend library',
-        onTap: (ctx) => LibrarySelector.show(ctx, scope: LibraryScope.recommend),
+        onTap: (ctx) =>
+            LibrarySelector.show(ctx, scope: LibraryScope.recommend),
       ),
       // 推荐
       _SettingEntry(
         title: '评分阈值',
         section: '推荐',
         keywords: '推荐 评分 阈值 rating',
-        onTap: (ctx) =>
-            _showRecommendRatingDialog(ctx, ref, ref.read(recommendMinRatingProvider)),
+        onTap: (ctx) => _showRecommendRatingDialog(
+            ctx, ref, ref.read(recommendMinRatingProvider)),
       ),
       _SettingEntry(
         title: '排除已观看',
@@ -1132,15 +1125,15 @@ class SettingsView extends ConsumerWidget {
         title: '最短时长',
         section: '推荐',
         keywords: '推荐 最短 时长 runtime',
-        onTap: (ctx) =>
-            _showRecommendRuntimeDialog(ctx, ref, ref.read(recommendMinRuntimeSecProvider)),
+        onTap: (ctx) => _showRecommendRuntimeDialog(
+            ctx, ref, ref.read(recommendMinRuntimeSecProvider)),
       ),
       _SettingEntry(
         title: '推荐类型',
         section: '推荐',
         keywords: '推荐 类型 movie episode video musicvideo series',
-        onTap: (ctx) =>
-            _showRecommendTypesDialog(ctx, ref, ref.read(recommendIncludeTypesProvider)),
+        onTap: (ctx) => _showRecommendTypesDialog(
+            ctx, ref, ref.read(recommendIncludeTypesProvider)),
       ),
       _SettingEntry(
         title: '使用观看历史优化推荐',
@@ -1155,8 +1148,8 @@ class SettingsView extends ConsumerWidget {
         title: '记忆半衰期',
         section: '推荐',
         keywords: '推荐 半衰期 衰减 halflife',
-        onTap: (ctx) =>
-            _showHalfLifeDaysDialog(ctx, ref, ref.read(recommendHalfLifeDaysProvider)),
+        onTap: (ctx) => _showHalfLifeDaysDialog(
+            ctx, ref, ref.read(recommendHalfLifeDaysProvider)),
       ),
       _SettingEntry(
         title: '避免重复推荐',
@@ -1164,15 +1157,17 @@ class SettingsView extends ConsumerWidget {
         keywords: '推荐 反疲劳 重复 anti fatigue',
         onTap: (ctx) {
           final value = ref.read(recommendAntiFatigueEnabledProvider);
-          ref.read(recommendAntiFatigueEnabledProvider.notifier).setEnabled(!value);
+          ref
+              .read(recommendAntiFatigueEnabledProvider.notifier)
+              .setEnabled(!value);
         },
       ),
       _SettingEntry(
         title: '不重推天数',
         section: '推荐',
         keywords: '推荐 反疲劳 天数 days',
-        onTap: (ctx) =>
-            _showAntiFatigueDaysDialog(ctx, ref, ref.read(recommendAntiFatigueDaysProvider)),
+        onTap: (ctx) => _showAntiFatigueDaysDialog(
+            ctx, ref, ref.read(recommendAntiFatigueDaysProvider)),
       ),
       _SettingEntry(
         title: '用户评分加权',
@@ -1180,15 +1175,17 @@ class SettingsView extends ConsumerWidget {
         keywords: '推荐 用户评分 加权 rating',
         onTap: (ctx) {
           final value = ref.read(recommendUserRatingEnabledProvider);
-          ref.read(recommendUserRatingEnabledProvider.notifier).setEnabled(!value);
+          ref
+              .read(recommendUserRatingEnabledProvider.notifier)
+              .setEnabled(!value);
         },
       ),
       _SettingEntry(
         title: '最低用户评分',
         section: '推荐',
         keywords: '推荐 最低 用户评分 min rating',
-        onTap: (ctx) =>
-            _showUserRatingMinDialog(ctx, ref, ref.read(recommendUserRatingMinProvider)),
+        onTap: (ctx) => _showUserRatingMinDialog(
+            ctx, ref, ref.read(recommendUserRatingMinProvider)),
       ),
       // 播放
       _SettingEntry(
@@ -1213,8 +1210,8 @@ class SettingsView extends ConsumerWidget {
         title: '默认播放倍速',
         section: '播放',
         keywords: '播放 倍速 rate speed',
-        onTap: (ctx) =>
-            _showPlaybackRateDialog(ctx, ref, ref.read(defaultPlaybackRateProvider)),
+        onTap: (ctx) => _showPlaybackRateDialog(
+            ctx, ref, ref.read(defaultPlaybackRateProvider)),
       ),
       _SettingEntry(
         title: '手势控制',
@@ -1227,13 +1224,15 @@ class SettingsView extends ConsumerWidget {
         title: '默认字幕语言',
         section: '字幕',
         keywords: '字幕 语言 subtitle 中英日韩',
-        onTap: (ctx) => _showSubtitleDialog(ctx, ref, ref.read(defaultSubtitleLanguageProvider)),
+        onTap: (ctx) => _showSubtitleDialog(
+            ctx, ref, ref.read(defaultSubtitleLanguageProvider)),
       ),
       _SettingEntry(
         title: '字幕大小',
         section: '字幕',
         keywords: '字幕 大小 size small medium large',
-        onTap: (ctx) => _showSubtitleSizeDialog(ctx, ref, ref.read(subtitleSizeProvider)),
+        onTap: (ctx) =>
+            _showSubtitleSizeDialog(ctx, ref, ref.read(subtitleSizeProvider)),
       ),
       // 外观
       _SettingEntry(
@@ -1246,7 +1245,8 @@ class SettingsView extends ConsumerWidget {
         title: '视频方向',
         section: '外观',
         keywords: '外观 方向 竖屏 横屏 orientation',
-        onTap: (ctx) => _showOrientationDialog(ctx, ref, ref.read(orientationModeProvider)),
+        onTap: (ctx) =>
+            _showOrientationDialog(ctx, ref, ref.read(orientationModeProvider)),
       ),
       // 存储
       _SettingEntry(
@@ -1336,7 +1336,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               )
@@ -1368,7 +1368,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               )
@@ -1401,7 +1401,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withOpacity(0.8),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
                   fontSize: 13,
                 ),
               )
@@ -1416,7 +1416,7 @@ class SettingsView extends ConsumerWidget {
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 20),
@@ -1602,8 +1602,8 @@ class SettingsView extends ConsumerWidget {
         currentValue: _orientationModeToString(current),
         onSelect: (v) {
           ref.read(orientationModeProvider.notifier).setMode(
-            _parseOrientationMode(v),
-          );
+                _parseOrientationMode(v),
+              );
         },
       ),
     );
@@ -1782,7 +1782,8 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     // 取最后 20 行作为预览
     final lines = logContent.split('\n');
-    final previewLines = lines.length > 20 ? lines.sublist(lines.length - 20) : lines;
+    final previewLines =
+        lines.length > 20 ? lines.sublist(lines.length - 20) : lines;
     final preview = previewLines.join('\n');
     final hasMore = lines.length > 20;
 
@@ -1811,7 +1812,8 @@ class SettingsView extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     '... 省略前 ${lines.length - 20} 行',
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                    style:
+                        TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
                   ),
                 ),
               Container(
@@ -1955,8 +1957,7 @@ class SettingsView extends ConsumerWidget {
                     '平均完播率',
                     '${(stats.avgCompletion * 100).toStringAsFixed(0)}%',
                   ),
-                  _buildStatRow(
-                      scheme, '最近 7 天', '${stats.last7DaysCount} 次'),
+                  _buildStatRow(scheme, '最近 7 天', '${stats.last7DaysCount} 次'),
                   _buildStatRow(
                     scheme,
                     '近 7 天完播率',
@@ -2023,7 +2024,8 @@ class SettingsView extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
+              child:
+                  Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
             ),
             if (stats.totalCount > 0)
               TextButton(
@@ -2262,8 +2264,7 @@ class SettingsView extends ConsumerWidget {
         // 启动下载：延迟到第一帧后执行，避免在 builder 中直接调用异步操作
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!isDialogActive) return;
-          updateService
-              .downloadApk(
+          updateService.downloadApk(
             apkAsset,
             onProgress: (p) {
               if (!isDialogActive) return;
@@ -2272,15 +2273,13 @@ class SettingsView extends ConsumerWidget {
                   '${(p * 100).toStringAsFixed(0)}%  ·  ${formatBytes(apkAsset.size)}';
             },
             cancelToken: cancelToken,
-          )
-              .then((savePath) {
+          ).then((savePath) {
             if (ctx.mounted && isDialogActive) {
               isDialogActive = false;
               Navigator.pop(ctx);
               _showInstallDialog(ctx, savePath, release, scheme);
             }
-          })
-              .catchError((Object e) {
+          }).catchError((Object e) {
             if (e is DioException && CancelToken.isCancel(e)) return;
             if (ctx.mounted && isDialogActive) {
               isDialogActive = false;
@@ -2317,8 +2316,7 @@ class SettingsView extends ConsumerWidget {
                   return LinearProgressIndicator(
                     value: progress > 0 ? progress : null,
                     backgroundColor: scheme.surfaceContainerHighest,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(scheme.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                   );
                 },
               ),
@@ -2356,7 +2354,8 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 显示下载失败对话框
-  void _showDownloadError(BuildContext context, String error, String fallbackUrl) {
+  void _showDownloadError(
+      BuildContext context, String error, String fallbackUrl) {
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
       context: context,
@@ -2471,8 +2470,10 @@ class SettingsView extends ConsumerWidget {
         );
         return;
       }
-      final result = await OpenFilex.open(apkPath, type: 'application/vnd.android.package-archive');
-      AppLogger.debug('APK 安装结果', data: {'type': result.type.name, 'message': result.message});
+      final result = await OpenFilex.open(apkPath,
+          type: 'application/vnd.android.package-archive');
+      AppLogger.debug('APK 安装结果',
+          data: {'type': result.type.name, 'message': result.message});
       // 打开失败（非 done）时提示用户
       if (result.type != ResultType.done && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2591,7 +2592,7 @@ class SettingsView extends ConsumerWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: DonateColors.donateAccent.withOpacity(0.12),
+                  color: DonateColors.donateAccent.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.volunteer_activism,
@@ -2654,15 +2655,15 @@ class SettingsView extends ConsumerWidget {
               // 外部打赏链接（如爱发电等）
               InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () => _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                onTap: () =>
+                    _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.open_in_new,
-                          size: 14, color: scheme.primary),
+                      Icon(Icons.open_in_new, size: 14, color: scheme.primary),
                       const SizedBox(width: 4),
                       Text(
                         '前往 GitHub 仓库',
@@ -2701,9 +2702,8 @@ class SettingsView extends ConsumerWidget {
     // 版权年份动态
     const startYear = 2024;
     final currentYear = DateTime.now().year;
-    final copyrightYear = currentYear > startYear
-        ? '$startYear-$currentYear'
-        : '$startYear';
+    final copyrightYear =
+        currentYear > startYear ? '$startYear-$currentYear' : '$startYear';
 
     showDialog<void>(
       context: context,
@@ -2777,9 +2777,11 @@ class SettingsView extends ConsumerWidget {
               // GitHub 仓库入口：点击跳转到项目仓库
               InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () => _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                onTap: () =>
+                    _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2814,7 +2816,7 @@ class SettingsView extends ConsumerWidget {
               Text(
                 '本软件基于开源协议发布',
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withOpacity(0.7),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                   fontSize: 12,
                 ),
               ),
@@ -2901,7 +2903,6 @@ class SettingsView extends ConsumerWidget {
         return code;
     }
   }
-
 }
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
@@ -2924,9 +2925,9 @@ class _DonatePlaceholder extends StatelessWidget {
       width: 200,
       height: 200,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -2945,7 +2946,7 @@ class _DonatePlaceholder extends StatelessWidget {
           Text(
             hint,
             style: TextStyle(
-              color: color.withOpacity(0.6),
+              color: color.withValues(alpha: 0.6),
               fontSize: 11,
             ),
           ),
@@ -3175,10 +3176,10 @@ class _LicensePageState extends State<_LicensePage> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: widget.primaryColor.withOpacity(0.08),
+        color: widget.primaryColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: widget.primaryColor.withOpacity(0.2),
+          color: widget.primaryColor.withValues(alpha: 0.2),
           width: 0.5,
         ),
       ),
@@ -3252,7 +3253,6 @@ class _LicenseEntryView {
   const _LicenseEntryView({required this.packageName, required this.body});
 }
 
-
 // ==================== 推荐高级选项折叠组件 ====================
 
 /// 推荐高级选项折叠 tile
@@ -3289,7 +3289,7 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
           subtitle: Text(
             '完播率门控、时间衰减、反疲劳、用户评分',
             style: TextStyle(
-              color: scheme.onSurfaceVariant.withOpacity(0.8),
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
               fontSize: 13,
             ),
           ),
@@ -3401,9 +3401,8 @@ class _OptionDialog<T> extends StatelessWidget {
                 fontSize: 15,
               ),
             ),
-            trailing: selected
-                ? Icon(Icons.check, color: scheme.primary)
-                : null,
+            trailing:
+                selected ? Icon(Icons.check, color: scheme.primary) : null,
             onTap: () {
               // 使用对话框自身的context关闭，避免依赖外层context
               Navigator.pop(context);

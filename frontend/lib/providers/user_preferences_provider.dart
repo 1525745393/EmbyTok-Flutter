@@ -91,5 +91,4 @@ class CacheSizeNotifier extends StateNotifier<int> {
 
 /// 顶层缓存大小 Provider
 final cacheSizeProvider =
-    StateNotifierProvider<CacheSizeNotifier, int>(
-        (ref) => CacheSizeNotifier());
+    StateNotifierProvider<CacheSizeNotifier, int>((ref) => CacheSizeNotifier());

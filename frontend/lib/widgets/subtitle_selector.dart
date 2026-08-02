@@ -45,7 +45,7 @@ class SubtitleSelector extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surface.withOpacity(0.9),
+        color: scheme.surface.withValues(alpha: 0.9),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
@@ -59,7 +59,7 @@ class SubtitleSelector extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: scheme.onSurface.withOpacity(0.12),
+                color: scheme.onSurface.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -80,7 +80,9 @@ class SubtitleSelector extends ConsumerWidget {
                   ),
                   if (onClose != null)
                     IconButton(
-                      icon: Icon(Icons.close, color: scheme.onSurfaceVariant.withOpacity(0.7)),
+                      icon: Icon(Icons.close,
+                          color:
+                              scheme.onSurfaceVariant.withValues(alpha: 0.7)),
                       onPressed: onClose,
                     ),
                 ],
@@ -106,7 +108,9 @@ class SubtitleSelector extends ConsumerWidget {
                     subtitle: '不显示字幕',
                     isSelected: selectedTrackId == null,
                     onTap: () {
-                      ref.read(subtitleSettingsProvider.notifier).setLanguage('');
+                      ref
+                          .read(subtitleSettingsProvider.notifier)
+                          .setLanguage('');
                       onSelected?.call(null);
                       onClose?.call();
                     },
@@ -114,7 +118,8 @@ class SubtitleSelector extends ConsumerWidget {
 
                   // 导入本地字幕按钮
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Divider(color: scheme.outlineVariant, height: 1),
                   ),
                   _buildImportLocalButton(context, ref, scheme),
@@ -126,24 +131,26 @@ class SubtitleSelector extends ConsumerWidget {
                       child: Text(
                         '服务器字幕 (${tracks.length})',
                         style: TextStyle(
-                          color: scheme.onSurfaceVariant.withOpacity(0.7),
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     ...tracks.map((track) => _buildTrackOption(
-                      context: context,
-                      ref: ref,
-                      track: track,
-                      isSelected: selectedTrackId == track.id,
-                      onTap: () {
-                        // 保存偏好语言（语言代码，用于跨视频自动匹配）
-                        ref.read(subtitleSettingsProvider.notifier).setLanguage(track.language);
-                        onSelected?.call(track);
-                        onClose?.call();
-                      },
-                    )),
+                          context: context,
+                          ref: ref,
+                          track: track,
+                          isSelected: selectedTrackId == track.id,
+                          onTap: () {
+                            // 保存偏好语言（语言代码，用于跨视频自动匹配）
+                            ref
+                                .read(subtitleSettingsProvider.notifier)
+                                .setLanguage(track.language);
+                            onSelected?.call(track);
+                            onClose?.call();
+                          },
+                        )),
                   ],
 
                   // 本地字幕分组
@@ -155,7 +162,8 @@ class SubtitleSelector extends ConsumerWidget {
                           Text(
                             '本地字幕 (${localTracks.length})',
                             style: TextStyle(
-                              color: scheme.onSurfaceVariant.withOpacity(0.7),
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -164,23 +172,27 @@ class SubtitleSelector extends ConsumerWidget {
                       ),
                     ),
                     ...localTracks.map((track) => _buildTrackOption(
-                      context: context,
-                      ref: ref,
-                      track: track,
-                      isLocal: true,
-                      isSelected: selectedTrackId == track.id,
-                      onTap: () {
-                        onSelected?.call(track);
-                        onClose?.call();
-                      },
-                      onDelete: () {
-                        ref.read(localSubtitleTracksProvider.notifier).remove(track.id);
-                        // 如果删除的是当前选中的字幕，关闭字幕
-                        if (selectedTrackId == track.id) {
-                          ref.read(selectedSubtitleProvider.notifier).state = null;
-                        }
-                      },
-                    )),
+                          context: context,
+                          ref: ref,
+                          track: track,
+                          isLocal: true,
+                          isSelected: selectedTrackId == track.id,
+                          onTap: () {
+                            onSelected?.call(track);
+                            onClose?.call();
+                          },
+                          onDelete: () {
+                            ref
+                                .read(localSubtitleTracksProvider.notifier)
+                                .remove(track.id);
+                            // 如果删除的是当前选中的字幕，关闭字幕
+                            if (selectedTrackId == track.id) {
+                              ref
+                                  .read(selectedSubtitleProvider.notifier)
+                                  .state = null;
+                            }
+                          },
+                        )),
                   ],
 
                   // 无字幕提示
@@ -192,13 +204,14 @@ class SubtitleSelector extends ConsumerWidget {
                           Icon(
                             Icons.subtitles_off,
                             size: 48,
-                            color: scheme.onSurface.withOpacity(0.12),
+                            color: scheme.onSurface.withValues(alpha: 0.12),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             '当前视频没有可用字幕',
                             style: TextStyle(
-                              color: scheme.onSurfaceVariant.withOpacity(0.7),
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
                               fontSize: 14,
                             ),
                           ),
@@ -206,7 +219,8 @@ class SubtitleSelector extends ConsumerWidget {
                           Text(
                             '可点击上方按钮导入本地字幕文件',
                             style: TextStyle(
-                              color: scheme.onSurfaceVariant.withOpacity(0.5),
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.5),
                               fontSize: 12,
                             ),
                           ),
@@ -225,7 +239,8 @@ class SubtitleSelector extends ConsumerWidget {
   }
 
   /// 构建导入本地字幕按钮
-  Widget _buildImportLocalButton(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+  Widget _buildImportLocalButton(
+      BuildContext context, WidgetRef ref, ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: InkWell(
@@ -240,9 +255,8 @@ class SubtitleSelector extends ConsumerWidget {
 
           final path = result.files.single.path!;
           final name = path.split(Platform.pathSeparator).last;
-          final format = name.contains('.')
-              ? name.split('.').last.toLowerCase()
-              : 'srt';
+          final format =
+              name.contains('.') ? name.split('.').last.toLowerCase() : 'srt';
 
           final track = SubtitleTrack(
             id: 'local_${DateTime.now().millisecondsSinceEpoch}',
@@ -261,10 +275,10 @@ class SubtitleSelector extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: scheme.primary.withOpacity(0.08),
+            color: scheme.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: scheme.primary.withOpacity(0.2),
+              color: scheme.primary.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -288,14 +302,15 @@ class SubtitleSelector extends ConsumerWidget {
                     Text(
                       '支持 SRT / VTT / ASS / SSA 格式',
                       style: TextStyle(
-                        color: scheme.onSurfaceVariant.withOpacity(0.7),
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                         fontSize: 12,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant.withOpacity(0.5)),
+              Icon(Icons.chevron_right,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5)),
             ],
           ),
         ),
@@ -325,7 +340,9 @@ class SubtitleSelector extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.12),
+                  color: isSelected
+                      ? scheme.primary
+                      : scheme.onSurface.withValues(alpha: 0.12),
                   width: 2,
                 ),
                 color: isSelected ? scheme.primary : Colors.transparent,
@@ -343,9 +360,12 @@ class SubtitleSelector extends ConsumerWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected ? scheme.onSurface : scheme.onSurfaceVariant,
+                      color: isSelected
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
                       fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                   if (subtitle.isNotEmpty) ...[
@@ -353,7 +373,7 @@ class SubtitleSelector extends ConsumerWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: scheme.onSurfaceVariant.withOpacity(0.7),
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                         fontSize: 12,
                       ),
                     ),
@@ -390,7 +410,9 @@ class SubtitleSelector extends ConsumerWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? scheme.primary : scheme.onSurface.withOpacity(0.12),
+                  color: isSelected
+                      ? scheme.primary
+                      : scheme.onSurface.withValues(alpha: 0.12),
                   width: 2,
                 ),
                 color: isSelected ? scheme.primary : Colors.transparent,
@@ -406,10 +428,10 @@ class SubtitleSelector extends ConsumerWidget {
               height: 36,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? scheme.primary.withOpacity(0.12)
+                    ? scheme.primary.withValues(alpha: 0.12)
                     : isLocal
-                        ? scheme.tertiary.withOpacity(0.1)
-                        : scheme.onSurface.withOpacity(0.1),
+                        ? scheme.tertiary.withValues(alpha: 0.1)
+                        : scheme.onSurface.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -418,7 +440,7 @@ class SubtitleSelector extends ConsumerWidget {
                     ? scheme.primary
                     : isLocal
                         ? scheme.tertiary
-                        : scheme.onSurfaceVariant.withOpacity(0.7),
+                        : scheme.onSurfaceVariant.withValues(alpha: 0.7),
                 size: 20,
               ),
             ),
@@ -431,9 +453,12 @@ class SubtitleSelector extends ConsumerWidget {
                   Text(
                     track.displayName,
                     style: TextStyle(
-                      color: isSelected ? scheme.onSurface : scheme.onSurfaceVariant,
+                      color: isSelected
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
                       fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -442,7 +467,7 @@ class SubtitleSelector extends ConsumerWidget {
                         ? '本地字幕 · ${track.format.toUpperCase()}'
                         : _getLanguageLabel(track.language),
                     style: TextStyle(
-                      color: scheme.onSurfaceVariant.withOpacity(0.7),
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -452,7 +477,8 @@ class SubtitleSelector extends ConsumerWidget {
             // 删除按钮（仅本地字幕）
             if (isLocal && onDelete != null)
               IconButton(
-                icon: Icon(Icons.delete_outline, color: scheme.error.withOpacity(0.7), size: 20),
+                icon: Icon(Icons.delete_outline,
+                    color: scheme.error.withValues(alpha: 0.7), size: 20),
                 onPressed: onDelete,
                 padding: const EdgeInsets.all(8),
                 constraints: const BoxConstraints(),
@@ -462,7 +488,7 @@ class SubtitleSelector extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: scheme.primary.withOpacity(0.12),
+                  color: scheme.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(

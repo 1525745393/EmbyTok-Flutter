@@ -12,6 +12,7 @@ import '../utils/logger.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
   final MediaItem person;
+
   /// 演员类型（Actor/Director/Writer），从导航来源传递，用于显示类型标签
   final String? personType;
 
@@ -78,12 +79,26 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       final token = auth.token;
       final userId = auth.user?.id;
 
+      // 会话过期或未登录时（serverUrl/token 为 null）友好提示并提前返回，
+      // 避免对 null 强制解包触发空指针崩溃；
+      // 此处不调用 getPersonItems / getPersonDetail，
+      // 详情区域在 build 中仍 fallback 到 widget.person，不阻塞已加载内容
+      if (serverUrl == null || token == null) {
+        if (mounted) {
+          setState(() {
+            _error = '登录已过期，请重新登录';
+            _loading = false;
+          });
+        }
+        return;
+      }
+
       // 作品列表优先加载：先显示作品，再等详情
       // 避免 getPersonDetail 超时/失败阻塞整个页面
       final worksFuture = cachedRepo.getPersonItems(
         widget.person.id,
-        serverUrl: serverUrl!,
-        token: token!,
+        serverUrl: serverUrl,
+        token: token,
       );
       final detailFuture = cachedRepo.getPersonDetail(
         widget.person.id,
@@ -137,14 +152,20 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   /// 分页加载更多作品
   Future<void> _loadMore() async {
     if (_isLoadingMore || _works.length >= _total) return;
+    final auth = ref.read(authProvider);
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    // 会话过期或未登录时停止分页，避免强制解包触发空指针崩溃
+    if (serverUrl == null || token == null) {
+      return;
+    }
     setState(() => _isLoadingMore = true);
     try {
-      final auth = ref.read(authProvider);
       final cachedRepo = ref.read(cachedMediaRepositoryProvider);
       final response = await cachedRepo.getPersonItems(
         widget.person.id,
-        serverUrl: auth.embyServerUrl!,
-        token: auth.token!,
+        serverUrl: serverUrl,
+        token: token,
         limit: 30,
         offset: _works.length,
       );
@@ -165,10 +186,10 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    
+
     // 使用加载的详情数据，fallback 到原始 person
     final person = _personDetail ?? widget.person;
-    
+
     // 演员使用 thumbnailUrl（已构建完整URL），避免 imageTag 格式问题
     final imageUrl = person.thumbnailUrl ??
         person.primaryUrl(
@@ -185,13 +206,14 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
         foregroundColor: scheme.onSurface,
         title: Text(person.title, style: const TextStyle(fontSize: 16)),
       ),
-      body: SingleChildScrollView(
+      // 使用 CustomScrollView + SliverList 实现长列表懒加载，
+      // 避免原 SingleChildScrollView + Column + ListView(shrinkWrap) 全量构建
+      body: CustomScrollView(
         controller: _scrollController,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 人员头像/信息区域
-            Padding(
+        slivers: [
+          // 人员头像/信息区域
+          SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +231,8 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                               fadeInDuration: const Duration(milliseconds: 300),
                               httpHeaders: headers.isNotEmpty ? headers : null,
                               memCacheWidth: 240,
-                              placeholder: (_, __) => const _AvatarPlaceholder(),
+                              placeholder: (_, __) =>
+                                  const _AvatarPlaceholder(),
                               errorWidget: (_, __, ___) =>
                                   const _AvatarPlaceholder(),
                             )
@@ -236,16 +259,16 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           Text(
                             _personTypeLabel,
                             style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.5), fontSize: 13),
+                                color: scheme.onSurface.withValues(alpha: 0.5),
+                                fontSize: 13),
                           ),
-                          if (overview != null &&
-                              overview.isNotEmpty) ...[
+                          if (overview != null && overview.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             _ExpandableText(
                               text: overview,
                               maxLines: 6,
                               style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.7),
+                                color: scheme.onSurface.withValues(alpha: 0.7),
                                 fontSize: 13,
                                 height: 1.4,
                               ),
@@ -255,7 +278,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                             Text(
                               '暂无简介',
                               style: TextStyle(
-                                color: scheme.onSurface.withOpacity(0.4),
+                                color: scheme.onSurface.withValues(alpha: 0.4),
                                 fontSize: 13,
                                 fontStyle: FontStyle.italic,
                               ),
@@ -268,9 +291,11 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                 ],
               ),
             ),
+          ),
 
-            // 出演的作品列表
-            Padding(
+          // 出演的作品列表标题
+          SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Text(
                 '出演的作品 (${_works.length})',
@@ -281,34 +306,41 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                 ),
               ),
             ),
+          ),
 
-            if (_loading)
-              Center(
+          // 作品列表 / loading / error / empty
+          if (_loading)
+            SliverToBoxAdapter(
+              child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: CircularProgressIndicator(color: scheme.primary),
                 ),
-              )
-            else if (_error != null)
-              _buildError(scheme)
-            else if (_works.isEmpty)
-              Padding(
+              ),
+            )
+          else if (_error != null)
+            SliverToBoxAdapter(child: _buildError(scheme))
+          else if (_works.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Center(
                   child: Text(
                     '暂无作品',
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 14),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 14),
                   ),
                 ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            )
+          else
+            // 真正的长列表懒加载：SliverList.builder 按需构建可见 item，
+            // 替代原 ListView.separated + shrinkWrap 的全量构建
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList.builder(
                 itemCount: _works.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = _works[index];
                   // 将当前演员信息注入作品，以便播放页显示正确的演员头像
@@ -329,20 +361,30 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                       ? item.copyWith(people: [currentActor])
                       : item.copyWith(people: [
                           currentActor,
-                          ...people
-                              .where((p) => p.id != currentActor.id)
+                          ...people.where((p) => p.id != currentActor.id)
                         ]);
-                  return _WorkTile(key: Key(item.id), item: itemWithActor, allItems: _works);
+                  // 用 Padding 模拟原 separatorBuilder 的 12px 间距
+                  return Padding(
+                    padding: EdgeInsets.only(top: index == 0 ? 0 : 12),
+                    child: _WorkTile(
+                        key: Key(item.id),
+                        item: itemWithActor,
+                        allItems: _works),
+                  );
                 },
               ),
-            if (_isLoadingMore)
-              const Padding(
+            ),
+          // 加载更多指示器
+          if (_isLoadingMore)
+            SliverToBoxAdapter(
+              child: const Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(child: CircularProgressIndicator()),
               ),
-            const SizedBox(height: 32),
-          ],
-        ),
+            ),
+          // 底部间距
+          SliverToBoxAdapter(child: const SizedBox(height: 32)),
+        ],
       ),
     );
   }
@@ -357,7 +399,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
           Text(
             _error ?? '加载失败',
             style: TextStyle(
-                color: scheme.onSurface.withOpacity(0.7), fontSize: 14),
+                color: scheme.onSurface.withValues(alpha: 0.7), fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -386,8 +428,9 @@ class _AvatarPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      color: scheme.surface.withOpacity(0.3),
-      child: Icon(Icons.person, color: scheme.onSurface.withOpacity(0.5), size: 64),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.person,
+          color: scheme.onSurface.withValues(alpha: 0.5), size: 64),
     );
   }
 }
@@ -411,16 +454,18 @@ class _WorkTile extends ConsumerWidget {
     return InkWell(
       onTap: () {
         // 设置播放列表后再跳转
-        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: scheme.onSurface.withOpacity(0.05),
+          color: scheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: scheme.onSurface.withOpacity(0.08)),
+          border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
         ),
         child: Row(
           children: [
@@ -459,7 +504,8 @@ class _WorkTile extends ConsumerWidget {
                   Text(
                     _yearText,
                     style: TextStyle(
-                        color: scheme.onSurface.withOpacity(0.5), fontSize: 12),
+                        color: scheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 12),
                   ),
                 ],
               ),
@@ -488,8 +534,9 @@ class _ThumbPlaceholder extends StatelessWidget {
     return Container(
       width: 120,
       height: 72,
-      color: scheme.surface.withOpacity(0.3),
-      child: Icon(Icons.movie_outlined, color: scheme.onSurface.withOpacity(0.5)),
+      color: scheme.surface.withValues(alpha: 0.3),
+      child: Icon(Icons.movie_outlined,
+          color: scheme.onSurface.withValues(alpha: 0.5)),
     );
   }
 }
@@ -525,7 +572,8 @@ class _ExpandableTextState extends State<_ExpandableText> {
   }
 
   void _checkOverflow() {
-    final renderObject = _textKey.currentContext?.findRenderObject() as RenderBox?;
+    final renderObject =
+        _textKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderObject != null) {
       final textPainter = TextPainter(
         text: TextSpan(text: widget.text, style: widget.style),
@@ -578,5 +626,3 @@ class _ExpandableTextState extends State<_ExpandableText> {
     );
   }
 }
-
-

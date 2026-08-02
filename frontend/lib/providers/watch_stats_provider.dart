@@ -33,7 +33,8 @@ class WatchRecord {
   final String? itemTitle; // 标题（仅用于设置页展示最近 10 条）
   final double completionRate; // 完播率 [0.0, 1.0]
   final int watchedAt; // unix 时间戳（秒）
-  final String source; // 数据源 key（nextUp/resume/suggestions/similar/recommendations/feed）
+  final String
+      source; // 数据源 key（nextUp/resume/suggestions/similar/recommendations/feed）
 
   const WatchRecord({
     required this.itemId,
@@ -95,7 +96,8 @@ class WatchStatsState {
     double sumAll = 0.0;
     int last7Count = 0;
     double last7Sum = 0.0;
-    final cutoff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
+    final cutoff =
+        DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
     for (final r in list) {
       sumAll += r.completionRate;
       if (r.watchedAt >= cutoff) {
@@ -136,7 +138,8 @@ class WatchStatsState {
     final newTotal = totalCount + 1 - removedCount;
     final newSum = oldSum + record.completionRate - removedSum;
     // 7 天统计：单次遍历（时间窗口会漂移，无法纯增量）
-    final cutoff = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
+    final cutoff =
+        DateTime.now().millisecondsSinceEpoch ~/ 1000 - 7 * 24 * 3600;
     int last7Count = 0;
     double last7Sum = 0.0;
     for (final r in newList) {

@@ -331,9 +331,12 @@ class PlaybackSettings {
   }) {
     return PlaybackSettings(
       mediaSources: mediaSources ?? this.mediaSources,
-      selectedMediaSourceId: selectedMediaSourceId ?? this.selectedMediaSourceId,
-      selectedAudioStreamIndex: selectedAudioStreamIndex ?? this.selectedAudioStreamIndex,
-      selectedSubtitleStreamIndex: selectedSubtitleStreamIndex ?? this.selectedSubtitleStreamIndex,
+      selectedMediaSourceId:
+          selectedMediaSourceId ?? this.selectedMediaSourceId,
+      selectedAudioStreamIndex:
+          selectedAudioStreamIndex ?? this.selectedAudioStreamIndex,
+      selectedSubtitleStreamIndex:
+          selectedSubtitleStreamIndex ?? this.selectedSubtitleStreamIndex,
     );
   }
 }
@@ -344,9 +347,10 @@ class PlaybackSettingsNotifier extends StateNotifier<PlaybackSettings> {
   void resetFromItem(MediaItem item) {
     final sources = item.mediaSources ?? <MediaSource>[];
     final firstId = sources.isNotEmpty ? sources.first.id : null;
-    final firstAudioIdx = sources.isNotEmpty && sources.first.audioStreams.isNotEmpty
-        ? sources.first.audioStreams.first.index
-        : null;
+    final firstAudioIdx =
+        sources.isNotEmpty && sources.first.audioStreams.isNotEmpty
+            ? sources.first.audioStreams.first.index
+            : null;
     state = PlaybackSettings(
       mediaSources: sources,
       selectedMediaSourceId: firstId,

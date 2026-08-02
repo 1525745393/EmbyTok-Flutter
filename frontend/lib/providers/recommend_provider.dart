@@ -71,6 +71,7 @@ class RecommendState {
   // - taggedItems 或 selectedTag 变化时由 Notifier 重新计算
   /// 根据 selectedTag 过滤后的展示列表
   final List<RecommendItem> displayItems;
+
   /// 各标签的计数（key = RecommendSource.key）
   final Map<String, int> tagCounts;
 
@@ -352,75 +353,77 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     if (_isLoading) return;
     _isLoading = true;
     try {
-    state = state.copyWith(isLoading: true, error: null);
+      state = state.copyWith(isLoading: true, error: null);
 
-    final ctx = _buildLoadContext();
-    if (ctx == null) {
-      final auth = _ref.read(authProvider);
-      final selectedIds = _ref.read(recommendLibraryIdsProvider);
-      if (!auth.isAuthenticated ||
-          auth.embyServerUrl == null ||
-          auth.token == null) {
-        state = state.copyWith(isLoading: false, hasMore: false, error: '尚未登录');
+      final ctx = _buildLoadContext();
+      if (ctx == null) {
+        final auth = _ref.read(authProvider);
+        final selectedIds = _ref.read(recommendLibraryIdsProvider);
+        if (!auth.isAuthenticated ||
+            auth.embyServerUrl == null ||
+            auth.token == null) {
+          state =
+              state.copyWith(isLoading: false, hasMore: false, error: '尚未登录');
+          return;
+        }
+        if (selectedIds.isEmpty) {
+          state =
+              state.copyWith(isLoading: false, hasMore: false, error: '未选择媒体库');
+          return;
+        }
         return;
       }
-      if (selectedIds.isEmpty) {
-        state = state.copyWith(isLoading: false, hasMore: false, error: '未选择媒体库');
-        return;
-      }
-      return;
-    }
 
-    final seenIds = <String>{};
+      final seenIds = <String>{};
 
-    // PR #79：抽离核心加载逻辑，支持分页
-    final newItems = await _loadPage(
-      ctx: ctx,
-      seenIds: seenIds,
-    );
-
-    // 冷启动判定：建议数据源 + Resume 都为空
-    final isColdStart = newItems.nextUpCount == 0 &&
-        newItems.resumeCount == 0;
-
-    // PR #79：首次加载启用冷启动降级
-    List<RecommendItem> finalTagged = newItems.tagged;
-    if (isColdStart) {
-      AppLogger.info('推荐：冷启动模式，评分阈值降级');
-      final degradedRating = ctx.minRating > 3.0 ? 3.0 : ctx.minRating;
-      final degradedItems = await _loadRecommendations(
+      // PR #79：抽离核心加载逻辑，支持分页
+      final newItems = await _loadPage(
         ctx: ctx,
-        minCommunityRating: degradedRating,
         seenIds: seenIds,
       );
-      finalTagged = [...finalTagged, ...degradedItems];
-    }
 
-    // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
-    final hasMore = finalTagged.length >= _pageSize;
+      // 冷启动判定：建议数据源 + Resume 都为空
+      final isColdStart =
+          newItems.nextUpCount == 0 && newItems.resumeCount == 0;
 
-    state = _withDerived(state.copyWith(
-      taggedItems: finalTagged,
-      isLoading: false,
-      hasMore: hasMore,
-      offset: finalTagged.length,
-      error: null,
-      isColdStart: isColdStart && finalTagged.length < _pageSize ~/ 2,
-    ));
-    // PR #88：记录展示过的 itemId（用于反推荐疲劳）
-    _recordRecentlyShownItems(
-      finalTagged.map((r) => r.item.id),
-      ctx.antiFatigueEnabled,
-    );
-    AppLogger.debug('推荐列表加载完成', data: {
-      'count': finalTagged.length,
-      'minRating': ctx.minRating,
-      'excludePlayed': ctx.excludePlayed,
-      'minRuntimeSec': ctx.minRuntimeSec,
-      'includeTypes': ctx.includeTypes.toList(),
-      'isColdStart': isColdStart,
-      'hasMore': hasMore,
-    });
+      // PR #79：首次加载启用冷启动降级
+      List<RecommendItem> finalTagged = newItems.tagged;
+      if (isColdStart) {
+        AppLogger.info('推荐：冷启动模式，评分阈值降级');
+        final degradedRating = ctx.minRating > 3.0 ? 3.0 : ctx.minRating;
+        final degradedItems = await _loadRecommendations(
+          ctx: ctx,
+          minCommunityRating: degradedRating,
+          seenIds: seenIds,
+        );
+        finalTagged = [...finalTagged, ...degradedItems];
+      }
+
+      // PR #79：分页 - 如果新项数 < _pageSize（5 数据源都不足一页），标记无更多
+      final hasMore = finalTagged.length >= _pageSize;
+
+      state = _withDerived(state.copyWith(
+        taggedItems: finalTagged,
+        isLoading: false,
+        hasMore: hasMore,
+        offset: finalTagged.length,
+        error: null,
+        isColdStart: isColdStart && finalTagged.length < _pageSize ~/ 2,
+      ));
+      // PR #88：记录展示过的 itemId（用于反推荐疲劳）
+      _recordRecentlyShownItems(
+        finalTagged.map((r) => r.item.id),
+        ctx.antiFatigueEnabled,
+      );
+      AppLogger.debug('推荐列表加载完成', data: {
+        'count': finalTagged.length,
+        'minRating': ctx.minRating,
+        'excludePlayed': ctx.excludePlayed,
+        'minRuntimeSec': ctx.minRuntimeSec,
+        'includeTypes': ctx.includeTypes.toList(),
+        'isColdStart': isColdStart,
+        'hasMore': hasMore,
+      });
     } finally {
       _isLoading = false;
     }
@@ -433,42 +436,42 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     if (state.isLoadingMore || !state.hasMore) return;
     _isLoading = true;
     try {
-    state = state.copyWith(isLoadingMore: true);
+      state = state.copyWith(isLoadingMore: true);
 
-    final ctx = _buildLoadContext();
-    if (ctx == null) {
-      state = state.copyWith(isLoadingMore: false, hasMore: false);
-      return;
-    }
+      final ctx = _buildLoadContext();
+      if (ctx == null) {
+        state = state.copyWith(isLoadingMore: false, hasMore: false);
+        return;
+      }
 
-    // PR #79：从已显示的 items 构建 seenIds（去重）
-    final seenIds = state.taggedItems.map((r) => r.item.id).toSet();
+      // PR #79：从已显示的 items 构建 seenIds（去重）
+      final seenIds = state.taggedItems.map((r) => r.item.id).toSet();
 
-    final newItems = await _loadPage(
-      ctx: ctx,
-      seenIds: seenIds,
-    );
+      final newItems = await _loadPage(
+        ctx: ctx,
+        seenIds: seenIds,
+      );
 
-    final merged = [...state.taggedItems, ...newItems.tagged];
-    // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
-    final hasMore = newItems.tagged.length >= _pageSize;
+      final merged = [...state.taggedItems, ...newItems.tagged];
+      // PR #79：hasMore = (新加项数 >= _pageSize)，否则认为没有更多
+      final hasMore = newItems.tagged.length >= _pageSize;
 
-    state = _withDerived(state.copyWith(
-      taggedItems: merged,
-      isLoadingMore: false,
-      hasMore: hasMore,
-      offset: merged.length,
-    ));
-    // PR #88：记录新展示的 itemId
-    _recordRecentlyShownItems(
-      newItems.tagged.map((r) => r.item.id),
-      ctx.antiFatigueEnabled,
-    );
-    AppLogger.debug('推荐 loadMore 完成', data: {
-      'newCount': newItems.tagged.length,
-      'total': merged.length,
-      'hasMore': hasMore,
-    });
+      state = _withDerived(state.copyWith(
+        taggedItems: merged,
+        isLoadingMore: false,
+        hasMore: hasMore,
+        offset: merged.length,
+      ));
+      // PR #88：记录新展示的 itemId
+      _recordRecentlyShownItems(
+        newItems.tagged.map((r) => r.item.id),
+        ctx.antiFatigueEnabled,
+      );
+      AppLogger.debug('推荐 loadMore 完成', data: {
+        'newCount': newItems.tagged.length,
+        'total': merged.length,
+        'hasMore': hasMore,
+      });
     } finally {
       _isLoading = false;
     }
@@ -505,11 +508,28 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     };
 
     await Future.wait([
-      _fetchNextUpQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchResumeQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchNextUpByRecentSeries(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
-      _fetchSuggestionsQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
-      _fetchSimilarQueue(ctx: ctx, queues: queues, serverUrl: serverUrl, token: token, userId: userId),
+      _fetchNextUpQueue(
+          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
+      _fetchResumeQueue(
+          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
+      _fetchNextUpByRecentSeries(
+          ctx: ctx,
+          queues: queues,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId),
+      _fetchSuggestionsQueue(
+          ctx: ctx,
+          queues: queues,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId),
+      _fetchSimilarQueue(
+          ctx: ctx,
+          queues: queues,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId),
       _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
     ]);
 
@@ -545,7 +565,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           userRatingEnabled: ctx.userRatingEnabled,
           userRatingMin: ctx.userRatingMin,
         )) continue;
-        nextUpQueue?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
+        nextUpQueue
+            ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
       }
     } catch (e) {
       AppLogger.error('推荐：加载 NextUp 失败', error: e);
@@ -577,7 +598,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           userRatingEnabled: ctx.userRatingEnabled,
           userRatingMin: ctx.userRatingMin,
         )) continue;
-        resumeQueue?.add(RecommendItem(item: item, source: RecommendSource.resume));
+        resumeQueue
+            ?.add(RecommendItem(item: item, source: RecommendSource.resume));
       }
     } catch (e) {
       AppLogger.error('推荐：加载 Resume 失败', error: e);
@@ -614,20 +636,22 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       if (recentSeriesIds.isEmpty) return;
 
       // 并发限制：最多同时请求 _maxConcurrentRequests 个 series
-      final tasks = recentSeriesIds.map((sid) => () async {
-        try {
-          final resp = await ctx.repo.getNextUp(
-            limit: 3,
-            seriesId: sid,
-            serverUrl: serverUrl,
-            token: token,
-          );
-          return resp.items;
-        } catch (e) {
-          AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
-          return <MediaItem>[];
-        }
-      }).toList();
+      final tasks = recentSeriesIds
+          .map((sid) => () async {
+                try {
+                  final resp = await ctx.repo.getNextUp(
+                    limit: 3,
+                    seriesId: sid,
+                    serverUrl: serverUrl,
+                    token: token,
+                  );
+                  return resp.items;
+                } catch (e) {
+                  AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
+                  return <MediaItem>[];
+                }
+              })
+          .toList();
       final nextUpLists = await _runWithConcurrencyLimit(tasks);
 
       // P0-3 修复：一次性收集所有下一集后插入队首
@@ -652,7 +676,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             userRatingEnabled: ctx.userRatingEnabled,
             userRatingMin: ctx.userRatingMin,
           )) continue;
-          allNextUp.add(RecommendItem(item: item, source: RecommendSource.nextUp));
+          allNextUp
+              .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
       }
       if (allNextUp.isNotEmpty) {
@@ -757,19 +782,21 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         return;
       }
       // 并发限制：最多同时请求 _maxConcurrentRequests 个种子
-      final tasks = topSeeds.map((seed) => () async {
-        try {
-          return await ctx.repo.getSimilarItems(
-            seed.id,
-            limit: _similarPerSeed,
-            serverUrl: serverUrl,
-            token: token,
-          );
-        } catch (e) {
-          AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
-          return <MediaItem>[];
-        }
-      }).toList();
+      final tasks = topSeeds
+          .map((seed) => () async {
+                try {
+                  return await ctx.repo.getSimilarItems(
+                    seed.id,
+                    limit: _similarPerSeed,
+                    serverUrl: serverUrl,
+                    token: token,
+                  );
+                } catch (e) {
+                  AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
+                  return <MediaItem>[];
+                }
+              })
+          .toList();
       final similarLists = await _runWithConcurrencyLimit(tasks);
       for (final list in similarLists) {
         final similarQueue = queues[_sourceSimilar];
@@ -784,7 +811,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             userRatingEnabled: ctx.userRatingEnabled,
             userRatingMin: ctx.userRatingMin,
           )) continue;
-          similarQueue?.add(RecommendItem(item: item, source: RecommendSource.similar));
+          similarQueue
+              ?.add(RecommendItem(item: item, source: RecommendSource.similar));
         }
       }
     } catch (e) {
@@ -803,39 +831,41 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final userId = ctx.auth.user?.id;
     if (serverUrl == null || token == null) return;
     // 并发限制：最多同时请求 _maxConcurrentRequests 个库
-    final tasks = ctx.selectedIds.map((libId) => () async {
-      try {
-        final resp = await ctx.repo.getRecommendations(
-          libraryId: libId,
-          limit: _pageSize,
-          offset: 0,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-          minCommunityRating: ctx.minRating,
-          excludePlayed: ctx.excludePlayed,
-          includeItemTypes: ctx.includeTypes,
-        );
-        for (final item in resp.items) {
-          if (ctx.isTooShort(item)) continue;
-          if (_shouldSkipItem(
-            item,
-            signal: ctx.signal,
-            favoriteIds: ctx.favoriteIds,
-            antiFatigueEnabled: ctx.antiFatigueEnabled,
-            recentlyShownIds: ctx.recentlyShownIds,
-            userRatingEnabled: ctx.userRatingEnabled,
-            userRatingMin: ctx.userRatingMin,
-          )) continue;
-          if (seenIds.add(item.id)) {
-            queues[_sourceRecommendations]?.add(RecommendItem(
-                item: item, source: RecommendSource.recommendations));
-          }
-        }
-      } catch (e) {
-        AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
-      }
-    }).toList();
+    final tasks = ctx.selectedIds
+        .map((libId) => () async {
+              try {
+                final resp = await ctx.repo.getRecommendations(
+                  libraryId: libId,
+                  limit: _pageSize,
+                  offset: 0,
+                  serverUrl: serverUrl,
+                  token: token,
+                  userId: userId,
+                  minCommunityRating: ctx.minRating,
+                  excludePlayed: ctx.excludePlayed,
+                  includeItemTypes: ctx.includeTypes,
+                );
+                for (final item in resp.items) {
+                  if (ctx.isTooShort(item)) continue;
+                  if (_shouldSkipItem(
+                    item,
+                    signal: ctx.signal,
+                    favoriteIds: ctx.favoriteIds,
+                    antiFatigueEnabled: ctx.antiFatigueEnabled,
+                    recentlyShownIds: ctx.recentlyShownIds,
+                    userRatingEnabled: ctx.userRatingEnabled,
+                    userRatingMin: ctx.userRatingMin,
+                  )) continue;
+                  if (seenIds.add(item.id)) {
+                    queues[_sourceRecommendations]?.add(RecommendItem(
+                        item: item, source: RecommendSource.recommendations));
+                  }
+                }
+              } catch (e) {
+                AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
+              }
+            })
+        .toList();
     await _runWithConcurrencyLimit(tasks);
   }
 
@@ -853,39 +883,41 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     if (serverUrl == null || token == null) return [];
     final results = <RecommendItem>[];
     // 并发限制：最多同时请求 _maxConcurrentRequests 个库
-    final tasks = ctx.selectedIds.map((libId) => () async {
-      try {
-        final resp = await ctx.repo.getRecommendations(
-          libraryId: libId,
-          limit: _pageSize,
-          offset: 0,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-          minCommunityRating: minCommunityRating,
-          excludePlayed: ctx.excludePlayed,
-          includeItemTypes: ctx.includeTypes,
-        );
-        for (final item in resp.items) {
-          if (ctx.isTooShort(item)) continue;
-          if (_shouldSkipItem(
-            item,
-            signal: ctx.signal,
-            favoriteIds: ctx.favoriteIds,
-            antiFatigueEnabled: ctx.antiFatigueEnabled,
-            recentlyShownIds: ctx.recentlyShownIds,
-            userRatingEnabled: ctx.userRatingEnabled,
-            userRatingMin: ctx.userRatingMin,
-          )) continue;
-          if (seenIds.add(item.id)) {
-            results.add(RecommendItem(
-                item: item, source: RecommendSource.recommendations));
-          }
-        }
-      } catch (e) {
-        AppLogger.error('推荐：冷启动降级加载失败', error: e);
-      }
-    }).toList();
+    final tasks = ctx.selectedIds
+        .map((libId) => () async {
+              try {
+                final resp = await ctx.repo.getRecommendations(
+                  libraryId: libId,
+                  limit: _pageSize,
+                  offset: 0,
+                  serverUrl: serverUrl,
+                  token: token,
+                  userId: userId,
+                  minCommunityRating: minCommunityRating,
+                  excludePlayed: ctx.excludePlayed,
+                  includeItemTypes: ctx.includeTypes,
+                );
+                for (final item in resp.items) {
+                  if (ctx.isTooShort(item)) continue;
+                  if (_shouldSkipItem(
+                    item,
+                    signal: ctx.signal,
+                    favoriteIds: ctx.favoriteIds,
+                    antiFatigueEnabled: ctx.antiFatigueEnabled,
+                    recentlyShownIds: ctx.recentlyShownIds,
+                    userRatingEnabled: ctx.userRatingEnabled,
+                    userRatingMin: ctx.userRatingMin,
+                  )) continue;
+                  if (seenIds.add(item.id)) {
+                    results.add(RecommendItem(
+                        item: item, source: RecommendSource.recommendations));
+                  }
+                }
+              } catch (e) {
+                AppLogger.error('推荐：冷启动降级加载失败', error: e);
+              }
+            })
+        .toList();
     await _runWithConcurrencyLimit(tasks);
     return results;
   }
@@ -1006,6 +1038,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       if (ur == null) return false;
       return ur < userRatingMin;
     }
+
     return isBlacklisted || isRecentlyShown || isUserRatingLow();
   }
 
@@ -1056,6 +1089,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 }
 
 /// 推荐 Provider：与 FeedType / video_list_provider 完全解耦
-final recommendProvider = StateNotifierProvider<RecommendNotifier, RecommendState>(
+final recommendProvider =
+    StateNotifierProvider<RecommendNotifier, RecommendState>(
   (ref) => RecommendNotifier(ref),
 );

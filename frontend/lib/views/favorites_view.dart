@@ -58,7 +58,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     var result = items;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      result = result.where((item) => item.title.toLowerCase().contains(q)).toList();
+      result =
+          result.where((item) => item.title.toLowerCase().contains(q)).toList();
     }
     return _sort(result);
   }
@@ -69,7 +70,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     final sorted = List<MediaItem>.from(items);
     switch (_sortMode) {
       case FavoritesSortMode.nameAsc:
-        sorted.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        sorted.sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
         break;
       case FavoritesSortMode.yearDesc:
         sorted.sort((a, b) {
@@ -170,8 +172,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
           else ...[
             // 排序按钮
             PopupMenuButton<FavoritesSortMode>(
-              icon: Icon(Icons.sort,
-                  color: scheme.onSurfaceVariant, size: 22),
+              icon: Icon(Icons.sort, color: scheme.onSurfaceVariant, size: 22),
               tooltip: '排序',
               onSelected: (mode) => setState(() => _sortMode = mode),
               itemBuilder: (ctx) => [
@@ -182,7 +183,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
               ],
             ),
             IconButton(
-              icon: Icon(Icons.search, color: scheme.onSurfaceVariant, size: 22),
+              icon:
+                  Icon(Icons.search, color: scheme.onSurfaceVariant, size: 22),
               onPressed: totalCount > 0
                   ? () => setState(() => _isSearching = true)
                   : null,
@@ -227,8 +229,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       child: Row(
         children: [
           if (_sortMode == mode)
-            Icon(Icons.check, size: 18,
-                color: Theme.of(context).colorScheme.primary)
+            Icon(Icons.check,
+                size: 18, color: Theme.of(context).colorScheme.primary)
           else
             const SizedBox(width: 18),
           const SizedBox(width: 8),
@@ -294,8 +296,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off,
-                color: scheme.onSurfaceVariant, size: 64),
+            Icon(Icons.search_off, color: scheme.onSurfaceVariant, size: 64),
             const SizedBox(height: 12),
             Text(
               '没有找到「$_searchQuery」',
@@ -422,7 +423,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         child: Text(
           '暂无收藏',
           style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14),
         ),
       );
     }
@@ -531,13 +533,42 @@ class _SectionHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('全部', style: TextStyle(color: scheme.primary, fontSize: 13)),
+                  Text('全部',
+                      style: TextStyle(color: scheme.primary, fontSize: 13)),
                   const SizedBox(width: 2),
                   Icon(Icons.chevron_right, color: scheme.primary, size: 18),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// 撤销取消收藏：重新收藏，失败时提示用户
+///
+/// 取消收藏是乐观更新（UI 立即移除）。撤销时调用 [FavoritesNotifier.toggleFavorite]
+/// 重新收藏。该方法内部已实现"乐观更新 + 失败回滚"，不会向外抛异常：
+/// - 成功：UI 显示"已收藏"，与服务器一致
+/// - 失败：UI 自动回滚到"未收藏"（与服务器一致），仅需向用户提示
+///
+/// 通过 [FavoritesNotifier.isFavorite] 判定撤销结果，避免依赖异常机制。
+/// [messenger] 和 [notifier] 由调用方在 async gap 之前捕获：
+/// - [messenger]：避免取消收藏后卡片被移除导致 [BuildContext] 失效
+/// - [notifier]：避免卡片移除后 [WidgetRef] 被销毁无法访问 provider
+Future<void> _undoUnfavorite(
+  ScaffoldMessengerState messenger,
+  FavoritesNotifier notifier,
+  MediaItem item,
+) async {
+  await notifier.toggleFavorite(item);
+  // isFavorite 为 false 说明服务端调用失败，状态已回滚到"未收藏"
+  if (!notifier.isFavorite(item.id)) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('撤销失败，请重试'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -584,7 +615,7 @@ class _FavoriteCard extends ConsumerWidget {
               height: height,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: scheme.surface.withOpacity(0.25),
+                color: scheme.surface.withValues(alpha: 0.25),
                 border: Border.all(color: scheme.outlineVariant),
               ),
               child: ClipRRect(
@@ -600,9 +631,10 @@ class _FavoriteCard extends ConsumerWidget {
                             httpHeaders: headers.isNotEmpty ? headers : null,
                             memCacheWidth: 400,
                             placeholder: (_, __) => Container(
-                              color: scheme.surface.withOpacity(0.25),
+                              color: scheme.surface.withValues(alpha: 0.25),
                               child: Center(
-                                child: CircularProgressIndicator(color: scheme.primary, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                    color: scheme.primary, strokeWidth: 2),
                               ),
                             ),
                             errorWidget: (_, __, ___) => _PlaceholderIcon(
@@ -620,7 +652,7 @@ class _FavoriteCard extends ConsumerWidget {
                         size: 18,
                         shadows: [
                           Shadow(
-                            color: scheme.onSurface.withOpacity(0.3),
+                            color: scheme.onSurface.withValues(alpha: 0.3),
                             blurRadius: 4,
                           ),
                         ],
@@ -635,7 +667,9 @@ class _FavoriteCard extends ConsumerWidget {
               item.title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: scheme.onSurface, fontSize: 13,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.2,
               ),
@@ -672,7 +706,9 @@ class _FavoriteCard extends ConsumerWidget {
     switch (itemType) {
       case _CardType.movie:
         // 设置播放列表后再跳转
-        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
         break;
       case _CardType.boxSet:
@@ -729,17 +765,19 @@ class _FavoriteCard extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(ctx);
                   // 先执行取消收藏（乐观更新）
-                  ref.read(favoritesProvider.notifier).toggleFavorite(item);
+                  final notifier = ref.read(favoritesProvider.notifier);
+                  notifier.toggleFavorite(item);
+                  // 在 async gap 之前捕获 ScaffoldMessenger 和 notifier，
+                  // 避免取消收藏后卡片被移除导致 context / ref 失效
+                  final messenger = ScaffoldMessenger.of(context);
                   // 弹出 SnackBar 提供撤销
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('已取消收藏「${item.title}」'),
                       action: SnackBarAction(
                         label: '撤销',
-                        onPressed: () {
-                          // 重新收藏
-                          ref.read(favoritesProvider.notifier).toggleFavorite(item);
-                        },
+                        onPressed: () =>
+                            _undoUnfavorite(messenger, notifier, item),
                       ),
                       duration: const Duration(seconds: 5),
                       behavior: SnackBarBehavior.floating,
@@ -754,13 +792,16 @@ class _FavoriteCard extends ConsumerWidget {
                   title: Text('播放', style: TextStyle(color: scheme.onSurface)),
                   onTap: () {
                     Navigator.pop(ctx);
-                    ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+                    ref
+                        .read(playbackListProvider.notifier)
+                        .setPlaybackList(allItems, item.id);
                     context.push('/play/${item.id}', extra: item);
                   },
                 ),
               // 查看详情
               ListTile(
-                leading: Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
+                leading:
+                    Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
                 title: Text('查看详情', style: TextStyle(color: scheme.onSurface)),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -842,8 +883,7 @@ class FavoritesCategoryView extends ConsumerStatefulWidget {
       _FavoritesCategoryViewState();
 }
 
-class _FavoritesCategoryViewState
-    extends ConsumerState<FavoritesCategoryView> {
+class _FavoritesCategoryViewState extends ConsumerState<FavoritesCategoryView> {
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -1006,7 +1046,8 @@ class _FavoritesCategoryViewState
 
     // 人物用宽一些的网格，影片/合集用海报网格
     final crossAxisCount = widget.category == FavoritesCategory.person ? 4 : 3;
-    final aspectRatio = widget.category == FavoritesCategory.person ? 0.7 : 0.65;
+    final aspectRatio =
+        widget.category == FavoritesCategory.person ? 0.7 : 0.65;
     final hasMore = _hasMore(state);
 
     return GridView.builder(
@@ -1081,7 +1122,8 @@ class _GridCard extends ConsumerWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 color: scheme.surfaceContainerHighest,
-                border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+                border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
@@ -1108,7 +1150,8 @@ class _GridCard extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        errorWidget: (_, __, ___) => _gridPlaceholder(category, scheme),
+                        errorWidget: (_, __, ___) =>
+                            _gridPlaceholder(category, scheme),
                       )
                     else
                       _gridPlaceholder(category, scheme),
@@ -1122,7 +1165,7 @@ class _GridCard extends ConsumerWidget {
                         size: 16,
                         shadows: [
                           Shadow(
-                            color: scheme.onSurface.withOpacity(0.3),
+                            color: scheme.onSurface.withValues(alpha: 0.3),
                             blurRadius: 4,
                           ),
                         ],
@@ -1195,7 +1238,9 @@ class _GridCard extends ConsumerWidget {
   void _navigateTo(BuildContext context, WidgetRef ref) {
     switch (category) {
       case FavoritesCategory.movie:
-        ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(allItems, item.id);
         context.push('/play/${item.id}', extra: item);
         break;
       case FavoritesCategory.boxSet:
@@ -1245,15 +1290,18 @@ class _GridCard extends ConsumerWidget {
                 title: Text('取消收藏', style: TextStyle(color: scheme.error)),
                 onTap: () {
                   Navigator.pop(ctx);
-                  ref.read(favoritesProvider.notifier).toggleFavorite(item);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  final notifier = ref.read(favoritesProvider.notifier);
+                  notifier.toggleFavorite(item);
+                  // 在 async gap 之前捕获 ScaffoldMessenger 和 notifier，
+                  // 避免取消收藏后卡片被移除导致 context / ref 失效
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('已取消收藏「${item.title}」'),
                       action: SnackBarAction(
                         label: '撤销',
-                        onPressed: () {
-                          ref.read(favoritesProvider.notifier).toggleFavorite(item);
-                        },
+                        onPressed: () =>
+                            _undoUnfavorite(messenger, notifier, item),
                       ),
                       duration: const Duration(seconds: 5),
                       behavior: SnackBarBehavior.floating,
@@ -1267,12 +1315,15 @@ class _GridCard extends ConsumerWidget {
                   title: Text('播放', style: TextStyle(color: scheme.onSurface)),
                   onTap: () {
                     Navigator.pop(ctx);
-                    ref.read(playbackListProvider.notifier).setPlaybackList(allItems, item.id);
+                    ref
+                        .read(playbackListProvider.notifier)
+                        .setPlaybackList(allItems, item.id);
                     context.push('/play/${item.id}', extra: item);
                   },
                 ),
               ListTile(
-                leading: Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
+                leading:
+                    Icon(Icons.info_outline, color: scheme.onSurfaceVariant),
                 title: Text('查看详情', style: TextStyle(color: scheme.onSurface)),
                 onTap: () {
                   Navigator.pop(ctx);

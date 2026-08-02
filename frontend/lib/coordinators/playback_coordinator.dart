@@ -47,7 +47,8 @@ class PlaybackCoordinator {
   String? _processedInitialItemId;
   Timer? _waitTimer;
 
-  PlaybackCoordinator(this._ref, {bool Function(int targetIndex)? onPageIndexReady})
+  PlaybackCoordinator(this._ref,
+      {bool Function(int targetIndex)? onPageIndexReady})
       : _onPageIndexReady = onPageIndexReady;
 
   // ==================== 预加载协调 ====================
@@ -137,7 +138,9 @@ class PlaybackCoordinator {
   }) {
     if (index < 0 || index >= items.length) return;
     final playingItem = items[index];
-    _ref.read(playbackStateProvider.notifier).setPlaying(playingItem.id, playingItem);
+    _ref
+        .read(playbackStateProvider.notifier)
+        .setPlaying(playingItem.id, playingItem);
   }
 
   /// 清除当前播放状态（用于媒体库切换、退出等场景）
@@ -194,7 +197,8 @@ class PlaybackCoordinator {
   /// 最多约 5 秒（50 次），超时放弃。
   void _waitForInitialItemViaTimer(String itemId, {required int tick}) {
     _waitTimer?.cancel();
-    _waitTimer = Timer(const Duration(milliseconds: kInitialItemPollIntervalMs), () {
+    _waitTimer =
+        Timer(const Duration(milliseconds: kInitialItemPollIntervalMs), () {
       _tickInitialItem(itemId, tick: tick);
     });
   }
@@ -268,4 +272,3 @@ class PlaybackCoordinator {
     _processedInitialItemId = null;
   }
 }
-

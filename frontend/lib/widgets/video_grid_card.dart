@@ -26,7 +26,8 @@ class VideoGridCard extends ConsumerWidget {
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
 
-    final imageUrl = item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 300);
+    final imageUrl =
+        item.thumbnailUrlWithAuth(embyServerUrl, token, maxWidth: 300);
     final progress = item.progressPercent;
     final duration = item.durationSeconds;
 
@@ -34,7 +35,7 @@ class VideoGridCard extends ConsumerWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: scheme.surface.withOpacity(0.3),
+          color: scheme.surface.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
         clipBehavior: Clip.antiAlias,
@@ -106,9 +107,9 @@ class VideoGridCard extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            scheme.surface.withOpacity(0.4),
-            scheme.surface.withOpacity(0.25),
-            scheme.surface.withOpacity(0.4),
+            scheme.surface.withValues(alpha: 0.4),
+            scheme.surface.withValues(alpha: 0.25),
+            scheme.surface.withValues(alpha: 0.4),
           ],
           stops: const [0.0, 0.5, 1.0],
         ),
@@ -116,7 +117,7 @@ class VideoGridCard extends ConsumerWidget {
       child: Center(
         child: Icon(
           Icons.video_library_outlined,
-          color: scheme.onSurfaceVariant.withOpacity(0.5),
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
           size: 40,
         ),
       ),
@@ -128,7 +129,7 @@ class VideoGridCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: scheme.surface.withOpacity(0.87),
+        color: scheme.surface.withValues(alpha: 0.87),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -145,7 +146,7 @@ class VideoGridCard extends ConsumerWidget {
   Widget _buildProgressBar(double progress, ColorScheme scheme) {
     return Container(
       height: 3,
-      color: scheme.onSurface.withOpacity(0.2),
+      color: scheme.onSurface.withValues(alpha: 0.2),
       child: FractionallySizedBox(
         alignment: Alignment.centerLeft,
         widthFactor: progress.clamp(0.0, 1.0),

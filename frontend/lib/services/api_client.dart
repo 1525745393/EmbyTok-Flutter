@@ -120,9 +120,8 @@ class ApiClient {
     final data = e.response?.data;
     String detail = '';
     if (data is Map<String, dynamic>) {
-      detail = (data['detail'] as String?) ??
-          (data['message'] as String?) ??
-          '';
+      detail =
+          (data['detail'] as String?) ?? (data['message'] as String?) ?? '';
     } else if (data is String) {
       detail = data;
     }
@@ -255,7 +254,9 @@ class ApiClient {
               headers: headers,
             )
           : await _request<T>(path,
-              method: 'GET', queryParameters: queryParameters, headers: headers);
+              method: 'GET',
+              queryParameters: queryParameters,
+              headers: headers);
       completer.complete(response);
       return response;
     } catch (e) {
@@ -319,7 +320,8 @@ class ApiClient {
   /// 生成 GET 请求去重 key：baseUrl + token + path + queryParameters + headers
   ///
   /// 加入 headers 防止同路径不同 Accept 类型等场景下错误复用。
-  String _buildDedupeKey(String path, Map<String, dynamic>? queryParameters, Map<String, dynamic>? headers) {
+  String _buildDedupeKey(String path, Map<String, dynamic>? queryParameters,
+      Map<String, dynamic>? headers) {
     final baseUrl = _dio.options.baseUrl;
     final token = _token ?? '';
     final prefix = '$baseUrl|$token|';
@@ -351,7 +353,12 @@ class ApiClient {
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'POST', data: data, queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
+      _request<T>(path,
+          method: 'POST',
+          data: data,
+          queryParameters: queryParameters,
+          headers: headers,
+          cancelToken: cancelToken);
 
   Future<Response<T>> put<T>(
     String path, {
@@ -360,7 +367,12 @@ class ApiClient {
     Map<String, dynamic>? headers,
     CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'PUT', data: data, queryParameters: queryParameters, headers: headers, cancelToken: cancelToken);
+      _request<T>(path,
+          method: 'PUT',
+          data: data,
+          queryParameters: queryParameters,
+          headers: headers,
+          cancelToken: cancelToken);
 
   Future<Response<T>> delete<T>(
     String path, {
@@ -369,5 +381,10 @@ class ApiClient {
     dynamic data,
     CancelToken? cancelToken,
   }) =>
-      _request<T>(path, method: 'DELETE', queryParameters: queryParameters, headers: headers, data: data, cancelToken: cancelToken);
+      _request<T>(path,
+          method: 'DELETE',
+          queryParameters: queryParameters,
+          headers: headers,
+          data: data,
+          cancelToken: cancelToken);
 }
