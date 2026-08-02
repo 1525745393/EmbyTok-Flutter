@@ -1,3 +1,11 @@
+## [2.35.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.1...v2.35.2) (2026-08-02)
+
+
+### Bug Fixes
+
+* **ci:** 升级 Flutter 版本到 3.44.8 与 CI 对齐 ([60852af](https://github.com/1525745393/EmbyTok-Flutter/commit/60852afbedc0e985b3e0300e80a5b2b86a945f84))
+* **ui:** UI 界面全量审查修复 - 严重问题 + 中等问题 ([a36c492](https://github.com/1525745393/EmbyTok-Flutter/commit/a36c492932f063eb9b10cca393f7f4fcd7bfba2f))
+
 ## [2.35.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.0...v2.35.1) (2026-08-02)
 
 
