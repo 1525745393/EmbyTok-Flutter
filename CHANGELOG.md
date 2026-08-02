@@ -1,3 +1,10 @@
+## [2.33.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.33.0...v2.33.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **settings:** 修复设置页面交互反馈与规范问题 ([6cfce03](https://github.com/1525745393/EmbyTok-Flutter/commit/6cfce0378bc74678690c7ea5fdb63cf14eb2356f))
+
 # [2.33.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.32.1...v2.33.0) (2026-08-02)
 
 
