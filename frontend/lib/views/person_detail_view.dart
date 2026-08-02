@@ -490,6 +490,25 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                                     ...people.where(
                                         (p) => p.id != currentActor.id)
                                   ]);
+                        String? currentActorRole;
+                        final idMatchRole = people
+                            ?.where((p) => p.id == currentPerson.id)
+                            .firstOrNull
+                            ?.role;
+                        if (idMatchRole != null && idMatchRole.isNotEmpty) {
+                          currentActorRole = idMatchRole;
+                        } else {
+                          final nameMatchRole = people
+                              ?.where((p) =>
+                                  p.name == currentPerson.title &&
+                                  p.role != null &&
+                                  p.role!.isNotEmpty)
+                              .firstOrNull
+                              ?.role;
+                          if (nameMatchRole != null && nameMatchRole.isNotEmpty) {
+                            currentActorRole = nameMatchRole;
+                          }
+                        }
                         // 用 Padding 模拟 separator 的间距：组内第一个 item top=0，其余 12px
                         return Padding(
                           padding:
@@ -497,7 +516,8 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           child: _WorkTile(
                               key: Key(item.id),
                               item: itemWithActor,
-                              allItems: _works),
+                              allItems: _works,
+                              currentActorRole: currentActorRole),
                         );
                       },
                     ),
@@ -567,8 +587,9 @@ class _AvatarPlaceholder extends StatelessWidget {
 
 class _WorkTile extends ConsumerWidget {
   final MediaItem item;
-  final List<MediaItem> allItems; // 完整列表
-  const _WorkTile({super.key, required this.item, required this.allItems});
+  final List<MediaItem> allItems;
+  final String? currentActorRole;
+  const _WorkTile({super.key, required this.item, required this.allItems, this.currentActorRole});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -630,6 +651,19 @@ class _WorkTile extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (currentActorRole != null && (currentActorRole?.isNotEmpty ?? false)) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      '饰：$currentActorRole',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.primary.withValues(alpha: 0.85),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Text(
                     _yearText,

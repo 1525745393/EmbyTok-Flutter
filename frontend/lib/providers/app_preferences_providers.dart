@@ -458,26 +458,30 @@ class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
     _load();
   }
 
-  // itemId → shownAt 时间戳（秒）；与 state.keys 保持同步
-  final Map<String, int> _shownAtMap = <String, int>{};
+  // itemId → (shownAt 时间戳, entryOrder 添加序号)；与 state.keys 保持同步
+  // entryOrder 用于在 shownAt 相同（同一秒内批量添加）时仍保证严格 FIFO
+  final Map<String, ({int ts, int order})> _shownAtMap = <String, ({int ts, int order})>{};
+  int _nextOrder = 0;
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final list = prefs.getStringList(kStorageKeyRecentlyShownItemIds) ??
         const <String>[];
     _shownAtMap.clear();
+    int order = 0;
     for (final raw in list) {
       // 兼容旧格式：不含 ":" 视为 shownAt=0（始终过期，下次 cleanExpired 清除）
       final colonIdx = raw.lastIndexOf(':');
       if (colonIdx < 0) {
-        _shownAtMap[raw] = 0;
+        _shownAtMap[raw] = (ts: 0, order: order++);
         continue;
       }
       final itemId = raw.substring(0, colonIdx);
       final ts = int.tryParse(raw.substring(colonIdx + 1));
       if (itemId.isEmpty || ts == null) continue;
-      _shownAtMap[itemId] = ts;
+      _shownAtMap[itemId] = (ts: ts, order: order++);
     }
+    _nextOrder = order;
     state = _shownAtMap.keys.toSet();
   }
 
@@ -485,13 +489,17 @@ class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
     if (itemIds.isEmpty) return;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     for (final id in itemIds) {
-      _shownAtMap[id] = now;
+      _shownAtMap[id] = (ts: now, order: _nextOrder++);
     }
-    // 容量限制 500，超过则按 shownAt 升序删除最早的（FIFO）
+    // 容量限制 500，超过则按 (shownAt 升序, entryOrder 升序) 删除最早的（严格 FIFO）
     const int maxCount = 500;
     if (_shownAtMap.length > maxCount) {
       final sortedEntries = _shownAtMap.entries.toList()
-        ..sort((a, b) => a.value.compareTo(b.value));
+        ..sort((a, b) {
+          final cmp = a.value.ts.compareTo(b.value.ts);
+          if (cmp != 0) return cmp;
+          return a.value.order.compareTo(b.value.order);
+        });
       final removeCount = _shownAtMap.length - maxCount;
       for (int i = 0; i < removeCount; i++) {
         _shownAtMap.remove(sortedEntries[i].key);
@@ -503,6 +511,7 @@ class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
 
   Future<void> clear() async {
     _shownAtMap.clear();
+    _nextOrder = 0;
     state = <String>{};
     await _persist();
   }
@@ -514,8 +523,8 @@ class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final threshold = days * 86400;
     final expiredKeys = <String>[];
-    _shownAtMap.forEach((key, shownAt) {
-      if (now - shownAt > threshold) {
+    _shownAtMap.forEach((key, value) {
+      if (now - value.ts > threshold) {
         expiredKeys.add(key);
       }
     });
@@ -529,10 +538,13 @@ class RecentlyShownItemIdsNotifier extends StateNotifier<Set<String>> {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = _shownAtMap.entries
-        .map((e) => '${e.key}:${e.value}')
+    // 持久化时按 order 排序，保证加载后列表顺序与写入一致（去重后仍 FIFO）
+    final list = _shownAtMap.entries.toList()
+      ..sort((a, b) => a.value.order.compareTo(b.value.order));
+    final persisted = list
+        .map((e) => '${e.key}:${e.value.ts}')
         .toList(growable: false);
-    await prefs.setStringList(kStorageKeyRecentlyShownItemIds, list);
+    await prefs.setStringList(kStorageKeyRecentlyShownItemIds, persisted);
   }
 }
 

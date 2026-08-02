@@ -90,6 +90,13 @@ const String kStorageKeyActorsSelectedType = 'embytok_actors_selected_type';
 const String kStorageKeyActorsSelectedTab = 'embytok_actors_selected_tab';
 const String kStorageKeyActorsSearchQuery = 'embytok_actors_search_query';
 const String kStorageKeyActorsScrollOffset = 'embytok_actors_scroll_offset';
+// PR #演员优化：演员列表排序模式 + 网格列数
+// default = Emby 返回的原生顺序 / name = 按首字母 / favoritedAt = 已关注优先并按关注时间（未关注保持原顺序）
+const String kActorsSortDefault = 'default';
+const String kActorsSortName = 'name';
+const String kActorsSortFavoritedAt = 'favoritedAt';
+const String kStorageKeyActorsSortMode = 'embytok_actors_sort_mode';
+const String kStorageKeyActorsGridColumns = 'embytok_actors_grid_columns';
 
 // 登录页：服务器历史 & 记住凭据
 const String kStorageKeyServerHistory = 'embytok_server_history';

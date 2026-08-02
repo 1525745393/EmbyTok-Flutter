@@ -33,6 +33,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   Timer? _scrollSaveTimer;
   Timer? _searchSaveDebounceTimer;
   late final TextEditingController _searchController;
+  String _sortMode = kActorsSortDefault;
+  int _gridColumns = 3;
 
   @override
   void initState() {
@@ -95,6 +97,21 @@ class _ActorsViewState extends ConsumerState<ActorsView>
         _searchController.text = savedSearch;
         ref.read(actorsProvider.notifier).searchActors(savedSearch);
       }
+
+      // 恢复排序模式
+      final savedSortMode = prefs.getString(kStorageKeyActorsSortMode);
+      if (savedSortMode != null &&
+          (savedSortMode == kActorsSortDefault ||
+              savedSortMode == kActorsSortName ||
+              savedSortMode == kActorsSortFavoritedAt)) {
+        _sortMode = savedSortMode;
+      }
+
+      // 恢复网格列数
+      final savedGridColumns = prefs.getInt(kStorageKeyActorsGridColumns);
+      if (savedGridColumns == 3 || savedGridColumns == 4) {
+        _gridColumns = savedGridColumns as int;
+      }
     } catch (_) {}
   }
 
@@ -128,6 +145,22 @@ class _ActorsViewState extends ConsumerState<ActorsView>
         await prefs.setString(kStorageKeyActorsSearchQuery, query);
       } catch (_) {}
     });
+  }
+
+  // 保存排序模式
+  Future<void> _saveSortMode(String mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(kStorageKeyActorsSortMode, mode);
+    } catch (_) {}
+  }
+
+  // 保存网格列数
+  Future<void> _saveGridColumns(int columns) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyActorsGridColumns, columns);
+    } catch (_) {}
   }
 
   // 保存滚动位置（防抖）
@@ -177,6 +210,58 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     final actorsState = ref.read(actorsProvider);
     final isSearchActive = actorsState.searchQuery.isNotEmpty;
     return isSearchActive ? actorsState.searchResults : actorsState.actors;
+  }
+
+  // 排序：default=原顺序，name=按姓名升序，favoritedAt=已关注优先
+  // Dart List.sort 不稳定，通过「原始 index」作为次排序键保证 default/favoritedAt 不打乱后端返回顺序
+  List<Person> _applySort(List<Person> list, Set<String> favIds) {
+    if (_sortMode == kActorsSortDefault) {
+      return list;
+    }
+    final indexed = List.generate(list.length, (i) => MapEntry(i, list[i]));
+    if (_sortMode == kActorsSortName) {
+      indexed.sort((a, b) {
+        final cmp =
+            a.value.name.toLowerCase().compareTo(b.value.name.toLowerCase());
+        return cmp != 0 ? cmp : a.key.compareTo(b.key);
+      });
+    } else if (_sortMode == kActorsSortFavoritedAt) {
+      indexed.sort((a, b) {
+        final aFav = favIds.contains(a.value.id) ? 0 : 1;
+        final bFav = favIds.contains(b.value.id) ? 0 : 1;
+        final cmp = aFav.compareTo(bFav);
+        return cmp != 0 ? cmp : a.key.compareTo(b.key);
+      });
+    }
+    return indexed.map((e) => e.value).toList();
+  }
+
+  // 构建排序模式 FilterChip
+  Widget _buildSortChip(String label, String mode) {
+    final scheme = Theme.of(context).colorScheme;
+    final isSelected = _sortMode == mode;
+
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (!selected) return;
+        setState(() {
+          _sortMode = mode;
+        });
+        _saveSortMode(mode);
+      },
+      backgroundColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      selectedColor: scheme.primaryContainer,
+      labelStyle: TextStyle(
+        color: isSelected ? scheme.onPrimaryContainer : scheme.onSurface,
+        fontSize: 13,
+      ),
+      side: BorderSide.none,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    );
   }
 
   // 导航到演员详情
@@ -244,8 +329,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     return SliverPadding(
       padding: const EdgeInsets.all(16),
       sliver: SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: _gridColumns,
           childAspectRatio: 0.75,
           crossAxisSpacing: 12,
           mainAxisSpacing: 16,
@@ -284,21 +369,24 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     final displayActors =
         isSearchActive ? actorsState.searchResults : actorsState.actors;
 
+    // 应用排序（统一在 displayActors 派生之后，保证搜索态 searchResults 也经过排序）
+    final sortedActors = _applySort(displayActors, actorsState.favoritedIds);
+
     // 各 Tab 过滤后的演员列表
-    final allActors = displayActors;
-    final favoritedActors = displayActors
+    final allActors = sortedActors;
+    final favoritedActors = sortedActors
         .where((a) => actorsState.favoritedIds.contains(a.id))
         .toList();
-    final unfavoritedActors = displayActors
+    final unfavoritedActors = sortedActors
         .where((a) => !actorsState.favoritedIds.contains(a.id))
         .toList();
 
-    // 各 Tab 计数（基于 displayActors，搜索时与搜索结果一致）
-    final allCount = displayActors.length;
-    final favoritedCount = displayActors
+    // 各 Tab 计数（基于 sortedActors，与列表内容一致）
+    final allCount = sortedActors.length;
+    final favoritedCount = sortedActors
         .where((a) => actorsState.favoritedIds.contains(a.id))
         .length;
-    final unfavoritedCount = displayActors
+    final unfavoritedCount = sortedActors
         .where((a) => !actorsState.favoritedIds.contains(a.id))
         .length;
 
@@ -310,7 +398,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
           title: const Text('演员', style: TextStyle(fontSize: 16)),
           pinned: true,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(130),
+            preferredSize: const Size.fromHeight(200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -372,6 +460,45 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                         _buildTypeFilterChip('编剧', 'Writer', actorsState),
                       ],
                     ),
+                  ),
+                ),
+                // 排序 + 网格列数切换
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildSortChip('默认', kActorsSortDefault),
+                          const SizedBox(width: 8),
+                          _buildSortChip('按姓名', kActorsSortName),
+                          const SizedBox(width: 8),
+                          _buildSortChip(
+                              '已关注优先', kActorsSortFavoritedAt),
+                        ],
+                      ),
+                      SegmentedButton<int>(
+                        segments: const [
+                          ButtonSegment(value: 3, label: Text('3列')),
+                          ButtonSegment(value: 4, label: Text('4列')),
+                        ],
+                        selected: {_gridColumns},
+                        onSelectionChanged: (Set<int> newSelection) {
+                          final value = newSelection.first;
+                          setState(() {
+                            _gridColumns = value;
+                          });
+                          _saveGridColumns(value);
+                        },
+                        style: const ButtonStyle(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // TabBar
