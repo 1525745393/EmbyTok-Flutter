@@ -1,3 +1,10 @@
+## [2.35.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.5...v2.35.6) (2026-08-02)
+
+
+### Bug Fixes
+
+* 修复每次重启 APP 重复弹出媒体库选择弹窗 ([67ca5cf](https://github.com/1525745393/EmbyTok-Flutter/commit/67ca5cffcd911cc5f6b7cec35aff788e231dc3f7))
+
 ## [2.35.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.4...v2.35.5) (2026-08-02)
 
 
