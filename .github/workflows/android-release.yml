@@ -55,7 +55,7 @@ jobs:
       - name: 安装 Android NDK 28.2.13676358（jni 插件要求）
         run: |
           echo "📥 安装 NDK 28.2.13676358..."
-          yes | sdkmanager "ndk;28.2.13676358" > /dev/null 2>&1
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
           echo "✅ NDK 安装完成"
 
       - name: 设置 Flutter 3.44.8
