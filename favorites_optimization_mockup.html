@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>EmbyTok · 收藏界面优化方案</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0a0f;
+    --bg-surface: #12121a;
+    --bg-elev: #1a1a26;
+    --accent: #7c5cff;
+    --accent-2: #00d4ff;
+    --accent-warm: #ff6b6b;
+    --text-primary: #f0f0f5;
+    --text-secondary: #a0a0b5;
+    --text-muted: #656580;
+    --border-soft: rgba(255,255,255,0.06);
+  }
+  * { -webkit-font-smoothing: antialiased; }
+  html, body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'DM Sans', 'Noto Sans SC', system-ui, sans-serif;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 10% -10%, rgba(124,92,255,0.18), transparent 50%),
+      radial-gradient(circle at 110% 10%, rgba(0,212,255,0.10), transparent 45%),
+      radial-gradient(circle at 50% 120%, rgba(255,107,107,0.08), transparent 50%);
+    min-height: 100vh;
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #7c5cff 0%, #00d4ff 50%, #ff6b6b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glass {
+    background: rgba(26,26,38,0.55);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--border-soft);
+  }
+  .glass-strong {
+    background: rgba(18,18,26,0.85);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid var(--border-soft);
+  }
+  .tab-btn {
+    transition: all 0.28s cubic-bezier(.4,0,.2,1);
+    position: relative;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(124,92,255,0.2), rgba(0,212,255,0.12));
+    border-color: rgba(124,92,255,0.4);
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(124,92,255,0.15), 0 8px 32px -12px rgba(124,92,255,0.5);
+  }
+  .tab-btn.active::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, #7c5cff, #00d4ff);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  .phone-frame {
+    background: linear-gradient(165deg, #1a1a28 0%, #0f0f18 100%);
+    border-radius: 42px;
+    padding: 12px;
+    box-shadow:
+      0 30px 80px -20px rgba(0,0,0,0.8),
+      0 0 0 1px rgba(255,255,255,0.04),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    position: relative;
+  }
+  .phone-screen {
+    background: var(--bg-surface);
+    border-radius: 32px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 9 / 19.5;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 50;
+  }
+  .status-bar {
+    padding: 48px 24px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .nav-bar-pill {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+  }
+  /* Poster art */
+  .poster {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    aspect-ratio: 2 / 3;
+  }
+  .poster-lg { border-radius: 14px; }
+  .poster::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+  }
+  .poster .title {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 10px 10px;
+    z-index: 2;
+  }
+  .poster .badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 3;
+    background: rgba(255,107,107,0.95);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .p1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .p2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+  .p3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+  .p4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+  .p5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+  .p6 { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+  .p7 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+  .p8 { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+  .p9 { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
+  .p10 { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+  .p11 { background: linear-gradient(135deg, #c471f5 0%, #fa71cd 100%); }
+  .p12 { background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%); }
+  .avatar {
+    aspect-ratio: 1/1;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-secondary);
+  }
+  .chip.active {
+    background: rgba(124,92,255,0.2);
+    border-color: rgba(124,92,255,0.4);
+    color: #cfc3ff;
+  }
+  .fade-in { animation: fadeIn 0.5s ease both; }
+  .slide-up { animation: slideUp 0.6s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .delay-1 { animation-delay: 0.08s; }
+  .delay-2 { animation-delay: 0.16s; }
+  .delay-3 { animation-delay: 0.24s; }
+  .delay-4 { animation-delay: 0.32s; }
+  .stagger > * { animation: slideUp 0.5s cubic-bezier(.2,.8,.2,1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0.04s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.10s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.16s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.28s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.34s; }
+
+  /* Section heading with line */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.12), transparent);
+  }
+  /* comparison table */
+  .cmp-row {
+    transition: background 0.2s;
+  }
+  .cmp-row:hover { background: rgba(255,255,255,0.02); }
+  .cmp-row + .cmp-row { border-top: 1px solid var(--border-soft); }
+  /* tagline label */
+  .label-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .label-a { background: rgba(124,92,255,0.15); color: #b5a2ff; }
+  .label-b { background: rgba(0,212,255,0.15); color: #87e8ff; }
+  .label-c { background: rgba(255,107,107,0.15); color: #ffb0b0; }
+
+  .flow-node {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-soft);
+    font-size: 12px;
+    text-align: center;
+    min-width: 110px;
+  }
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+
+  .accordion-head {
+    cursor: pointer;
+    user-select: none;
+  }
+  .accordion-head .chev {
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  .accordion-head.open .chev { transform: rotate(180deg); }
+  .accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(.4,0,.2,1);
+  }
+  .accordion-body.open {
+    max-height: 2000px;
+  }
+
+  .radio-card {
+    cursor: pointer;
+    transition: all 0.25s;
+    border: 1.5px solid transparent;
+  }
+  .radio-card.selected {
+    border-color: var(--accent);
+    background: rgba(124,92,255,0.08);
+    box-shadow: 0 0 0 4px rgba(124,92,255,0.1);
+  }
+
+  .bulk-bar {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 32px;
+    background: rgba(18,18,26,0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+    z-index: 10;
+  }
+
+  .side-drawer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 78%;
+    height: 100%;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border-soft);
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(.2,.8,.2,1);
+    z-index: 80;
+  }
+  .side-drawer.open { transform: translateX(0); }
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 70;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+
+  .selected-check {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 5;
+    box-shadow: 0 4px 10px -2px rgba(124,92,255,0.6);
+  }
+</style>
+</head>
+<body>
+
+<div class="max-w-[1400px] mx-auto px-6 py-10 md:py-14">
+
+  <!-- Header -->
+  <header class="mb-14 fade-in">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#7c5cff,#00d4ff);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          </div>
+          <span class="text-sm font-semibold tracking-wider text-white/60 uppercase">EmbyTok · UX Review</span>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-3">
+          收藏界面 <span class="gradient-text">优化方案</span>
+        </h1>
+        <p class="text-white/55 max-w-2xl leading-relaxed">
+          针对当前三栏横向滚动布局的浏览效率低、批量操作缺失、信息密度不足等问题，提供三套完整的 UI/UX 重设计方案，包含交互流程图与决策对比矩阵。
+        </p>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button data-view="scheme" class="view-toggle tab-btn active px-4 py-2 rounded-xl text-sm font-semibold border border-white/8">
+          🎨 方案预览
+        </button>
+        <button data-view="compare" class="view-toggle tab-btn px-4 py-2 rounded-xl text-sm font-semibold border border-white/8 text-white/70">
+          📊 对比矩阵
+        </button>
+        <button data-view="flow" class="view-toggle tab-btn px-4 py-2 rounded-xl text-sm font-semibold border border-white/8 text-white/70">
+          🔁 交互流程
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ VIEW: SCHEME PREVIEW ============ -->
+  <section id="view-scheme" class="view-panel">
+
+    <!-- Scheme tabs -->
+    <div class="mb-8 flex flex-wrap gap-3">
+      <button data-scheme="A" class="scheme-tab tab-btn active px-5 py-3 rounded-2xl text-sm font-semibold border border-white/8 text-white/80">
+        <span class="label-tag label-a mr-2">A</span>Tab 切换 · 纵向网格
+      </button>
+      <button data-scheme="B" class="scheme-tab tab-btn px-5 py-3 rounded-2xl text-sm font-semibold border border-white/8 text-white/70">
+        <span class="label-tag label-b mr-2">B</span>纵向堆叠 · 可折叠分组
+      </button>
+      <button data-scheme="C" class="scheme-tab tab-btn px-5 py-3 rounded-2xl text-sm font-semibold border border-white/8 text-white/70">
+        <span class="label-tag label-c mr-2">C</span>分类抽屉 · 网格主视图
+      </button>
+    </div>
+
+    <div class="grid lg:grid-cols-[auto_1fr] gap-10 items-start">
+
+      <!-- Phone mockup -->
+      <div class="flex justify-center">
+        <div class="phone-frame fade-in" style="width:min(380px,92vw);">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+
+            <!-- ============ SCHEME A ============ -->
+            <div id="scheme-A" class="scheme-panel h-full flex flex-col slide-up">
+              <!-- Status bar -->
+              <div class="status-bar">
+                <span>9:41</span>
+                <div class="flex items-center gap-1">
+                  <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6l3-3 3 3M6 7l3-3 3 3M11 8l3-3 3 3"/></svg>
+                  <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="11" height="7" rx="1.5"/><rect x="13" y="4" width="1" height="3" rx="0.5"/></svg>
+                </div>
+              </div>
+
+              <!-- App bar -->
+              <div class="px-4 pb-3 pt-1">
+                <div class="flex items-center justify-between mb-3">
+                  <h2 class="text-[22px] font-bold tracking-tight">收藏</h2>
+                  <div class="flex items-center gap-2">
+                    <button class="w-9 h-9 rounded-full glass flex items-center justify-center text-white/70">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    </button>
+                    <button class="w-9 h-9 rounded-full glass flex items-center justify-center text-white/70">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  <button class="chip active shrink-0 px-3 py-1.5 text-[12px]">🎬 影片 · 248</button>
+                  <button class="chip shrink-0 px-3 py-1.5 text-[12px]">📚 合集 · 36</button>
+                  <button class="chip shrink-0 px-3 py-1.5 text-[12px]">👤 人物 · 54</button>
+                </div>
+
+                <!-- Sort row -->
+                <div class="flex items-center justify-between mt-3 mb-2">
+                  <span class="text-[11px] text-white/45">按添加时间 · 新 → 旧</span>
+                  <div class="flex items-center gap-1">
+                    <button class="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-white/60">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    </button>
+                    <button class="w-7 h-7 rounded-lg bg-white/10 text-white/90 flex items-center justify-center ring-1 ring-white/10">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Grid -->
+              <div class="flex-1 overflow-y-auto px-4 pb-20">
+                <div class="grid grid-cols-3 gap-2 stagger">
+                  <!-- 9 posters -->
+                  <div class="poster p1"><span class="badge">9.2</span><div class="title"><div class="text-[11px] font-semibold leading-tight">星际穿越</div><div class="text-[9px] text-white/60 mt-0.5">2014 · 科幻</div></div></div>
+                  <div class="poster p2"><span class="badge">8.9</span><div class="title"><div class="text-[11px] font-semibold leading-tight">寄生虫</div><div class="text-[9px] text-white/60 mt-0.5">2019 · 剧情</div></div></div>
+                  <div class="poster p3"><span class="badge">9.0</span><div class="title"><div class="text-[11px] font-semibold leading-tight">盗梦空间</div><div class="text-[9px] text-white/60 mt-0.5">2010 · 科幻</div></div></div>
+                  <div class="poster p4"><span class="badge">8.7</span><div class="title"><div class="text-[11px] font-semibold leading-tight">千与千寻</div><div class="text-[9px] text-white/60 mt-0.5">2001 · 动画</div></div></div>
+                  <div class="poster p5"><span class="badge">8.5</span><div class="title"><div class="text-[11px] font-semibold leading-tight">泰坦尼克</div><div class="text-[9px] text-white/60 mt-0.5">1997 · 爱情</div></div></div>
+                  <div class="poster p6"><span class="badge">9.3</span><div class="title"><div class="text-[11px] font-semibold leading-tight">黑暗骑士</div><div class="text-[9px] text-white/60 mt-0.5">2008 · 动作</div></div></div>
+                  <div class="poster p7"><span class="badge">8.4</span><div class="title"><div class="text-[11px] font-semibold leading-tight">请回答1988</div><div class="text-[9px] text-white/60 mt-0.5">2015 · 韩剧</div></div></div>
+                  <div class="poster p8"><span class="badge">8.8</span><div class="title"><div class="text-[11px] font-semibold leading-tight">肖申克</div><div class="text-[9px] text-white/60 mt-0.5">1994 · 剧情</div></div></div>
+                  <div class="poster p9"><span class="badge">8.6</span><div class="title"><div class="text-[11px] font-semibold leading-tight">教父</div><div class="text-[9px] text-white/60 mt-0.5">1972 · 犯罪</div></div></div>
+                </div>
+
+                <!-- Load more -->
+                <div class="flex items-center justify-center py-5">
+                  <div class="flex items-center gap-2 text-[11px] text-white/45">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    加载更多 · 已显示 9/248
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom nav -->
+              <div class="absolute bottom-0 left-0 right-0 pb-5 pt-2 px-4" style="background:linear-gradient(180deg, transparent, var(--bg-surface) 40%);">
+                <div class="flex justify-around items-center glass rounded-2xl py-2.5 px-3">
+                  <div class="flex flex-col items-center gap-0.5 text-white/40">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg>
+                    <span class="text-[9px]">首页</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <span class="text-[9px]">探索</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-0.5" style="color:#7c5cff;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-8.5C.6 9.2 2.7 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3 3.8 0 5.9 4.2 4 7.5C19 16.5 12 21 12 21z"/></svg>
+                    <span class="text-[9px] font-semibold">收藏</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span class="text-[9px]">历史</span>
+                  </div>
+                </div>
+                <div class="nav-bar-pill"></div>
+              </div>
+            </div>
+
+            <!-- ============ SCHEME B ============ -->
+            <div id="scheme-B" class="scheme-panel h-full flex flex-col hidden">
+              <div class="status-bar">
+                <span>9:41</span>
+                <div class="flex items-center gap-1">
+                  <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6l3-3 3 3M6 7l3-3 3 3M11 8l3-3 3 3"/></svg>
+                  <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="11" height="7" rx="1.5"/><rect x="13" y="4" width="1" height="3" rx="0.5"/></svg>
+                </div>
+              </div>
+
+              <div class="px-4 pb-2 pt-1">
+                <div class="flex items-center justify-between mb-3">
+                  <h2 class="text-[22px] font-bold tracking-tight">我的收藏</h2>
+                  <button class="chip text-[11px]" id="toggle-edit-B">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4z"/></svg>
+                    批量管理
+                  </button>
+                </div>
+
+                <!-- Search -->
+                <div class="flex items-center gap-2 glass rounded-xl px-3 py-2 mb-3">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-white/45"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  <input placeholder="搜索收藏的影片、合集、人物" class="bg-transparent outline-none text-[12px] flex-1 text-white/80 placeholder:text-white/30">
+                </div>
+
+                <!-- Stats bar -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                  <div class="glass rounded-xl py-2 px-2 text-center">
+                    <div class="text-[15px] font-bold text-white">248</div>
+                    <div class="text-[9px] text-white/50">收藏影片</div>
+                  </div>
+                  <div class="glass rounded-xl py-2 px-2 text-center">
+                    <div class="text-[15px] font-bold" style="color:#00d4ff;">36</div>
+                    <div class="text-[9px] text-white/50">收藏合集</div>
+                  </div>
+                  <div class="glass rounded-xl py-2 px-2 text-center">
+                    <div class="text-[15px] font-bold" style="color:#ff6b6b;">54</div>
+                    <div class="text-[9px] text-white/50">收藏人物</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scrollable stacks -->
+              <div class="flex-1 overflow-y-auto px-4 pb-20">
+                <div class="space-y-4">
+                  <!-- Section: 影片 -->
+                  <div>
+                    <div class="accordion-head flex items-center justify-between py-1.5 mb-2 open" data-acc="movies">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:rgba(124,92,255,0.2);color:#b5a2ff;">🎬</div>
+                        <div>
+                          <div class="text-[13px] font-bold">收藏影片</div>
+                          <div class="text-[10px] text-white/45">248 部 · 最近添加 2 小时前</div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-white/40">评分 ↓</span>
+                        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-white/50"><polyline points="6 9 12 15 18 9"/></svg>
+                      </div>
+                    </div>
+                    <div class="accordion-body open" data-acc-body="movies">
+                      <div class="grid grid-cols-3 gap-2 stagger">
+                        <div class="poster p6"><span class="badge">9.3</span><div class="title"><div class="text-[11px] font-semibold leading-tight">黑暗骑士</div></div></div>
+                        <div class="poster p1"><span class="badge">9.2</span><div class="title"><div class="text-[11px] font-semibold leading-tight">星际穿越</div></div></div>
+                        <div class="poster p3"><span class="badge">9.0</span><div class="title"><div class="text-[11px] font-semibold leading-tight">盗梦空间</div></div></div>
+                        <div class="poster p2"><span class="badge">8.9</span><div class="title"><div class="text-[11px] font-semibold leading-tight">寄生虫</div></div></div>
+                        <div class="poster p8"><span class="badge">8.8</span><div class="title"><div class="text-[11px] font-semibold leading-tight">肖申克</div></div></div>
+                        <div class="poster poster-more rounded-lg flex items-center justify-center text-[11px] font-semibold text-white/70" style="background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.1); aspect-ratio:2/3;">
+                          +242
+                        </div>
+                      </div>
+                      <button class="mt-2 w-full text-[11px] text-white/50 py-1.5 hover:text-white/80 transition">查看全部 248 部 →</button>
+                    </div>
+                  </div>
+
+                  <!-- Section: 合集 -->
+                  <div>
+                    <div class="accordion-head flex items-center justify-between py-1.5 mb-2" data-acc="series">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:rgba(0,212,255,0.15);color:#87e8ff;">📚</div>
+                        <div>
+                          <div class="text-[13px] font-bold">收藏合集</div>
+                          <div class="text-[10px] text-white/45">36 个系列 · 1180 集</div>
+                        </div>
+                      </div>
+                      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-white/50"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="accordion-body" data-acc-body="series">
+                      <div class="space-y-2 stagger">
+                        <div class="flex gap-3 p-2 rounded-xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+                          <div class="w-16 h-16 rounded-lg p10 shrink-0 flex items-center justify-center font-bold text-white">HP</div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-[12px] font-semibold">哈利·波特 全集</div>
+                            <div class="text-[10px] text-white/45 mt-0.5">8 部影片 · 奇幻冒险</div>
+                            <div class="flex gap-1 mt-1.5">
+                              <span class="chip" style="padding:1px 6px; font-size:9px;">未看 2</span>
+                              <span class="chip" style="padding:1px 6px; font-size:9px;">⭐ 8.7</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="flex gap-3 p-2 rounded-xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+                          <div class="w-16 h-16 rounded-lg p11 shrink-0 flex items-center justify-center font-bold text-white">MCU</div>
+                          <div class="flex-1 min-w-0">
+                            <div class="text-[12px] font-semibold">漫威电影宇宙</div>
+                            <div class="text-[10px] text-white/45 mt-0.5">30 部 · 科幻动作</div>
+                            <div class="flex gap-1 mt-1.5">
+                              <span class="chip" style="padding:1px 6px; font-size:9px;">进度 65%</span>
+                              <span class="chip" style="padding:1px 6px; font-size:9px;">⭐ 8.3</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Section: 人物 -->
+                  <div>
+                    <div class="accordion-head flex items-center justify-between py-1.5 mb-2" data-acc="people">
+                      <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-lg flex items-center justify-center" style="background:rgba(255,107,107,0.15);color:#ffb0b0;">👤</div>
+                        <div>
+                          <div class="text-[13px] font-bold">收藏人物</div>
+                          <div class="text-[10px] text-white/45">54 位演员 / 导演</div>
+                        </div>
+                      </div>
+                      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-white/50"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="accordion-body" data-acc-body="people">
+                      <div class="grid grid-cols-4 gap-2 stagger">
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="avatar w-14 p12">LN</div>
+                          <div class="text-[9px] font-medium text-white/80 text-center leading-tight">莱昂纳多</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="avatar w-14 p5">HN</div>
+                          <div class="text-[9px] font-medium text-white/80 text-center leading-tight">宫崎骏</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="avatar w-14 p4">TN</div>
+                          <div class="text-[9px] font-medium text-white/80 text-center leading-tight">诺兰</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                          <div class="avatar w-14 flex items-center justify-center text-[11px] text-white/60" style="background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.1);">+51</div>
+                          <div class="text-[9px] font-medium text-white/50 text-center leading-tight">更多</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bulk bar (hidden initially) -->
+              <div class="bulk-bar hidden" id="bulk-bar-B">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background:rgba(124,92,255,0.2); color:#b5a2ff; font-size:12px; font-weight:700;">5</div>
+                  <span class="text-[12px] font-semibold">已选择 5 项</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70" title="移动到合集">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+                  </button>
+                  <button class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70" title="批量下载">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                  <button class="px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center gap-1" style="background:rgba(255,107,107,0.18); color:#ffb0b0;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14H7L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                    取消收藏
+                  </button>
+                </div>
+              </div>
+
+              <div class="absolute bottom-0 left-0 right-0 pb-5 pt-2 px-4" style="background:linear-gradient(180deg, transparent, var(--bg-surface) 40%);">
+                <div class="flex justify-around items-center glass rounded-2xl py-2.5 px-3">
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg><span class="text-[9px]">首页</span></div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span class="text-[9px]">探索</span></div>
+                  <div class="flex flex-col items-center gap-0.5" style="color:#7c5cff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-8.5C.6 9.2 2.7 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3 3.8 0 5.9 4.2 4 7.5C19 16.5 12 21 12 21z"/></svg><span class="text-[9px] font-semibold">收藏</span></div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="text-[9px]">历史</span></div>
+                </div>
+                <div class="nav-bar-pill"></div>
+              </div>
+            </div>
+
+            <!-- ============ SCHEME C ============ -->
+            <div id="scheme-C" class="scheme-panel h-full flex flex-col hidden relative overflow-hidden">
+              <!-- Scrim -->
+              <div class="scrim" id="scrim-C"></div>
+              <!-- Drawer -->
+              <aside class="side-drawer flex flex-col" id="drawer-C">
+                <div class="px-4 pt-12 pb-3" style="border-bottom:1px solid var(--border-soft);">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-[16px] font-bold">分类筛选</h3>
+                    <button class="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-white/60" id="close-drawer">✕</button>
+                  </div>
+                  <div class="flex items-center gap-2 glass rounded-xl px-3 py-2">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-white/45"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input placeholder="搜索分类..." class="bg-transparent outline-none text-[11px] flex-1 text-white/80 placeholder:text-white/30">
+                  </div>
+                </div>
+                <div class="flex-1 overflow-y-auto px-3 py-3">
+                  <!-- Category group: 类型 -->
+                  <div class="mb-4">
+                    <div class="text-[10px] font-bold text-white/35 uppercase tracking-wider mb-2 px-1">类型</div>
+                    <div class="space-y-0.5">
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2 selected" data-radio>
+                        <span class="text-[13px]">🎬 全部类型</span>
+                        <span class="ml-auto text-[10px] text-white/40">338</span>
+                      </label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio>
+                        <span class="text-[13px]">🚀 科幻 · 58</span>
+                      </label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio>
+                        <span class="text-[13px]">🎭 剧情 · 64</span>
+                      </label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio>
+                        <span class="text-[13px]">💖 爱情 · 32</span>
+                      </label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio>
+                        <span class="text-[13px]">🎬 动画 · 46</span>
+                      </label>
+                    </div>
+                  </div>
+                  <!-- Category group: 年代 -->
+                  <div class="mb-4">
+                    <div class="text-[10px] font-bold text-white/35 uppercase tracking-wider mb-2 px-1">年代</div>
+                    <div class="flex flex-wrap gap-1.5 px-1">
+                      <span class="chip active">全部</span>
+                      <span class="chip">2020s</span>
+                      <span class="chip">2010s</span>
+                      <span class="chip">2000s</span>
+                      <span class="chip">90s</span>
+                      <span class="chip">更早</span>
+                    </div>
+                  </div>
+                  <!-- Category group: 评分 -->
+                  <div class="mb-4">
+                    <div class="text-[10px] font-bold text-white/35 uppercase tracking-wider mb-2 px-1">最低评分</div>
+                    <div class="px-2">
+                      <div class="h-1.5 rounded-full bg-white/10 relative">
+                        <div class="absolute left-0 top-0 h-full rounded-full" style="width:70%; background:linear-gradient(90deg,#7c5cff,#00d4ff);"></div>
+                        <div class="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-lg" style="left:70%; transform:translate(-50%,-50%); box-shadow:0 2px 8px rgba(124,92,255,0.6);"></div>
+                      </div>
+                      <div class="flex justify-between text-[9px] text-white/40 mt-1.5"><span>0</span><span class="text-white/70 font-semibold">≥ 7.0</span><span>10</span></div>
+                    </div>
+                  </div>
+                  <!-- Category group: 观看进度 -->
+                  <div class="mb-4">
+                    <div class="text-[10px] font-bold text-white/35 uppercase tracking-wider mb-2 px-1">观看进度</div>
+                    <div class="space-y-0.5">
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio><span class="text-[12px]">全部进度</span></label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2 selected" data-radio><span class="text-[12px]">🆕 未观看 · 124</span></label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio><span class="text-[12px]">⏸ 观看中 · 58</span></label>
+                      <label class="radio-card flex items-center gap-2 rounded-xl px-2.5 py-2" data-radio><span class="text-[12px]">✅ 已看完 · 156</span></label>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-3" style="border-top:1px solid var(--border-soft);">
+                  <div class="grid grid-cols-2 gap-2">
+                    <button class="py-2 rounded-xl text-[11px] font-semibold text-white/60 border border-white/10">重置</button>
+                    <button class="py-2 rounded-xl text-[11px] font-semibold text-white" style="background:linear-gradient(135deg,#7c5cff,#00d4ff);">应用 (23)</button>
+                  </div>
+                </div>
+              </aside>
+
+              <!-- Main content -->
+              <div class="flex-1 flex flex-col relative z-0">
+                <div class="status-bar">
+                  <span>9:41</span>
+                  <div class="flex items-center gap-1">
+                    <svg width="16" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6l3-3 3 3M6 7l3-3 3 3M11 8l3-3 3 3"/></svg>
+                    <svg width="15" height="11" viewBox="0 0 15 11" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="11" height="7" rx="1.5"/><rect x="13" y="4" width="1" height="3" rx="0.5"/></svg>
+                  </div>
+                </div>
+
+                <div class="px-4 pb-2 pt-1">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                      <button class="w-9 h-9 rounded-full glass flex items-center justify-center text-white/70" id="open-drawer">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+                      </button>
+                      <div>
+                        <h2 class="text-[18px] font-bold leading-none">收藏库</h2>
+                        <div class="text-[10px] text-white/45 mt-0.5">🎬 未观看 · 评分 ≥ 7.0</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <button class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                      </button>
+                      <button class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/70">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Active filters -->
+                  <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-2">
+                    <span class="chip shrink-0 text-[10px] flex items-center gap-1">
+                      🆕 未观看
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </span>
+                    <span class="chip shrink-0 text-[10px] flex items-center gap-1" style="background:rgba(0,212,255,0.12); border-color:rgba(0,212,255,0.25); color:#87e8ff;">
+                      ⭐ ≥ 7.0
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </span>
+                    <span class="chip shrink-0 text-[10px] text-white/50 border-dashed">
+                      + 添加筛选
+                    </span>
+                    <span class="ml-auto shrink-0 text-[10px] text-white/45 self-center">共 23 项</span>
+                  </div>
+                </div>
+
+                <!-- Main grid -->
+                <div class="flex-1 overflow-y-auto px-3 pb-20">
+                  <div class="grid grid-cols-2 gap-2 stagger">
+                    <!-- Large cards -->
+                    <div class="relative">
+                      <div class="poster poster-lg p1"><span class="badge">9.2</span><div class="title"><div class="text-[13px] font-bold leading-tight">星际穿越</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">2014 · 科幻 <span class="ml-auto">⏱ 169 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                    <div class="relative">
+                      <div class="selected-check">✓</div>
+                      <div class="poster poster-lg p2"><span class="badge">8.9</span><div class="title"><div class="text-[13px] font-bold leading-tight">寄生虫</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">2019 · 剧情 <span class="ml-auto">⏱ 132 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                    <div class="relative">
+                      <div class="selected-check">2</div>
+                      <div class="poster poster-lg p3"><span class="badge">9.0</span><div class="title"><div class="text-[13px] font-bold leading-tight">盗梦空间</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">2010 · 科幻 <span class="ml-auto">⏱ 148 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                    <div class="relative">
+                      <div class="poster poster-lg p4"><span class="badge">8.7</span><div class="title"><div class="text-[13px] font-bold leading-tight">千与千寻</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">2001 · 动画 <span class="ml-auto">⏱ 125 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                    <div class="relative">
+                      <div class="poster poster-lg p5"><span class="badge">8.5</span><div class="title"><div class="text-[13px] font-bold leading-tight">泰坦尼克号</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">1997 · 爱情 <span class="ml-auto">⏱ 194 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                    <div class="relative">
+                      <div class="poster poster-lg p6"><span class="badge">9.3</span><div class="title"><div class="text-[13px] font-bold leading-tight">黑暗骑士</div><div class="text-[10px] text-white/65 mt-1 flex items-center gap-1">2008 · 动作 <span class="ml-auto">⏱ 152 分钟</span></div><div class="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden"><div class="h-full" style="width:0%;background:#7c5cff;"></div></div></div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Multi-select bottom bar (always visible in scheme C) -->
+                <div class="absolute left-3 right-3 bottom-[76px] glass rounded-2xl py-2 px-3 flex items-center justify-between" id="select-bar-C">
+                  <div class="flex items-center gap-2">
+                    <button class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(124,92,255,0.18); color:#b5a2ff;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                    <div>
+                      <div class="text-[11px] font-semibold">选择模式</div>
+                      <div class="text-[9px] text-white/45">长按卡片进入多选</div>
+                    </div>
+                  </div>
+                  <div class="flex gap-1.5">
+                    <button class="chip text-[10px] px-2.5 py-1" style="border-color:rgba(124,92,255,0.4); color:#b5a2ff; background:rgba(124,92,255,0.12);">全部</button>
+                    <button class="chip text-[10px] px-2.5 py-1">清除</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="absolute bottom-0 left-0 right-0 pb-5 pt-2 px-4 z-10" style="background:linear-gradient(180deg, transparent, var(--bg-surface) 40%);">
+                <div class="flex justify-around items-center glass rounded-2xl py-2.5 px-3">
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1z"/></svg><span class="text-[9px]">首页</span></div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><span class="text-[9px]">探索</span></div>
+                  <div class="flex flex-col items-center gap-0.5" style="color:#7c5cff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-8.5C.6 9.2 2.7 5 6.5 5c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3 3.8 0 5.9 4.2 4 7.5C19 16.5 12 21 12 21z"/></svg><span class="text-[9px] font-semibold">收藏</span></div>
+                  <div class="flex flex-col items-center gap-0.5 text-white/40"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="text-[9px]">历史</span></div>
+                </div>
+                <div class="nav-bar-pill"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: scheme detail cards -->
+      <div id="scheme-detail" class="space-y-5">
+        <!-- Scheme A detail -->
+        <div data-detail="A" class="glass-strong rounded-3xl p-6 slide-up delay-1">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="label-tag label-a">方案 A</span>
+              <h3 class="text-xl font-bold">Tab 切换 · 纵向网格</h3>
+            </div>
+            <span class="chip" style="background:rgba(124,92,255,0.15); color:#b5a2ff; border-color:rgba(124,92,255,0.3);">✅ 推荐</span>
+          </div>
+          <p class="text-white/65 text-sm leading-relaxed mb-5">
+            采用顶部 Tab 在「影片/合集/人物」三类间切换，主区域使用 3 列纵向网格铺满屏幕，支持无限滚动。
+            交互简单直观，适合<strong class="text-white/90">快速浏览 & 高频查找</strong>，是主流移动端收藏页的黄金范式。
+          </p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-2xl" style="background:rgba(67,233,123,0.06); border:1px solid rgba(67,233,123,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#86efac;">✨ 优势</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 一屏展示最多卡片（3×N 密度）</li>
+                <li>· 学习成本最低，主流用户习惯</li>
+                <li>· Tab 切换即时响应，零延迟</li>
+                <li>· 工程实现简单，风险低</li>
+              </ul>
+            </div>
+            <div class="p-3 rounded-2xl" style="background:rgba(255,107,107,0.06); border:1px solid rgba(255,107,107,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#fca5a5;">⚠️ 不足</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 跨分类对比需来回切 Tab</li>
+                <li>· 批量管理入口较深</li>
+                <li>· 筛选维度受限（顶部空间）</li>
+              </ul>
+            </div>
+          </div>
+          <div class="mt-5 flex items-center gap-2 flex-wrap">
+            <div class="section-title w-full mb-1"><span class="text-[11px] font-bold uppercase tracking-wider text-white/40">核心改动点</span></div>
+            <div class="chip text-[11px]">TabBar 替代三栏结构</div>
+            <div class="chip text-[11px]">3列纵向网格</div>
+            <div class="chip text-[11px]">搜索/菜单 AppBar</div>
+            <div class="chip text-[11px]">视图切换（网格/列表）</div>
+          </div>
+        </div>
+
+        <!-- Scheme B detail -->
+        <div data-detail="B" class="glass-strong rounded-3xl p-6 slide-up delay-2 hidden">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="label-tag label-b">方案 B</span>
+            <h3 class="text-xl font-bold">纵向堆叠 · 可折叠分组</h3>
+          </div>
+          <p class="text-white/65 text-sm leading-relaxed mb-5">
+            将三类内容以<strong class="text-white/90">可折叠卡片组</strong>纵向堆叠，配合统计概览 + 搜索 + 批量管理。
+            适合重度用户「<strong class="text-white/90">一站式纵览全局</strong>」，快速判断某类是否有更新或需要处理。
+          </p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-2xl" style="background:rgba(67,233,123,0.06); border:1px solid rgba(67,233,123,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#86efac;">✨ 优势</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 所有分类一览无余</li>
+                <li>· 折叠支持灵活控制密度</li>
+                <li>· 批量操作入口突出</li>
+                <li>· 统计卡片提供收藏总览</li>
+              </ul>
+            </div>
+            <div class="p-3 rounded-2xl" style="background:rgba(255,107,107,0.06); border:1px solid rgba(255,107,107,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#fca5a5;">⚠️ 不足</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 内容多时滚动较长</li>
+                <li>· 折叠交互增加步骤</li>
+                <li>· 工程复杂度中等</li>
+              </ul>
+            </div>
+          </div>
+          <div class="mt-5 flex items-center gap-2 flex-wrap">
+            <div class="section-title w-full mb-1"><span class="text-[11px] font-bold uppercase tracking-wider text-white/40">核心改动点</span></div>
+            <div class="chip text-[11px]">统计概览卡</div>
+            <div class="chip text-[11px]">可折叠分组</div>
+            <div class="chip text-[11px]">批量底部操作栏</div>
+            <div class="chip text-[11px]">「查看全部」二级页</div>
+          </div>
+        </div>
+
+        <!-- Scheme C detail -->
+        <div data-detail="C" class="glass-strong rounded-3xl p-6 slide-up delay-3 hidden">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="label-tag label-c">方案 C</span>
+            <h3 class="text-xl font-bold">分类抽屉 · 网格主视图</h3>
+          </div>
+          <p class="text-white/65 text-sm leading-relaxed mb-5">
+            借鉴文件管理器与音乐库的思路，左侧<strong class="text-white/90">抽屉式分类树</strong>提供多维度筛选
+            （类型/年代/评分/观看进度/标签），主视图 2 列<strong class="text-white/90">大卡片网格</strong>突出信息密度。
+            面向<strong class="text-white/90">重度收藏用户（>500 项）</strong>的精细化管理方案。
+          </p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-2xl" style="background:rgba(67,233,123,0.06); border:1px solid rgba(67,233,123,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#86efac;">✨ 优势</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 多维度精细筛选（最强）</li>
+                <li>· 活动筛选条件可视化</li>
+                <li>· 大卡片信息更完整</li>
+                <li>· 选择模式常驻，批量高效</li>
+              </ul>
+            </div>
+            <div class="p-3 rounded-2xl" style="background:rgba(255,107,107,0.06); border:1px solid rgba(255,107,107,0.15);">
+              <div class="text-[11px] font-bold uppercase tracking-wider mb-1.5" style="color:#fca5a5;">⚠️ 不足</div>
+              <ul class="space-y-1 text-[12px] text-white/70 leading-relaxed">
+                <li>· 初次学习成本较高</li>
+                <li>· 抽屉操作多一步</li>
+                <li>· 工程工作量最大</li>
+                <li>· 小屏可能显得拥挤</li>
+              </ul>
+            </div>
+          </div>
+          <div class="mt-5 flex items-center gap-2 flex-wrap">
+            <div class="section-title w-full mb-1"><span class="text-[11px] font-bold uppercase tracking-wider text-white/40">核心改动点</span></div>
+            <div class="chip text-[11px]">侧边抽屉筛选</div>
+            <div class="chip text-[11px]">活动筛选胶囊</div>
+            <div class="chip text-[11px]">2列大卡片+进度条</div>
+            <div class="chip text-[11px]">选择模式常驻栏</div>
+          </div>
+        </div>
+
+        <!-- Interactive demo tips -->
+        <div class="glass rounded-2xl p-4 slide-up delay-4">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center" style="background:rgba(0,212,255,0.15); color:#87e8ff;">
+              💡
+            </div>
+            <div>
+              <div class="text-sm font-semibold mb-0.5">交互演示操作说明</div>
+              <div class="text-[12px] text-white/55 leading-relaxed">
+                方案 B：点击「批量管理」可显示底部操作栏；点击<strong>分组标题</strong>可折叠/展开分组。<br>
+                方案 C：点击左上角<strong>☰ 菜单图标</strong>可呼出分类抽屉；抽屉内的筛选条件已模拟选中态。
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: COMPARE ============ -->
+  <section id="view-compare" class="view-panel hidden">
+    <div class="glass-strong rounded-3xl p-6 md:p-8 fade-in">
+      <div class="flex flex-wrap items-end justify-between mb-6 gap-4">
+        <div>
+          <div class="label-tag label-a mb-2">对比矩阵</div>
+          <h2 class="text-2xl md:text-3xl font-bold">三方案综合决策对比</h2>
+        </div>
+        <div class="text-[12px] text-white/50">10 维度 · 5 分制 · 基于项目用户画像加权</div>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-white/5">
+        <table class="w-full min-w-[780px]">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.02);">
+              <th class="text-left p-3 text-[11px] font-bold uppercase tracking-wider text-white/40">评估维度</th>
+              <th class="p-3 text-[11px] font-bold text-left">
+                <span class="label-tag label-a">A · Tab 网格</span>
+              </th>
+              <th class="p-3 text-[11px] font-bold text-left">
+                <span class="label-tag label-b">B · 堆叠折叠</span>
+              </th>
+              <th class="p-3 text-[11px] font-bold text-left">
+                <span class="label-tag label-c">C · 抽屉筛选</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">🔍 查找效率</td>
+              <td class="p-3"><ScoreBar v="4.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">高频浏览最快</span></td>
+              <td class="p-3"><ScoreBar v="3.5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">需展开</span></td>
+              <td class="p-3"><ScoreBar v="5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">多维度过滤最强</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">📖 学习成本</td>
+              <td class="p-3"><ScoreBar v="5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">主流用户习惯</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">折叠概念简单</span></td>
+              <td class="p-3"><ScoreBar v="3" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">抽屉+筛选学习</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">📊 信息密度</td>
+              <td class="p-3"><ScoreBar v="4.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">3列紧凑</span></td>
+              <td class="p-3"><ScoreBar v="3.5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">折叠后低</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">2列大卡</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">🧰 批量管理</td>
+              <td class="p-3"><ScoreBar v="2.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">入口深</span></td>
+              <td class="p-3"><ScoreBar v="4.5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">入口突出</span></td>
+              <td class="p-3"><ScoreBar v="5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">选择模式常驻</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">🎯 跨分类对比</td>
+              <td class="p-3"><ScoreBar v="2.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">来回切Tab</span></td>
+              <td class="p-3"><ScoreBar v="5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">一屏纵览</span></td>
+              <td class="p-3"><ScoreBar v="3" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">每次重筛</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">⚡ 渲染性能</td>
+              <td class="p-3"><ScoreBar v="5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">builder复用</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">多列表嵌套</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">大卡略重</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">📱 单手可达性</td>
+              <td class="p-3"><ScoreBar v="4.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">Tab居上可优化</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">分组折叠区高</span></td>
+              <td class="p-3"><ScoreBar v="3.5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">抽屉左上</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">🔧 工程工作量</td>
+              <td class="p-3"><ScoreBar v="5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">~3天 · 低风险</span></td>
+              <td class="p-3"><ScoreBar v="3.5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">~5天 · 中风险</span></td>
+              <td class="p-3"><ScoreBar v="2.5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">~8天 · 高风险</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">🚀 扩展性（未来）</td>
+              <td class="p-3"><ScoreBar v="3.5" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">Tab数有限</span></td>
+              <td class="p-3"><ScoreBar v="4" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">分组可增</span></td>
+              <td class="p-3"><ScoreBar v="5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">维度任意加</span></td>
+            </tr>
+            <tr class="cmp-row">
+              <td class="p-3 text-[12px] text-white/80 font-medium">❤️ 用户愉悦感</td>
+              <td class="p-3"><ScoreBar v="4" c="#7c5cff"/><span class="text-[10px] text-white/50 ml-2">熟悉流畅</span></td>
+              <td class="p-3"><ScoreBar v="4.5" c="#00d4ff"/><span class="text-[10px] text-white/50 ml-2">信息获得感高</span></td>
+              <td class="p-3"><ScoreBar v="4.5" c="#ff6b6b"/><span class="text-[10px] text-white/50 ml-2">专业感强</span></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:rgba(124,92,255,0.06);">
+              <td class="p-3 text-[12px] font-bold text-white">💯 加权总分</td>
+              <td class="p-3">
+                <div class="text-lg font-bold" style="color:#b5a2ff;">41 / 50 ⭐</div>
+                <div class="text-[10px] text-white/50">适合 < 1000 项的 80% 用户</div>
+              </td>
+              <td class="p-3">
+                <div class="text-lg font-bold" style="color:#87e8ff;">40.5 / 50</div>
+                <div class="text-[10px] text-white/50">适合偏爱全局纵览的用户</div>
+              </td>
+              <td class="p-3">
+                <div class="text-lg font-bold" style="color:#ffb0b0;">39.5 / 50</div>
+                <div class="text-[10px] text-white/50">适合 >500 项的重度管理者</div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Recommendation -->
+      <div class="mt-8 grid md:grid-cols-3 gap-4">
+        <div class="p-5 rounded-2xl slide-up delay-1" style="background:linear-gradient(135deg, rgba(124,92,255,0.15), rgba(124,92,255,0.03)); border:1px solid rgba(124,92,255,0.25);">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(124,92,255,0.3);">🥇</div>
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider" style="color:#b5a2ff;">首选推荐</div>
+              <div class="text-lg font-bold">方案 A · Tab 网格</div>
+            </div>
+          </div>
+          <ul class="text-[12px] text-white/70 space-y-1 leading-relaxed">
+            <li>✓ 性价比最高，符合项目阶段</li>
+            <li>✓ 与短视频主界面气质一致</li>
+            <li>✓ 可先落地再迭代到 C</li>
+          </ul>
+        </div>
+        <div class="p-5 rounded-2xl slide-up delay-2" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(0,212,255,0.2);">🥈</div>
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider" style="color:#87e8ff;">混合进阶</div>
+              <div class="text-lg font-bold">A + B 混合</div>
+            </div>
+          </div>
+          <ul class="text-[12px] text-white/70 space-y-1 leading-relaxed">
+            <li>· 顶部 Tab 选分类（A）</li>
+            <li>· 人物 Tab 内改用堆叠组（B）</li>
+            <li>· 批量管理借自 B 的底部栏</li>
+          </ul>
+        </div>
+        <div class="p-5 rounded-2xl slide-up delay-3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(255,107,107,0.2);">📅</div>
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider" style="color:#ffb0b0;">长期演进</div>
+              <div class="text-lg font-bold">A → A+C → C</div>
+            </div>
+          </div>
+          <ul class="text-[12px] text-white/70 space-y-1 leading-relaxed">
+            <li>· v1 落地 A，快速见效</li>
+            <li>· v2 把 C 的筛选做成入口</li>
+            <li>· v3 根据数据决定是否全面 C</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIEW: FLOW ============ -->
+  <section id="view-flow" class="view-panel hidden">
+    <div class="grid lg:grid-cols-2 gap-6">
+
+      <!-- Current flow (pain points) -->
+      <div class="glass-strong rounded-3xl p-6 md:p-7 fade-in">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(255,107,107,0.18); color:#ffb0b0;">⚠️</div>
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-wider text-white/40">现状</div>
+            <h3 class="text-xl font-bold">当前布局 · 交互痛点链路</h3>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="p-4 rounded-2xl" style="background:rgba(255,107,107,0.04); border:1px solid rgba(255,107,107,0.12);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#fca5a5;">痛点 1 · 跨分类查找</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">进入收藏页<br><span class="text-[10px] text-white/40">3栏同时出现</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(255,107,107,0.08); border-color:rgba(255,107,107,0.2);">影片栏横向滑动<br><span class="text-[10px] text-red-300/80">一屏仅 3-4 张</span></div>
+              <div class="flow-arrow">↓</div>
+              <div class="flow-node">想找合集 → 切到合集栏<br><span class="text-[10px] text-white/40">回到首列开始找</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(255,107,107,0.08); border-color:rgba(255,107,107,0.2);">重复横向滑动<br><span class="text-[10px] text-red-300/80">迷失上下文</span></div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl" style="background:rgba(255,107,107,0.04); border:1px solid rgba(255,107,107,0.12);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#fca5a5;">痛点 2 · 批量取消收藏</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">选中某张卡片<br><span class="text-[10px] text-white/40">进入详情页</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">点击 ❤️ 取消<br><span class="text-[10px] text-white/40">单条操作</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(255,107,107,0.08); border-color:rgba(255,107,107,0.2);">返回列表 → 下一条<br><span class="text-[10px] text-red-300/80">取消20条 = 40次点击</span></div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl" style="background:rgba(255,107,107,0.04); border:1px solid rgba(255,107,107,0.12);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#fca5a5;">痛点 3 · 筛选/排序</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">顶部排序按钮<br><span class="text-[10px] text-white/40">单一维度</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(255,107,107,0.08); border-color:rgba(255,107,107,0.2);">无类型/年代/评分筛选<br><span class="text-[10px] text-red-300/80">248 部全靠眼扫</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">搜索仅按名称<br><span class="text-[10px] text-white/40">关键词遗忘即失效</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proposed flow -->
+      <div class="glass-strong rounded-3xl p-6 md:p-7 fade-in">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(67,233,123,0.18); color:#86efac;">✨</div>
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-wider text-white/40">建议 A 方案</div>
+            <h3 class="text-xl font-bold">优化后 · 核心交互链路</h3>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="p-4 rounded-2xl" style="background:rgba(67,233,123,0.04); border:1px solid rgba(67,233,123,0.15);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#86efac;">链路 1 · 快速找片</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">进入收藏页<br><span class="text-[10px] text-white/40">Tab=影片</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(124,92,255,0.1); border-color:rgba(124,92,255,0.25);">纵向滚动 3×N 网格<br><span class="text-[10px]" style="color:#b5a2ff;">一屏 ≥ 9 张</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">切 Tab → 合集<br><span class="text-[10px] text-white/40">保留滚动位置</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(67,233,123,0.1); border-color:rgba(67,233,123,0.25);">点击即播放<br><span class="text-[10px]" style="color:#86efac;">直达目标</span></div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl" style="background:rgba(67,233,123,0.04); border:1px solid rgba(67,233,123,0.15);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#86efac;">链路 2 · 批量清理</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">长按任意卡片<br><span class="text-[10px] text-white/40">进入选择模式</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(124,92,255,0.1); border-color:rgba(124,92,255,0.25);">勾选 N 张<br><span class="text-[10px]" style="color:#b5a2ff;">顶部显示已选数</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">底部操作栏<br><span class="text-[10px] text-white/40">取消/分享/下载</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(67,233,123,0.1); border-color:rgba(67,233,123,0.25);">批量取消收藏<br><span class="text-[10px]" style="color:#86efac;">1 次 = N 条</span></div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl" style="background:rgba(67,233,123,0.04); border:1px solid rgba(67,233,123,0.15);">
+            <div class="text-[11px] font-bold uppercase mb-3" style="color:#86efac;">链路 3 · 多维筛选（A+C 混合）</div>
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <div class="flow-node">点击 AppBar 🔍<br><span class="text-[10px] text-white/40">展开搜索+筛选</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(0,212,255,0.1); border-color:rgba(0,212,255,0.25);">选择类型/年代/评分<br><span class="text-[10px]" style="color:#87e8ff;">条件可叠加</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node">活动筛选胶囊<br><span class="text-[10px] text-white/40">条件即时可见</span></div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-node" style="background:rgba(67,233,123,0.1); border-color:rgba(67,233,123,0.25);">秒级精准定位<br><span class="text-[10px]" style="color:#86efac;">眼扫量降低 90%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- State inventory -->
+      <div class="glass-strong rounded-3xl p-6 md:p-7 lg:col-span-2 fade-in">
+        <div class="flex items-center gap-2 mb-5">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:rgba(0,212,255,0.18); color:#87e8ff;">📦</div>
+          <div>
+            <div class="text-[10px] font-bold uppercase tracking-wider text-white/40">UX 状态清单</div>
+            <h3 class="text-xl font-bold">完整状态覆盖 · 避免「快乐路径」设计</h3>
+          </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 stagger">
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(124,92,255,0.18);">🫙</div>
+              <div class="text-sm font-semibold">Empty · 空态</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              还没收藏任何内容？展示引导：<br>
+              · 竖屏刷片时双击 ❤️ 收藏<br>
+              · 去推荐页发现心仪作品<br>
+              · CTA：「去逛逛 →」
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(0,212,255,0.18);">⏳</div>
+              <div class="text-sm font-semibold">Loading · 加载</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              首次进入/切换分类：<br>
+              · 卡片骨架屏 3×N 栅格<br>
+              · shimmer 渐变动画<br>
+              · < 500ms 不显示，防闪烁
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(255,107,107,0.18);">❌</div>
+              <div class="text-sm font-semibold">Error · 失败</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              服务器连接失败/鉴权失效：<br>
+              · 顶部错误 Banner（可关闭）<br>
+              · 提示检查网络/重新登录<br>
+              · 「重试」主按钮
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(67,233,123,0.18);">🔍</div>
+              <div class="text-sm font-semibold">No Results · 无匹配</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              搜索/筛选后 0 结果：<br>
+              · 说明当前条件 + 匹配 0 条<br>
+              · 建议：放宽评分、切换分类<br>
+              · 快捷「一键重置筛选」
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(255,206,86,0.2); color:#ffd885;">🗂</div>
+              <div class="text-sm font-semibold">Select · 选择模式</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              长按进入 + AppBar 模式切换：<br>
+              · 卡片左上角勾选框<br>
+              · 顶部显示 N/M 已选<br>
+              · 底部操作栏浮起动画
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(244,114,182,0.2); color:#f9a8d4;">↩️</div>
+              <div class="text-sm font-semibold">Undo · 撤销</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              批量取消收藏后：<br>
+              · Snackbar 提示「已取消 N 条」<br>
+              · 6 秒内可「撤销」<br>
+              · 乐观更新 → 回滚机制
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(124,92,255,0.18);">📶</div>
+              <div class="text-sm font-semibold">Stale · 数据陈旧</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              缓存超过 30 分钟：<br>
+              · 顶部小型提示条 + 刷新图标<br>
+              · 后台静默刷新<br>
+              · 下拉手势强制刷新
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-soft);">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background:rgba(34,211,238,0.2); color:#67e8f9;">🕳</div>
+              <div class="text-sm font-semibold">Partial · 部分失败</div>
+            </div>
+            <div class="text-[11px] text-white/55 leading-relaxed">
+              批量操作中部分条目失败：<br>
+              · 区分成功 N / 失败 M<br>
+              · 失败条目高亮保留选择<br>
+              · 支持「重试失败项」
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Score bar component (inline SVG-less)
+  document.querySelectorAll('[ScoreBar]').forEach(el => {
+    const v = parseFloat(el.getAttribute('v'));
+    const c = el.getAttribute('c');
+    const pct = (v/5)*100;
+    el.innerHTML = `
+      <div class="inline-flex items-center gap-2">
+        <div class="w-24 h-2 rounded-full bg-white/5 overflow-hidden">
+          <div class="h-full rounded-full" style="width:${pct}%; background:linear-gradient(90deg, ${c}, ${c}cc);"></div>
+        </div>
+        <span class="text-[11px] font-bold" style="color:${c};">${v.toFixed(1)}</span>
+      </div>`;
+    el.style.display = 'inline-flex';
+    el.style.alignItems = 'center';
+  });
+
+  // View tabs (scheme / compare / flow)
+  document.querySelectorAll('.view-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-view');
+      document.querySelectorAll('.view-toggle').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('text-white/70');
+      });
+      btn.classList.add('active');
+      btn.classList.remove('text-white/70');
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('view-' + view).classList.remove('hidden');
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    });
+  });
+
+  // Scheme tabs (A/B/C)
+  document.querySelectorAll('.scheme-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const s = tab.getAttribute('data-scheme');
+      document.querySelectorAll('.scheme-tab').forEach(t => {
+        t.classList.remove('active');
+        t.classList.add('text-white/70');
+      });
+      tab.classList.add('active');
+      tab.classList.remove('text-white/70');
+      document.querySelectorAll('.scheme-panel').forEach(p => p.classList.add('hidden'));
+      const panel = document.getElementById('scheme-' + s);
+      panel.classList.remove('hidden');
+      // re-trigger animation
+      panel.classList.remove('slide-up'); void panel.offsetWidth; panel.classList.add('slide-up');
+      // details
+      document.querySelectorAll('[data-detail]').forEach(d => {
+        if (d.getAttribute('data-detail') === s) d.classList.remove('hidden');
+        else d.classList.add('hidden');
+      });
+    });
+  });
+
+  // Accordion (scheme B)
+  document.querySelectorAll('.accordion-head').forEach(head => {
+    head.addEventListener('click', () => {
+      const key = head.getAttribute('data-acc');
+      const body = document.querySelector(`[data-acc-body="${key}"]`);
+      head.classList.toggle('open');
+      body.classList.toggle('open');
+    });
+  });
+
+  // Toggle edit / bulk bar (scheme B)
+  const toggleEditB = document.getElementById('toggle-edit-B');
+  const bulkBarB = document.getElementById('bulk-bar-B');
+  if (toggleEditB) toggleEditB.addEventListener('click', () => {
+    if (bulkBarB) bulkBarB.classList.toggle('hidden');
+  });
+
+  // Drawer (scheme C)
+  const drawerC = document.getElementById('drawer-C');
+  const scrimC = document.getElementById('scrim-C');
+  document.getElementById('open-drawer')?.addEventListener('click', () => {
+    drawerC?.classList.add('open');
+    scrimC?.classList.add('open');
+  });
+  document.getElementById('close-drawer')?.addEventListener('click', () => {
+    drawerC?.classList.remove('open');
+    scrimC?.classList.remove('open');
+  });
+  scrimC?.addEventListener('click', () => {
+    drawerC?.classList.remove('open');
+    scrimC?.classList.remove('open');
+  });
+
+  // Radio cards (inside drawer)
+  document.querySelectorAll('.radio-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const siblings = Array.from(card.parentElement.querySelectorAll('.radio-card'));
+      // If in a single-select group (first sibling has 'selected' semantic)
+      const isMulti = siblings.some(s => s.textContent.includes('全部类型')) && card !== siblings[0] ? false :
+                      siblings.some(s => s.textContent.includes('全部进度')) && card !== siblings[siblings.findIndex(x=>x.textContent.includes('全部进度'))] ? false : true;
+      if (card.textContent.includes('全部类型') || card.textContent.includes('全部进度')) {
+        siblings.forEach(s => s.classList.remove('selected'));
+        card.classList.add('selected');
+      } else {
+        // de-select the "all" sibling if present
+        const allCard = siblings.find(s => s.textContent.includes('全部类型') || s.textContent.includes('全部进度'));
+        allCard?.classList.remove('selected');
+        if (!isMulti) {
+          siblings.forEach(s => s.classList.remove('selected'));
+        }
+        card.classList.toggle('selected');
+      }
+    });
+  });
+
+  // Selection mode for scheme C — click select bar to toggle
+  document.getElementById('select-bar-C')?.addEventListener('click', () => {
+    // Simulate entering selection mode: show checkmarks on first 2 cards
+    const cards = document.querySelectorAll('#scheme-C .poster-lg');
+    cards.forEach((c, i) => {
+      const check = c.parentElement.querySelector('.selected-check');
+      if (check) {
+        check.style.display = check.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
