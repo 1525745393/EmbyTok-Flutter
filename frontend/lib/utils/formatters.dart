@@ -41,3 +41,51 @@ String formatBytes(int bytes) {
   }
   return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
 }
+
+// 将 Emby 人员类型英文代码转换为中文标签
+// Actor→演员 / Director→导演 / Writer→编剧，其他非空→人物，null→全部
+String personTypeLabelFromCode(String? type) {
+  switch (type) {
+    case 'Actor':
+      return '演员';
+    case 'Director':
+      return '导演';
+    case 'Writer':
+      return '编剧';
+    default:
+      if (type == null || type.isEmpty) return '全部';
+      return '人物';
+  }
+}
+
+// 详情页作品区标题：根据人员类型返回「XX的作品」格式
+// Actor→参演作品 / Director→执导作品 / Writer→编剧作品，其他→相关作品
+String personWorksTitleFromCode(String? type) {
+  switch (type) {
+    case 'Actor':
+      return '参演作品';
+    case 'Director':
+      return '执导作品';
+    case 'Writer':
+      return '编剧作品';
+    default:
+      return '相关作品';
+  }
+}
+
+// Emby 媒体类型中文标签：Movie→电影 / Series→剧集 / BoxSet→合集 / Episode→单集
+String mediaTypeLabelFromCode(String? type) {
+  switch (type) {
+    case 'Movie':
+      return '电影';
+    case 'Series':
+      return '剧集';
+    case 'BoxSet':
+      return '合集';
+    case 'Episode':
+      return '单集';
+    default:
+      if (type == null || type.isEmpty) return '作品';
+      return type; // fallback: 英文原文
+  }
+}

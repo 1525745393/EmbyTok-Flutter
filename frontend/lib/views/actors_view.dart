@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../theme/actor_type_colors.dart';
-import '../utils/constants.dart';
+import '../utils/utils.dart';
 import '../widgets/person_avatar_image.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
@@ -31,6 +31,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   Timer? _scrollSaveTimer;
+  Timer? _searchSaveDebounceTimer;
   late final TextEditingController _searchController;
 
   @override
@@ -60,6 +61,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     _scrollController.dispose();
     _tabController.dispose();
     _scrollSaveTimer?.cancel();
+    _searchSaveDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -117,12 +119,15 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     } catch (_) {}
   }
 
-  // 保存搜索关键词
+  // 保存搜索关键词（防抖 300ms，与 actorsProvider 搜索节奏一致）
   Future<void> _saveSearchQuery(String query) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(kStorageKeyActorsSearchQuery, query);
-    } catch (_) {}
+    _searchSaveDebounceTimer?.cancel();
+    _searchSaveDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(kStorageKeyActorsSearchQuery, query);
+      } catch (_) {}
+    });
   }
 
   // 保存滚动位置（防抖）
@@ -165,6 +170,13 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   // 下拉刷新
   Future<void> _onRefresh() async {
     await ref.read(actorsProvider.notifier).loadActors(forceRefresh: true);
+  }
+
+  // 当前显示的演员列表 getter：搜索时用 searchResults，否则用 actors
+  List<Person> get displayActors {
+    final actorsState = ref.read(actorsProvider);
+    final isSearchActive = actorsState.searchQuery.isNotEmpty;
+    return isSearchActive ? actorsState.searchResults : actorsState.actors;
   }
 
   // 导航到演员详情
@@ -281,10 +293,12 @@ class _ActorsViewState extends ConsumerState<ActorsView>
         .where((a) => !actorsState.favoritedIds.contains(a.id))
         .toList();
 
-    // 各 Tab 计数
-    final allCount = actorsState.actors.length;
-    final favoritedCount = actorsState.favoritedIds.length;
-    final unfavoritedCount = actorsState.actors
+    // 各 Tab 计数（基于 displayActors，搜索时与搜索结果一致）
+    final allCount = displayActors.length;
+    final favoritedCount = displayActors
+        .where((a) => actorsState.favoritedIds.contains(a.id))
+        .length;
+    final unfavoritedCount = displayActors
         .where((a) => !actorsState.favoritedIds.contains(a.id))
         .length;
 
@@ -316,6 +330,17 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                           color: scheme.onSurface.withValues(alpha: 0.5)),
                       prefixIcon: Icon(Icons.search,
                           color: scheme.onSurface.withValues(alpha: 0.5)),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.cancel,
+                                  color: scheme.onSurface.withValues(alpha: 0.5)),
+                              onPressed: () {
+                                _searchController.clear();
+                                ref.read(actorsProvider.notifier).clearSearch();
+                                _saveSearchQuery('');
+                              },
+                            )
+                          : null,
                       filled: true,
                       fillColor:
                           scheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -425,6 +450,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   }
 
   // 构建单个 Tab 的内容（处理加载、错误、搜索中、正常显示等状态）
+  // 三个 Tab 统一包 RefreshIndicator + CustomScrollView + AlwaysScrollableScrollPhysics
+  // 只有第一个 Tab（hasScrollController=true）传 _scrollController，避免 PrimaryScrollController 冲突
   Widget _buildTabContent({
     required List<Person> actors,
     required String? embyServerUrl,
@@ -453,46 +480,34 @@ class _ActorsViewState extends ConsumerState<ActorsView>
       return _buildError(scheme);
     }
 
-    // 正常显示：全部 Tab 带下拉刷新和滚动控制器
-    if (hasScrollController) {
-      return RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            _buildActorGrid(
-                actors, embyServerUrl, token, favoritedIds, isSearchActive,
-                isFavoriteTab: isFavoriteTab),
-            // 已加载全部演员的提示
-            if (!loading && actors.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: Text(
-                      '已加载全部 ${actors.length} 位演员',
-                      style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
+    // 三个 Tab 统一：RefreshIndicator + CustomScrollView + AlwaysScrollableScrollPhysics
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      child: CustomScrollView(
+        controller: hasScrollController ? _scrollController : null,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          _buildActorGrid(
+              actors, embyServerUrl, token, favoritedIds, isSearchActive,
+              isFavoriteTab: isFavoriteTab),
+          // 已加载全部演员的提示（仅在有滚动控制器的 Tab 显示，避免重复）
+          if (hasScrollController && !loading && actors.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    '已加载全部 ${actors.length} 位演员',
+                    style: TextStyle(
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 12,
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
-      );
-    }
-
-    // 已关注/未关注 Tab：自定义滚动视图包裹 Sliver 网格
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        _buildActorGrid(
-            actors, embyServerUrl, token, favoritedIds, isSearchActive,
-            isFavoriteTab: isFavoriteTab),
-      ],
+            ),
+        ],
+      ),
     );
   }
 
@@ -532,34 +547,14 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     final scheme = Theme.of(context).colorScheme;
 
     if (isSearchEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off,
-              size: 64,
-              color: scheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '未找到相关演员',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '换个关键词试试吧',
-              style: TextStyle(
-                fontSize: 14,
-                color: scheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
+      final query = ref.read(actorsProvider).searchQuery;
+      return _SearchNoResultHint(
+        query: query,
+        onClear: () {
+          _searchController.clear();
+          ref.read(actorsProvider.notifier).clearSearch();
+          _saveSearchQuery('');
+        },
       );
     }
 
@@ -758,83 +753,91 @@ class _ActorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // 圆形裁剪头像
-                ClipOval(
-                  child: Container(
-                    width: double.infinity,
-                    color: scheme.surface.withValues(alpha: 0.3),
-                    child: _buildAvatarImage(scheme),
-                  ),
-                ),
-                // 增大关注按钮点击区域至 44x44
-                Positioned(
-                  right: 2,
-                  top: 2,
-                  child: GestureDetector(
-                    onTap: onFavoriteTap,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // 圆形裁剪头像
+                  ClipOval(
                     child: Container(
-                      width: 44,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isFavorited ? scheme.primary : scheme.surface,
-                        border: Border.all(
-                            color: scheme.onSurface.withValues(alpha: 0.3),
-                            width: 2),
-                      ),
-                      child: Icon(
-                        isFavorited ? Icons.favorite : Icons.favorite_border,
-                        color:
-                            isFavorited ? scheme.onPrimary : scheme.onSurface,
-                        size: 20,
+                      width: double.infinity,
+                      color: scheme.surface.withValues(alpha: 0.3),
+                      child: _buildAvatarImage(scheme),
+                    ),
+                  ),
+                  // 增大关注按钮点击区域至 44x44（圆形水波纹，半径 22）
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onFavoriteTap,
+                        borderRadius: BorderRadius.circular(22),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isFavorited ? scheme.primary : scheme.surface,
+                            border: Border.all(
+                                color: scheme.onSurface.withValues(alpha: 0.3),
+                                width: 2),
+                          ),
+                          child: Icon(
+                            isFavorited ? Icons.favorite : Icons.favorite_border,
+                            color:
+                                isFavorited ? scheme.onPrimary : scheme.onSurface,
+                            size: 20,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // 名字 + 类型标签
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  actor.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(height: 8),
+            // 名字 + 类型标签
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    actor.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              _buildTypeChip(actor.type, scheme),
-            ],
-          ),
-          Text(
-            isFavorited ? '已关注' : '未关注',
-            style: TextStyle(
-              color: isFavorited
-                  ? scheme.primary
-                  : scheme.onSurface.withValues(alpha: 0.5),
-              fontSize: 11,
+                const SizedBox(width: 4),
+                _buildTypeChip(actor.type, scheme),
+              ],
             ),
-          ),
-        ],
+            Text(
+              isFavorited ? '已关注' : '未关注',
+              style: TextStyle(
+                color: isFavorited
+                    ? scheme.primary
+                    : scheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -862,12 +865,72 @@ class _ActorCard extends StatelessWidget {
         border: Border.all(color: chipColor.withValues(alpha: 0.4), width: 0.5),
       ),
       child: Text(
-        type,
+        personTypeLabelFromCode(type),
         style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.w600,
           color: chipColor,
         ),
+      ),
+    );
+  }
+}
+
+// 搜索无结果提示组件：复用收藏页空状态视觉模式
+class _SearchNoResultHint extends StatelessWidget {
+  final String query;
+  final VoidCallback onClear;
+
+  const _SearchNoResultHint({
+    required this.query,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 64,
+            color: scheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '没有找到「$query」',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '换个关键词试试，或者清空搜索词',
+            style: TextStyle(
+              fontSize: 14,
+              color: scheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.clear, size: 18),
+            label: const Text('清空搜索词'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: scheme.primary,
+              side: BorderSide(color: scheme.primary.withValues(alpha: 0.5)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

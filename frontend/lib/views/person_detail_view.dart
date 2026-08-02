@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
-import '../utils/logger.dart';
+import '../utils/utils.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
   final MediaItem person;
@@ -30,6 +30,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   int _total = 0;
   bool _isLoadingMore = false;
   final ScrollController _scrollController = ScrollController();
+  final Map<String, bool> _groupOpen = {'Movie': true, 'Series': true};
 
   @override
   void initState() {
@@ -43,20 +44,6 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
-  }
-
-  /// 根据 personType 返回中文类型标签
-  String get _personTypeLabel {
-    switch (widget.personType) {
-      case 'Actor':
-        return '演员';
-      case 'Director':
-        return '导演';
-      case 'Writer':
-        return '编剧';
-      default:
-        return '人物';
-    }
   }
 
   /// 滚动监听：距底部 200px 时触发加载更多
@@ -186,9 +173,15 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
+    final actorsState = ref.watch(actorsProvider);
 
     // 使用加载的详情数据，fallback 到原始 person
     final person = _personDetail ?? widget.person;
+
+    // personType 为空时优先用 _personDetail.type 兜底（deeplink 场景）
+    final effectiveType = widget.personType ?? _personDetail?.type;
+
+    final isFavorited = actorsState.favoritedIds.contains(person.id);
 
     // 演员使用 thumbnailUrl（已构建完整URL），避免 imageTag 格式问题
     final imageUrl = person.thumbnailUrl ??
@@ -199,12 +192,57 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
         );
     final headers = person.authHeaders(authState.token);
 
+    // 组装 toggleFavorite 需要的 Person 对象
+    Person buildFavoritePerson() {
+      return Person(
+        id: person.id,
+        name: person.title,
+        type: effectiveType ?? 'Actor',
+        imageUrl: person.thumbnailUrl ??
+            person.primaryUrl(
+              embyServerUrl: authState.embyServerUrl,
+              apiKey: authState.token,
+              maxWidth: 200,
+            ),
+      );
+    }
+
+    // 按媒体类型分组作品：先 Movie 再 Series，其余按 type 字母序
+    final groupedWorks = <String, List<MediaItem>>{};
+    for (final item in _works) {
+      final type = item.type.isEmpty ? 'Other' : item.type;
+      groupedWorks.putIfAbsent(type, () => <MediaItem>[]);
+      groupedWorks[type]!.add(item);
+    }
+    final groupOrder = <String>[];
+    if (groupedWorks.containsKey('Movie')) groupOrder.add('Movie');
+    if (groupedWorks.containsKey('Series')) groupOrder.add('Series');
+    final otherTypes = groupedWorks.keys
+        .where((k) => k != 'Movie' && k != 'Series')
+        .toList()
+      ..sort();
+    groupOrder.addAll(otherTypes);
+
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         title: Text(person.title, style: const TextStyle(fontSize: 16)),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isFavorited ? Icons.favorite : Icons.favorite_border,
+              color: isFavorited ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+            tooltip: isFavorited ? '取消关注' : '关注',
+            onPressed: () {
+              ref.read(actorsProvider.notifier).toggleFavorite(
+                    buildFavoritePerson(),
+                  );
+            },
+          ),
+        ],
       ),
       // 使用 CustomScrollView + SliverList 实现长列表懒加载，
       // 避免原 SingleChildScrollView + Column + ListView(shrinkWrap) 全量构建
@@ -218,26 +256,69 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 120,
-                      height: 160,
-                      child: imageUrl != null && imageUrl.isNotEmpty
-                          ? CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              cacheManager: AppImageCacheManager.thumbnail,
-                              fit: BoxFit.cover,
-                              fadeInDuration: const Duration(milliseconds: 300),
-                              httpHeaders: headers.isNotEmpty ? headers : null,
-                              memCacheWidth: 240,
-                              placeholder: (_, __) =>
-                                  const _AvatarPlaceholder(),
-                              errorWidget: (_, __, ___) =>
-                                  const _AvatarPlaceholder(),
-                            )
-                          : const _AvatarPlaceholder(),
-                    ),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: SizedBox(
+                          width: 120,
+                          height: 160,
+                          child: imageUrl != null && imageUrl.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  cacheManager: AppImageCacheManager.thumbnail,
+                                  fit: BoxFit.cover,
+                                  fadeInDuration:
+                                      const Duration(milliseconds: 300),
+                                  httpHeaders:
+                                      headers.isNotEmpty ? headers : null,
+                                  memCacheWidth: 240,
+                                  placeholder: (_, __) =>
+                                      const _AvatarPlaceholder(),
+                                  errorWidget: (_, __, ___) =>
+                                      const _AvatarPlaceholder(),
+                                )
+                              : const _AvatarPlaceholder(),
+                        ),
+                      ),
+                      Positioned(
+                        top: -8,
+                        right: -8,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              ref.read(actorsProvider.notifier).toggleFavorite(
+                                    buildFavoritePerson(),
+                                  );
+                            },
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: scheme.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: scheme.onSurface.withValues(alpha: 0.1),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                isFavorited
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: isFavorited
+                                    ? scheme.primary
+                                    : scheme.onSurfaceVariant,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -257,7 +338,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            _personTypeLabel,
+                            personTypeLabelFromCode(effectiveType),
                             style: TextStyle(
                                 color: scheme.onSurface.withValues(alpha: 0.5),
                                 fontSize: 13),
@@ -298,7 +379,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Text(
-                '出演的作品 (${_works.length})',
+                '${personWorksTitleFromCode(effectiveType)} (${_works.length})',
                 style: TextStyle(
                   color: scheme.onSurface,
                   fontSize: 16,
@@ -335,55 +416,104 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
               ),
             )
           else
-            // 真正的长列表懒加载：SliverList.builder 按需构建可见 item，
-            // 替代原 ListView.separated + shrinkWrap 的全量构建
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverList.builder(
-                itemCount: _works.length,
-                itemBuilder: (context, index) {
-                  final item = _works[index];
-                  // 将当前演员信息注入作品，以便播放页显示正确的演员头像
-                  final currentPerson = _personDetail ?? widget.person;
-                  final currentActor = Person(
-                    id: currentPerson.id,
-                    name: currentPerson.title,
-                    type: 'Actor',
-                    imageUrl: currentPerson.thumbnailUrl ??
-                        currentPerson.primaryUrl(
-                          embyServerUrl: authState.embyServerUrl,
-                          apiKey: authState.token,
-                          maxWidth: 200,
+            ...groupOrder.map((typeCode) {
+              final items = groupedWorks[typeCode]!;
+              if (items.isEmpty) return <Widget>[const SliverToBoxAdapter(child: SizedBox.shrink())];
+              final isOpen = _groupOpen[typeCode] ?? true;
+              return <Widget>[
+                // 分组头
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${mediaTypeLabelFromCode(typeCode)} (${items.length})',
+                            style: TextStyle(
+                              color: scheme.onSurface.withValues(alpha: 0.8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                  );
-                  final people = item.people;
-                  final itemWithActor = people == null || people.isEmpty
-                      ? item.copyWith(people: [currentActor])
-                      : item.copyWith(people: [
-                          currentActor,
-                          ...people.where((p) => p.id != currentActor.id)
-                        ]);
-                  // 用 Padding 模拟原 separatorBuilder 的 12px 间距
-                  return Padding(
-                    padding: EdgeInsets.only(top: index == 0 ? 0 : 12),
-                    child: _WorkTile(
-                        key: Key(item.id),
-                        item: itemWithActor,
-                        allItems: _works),
-                  );
-                },
-              ),
-            ),
+                        IconButton(
+                          icon: Icon(
+                            isOpen
+                                ? Icons.keyboard_arrow_down
+                                : Icons.keyboard_arrow_right,
+                            color: scheme.onSurfaceVariant,
+                            size: 24,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onPressed: () {
+                            setState(() {
+                              _groupOpen[typeCode] = !isOpen;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // 分组内容（展开时才渲染）
+                if (isOpen)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        // 将当前演员信息注入作品，以便播放页显示正确的演员头像
+                        final currentPerson = _personDetail ?? widget.person;
+                        final currentActor = Person(
+                          id: currentPerson.id,
+                          name: currentPerson.title,
+                          type: 'Actor',
+                          imageUrl: currentPerson.thumbnailUrl ??
+                              currentPerson.primaryUrl(
+                                embyServerUrl: authState.embyServerUrl,
+                                apiKey: authState.token,
+                                maxWidth: 200,
+                              ),
+                        );
+                        final people = item.people;
+                        final itemWithActor =
+                            people == null || people.isEmpty
+                                ? item.copyWith(people: [currentActor])
+                                : item.copyWith(people: [
+                                    currentActor,
+                                    ...people.where(
+                                        (p) => p.id != currentActor.id)
+                                  ]);
+                        // 用 Padding 模拟 separator 的间距：组内第一个 item top=0，其余 12px
+                        return Padding(
+                          padding:
+                              EdgeInsets.only(top: index == 0 ? 0 : 12),
+                          child: _WorkTile(
+                              key: Key(item.id),
+                              item: itemWithActor,
+                              allItems: _works),
+                        );
+                      },
+                    ),
+                  ),
+              ];
+            }).expand((list) => list),
           // 加载更多指示器
           if (_isLoadingMore)
-            SliverToBoxAdapter(
-              child: const Padding(
+            const SliverToBoxAdapter(
+              child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(child: CircularProgressIndicator()),
               ),
             ),
           // 底部间距
-          SliverToBoxAdapter(child: const SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
@@ -521,7 +651,7 @@ class _WorkTile extends ConsumerWidget {
   String get _yearText {
     final year = item.productionYear ?? item.year;
     if (year != null) return year.toString();
-    return item.type;
+    return mediaTypeLabelFromCode(item.type);
   }
 }
 
