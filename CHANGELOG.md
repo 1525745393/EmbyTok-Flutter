@@ -1,3 +1,10 @@
+## [2.35.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.35.0...v2.35.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* 反向修复 isFeedVisible 注释——覆盖层时视频应暂停 ([151c9f0](https://github.com/1525745393/EmbyTok-Flutter/commit/151c9f0e570ed7e2f016a5e28e342d2d76fa8dbd))
+
 # [2.35.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.34.0...v2.35.0) (2026-08-02)
 
 
