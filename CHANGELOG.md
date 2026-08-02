@@ -1,3 +1,11 @@
+# [2.39.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.38.0...v2.39.0) (2026-08-02)
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([f8596a5](https://github.com/1525745393/EmbyTok-Flutter/commit/f8596a56e7e20a6139ff68b418944a1e1937fce3))
+* **ui:** 重构收藏界面为方案B（纵向堆叠+可折叠分组） ([755e069](https://github.com/1525745393/EmbyTok-Flutter/commit/755e0694495ffb51df14baf490559f4d1ba02f26))
+
 # [2.38.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.37.0...v2.38.0) (2026-08-02)
 
 
