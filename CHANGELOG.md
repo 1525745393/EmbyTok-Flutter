@@ -1,3 +1,15 @@
+# [2.41.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.40.0...v2.41.0) (2026-09-05)
+
+
+### Bug Fixes
+
+* **ui:** 推荐页 P0-1 全面屏适配 + P1-1 空/错 CTA 引导 + P1-3 hasMore 边界修复 ([3a5bf9f](https://github.com/1525745393/EmbyTok-Flutter/commit/3a5bf9f8d52b6106deb549855a804f5fe41d6758))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([f8eb91e](https://github.com/1525745393/EmbyTok-Flutter/commit/f8eb91e311d056b3ff89c59cca16fe37b7131ed3))
+
 # [2.40.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.39.1...v2.40.0) (2026-08-02)
 
 
