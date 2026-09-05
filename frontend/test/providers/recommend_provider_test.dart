@@ -1215,7 +1215,10 @@ void main() {
 
     test('任一数据源有数据时 hasMore=true', () async {
       // 只有 Suggestions 有数据，其他源为空
-      final suggestionItems = [_item('sg-hasmore-1')];
+      // P1-3：hasMore 判定从 items.isNotEmpty 改为 items.length >= _pageSize，
+      // 所以这里返回满页（30 条）以验证 hasMore=true
+      final suggestionItems =
+          List.generate(30, (i) => _item('sg-hasmore-$i'));
 
       repo = _MockMediaRepository();
       when(repo.getNextUp(
@@ -1337,6 +1340,207 @@ void main() {
       expect(state.isColdStart, false,
           reason: 'NextUp 有数据时不应判定为冷启动');
       expect(_hasItem(state, 'nu-cold-1'), true);
+    });
+  });
+
+  group('hasMore 边界判定（P1-3）', () {
+    // P1-3：修复前用 items.isNotEmpty 判定 hasMore，
+    // 导致恰好满页（30 条）时误判"还有更多"。
+    // 修复后用 items.length >= _pageSize 判定，未满页即视为该源已耗尽。
+    //
+    // 关键：仅让单个数据源返回数据，其他 4 源返回空，
+    // 这样 allSourcesExhausted 完全由该数据源的返回值决定。
+
+    late _MockMediaRepository repo;
+    late ProviderContainer container;
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    /// 构造 N 个合法 MediaItem（Movie，10 分钟，通过 isVideo + isTooShort）
+    List<MediaItem> _nItems(int n) {
+      return List.generate(n, (i) => _item('item-$i'));
+    }
+
+    /// 通用 setup：仅 Resume 返回指定数量，其余源返回空
+    void _setupResumeOnly(int resumeCount) {
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page(_nItems(resumeCount)));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+    }
+
+    /// 通用 setup：仅 Suggestions 返回指定数量，其余源返回空
+    void _setupSuggestionsOnly(int suggestionsCount) {
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => _nItems(suggestionsCount));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+    }
+
+    test('Resume 恰好满页（30 条）→ hasMore=true', () async {
+      _setupResumeOnly(30);
+      container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
+      final state = await _waitForLoad(container);
+      // 修复前：items.isNotEmpty → true（但实际 30 条可能是最后一页）
+      // 修复后：items.length >= 30 → true，行为一致
+      expect(state.hasMore, true,
+          reason: 'Resume 返回 30 条（>= pageSize）应判定可能还有更多');
+    });
+
+    test('Resume 未满页（29 条）→ hasMore=false（P1-3 修复核心场景）', () async {
+      _setupResumeOnly(29);
+      container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
+      final state = await _waitForLoad(container);
+      // 修复前：items.isNotEmpty=true → hasMore=true（误判）
+      // 修复后：items.length < 30 → hasMore=false（正确：该源已耗尽）
+      expect(state.hasMore, false,
+          reason: 'Resume 返回 29 条（< pageSize）应判定已耗尽，hasMore=false');
+    });
+
+    test('Suggestions 恰好满页（30 条）→ hasMore=true', () async {
+      _setupSuggestionsOnly(30);
+      container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
+      final state = await _waitForLoad(container);
+      expect(state.hasMore, true,
+          reason: 'Suggestions 返回 30 条（>= pageSize）应判定可能还有更多');
+    });
+
+    test('Suggestions 未满页（29 条）→ hasMore=false（P1-3 修复核心场景）', () async {
+      _setupSuggestionsOnly(29);
+      container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
+      final state = await _waitForLoad(container);
+      expect(state.hasMore, false,
+          reason: 'Suggestions 返回 29 条（< pageSize）应判定已耗尽，hasMore=false');
+    });
+
+    test('所有源为空 → hasMore=false', () async {
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+
+      container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
+      final state = await _waitForLoad(container);
+      expect(state.hasMore, false, reason: '所有源为空时 hasMore 应为 false');
     });
   });
 }

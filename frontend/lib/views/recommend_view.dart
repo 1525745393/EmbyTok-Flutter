@@ -181,23 +181,16 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     }
 
     // 错误（无数据 + 错误信息）
+    // P1-1：根据错误类型展示不同 CTA，引导用户进入下一步操作
     final errorMsg = state.error;
     if (state.taggedItems.isEmpty && errorMsg != null) {
-      return ErrorStateCard(
-        title: '加载推荐失败',
-        subtitle: errorMsg,
-        actionLabel: '重试',
-        onAction: () => ref.read(recommendProvider.notifier).refresh(),
-      );
+      return _buildErrorCard(context, errorMsg);
     }
 
     // 空数据
+    // P1-1：若未配置推荐媒体库，引导用户去选择；否则引导刷新
     if (state.taggedItems.isEmpty) {
-      return const EmptyStateCard(
-        icon: Icons.auto_awesome,
-        title: '暂无推荐',
-        subtitle: '试试刷新或检查媒体库设置',
-      );
+      return _buildEmptyCard(context);
     }
 
     // 性能优化：displayItems 和 tagCounts 由 Provider 预计算
@@ -251,6 +244,57 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           ),
         ),
       ],
+    );
+  }
+
+  // P1-1：错误态卡片 —— 根据错误类型展示不同 CTA，避免用户看完文案无下一步可走
+  Widget _buildErrorCard(BuildContext context, String errorMsg) {
+    // 未登录 → 引导去登录
+    if (errorMsg == '尚未登录') {
+      return ErrorStateCard.notLoggedIn(
+        onLogin: () => context.go('/login'),
+      );
+    }
+    // 未选择推荐媒体库 → 引导去 LibrarySelector 选择
+    if (errorMsg == '未选择媒体库') {
+      return ErrorStateCard(
+        icon: Icons.library_add_outlined,
+        title: '还没选推荐使用的媒体库',
+        subtitle: '选择后才能加载个性化推荐和高分内容',
+        actionLabel: '去选择媒体库',
+        onAction: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
+      );
+    }
+    // 其他错误 → 重试
+    return ErrorStateCard(
+      title: '加载推荐失败',
+      subtitle: errorMsg,
+      actionLabel: '重试',
+      onAction: () => ref.read(recommendProvider.notifier).refresh(),
+    );
+  }
+
+  // P1-1：空态卡片 —— 未配置媒体库时引导选择，否则引导刷新
+  Widget _buildEmptyCard(BuildContext context) {
+    final selectedIds = ref.watch(recommendLibraryIdsProvider);
+    // 未选择推荐使用的媒体库 → 引导去选
+    if (selectedIds.isEmpty) {
+      return EmptyStateCard(
+        icon: Icons.library_add_outlined,
+        title: '还没选推荐使用的媒体库',
+        subtitle: '选择后才能加载个性化推荐和高分内容',
+        actionLabel: '去选择媒体库',
+        onAction: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
+      );
+    }
+    // 已选库但推荐为空（可能是评分阈值过高/反疲劳过滤过强）
+    // 给一个刷新 CTA，让用户重新拉取
+    return EmptyStateCard(
+      icon: Icons.auto_awesome,
+      title: '暂无推荐',
+      subtitle: '试试刷新，或在设置中调低评分门槛、放宽反疲劳天数',
+      actionLabel: '刷新',
+      onAction: () => ref.read(recommendProvider.notifier).refresh(),
     );
   }
 

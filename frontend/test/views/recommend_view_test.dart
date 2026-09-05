@@ -217,4 +217,72 @@ void main() {
           reason: 'SafeArea.top=false：AppBar 已自动避开刘海，不需要额外 top 安全区');
     });
   });
+
+  group('RecommendView 空态/错误态 CTA 引导（P1-1）', () {
+    // P1-1：空态/错误态必须给用户明确的下一步操作入口，
+    // 避免用户看完文案后无 CTA 可点。
+    //
+    // 复用 buildTestWidget（fakeNotifier + libraryListProvider 永不返回），
+    // 通过 fakeNotifier.state = ... 直接控制状态。
+
+    testWidgets('错误态 "尚未登录" → 显示「去登录」CTA', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      fakeNotifier.state = fakeNotifier.state.copyWith(
+        isLoading: false,
+        error: '尚未登录',
+        taggedItems: const [],
+      );
+      // 仅 pump 一帧：ref.listenManual 会在 postFrame 调 clearError，
+      // 需在 clearError 触发重建前断言错误态卡片
+      await tester.pump();
+
+      expect(find.text('请先登录'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, '去登录'), findsOneWidget,
+          reason: 'P1-1: 未登录错误态必须提供「去登录」CTA');
+    });
+
+    testWidgets('错误态 "未选择媒体库" → 显示「去选择媒体库」CTA', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      fakeNotifier.state = fakeNotifier.state.copyWith(
+        isLoading: false,
+        error: '未选择媒体库',
+        taggedItems: const [],
+      );
+      await tester.pump();
+
+      expect(find.text('还没选推荐使用的媒体库'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, '去选择媒体库'), findsOneWidget,
+          reason: 'P1-1: 未选媒体库错误态必须提供「去选择媒体库」CTA');
+    });
+
+    testWidgets('空态且未选推荐媒体库 → 显示「去选择媒体库」CTA', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      // taggedItems 为空 + 无 error → 走空态分支
+      // recommendLibraryIdsProvider 默认为空（buildTestWidget 未 override）
+      fakeNotifier.state = fakeNotifier.state.copyWith(
+        isLoading: false,
+        error: null,
+        taggedItems: const [],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('还没选推荐使用的媒体库'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, '去选择媒体库'), findsOneWidget,
+          reason: 'P1-1: 空态未选媒体库时必须提供「去选择媒体库」CTA');
+    });
+
+    testWidgets('其他错误态 → 显示「重试」CTA', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      fakeNotifier.state = fakeNotifier.state.copyWith(
+        isLoading: false,
+        error: '服务器内部错误',
+        taggedItems: const [],
+      );
+      await tester.pump();
+
+      expect(find.text('加载推荐失败'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, '重试'), findsOneWidget,
+          reason: 'P1-1: 通用错误态必须提供「重试」CTA');
+    });
+  });
 }

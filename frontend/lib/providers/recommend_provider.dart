@@ -837,9 +837,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
               })
           .toList();
       final similarLists = await _runWithConcurrencyLimit(tasks);
+      // P1-3：任一种子返回项数 >= _similarPerSeed 视为可能还有更多
+      // （旧实现 list.isNotEmpty 会误判：恰好装满时服务器已无更多但被认为还有）
       var hasMore = false;
       for (final list in similarLists) {
-        if (list.isNotEmpty) hasMore = true;
+        if (list.length >= _similarPerSeed) hasMore = true;
         final similarQueue = queues[_sourceSimilar];
         for (final item in list) {
           if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
@@ -864,7 +866,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }
 
   // 填充多库高分推荐队列
-  // Task 4：返回该数据源是否还有更多数据（任一库返回项数 > 0）
+  // P1-3：返回该数据源是否还有更多数据（任一库返回项数 >= _pageSize 视为可能还有）
   Future<bool> _fetchRecommendationsQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
@@ -891,7 +893,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                   excludePlayed: ctx.excludePlayed,
                   includeItemTypes: ctx.includeTypes,
                 );
-                if (resp.items.isNotEmpty) hasMore = true;
+                // P1-3：items 未达 limit 视为该库已耗尽
+                if (resp.items.length >= _pageSize) hasMore = true;
                 for (final item in resp.items) {
                   if (ctx.isTooShort(item)) continue;
                   if (_shouldSkipItem(
