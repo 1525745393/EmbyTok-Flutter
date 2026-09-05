@@ -35,11 +35,28 @@ class RecommendView extends ConsumerStatefulWidget {
 class _RecommendViewState extends ConsumerState<RecommendView> {
   // PR #79：滚动监听 - 滚到底部自动 loadMore
   late final ScrollController _scrollController;
+  // P0-2：常驻搜索框（本地过滤，不触发网络）
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
+  // P2-2：网格列数（2/3），持久化到 SharedPreferences，对齐演员页
+  int _gridColumns = 3;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
+    // P0-2：搜索框文本变化 → 本地过滤（纯客户端，不请求服务器）
+    _searchController = TextEditingController();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text);
+    });
+    // P2-2：恢复用户上次选择的网格列数（2/3）
+    SharedPreferences.getInstance().then((prefs) {
+      final saved = prefs.getInt(kStorageKeyRecommendGridColumns);
+      if ((saved == 2 || saved == 3) && mounted) {
+        setState(() => _gridColumns = saved);
+      }
+    });
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
     // 修复：用 ensureLoaded() 等待 _load() 异步 I/O 完成，
@@ -86,6 +103,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -132,6 +150,24 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           },
         ),
         actions: [
+          // P2-2：网格 2/3 列切换（持久化到 SharedPreferences，对齐演员页）
+          SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(value: 2, label: Text('2列')),
+              ButtonSegment(value: 3, label: Text('3列')),
+            ],
+            selected: {_gridColumns},
+            onSelectionChanged: (newSelection) {
+              final value = newSelection.first;
+              setState(() => _gridColumns = value);
+              _saveGridColumns(value);
+            },
+            style: const ButtonStyle(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const SizedBox(width: 4),
           // 刷新按钮
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -196,55 +232,156 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // 性能优化：displayItems 和 tagCounts 由 Provider 预计算
     // 避免在 build 中同步执行 where + map + length（O(n) × 7 次）
     final displayItems = state.displayItems;
-    final mediaItems = displayItems.map((r) => r.item).toList(growable: false);
-    final hasMoreSlot = state.hasMore;
 
-    // 网格：3 列（PR #79：顶部加冷启动 Banner + PR #80：标签栏 + 滚到底自动 loadMore）
+    // P0-2：本地搜索过滤（不触发网络，纯客户端过滤当前已加载数据）
+    // 匹配字段：标题、剧集名、年份、类型、演员/导演/编剧姓名
+    // 搜索时不展示「加载更多」指示器，因为过滤范围仅限当前页数据
+    final isSearching = _searchQuery.trim().isNotEmpty;
+    final filteredItems = isSearching
+        ? displayItems.where(_matchesSearch).toList(growable: false)
+        : displayItems;
+    final mediaItems =
+        filteredItems.map((r) => r.item).toList(growable: false);
+    final hasMoreSlot = state.hasMore && !isSearching;
+
+    // 网格：P2-2 列数由 _gridColumns 驱动（2/3），默认 3 列
     return Column(
       children: [
         if (showColdStartBanner) _buildColdStartBanner(scheme),
-        // PR #80：标签分类栏（横向可滚动 + 选中高亮）
+        // P0-2：常驻搜索框（始终显示，搜索无结果时也保留，避免用户丢失输入上下文）
+        _buildSearchBar(scheme),
+        // PR #80：标签分类栏（P2-1：count==0 的源自动隐藏，「全部」始终展示）
         _buildTagBar(state, scheme),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
-            child: GridView.builder(
-              controller: _scrollController,
-              // 3 列小屏 109dp 卡片；padding.all(8) 已是默认，底部 SafeArea 已额外避开手势条
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 9 / 16, // 竖屏海报
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-              ),
-              itemCount: displayItems.length + (hasMoreSlot ? 1 : 0),
-              itemBuilder: (context, index) {
-                // PR #79：最后一项 = 加载更多指示器
-                if (index >= displayItems.length) {
-                  return _LoadMoreIndicator(
-                    isLoading: state.isLoadingMore,
-                    hasMore: state.hasMore,
-                  );
-                }
-                // PR #80：displayItems 是 RecommendItem 列表，渲染时取 .item
-                final recommendItem = displayItems[index];
-                return _RecommendCard(
-                  item: recommendItem.item,
-                  // PR #83：传 source 标签用于完播率统计门控
-                  onTap: () => _playItem(
-                    context,
-                    recommendItem.item,
-                    mediaItems,
-                    recommendItem.source,
+            child: filteredItems.isEmpty
+                // P0-2：搜索无结果 → 保留搜索栏 + 标签栏，仅网格区显示空提示 + 清空 CTA
+                ? _buildSearchEmpty(scheme)
+                : GridView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(8),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _gridColumns,
+                      childAspectRatio: 9 / 16, // 竖屏海报
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                    ),
+                    itemCount: filteredItems.length + (hasMoreSlot ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      // PR #79：最后一项 = 加载更多指示器
+                      if (index >= filteredItems.length) {
+                        return _LoadMoreIndicator(
+                          isLoading: state.isLoadingMore,
+                          hasMore: state.hasMore,
+                        );
+                      }
+                      final recommendItem = filteredItems[index];
+                      return _RecommendCard(
+                        item: recommendItem.item,
+                        onTap: () => _playItem(
+                          context,
+                          recommendItem.item,
+                          mediaItems,
+                          recommendItem.source,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ),
       ],
     );
+  }
+
+  // P0-2：本地搜索匹配判定（大小写不敏感）
+  // 匹配：标题、剧集名、年份、类型、人员姓名（演员/导演/编剧）
+  bool _matchesSearch(RecommendItem recommendItem) {
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final item = recommendItem.item;
+    if (item.title.toLowerCase().contains(q)) return true;
+    if (item.seriesName?.toLowerCase().contains(q) == true) return true;
+    final year = item.year ?? item.productionYear;
+    if (year != null && year.toString().contains(q)) return true;
+    if (item.type.toLowerCase().contains(q)) return true;
+    final people = item.people;
+    if (people != null) {
+      for (final p in people) {
+        if (p.name.toLowerCase().contains(q)) return true;
+      }
+    }
+    return false;
+  }
+
+  // P0-2：常驻搜索框
+  Widget _buildSearchBar(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索当前推荐（标题 / 年份 / 演员）',
+          hintStyle: TextStyle(fontSize: 14, color: scheme.onSurfaceVariant),
+          prefixIcon: Icon(Icons.search, size: 20, color: scheme.primary),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  icon: Icon(Icons.clear, size: 18, color: scheme.onSurfaceVariant),
+                  tooltip: '清空',
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                ),
+          isDense: true,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: scheme.outlineVariant),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: scheme.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // P0-2：搜索无结果态 —— 保留搜索栏（在 Column 上层），仅此处提示 + 清空 CTA
+  Widget _buildSearchEmpty(ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off, size: 48, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(
+            '未找到匹配「$_searchQuery」的内容',
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () => _searchController.clear(),
+            icon: const Icon(Icons.clear, size: 18),
+            label: const Text('清空搜索'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // P2-2：保存网格列数到 SharedPreferences
+  Future<void> _saveGridColumns(int columns) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyRecommendGridColumns, columns);
+    } catch (_) {}
   }
 
   // P1-1：错误态卡片 —— 根据错误类型展示不同 CTA，避免用户看完文案无下一步可走
@@ -335,16 +472,21 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           count: countFor(RecommendSource.recommendations)),
     ];
 
+    // P2-1：隐藏 count==0 的源标签（如「相似 (0)」），避免展示无意义空标签
+    // 「全部」始终保留（sourceKey == null），保证用户总有回退入口
+    final visibleTags =
+        tags.where((t) => t.sourceKey == null || t.count > 0).toList();
+
     return Container(
       height: 44,
       margin: const EdgeInsets.only(top: 4, bottom: 4),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: tags.length,
+        itemCount: visibleTags.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
-          final tag = tags[i];
+          final tag = visibleTags[i];
           final isSelected = state.selectedTag == tag.sourceKey;
           return ChoiceChip(
             label: Text('${tag.label} (${tag.count})'),
