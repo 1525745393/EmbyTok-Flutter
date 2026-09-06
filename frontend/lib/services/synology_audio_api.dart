@@ -154,11 +154,11 @@ class SynologyAudioApi {
 
     dynamic raw;
     try {
-      raw = await _requestRaw('/webapi/entry.cgi', params);
+      raw = await _requestLogin('/webapi/entry.cgi', params);
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         // DSM 6：auth.cgi
-        raw = await _requestRaw('/webapi/auth.cgi', params);
+        raw = await _requestLogin('/webapi/auth.cgi', params);
       } else {
         rethrow;
       }
@@ -173,10 +173,10 @@ class SynologyAudioApi {
     if (!success) {
       final error = body['error'] as Map<String, dynamic>?;
       final code = error?['code'] as int?;
-      // 两步验证开启：DSM 返回 403 + data.token，需带 otp_code + device_id 重试
+      // 两步验证开启：DSM 返回 403，token 位于 error.errors.token
       if (code == 403) {
-        final data = body['data'] as Map<String, dynamic>?;
-        final token = data?['token'] as String?;
+        final errors = error?['errors'] as Map<String, dynamic>?;
+        final token = errors?['token'] as String?;
         if (otpCode == null || otpCode.isEmpty) {
           throw SynologyOtpRequiredException(token);
         }
@@ -449,6 +449,26 @@ class SynologyAudioApi {
     return response.data;
   }
 
+  /// 登录专用：POST + application/x-www-form-urlencoded
+  ///
+  /// DSM 的登录接口要求 POST 传参（GET 在部分 DSM 版本/配置下不可用），
+  /// 采用 form 编码以兼容 DSM 6（auth.cgi）与 DSM 7（entry.cgi）。
+  Future<dynamic> _requestLogin(String path, Map<String, dynamic> params) async {
+    final base = _serverUrl;
+    if (base == null) {
+      throw SynologyAuthException('未配置群晖服务器地址');
+    }
+    final response = await _dio.post<dynamic>(
+      '$base$path',
+      data: params,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+        responseType: ResponseType.json,
+      ),
+    );
+    return response.data;
+  }
+
   /// 兼容部分接口返回 JSON 字符串（需二次解析）
   dynamic _decodeBody(dynamic raw) {
     if (raw is String) {
@@ -487,6 +507,11 @@ class SynologyAudioApi {
 
   String _normalizeServerUrl(String url) {
     var u = url.trim();
+    // 无协议前缀时补 http://（DSM 默认 HTTP 端口 5000；
+    // 若走 HTTPS 需用户显式输入 https://ip:5001）
+    if (!u.startsWith('http://') && !u.startsWith('https://')) {
+      u = 'http://$u';
+    }
     if (u.endsWith('/')) u = u.substring(0, u.length - 1);
     return u;
   }

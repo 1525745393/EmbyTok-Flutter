@@ -28,7 +28,7 @@ void main() {
     api = SynologyAudioApi(dio: dio);
   });
 
-  /// 登录 mock 的完整参数（与 _requestRaw 发送一致）
+  /// 登录 mock 的完整参数（与 login 的 POST body 一致）
   Map<String, dynamic> loginParams({String? otp}) => {
         'api': 'SYNO.API.Auth',
         'version': 6,
@@ -41,16 +41,24 @@ void main() {
         if (otp != null) 'otp_code': otp,
       };
 
+  /// 登录是 POST form 请求，统一用 onPost + data 匹配
+  void mockLogin(
+    DioAdapter adapter,
+    String path,
+    Object Function() body, {
+    Map<String, dynamic>? params,
+  }) {
+    adapter.onPost(
+      '$serverUrl$path',
+      (server) => server.reply(200, body()),
+      data: params ?? loginParams(),
+    );
+  }
+
   group('login', () {
     test('登录成功返回 sid 并建立会话', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {'success': true, 'data': {'sid': sid}},
-        ),
-        queryParameters: loginParams(),
-      );
+      mockLogin(adapter, '/webapi/entry.cgi',
+          () => {'success': true, 'data': {'sid': sid}});
 
       final result = await api.login(
         serverUrl: serverUrl,
@@ -65,16 +73,13 @@ void main() {
     });
 
     test('登录失败（密码错误 401）抛出异常并携带错误码', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {
-            'success': false,
-            'error': {'code': 401},
-          },
-        ),
-        queryParameters: loginParams(),
+      mockLogin(
+        adapter,
+        '/webapi/entry.cgi',
+        () => {
+          'success': false,
+          'error': {'code': 401},
+        },
       );
 
       await expectLater(
@@ -86,17 +91,18 @@ void main() {
     });
 
     test('两步验证开启（403）抛 SynologyOtpRequiredException 并携带 token', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {
-            'success': false,
-            'error': {'code': 403},
-            'data': {'token': 'otp-token-123'},
+      mockLogin(
+        adapter,
+        '/webapi/entry.cgi',
+        () => {
+          'success': false,
+          'error': {
+            'code': 403,
+            'errors': {'token': 'otp-token-123', 'types': [
+              {'type': 'otp'}
+            ]},
           },
-        ),
-        queryParameters: loginParams(),
+        },
       );
 
       await expectLater(
@@ -108,16 +114,14 @@ void main() {
     });
 
     test('两步验证携带 otp_code 登录成功并保存 did', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {
-            'success': true,
-            'data': {'sid': sid, 'did': 'device-456'},
-          },
-        ),
-        queryParameters: loginParams(otp: '123456'),
+      mockLogin(
+        adapter,
+        '/webapi/entry.cgi',
+        () => {
+          'success': true,
+          'data': {'sid': sid, 'did': 'device-456'},
+        },
+        params: loginParams(otp: '123456'),
       );
 
       final result = await api.login(
@@ -132,16 +136,14 @@ void main() {
     });
 
     test('两步验证 otp_code 错误（403）仍抛出认证异常', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {
-            'success': false,
-            'error': {'code': 403},
-          },
-        ),
-        queryParameters: loginParams(otp: '999999'),
+      mockLogin(
+        adapter,
+        '/webapi/entry.cgi',
+        () => {
+          'success': false,
+          'error': {'code': 403},
+        },
+        params: loginParams(otp: '999999'),
       );
 
       await expectLater(
@@ -155,18 +157,18 @@ void main() {
     });
 
     test('entry.cgi 404 时回退 auth.cgi（DSM 6）', () async {
-      adapter.onGet(
+      adapter.onPost(
         '$serverUrl/webapi/entry.cgi',
         (server) => server.reply(404, 'Not Found'),
-        queryParameters: loginParams(),
+        data: loginParams(),
       );
-      adapter.onGet(
+      adapter.onPost(
         '$serverUrl/webapi/auth.cgi',
         (server) => server.reply(
           200,
           {'success': true, 'data': {'sid': sid}},
         ),
-        queryParameters: loginParams(),
+        data: loginParams(),
       );
 
       final result = await api.login(
@@ -179,13 +181,10 @@ void main() {
     });
 
     test('服务器地址去除尾部斜杠', () async {
-      adapter.onGet(
-        '$serverUrl/webapi/entry.cgi',
-        (server) => server.reply(
-          200,
-          {'success': true, 'data': {'sid': sid}},
-        ),
-        queryParameters: loginParams(),
+      mockLogin(
+        adapter,
+        '/webapi/entry.cgi',
+        () => {'success': true, 'data': {'sid': sid}},
       );
 
       await api.login(
@@ -194,6 +193,24 @@ void main() {
         password: 'pass',
       );
       expect(api.serverUrl, serverUrl);
+    });
+
+    test('服务器地址无协议前缀时自动补 http://', () async {
+      adapter.onPost(
+        'http://192.168.1.100:5000/webapi/entry.cgi',
+        (server) => server.reply(
+          200,
+          {'success': true, 'data': {'sid': sid}},
+        ),
+        data: loginParams(),
+      );
+
+      await api.login(
+        serverUrl: '192.168.1.100:5000',
+        account: 'user',
+        password: 'pass',
+      );
+      expect(api.serverUrl, 'http://192.168.1.100:5000');
     });
   });
 
