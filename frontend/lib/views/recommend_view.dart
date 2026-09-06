@@ -242,8 +242,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     final filteredItems = isSearching
         ? displayItems.where(_matchesSearch).toList(growable: false)
         : displayItems;
-    final mediaItems =
-        filteredItems.map((r) => r.item).toList(growable: false);
+    final mediaItems = filteredItems.map((r) => r.item).toList(growable: false);
     final hasMoreSlot = state.hasMore && !isSearching;
 
     // 网格：P2-2 列数由 _gridColumns 驱动（2/3），默认 3 列
@@ -258,8 +257,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           child: RefreshIndicator(
             onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
             child: filteredItems.isEmpty
-                // P0-2：搜索无结果 → 保留搜索栏 + 标签栏，仅网格区显示空提示 + 清空 CTA
-                ? _buildSearchEmpty(scheme)
+                // P0-2：搜索无结果 → 搜索空态；非搜索态空列表 → 分类空态
+                // （两种空态均保持可滚动，避免下拉刷新失效）
+                ? (isSearching
+                    ? _buildSearchEmpty(scheme)
+                    : _buildListEmpty(scheme))
                 : GridView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(8),
@@ -329,7 +331,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           suffixIcon: _searchQuery.isEmpty
               ? null
               : IconButton(
-                  icon: Icon(Icons.clear, size: 18, color: scheme.onSurfaceVariant),
+                  icon: Icon(Icons.clear,
+                      size: 18, color: scheme.onSurfaceVariant),
                   tooltip: '清空',
                   onPressed: () {
                     _searchController.clear();
@@ -356,24 +359,70 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   }
 
   // P0-2：搜索无结果态 —— 保留搜索栏（在 Column 上层），仅此处提示 + 清空 CTA
+  // 可滚动（AlwaysScrollableScrollPhysics），保证下拉刷新可用
   Widget _buildSearchEmpty(ColorScheme scheme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search_off, size: 48, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 12),
-          Text(
-            '未找到匹配「$_searchQuery」的内容',
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: constraints.maxHeight,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.search_off,
+                    size: 48, color: scheme.onSurfaceVariant),
+                const SizedBox(height: 12),
+                Text(
+                  '未找到匹配「$_searchQuery」的内容',
+                  style:
+                      TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () => _searchController.clear(),
+                  icon: const Icon(Icons.clear, size: 18),
+                  label: const Text('清空搜索'),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => _searchController.clear(),
-            icon: const Icon(Icons.clear, size: 18),
-            label: const Text('清空搜索'),
+        ),
+      ),
+    );
+  }
+
+  // P0-2 修复：非搜索态空列表（当前标签/分类下无内容）
+  // 与搜索空态区分，避免误显示「搜索无结果」；可滚动保留下拉刷新
+  Widget _buildListEmpty(ColorScheme scheme) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: constraints.maxHeight,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.video_library_outlined,
+                    size: 48, color: scheme.onSurfaceVariant),
+                const SizedBox(height: 12),
+                Text(
+                  '当前分类下暂无内容',
+                  style:
+                      TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      ref.read(recommendProvider.notifier).refresh(),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('刷新'),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -401,7 +450,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
         title: '还没选推荐使用的媒体库',
         subtitle: '选择后才能加载个性化推荐和高分内容',
         actionLabel: '去选择媒体库',
-        onAction: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
+        onAction: () =>
+            LibrarySelector.show(context, scope: LibraryScope.recommend),
       );
     }
     // 其他错误 → 重试
@@ -423,7 +473,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
         title: '还没选推荐使用的媒体库',
         subtitle: '选择后才能加载个性化推荐和高分内容',
         actionLabel: '去选择媒体库',
-        onAction: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
+        onAction: () =>
+            LibrarySelector.show(context, scope: LibraryScope.recommend),
       );
     }
     // 已选库但推荐为空（可能是评分阈值过高/反疲劳过滤过强）

@@ -400,6 +400,13 @@ services:
 
 5. 提交 Pull Request，描述改动与截图
 
+> **已知失败（Flutter 3.47.2 单测环境 shader 兼容问题）**：
+> `flutter test` 全量约 800+ 用例中固定 4 个失败（`full_flow_test` 2 例、
+> `favorites_view_test` 撤销、`home_scaffold_test` 点收藏），根因是 SDK 自带
+> `shaders/ink_sparkle.frag`（Material 3 涟漪）在测试环境 manifest 解码失败
+> （`INVALID_ARGUMENT`），与业务代码无关。这是当前最新稳定版（3.47.2）的
+> SDK 缺陷，无可用稳定版修复，等待上游发布 3.48 后升级验证。
+
 ### 代码风格约定
 
 - 使用 Dart 3 特性：`null safety`、`patterns`、`records`

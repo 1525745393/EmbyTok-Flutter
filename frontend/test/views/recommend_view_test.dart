@@ -284,5 +284,37 @@ void main() {
       expect(find.widgetWithText(ElevatedButton, '重试'), findsOneWidget,
           reason: 'P1-1: 通用错误态必须提供「重试」CTA');
     });
+
+    testWidgets('非搜索态空列表 → 显示分类空态而非搜索空态', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      // taggedItems 非空但 displayItems 为空（预计算未刷新）
+      // → 走 filteredItems.isEmpty 分支，非搜索态必须显示分类空态
+      fakeNotifier.state = fakeNotifier.state.copyWith(
+        isLoading: false,
+        error: null,
+        taggedItems: [
+          RecommendItem(
+            item: MediaItem(id: '1', title: '示例', type: 'Movie'),
+            source: RecommendSource.suggestions,
+          ),
+        ],
+      );
+      await tester.pump();
+
+      expect(find.text('当前分类下暂无内容'), findsOneWidget,
+          reason: 'P0-2: 非搜索态空列表应显示分类空态');
+      expect(find.textContaining('未找到匹配'), findsNothing,
+          reason: 'P0-2: 非搜索态不得误显示搜索空态');
+      // 空态可滚动 → 下拉刷新可用
+      final scrollable = find.byType(SingleChildScrollView);
+      expect(scrollable, findsOneWidget,
+          reason: 'P0-2: 空态必须可滚动，保留下拉刷新能力');
+
+      // 输入搜索词 → 切换为搜索空态
+      await tester.enterText(find.byType(TextField), '不存在的关键词xyz');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('未找到匹配'), findsOneWidget,
+          reason: 'P0-2: 搜索无结果应显示搜索空态');
+    });
   });
 }
