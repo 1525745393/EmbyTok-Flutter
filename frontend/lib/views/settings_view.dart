@@ -14,6 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
+import '../providers/lastfm_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../utils/app_preferences.dart'
@@ -170,6 +171,7 @@ class SettingsView extends ConsumerWidget {
             [
               _buildServerInfoTile(context, ref),
               _buildSynologyMusicTile(context, ref),
+              _buildLastFmTile(context, ref),
             ],
           ),
           // 关于
@@ -1003,6 +1005,81 @@ class SettingsView extends ConsumerWidget {
           ? (synoAuth.account ?? '已登录')
           : '连接群晖 NAS Audio Station',
       onTap: () => context.push('/music'),
+    );
+  }
+
+  // 服务器 - Last.fm 音乐元数据补充（歌手头像/简介）
+  Widget _buildLastFmTile(BuildContext context, WidgetRef ref) {
+    final keyAsync = ref.watch(lastfmApiKeyAsyncProvider);
+    final configured = (keyAsync.valueOrNull ?? '').isNotEmpty;
+    return _TapTile(
+      icon: Icons.graphic_eq,
+      iconColor: const Color(0xFFD51007),
+      title: 'Last.fm 补充',
+      subtitle: configured
+          ? '已配置：歌手头像/简介优先用 Last.fm'
+          : '配置 API Key，补充歌手图与简介（免费）',
+      onTap: () => _showLastFmKeyDialog(context, ref, keyAsync.valueOrNull ?? ''),
+    );
+  }
+
+  /// Last.fm API Key 配置弹窗（免费申请：last.fm/api/account/create）
+  void _showLastFmKeyDialog(
+      BuildContext context, WidgetRef ref, String currentKey) {
+    final controller = TextEditingController(text: currentKey);
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Last.fm API Key'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '免费申请：https://www.last.fm/api/account/create',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '用于补充歌手头像与简介（未配置时自动使用群晖/Wikipedia 数据）',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'API Key',
+                  hintText: '如：xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final saved = await saveLastFmApiKey(controller.text.trim());
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(saved ? 'Last.fm API Key 已保存' : '保存失败，请重试'),
+                    duration: const Duration(seconds: 2),
+                  ));
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -53,6 +53,7 @@ export 'page_navigation_provider.dart';
 export 'actors_provider.dart';
 
 // ---- 群晖 Audio Station ----
+export 'lastfm_provider.dart';
 export 'synology_auth_provider.dart';
 export 'synology_music_provider.dart';
 export 'synology_playback_provider.dart';

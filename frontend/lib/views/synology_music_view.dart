@@ -842,15 +842,28 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       songs = const [];
     }
     if (!mounted) return;
-    // 尽力获取歌手简介（Wikipedia，失败静默返回 null 不阻塞）
+    // 歌手简介：Last.fm 优先（更音乐向），Wikipedia 兜底；失败静默
     String? bio;
-    try {
-      final info =
-          await ref.read(artistInfoServiceProvider).fetchArtistInfo(artist.name);
-      bio = info?.bio;
-    } catch (e) {
-      AppLogger.warn('获取歌手简介失败',
-          data: {'artist': artist.name, 'error': e.toString()});
+    final lastfm = ref.read(lastfmServiceProvider);
+    if (lastfm != null) {
+      try {
+        final info = await lastfm.fetchArtistInfo(artist.name);
+        bio = info?.bio;
+      } catch (e) {
+        AppLogger.warn('Last.fm 歌手简介失败',
+            data: {'artist': artist.name, 'error': e.toString()});
+      }
+    }
+    if (bio == null || bio.isEmpty) {
+      try {
+        final info = await ref
+            .read(artistInfoServiceProvider)
+            .fetchArtistInfo(artist.name);
+        bio = info?.bio;
+      } catch (e) {
+        AppLogger.warn('获取歌手简介失败',
+            data: {'artist': artist.name, 'error': e.toString()});
+      }
     }
     if (!mounted) return;
     await _showSongsSheet(
@@ -1110,23 +1123,61 @@ class _SongCover extends ConsumerWidget {
 ///
 /// 优先加载 NAS 歌手图（cover.cgi + artist_name）；无图/加载失败时
 /// 回退为「渐变背景 + 歌手名首字母」（QQ音乐/酷狗风格）。
-class _ArtistAvatar extends ConsumerWidget {
+class _ArtistAvatar extends ConsumerStatefulWidget {
   final String artistName;
   final double size;
 
   const _ArtistAvatar({required this.artistName, required this.size});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ArtistAvatar> createState() => _ArtistAvatarState();
+}
+
+class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
+  /// Last.fm 头像（异步，缓存命中时同步完成）
+  Future<String?>? _lastFmImageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _lastFmImageFuture = _loadLastFmImage();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ArtistAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artistName != widget.artistName) {
+      _lastFmImageFuture = _loadLastFmImage();
+    }
+  }
+
+  Future<String?> _loadLastFmImage() async {
+    final service = ref.read(lastfmServiceProvider);
+    if (service == null) return null;
+    try {
+      final info = await service.fetchArtistInfo(widget.artistName);
+      return info?.imageUrl;
+    } catch (e) {
+      AppLogger.warn('Last.fm 头像加载失败',
+          data: {'artist': widget.artistName, 'error': e.toString()});
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final url =
-        ref.read(synologyAuthProvider.notifier).api.getArtistCoverUrl(artistName);
-    final initial = artistName.trim().isEmpty
+    // 群晖原生兜底（Last.fm 未配置/无记录时）
+    final synoUrl = ref
+        .read(synologyAuthProvider.notifier)
+        .api
+        .getArtistCoverUrl(widget.artistName);
+    final initial = widget.artistName.trim().isEmpty
         ? '?'
-        : artistName.trim().substring(0, 1).toUpperCase();
+        : widget.artistName.trim().substring(0, 1).toUpperCase();
     return Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -1146,14 +1197,20 @@ class _ArtistAvatar extends ConsumerWidget {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: url != null
-          ? CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              cacheManager: AppImageCacheManager.thumbnail,
-              errorWidget: (_, __, ___) => _initialFallback(initial, scheme),
-            )
-          : _initialFallback(initial, scheme),
+      child: FutureBuilder<String?>(
+        future: _lastFmImageFuture,
+        builder: (context, snapshot) {
+          // 优先级：Last.fm 大图 → 群晖原生 → 首字母渐变
+          final url = snapshot.data ?? synoUrl;
+          if (url == null) return _initialFallback(initial, scheme);
+          return CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            cacheManager: AppImageCacheManager.thumbnail,
+            errorWidget: (_, __, ___) => _initialFallback(initial, scheme),
+          );
+        },
+      ),
     );
   }
 
