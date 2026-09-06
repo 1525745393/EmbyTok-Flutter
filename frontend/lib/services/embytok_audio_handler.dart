@@ -21,6 +21,7 @@ import '../providers/video_list_provider.dart';
 // （用于 playbackState.add(PlaybackState(...))）。playbackStateProvider 的返回类型
 // 仍由类型推断正确解析，访问 .id 字段不受影响。
 import '../providers/video_playback_controller.dart' hide PlaybackState;
+import '../providers/synology_playback_provider.dart';
 import '../utils/logger.dart';
 
 class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
@@ -28,11 +29,24 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
 
   EmbytokAudioHandler(this._ref);
 
+  /// 当前是否为群晖音乐播放场景（有音乐曲目在队列中）
+  bool get _isSynologyMusic =>
+      _ref.read(synologyPlaybackProvider).currentSong != null;
+
+  /// 群晖音乐播放器 notifier（场景分发用）
+  SynologyPlaybackNotifier get _synologyPlayback =>
+      _ref.read(synologyPlaybackProvider.notifier);
+
   // ==================== BaseAudioHandler 实现 ====================
 
   @override
   Future<void> play() async {
-    // 通过 currentVideoControllerProvider 获取播放器并播放
+    // 群晖音乐场景：恢复音乐播放
+    if (_isSynologyMusic) {
+      await _synologyPlayback.resume();
+      return;
+    }
+    // 视频场景
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller != null && controller.value.isInitialized) {
       await controller.play();
@@ -41,6 +55,11 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> pause() async {
+    // 群晖音乐场景：暂停音乐
+    if (_isSynologyMusic) {
+      await _synologyPlayback.pause();
+      return;
+    }
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller != null && controller.value.isInitialized) {
       await controller.pause();
@@ -49,6 +68,11 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> stop() async {
+    // 群晖音乐场景：停止并释放音乐播放器
+    if (_isSynologyMusic) {
+      await _synologyPlayback.stop();
+      return;
+    }
     // 停止播放：仅暂停视频，不释放 controller（由 VideoPageItem 管理生命周期）
     final controller = _ref.read(currentVideoControllerProvider);
     if (controller != null && controller.value.isInitialized) {
@@ -64,6 +88,11 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToNext() async {
+    // 群晖音乐场景：下一首
+    if (_isSynologyMusic) {
+      await _synologyPlayback.next();
+      return;
+    }
     // 触发下一集跳转：通过 feedViewPageJumpRequestProvider 通知 FeedViewModel
     // FeedViewModel 监听该 Provider 并执行 PageController 跳页（见 feed_view_model.dart）
     //
@@ -92,6 +121,16 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
     } else {
       AppLogger.debug('AudioHandler: 已是最后一个视频，无法跳到下一集');
     }
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    // 群晖音乐场景：上一首（视频场景无上一集概念，仅日志）
+    if (_isSynologyMusic) {
+      await _synologyPlayback.previous();
+      return;
+    }
+    AppLogger.debug('AudioHandler: 视频场景无上一首操作');
   }
 
   // ==================== MediaSession 状态更新 ====================
@@ -150,6 +189,70 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
       updatePosition: pos,
       bufferedPosition: pos,
       processingState: AudioProcessingState.ready,
+    ));
+  }
+
+  // ==================== 群晖音乐 MediaSession 同步 ====================
+
+  /// 音乐切歌/开始时更新 MediaSession 媒体项（通知栏/锁屏显示）
+  void syncMusicMediaItem({
+    required String title,
+    required String artist,
+    String? artUri,
+    Duration? duration,
+  }) {
+    mediaItem.add(MediaItem(
+      id: 'synology-music',
+      title: title,
+      artist: artist,
+      artUri: artUri != null ? Uri.tryParse(artUri) : null,
+      duration: duration,
+    ));
+  }
+
+  /// 音乐播放状态同步到 MediaSession
+  ///
+  /// 控件布局（音乐场景带上一首/下一首/模式切换）：
+  /// - 播放中：[pause] [skipToPrevious] [skipToNext] [stop]
+  /// - 暂停时：[play]  [skipToPrevious] [skipToNext] [stop]
+  void syncMusicPlaybackState({
+    required bool isPlaying,
+    Duration? position,
+    Duration? duration,
+  }) {
+    final pos = position ?? Duration.zero;
+    playbackState.add(PlaybackState(
+      controls: [
+        if (isPlaying) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToPrevious,
+        MediaControl.skipToNext,
+        MediaControl.stop,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+      playing: isPlaying,
+      updatePosition: pos,
+      bufferedPosition: pos,
+      processingState: AudioProcessingState.ready,
+    ));
+  }
+
+  /// 音乐停止/清除时移除通知栏媒体控制
+  void clearMusicSession() {
+    mediaItem.add(MediaItem(
+      id: 'synology-music',
+      title: '群晖音乐',
+      artist: '已停止播放',
+      duration: Duration.zero,
+    ));
+    playbackState.add(PlaybackState(
+      controls: const [],
+      playing: false,
+      processingState: AudioProcessingState.idle,
     ));
   }
 }

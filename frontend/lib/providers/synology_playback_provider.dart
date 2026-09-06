@@ -15,6 +15,7 @@ import 'package:video_player/video_player.dart';
 import '../models/audio_models.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
+import 'audio_handler_provider.dart';
 import 'synology_auth_provider.dart';
 
 /// 播放模式
@@ -136,21 +137,25 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     if (state.isPlaying) {
       await _controller!.pause();
       state = state.copyWith(isPlaying: false);
+      _syncMediaSession(isPlaying: false, position: state.position);
     } else {
       await _controller!.play();
       state = state.copyWith(isPlaying: true);
+      _syncMediaSession(isPlaying: true, position: state.position);
     }
   }
 
   Future<void> pause() async {
     await _controller?.pause();
     state = state.copyWith(isPlaying: false);
+    _syncMediaSession(isPlaying: false, position: state.position);
   }
 
   Future<void> resume() async {
     if (_controller != null && _controller!.value.isInitialized) {
       await _controller!.play();
       state = state.copyWith(isPlaying: true);
+      _syncMediaSession(isPlaying: true, position: state.position);
     }
   }
 
@@ -221,6 +226,12 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     _controller = null;
     await _ref.read(audioSessionHandlerProvider).releaseFocus();
     state = const SynologyPlaybackState();
+    // 移除通知栏媒体控制
+    try {
+      _ref.read(audioHandlerProvider).clearMusicSession();
+    } catch (e) {
+      AppLogger.warn('清除系统媒体控制失败', data: {'error': e.toString()});
+    }
   }
 
   // ============================
@@ -230,6 +241,35 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   // ============================
   // 内部实现
   // ============================
+
+  /// 同步歌曲信息与播放状态到系统媒体控制（通知栏/锁屏）
+  void _syncMediaSession({
+    required bool isPlaying,
+    Duration? position,
+    Duration? duration,
+  }) {
+    final song = state.currentSong;
+    if (song == null) return;
+    try {
+      final handler = _ref.read(audioHandlerProvider);
+      if (isPlaying || position != null) {
+        handler.syncMusicMediaItem(
+          title: song.title,
+          artist: song.artistDisplay.isEmpty ? '群晖音乐' : song.artistDisplay,
+          artUri: state.coverUrl,
+          duration: duration,
+        );
+      }
+      handler.syncMusicPlaybackState(
+        isPlaying: isPlaying,
+        position: position,
+        duration: duration,
+      );
+    } catch (e) {
+      // 媒体会话同步失败不影响音乐播放，仅记录
+      AppLogger.warn('同步系统媒体控制失败', data: {'error': e.toString()});
+    }
+  }
 
   /// 异步加载当前歌曲歌词（切歌后旧结果丢弃）
   Future<void> _loadLyrics(String songId) async {
@@ -277,6 +317,12 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         duration: controller.value.duration,
         error: null,
       );
+      // 同步系统媒体控制（通知栏/锁屏显示歌曲与播放状态）
+      _syncMediaSession(
+        isPlaying: true,
+        position: controller.value.position,
+        duration: controller.value.duration,
+      );
       // 异步加载歌词（不阻塞播放）
       _loadLyrics(song.id);
     } catch (e, st) {
@@ -314,6 +360,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         duration: dur,
         isPlaying: playing,
       );
+      // 定期同步进度到系统媒体控制（锁屏进度条）
+      _syncMediaSession(isPlaying: playing, position: pos, duration: dur);
     });
   }
 
