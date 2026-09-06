@@ -1,3 +1,10 @@
+## [2.46.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.0...v2.46.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* 推荐页非搜索态空列表误显示搜索空态（P2） ([5e3704d](https://github.com/1525745393/EmbyTok-Flutter/commit/5e3704d1ec17f98c2fd779982b9318943dadda45))
+
 # [2.46.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.45.0...v2.46.0) (2026-09-06)
 
 
