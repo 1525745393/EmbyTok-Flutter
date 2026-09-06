@@ -1,3 +1,10 @@
+## [2.42.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.1...v2.42.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* 群晖登录改用 POST form 并修复 URL 规范化与 OTP token 位置 ([eebdd2f](https://github.com/1525745393/EmbyTok-Flutter/commit/eebdd2f9c25c370b3dc7d150dfd271fb157bf6df))
+
 ## [2.42.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.0...v2.42.1) (2026-09-06)
 
 
