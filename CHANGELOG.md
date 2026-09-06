@@ -1,3 +1,10 @@
+# [2.48.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.47.0...v2.48.0) (2026-09-06)
+
+
+### Features
+
+* 接入 Last.fm 补充歌手头像与简介 ([109f3f1](https://github.com/1525745393/EmbyTok-Flutter/commit/109f3f1b77064c46c90e440fc9a2c0e179e29151))
+
 # [2.47.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.2...v2.47.0) (2026-09-06)
 
 
