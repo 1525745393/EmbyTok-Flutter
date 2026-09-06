@@ -1,3 +1,10 @@
+## [2.46.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.1...v2.46.2) (2026-09-06)
+
+
+### Bug Fixes
+
+* 全面处理刘海屏/黑条安全区适配与窄屏溢出 ([4fc306a](https://github.com/1525745393/EmbyTok-Flutter/commit/4fc306ae9806bcc16387993430b2063d45e48a6b))
+
 ## [2.46.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.0...v2.46.1) (2026-09-06)
 
 
