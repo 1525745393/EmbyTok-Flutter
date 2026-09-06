@@ -212,6 +212,24 @@ void main() {
       );
       expect(api.serverUrl, 'http://192.168.1.100:5000');
     });
+
+    test('纯 IP 输入（无协议无端口）自动补 http:// 和默认端口 5000', () async {
+      adapter.onPost(
+        'http://192.168.1.6:5000/webapi/entry.cgi',
+        (server) => server.reply(
+          200,
+          {'success': true, 'data': {'sid': sid}},
+        ),
+        data: loginParams(),
+      );
+
+      await api.login(
+        serverUrl: '192.168.1.6',
+        account: 'user',
+        password: 'pass',
+      );
+      expect(api.serverUrl, 'http://192.168.1.6:5000');
+    });
   });
 
   group('音乐库', () {

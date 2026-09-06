@@ -507,10 +507,16 @@ class SynologyAudioApi {
 
   String _normalizeServerUrl(String url) {
     var u = url.trim();
-    // 无协议前缀时补 http://（DSM 默认 HTTP 端口 5000；
-    // 若走 HTTPS 需用户显式输入 https://ip:5001）
-    if (!u.startsWith('http://') && !u.startsWith('https://')) {
-      u = 'http://$u';
+    final hasScheme = u.startsWith('http://') || u.startsWith('https://');
+    if (!hasScheme) {
+      // 无协议前缀：补 http://
+      // 同时若输入中不含冒号（即纯 IP/主机名，无端口），
+      // 补群晖默认 HTTP 端口 5000（DSM 默认配置）
+      if (!u.contains(':')) {
+        u = 'http://$u:5000';
+      } else {
+        u = 'http://$u';
+      }
     }
     if (u.endsWith('/')) u = u.substring(0, u.length - 1);
     return u;
