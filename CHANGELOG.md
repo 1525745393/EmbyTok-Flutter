@@ -1,3 +1,10 @@
+# [2.46.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.45.0...v2.46.0) (2026-09-06)
+
+
+### Features
+
+* 群晖音乐接入系统媒体控制（通知栏/锁屏） ([77e2f69](https://github.com/1525745393/EmbyTok-Flutter/commit/77e2f6917c1467ff291d4438534a7b30ef31b14d))
+
 # [2.45.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.44.0...v2.45.0) (2026-09-06)
 
 
