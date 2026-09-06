@@ -16,9 +16,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../utils/constants.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
@@ -53,7 +55,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // P2-2：恢复用户上次选择的网格列数（2/3）
     SharedPreferences.getInstance().then((prefs) {
       final saved = prefs.getInt(kStorageKeyRecommendGridColumns);
-      if ((saved == 2 || saved == 3) && mounted) {
+      if (saved != null && (saved == 2 || saved == 3) && mounted) {
         setState(() => _gridColumns = saved);
       }
     });

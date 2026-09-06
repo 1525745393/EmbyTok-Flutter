@@ -16,6 +16,8 @@ analyzer:
     - '**/*.freezed.dart'
     - 'android/**'
     - 'build/**'
+    - ios/**
+    - web/**
 
   errors:
     # 将常见类型问题视为错误
