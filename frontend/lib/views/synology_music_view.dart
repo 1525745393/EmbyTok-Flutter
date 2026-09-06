@@ -132,43 +132,47 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       child: Column(
         children: [
           // 顶栏：返回 + 标题 + 退出
-          SizedBox(
-            height: kToolbarHeight,
-            child: Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back, color: onGradient),
-                  tooltip: '返回',
-                  onPressed: () {
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go('/');
-                    }
-                  },
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(Icons.library_music, color: onGradient, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        '群晖音乐',
-                        style: TextStyle(
-                          color: onGradient,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+          // 沉浸式渐变头部：背景铺满状态栏，内容下移避让状态栏（刘海屏）
+          Padding(
+            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+            child: SizedBox(
+              height: kToolbarHeight,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back, color: onGradient),
+                    tooltip: '返回',
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.logout, color: onGradient),
-                  tooltip: '退出群晖账号',
-                  onPressed: () => _confirmLogout(scheme),
-                ),
-              ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.library_music, color: onGradient, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          '群晖音乐',
+                          style: TextStyle(
+                            color: onGradient,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.logout, color: onGradient),
+                    tooltip: '退出群晖账号',
+                    onPressed: () => _confirmLogout(scheme),
+                  ),
+                ],
+              ),
             ),
           ),
           _buildSearchBar(scheme, onGradient),

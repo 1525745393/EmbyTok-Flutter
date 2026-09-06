@@ -142,7 +142,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
             return false;
           },
           child: GridView.builder(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.fromLTRB(
+                8, 8, 8, 8 + MediaQuery.paddingOf(context).bottom),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               childAspectRatio: childAspectRatio,

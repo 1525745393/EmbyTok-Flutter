@@ -244,297 +244,308 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
           ),
         ],
       ),
-      // 使用 CustomScrollView + SliverList 实现长列表懒加载，
-      // 避免原 SingleChildScrollView + Column + ListView(shrinkWrap) 全量构建
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // 人员头像/信息区域
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: SizedBox(
-                          width: 120,
-                          height: 160,
-                          child: imageUrl != null && imageUrl.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  cacheManager: AppImageCacheManager.thumbnail,
-                                  fit: BoxFit.cover,
-                                  fadeInDuration:
-                                      const Duration(milliseconds: 300),
-                                  httpHeaders:
-                                      headers.isNotEmpty ? headers : null,
-                                  memCacheWidth: 240,
-                                  placeholder: (_, __) =>
-                                      const _AvatarPlaceholder(),
-                                  errorWidget: (_, __, ___) =>
-                                      const _AvatarPlaceholder(),
-                                )
-                              : const _AvatarPlaceholder(),
-                        ),
-                      ),
-                      Positioned(
-                        top: -8,
-                        right: -8,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              ref.read(actorsProvider.notifier).toggleFavorite(
-                                    buildFavoritePerson(),
-                                  );
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: scheme.surface,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: scheme.onSurface.withValues(alpha: 0.1),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Icon(
-                                isFavorited
-                                    ? Icons.favorite
-                                    : Icons.favorite_border,
-                                color: isFavorited
-                                    ? scheme.primary
-                                    : scheme.onSurfaceVariant,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: () {
-                      final overview = person.overview;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          Text(
-                            person.title,
-                            style: TextStyle(
-                              color: scheme.onSurface,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            personTypeLabelFromCode(effectiveType),
-                            style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.5),
-                                fontSize: 13),
-                          ),
-                          if (overview != null && overview.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            _ExpandableText(
-                              text: overview,
-                              maxLines: 6,
-                              style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.7),
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                            ),
-                          ] else ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              '暂无简介',
-                              style: TextStyle(
-                                color: scheme.onSurface.withValues(alpha: 0.4),
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    }(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 出演的作品列表标题
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Text(
-                '${personWorksTitleFromCode(effectiveType)} (${_works.length})',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-
-          // 作品列表 / loading / error / empty
-          if (_loading)
-            SliverToBoxAdapter(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: CircularProgressIndicator(color: scheme.primary),
-                ),
-              ),
-            )
-          else if (_error != null)
-            SliverToBoxAdapter(child: _buildError(scheme))
-          else if (_works.isEmpty)
+      // 底部避让刘海屏黑条区域（CustomScrollView 无 padding 参数，用 SafeArea 包裹）
+      body: SafeArea(
+        top: false,
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // 人员头像/信息区域
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    '暂无作品',
-                    style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 14),
-                  ),
-                ),
-              ),
-            )
-          else
-            ...groupOrder.map((typeCode) {
-              final items = groupedWorks[typeCode]!;
-              if (items.isEmpty) return <Widget>[const SliverToBoxAdapter(child: SizedBox.shrink())];
-              final isOpen = _groupOpen[typeCode] ?? true;
-              return <Widget>[
-                // 分组头
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
-                    child: Row(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
                       children: [
-                        Expanded(
-                          child: Text(
-                            '${mediaTypeLabelFromCode(typeCode)} (${items.length})',
-                            style: TextStyle(
-                              color: scheme.onSurface.withValues(alpha: 0.8),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: SizedBox(
+                            width: 120,
+                            height: 160,
+                            child: imageUrl != null && imageUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    cacheManager:
+                                        AppImageCacheManager.thumbnail,
+                                    fit: BoxFit.cover,
+                                    fadeInDuration:
+                                        const Duration(milliseconds: 300),
+                                    httpHeaders:
+                                        headers.isNotEmpty ? headers : null,
+                                    memCacheWidth: 240,
+                                    placeholder: (_, __) =>
+                                        const _AvatarPlaceholder(),
+                                    errorWidget: (_, __, ___) =>
+                                        const _AvatarPlaceholder(),
+                                  )
+                                : const _AvatarPlaceholder(),
                           ),
                         ),
-                        IconButton(
-                          icon: Icon(
-                            isOpen
-                                ? Icons.keyboard_arrow_down
-                                : Icons.keyboard_arrow_right,
-                            color: scheme.onSurfaceVariant,
-                            size: 24,
+                        Positioned(
+                          top: -8,
+                          right: -8,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () {
+                                ref
+                                    .read(actorsProvider.notifier)
+                                    .toggleFavorite(
+                                      buildFavoritePerson(),
+                                    );
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: scheme.surface,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color:
+                                        scheme.onSurface.withValues(alpha: 0.1),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Icon(
+                                  isFavorited
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isFavorited
+                                      ? scheme.primary
+                                      : scheme.onSurfaceVariant,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 36,
-                            minHeight: 36,
-                          ),
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            setState(() {
-                              _groupOpen[typeCode] = !isOpen;
-                            });
-                          },
                         ),
                       ],
                     ),
-                  ),
-                ),
-                // 分组内容（展开时才渲染）
-                if (isOpen)
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-                        // 将当前演员信息注入作品，以便播放页显示正确的演员头像
-                        final currentPerson = _personDetail ?? widget.person;
-                        final currentActor = Person(
-                          id: currentPerson.id,
-                          name: currentPerson.title,
-                          type: 'Actor',
-                          imageUrl: currentPerson.thumbnailUrl ??
-                              currentPerson.primaryUrl(
-                                embyServerUrl: authState.embyServerUrl,
-                                apiKey: authState.token,
-                                maxWidth: 200,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: () {
+                        final overview = person.overview;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              person.title,
+                              style: TextStyle(
+                                color: scheme.onSurface,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
                               ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              personTypeLabelFromCode(effectiveType),
+                              style: TextStyle(
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.5),
+                                  fontSize: 13),
+                            ),
+                            if (overview != null && overview.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              _ExpandableText(
+                                text: overview,
+                                maxLines: 6,
+                                style: TextStyle(
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.7),
+                                  fontSize: 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                '暂无简介',
+                                style: TextStyle(
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.4),
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ],
                         );
-                        final people = item.people;
-                        final itemWithActor =
-                            people == null || people.isEmpty
-                                ? item.copyWith(people: [currentActor])
-                                : item.copyWith(people: [
-                                    currentActor,
-                                    ...people.where(
-                                        (p) => p.id != currentActor.id)
-                                  ]);
-                        String? currentActorRole;
-                        final idMatchRole = people
-                            ?.where((p) => p.id == currentPerson.id)
-                            .firstOrNull
-                            ?.role;
-                        if (idMatchRole != null && idMatchRole.isNotEmpty) {
-                          currentActorRole = idMatchRole;
-                        } else {
-                          final nameMatchRole = people
-                              ?.where((p) =>
-                                  p.name == currentPerson.title &&
-                                  p.role != null &&
-                                  p.role!.isNotEmpty)
-                              .firstOrNull
-                              ?.role;
-                          if (nameMatchRole != null && nameMatchRole.isNotEmpty) {
-                            currentActorRole = nameMatchRole;
-                          }
-                        }
-                        // 用 Padding 模拟 separator 的间距：组内第一个 item top=0，其余 12px
-                        return Padding(
-                          padding:
-                              EdgeInsets.only(top: index == 0 ? 0 : 12),
-                          child: _WorkTile(
-                              key: Key(item.id),
-                              item: itemWithActor,
-                              allItems: _works,
-                              currentActorRole: currentActorRole),
-                        );
-                      },
+                      }(),
                     ),
-                  ),
-              ];
-            }).expand((list) => list),
-          // 加载更多指示器
-          if (_isLoadingMore)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
+                  ],
+                ),
               ),
             ),
-          // 底部间距
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
+
+            // 出演的作品列表标题
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Text(
+                  '${personWorksTitleFromCode(effectiveType)} (${_works.length})',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+
+            // 作品列表 / loading / error / empty
+            if (_loading)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: scheme.primary),
+                  ),
+                ),
+              )
+            else if (_error != null)
+              SliverToBoxAdapter(child: _buildError(scheme))
+            else if (_works.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      '暂无作品',
+                      style: TextStyle(
+                          color: scheme.onSurface.withValues(alpha: 0.5),
+                          fontSize: 14),
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...groupOrder.map((typeCode) {
+                final items = groupedWorks[typeCode]!;
+                if (items.isEmpty)
+                  return <Widget>[
+                    const SliverToBoxAdapter(child: SizedBox.shrink())
+                  ];
+                final isOpen = _groupOpen[typeCode] ?? true;
+                return <Widget>[
+                  // 分组头
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${mediaTypeLabelFromCode(typeCode)} (${items.length})',
+                              style: TextStyle(
+                                color: scheme.onSurface.withValues(alpha: 0.8),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              isOpen
+                                  ? Icons.keyboard_arrow_down
+                                  : Icons.keyboard_arrow_right,
+                              color: scheme.onSurfaceVariant,
+                              size: 24,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            padding: EdgeInsets.zero,
+                            onPressed: () {
+                              setState(() {
+                                _groupOpen[typeCode] = !isOpen;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // 分组内容（展开时才渲染）
+                  if (isOpen)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverList.builder(
+                        itemCount: items.length,
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          // 将当前演员信息注入作品，以便播放页显示正确的演员头像
+                          final currentPerson = _personDetail ?? widget.person;
+                          final currentActor = Person(
+                            id: currentPerson.id,
+                            name: currentPerson.title,
+                            type: 'Actor',
+                            imageUrl: currentPerson.thumbnailUrl ??
+                                currentPerson.primaryUrl(
+                                  embyServerUrl: authState.embyServerUrl,
+                                  apiKey: authState.token,
+                                  maxWidth: 200,
+                                ),
+                          );
+                          final people = item.people;
+                          final itemWithActor = people == null || people.isEmpty
+                              ? item.copyWith(people: [currentActor])
+                              : item.copyWith(people: [
+                                  currentActor,
+                                  ...people
+                                      .where((p) => p.id != currentActor.id)
+                                ]);
+                          String? currentActorRole;
+                          final idMatchRole = people
+                              ?.where((p) => p.id == currentPerson.id)
+                              .firstOrNull
+                              ?.role;
+                          if (idMatchRole != null && idMatchRole.isNotEmpty) {
+                            currentActorRole = idMatchRole;
+                          } else {
+                            final nameMatchRole = people
+                                ?.where((p) =>
+                                    p.name == currentPerson.title &&
+                                    p.role != null &&
+                                    p.role!.isNotEmpty)
+                                .firstOrNull
+                                ?.role;
+                            if (nameMatchRole != null &&
+                                nameMatchRole.isNotEmpty) {
+                              currentActorRole = nameMatchRole;
+                            }
+                          }
+                          // 用 Padding 模拟 separator 的间距：组内第一个 item top=0，其余 12px
+                          return Padding(
+                            padding: EdgeInsets.only(top: index == 0 ? 0 : 12),
+                            child: _WorkTile(
+                                key: Key(item.id),
+                                item: itemWithActor,
+                                allItems: _works,
+                                currentActorRole: currentActorRole),
+                          );
+                        },
+                      ),
+                    ),
+                ];
+              }).expand((list) => list),
+            // 加载更多指示器
+            if (_isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            // 底部间距
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          ],
+        ),
       ),
     );
   }
@@ -589,7 +600,11 @@ class _WorkTile extends ConsumerWidget {
   final MediaItem item;
   final List<MediaItem> allItems;
   final String? currentActorRole;
-  const _WorkTile({super.key, required this.item, required this.allItems, this.currentActorRole});
+  const _WorkTile(
+      {super.key,
+      required this.item,
+      required this.allItems,
+      this.currentActorRole});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -651,7 +666,8 @@ class _WorkTile extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (currentActorRole != null && (currentActorRole?.isNotEmpty ?? false)) ...[
+                  if (currentActorRole != null &&
+                      (currentActorRole?.isNotEmpty ?? false)) ...[
                     const SizedBox(height: 3),
                     Text(
                       '饰：$currentActorRole',

@@ -54,7 +54,9 @@ class SettingsView extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        // 底部避让刘海屏黑条区域
+        padding: EdgeInsets.fromLTRB(
+            0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
           // 媒体库设置（PR #66：视频流 / 推荐可分别设置）
           _buildSection(

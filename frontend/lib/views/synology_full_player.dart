@@ -315,63 +315,66 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          // 控制按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  switch (state.mode) {
-                    SynologyPlaybackMode.listLoop => Icons.repeat,
-                    SynologyPlaybackMode.singleLoop => Icons.repeat_one,
-                    SynologyPlaybackMode.shuffle => Icons.shuffle,
-                  },
-                  size: 22,
+          // 控制按钮（FittedBox 缩放：极端窄屏 <360dp 时整体等比缩小，不溢出）
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    switch (state.mode) {
+                      SynologyPlaybackMode.listLoop => Icons.repeat,
+                      SynologyPlaybackMode.singleLoop => Icons.repeat_one,
+                      SynologyPlaybackMode.shuffle => Icons.shuffle,
+                    },
+                    size: 22,
+                  ),
+                  color: state.mode == SynologyPlaybackMode.listLoop
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : const Color(0xFF2C8EF4),
+                  tooltip: '播放模式：${state.mode.label}',
+                  onPressed: notifier.cycleMode,
                 ),
-                color: state.mode == SynologyPlaybackMode.listLoop
-                    ? Colors.white.withValues(alpha: 0.5)
-                    : const Color(0xFF2C8EF4),
-                tooltip: '播放模式：${state.mode.label}',
-                onPressed: notifier.cycleMode,
-              ),
-              const SizedBox(width: 20),
-              IconButton(
-                icon: const Icon(Icons.skip_previous, size: 34),
-                color: Colors.white,
-                tooltip: '上一首',
-                onPressed: state.currentIndex > 0 ? notifier.previous : null,
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: Icon(
-                  state.isLoading
-                      ? Icons.hourglass_top
-                      : state.isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_filled,
-                  size: 62,
+                const SizedBox(width: 20),
+                IconButton(
+                  icon: const Icon(Icons.skip_previous, size: 34),
+                  color: Colors.white,
+                  tooltip: '上一首',
+                  onPressed: state.currentIndex > 0 ? notifier.previous : null,
                 ),
-                color: const Color(0xFF2C8EF4),
-                tooltip: state.isPlaying ? '暂停' : '播放',
-                onPressed: state.isLoading ? null : notifier.togglePlay,
-              ),
-              const SizedBox(width: 16),
-              IconButton(
-                icon: const Icon(Icons.skip_next, size: 34),
-                color: Colors.white,
-                tooltip: '下一首',
-                onPressed: state.currentIndex < state.queue.length - 1
-                    ? notifier.next
-                    : null,
-              ),
-              const SizedBox(width: 20),
-              IconButton(
-                icon: const Icon(Icons.stop_circle_outlined, size: 24),
-                color: Colors.white.withValues(alpha: 0.6),
-                tooltip: '停止',
-                onPressed: notifier.stop,
-              ),
-            ],
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: Icon(
+                    state.isLoading
+                        ? Icons.hourglass_top
+                        : state.isPlaying
+                            ? Icons.pause_circle_filled
+                            : Icons.play_circle_filled,
+                    size: 62,
+                  ),
+                  color: const Color(0xFF2C8EF4),
+                  tooltip: state.isPlaying ? '暂停' : '播放',
+                  onPressed: state.isLoading ? null : notifier.togglePlay,
+                ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.skip_next, size: 34),
+                  color: Colors.white,
+                  tooltip: '下一首',
+                  onPressed: state.currentIndex < state.queue.length - 1
+                      ? notifier.next
+                      : null,
+                ),
+                const SizedBox(width: 20),
+                IconButton(
+                  icon: const Icon(Icons.stop_circle_outlined, size: 24),
+                  color: Colors.white.withValues(alpha: 0.6),
+                  tooltip: '停止',
+                  onPressed: notifier.stop,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -430,7 +433,11 @@ class _RotatingCoverState extends State<_RotatingCover>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context).width * 0.68;
+    // 封面尺寸 = 宽 68% 与可用高度的较小值：
+    // - 常规竖屏：68% 宽度（视觉为主）
+    // - 矮屏/横屏/小屏：受高度约束，避免超出 Expanded 区域溢出
+    final mq = MediaQuery.sizeOf(context);
+    final size = math.min(mq.width * 0.68, mq.height * 0.42);
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) => Transform.rotate(

@@ -139,7 +139,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
   // 保存搜索关键词（防抖 300ms，与 actorsProvider 搜索节奏一致）
   Future<void> _saveSearchQuery(String query) async {
     _searchSaveDebounceTimer?.cancel();
-    _searchSaveDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
+    _searchSaveDebounceTimer =
+        Timer(const Duration(milliseconds: 300), () async {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(kStorageKeyActorsSearchQuery, query);
@@ -421,7 +422,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                               icon: Icon(Icons.cancel,
-                                  color: scheme.onSurface.withValues(alpha: 0.5)),
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.5)),
                               onPressed: () {
                                 _searchController.clear();
                                 ref.read(actorsProvider.notifier).clearSearch();
@@ -476,8 +478,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
                           const SizedBox(width: 8),
                           _buildSortChip('按姓名', kActorsSortName),
                           const SizedBox(width: 8),
-                          _buildSortChip(
-                              '已关注优先', kActorsSortFavoritedAt),
+                          _buildSortChip('已关注优先', kActorsSortFavoritedAt),
                         ],
                       ),
                       SegmentedButton<int>(
@@ -569,7 +570,8 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     if (widget.useScaffold) {
       return Scaffold(
         backgroundColor: scheme.surface,
-        body: content,
+        // 无 AppBar：SafeArea 整体避让顶部状态栏与底部黑条（刘海屏）
+        body: SafeArea(child: content),
       );
     }
 
@@ -915,15 +917,19 @@ class _ActorCard extends StatelessWidget {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isFavorited ? scheme.primary : scheme.surface,
+                            color:
+                                isFavorited ? scheme.primary : scheme.surface,
                             border: Border.all(
                                 color: scheme.onSurface.withValues(alpha: 0.3),
                                 width: 2),
                           ),
                           child: Icon(
-                            isFavorited ? Icons.favorite : Icons.favorite_border,
-                            color:
-                                isFavorited ? scheme.onPrimary : scheme.onSurface,
+                            isFavorited
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: isFavorited
+                                ? scheme.onPrimary
+                                : scheme.onSurface,
                             size: 20,
                           ),
                         ),

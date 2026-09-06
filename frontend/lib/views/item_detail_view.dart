@@ -253,6 +253,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       onRefresh: _loadDetail,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
+        // 底部避让刘海屏黑条区域
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

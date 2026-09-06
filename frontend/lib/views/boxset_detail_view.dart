@@ -82,6 +82,8 @@ class _BoxsetDetailViewState extends ConsumerState<BoxsetDetailView> {
         title: Text(widget.item.title, style: const TextStyle(fontSize: 16)),
       ),
       body: SingleChildScrollView(
+        // 底部避让刘海屏黑条区域
+        padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
