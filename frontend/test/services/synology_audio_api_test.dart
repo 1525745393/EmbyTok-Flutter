@@ -85,6 +85,75 @@ void main() {
       expect(api.isLoggedIn, isFalse);
     });
 
+    test('两步验证开启（403）抛 SynologyOtpRequiredException 并携带 token', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/entry.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': false,
+            'error': {'code': 403},
+            'data': {'token': 'otp-token-123'},
+          },
+        ),
+        queryParameters: loginParams(),
+      );
+
+      await expectLater(
+        api.login(serverUrl: serverUrl, account: 'user', password: 'pass'),
+        throwsA(isA<SynologyOtpRequiredException>()
+            .having((e) => e.token, 'token', 'otp-token-123')),
+      );
+      expect(api.isLoggedIn, isFalse);
+    });
+
+    test('两步验证携带 otp_code 登录成功并保存 did', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/entry.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {'sid': sid, 'did': 'device-456'},
+          },
+        ),
+        queryParameters: loginParams(otp: '123456'),
+      );
+
+      final result = await api.login(
+        serverUrl: serverUrl,
+        account: 'user',
+        password: 'pass',
+        otpCode: '123456',
+      );
+
+      expect(result, sid);
+      expect(api.isLoggedIn, isTrue);
+    });
+
+    test('两步验证 otp_code 错误（403）仍抛出认证异常', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/entry.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': false,
+            'error': {'code': 403},
+          },
+        ),
+        queryParameters: loginParams(otp: '999999'),
+      );
+
+      await expectLater(
+        api.login(
+            serverUrl: serverUrl,
+            account: 'user',
+            password: 'pass',
+            otpCode: '999999'),
+        throwsA(isA<SynologyAuthException>()),
+      );
+    });
+
     test('entry.cgi 404 时回退 auth.cgi（DSM 6）', () async {
       adapter.onGet(
         '$serverUrl/webapi/entry.cgi',

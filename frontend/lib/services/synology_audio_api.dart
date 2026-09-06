@@ -24,6 +24,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 import '../models/audio_models.dart';
 import '../utils/logger.dart';
@@ -58,6 +59,15 @@ class SynologyAuthException implements Exception {
   String toString() => message;
 }
 
+/// 两步验证（OTP）已开启：登录返回 403 + token，需要带 otp_code 重试
+class SynologyOtpRequiredException extends SynologyAuthException {
+  /// DSM 下发的临时 token（随 OTP 一起提交）
+  final String? token;
+
+  SynologyOtpRequiredException(this.token)
+      : super('需要两步验证（OTP）', errorCode: 403);
+}
+
 class SynologyAudioApi {
   final Dio _dio;
 
@@ -70,12 +80,24 @@ class SynologyAudioApi {
   /// 会话所属账号（登录后有效）
   String? _account;
 
+  /// 设备 ID（OTP 两步验证时使用）
+  String? _deviceId;
+
   SynologyAudioApi({Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
               connectTimeout: const Duration(seconds: 15),
               receiveTimeout: const Duration(seconds: 30),
-            ));
+            )) {
+    // 群晖 NAS 默认使用自签名证书（HTTPS 5001），
+    // 放行证书校验以支持自签名部署（用户显式连接自己的 NAS）。
+    // 注意：仅作用于本客户端，不影响项目其他 API 的证书策略。
+    if (dio == null) {
+      _dio.httpClientAdapter = IOHttpClientAdapter(
+        validateCertificate: (cert, host, port) => true,
+      );
+    }
+  }
 
   // ============================
   // 会话状态
@@ -151,6 +173,14 @@ class SynologyAudioApi {
     if (!success) {
       final error = body['error'] as Map<String, dynamic>?;
       final code = error?['code'] as int?;
+      // 两步验证开启：DSM 返回 403 + data.token，需带 otp_code + device_id 重试
+      if (code == 403) {
+        final data = body['data'] as Map<String, dynamic>?;
+        final token = data?['token'] as String?;
+        if (otpCode == null || otpCode.isEmpty) {
+          throw SynologyOtpRequiredException(token);
+        }
+      }
       throw SynologyAuthException(_authErrorMessage(code), errorCode: code);
     }
 
@@ -160,6 +190,11 @@ class SynologyAudioApi {
       throw SynologyAuthException('登录响应缺少 sid');
     }
     _sid = newSid;
+    // 记录设备 ID：OTP 两步验证时需携带 device_id 完成登录
+    final did = data?['did'] as String?;
+    if (did != null && did.isNotEmpty) {
+      _deviceId = did;
+    }
     AppLogger.info('群晖 Audio Station 登录成功', data: {'account': account});
     return newSid;
   }

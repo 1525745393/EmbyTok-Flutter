@@ -91,10 +91,14 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   }
 
   /// 登录 Audio Station
+  ///
+  /// [otpCode]：两步验证开启时，第一次登录抛 SynologyOtpRequiredException，
+  /// UI 提示用户输入验证码后带 otpCode 重试。
   Future<void> login({
     required String serverUrl,
     required String account,
     required String password,
+    String? otpCode,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -102,6 +106,7 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
         serverUrl: serverUrl,
         account: account,
         password: password,
+        otpCode: otpCode,
       );
       // 持久化会话
       final prefs = await SharedPreferences.getInstance();

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/providers.dart';
 import '../services/api_client.dart';
+import '../services/services.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 
@@ -86,6 +87,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _embyController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _serverFocusNode = FocusNode();
   final _usernameFocusNode = FocusNode();
@@ -98,6 +100,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   // 当前选择的服务器类型（Emby / 群晖 Audio Station）
   ServerType _serverType = ServerType.emby;
+
+  // 群晖两步验证：是否显示 OTP 输入框
+  bool _otpRequired = false;
 
   // 连接测试状态：null=未测试, true=成功, false=失败
   bool? _connectionStatus;
@@ -128,6 +133,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     _embyController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     _serverFocusNode.dispose();
     _usernameFocusNode.dispose();
     _passwordFocusNode.dispose();
@@ -293,6 +299,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   /// 友好的错误提示
   String _friendlyError(dynamic e) {
+    // 群晖两步验证：提示输入验证码并显示 OTP 输入框
+    if (e is SynologyOtpRequiredException) {
+      return '该账号开启了两步验证，请输入验证码';
+    }
+    // 群晖认证异常：直接展示可读信息（含错误码）
+    if (e is SynologyAuthException) {
+      return e.message;
+    }
     final msg = e.toString().toLowerCase();
     if (msg.contains('socket') ||
         msg.contains('connection') ||
@@ -320,6 +334,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final server = _embyController.text.trim();
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
+    final otp = _otpController.text.trim();
 
     setState(() {
       _isSubmitting = true;
@@ -329,9 +344,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
     try {
       if (_serverType == ServerType.synology) {
         // 群晖 Audio Station：独立认证（sid 会话）
-        await ref
-            .read(synologyAuthProvider.notifier)
-            .login(serverUrl: server, account: username, password: password);
+        await ref.read(synologyAuthProvider.notifier).login(
+              serverUrl: server,
+              account: username,
+              password: password,
+              otpCode: otp.isEmpty ? null : otp,
+            );
       } else {
         await ref.read(authProvider.notifier).login(server, username, password);
       }
@@ -345,6 +363,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
       if (mounted) {
         setState(() {
           _errorMessage = _friendlyError(e);
+          // 两步验证开启：显示 OTP 输入框
+          if (e is SynologyOtpRequiredException) {
+            _otpRequired = true;
+          }
         });
       }
     } finally {
@@ -444,6 +466,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         setState(() {
                           _serverType = type;
                           _connectionStatus = null;
+                          // 切换服务器类型时重置两步验证状态
+                          _otpRequired = false;
+                          _otpController.clear();
                         });
                       }
                     },
@@ -505,6 +530,22 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // 群晖两步验证码（开启后显示）
+                  if (_serverType == ServerType.synology && _otpRequired) ...[
+                    _buildTextField(
+                      scheme: scheme,
+                      controller: _otpController,
+                      label: '验证码（两步验证）',
+                      icon: Icons.pin_outlined,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      onFieldSubmitted: (_) => _submit(),
+                      onChanged: (_) => _clearError(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // 记住密码 + HTTP 安全提示
                   Row(
@@ -873,6 +914,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     Widget? suffixIcon,
     TextInputAction? textInputAction,
     Iterable<String>? autofillHints,
+    TextInputType? keyboardType,
     ValueChanged<String>? onFieldSubmitted,
     ValueChanged<String>? onChanged,
   }) {
@@ -882,6 +924,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       obscureText: obscureText,
       textInputAction: textInputAction,
       autofillHints: autofillHints,
+      keyboardType: keyboardType,
       style: TextStyle(color: scheme.onSurface),
       onChanged: onChanged,
       decoration: InputDecoration(
