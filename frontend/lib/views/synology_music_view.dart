@@ -610,39 +610,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           );
         }
         final artist = artists[index];
-        // 圆形头像网格（QQ音乐/酷狗歌手风格）
+        // 圆形头像网格（QQ音乐/酷狗歌手风格）：优先显示 NAS 歌手图，
+        // 无图时回退为首字母渐变头像
         return InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () => _showArtistSongs(artist),
           child: Column(
             children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      scheme.primary.withValues(alpha: 0.85),
-                      scheme.primary.withValues(alpha: 0.45),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.primary.withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.person,
-                  color: scheme.onPrimary,
-                  size: 34,
-                ),
-              ),
+              _ArtistAvatar(artistName: artist.name, size: 72),
               const SizedBox(height: 8),
               Text(
                 artist.name,
@@ -867,8 +842,20 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       songs = const [];
     }
     if (!mounted) return;
+    // 尽力获取歌手简介（Wikipedia，失败静默返回 null 不阻塞）
+    String? bio;
+    try {
+      final info =
+          await ref.read(artistInfoServiceProvider).fetchArtistInfo(artist.name);
+      bio = info?.bio;
+    } catch (e) {
+      AppLogger.warn('获取歌手简介失败',
+          data: {'artist': artist.name, 'error': e.toString()});
+    }
+    if (!mounted) return;
     await _showSongsSheet(
       title: artist.name,
+      subtitle: bio,
       songs: songs,
       emptyText: '该歌手暂无歌曲',
     );
@@ -946,10 +933,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         if (subtitle != null && subtitle.isNotEmpty)
                           Text(
                             subtitle,
-                            maxLines: 1,
+                            // 歌手简介允许多行展示（最多 3 行）
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 12, color: scheme.onSurfaceVariant),
+                                fontSize: 12,
+                                height: 1.4,
+                                color: scheme.onSurfaceVariant),
                           ),
                       ],
                     ),
@@ -1112,6 +1102,73 @@ class _SongCover extends ConsumerWidget {
     return Container(
       color: scheme.surfaceContainerHighest,
       child: Icon(Icons.music_note, color: scheme.onSurfaceVariant, size: 20),
+    );
+  }
+}
+
+/// 歌手圆形头像组件
+///
+/// 优先加载 NAS 歌手图（cover.cgi + artist_name）；无图/加载失败时
+/// 回退为「渐变背景 + 歌手名首字母」（QQ音乐/酷狗风格）。
+class _ArtistAvatar extends ConsumerWidget {
+  final String artistName;
+  final double size;
+
+  const _ArtistAvatar({required this.artistName, required this.size});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final url =
+        ref.read(synologyAuthProvider.notifier).api.getArtistCoverUrl(artistName);
+    final initial = artistName.trim().isEmpty
+        ? '?'
+        : artistName.trim().substring(0, 1).toUpperCase();
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primary.withValues(alpha: 0.85),
+            scheme.primary.withValues(alpha: 0.45),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: url != null
+          ? CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.cover,
+              cacheManager: AppImageCacheManager.thumbnail,
+              errorWidget: (_, __, ___) => _initialFallback(initial, scheme),
+            )
+          : _initialFallback(initial, scheme),
+    );
+  }
+
+  /// 首字母渐变头像（无图兜底）
+  Widget _initialFallback(String initial, ColorScheme scheme) {
+    return Container(
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: TextStyle(
+          color: scheme.onPrimary,
+          fontSize: 30,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

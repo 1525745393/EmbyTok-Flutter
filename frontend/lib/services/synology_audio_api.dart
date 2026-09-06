@@ -410,6 +410,24 @@ class SynologyAudioApi {
     });
   }
 
+  /// 歌手图片 URL（群晖原生：cover.cgi + artist_name）
+  ///
+  /// NAS 上歌手无图片时该 URL 返回非图片内容（错误兜底由 UI 层处理，
+  /// 展示首字母渐变头像）。
+  String? getArtistCoverUrl(String artistName) {
+    final url = _serverUrl;
+    final sid = _sid;
+    if (url == null || sid == null) return null;
+    return _buildUrl('/webapi/AudioStation/cover.cgi', {
+      'api': 'SYNO.AudioStation.Cover',
+      'version': 1,
+      'method': 'getcover',
+      'library': 'all',
+      'artist_name': artistName,
+      '_sid': sid,
+    });
+  }
+
   /// 歌曲播放流 URL
   ///
   /// 整轨音轨（id 含 _v_）无法直接 stream，强制使用 transcode（mp3）。

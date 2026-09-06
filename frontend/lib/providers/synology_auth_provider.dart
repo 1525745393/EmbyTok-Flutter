@@ -8,6 +8,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/artist_info_service.dart';
 import '../services/synology_audio_api.dart';
 import '../utils/logger.dart';
 
@@ -150,6 +151,13 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
 /// 群晖 API 客户端 Provider（全局单例）
 final synologyAudioApiProvider = Provider<SynologyAudioApi>((ref) {
   return SynologyAudioApi();
+});
+
+/// 歌手简介服务 Provider（Wikipedia，带内存缓存）
+final artistInfoServiceProvider = Provider<ArtistInfoService>((ref) {
+  final service = ArtistInfoService();
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 /// 群晖认证 Provider

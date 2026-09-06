@@ -448,10 +448,19 @@ void main() {
       expect(url, contains(Uri.encodeQueryComponent('周杰伦')));
     });
 
+    test('歌手图片 URL 包含歌手名与会话', () {
+      final url = api.getArtistCoverUrl('周杰伦');
+      expect(url, contains('/webapi/AudioStation/cover.cgi'));
+      expect(url, contains('method=getcover'));
+      expect(url, contains(Uri.encodeQueryComponent('周杰伦')));
+      expect(url, contains('_sid=$sid'));
+    });
+
     test('未登录时流地址返回 null', () {
       final notLoggedIn = SynologyAudioApi(dio: dio);
       expect(notLoggedIn.getStreamUrl('music_1'), isNull);
       expect(notLoggedIn.getSongCoverUrl('music_1'), isNull);
+      expect(notLoggedIn.getArtistCoverUrl('周杰伦'), isNull);
     });
   });
 
