@@ -7,6 +7,7 @@
 // - 提供 mini player 所需的实时状态（曲目、封面、进度、时长）
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -15,6 +16,16 @@ import '../models/audio_models.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
 import 'synology_auth_provider.dart';
+
+/// 播放模式
+enum SynologyPlaybackMode {
+  listLoop('列表循环'),
+  singleLoop('单曲循环'),
+  shuffle('随机播放');
+
+  final String label;
+  const SynologyPlaybackMode(this.label);
+}
 
 /// 音乐播放状态
 class SynologyPlaybackState {
@@ -27,6 +38,7 @@ class SynologyPlaybackState {
   final Duration duration;
   final String? error;
   final String? coverUrl;
+  final SynologyPlaybackMode mode;
 
   const SynologyPlaybackState({
     this.currentSong,
@@ -38,6 +50,7 @@ class SynologyPlaybackState {
     this.duration = Duration.zero,
     this.error,
     this.coverUrl,
+    this.mode = SynologyPlaybackMode.listLoop,
   });
 
   /// 是否已有曲目（用于 mini player 显隐）
@@ -53,6 +66,7 @@ class SynologyPlaybackState {
     Duration? duration,
     String? error,
     String? coverUrl,
+    SynologyPlaybackMode? mode,
   }) {
     return SynologyPlaybackState(
       currentSong: currentSong ?? this.currentSong,
@@ -64,6 +78,7 @@ class SynologyPlaybackState {
       duration: duration ?? this.duration,
       error: error ?? this.error,
       coverUrl: coverUrl ?? this.coverUrl,
+      mode: mode ?? this.mode,
     );
   }
 }
@@ -74,6 +89,7 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   VideoPlayerController? _controller;
   Timer? _positionTimer;
   bool _disposed = false;
+  final Random _random = Random();
 
   SynologyPlaybackNotifier(this._ref) : super(const SynologyPlaybackState()) {
     // 中断回调：焦点丢失暂停 / 恢复续播
@@ -126,18 +142,55 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     }
   }
 
-  /// 下一首
+  /// 下一首（按播放模式：列表循环 / 随机 / 单曲）
   Future<void> next() async {
-    final idx = state.currentIndex + 1;
-    if (idx >= state.queue.length) return;
-    await playQueue(state.queue, idx);
+    final queue = state.queue;
+    if (queue.isEmpty) return;
+    final mode = state.mode;
+    switch (mode) {
+      case SynologyPlaybackMode.singleLoop:
+        // 单曲循环：重播当前曲
+        await _playSong(queue[state.currentIndex]);
+      case SynologyPlaybackMode.shuffle:
+        final idx = _randomIndex(queue.length);
+        await playQueue(queue, idx);
+      case SynologyPlaybackMode.listLoop:
+        final idx = (state.currentIndex + 1) % queue.length;
+        await playQueue(queue, idx);
+    }
   }
 
-  /// 上一首（回到开头或上一首）
+  /// 上一首（回到开头或上一首；随机模式跳随机）
   Future<void> previous() async {
+    final queue = state.queue;
+    if (queue.isEmpty) return;
+    if (state.mode == SynologyPlaybackMode.shuffle) {
+      await playQueue(queue, _randomIndex(queue.length));
+      return;
+    }
     final idx = state.currentIndex - 1;
     if (idx < 0) return;
-    await playQueue(state.queue, idx);
+    await playQueue(queue, idx);
+  }
+
+  /// 切换播放模式（列表循环 → 单曲循环 → 随机）
+  void cycleMode() {
+    final nextMode = switch (state.mode) {
+      SynologyPlaybackMode.listLoop => SynologyPlaybackMode.singleLoop,
+      SynologyPlaybackMode.singleLoop => SynologyPlaybackMode.shuffle,
+      SynologyPlaybackMode.shuffle => SynologyPlaybackMode.listLoop,
+    };
+    state = state.copyWith(mode: nextMode);
+    AppLogger.info('切换播放模式', data: {'mode': nextMode.label});
+  }
+
+  int _randomIndex(int length) {
+    if (length <= 1) return 0;
+    // 避免与当前索引重复
+    final current = state.currentIndex;
+    var idx = _random.nextInt(length);
+    if (idx == current) idx = (idx + 1) % length;
+    return idx;
   }
 
   /// 跳转到指定位置

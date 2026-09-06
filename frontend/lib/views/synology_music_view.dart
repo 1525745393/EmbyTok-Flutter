@@ -1011,6 +1011,21 @@ class _MiniPlayerBar extends ConsumerWidget {
                     onPressed: state.isLoading ? null : notifier.togglePlay,
                   ),
                   IconButton(
+                    icon: Icon(
+                      switch (state.mode) {
+                        SynologyPlaybackMode.listLoop => Icons.repeat,
+                        SynologyPlaybackMode.singleLoop => Icons.repeat_one,
+                        SynologyPlaybackMode.shuffle => Icons.shuffle,
+                      },
+                      size: 18,
+                    ),
+                    color: state.mode == SynologyPlaybackMode.listLoop
+                        ? scheme.onSurfaceVariant
+                        : scheme.primary,
+                    tooltip: '播放模式：${state.mode.label}',
+                    onPressed: notifier.cycleMode,
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.skip_next),
                     color: scheme.onSurface,
                     tooltip: '下一首',
