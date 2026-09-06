@@ -1,3 +1,10 @@
+## [2.42.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.2...v2.42.3) (2026-09-06)
+
+
+### Bug Fixes
+
+* 群晖纯 IP 输入自动补默认端口 5000 ([22e6efd](https://github.com/1525745393/EmbyTok-Flutter/commit/22e6efd6dadf1df8accef2ff48aa1018c6599c62))
+
 ## [2.42.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.1...v2.42.2) (2026-09-06)
 
 
