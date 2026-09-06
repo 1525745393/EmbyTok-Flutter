@@ -35,6 +35,14 @@ class SynologyMusicState {
   final bool hasMoreSongs;
   final bool isLoadingMoreSongs;
 
+  /// 专辑分页状态
+  final bool hasMoreAlbums;
+  final bool isLoadingMoreAlbums;
+
+  /// 歌手分页状态
+  final bool hasMoreArtists;
+  final bool isLoadingMoreArtists;
+
   /// 搜索状态
   final bool isSearching;
   final String searchKeyword;
@@ -49,6 +57,10 @@ class SynologyMusicState {
     this.playlists = const [],
     this.hasMoreSongs = false,
     this.isLoadingMoreSongs = false,
+    this.hasMoreAlbums = false,
+    this.isLoadingMoreAlbums = false,
+    this.hasMoreArtists = false,
+    this.isLoadingMoreArtists = false,
     this.isSearching = false,
     this.searchKeyword = '',
     this.searchResult,
@@ -63,6 +75,10 @@ class SynologyMusicState {
     List<AudioPlaylist>? playlists,
     bool? hasMoreSongs,
     bool? isLoadingMoreSongs,
+    bool? hasMoreAlbums,
+    bool? isLoadingMoreAlbums,
+    bool? hasMoreArtists,
+    bool? isLoadingMoreArtists,
     bool? isSearching,
     String? searchKeyword,
     AudioSearchResult? searchResult,
@@ -76,6 +92,10 @@ class SynologyMusicState {
       playlists: playlists ?? this.playlists,
       hasMoreSongs: hasMoreSongs ?? this.hasMoreSongs,
       isLoadingMoreSongs: isLoadingMoreSongs ?? this.isLoadingMoreSongs,
+      hasMoreAlbums: hasMoreAlbums ?? this.hasMoreAlbums,
+      isLoadingMoreAlbums: isLoadingMoreAlbums ?? this.isLoadingMoreAlbums,
+      hasMoreArtists: hasMoreArtists ?? this.hasMoreArtists,
+      isLoadingMoreArtists: isLoadingMoreArtists ?? this.isLoadingMoreArtists,
       isSearching: isSearching ?? this.isSearching,
       searchKeyword: searchKeyword ?? this.searchKeyword,
       searchResult: searchResult ?? this.searchResult,
@@ -114,11 +134,21 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
             isLoadingMoreSongs: false,
           );
         case SynologyMusicTab.albums:
-          final albums = await _api.getAlbums();
-          state = state.copyWith(isLoading: false, albums: albums);
+          final albums = await _api.getAlbums(offset: 0, limit: _pageSize);
+          state = state.copyWith(
+            isLoading: false,
+            albums: albums,
+            hasMoreAlbums: albums.length >= _pageSize,
+            isLoadingMoreAlbums: false,
+          );
         case SynologyMusicTab.artists:
-          final artists = await _api.getArtists();
-          state = state.copyWith(isLoading: false, artists: artists);
+          final artists = await _api.getArtists(offset: 0, limit: _pageSize);
+          state = state.copyWith(
+            isLoading: false,
+            artists: artists,
+            hasMoreArtists: artists.length >= _pageSize,
+            isLoadingMoreArtists: false,
+          );
         case SynologyMusicTab.playlists:
           final playlists = await _api.getPlaylists();
           state = state.copyWith(isLoading: false, playlists: playlists);
@@ -154,6 +184,60 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     } catch (e, st) {
       AppLogger.error('加载更多歌曲失败', error: e, stackTrace: st);
       state = state.copyWith(isLoadingMoreSongs: false);
+    }
+  }
+
+  /// 加载专辑下一页（滚动到底部触发）
+  Future<void> loadMoreAlbums() async {
+    if (!_isLoggedIn) return;
+    if (state.isLoading || state.isLoadingMoreAlbums || !state.hasMoreAlbums) {
+      return;
+    }
+    state = state.copyWith(isLoadingMoreAlbums: true, error: null);
+    try {
+      final more = await _api.getAlbums(
+        offset: state.albums.length,
+        limit: _pageSize,
+      );
+      if (more.isEmpty) {
+        state = state.copyWith(isLoadingMoreAlbums: false, hasMoreAlbums: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoadingMoreAlbums: false,
+        albums: [...state.albums, ...more],
+        hasMoreAlbums: more.length >= _pageSize,
+      );
+    } catch (e, st) {
+      AppLogger.error('加载更多专辑失败', error: e, stackTrace: st);
+      state = state.copyWith(isLoadingMoreAlbums: false);
+    }
+  }
+
+  /// 加载歌手下一页（滚动到底部触发）
+  Future<void> loadMoreArtists() async {
+    if (!_isLoggedIn) return;
+    if (state.isLoading || state.isLoadingMoreArtists || !state.hasMoreArtists) {
+      return;
+    }
+    state = state.copyWith(isLoadingMoreArtists: true, error: null);
+    try {
+      final more = await _api.getArtists(
+        offset: state.artists.length,
+        limit: _pageSize,
+      );
+      if (more.isEmpty) {
+        state = state.copyWith(isLoadingMoreArtists: false, hasMoreArtists: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoadingMoreArtists: false,
+        artists: [...state.artists, ...more],
+        hasMoreArtists: more.length >= _pageSize,
+      );
+    } catch (e, st) {
+      AppLogger.error('加载更多歌手失败', error: e, stackTrace: st);
+      state = state.copyWith(isLoadingMoreArtists: false);
     }
   }
 

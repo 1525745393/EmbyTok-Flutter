@@ -395,10 +395,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // 专辑网格
   // ============================
 
-  Widget _buildAlbumGrid(List<AudioAlbum> albums, ColorScheme scheme) {
+  Widget _buildAlbumGrid(List<AudioAlbum> albums, ColorScheme scheme,
+      {bool paginated = true}) {
     if (albums.isEmpty) {
       return _buildEmpty('暂无专辑', scheme);
     }
+    final musicState = ref.watch(synologyMusicProvider);
+    final showLoadingCell = paginated && musicState.hasMoreAlbums;
     return GridView.builder(
       padding: const EdgeInsets.all(8),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -407,8 +410,29 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
       ),
-      itemCount: albums.length,
+      itemCount: albums.length + (showLoadingCell ? 1 : 0),
       itemBuilder: (context, index) {
+        // 触底加载更多
+        if (index >= albums.length) {
+          if (!musicState.isLoadingMoreAlbums && paginated) {
+            // 延迟到下一帧触发，避免 build 中副作用
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ref.read(synologyMusicProvider.notifier).loadMoreAlbums();
+              }
+            });
+          }
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: scheme.primary,
+              ),
+            ),
+          );
+        }
         final album = albums[index];
         return InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -450,14 +474,40 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // 歌手列表
   // ============================
 
-  Widget _buildArtistList(List<AudioArtist> artists, ColorScheme scheme) {
+  Widget _buildArtistList(List<AudioArtist> artists, ColorScheme scheme,
+      {bool paginated = true}) {
     if (artists.isEmpty) {
       return _buildEmpty('暂无歌手', scheme);
     }
+    final musicState = ref.watch(synologyMusicProvider);
+    final showLoadingCell = paginated && musicState.hasMoreArtists;
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: artists.length,
+      itemCount: artists.length + (showLoadingCell ? 1 : 0),
       itemBuilder: (context, index) {
+        // 触底加载更多
+        if (index >= artists.length) {
+          if (!musicState.isLoadingMoreArtists && paginated) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ref.read(synologyMusicProvider.notifier).loadMoreArtists();
+              }
+            });
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary,
+                ),
+              ),
+            ),
+          );
+        }
         final artist = artists[index];
         return ListTile(
           leading: CircleAvatar(
@@ -551,11 +601,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         ],
         if (result.albums.isNotEmpty) ...[
           _buildSectionHeader('专辑 (${result.albums.length})', scheme),
-          _buildAlbumGrid(result.albums, scheme),
+          _buildAlbumGrid(result.albums, scheme, paginated: false),
         ],
         if (result.artists.isNotEmpty) ...[
           _buildSectionHeader('歌手 (${result.artists.length})', scheme),
-          _buildArtistList(result.artists, scheme),
+          _buildArtistList(result.artists, scheme, paginated: false),
         ],
       ],
     );
