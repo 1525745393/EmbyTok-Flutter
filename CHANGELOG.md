@@ -1,3 +1,18 @@
+# [2.42.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.41.0...v2.42.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* 修复推荐页编译错误（缺失 import 与 int? 空安全） ([2d19395](https://github.com/1525745393/EmbyTok-Flutter/commit/2d193953102ffb1c549385c7f766804a434514e1))
+
+
+### Features
+
+* EmbyX 媒体库网格视图实现 ([326773c](https://github.com/1525745393/EmbyTok-Flutter/commit/326773c9b36a9f22865b9597a9848cbd43ddf3c8))
+* 歌曲列表触底分页加载（每页 200 首） ([4df2f95](https://github.com/1525745393/EmbyTok-Flutter/commit/4df2f950aeb1bde24163e53c338f507437af5399))
+* 群晖 Audio Station 音乐对接（登录/浏览/播放） ([25aa351](https://github.com/1525745393/EmbyTok-Flutter/commit/25aa351bb4486d495d9f927bdd889ff070f1c54b))
+* 音乐播放模式（列表循环/单曲循环/随机） ([7dd0874](https://github.com/1525745393/EmbyTok-Flutter/commit/7dd0874f12f1e6c536c2f925d1f3d1d0fe02a4e4))
+
 # [2.41.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.40.0...v2.41.0) (2026-09-05)
 
 
