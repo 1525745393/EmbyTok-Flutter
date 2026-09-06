@@ -1,3 +1,10 @@
+# [2.45.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.44.0...v2.45.0) (2026-09-06)
+
+
+### Features
+
+* 全屏播放页（旋转封面/进度拖动/LRC 歌词滚动高亮） ([8d55c18](https://github.com/1525745393/EmbyTok-Flutter/commit/8d55c18514a807d3a409e09f7c9c26ff43e24839))
+
 # [2.44.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.43.0...v2.44.0) (2026-09-06)
 
 
