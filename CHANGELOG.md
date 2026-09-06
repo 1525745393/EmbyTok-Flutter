@@ -1,3 +1,10 @@
+## [2.42.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.0...v2.42.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* 群晖登录支持两步验证 OTP 与自签名证书 ([4c0f0c5](https://github.com/1525745393/EmbyTok-Flutter/commit/4c0f0c55d16dccf57b223ae2b93a9a6d33b4192d))
+
 # [2.42.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.41.0...v2.42.0) (2026-09-06)
 
 
