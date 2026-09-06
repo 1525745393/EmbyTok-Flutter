@@ -1,3 +1,10 @@
+# [2.47.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.2...v2.47.0) (2026-09-06)
+
+
+### Features
+
+* 歌手头像与简介（群晖原生 cover.cgi + Wikipedia） ([9acc16a](https://github.com/1525745393/EmbyTok-Flutter/commit/9acc16a838b58855353c83289f59a57f88007138))
+
 ## [2.46.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.46.1...v2.46.2) (2026-09-06)
 
 
