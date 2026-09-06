@@ -455,6 +455,59 @@ void main() {
     });
   });
 
+  group('歌词', () {
+    setUp(() {
+      api.restoreSession(serverUrl: serverUrl, sid: sid, account: 'user');
+    });
+
+    test('getLyrics 返回 LRC 文本', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/lyrics.cgi',
+        (server) => server.reply(
+          200,
+          {
+            'success': true,
+            'data': {'lyrics': '[00:01.00]歌词内容'},
+          },
+        ),
+        queryParameters: {
+          'api': 'SYNO.AudioStation.Lyrics',
+          'method': 'getlyrics',
+          'version': 2,
+          'id': 'music_1',
+          '_sid': sid,
+        },
+      );
+
+      final lyrics = await api.getLyrics('music_1');
+      expect(lyrics, '[00:01.00]歌词内容');
+    });
+
+    test('getLyrics 空歌词返回 null', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/lyrics.cgi',
+        (server) => server.reply(
+          200,
+          {'success': true, 'data': {'lyrics': ''}},
+        ),
+      );
+
+      expect(await api.getLyrics('music_1'), isNull);
+    });
+
+    test('getLyrics 请求失败返回 null（不抛异常）', () async {
+      adapter.onGet(
+        '$serverUrl/webapi/AudioStation/lyrics.cgi',
+        (server) => server.reply(
+          200,
+          {'success': false, 'error': {'code': 106}},
+        ),
+      );
+
+      expect(await api.getLyrics('music_1'), isNull);
+    });
+  });
+
   group('logout', () {
     test('登出后清除会话', () async {
       api.restoreSession(serverUrl: serverUrl, sid: sid, account: 'user');

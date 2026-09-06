@@ -109,7 +109,8 @@ class SynologyAudioApi {
   bool get isLoggedIn => _sid != null && _sid!.isNotEmpty;
 
   /// 已登录时可离线构造（从持久化恢复会话）
-  void restoreSession({required String serverUrl, required String sid, String? account}) {
+  void restoreSession(
+      {required String serverUrl, required String sid, String? account}) {
     _serverUrl = _serverUrl ?? serverUrl;
     _sid = sid;
     _account = account;
@@ -149,7 +150,9 @@ class SynologyAudioApi {
       'format': 'sid',
       'enable_device_token': 'yes',
       if (otpCode != null && otpCode.isNotEmpty) 'otp_code': otpCode,
-      if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
+      if ((deviceId ?? _deviceId) != null &&
+          (deviceId ?? _deviceId)!.isNotEmpty)
+        'device_id': deviceId ?? _deviceId,
     };
 
     dynamic raw;
@@ -232,7 +235,8 @@ class SynologyAudioApi {
     int offset = 0,
     int limit = 200,
   }) async {
-    final data = await _callList('SYNO.AudioStation.Song', 'AudioStation/song.cgi', {
+    final data =
+        await _callList('SYNO.AudioStation.Song', 'AudioStation/song.cgi', {
       'method': 'list',
       'version': 3,
       'library': 'all',
@@ -253,7 +257,8 @@ class SynologyAudioApi {
     int offset = 0,
     int limit = 200,
   }) async {
-    final data = await _callList('SYNO.AudioStation.Album', 'AudioStation/album.cgi', {
+    final data =
+        await _callList('SYNO.AudioStation.Album', 'AudioStation/album.cgi', {
       'method': 'list',
       'version': 3,
       'library': 'all',
@@ -272,7 +277,8 @@ class SynologyAudioApi {
     int offset = 0,
     int limit = 200,
   }) async {
-    final data = await _callList('SYNO.AudioStation.Artist', 'AudioStation/artist.cgi', {
+    final data =
+        await _callList('SYNO.AudioStation.Artist', 'AudioStation/artist.cgi', {
       'method': 'list',
       'version': 3,
       'library': 'all',
@@ -291,7 +297,8 @@ class SynologyAudioApi {
     int offset = 0,
     int limit = 200,
   }) async {
-    final data = await _callList('SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
+    final data = await _callList(
+        'SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
       'method': 'list',
       'version': 2,
       'library': 'all',
@@ -306,13 +313,15 @@ class SynologyAudioApi {
 
   /// 获取歌单内歌曲
   Future<List<AudioSong>> getPlaylistSongs(String playlistId) async {
-    final data = await _callList('SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
+    final data = await _callList(
+        'SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
       'method': 'getinfo',
       'version': 2,
       'library': 'all',
       'id': playlistId,
       'limit': 0,
-      'additional': jsonify(['songs_song_tag', 'songs_song_audio', 'songs_song_rating']),
+      'additional':
+          jsonify(['songs_song_tag', 'songs_song_audio', 'songs_song_rating']),
     });
     final songs = _asList(data?['songs']);
     return songs
@@ -322,7 +331,8 @@ class SynologyAudioApi {
 
   /// 搜索歌曲 / 专辑 / 歌手
   Future<AudioSearchResult> search(String keyword) async {
-    final data = await _callList('SYNO.AudioStation.Search', 'AudioStation/search.cgi', {
+    final data =
+        await _callList('SYNO.AudioStation.Search', 'AudioStation/search.cgi', {
       'method': 'list',
       'version': 1,
       'library': 'all',
@@ -346,6 +356,24 @@ class SynologyAudioApi {
   // ============================
   // 封面 / 播放流
   // ============================
+
+  /// 获取歌曲 LRC 歌词（无歌词时返回 null）
+  Future<String?> getLyrics(String songId) async {
+    try {
+      final data = await _callList(
+          'SYNO.AudioStation.Lyrics', 'AudioStation/lyrics.cgi', {
+        'method': 'getlyrics',
+        'version': 2,
+        'id': songId,
+      });
+      final lyrics = data?['lyrics'] as String?;
+      if (lyrics == null || lyrics.trim().isEmpty) return null;
+      return lyrics;
+    } catch (e) {
+      AppLogger.warn('获取歌词失败', data: {'songId': songId, 'error': e.toString()});
+      return null;
+    }
+  }
 
   /// 歌曲封面 URL（直接可加载，无需二次请求）
   String? getSongCoverUrl(String songId) {
@@ -453,7 +481,8 @@ class SynologyAudioApi {
   ///
   /// DSM 的登录接口要求 POST 传参（GET 在部分 DSM 版本/配置下不可用），
   /// 采用 form 编码以兼容 DSM 6（auth.cgi）与 DSM 7（entry.cgi）。
-  Future<dynamic> _requestLogin(String path, Map<String, dynamic> params) async {
+  Future<dynamic> _requestLogin(
+      String path, Map<String, dynamic> params) async {
     final base = _serverUrl;
     if (base == null) {
       throw SynologyAuthException('未配置群晖服务器地址');

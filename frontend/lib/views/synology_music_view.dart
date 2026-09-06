@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/audio_models.dart';
+import 'synology_full_player.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
@@ -91,12 +92,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   _buildGradientHeader(scheme),
                   Expanded(
                     child: RefreshIndicator(
-                      onRefresh: () => ref
-                          .read(synologyMusicProvider.notifier)
-                          .loadTab(
-                            SynologyMusicTab.values[_tabController.index],
-                            force: true,
-                          ),
+                      onRefresh: () =>
+                          ref.read(synologyMusicProvider.notifier).loadTab(
+                                SynologyMusicTab.values[_tabController.index],
+                                force: true,
+                              ),
                       child: _buildTabContent(scheme),
                     ),
                   ),
@@ -220,11 +220,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     // 渐变上的搜索框：浅色模式白底、深色模式深底
     final fieldColor =
         isDark ? const Color(0xFF1E2F45) : Colors.white.withValues(alpha: 0.95);
-    final textColor =
-        isDark ? Colors.white : const Color(0xFF1F2937);
-    final hintColor = isDark
-        ? Colors.white.withValues(alpha: 0.5)
-        : const Color(0xFF7A8BA0);
+    final textColor = isDark ? Colors.white : const Color(0xFF1F2937);
+    final hintColor =
+        isDark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF7A8BA0);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 2, 14, 6),
@@ -350,10 +348,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => ref
-                .read(synologyMusicProvider.notifier)
-                .loadTab(SynologyMusicTab.values[_tabController.index],
-                    force: true),
+            onPressed: () => ref.read(synologyMusicProvider.notifier).loadTab(
+                SynologyMusicTab.values[_tabController.index],
+                force: true),
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('重试'),
           ),
@@ -407,7 +404,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              ref.read(synologyPlaybackProvider.notifier).playQueue(songs, index);
+              ref
+                  .read(synologyPlaybackProvider.notifier)
+                  .playQueue(songs, index);
             },
             child: Row(
               children: [
@@ -434,8 +433,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight:
-                                    isCurrent ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight: isCurrent
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                                 color: isCurrent
                                     ? scheme.primary
                                     : scheme.onSurface,
@@ -461,7 +461,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 const SizedBox(width: 8),
                 Text(
                   song.durationText,
-                  style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                  style:
+                      TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -554,8 +555,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 album.artistDisplay.isEmpty ? '未知歌手' : album.artistDisplay,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11, color: scheme.onSurfaceVariant),
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -839,9 +839,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // ============================
 
   Future<void> _showAlbumSongs(AudioAlbum album) async {
-    final songs = await ref
-        .read(synologyMusicProvider.notifier)
-        .loadAlbumSongs(album);
+    final songs =
+        await ref.read(synologyMusicProvider.notifier).loadAlbumSongs(album);
     if (!mounted) return;
     await _showSongsSheet(
       title: album.name,
@@ -859,7 +858,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     try {
       songs = await api.getSongs(artist: artist.name);
     } catch (e) {
-      AppLogger.warn('加载歌手歌曲失败', data: {'artist': artist.name, 'error': e.toString()});
+      AppLogger.warn('加载歌手歌曲失败',
+          data: {'artist': artist.name, 'error': e.toString()});
       songs = const [];
     }
     if (!mounted) return;
@@ -945,8 +945,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 12,
-                                color: scheme.onSurfaceVariant),
+                                fontSize: 12, color: scheme.onSurfaceVariant),
                           ),
                       ],
                     ),
@@ -998,9 +997,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                               fontSize: 14,
                               fontWeight:
                                   isCurrent ? FontWeight.w700 : FontWeight.w500,
-                              color: isCurrent
-                                  ? scheme.primary
-                                  : scheme.onSurface,
+                              color:
+                                  isCurrent ? scheme.primary : scheme.onSurface,
                             ),
                           ),
                           subtitle: song.artistDisplay.isNotEmpty
@@ -1016,8 +1014,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                           trailing: Text(
                             song.durationText,
                             style: TextStyle(
-                                fontSize: 12,
-                                color: scheme.onSurfaceVariant),
+                                fontSize: 12, color: scheme.onSurfaceVariant),
                           ),
                           onTap: () {
                             ref
@@ -1036,10 +1033,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   String? _albumCoverUrl(AudioAlbum album) {
-    return ref
-        .read(synologyAuthProvider.notifier)
-        .api
-        .getAlbumCoverUrl(
+    return ref.read(synologyAuthProvider.notifier).api.getAlbumCoverUrl(
           albumName: album.name,
           albumArtistName: album.albumArtist,
         );
@@ -1091,10 +1085,8 @@ class _SongCover extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final url = ref
-        .read(synologyAuthProvider.notifier)
-        .api
-        .getSongCoverUrl(songId);
+    final url =
+        ref.read(synologyAuthProvider.notifier).api.getSongCoverUrl(songId);
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
       child: SizedBox(
@@ -1129,10 +1121,7 @@ class _AlbumCover extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final url = ref
-        .read(synologyAuthProvider.notifier)
-        .api
-        .getAlbumCoverUrl(
+    final url = ref.read(synologyAuthProvider.notifier).api.getAlbumCoverUrl(
           albumName: album.name,
           albumArtistName: album.albumArtist,
         );
@@ -1143,7 +1132,8 @@ class _AlbumCover extends ConsumerWidget {
             cacheManager: AppImageCacheManager.thumbnail,
             errorWidget: (_, __, ___) => Container(
               color: scheme.surfaceContainerHighest,
-              child: Icon(Icons.album, color: scheme.onSurfaceVariant, size: 28),
+              child:
+                  Icon(Icons.album, color: scheme.onSurfaceVariant, size: 28),
             ),
           )
         : Container(
@@ -1172,114 +1162,116 @@ class _MiniPlayerBar extends ConsumerWidget {
     return Material(
       color: scheme.surfaceContainerHighest,
       elevation: 10,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 4, 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 进度条
-              LinearProgressIndicator(
-                value: state.duration.inMilliseconds > 0
-                    ? (state.position.inMilliseconds /
-                            state.duration.inMilliseconds)
-                        .clamp(0.0, 1.0)
-                    : 0,
-                minHeight: 2,
-                backgroundColor: scheme.outlineVariant.withValues(alpha: 0.4),
-                color: scheme.primary,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  _SongCover(songId: song.id, size: 44),
-                  const SizedBox(width: 10),
-                  // 标题 + 歌手
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          song.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        if (song.artistDisplay.isNotEmpty)
+      child: InkWell(
+        onTap: () => showFullPlayerSheet(context),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 4, 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 进度条
+                LinearProgressIndicator(
+                  value: state.duration.inMilliseconds > 0
+                      ? (state.position.inMilliseconds /
+                              state.duration.inMilliseconds)
+                          .clamp(0.0, 1.0)
+                      : 0,
+                  minHeight: 2,
+                  backgroundColor: scheme.outlineVariant.withValues(alpha: 0.4),
+                  color: scheme.primary,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    _SongCover(songId: song.id, size: 44),
+                    const SizedBox(width: 10),
+                    // 标题 + 歌手
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            song.artistDisplay,
+                            song.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 11,
-                                color: scheme.onSurfaceVariant),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
+                            ),
                           ),
-                      ],
+                          if (song.artistDisplay.isNotEmpty)
+                            Text(
+                              song.artistDisplay,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 11, color: scheme.onSurfaceVariant),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  // 播放控制（紧凑布局，防窄屏溢出）
-                  _compactButton(
-                    scheme: scheme,
-                    icon: Icon(
-                      switch (state.mode) {
-                        SynologyPlaybackMode.listLoop => Icons.repeat,
-                        SynologyPlaybackMode.singleLoop => Icons.repeat_one,
-                        SynologyPlaybackMode.shuffle => Icons.shuffle,
-                      },
-                      size: 17,
+                    // 播放控制（紧凑布局，防窄屏溢出）
+                    _compactButton(
+                      scheme: scheme,
+                      icon: Icon(
+                        switch (state.mode) {
+                          SynologyPlaybackMode.listLoop => Icons.repeat,
+                          SynologyPlaybackMode.singleLoop => Icons.repeat_one,
+                          SynologyPlaybackMode.shuffle => Icons.shuffle,
+                        },
+                        size: 17,
+                      ),
+                      color: state.mode == SynologyPlaybackMode.listLoop
+                          ? scheme.onSurfaceVariant
+                          : scheme.primary,
+                      tooltip: '播放模式：${state.mode.label}',
+                      onPressed: notifier.cycleMode,
                     ),
-                    color: state.mode == SynologyPlaybackMode.listLoop
-                        ? scheme.onSurfaceVariant
-                        : scheme.primary,
-                    tooltip: '播放模式：${state.mode.label}',
-                    onPressed: notifier.cycleMode,
-                  ),
-                  _compactButton(
-                    scheme: scheme,
-                    icon: const Icon(Icons.skip_previous, size: 22),
-                    color: scheme.onSurface,
-                    tooltip: '上一首',
-                    onPressed:
-                        state.currentIndex > 0 ? notifier.previous : null,
-                  ),
-                  _compactButton(
-                    scheme: scheme,
-                    icon: Icon(
-                      state.isLoading
-                          ? Icons.hourglass_top
-                          : state.isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled,
-                      size: 34,
+                    _compactButton(
+                      scheme: scheme,
+                      icon: const Icon(Icons.skip_previous, size: 22),
+                      color: scheme.onSurface,
+                      tooltip: '上一首',
+                      onPressed:
+                          state.currentIndex > 0 ? notifier.previous : null,
                     ),
-                    color: scheme.primary,
-                    tooltip: state.isPlaying ? '暂停' : '播放',
-                    onPressed: state.isLoading ? null : notifier.togglePlay,
-                  ),
-                  _compactButton(
-                    scheme: scheme,
-                    icon: const Icon(Icons.skip_next, size: 22),
-                    color: scheme.onSurface,
-                    tooltip: '下一首',
-                    onPressed: state.currentIndex < state.queue.length - 1
-                        ? notifier.next
-                        : null,
-                  ),
-                  _compactButton(
-                    scheme: scheme,
-                    icon: const Icon(Icons.close, size: 17),
-                    color: scheme.onSurfaceVariant,
-                    tooltip: '停止',
-                    onPressed: notifier.stop,
-                  ),
-                ],
-              ),
-            ],
+                    _compactButton(
+                      scheme: scheme,
+                      icon: Icon(
+                        state.isLoading
+                            ? Icons.hourglass_top
+                            : state.isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_filled,
+                        size: 34,
+                      ),
+                      color: scheme.primary,
+                      tooltip: state.isPlaying ? '暂停' : '播放',
+                      onPressed: state.isLoading ? null : notifier.togglePlay,
+                    ),
+                    _compactButton(
+                      scheme: scheme,
+                      icon: const Icon(Icons.skip_next, size: 22),
+                      color: scheme.onSurface,
+                      tooltip: '下一首',
+                      onPressed: state.currentIndex < state.queue.length - 1
+                          ? notifier.next
+                          : null,
+                    ),
+                    _compactButton(
+                      scheme: scheme,
+                      icon: const Icon(Icons.close, size: 17),
+                      color: scheme.onSurfaceVariant,
+                      tooltip: '停止',
+                      onPressed: notifier.stop,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1370,5 +1362,4 @@ class _EqualizerBarsState extends State<_EqualizerBars>
       },
     );
   }
-
 }

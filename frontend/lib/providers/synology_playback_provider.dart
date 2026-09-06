@@ -40,6 +40,12 @@ class SynologyPlaybackState {
   final String? coverUrl;
   final SynologyPlaybackMode mode;
 
+  /// 当前歌曲 LRC 歌词原文（null=无歌词）
+  final String? lyrics;
+
+  /// 歌词加载中
+  final bool isLoadingLyrics;
+
   const SynologyPlaybackState({
     this.currentSong,
     this.queue = const [],
@@ -51,6 +57,8 @@ class SynologyPlaybackState {
     this.error,
     this.coverUrl,
     this.mode = SynologyPlaybackMode.listLoop,
+    this.lyrics,
+    this.isLoadingLyrics = false,
   });
 
   /// 是否已有曲目（用于 mini player 显隐）
@@ -67,6 +75,8 @@ class SynologyPlaybackState {
     String? error,
     String? coverUrl,
     SynologyPlaybackMode? mode,
+    String? lyrics,
+    bool? isLoadingLyrics,
   }) {
     return SynologyPlaybackState(
       currentSong: currentSong ?? this.currentSong,
@@ -79,6 +89,8 @@ class SynologyPlaybackState {
       error: error ?? this.error,
       coverUrl: coverUrl ?? this.coverUrl,
       mode: mode ?? this.mode,
+      lyrics: lyrics ?? this.lyrics,
+      isLoadingLyrics: isLoadingLyrics ?? this.isLoadingLyrics,
     );
   }
 }
@@ -215,6 +227,21 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   // 内部实现
   // ============================
 
+  // ============================
+  // 内部实现
+  // ============================
+
+  /// 异步加载当前歌曲歌词（切歌后旧结果丢弃）
+  Future<void> _loadLyrics(String songId) async {
+    state = state.copyWith(isLoadingLyrics: true, lyrics: null);
+    final api = _ref.read(synologyAuthProvider.notifier).api;
+    final lyrics = await api.getLyrics(songId);
+    // 仅当仍是同一首歌时写入，避免切歌竞态
+    if (!_disposed && state.currentSong?.id == songId) {
+      state = state.copyWith(isLoadingLyrics: false, lyrics: lyrics);
+    }
+  }
+
   Future<void> _playSong(AudioSong song) async {
     // 释放旧播放器
     await _controller?.dispose();
@@ -250,14 +277,18 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         duration: controller.value.duration,
         error: null,
       );
+      // 异步加载歌词（不阻塞播放）
+      _loadLyrics(song.id);
     } catch (e, st) {
-      AppLogger.error('音乐播放失败', data: {'song': song.title}, error: e, stackTrace: st);
+      AppLogger.error('音乐播放失败',
+          data: {'song': song.title}, error: e, stackTrace: st);
       // 播放失败自动切下一首（避免用户手动点）最多尝试队列末尾
       final idx = state.currentIndex;
       if (idx >= 0 && idx < state.queue.length - 1) {
         await playQueue(state.queue, idx + 1);
       } else {
-        state = state.copyWith(isLoading: false, isPlaying: false, error: '播放失败：$e');
+        state = state.copyWith(
+            isLoading: false, isPlaying: false, error: '播放失败：$e');
       }
     }
   }
@@ -272,7 +303,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       final playing = controller.value.isPlaying;
 
       // 播放完毕自动下一首（video_player 在结尾 isPlaying 变 false）
-      final finished = dur > Duration.zero && pos >= dur - const Duration(milliseconds: 300);
+      final finished =
+          dur > Duration.zero && pos >= dur - const Duration(milliseconds: 300);
       if (finished && !playing) {
         next();
         return;
@@ -296,7 +328,10 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   }
 
   String? _coverUrlOf(AudioSong song) {
-    return _ref.read(synologyAuthProvider.notifier).api.getSongCoverUrl(song.id);
+    return _ref
+        .read(synologyAuthProvider.notifier)
+        .api
+        .getSongCoverUrl(song.id);
   }
 
   @override
