@@ -52,5 +52,10 @@ export 'page_navigation_provider.dart';
 // ---- 演员 ----
 export 'actors_provider.dart';
 
+// ---- 群晖 Audio Station ----
+export 'synology_auth_provider.dart';
+export 'synology_music_provider.dart';
+export 'synology_playback_provider.dart';
+
 // ---- ViewModel ----
 export '../viewmodels/feed_view_model.dart';

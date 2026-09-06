@@ -27,6 +27,7 @@ import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/search_view.dart';
 import 'views/settings_view.dart';
+import 'views/synology_music_view.dart';
 import 'widgets/video_page_item.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
@@ -224,6 +225,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: true,
           child: RecommendView(),
         ),
+      ),
+      // 群晖 Audio Station 音乐：独立路由
+      GoRoute(
+        path: '/music',
+        builder: (context, state) => const SynologyMusicView(),
       ),
       // 设置
       GoRoute(

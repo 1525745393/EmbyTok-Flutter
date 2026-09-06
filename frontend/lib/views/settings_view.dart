@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -166,6 +167,7 @@ class SettingsView extends ConsumerWidget {
             Colors.blue,
             [
               _buildServerInfoTile(context, ref),
+              _buildSynologyMusicTile(context, ref),
             ],
           ),
           // 关于
@@ -985,6 +987,20 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blue,
       title: '当前服务器',
       subtitle: auth.backendUrl ?? '未连接',
+    );
+  }
+
+  // 服务器 - 群晖 Audio Station 音乐
+  Widget _buildSynologyMusicTile(BuildContext context, WidgetRef ref) {
+    final synoAuth = ref.watch(synologyAuthProvider);
+    return _TapTile(
+      icon: Icons.library_music_outlined,
+      iconColor: const Color(0xFF2C8EF4),
+      title: '群晖音乐',
+      subtitle: synoAuth.isLoggedIn
+          ? (synoAuth.account ?? '已登录')
+          : '连接群晖 NAS Audio Station',
+      onTap: () => context.push('/music'),
     );
   }
 

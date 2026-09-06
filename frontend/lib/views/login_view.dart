@@ -24,6 +24,7 @@ const _kSecureKeyPassword = 'embytok_secure_password';
 enum ServerType {
   emby,
   plex,
+  synology,
 }
 
 /// 服务器历史记录条目
@@ -94,6 +95,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
   bool _passwordVisible = false;
   bool _rememberMe = false;
   List<_ServerHistoryEntry> _serverHistory = [];
+
+  // 当前选择的服务器类型（Emby / 群晖 Audio Station）
+  ServerType _serverType = ServerType.emby;
 
   // 连接测试状态：null=未测试, true=成功, false=失败
   bool? _connectionStatus;
@@ -239,7 +243,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     }
   }
 
-  /// 测试服务器连接：复用 ApiClient（Dio），替代原始 HttpClient
+  /// 测试服务器连接：按服务器类型走不同探测端点
   Future<void> _testConnection() async {
     final url = _embyController.text.trim();
     if (url.isEmpty) return;
@@ -251,10 +255,28 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     try {
       final apiClient = ApiClient(baseUrl: url);
-      final response = await apiClient.get<dynamic>('/System/Info/Public');
+      final ok = switch (_serverType) {
+        ServerType.emby ||
+        ServerType.plex =>
+          (await apiClient.get<dynamic>('/System/Info/Public'))
+                  .statusCode ==
+              200,
+        // 群晖：查询 Audio Station 服务信息（info.cgi）
+        ServerType.synology =>
+          (await apiClient.get<dynamic>(
+            '/webapi/AudioStation/info.cgi',
+            queryParameters: {
+              'api': 'SYNO.AudioStation.Info',
+              'version': 1,
+              'method': 'getinfo',
+            },
+          ))
+                  .statusCode ==
+              200,
+      };
       if (mounted) {
         setState(() {
-          _connectionStatus = response.statusCode == 200;
+          _connectionStatus = ok;
           _isTestingConnection = false;
         });
       }
@@ -290,12 +312,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
     return e is String ? e : '登录失败：$e';
   }
 
-  /// 提交登录：带防重复提交锁和内联错误提示
+  /// 提交登录：按服务器类型走对应认证流程，带防重复提交锁和内联错误提示
   Future<void> _submit() async {
     if (_isSubmitting) return;
     if (_formKey.currentState?.validate() != true) return;
 
-    final emby = _embyController.text.trim();
+    final server = _embyController.text.trim();
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 
@@ -305,11 +327,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
     });
 
     try {
-      await ref.read(authProvider.notifier).login(emby, username, password);
-      await _saveServerHistory(emby);
-      await _saveCredentials(emby, username, password);
+      if (_serverType == ServerType.synology) {
+        // 群晖 Audio Station：独立认证（sid 会话）
+        await ref
+            .read(synologyAuthProvider.notifier)
+            .login(serverUrl: server, account: username, password: password);
+      } else {
+        await ref.read(authProvider.notifier).login(server, username, password);
+      }
+      await _saveServerHistory(server);
+      await _saveCredentials(server, username, password);
       if (mounted) {
-        context.go('/');
+        // 群晖登录成功 → 进入音乐页；Emby/Plex → 首页
+        context.go(_serverType == ServerType.synology ? '/music' : '/');
       }
     } catch (e) {
       if (mounted) {
@@ -395,7 +425,38 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ),
                   const SizedBox(height: 40),
 
-                  // Emby 服务器地址
+                  // 服务器类型选择（Emby / 群晖 Audio Station）
+                  SegmentedButton<ServerType>(
+                    segments: const [
+                      ButtonSegment(
+                          value: ServerType.emby,
+                          label: Text('Emby'),
+                          icon: Icon(Icons.movie_outlined, size: 16)),
+                      ButtonSegment(
+                          value: ServerType.synology,
+                          label: Text('群晖音乐'),
+                          icon: Icon(Icons.library_music_outlined, size: 16)),
+                    ],
+                    selected: {_serverType},
+                    onSelectionChanged: (selection) {
+                      final type = selection.first;
+                      if (type != _serverType) {
+                        setState(() {
+                          _serverType = type;
+                          _connectionStatus = null;
+                        });
+                      }
+                    },
+                    showSelectedIcon: false,
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      textStyle:
+                          WidgetStatePropertyAll(TextStyle(fontSize: 13)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 服务器地址
                   _buildServerField(scheme),
                   if (_serverHistory.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -555,6 +616,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
   /// 服务器地址输入框（带连接测试状态指示器）
   Widget _buildServerField(ColorScheme scheme) {
+    final isSyno = _serverType == ServerType.synology;
     return TextFormField(
       controller: _embyController,
       focusNode: _serverFocusNode,
@@ -566,9 +628,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
       decoration: InputDecoration(
         filled: true,
         fillColor: scheme.surface,
-        labelText: 'Emby 服务器地址',
+        labelText: isSyno ? '群晖服务器地址' : 'Emby 服务器地址',
         labelStyle: TextStyle(color: scheme.onSurfaceVariant),
-        hintText: 'http://192.168.1.1:8096',
+        hintText: isSyno ? 'http://192.168.1.100:5000' : 'http://192.168.1.1:8096',
         hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         prefixIcon: Icon(Icons.dns_outlined, color: scheme.primary),
         suffixIcon: _buildConnectionIndicator(scheme),
@@ -662,6 +724,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
                   _embyController.text = entry.url;
+                  // 恢复该服务器上次使用的类型
+                  if (entry.serverType != _serverType) {
+                    setState(() => _serverType = entry.serverType);
+                  }
                   _clearError();
                   _testConnection();
                   _usernameFocusNode.requestFocus();
@@ -750,6 +816,17 @@ class _LoginViewState extends ConsumerState<LoginView> {
           ),
           child: const Icon(Icons.play_circle_outline,
               size: 18, color: Color(0xFFE5A00D)),
+        );
+      case ServerType.synology:
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2C8EF4).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.library_music_outlined,
+              size: 18, color: Color(0xFF2C8EF4)),
         );
     }
   }
