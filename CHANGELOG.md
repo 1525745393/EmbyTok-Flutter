@@ -1,3 +1,10 @@
+# [2.44.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.43.0...v2.44.0) (2026-09-06)
+
+
+### Features
+
+* 音乐库 UI 优化（参考 QQ音乐/酷狗交互） ([3c1cdff](https://github.com/1525745393/EmbyTok-Flutter/commit/3c1cdff6af01c95ebefc9c1389108b1d182a62b4))
+
 # [2.43.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.3...v2.43.0) (2026-09-06)
 
 
