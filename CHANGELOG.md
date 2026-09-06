@@ -1,3 +1,10 @@
+# [2.43.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.3...v2.43.0) (2026-09-06)
+
+
+### Features
+
+* 专辑/歌手列表触底分页加载（每页 200） ([e8536cb](https://github.com/1525745393/EmbyTok-Flutter/commit/e8536cbb892159c56a65a5a974fff85787d1dce5))
+
 ## [2.42.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.42.2...v2.42.3) (2026-09-06)
 
 
