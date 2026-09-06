@@ -314,10 +314,35 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       return _buildEmpty('暂无歌曲', scheme);
     }
     final playback = ref.watch(synologyPlaybackProvider);
+    final musicState = ref.watch(synologyMusicProvider);
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: songs.length,
+      itemCount: songs.length + (musicState.hasMoreSongs ? 1 : 0),
       itemBuilder: (context, index) {
+        // 触底加载更多
+        if (index >= songs.length) {
+          if (!musicState.isLoadingMoreSongs) {
+            // 延迟到下一帧触发，避免 build 中副作用
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ref.read(synologyMusicProvider.notifier).loadMoreSongs();
+              }
+            });
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary,
+                ),
+              ),
+            ),
+          );
+        }
         final song = songs[index];
         final isCurrent = playback.currentSong?.id == song.id;
         return ListTile(

@@ -31,6 +31,10 @@ class SynologyMusicState {
   final List<AudioArtist> artists;
   final List<AudioPlaylist> playlists;
 
+  /// 歌曲分页状态
+  final bool hasMoreSongs;
+  final bool isLoadingMoreSongs;
+
   /// 搜索状态
   final bool isSearching;
   final String searchKeyword;
@@ -43,6 +47,8 @@ class SynologyMusicState {
     this.albums = const [],
     this.artists = const [],
     this.playlists = const [],
+    this.hasMoreSongs = false,
+    this.isLoadingMoreSongs = false,
     this.isSearching = false,
     this.searchKeyword = '',
     this.searchResult,
@@ -55,6 +61,8 @@ class SynologyMusicState {
     List<AudioAlbum>? albums,
     List<AudioArtist>? artists,
     List<AudioPlaylist>? playlists,
+    bool? hasMoreSongs,
+    bool? isLoadingMoreSongs,
     bool? isSearching,
     String? searchKeyword,
     AudioSearchResult? searchResult,
@@ -66,12 +74,17 @@ class SynologyMusicState {
       albums: albums ?? this.albums,
       artists: artists ?? this.artists,
       playlists: playlists ?? this.playlists,
+      hasMoreSongs: hasMoreSongs ?? this.hasMoreSongs,
+      isLoadingMoreSongs: isLoadingMoreSongs ?? this.isLoadingMoreSongs,
       isSearching: isSearching ?? this.isSearching,
       searchKeyword: searchKeyword ?? this.searchKeyword,
       searchResult: searchResult ?? this.searchResult,
     );
   }
 }
+
+/// 单页大小（与 DSM 默认一致）
+const int _pageSize = 200;
 
 class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
   final Ref _ref;
@@ -93,8 +106,13 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     try {
       switch (tab) {
         case SynologyMusicTab.songs:
-          final songs = await _api.getSongs();
-          state = state.copyWith(isLoading: false, songs: songs);
+          final songs = await _api.getSongs(offset: 0, limit: _pageSize);
+          state = state.copyWith(
+            isLoading: false,
+            songs: songs,
+            hasMoreSongs: songs.length >= _pageSize,
+            isLoadingMoreSongs: false,
+          );
         case SynologyMusicTab.albums:
           final albums = await _api.getAlbums();
           state = state.copyWith(isLoading: false, albums: albums);
@@ -109,6 +127,33 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     } catch (e, st) {
       AppLogger.error('加载音乐库失败', data: {'tab': tab.name}, error: e, stackTrace: st);
       state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// 加载歌曲列表下一页（滚动到底部触发）
+  Future<void> loadMoreSongs() async {
+    if (!_isLoggedIn) return;
+    if (state.isLoading || state.isLoadingMoreSongs || !state.hasMoreSongs) {
+      return;
+    }
+    state = state.copyWith(isLoadingMoreSongs: true, error: null);
+    try {
+      final more = await _api.getSongs(
+        offset: state.songs.length,
+        limit: _pageSize,
+      );
+      if (more.isEmpty) {
+        state = state.copyWith(isLoadingMoreSongs: false, hasMoreSongs: false);
+        return;
+      }
+      state = state.copyWith(
+        isLoadingMoreSongs: false,
+        songs: [...state.songs, ...more],
+        hasMoreSongs: more.length >= _pageSize,
+      );
+    } catch (e, st) {
+      AppLogger.error('加载更多歌曲失败', error: e, stackTrace: st);
+      state = state.copyWith(isLoadingMoreSongs: false);
     }
   }
 
