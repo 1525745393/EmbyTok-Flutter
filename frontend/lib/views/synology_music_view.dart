@@ -1980,6 +1980,10 @@ class _ArtistSourcePicker extends ConsumerWidget {
         }
         final lastfm = bundle.lastfm;
         final wiki = bundle.wiki;
+        // Last.fm 简介可能为空（有头像无简介），此时简介回退 Wikipedia
+        final lastfmBio =
+            (lastfm?.bio?.isNotEmpty ?? false) ? lastfm!.bio! : null;
+        final wikiBio = (wiki?.bio?.isNotEmpty ?? false) ? wiki!.bio! : null;
 
         // 自动聚合值（用于保留未被采用的另一维度）
         final autoImageUrl = lastfm?.imageUrl ?? bundle.synoUrl;
@@ -1988,15 +1992,15 @@ class _ArtistSourcePicker extends ConsumerWidget {
             : (bundle.synoUrl != null
                 ? ArtistInfoSource.synology
                 : ArtistInfoSource.none);
-        final autoBio = lastfm?.bio ?? wiki?.bio;
-        final autoBioSource = lastfm?.bio != null
+        final autoBio = lastfmBio ?? wikiBio;
+        final autoBioSource = lastfmBio != null
             ? ArtistInfoSource.lastfm
-            : (wiki?.bio != null
+            : (wikiBio != null
                 ? ArtistInfoSource.wikipedia
                 : ArtistInfoSource.none);
 
         final hasImage = lastfm?.imageUrl != null || bundle.synoUrl != null;
-        final hasBio = lastfm?.bio != null || wiki?.bio != null;
+        final hasBio = lastfmBio != null || wikiBio != null;
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -2043,30 +2047,30 @@ class _ArtistSourcePicker extends ConsumerWidget {
             if (!hasBio)
               _SourceEmptyHint('未找到「$artistName」的简介', scheme)
             else ...[
-              if (lastfm?.bio != null)
+              if (lastfmBio != null)
                 _BioSourceCard(
-                  bio: lastfm!.bio!,
+                  bio: lastfmBio,
                   source: ArtistInfoSource.lastfm,
                   onTap: () => _adopt(
                     ref,
                     ArtistInfoResult(
                       imageUrl: autoImageUrl,
                       imageSource: autoImageSource,
-                      bio: lastfm.bio,
+                      bio: lastfmBio,
                       bioSource: ArtistInfoSource.lastfm,
                     ),
                   ),
                 ),
-              if (wiki?.bio != null)
+              if (wikiBio != null)
                 _BioSourceCard(
-                  bio: wiki!.bio!,
+                  bio: wikiBio,
                   source: ArtistInfoSource.wikipedia,
                   onTap: () => _adopt(
                     ref,
                     ArtistInfoResult(
                       imageUrl: autoImageUrl,
                       imageSource: autoImageSource,
-                      bio: wiki.bio,
+                      bio: wikiBio,
                       bioSource: ArtistInfoSource.wikipedia,
                     ),
                   ),

@@ -16,11 +16,14 @@ import 'package:http/http.dart' as http;
 import '../utils/logger.dart';
 
 /// Last.fm 歌手信息（简介 + 头像大图）
+///
+/// [bio] 可空：Last.fm 很多歌手有头像但无简介，此时仍返回头像，
+/// 简介由调用方回退 Wikipedia 等兜底来源。
 class LastFmArtistInfo {
-  final String bio;
+  final String? bio;
   final String? imageUrl;
 
-  const LastFmArtistInfo({required this.bio, this.imageUrl});
+  const LastFmArtistInfo({this.bio, this.imageUrl});
 }
 
 class LastFmService {
@@ -83,11 +86,15 @@ class LastFmService {
         bio = bioMap?['content'] as String?;
       }
       if (bio != null) bio = _stripHtml(bio).trim();
-      if (bio == null || bio.isEmpty) {
+      if (bio != null && bio.length > 200) bio = '${bio.substring(0, 200)}…';
+      // 头像或简介任一存在即返回（Last.fm 常见「有图无简介」歌手，
+      // 此时简介由调用方回退 Wikipedia 等来源）
+      if ((bio == null || bio.isEmpty) &&
+          (imageUrl == null || imageUrl.isEmpty)) {
         return _artistCache[key] = null;
       }
-      if (bio.length > 200) bio = '${bio.substring(0, 200)}…';
-      info = LastFmArtistInfo(bio: bio, imageUrl: imageUrl);
+      info = LastFmArtistInfo(
+          bio: (bio == null || bio.isEmpty) ? null : bio, imageUrl: imageUrl);
     } catch (e) {
       AppLogger.warn('Last.fm 获取歌手信息失败',
           data: {'artist': key, 'error': e.toString()});

@@ -194,9 +194,9 @@ class ArtistInfoCache {
       synoUrl = null;
     }
 
-    // 3. Wikipedia 简介兜底（Last.fm 无简介时）
+    // 3. Wikipedia 简介兜底（Last.fm 无简介或简介为空时）
     String? wikiBio;
-    if (lastfm?.bio == null) {
+    if (lastfm?.bio == null || (lastfm?.bio?.isEmpty ?? true)) {
       try {
         wikiBio =
             (await _ref.read(artistInfoServiceProvider).fetchArtistInfo(key))
@@ -213,8 +213,8 @@ class ArtistInfoCache {
           : (synoUrl != null
               ? ArtistInfoSource.synology
               : ArtistInfoSource.none),
-      bio: lastfm?.bio ?? wikiBio,
-      bioSource: lastfm?.bio != null
+      bio: (lastfm?.bio?.isNotEmpty ?? false) ? lastfm!.bio! : wikiBio,
+      bioSource: (lastfm?.bio?.isNotEmpty ?? false)
           ? ArtistInfoSource.lastfm
           : (wikiBio != null
               ? ArtistInfoSource.wikipedia

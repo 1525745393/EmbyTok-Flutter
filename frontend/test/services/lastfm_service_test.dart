@@ -35,8 +35,7 @@ void main() {
             },
           ],
           'bio': {
-            'summary':
-                summary ?? '周杰伦（Jay Chou），台湾华语流行歌手。<a href="x">更多</a>',
+            'summary': summary ?? '周杰伦（Jay Chou），台湾华语流行歌手。<a href="x">更多</a>',
             'content': '完整内容',
           },
         },
@@ -71,7 +70,10 @@ void main() {
 
     test('Last.fm 无记录（error 字段）返回 null', () async {
       final client = MockClient((request) async => http.Response(
-            jsonEncode({'error': 6, 'message': 'The artist you supplied could not be found'}),
+            jsonEncode({
+              'error': 6,
+              'message': 'The artist you supplied could not be found'
+            }),
             200,
             headers: {'content-type': 'application/json; charset=utf-8'},
           ));
@@ -87,15 +89,48 @@ void main() {
       expect(await service.fetchArtistInfo('X'), isNull);
     });
 
-    test('简介为空（无 bio）返回 null', () async {
+    test('无简介且无头像返回 null', () async {
       final client = MockClient((request) async => http.Response(
-            jsonEncode({'artist': {'name': 'X', 'image': []}}),
+            jsonEncode({
+              'artist': {'name': 'X', 'image': []}
+            }),
             200,
             headers: {'content-type': 'application/json; charset=utf-8'},
           ));
       final service = LastFmService(apiKey: apiKey, client: client);
 
       expect(await service.fetchArtistInfo('X'), isNull);
+    });
+
+    test('有头像无简介：仍返回头像（简介 null，由调用方回退 Wikipedia）', () async {
+      final client = MockClient((request) async => http.Response(
+            jsonEncode({
+              'artist': {
+                'name': 'X',
+                'image': [
+                  {
+                    '#text': 'https://lastfm.example/x_300.png',
+                    'size': 'large'
+                  },
+                  {
+                    '#text': 'https://lastfm.example/x_mega.png',
+                    'size': 'mega'
+                  },
+                ],
+                'bio': {'summary': ''},
+              }
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          ));
+      final service = LastFmService(apiKey: apiKey, client: client);
+
+      final info = await service.fetchArtistInfo('X');
+
+      expect(info, isNotNull);
+      expect(info!.bio, isNull);
+      // 头像不因无简介而丢失
+      expect(info.imageUrl, 'https://lastfm.example/x_mega.png');
     });
 
     test('内存缓存：同歌手二次查询不重复请求', () async {

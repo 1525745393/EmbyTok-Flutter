@@ -171,8 +171,48 @@ void main() {
     ]);
 
     expect(results, hasLength(3));
-    expect(results.every((r) => r.bioSource == ArtistInfoSource.lastfm), isTrue);
+    expect(
+        results.every((r) => r.bioSource == ArtistInfoSource.lastfm), isTrue);
     expect(lastfmReq, 1, reason: '并发查询共享 future，仅一次请求');
+  });
+
+  test('Last.fm 有头像无简介：头像用 Last.fm，简介 Wikipedia 兜底', () async {
+    final container = ProviderContainer(overrides: [
+      lastfmServiceProvider.overrideWith((ref) => LastFmService(
+            apiKey: 'k',
+            client: MockClient((request) async => http.Response(
+                  jsonEncode({
+                    'artist': {
+                      'name': '坂本龙一',
+                      'image': [
+                        {
+                          '#text': 'https://lastfm.example/ryuichi.png',
+                          'size': 'mega'
+                        },
+                      ],
+                      'bio': {'summary': ''},
+                    }
+                  }),
+                  200,
+                  headers: {'content-type': 'application/json; charset=utf-8'},
+                )),
+          )),
+      artistInfoServiceProvider.overrideWith((ref) => ArtistInfoService(
+            client: MockClient((request) async => http.Response(
+                  jsonEncode({'title': '坂本龙一', 'extract': '坂本龙一，日本音乐家。'}),
+                  200,
+                  headers: {'content-type': 'application/json; charset=utf-8'},
+                )),
+          )),
+    ]);
+    addTearDown(container.dispose);
+
+    final result = await container.read(artistInfoCacheProvider).get('坂本龙一');
+
+    expect(result.imageUrl, 'https://lastfm.example/ryuichi.png');
+    expect(result.imageSource, ArtistInfoSource.lastfm);
+    expect(result.bio, contains('坂本龙一'));
+    expect(result.bioSource, ArtistInfoSource.wikipedia);
   });
 
   test('saveOverride：用户采用后 get 返回所选来源且不再发网络请求', () async {
