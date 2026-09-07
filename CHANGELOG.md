@@ -1,3 +1,10 @@
+# [2.50.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.49.0...v2.50.0) (2026-09-07)
+
+
+### Features
+
+* **music:** 歌手详情弹层搜索按钮改为「当前歌手资料来源」选择 ([a1af476](https://github.com/1525745393/EmbyTok-Flutter/commit/a1af476fa45795f2cf4fd198864c0f6453af8a83))
+
 # [2.49.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.48.0...v2.49.0) (2026-09-07)
 
 
