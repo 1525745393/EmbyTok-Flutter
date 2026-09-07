@@ -766,7 +766,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         ],
         if (result.artists.isNotEmpty) ...[
           _buildSectionHeader('歌手 (${result.artists.length})', scheme),
-          _buildArtistList(result.artists, scheme, paginated: false),
+          // 搜索结果：头像 + 简介 + 出处 列表（供用户选择）
+          _buildArtistSearchList(result.artists, scheme),
         ],
       ],
     );
@@ -783,6 +784,22 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           color: scheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+
+  /// 歌手搜索结果列表：头像 + 名字 + 简介摘要 + 数据出处标签
+  ///
+  /// 数据来源标注（Last.fm / 群晖 NAS / Wikipedia），方便用户判断可信度；
+  /// 点击进入该歌手歌曲列表。
+  Widget _buildArtistSearchList(List<AudioArtist> artists, ColorScheme scheme) {
+    return Column(
+      children: [
+        for (final artist in artists)
+          _ArtistSearchTile(
+            artist: artist,
+            onTap: () => _showArtistSongs(artist),
+          ),
+      ],
     );
   }
 
@@ -842,35 +859,17 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       songs = const [];
     }
     if (!mounted) return;
-    // 歌手简介：Last.fm 优先（更音乐向），Wikipedia 兜底；失败静默
-    String? bio;
-    final lastfm = ref.read(lastfmServiceProvider);
-    if (lastfm != null) {
-      try {
-        final info = await lastfm.fetchArtistInfo(artist.name);
-        bio = info?.bio;
-      } catch (e) {
-        AppLogger.warn('Last.fm 歌手简介失败',
-            data: {'artist': artist.name, 'error': e.toString()});
-      }
-    }
-    if (bio == null || bio.isEmpty) {
-      try {
-        final info = await ref
-            .read(artistInfoServiceProvider)
-            .fetchArtistInfo(artist.name);
-        bio = info?.bio;
-      } catch (e) {
-        AppLogger.warn('获取歌手简介失败',
-            data: {'artist': artist.name, 'error': e.toString()});
-      }
-    }
-    if (!mounted) return;
-    await _showSongsSheet(
-      title: artist.name,
-      subtitle: bio,
-      songs: songs,
-      emptyText: '该歌手暂无歌曲',
+    // 歌手详情弹层：歌曲列表 + 顶部搜索按钮（可搜索其他歌手选择）
+    final scheme = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: scheme.surface,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _ArtistDetailSheet(
+        artist: artist,
+        initialSongs: songs,
+      ),
     );
   }
 
@@ -1134,44 +1133,26 @@ class _ArtistAvatar extends ConsumerStatefulWidget {
 }
 
 class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
-  /// Last.fm 头像（异步，缓存命中时同步完成）
-  Future<String?>? _lastFmImageFuture;
+  /// 聚合信息（Last.fm → 群晖 → 首字母，缓存命中时同步完成）
+  Future<ArtistInfoResult>? _infoFuture;
 
   @override
   void initState() {
     super.initState();
-    _lastFmImageFuture = _loadLastFmImage();
+    _infoFuture = ref.read(artistInfoCacheProvider).get(widget.artistName);
   }
 
   @override
   void didUpdateWidget(covariant _ArtistAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artistName != widget.artistName) {
-      _lastFmImageFuture = _loadLastFmImage();
-    }
-  }
-
-  Future<String?> _loadLastFmImage() async {
-    final service = ref.read(lastfmServiceProvider);
-    if (service == null) return null;
-    try {
-      final info = await service.fetchArtistInfo(widget.artistName);
-      return info?.imageUrl;
-    } catch (e) {
-      AppLogger.warn('Last.fm 头像加载失败',
-          data: {'artist': widget.artistName, 'error': e.toString()});
-      return null;
+      _infoFuture = ref.read(artistInfoCacheProvider).get(widget.artistName);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // 群晖原生兜底（Last.fm 未配置/无记录时）
-    final synoUrl = ref
-        .read(synologyAuthProvider.notifier)
-        .api
-        .getArtistCoverUrl(widget.artistName);
     final initial = widget.artistName.trim().isEmpty
         ? '?'
         : widget.artistName.trim().substring(0, 1).toUpperCase();
@@ -1197,11 +1178,10 @@ class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: FutureBuilder<String?>(
-        future: _lastFmImageFuture,
+      child: FutureBuilder<ArtistInfoResult>(
+        future: _infoFuture,
         builder: (context, snapshot) {
-          // 优先级：Last.fm 大图 → 群晖原生 → 首字母渐变
-          final url = snapshot.data ?? synoUrl;
+          final url = snapshot.data?.imageUrl;
           if (url == null) return _initialFallback(initial, scheme);
           return CachedNetworkImage(
             imageUrl: url,
@@ -1225,6 +1205,132 @@ class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
           fontSize: 30,
           fontWeight: FontWeight.w700,
         ),
+      ),
+    );
+  }
+}
+
+/// 歌手搜索结果条目：头像 + 名字 + 简介 + 出处标签
+class _ArtistSearchTile extends ConsumerWidget {
+  final AudioArtist artist;
+
+  /// 点击回调（由页面层提供，复用现有歌手歌曲弹层逻辑）
+  final VoidCallback onTap;
+
+  const _ArtistSearchTile({required this.artist, required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final infoFuture = ref.read(artistInfoCacheProvider).get(artist.name);
+
+    return FutureBuilder<ArtistInfoResult>(
+      future: infoFuture,
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final bio = info?.bio;
+        final bioSource = info?.bioSource ?? ArtistInfoSource.none;
+        final imageSource = info?.imageSource ?? ArtistInfoSource.none;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                _ArtistAvatar(artistName: artist.name, size: 48),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              artist.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          // 数据出处标签（Last.fm / 群晖 NAS / Wikipedia）
+                          _SourceBadge(
+                              source: bioSource, imageSource: imageSource),
+                        ],
+                      ),
+                      if (bio != null && bio.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          bio,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right,
+                    size: 20, color: scheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 数据出处小标签
+class _SourceBadge extends StatelessWidget {
+  final ArtistInfoSource source;
+  final ArtistInfoSource imageSource;
+
+  const _SourceBadge({required this.source, required this.imageSource});
+
+  @override
+  Widget build(BuildContext context) {
+    // 取非空的来源优先展示（简介来源 > 头像来源）
+    final shown = source != ArtistInfoSource.none
+        ? source
+        : (imageSource != ArtistInfoSource.none ? imageSource : null);
+    if (shown == null) return const SizedBox.shrink();
+    final (color, bg) = switch (shown) {
+      ArtistInfoSource.lastfm => (
+          const Color(0xFFD51007),
+          const Color(0xFFD51007).withValues(alpha: 0.12),
+        ),
+      ArtistInfoSource.synology => (
+          const Color(0xFF2C8EF4),
+          const Color(0xFF2C8EF4).withValues(alpha: 0.12),
+        ),
+      ArtistInfoSource.wikipedia => (
+          const Color(0xFF616161),
+          const Color(0xFF616161).withValues(alpha: 0.12),
+        ),
+      ArtistInfoSource.none => (null, null),
+    };
+    if (color == null) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        shown.label,
+        style:
+            TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -1478,6 +1584,364 @@ class _EqualizerBarsState extends State<_EqualizerBars>
           ),
         );
       },
+    );
+  }
+}
+
+// ============================
+// 歌手详情弹层：歌曲列表 + 歌手搜索选择
+// ============================
+
+/// 歌手详情弹层
+///
+/// 顶部展示歌手头像/名字/简介（含出处标签）+ 搜索按钮；
+/// 点搜索按钮进入歌手搜索模式：输入关键词 → 结果以
+/// 「头像 + 简介 + 出处」列表展示，点选后切换当前歌手并加载其歌曲。
+class _ArtistDetailSheet extends ConsumerStatefulWidget {
+  final AudioArtist artist;
+  final List<AudioSong> initialSongs;
+
+  const _ArtistDetailSheet({
+    required this.artist,
+    required this.initialSongs,
+  });
+
+  @override
+  ConsumerState<_ArtistDetailSheet> createState() => _ArtistDetailSheetState();
+}
+
+class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
+  late AudioArtist _artist = widget.artist;
+  late List<AudioSong> _songs = widget.initialSongs;
+
+  /// 是否处于歌手搜索模式
+  bool _searching = false;
+  final _searchController = TextEditingController();
+  Timer? _debounce;
+  List<AudioArtist> _searchResults = const [];
+  bool _searchLoading = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// 切换搜索模式（进入/退出）
+  void _toggleSearch() {
+    setState(() {
+      _searching = !_searching;
+      if (!_searching) {
+        _searchController.clear();
+        _searchResults = const [];
+        _searchLoading = false;
+      }
+    });
+  }
+
+  /// 搜索输入（300ms 防抖）
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) _runSearch(value.trim());
+    });
+  }
+
+  Future<void> _runSearch(String keyword) async {
+    if (keyword.isEmpty) {
+      setState(() {
+        _searchResults = const [];
+        _searchLoading = false;
+      });
+      return;
+    }
+    setState(() => _searchLoading = true);
+    try {
+      final result =
+          await ref.read(synologyAuthProvider.notifier).api.search(keyword);
+      if (!mounted) return;
+      setState(() {
+        _searchResults = result.artists;
+        _searchLoading = false;
+      });
+    } catch (e) {
+      AppLogger.warn('歌手搜索失败',
+          data: {'keyword': keyword, 'error': e.toString()});
+      if (!mounted) return;
+      setState(() {
+        _searchResults = const [];
+        _searchLoading = false;
+      });
+    }
+  }
+
+  /// 选择搜索结果歌手：切换当前歌手并加载其歌曲
+  Future<void> _selectArtist(AudioArtist artist) async {
+    setState(() {
+      _searching = false;
+      _artist = artist;
+      _searchController.clear();
+      _searchResults = const [];
+      _searchLoading = false;
+    });
+    try {
+      final songs = await ref
+          .read(synologyAuthProvider.notifier)
+          .api
+          .getSongs(artist: artist.name);
+      if (mounted) setState(() => _songs = songs);
+    } catch (e) {
+      AppLogger.warn('加载歌手歌曲失败',
+          data: {'artist': artist.name, 'error': e.toString()});
+      if (mounted) setState(() => _songs = const []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        // 搜索模式：搜索框 + 歌手结果列表
+        if (_searching) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 14, 8, 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: '返回歌曲列表',
+                      onPressed: _toggleSearch,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: '搜索歌手...',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _onSearchChanged('');
+                                  },
+                                )
+                              : null,
+                          isDense: true,
+                          filled: true,
+                          fillColor: scheme.surfaceContainerHighest
+                              .withValues(alpha: 0.6),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _searchLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _searchResults.isEmpty
+                        ? _buildSearchEmptyHint(scheme)
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            children: [
+                              for (final artist in _searchResults)
+                                _ArtistSearchTile(
+                                  artist: artist,
+                                  onTap: () => _selectArtist(artist),
+                                ),
+                            ],
+                          ),
+              ),
+            ],
+          );
+        }
+
+        // 歌曲列表模式：头部（头像/名/简介/出处/搜索按钮/播放全部）+ 歌曲
+        return Column(
+          children: [
+            _buildHeader(scrollController, scheme),
+            const Divider(height: 1),
+            Expanded(
+              child: _songs.isEmpty
+                  ? Center(
+                      child: Text(
+                        '该歌手暂无歌曲',
+                        style: TextStyle(
+                            color: scheme.onSurfaceVariant, fontSize: 13),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _songs.length,
+                      itemBuilder: (context, index) {
+                        final song = _songs[index];
+                        final isCurrent = ref
+                                .watch(synologyPlaybackProvider)
+                                .currentSong
+                                ?.id ==
+                            song.id;
+                        return ListTile(
+                          dense: true,
+                          leading: _SongCover(songId: song.id, size: 40),
+                          title: Text(
+                            song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  isCurrent ? FontWeight.w700 : FontWeight.w500,
+                              color:
+                                  isCurrent ? scheme.primary : scheme.onSurface,
+                            ),
+                          ),
+                          subtitle: song.artistDisplay.isNotEmpty
+                              ? Text(
+                                  song.artistDisplay,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: scheme.onSurfaceVariant),
+                                )
+                              : null,
+                          trailing: isCurrent
+                              ? Icon(Icons.equalizer,
+                                  size: 18, color: scheme.primary)
+                              : null,
+                          onTap: () {
+                            ref
+                                .read(synologyPlaybackProvider.notifier)
+                                .playQueue(_songs, index);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 头部：歌手信息（头像/名/简介/出处）+ 搜索按钮 + 播放全部
+  Widget _buildHeader(ScrollController scrollController, ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+      child: Row(
+        children: [
+          // 歌手头像 + 名字 + 简介（出处标签）
+          _ArtistAvatar(artistName: _artist.name, size: 48),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FutureBuilder<ArtistInfoResult>(
+              future: ref.read(artistInfoCacheProvider).get(_artist.name),
+              builder: (context, snapshot) {
+                final info = snapshot.data;
+                final bio = info?.bio;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _artist.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        _SourceBadge(
+                          source: info?.bioSource ?? ArtistInfoSource.none,
+                          imageSource:
+                              info?.imageSource ?? ArtistInfoSource.none,
+                        ),
+                      ],
+                    ),
+                    if (bio != null && bio.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        bio,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            color: scheme.onSurfaceVariant,
+            tooltip: '搜索歌手',
+            onPressed: _toggleSearch,
+          ),
+          IconButton(
+            icon: const Icon(Icons.play_circle_fill, size: 32),
+            color: scheme.primary,
+            tooltip: '播放全部',
+            onPressed: _songs.isEmpty
+                ? null
+                : () {
+                    ref
+                        .read(synologyPlaybackProvider.notifier)
+                        .playQueue(_songs, 0);
+                    Navigator.pop(context);
+                  },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 搜索空态提示
+  Widget _buildSearchEmptyHint(ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.person_search_outlined,
+              size: 48, color: scheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(
+            _searchController.text.trim().isEmpty
+                ? '输入歌手名开始搜索'
+                : '未找到「${_searchController.text.trim()}」相关歌手',
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+          ),
+        ],
+      ),
     );
   }
 }
