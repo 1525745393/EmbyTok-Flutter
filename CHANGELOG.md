@@ -1,3 +1,10 @@
+## [2.50.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.50.0...v2.50.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **music:** 修复 Last.fm 有头像无简介时头像丢失（搜索不到头像） ([bcf783f](https://github.com/1525745393/EmbyTok-Flutter/commit/bcf783fa9d0bcbc00f6b75c21d8b196e1821640d))
+
 # [2.50.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.49.0...v2.50.0) (2026-09-07)
 
 
