@@ -174,4 +174,108 @@ void main() {
     expect(results.every((r) => r.bioSource == ArtistInfoSource.lastfm), isTrue);
     expect(lastfmReq, 1, reason: '并发查询共享 future，仅一次请求');
   });
+
+  test('saveOverride：用户采用后 get 返回所选来源且不再发网络请求', () async {
+    var lastfmReq = 0;
+    final container = ProviderContainer(overrides: [
+      lastfmServiceProvider.overrideWith((ref) => LastFmService(
+            apiKey: 'k',
+            client: MockClient((request) async {
+              lastfmReq++;
+              return lastfmOk('陈奕迅');
+            }),
+          )),
+      artistInfoServiceProvider.overrideWith((ref) => ArtistInfoService(
+            client: MockClient((request) async => http.Response('', 404)),
+          )),
+    ]);
+    addTearDown(container.dispose);
+    final cache = container.read(artistInfoCacheProvider);
+
+    // 用户手动采用 Wikipedia 简介 + 群晖头像（即使 Last.fm 有数据）
+    await cache.saveOverride(
+      '陈奕迅',
+      const ArtistInfoResult(
+        imageUrl: 'https://syno.example/eason.png',
+        imageSource: ArtistInfoSource.synology,
+        bio: '陈奕迅，香港男歌手。',
+        bioSource: ArtistInfoSource.wikipedia,
+      ),
+    );
+
+    final result = await cache.get('陈奕迅');
+    expect(result.imageSource, ArtistInfoSource.synology);
+    expect(result.imageUrl, 'https://syno.example/eason.png');
+    expect(result.bioSource, ArtistInfoSource.wikipedia);
+    expect(lastfmReq, 0, reason: '采用后不应再请求 Last.fm');
+  });
+
+  test('clearOverride：清除后恢复自动聚合', () async {
+    var lastfmReq = 0;
+    final container = ProviderContainer(overrides: [
+      lastfmServiceProvider.overrideWith((ref) => LastFmService(
+            apiKey: 'k',
+            client: MockClient((request) async {
+              lastfmReq++;
+              return lastfmOk('林俊杰');
+            }),
+          )),
+      artistInfoServiceProvider.overrideWith((ref) => ArtistInfoService(
+            client: MockClient((request) async => http.Response('', 404)),
+          )),
+    ]);
+    addTearDown(container.dispose);
+    final cache = container.read(artistInfoCacheProvider);
+
+    await cache.saveOverride(
+      '林俊杰',
+      const ArtistInfoResult(
+        bio: '手动简介',
+        bioSource: ArtistInfoSource.wikipedia,
+      ),
+    );
+    expect((await cache.get('林俊杰')).bioSource, ArtistInfoSource.wikipedia);
+
+    await cache.clearOverride('林俊杰');
+    final result = await cache.get('林俊杰');
+    expect(result.bioSource, ArtistInfoSource.lastfm);
+    expect(result.bio, contains('林俊杰'));
+  });
+
+  test('override 持久化：新容器（新会话）仍优先返回用户采用结果', () async {
+    final container1 = ProviderContainer(overrides: [
+      lastfmApiKeyAsyncProvider.overrideWith((ref) async => ''),
+      artistInfoServiceProvider.overrideWith((ref) => ArtistInfoService(
+            client: MockClient((request) async => http.Response('', 404)),
+          )),
+    ]);
+    addTearDown(container1.dispose);
+    await container1.read(artistInfoCacheProvider).saveOverride(
+          '邓紫棋',
+          const ArtistInfoResult(
+            imageUrl: 'https://lastfm.example/gem.png',
+            imageSource: ArtistInfoSource.lastfm,
+            bio: '邓紫棋，香港创作歌手。',
+            bioSource: ArtistInfoSource.wikipedia,
+          ),
+        );
+
+    // 模拟下次启动：新容器（SharedPreferences mock 数据保留）
+    var wikiReq = 0;
+    final container2 = ProviderContainer(overrides: [
+      lastfmApiKeyAsyncProvider.overrideWith((ref) async => ''),
+      artistInfoServiceProvider.overrideWith((ref) => ArtistInfoService(
+            client: MockClient((request) async {
+              wikiReq++;
+              return http.Response('', 404);
+            }),
+          )),
+    ]);
+    addTearDown(container2.dispose);
+
+    final result = await container2.read(artistInfoCacheProvider).get('邓紫棋');
+    expect(result.bioSource, ArtistInfoSource.wikipedia);
+    expect(result.imageSource, ArtistInfoSource.lastfm);
+    expect(wikiReq, 0, reason: 'override 命中后不再触发聚合请求');
+  });
 }

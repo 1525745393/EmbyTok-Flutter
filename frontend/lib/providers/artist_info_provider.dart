@@ -6,14 +6,20 @@
 // 头像来源优先级：Last.fm 大图 → 群晖 cover.cgi → 无（首字母兜底）
 // 简介来源优先级：Last.fm → Wikipedia → 无
 //
+// 用户可通过歌手详情弹层的「搜索」手动采用某个来源的结果
+// （saveOverride），采用结果持久化到 SharedPreferences，
+// 之后该歌手始终优先展示用户选择的数据。
+//
 // 特点：
 // - 内存缓存（同一歌手只聚合一次，后续命中同步返回）
 // - 并发安全：同一歌手并发请求共享同一个 future
 // - 所有网络失败静默降级，不抛异常
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/lastfm_service.dart';
 import 'lastfm_provider.dart';
@@ -46,6 +52,34 @@ class ArtistInfoResult {
     this.bio,
     this.bioSource = ArtistInfoSource.none,
   });
+
+  /// 序列化为 SharedPreferences JSON
+  Map<String, dynamic> toJson() => {
+        'imageUrl': imageUrl,
+        'imageSource': imageSource.name,
+        'bio': bio,
+        'bioSource': bioSource.name,
+      };
+
+  static ArtistInfoResult? fromJson(Map<String, dynamic> json) {
+    try {
+      return ArtistInfoResult(
+        imageUrl: json['imageUrl'] as String?,
+        imageSource: _sourceByName(json['imageSource'] as String?),
+        bio: json['bio'] as String?,
+        bioSource: _sourceByName(json['bioSource'] as String?),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static ArtistInfoSource _sourceByName(String? name) {
+    for (final s in ArtistInfoSource.values) {
+      if (s.name == name) return s;
+    }
+    return ArtistInfoSource.none;
+  }
 }
 
 /// 歌手信息缓存（Provider 单例）
@@ -58,10 +92,22 @@ class ArtistInfoCache {
   final Map<String, ArtistInfoResult> _cache = {};
   final Map<String, Future<ArtistInfoResult>> _inflight = {};
 
+  /// 歌手名 → 用户手动采用的结果（内存镜像，持久化在 SharedPreferences）
+  final Map<String, ArtistInfoResult> _overrides = {};
+  bool _overridesLoaded = false;
+
+  static const _storageKey = 'artist_info_overrides_v1';
+
   /// 获取歌手聚合信息（缓存命中同步返回；并发查询共享 future）
   Future<ArtistInfoResult> get(String artistName) async {
     final key = artistName.trim();
     if (key.isEmpty) return const ArtistInfoResult();
+
+    // 用户手动采用的结果优先
+    await _ensureOverridesLoaded();
+    final override = _overrides[key];
+    if (override != null) return override;
+
     final cached = _cache[key];
     if (cached != null) return cached;
     final inflight = _inflight[key];
@@ -75,6 +121,55 @@ class ArtistInfoCache {
       return result;
     } finally {
       _inflight.remove(key);
+    }
+  }
+
+  /// 用户手动采用某个来源的结果（头像/简介），持久化后立即生效
+  Future<void> saveOverride(String artistName, ArtistInfoResult result) async {
+    final key = artistName.trim();
+    if (key.isEmpty) return;
+    _overrides[key] = result;
+    await _persistOverrides();
+  }
+
+  /// 清除用户手动采用（恢复自动聚合）
+  Future<void> clearOverride(String artistName) async {
+    final key = artistName.trim();
+    if (key.isEmpty) return;
+    _overrides.remove(key);
+    await _persistOverrides();
+  }
+
+  Future<void> _ensureOverridesLoaded() async {
+    if (_overridesLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey);
+      if (raw != null && raw.isNotEmpty) {
+        final map = jsonDecode(raw) as Map<String, dynamic>;
+        for (final entry in map.entries) {
+          final value = entry.value;
+          if (value is Map<String, dynamic>) {
+            final result = ArtistInfoResult.fromJson(value);
+            if (result != null) _overrides[entry.key] = result;
+          }
+        }
+      }
+    } catch (e) {
+      _overrides.clear();
+    }
+    _overridesLoaded = true;
+  }
+
+  Future<void> _persistOverrides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final map = <String, dynamic>{
+        for (final e in _overrides.entries) e.key: e.value.toJson(),
+      };
+      await prefs.setString(_storageKey, jsonEncode(map));
+    } catch (e) {
+      // 持久化失败仅影响下次启动，当前会话仍生效
     }
   }
 

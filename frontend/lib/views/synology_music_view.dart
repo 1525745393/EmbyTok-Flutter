@@ -17,6 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/audio_models.dart';
+import '../services/artist_info_service.dart';
+import '../services/lastfm_service.dart';
 import 'synology_full_player.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
@@ -797,6 +799,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         for (final artist in artists)
           _ArtistSearchTile(
             artist: artist,
+            // 顶部全局搜索只查群晖本地库
+            hitSource: ArtistInfoSource.synology,
             onTap: () => _showArtistSongs(artist),
           ),
       ],
@@ -1214,10 +1218,18 @@ class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
 class _ArtistSearchTile extends ConsumerWidget {
   final AudioArtist artist;
 
+  /// 条目来源（在哪搜到的）：群晖 NAS 本地库 / Last.fm 在线搜索。
+  /// none 表示不显示条目来源标签（仅内容出处标签）。
+  final ArtistInfoSource hitSource;
+
   /// 点击回调（由页面层提供，复用现有歌手歌曲弹层逻辑）
   final VoidCallback onTap;
 
-  const _ArtistSearchTile({required this.artist, required this.onTap});
+  const _ArtistSearchTile({
+    required this.artist,
+    required this.onTap,
+    this.hitSource = ArtistInfoSource.none,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1231,6 +1243,9 @@ class _ArtistSearchTile extends ConsumerWidget {
         final bio = info?.bio;
         final bioSource = info?.bioSource ?? ArtistInfoSource.none;
         final imageSource = info?.imageSource ?? ArtistInfoSource.none;
+        // 内容出处（头像/简介实际来源）；与条目来源相同时不重复显示
+        final contentSource =
+            bioSource != ArtistInfoSource.none ? bioSource : imageSource;
         return InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
@@ -1259,9 +1274,15 @@ class _ArtistSearchTile extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          // 数据出处标签（Last.fm / 群晖 NAS / Wikipedia）
+                          // 条目来源标签（在哪搜到的）：群晖 NAS / Last.fm
                           _SourceBadge(
-                              source: bioSource, imageSource: imageSource),
+                              source: hitSource,
+                              imageSource: ArtistInfoSource.none),
+                          // 内容出处标签（头像/简介实际来源）
+                          if (contentSource != hitSource)
+                            _SourceBadge(
+                                source: contentSource,
+                                imageSource: ArtistInfoSource.none),
                         ],
                       ),
                       if (bio != null && bio.isNotEmpty) ...[
@@ -1614,12 +1635,23 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
   late AudioArtist _artist = widget.artist;
   late List<AudioSong> _songs = widget.initialSongs;
 
-  /// 是否处于歌手搜索模式
+  /// 是否处于歌手资料搜索模式
   bool _searching = false;
   final _searchController = TextEditingController();
   Timer? _debounce;
-  List<AudioArtist> _searchResults = const [];
-  bool _searchLoading = false;
+
+  /// 当前搜索目标歌手名（默认 = 当前歌手，可修改搜索其他歌手）
+  String _searchTarget = '';
+
+  /// 头部简介/出处（采用某来源后刷新）
+  late Future<ArtistInfoResult> _headerInfoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _headerInfoFuture =
+        ref.read(artistInfoCacheProvider).get(widget.artist.name);
+  }
 
   @override
   void dispose() {
@@ -1628,74 +1660,33 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
     super.dispose();
   }
 
-  /// 切换搜索模式（进入/退出）
+  /// 切换搜索模式（进入时预填当前歌手名）
   void _toggleSearch() {
     setState(() {
       _searching = !_searching;
-      if (!_searching) {
+      if (_searching) {
+        _searchController.text = _artist.name;
+        _searchTarget = _artist.name;
+      } else {
         _searchController.clear();
-        _searchResults = const [];
-        _searchLoading = false;
+        _searchTarget = '';
       }
     });
   }
 
-  /// 搜索输入（300ms 防抖）
+  /// 搜索输入（300ms 防抖，切换搜索目标歌手）
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) _runSearch(value.trim());
+      if (mounted) setState(() => _searchTarget = value.trim());
     });
   }
 
-  Future<void> _runSearch(String keyword) async {
-    if (keyword.isEmpty) {
-      setState(() {
-        _searchResults = const [];
-        _searchLoading = false;
-      });
-      return;
-    }
-    setState(() => _searchLoading = true);
-    try {
-      final result =
-          await ref.read(synologyAuthProvider.notifier).api.search(keyword);
-      if (!mounted) return;
-      setState(() {
-        _searchResults = result.artists;
-        _searchLoading = false;
-      });
-    } catch (e) {
-      AppLogger.warn('歌手搜索失败',
-          data: {'keyword': keyword, 'error': e.toString()});
-      if (!mounted) return;
-      setState(() {
-        _searchResults = const [];
-        _searchLoading = false;
-      });
-    }
-  }
-
-  /// 选择搜索结果歌手：切换当前歌手并加载其歌曲
-  Future<void> _selectArtist(AudioArtist artist) async {
+  /// 用户采用某个来源的头像/简介后：刷新头部展示
+  void _onAdopted(String artistName) {
     setState(() {
-      _searching = false;
-      _artist = artist;
-      _searchController.clear();
-      _searchResults = const [];
-      _searchLoading = false;
+      _headerInfoFuture = ref.read(artistInfoCacheProvider).get(artistName);
     });
-    try {
-      final songs = await ref
-          .read(synologyAuthProvider.notifier)
-          .api
-          .getSongs(artist: artist.name);
-      if (mounted) setState(() => _songs = songs);
-    } catch (e) {
-      AppLogger.warn('加载歌手歌曲失败',
-          data: {'artist': artist.name, 'error': e.toString()});
-      if (mounted) setState(() => _songs = const []);
-    }
   }
 
   @override
@@ -1707,7 +1698,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
       minChildSize: 0.4,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
-        // 搜索模式：搜索框 + 歌手结果列表
+        // 搜索模式：搜索框 + 当前歌手的各数据源头像/简介（供选择）
         if (_searching) {
           return Column(
             children: [
@@ -1727,7 +1718,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                         autofocus: true,
                         onChanged: _onSearchChanged,
                         decoration: InputDecoration(
-                          hintText: '搜索歌手...',
+                          hintText: '搜索歌手头像与简介...',
                           prefixIcon: const Icon(Icons.search, size: 20),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -1756,20 +1747,12 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
               ),
               const Divider(height: 1),
               Expanded(
-                child: _searchLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _searchResults.isEmpty
-                        ? _buildSearchEmptyHint(scheme)
-                        : ListView(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            children: [
-                              for (final artist in _searchResults)
-                                _ArtistSearchTile(
-                                  artist: artist,
-                                  onTap: () => _selectArtist(artist),
-                                ),
-                            ],
-                          ),
+                child: _searchTarget.isEmpty
+                    ? _buildSearchEmptyHint(scheme)
+                    : _ArtistSourcePicker(
+                        artistName: _searchTarget,
+                        onAdopted: () => _onAdopted(_searchTarget),
+                      ),
               ),
             ],
           );
@@ -1854,7 +1837,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
           const SizedBox(width: 12),
           Expanded(
             child: FutureBuilder<ArtistInfoResult>(
-              future: ref.read(artistInfoCacheProvider).get(_artist.name),
+              future: _headerInfoFuture,
               builder: (context, snapshot) {
                 final info = snapshot.data;
                 final bio = info?.bio;
@@ -1904,7 +1887,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
           IconButton(
             icon: const Icon(Icons.search),
             color: scheme.onSurfaceVariant,
-            tooltip: '搜索歌手',
+            tooltip: '搜索头像与简介',
             onPressed: _toggleSearch,
           ),
           IconButton(
@@ -1935,12 +1918,332 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
               size: 48, color: scheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(
-            _searchController.text.trim().isEmpty
-                ? '输入歌手名开始搜索'
-                : '未找到「${_searchController.text.trim()}」相关歌手',
+            '输入歌手名，搜索头像与简介',
             style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 歌手资料来源选择器：展示当前歌手在各数据源的
+/// 头像/简介候选（含出处），点选采用并持久化。
+class _ArtistSourcePicker extends ConsumerWidget {
+  final String artistName;
+
+  /// 采用某来源后回调（外层刷新头部展示）
+  final VoidCallback onAdopted;
+
+  const _ArtistSourcePicker({
+    required this.artistName,
+    required this.onAdopted,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+
+    // 并行拉取各数据源：
+    // 1) Last.fm getinfo（头像大图 + 简介）
+    // 2) Wikipedia（简介兜底）
+    // 3) 群晖 cover.cgi（头像，同步构造 URL）
+    final future = () async {
+      final lastfmService = ref.read(lastfmServiceProvider);
+      final lastfmFuture = lastfmService?.fetchArtistInfo(artistName);
+      final wikiFuture =
+          ref.read(artistInfoServiceProvider).fetchArtistInfo(artistName);
+      final results = await Future.wait<Object?>([
+        lastfmFuture ?? Future<Object?>.value(null),
+        wikiFuture,
+      ]);
+      final lastfm = results[0] as LastFmArtistInfo?;
+      final wiki = results[1] as ArtistInfo?;
+      String? synoUrl;
+      try {
+        synoUrl = ref
+            .read(synologyAuthProvider.notifier)
+            .api
+            .getArtistCoverUrl(artistName);
+      } catch (_) {
+        synoUrl = null;
+      }
+      return _ArtistSourceBundle(lastfm: lastfm, wiki: wiki, synoUrl: synoUrl);
+    }();
+
+    return FutureBuilder<_ArtistSourceBundle>(
+      future: future,
+      builder: (context, snapshot) {
+        final bundle = snapshot.data;
+        if (bundle == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final lastfm = bundle.lastfm;
+        final wiki = bundle.wiki;
+
+        // 自动聚合值（用于保留未被采用的另一维度）
+        final autoImageUrl = lastfm?.imageUrl ?? bundle.synoUrl;
+        final autoImageSource = lastfm?.imageUrl != null
+            ? ArtistInfoSource.lastfm
+            : (bundle.synoUrl != null
+                ? ArtistInfoSource.synology
+                : ArtistInfoSource.none);
+        final autoBio = lastfm?.bio ?? wiki?.bio;
+        final autoBioSource = lastfm?.bio != null
+            ? ArtistInfoSource.lastfm
+            : (wiki?.bio != null
+                ? ArtistInfoSource.wikipedia
+                : ArtistInfoSource.none);
+
+        final hasImage = lastfm?.imageUrl != null || bundle.synoUrl != null;
+        final hasBio = lastfm?.bio != null || wiki?.bio != null;
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // ---- 头像来源 ----
+            _SourceSectionTitle('头像来源', scheme),
+            if (!hasImage)
+              _SourceEmptyHint('未找到「$artistName」的头像', scheme)
+            else ...[
+              if (lastfm?.imageUrl != null)
+                _AvatarSourceCard(
+                  imageUrl: lastfm!.imageUrl!,
+                  source: ArtistInfoSource.lastfm,
+                  hint: 'Last.fm 大图',
+                  onTap: () => _adopt(
+                    ref,
+                    ArtistInfoResult(
+                      imageUrl: lastfm.imageUrl,
+                      imageSource: ArtistInfoSource.lastfm,
+                      bio: autoBio,
+                      bioSource: autoBioSource,
+                    ),
+                  ),
+                ),
+              if (bundle.synoUrl != null)
+                _AvatarSourceCard(
+                  imageUrl: bundle.synoUrl!,
+                  source: ArtistInfoSource.synology,
+                  hint: '群晖 NAS 专辑封面',
+                  onTap: () => _adopt(
+                    ref,
+                    ArtistInfoResult(
+                      imageUrl: bundle.synoUrl,
+                      imageSource: ArtistInfoSource.synology,
+                      bio: autoBio,
+                      bioSource: autoBioSource,
+                    ),
+                  ),
+                ),
+            ],
+            const SizedBox(height: 16),
+            // ---- 简介来源 ----
+            _SourceSectionTitle('简介来源', scheme),
+            if (!hasBio)
+              _SourceEmptyHint('未找到「$artistName」的简介', scheme)
+            else ...[
+              if (lastfm?.bio != null)
+                _BioSourceCard(
+                  bio: lastfm!.bio!,
+                  source: ArtistInfoSource.lastfm,
+                  onTap: () => _adopt(
+                    ref,
+                    ArtistInfoResult(
+                      imageUrl: autoImageUrl,
+                      imageSource: autoImageSource,
+                      bio: lastfm.bio,
+                      bioSource: ArtistInfoSource.lastfm,
+                    ),
+                  ),
+                ),
+              if (wiki?.bio != null)
+                _BioSourceCard(
+                  bio: wiki!.bio!,
+                  source: ArtistInfoSource.wikipedia,
+                  onTap: () => _adopt(
+                    ref,
+                    ArtistInfoResult(
+                      imageUrl: autoImageUrl,
+                      imageSource: autoImageSource,
+                      bio: wiki.bio,
+                      bioSource: ArtistInfoSource.wikipedia,
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  /// 采用某来源结果：持久化 + 提示 + 刷新外层
+  Future<void> _adopt(WidgetRef ref, ArtistInfoResult result) async {
+    await ref.read(artistInfoCacheProvider).saveOverride(artistName, result);
+    onAdopted();
+    if (!ref.context.mounted) return;
+    ScaffoldMessenger.of(ref.context).showSnackBar(SnackBar(
+      content: Text(
+          '已采用 ${result.bioSource != ArtistInfoSource.none ? result.bioSource.label : result.imageSource.label} 的${result.bio != null ? '简介' : '头像'}'),
+      duration: const Duration(seconds: 1),
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+}
+
+/// 各数据源拉取结果集合
+class _ArtistSourceBundle {
+  final LastFmArtistInfo? lastfm;
+  final ArtistInfo? wiki;
+  final String? synoUrl;
+
+  const _ArtistSourceBundle({this.lastfm, this.wiki, this.synoUrl});
+}
+
+/// 分区标题
+class _SourceSectionTitle extends StatelessWidget {
+  final String title;
+  final ColorScheme scheme;
+
+  const _SourceSectionTitle(this.title, this.scheme);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// 分区空提示
+class _SourceEmptyHint extends StatelessWidget {
+  final String text;
+  final ColorScheme scheme;
+
+  const _SourceEmptyHint(this.text, this.scheme);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+/// 头像来源候选卡
+class _AvatarSourceCard extends StatelessWidget {
+  final String imageUrl;
+  final ArtistInfoSource source;
+  final String hint;
+  final VoidCallback onTap;
+
+  const _AvatarSourceCard({
+    required this.imageUrl,
+    required this.source,
+    required this.hint,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: ClipOval(
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              cacheManager: AppImageCacheManager.thumbnail,
+              errorWidget: (_, __, ___) => Container(
+                color: scheme.surfaceContainerHighest,
+                child: Icon(Icons.person,
+                    color: scheme.onSurfaceVariant, size: 28),
+              ),
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Text(hint,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface)),
+            const SizedBox(width: 8),
+            _SourceBadge(source: source, imageSource: ArtistInfoSource.none),
+          ],
+        ),
+        trailing:
+            Icon(Icons.check_circle_outline, color: scheme.primary, size: 24),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// 简介来源候选卡
+class _BioSourceCard extends StatelessWidget {
+  final String bio;
+  final ArtistInfoSource source;
+  final VoidCallback onTap;
+
+  const _BioSourceCard({
+    required this.bio,
+    required this.source,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        title: Row(
+          children: [
+            Text('简介',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface)),
+            const SizedBox(width: 8),
+            _SourceBadge(source: source, imageSource: ArtistInfoSource.none),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            bio,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: 12, height: 1.4, color: scheme.onSurfaceVariant),
+          ),
+        ),
+        trailing:
+            Icon(Icons.check_circle_outline, color: scheme.primary, size: 24),
+        onTap: onTap,
       ),
     );
   }
