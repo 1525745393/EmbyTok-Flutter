@@ -263,19 +263,28 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     }
   }
 
+  /// 搜索请求序号：快速连续搜索时丢弃过期响应，避免乱序覆盖
+  int _searchSeq = 0;
+
   /// 搜索（keyword 为空则退出搜索态）
   Future<void> search(String keyword) async {
     final kw = keyword.trim();
     if (!_isLoggedIn) return;
     if (kw.isEmpty) {
+      // 退出搜索态：递增序号使在途搜索请求失效（过期响应不复活结果）
+      _searchSeq++;
       state = state.copyWith(isSearching: false, searchKeyword: '', searchResult: null);
       return;
     }
+    final seq = ++_searchSeq;
     state = state.copyWith(isSearching: true, searchKeyword: kw, isLoading: true, error: null);
     try {
       final result = await _api.search(kw);
+      // 期间用户又输入了新的关键词：本响应已过期，丢弃
+      if (seq != _searchSeq) return;
       state = state.copyWith(isLoading: false, searchResult: result);
     } catch (e, st) {
+      if (seq != _searchSeq) return;
       AppLogger.error('搜索音乐失败', data: {'keyword': kw}, error: e, stackTrace: st);
       state = state.copyWith(isLoading: false, error: e.toString());
     }

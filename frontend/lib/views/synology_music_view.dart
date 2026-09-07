@@ -1929,7 +1929,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
 
 /// 歌手资料来源选择器：展示当前歌手在各数据源的
 /// 头像/简介候选（含出处），点选采用并持久化。
-class _ArtistSourcePicker extends ConsumerWidget {
+class _ArtistSourcePicker extends ConsumerStatefulWidget {
   final String artistName;
 
   /// 采用某来源后回调（外层刷新头部展示）
@@ -1941,38 +1941,61 @@ class _ArtistSourcePicker extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
+  ConsumerState<_ArtistSourcePicker> createState() => _ArtistSourcePickerState();
+}
 
-    // 并行拉取各数据源：
+class _ArtistSourcePickerState extends ConsumerState<_ArtistSourcePicker> {
+  /// 并行拉取各数据源的 future：仅在歌手名变化时重建，
+  /// 避免外层每次 setState（采用后刷新/防抖）都重复请求
+  late Future<_ArtistSourceBundle> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadSources();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ArtistSourcePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artistName != widget.artistName) {
+      _future = _loadSources();
+    }
+  }
+
+  Future<_ArtistSourceBundle> _loadSources() async {
+    final artistName = widget.artistName;
     // 1) Last.fm getinfo（头像大图 + 简介）
     // 2) Wikipedia（简介兜底）
     // 3) 群晖 cover.cgi（头像，同步构造 URL）
-    final future = () async {
-      final lastfmService = ref.read(lastfmServiceProvider);
-      final lastfmFuture = lastfmService?.fetchArtistInfo(artistName);
-      final wikiFuture =
-          ref.read(artistInfoServiceProvider).fetchArtistInfo(artistName);
-      final results = await Future.wait<Object?>([
-        lastfmFuture ?? Future<Object?>.value(null),
-        wikiFuture,
-      ]);
-      final lastfm = results[0] as LastFmArtistInfo?;
-      final wiki = results[1] as ArtistInfo?;
-      String? synoUrl;
-      try {
-        synoUrl = ref
-            .read(synologyAuthProvider.notifier)
-            .api
-            .getArtistCoverUrl(artistName);
-      } catch (_) {
-        synoUrl = null;
-      }
-      return _ArtistSourceBundle(lastfm: lastfm, wiki: wiki, synoUrl: synoUrl);
-    }();
+    final lastfmService = ref.read(lastfmServiceProvider);
+    final lastfmFuture = lastfmService?.fetchArtistInfo(artistName);
+    final wikiFuture =
+        ref.read(artistInfoServiceProvider).fetchArtistInfo(artistName);
+    final results = await Future.wait<Object?>([
+      lastfmFuture ?? Future<Object?>.value(null),
+      wikiFuture,
+    ]);
+    final lastfm = results[0] as LastFmArtistInfo?;
+    final wiki = results[1] as ArtistInfo?;
+    String? synoUrl;
+    try {
+      synoUrl = ref
+          .read(synologyAuthProvider.notifier)
+          .api
+          .getArtistCoverUrl(artistName);
+    } catch (_) {
+      synoUrl = null;
+    }
+    return _ArtistSourceBundle(lastfm: lastfm, wiki: wiki, synoUrl: synoUrl);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
 
     return FutureBuilder<_ArtistSourceBundle>(
-      future: future,
+      future: _future,
       builder: (context, snapshot) {
         final bundle = snapshot.data;
         if (bundle == null) {
@@ -1981,9 +2004,13 @@ class _ArtistSourcePicker extends ConsumerWidget {
         final lastfm = bundle.lastfm;
         final wiki = bundle.wiki;
         // Last.fm 简介可能为空（有头像无简介），此时简介回退 Wikipedia
-        final lastfmBio =
-            (lastfm?.bio?.isNotEmpty ?? false) ? lastfm!.bio! : null;
-        final wikiBio = (wiki?.bio?.isNotEmpty ?? false) ? wiki!.bio! : null;
+        final lastfmBioRaw = lastfm?.bio;
+        final lastfmBio = lastfmBioRaw != null && lastfmBioRaw.isNotEmpty
+            ? lastfmBioRaw
+            : null;
+        final wikiBioRaw = wiki?.bio;
+        final wikiBio =
+            wikiBioRaw != null && wikiBioRaw.isNotEmpty ? wikiBioRaw : null;
 
         // 自动聚合值（用于保留未被采用的另一维度）
         final autoImageUrl = lastfm?.imageUrl ?? bundle.synoUrl;
@@ -2008,7 +2035,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
             // ---- 头像来源 ----
             _SourceSectionTitle('头像来源', scheme),
             if (!hasImage)
-              _SourceEmptyHint('未找到「$artistName」的头像', scheme)
+              _SourceEmptyHint('未找到「${widget.artistName}」的头像', scheme)
             else ...[
               if (lastfm?.imageUrl != null)
                 _AvatarSourceCard(
@@ -2017,6 +2044,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
                   hint: 'Last.fm 大图',
                   onTap: () => _adopt(
                     ref,
+                    '头像',
                     ArtistInfoResult(
                       imageUrl: lastfm.imageUrl,
                       imageSource: ArtistInfoSource.lastfm,
@@ -2032,6 +2060,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
                   hint: '群晖 NAS 专辑封面',
                   onTap: () => _adopt(
                     ref,
+                    '头像',
                     ArtistInfoResult(
                       imageUrl: bundle.synoUrl,
                       imageSource: ArtistInfoSource.synology,
@@ -2045,7 +2074,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
             // ---- 简介来源 ----
             _SourceSectionTitle('简介来源', scheme),
             if (!hasBio)
-              _SourceEmptyHint('未找到「$artistName」的简介', scheme)
+              _SourceEmptyHint('未找到「${widget.artistName}」的简介', scheme)
             else ...[
               if (lastfmBio != null)
                 _BioSourceCard(
@@ -2053,6 +2082,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
                   source: ArtistInfoSource.lastfm,
                   onTap: () => _adopt(
                     ref,
+                    '简介',
                     ArtistInfoResult(
                       imageUrl: autoImageUrl,
                       imageSource: autoImageSource,
@@ -2067,6 +2097,7 @@ class _ArtistSourcePicker extends ConsumerWidget {
                   source: ArtistInfoSource.wikipedia,
                   onTap: () => _adopt(
                     ref,
+                    '简介',
                     ArtistInfoResult(
                       imageUrl: autoImageUrl,
                       imageSource: autoImageSource,
@@ -2083,13 +2114,22 @@ class _ArtistSourcePicker extends ConsumerWidget {
   }
 
   /// 采用某来源结果：持久化 + 提示 + 刷新外层
-  Future<void> _adopt(WidgetRef ref, ArtistInfoResult result) async {
-    await ref.read(artistInfoCacheProvider).saveOverride(artistName, result);
-    onAdopted();
+  ///
+  /// [dimension] 为被采用的维度（'头像' / '简介'），用于准确提示。
+  Future<void> _adopt(
+    WidgetRef ref,
+    String dimension,
+    ArtistInfoResult result,
+  ) async {
+    await ref.read(artistInfoCacheProvider)
+        .saveOverride(widget.artistName, result);
+    widget.onAdopted();
     if (!ref.context.mounted) return;
+    final source = dimension == '头像'
+        ? result.imageSource.label
+        : result.bioSource.label;
     ScaffoldMessenger.of(ref.context).showSnackBar(SnackBar(
-      content: Text(
-          '已采用 ${result.bioSource != ArtistInfoSource.none ? result.bioSource.label : result.imageSource.label} 的${result.bio != null ? '简介' : '头像'}'),
+      content: Text('已采用 $source 的$dimension'),
       duration: const Duration(seconds: 1),
       behavior: SnackBarBehavior.floating,
     ));

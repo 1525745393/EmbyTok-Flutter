@@ -348,10 +348,15 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       final dur = controller.value.duration;
       final playing = controller.value.isPlaying;
 
-      // 播放完毕自动下一首（video_player 在结尾 isPlaying 变 false）
-      final finished =
-          dur > Duration.zero && pos >= dur - const Duration(milliseconds: 300);
-      if (finished && !playing) {
+      // 播放完毕自动下一首（video_player 在结尾 isPlaying 变 false）。
+      // 注意区分「自然播完」与「用户暂停在末尾」：只有仍在播放状态时
+      // 才算自然播完（用户暂停后 state.isPlaying 已为 false）。
+      if (isNaturalFinish(
+        controllerPlaying: playing,
+        statePlaying: state.isPlaying,
+        position: pos,
+        duration: dur,
+      )) {
         next();
         return;
       }
@@ -363,6 +368,25 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       // 定期同步进度到系统媒体控制（锁屏进度条）
       _syncMediaSession(isPlaying: playing, position: pos, duration: dur);
     });
+  }
+
+  /// 是否自然播放完毕（供播放器定时器判定；独立纯函数便于单测）
+  ///
+  /// - [controllerPlaying]：video_player 当前 isPlaying
+  /// - [statePlaying]：应用层播放状态（用户暂停后为 false）
+  ///
+  /// 三者同时满足才算自然播完：有进度、已到结尾、播放器停止、
+  /// 且应用层仍认为在播放（用户手动暂停不会触发切歌）。
+  static bool isNaturalFinish({
+    required bool controllerPlaying,
+    required bool statePlaying,
+    required Duration position,
+    required Duration duration,
+    Duration tail = const Duration(milliseconds: 300),
+  }) {
+    if (duration <= Duration.zero) return false;
+    final atEnd = position >= duration - tail;
+    return atEnd && !controllerPlaying && statePlaying;
   }
 
   /// 焦点丢失（来电等）：暂停
