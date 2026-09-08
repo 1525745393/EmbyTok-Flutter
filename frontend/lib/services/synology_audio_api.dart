@@ -253,9 +253,14 @@ class SynologyAudioApi {
   }
 
   /// 获取专辑列表
+  ///
+  /// [sort] 排序字段：name（名称）、year（年份）、artist（艺术家）、
+  /// time_add（入库时间，PRD 最近添加模块使用）。默认按名称排序。
   Future<List<AudioAlbum>> getAlbums({
     int offset = 0,
     int limit = 200,
+    String? sort,
+    String direction = 'asc',
   }) async {
     final data =
         await _callList('SYNO.AudioStation.Album', 'AudioStation/album.cgi', {
@@ -265,6 +270,8 @@ class SynologyAudioApi {
       'offset': offset,
       'limit': limit,
       'additional': jsonify(['avg_rating']),
+      if (sort != null && sort.isNotEmpty) 'sort': sort,
+      if (sort != null && sort.isNotEmpty) 'direction': direction,
     });
     final albums = _asList(data?['albums']);
     return albums
@@ -273,9 +280,13 @@ class SynologyAudioApi {
   }
 
   /// 获取歌手列表
+  ///
+  /// [sort] 排序字段：name（名称）、song_count（歌曲数量，PRD 热门艺术家使用）。
   Future<List<AudioArtist>> getArtists({
     int offset = 0,
     int limit = 200,
+    String? sort,
+    String direction = 'asc',
   }) async {
     final data =
         await _callList('SYNO.AudioStation.Artist', 'AudioStation/artist.cgi', {
@@ -285,6 +296,8 @@ class SynologyAudioApi {
       'offset': offset,
       'limit': limit,
       'additional': jsonify(['avg_rating']),
+      if (sort != null && sort.isNotEmpty) 'sort': sort,
+      if (sort != null && sort.isNotEmpty) 'direction': direction,
     });
     final artists = _asList(data?['artists']);
     return artists
@@ -293,9 +306,13 @@ class SynologyAudioApi {
   }
 
   /// 获取歌单列表
+  ///
+  /// [type] 歌单类型：personal（个人）、group（群组共享）、smart（智能）。
+  /// 不传则返回全部类型。
   Future<List<AudioPlaylist>> getPlaylists({
     int offset = 0,
     int limit = 200,
+    String? type,
   }) async {
     final data = await _callList(
         'SYNO.AudioStation.Playlist', 'AudioStation/playlist.cgi', {
@@ -304,10 +321,30 @@ class SynologyAudioApi {
       'library': 'all',
       'offset': offset,
       'limit': limit,
+      if (type != null && type.isNotEmpty) 'type': type,
     });
     final playlists = _asList(data?['playlists']);
     return playlists
         .map((e) => AudioPlaylist.fromJson(_asMap(e)))
+        .toList(growable: false);
+  }
+
+  /// 获取音乐流派列表（NAS 自动聚合的音乐标签分类）
+  Future<List<AudioGenre>> getGenres({
+    int offset = 0,
+    int limit = 200,
+  }) async {
+    final data =
+        await _callList('SYNO.AudioStation.Genre', 'AudioStation/genre.cgi', {
+      'method': 'list',
+      'version': 1,
+      'library': 'all',
+      'offset': offset,
+      'limit': limit,
+    });
+    final genres = _asList(data?['genres']);
+    return genres
+        .map((e) => AudioGenre.fromJson(_asMap(e)))
         .toList(growable: false);
   }
 

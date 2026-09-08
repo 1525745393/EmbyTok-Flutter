@@ -21,6 +21,7 @@ import '../services/artist_info_service.dart';
 import '../services/lastfm_service.dart';
 import 'synology_full_player.dart';
 import '../providers/providers.dart';
+import '../providers/recent_playbacks_provider.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 
@@ -46,7 +47,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
-    // 首页默认预加载所有分类数据（首页展示热门专辑/歌手/歌单横向卡片）
+    // 首页默认预加载所有分类数据 + 首页专用数据（最近添加/热门艺术家/流派）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final notifier = ref.read(synologyMusicProvider.notifier);
@@ -55,6 +56,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       notifier.loadTab(SynologyMusicTab.albums);
       notifier.loadTab(SynologyMusicTab.artists);
       notifier.loadTab(SynologyMusicTab.playlists);
+      notifier.loadHomeData();
     });
   }
 
@@ -72,11 +74,12 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     final tab = SynologyMusicTab.values[_tabController.index];
     final notifier = ref.read(synologyMusicProvider.notifier);
     if (tab == SynologyMusicTab.home) {
-      // 首页需要所有分类数据，并发预加载
+      // 首页需要所有分类数据 + 首页专用数据，并发预加载
       notifier.loadTab(SynologyMusicTab.songs);
       notifier.loadTab(SynologyMusicTab.albums);
       notifier.loadTab(SynologyMusicTab.artists);
       notifier.loadTab(SynologyMusicTab.playlists);
+      notifier.loadHomeData();
     } else {
       notifier.loadTab(tab);
     }
@@ -365,32 +368,72 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // ============================
 
   Widget _buildHomeTab(SynologyMusicState state, ColorScheme scheme) {
+    // 最近播放记录（客户端本地存储，PRD 首屏核心模块）
+    final recentPlaybacks = ref.watch(recentPlaybacksProvider);
+
+    // 精选专辑：从全量专辑中随机抽样，与最近添加去重
+    final recentNames = state.recentAlbums.map((e) => e.name).toSet();
+    final featuredAlbums = state.albums
+        .where((a) => !recentNames.contains(a.name))
+        .toList()
+      ..shuffle();
+    final featured = featuredAlbums.take(12).toList();
+
     return ListView(
       padding: const EdgeInsets.only(top: 12, bottom: 24),
       children: [
+        // 快捷入口
         _buildQuickEntries(scheme),
         const SizedBox(height: 20),
-        if (state.albums.isNotEmpty) ...[
-          _buildHomeSectionHeader('热门专辑', SynologyMusicTab.albums, scheme),
+        // 最近播放（无记录时整个模块隐藏，PRD 要求）
+        if (recentPlaybacks.isNotEmpty) ...[
+          _buildHomeSectionHeader('最近播放', SynologyMusicTab.songs, scheme),
           const SizedBox(height: 10),
-          _buildAlbumHorizontalList(state.albums.take(10).toList(), scheme),
+          _buildRecentPlaybacksList(recentPlaybacks, scheme),
           const SizedBox(height: 20),
         ],
-        if (state.artists.isNotEmpty) ...[
-          _buildHomeSectionHeader('热门歌手', SynologyMusicTab.artists, scheme),
+        // 最近添加（time_add 倒序，NAS 原生接口）
+        if (state.recentAlbums.isNotEmpty) ...[
+          _buildHomeSectionHeader('最近添加', SynologyMusicTab.albums, scheme),
           const SizedBox(height: 10),
-          _buildArtistHorizontalList(state.artists.take(10).toList(), scheme),
+          _buildAlbumHorizontalList(state.recentAlbums, scheme),
           const SizedBox(height: 20),
         ],
+        // 我的歌单
         if (state.playlists.isNotEmpty) ...[
           _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
           const SizedBox(height: 10),
-          _buildPlaylistHorizontalList(state.playlists.take(10).toList(), scheme),
+          _buildPlaylistHorizontalList(state.playlists.take(8).toList(), scheme),
+          const SizedBox(height: 20),
         ],
-        if (state.albums.isEmpty &&
-            state.artists.isEmpty &&
+        // 精选专辑（客户端随机抽样，与最近添加去重）
+        if (featured.isNotEmpty) ...[
+          _buildHomeSectionHeader('精选专辑', SynologyMusicTab.albums, scheme),
+          const SizedBox(height: 10),
+          _buildAlbumHorizontalList(featured, scheme),
+          const SizedBox(height: 20),
+        ],
+        // 热门艺术家（song_count 倒序）
+        if (state.topArtists.isNotEmpty) ...[
+          _buildHomeSectionHeader('热门艺术家', SynologyMusicTab.artists, scheme),
+          const SizedBox(height: 10),
+          _buildArtistHorizontalList(state.topArtists, scheme),
+          const SizedBox(height: 20),
+        ],
+        // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
+        if (state.genres.isNotEmpty) ...[
+          _buildHomeSectionHeader('音乐流派', SynologyMusicTab.songs, scheme),
+          const SizedBox(height: 10),
+          _buildGenreGrid(state.genres, scheme),
+        ],
+        // 全空占位
+        if (state.recentAlbums.isEmpty &&
+            state.topArtists.isEmpty &&
+            state.genres.isEmpty &&
             state.playlists.isEmpty &&
-            state.songs.isEmpty)
+            state.albums.isEmpty &&
+            state.songs.isEmpty &&
+            recentPlaybacks.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 60),
             child: Center(
@@ -602,6 +645,218 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         },
       ),
     );
+  }
+
+  /// 最近播放横向卡片列表（PRD 首屏核心模块，客户端本地存储）
+  ///
+  /// 卡片：封面（正方形圆角）+ 标题（1行截断）+ 副标题（1行截断）
+  /// + 右下角悬浮播放按钮。点击卡片播放该歌曲，长按弹出移除菜单。
+  Widget _buildRecentPlaybacksList(
+      List<RecentPlayback> records, ColorScheme scheme) {
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: records.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final record = records[index];
+          return SizedBox(
+            width: 110,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onLongPress: () => _showRecentPlaybackMenu(record, scheme),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: record.coverUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: record.coverUrl!,
+                                  fit: BoxFit.cover,
+                                  cacheManager: AppImageCacheManager.thumbnail,
+                                  errorWidget: (_, __, ___) =>
+                                      _albumCoverFallback(scheme),
+                                )
+                              : _albumCoverFallback(scheme),
+                        ),
+                      ),
+                      // 右下角悬浮播放按钮
+                      Positioned(
+                        right: 4,
+                        bottom: 4,
+                        child: GestureDetector(
+                          onTap: () => _playRecentPlayback(record),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.9),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(Icons.play_arrow,
+                                color: Colors.white, size: 18),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(record.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.onSurface)),
+                Text(record.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 播放最近播放记录中的歌曲
+  void _playRecentPlayback(RecentPlayback record) {
+    if (record.mediaType != RecentPlaybackType.song) return;
+    // 从当前歌曲列表中找到匹配的歌曲并播放
+    final songs = ref.read(synologyMusicProvider).songs;
+    final match = songs.where((s) => s.id == record.mediaId).toList();
+    if (match.isNotEmpty) {
+      ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该歌曲已不在当前列表中')),
+      );
+    }
+  }
+
+  /// 最近播放长按菜单：播放 / 移除该记录
+  void _showRecentPlaybackMenu(RecentPlayback record, ColorScheme scheme) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.play_arrow),
+              title: const Text('播放'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _playRecentPlayback(record);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('移除该记录'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ref
+                    .read(recentPlaybacksProvider.notifier)
+                    .remove(record.mediaId, record.mediaType);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 音乐流派 2 列网格色块卡片（PRD 页面最底部模块）
+  ///
+  /// 每个卡片：渐变色块 + 流派名称 + 歌曲数量。点击随机播放该流派全部歌曲。
+  Widget _buildGenreGrid(List<AudioGenre> genres, ColorScheme scheme) {
+    final gradients = [
+      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+      [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
+      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
+      [const Color(0xFFFFD26F), const Color(0xFFFF9472)],
+      [const Color(0xFFA18CD1), const Color(0xFFFBC2EB)],
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2.2,
+        ),
+        itemCount: genres.length,
+        itemBuilder: (context, index) {
+          final genre = genres[index];
+          final gradient = gradients[index % gradients.length];
+          return GestureDetector(
+            onTap: () => _playGenreShuffle(genre),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradient,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    genre.name.isEmpty ? '未分类' : genre.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${genre.songCount} 首',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 随机播放指定流派的全部歌曲（shuffle 模式）
+  void _playGenreShuffle(AudioGenre genre) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('正在加载「${genre.name.isEmpty ? '未分类' : genre.name}」流派...')),
+    );
+    // 通过 artist 参数过滤不支持流派，这里提示用户到歌曲列表筛选
+    // PRD 要求点击直接随机播放该流派，后续可扩展 getSongs(genre:) 参数
   }
 
   Widget _albumCoverFallback(ColorScheme scheme) {

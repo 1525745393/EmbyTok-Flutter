@@ -218,6 +218,21 @@ class AudioPlaylist {
   }
 }
 
+/// 音乐流派（NAS 自动聚合的音乐标签分类）
+class AudioGenre {
+  final String name;
+  final int songCount;
+
+  const AudioGenre({required this.name, this.songCount = 0});
+
+  factory AudioGenre.fromJson(Map<String, dynamic> json) {
+    return AudioGenre(
+      name: json['name'] as String? ?? '',
+      songCount: (json['song_count'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 /// 搜索结果（歌曲 + 专辑 + 歌手）
 class AudioSearchResult {
   final List<AudioSong> songs;

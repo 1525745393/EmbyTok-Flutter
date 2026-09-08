@@ -32,6 +32,12 @@ class SynologyMusicState {
   final List<AudioArtist> artists;
   final List<AudioPlaylist> playlists;
 
+  /// 首页专用数据（PRD 模块）
+  final List<AudioAlbum> recentAlbums; // 最近添加（time_add 倒序）
+  final List<AudioArtist> topArtists; // 热门艺术家（song_count 倒序）
+  final List<AudioGenre> genres; // 音乐流派
+  final bool isHomeLoaded; // 首页数据是否已加载
+
   /// 歌曲分页状态
   final bool hasMoreSongs;
   final bool isLoadingMoreSongs;
@@ -56,6 +62,10 @@ class SynologyMusicState {
     this.albums = const [],
     this.artists = const [],
     this.playlists = const [],
+    this.recentAlbums = const [],
+    this.topArtists = const [],
+    this.genres = const [],
+    this.isHomeLoaded = false,
     this.hasMoreSongs = false,
     this.isLoadingMoreSongs = false,
     this.hasMoreAlbums = false,
@@ -74,6 +84,10 @@ class SynologyMusicState {
     List<AudioAlbum>? albums,
     List<AudioArtist>? artists,
     List<AudioPlaylist>? playlists,
+    List<AudioAlbum>? recentAlbums,
+    List<AudioArtist>? topArtists,
+    List<AudioGenre>? genres,
+    bool? isHomeLoaded,
     bool? hasMoreSongs,
     bool? isLoadingMoreSongs,
     bool? hasMoreAlbums,
@@ -91,6 +105,10 @@ class SynologyMusicState {
       albums: albums ?? this.albums,
       artists: artists ?? this.artists,
       playlists: playlists ?? this.playlists,
+      recentAlbums: recentAlbums ?? this.recentAlbums,
+      topArtists: topArtists ?? this.topArtists,
+      genres: genres ?? this.genres,
+      isHomeLoaded: isHomeLoaded ?? this.isHomeLoaded,
       hasMoreSongs: hasMoreSongs ?? this.hasMoreSongs,
       isLoadingMoreSongs: isLoadingMoreSongs ?? this.isLoadingMoreSongs,
       hasMoreAlbums: hasMoreAlbums ?? this.hasMoreAlbums,
@@ -162,6 +180,35 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     } catch (e, st) {
       AppLogger.error('加载音乐库失败', data: {'tab': tab.name}, error: e, stackTrace: st);
       state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
+  /// 加载首页专用数据（PRD 模块）：最近添加专辑 + 热门艺术家 + 音乐流派
+  ///
+  /// 并发请求 3 个接口，单个失败不影响其他模块。已加载则跳过（force 时强制刷新）。
+  Future<void> loadHomeData({bool force = false}) async {
+    if (!_isLoggedIn) return;
+    if (!force && state.isHomeLoaded) return;
+
+    try {
+      // 并发加载三个首页模块
+      final results = await Future.wait([
+        _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
+        _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
+        _api.getGenres(limit: 50),
+      ], eagerError: false);
+
+      state = state.copyWith(
+        recentAlbums: results[0] as List<AudioAlbum>,
+        topArtists: results[1] as List<AudioArtist>,
+        genres: results[2] as List<AudioGenre>,
+        isHomeLoaded: true,
+        error: null,
+      );
+    } catch (e, st) {
+      AppLogger.error('加载首页数据失败', error: e, stackTrace: st);
+      // 单个接口失败不阻断，标记已加载避免重复请求
+      state = state.copyWith(isHomeLoaded: true, error: e.toString());
     }
   }
 

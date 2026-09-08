@@ -16,6 +16,7 @@ import '../models/audio_models.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
 import 'audio_handler_provider.dart';
+import 'recent_playbacks_provider.dart';
 import 'synology_auth_provider.dart';
 
 /// 播放模式
