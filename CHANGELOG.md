@@ -1,3 +1,10 @@
+## [2.55.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.55.0...v2.55.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* 首页模块点击无反应 + 最近播放未写入 ([e754363](https://github.com/1525745393/EmbyTok-Flutter/commit/e7543633ded300e6755e1c9ade9e6d9240031446))
+
 # [2.55.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.54.0...v2.55.0) (2026-09-08)
 
 
