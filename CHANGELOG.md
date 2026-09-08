@@ -1,3 +1,10 @@
+## [2.53.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.3...v2.53.4) (2026-09-08)
+
+
+### Bug Fixes
+
+* 音乐服务模式首页显示返回按钮 ([9201261](https://github.com/1525745393/EmbyTok-Flutter/commit/920126175103799882442a3f9a5f1209608e1d23))
+
 ## [2.53.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.2...v2.53.3) (2026-09-08)
 
 
