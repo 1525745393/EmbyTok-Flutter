@@ -1,3 +1,15 @@
+# [2.51.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.50.1...v2.51.0) (2026-09-08)
+
+
+### Bug Fixes
+
+* **music:** 修复代码审查 P2/P3 问题并补回归测试 ([87c4e4f](https://github.com/1525745393/EmbyTok-Flutter/commit/87c4e4f377a1e29390fbbd408951ef1e98af90ab))
+
+
+### Features
+
+* **music:** 服务模式切换（视频/音乐）+ 音乐模式首页显示音乐库 ([f0b4727](https://github.com/1525745393/EmbyTok-Flutter/commit/f0b4727a22e5619e74db39b8dd1d6b6076e41164))
+
 ## [2.50.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.50.0...v2.50.1) (2026-09-07)
 
 
