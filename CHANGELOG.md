@@ -1,3 +1,10 @@
+## [2.53.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.0...v2.53.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* 音乐库地址无协议导致 Dio 'No host specified' 崩溃 ([7e6450e](https://github.com/1525745393/EmbyTok-Flutter/commit/7e6450e2d1aa9ab04e1f42fa7f1c4dcb3cb4725d))
+
 # [2.53.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.52.0...v2.53.0) (2026-09-08)
 
 
