@@ -75,4 +75,66 @@ void main() {
     expect(tester.takeException(), isNull,
         reason: '小屏下服务器类型卡片不应布局溢出');
   });
+
+  testWidgets('HTTP 不安全警告：公网 HTTP 显示，内网/HTTPS 不显示', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(buildLogin());
+    await tester.pumpAndSettle();
+
+    final serverField = find.byType(TextFormField).first;
+
+    // 公网 HTTP → 显示警告
+    await tester.enterText(serverField, 'http://example.com');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsOneWidget);
+
+    // 10.x 内网 → 不显示
+    await tester.enterText(serverField, 'http://10.0.0.5:8096');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+
+    // 172.16.x 内网（172.16/12 段）→ 不显示
+    await tester.enterText(serverField, 'http://172.16.0.5:5000');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+
+    // 172.31.x 内网（172.16/12 段末）→ 不显示
+    await tester.enterText(serverField, 'http://172.31.255.1:5000');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+
+    // 172.32.x 公网（超出 172.16/12）→ 显示
+    await tester.enterText(serverField, 'http://172.32.0.1:5000');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsOneWidget);
+
+    // 192.168.x 内网 → 不显示
+    await tester.enterText(serverField, 'http://192.168.1.100:5000');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+
+    // HTTPS → 不显示
+    await tester.enterText(serverField, 'https://example.com');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+
+    // localhost → 不显示
+    await tester.enterText(serverField, 'http://localhost:8096');
+    await tester.pump();
+    expect(find.text('HTTP 不安全'), findsNothing);
+  });
+
+  testWidgets('URL 尾部斜杠输入不崩溃，表单可正常交互', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(buildLogin());
+    await tester.pumpAndSettle();
+
+    final serverField = find.byType(TextFormField).first;
+    // 输入带尾部斜杠的地址（_submit 时会清理，此处验证输入与 UI 不崩溃）
+    await tester.enterText(serverField, 'http://192.168.1.6:5000/');
+    await tester.pump();
+    expect(find.text('http://192.168.1.6:5000/'), findsOneWidget);
+    expect(tester.takeException(), isNull,
+        reason: '带尾部斜杠的 URL 输入不应导致崩溃');
+  });
 }

@@ -22,6 +22,9 @@ const _kSecureKeyServer = 'embytok_secure_server';
 const _kSecureKeyUsername = 'embytok_secure_username';
 const _kSecureKeyPassword = 'embytok_secure_password';
 
+/// 服务器历史最大保留条数
+const _kMaxServerHistory = 5;
+
 /// 服务器类型
 enum ServerType {
   emby,
@@ -108,6 +111,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
   // 连接测试状态：null=未测试, true=成功, false=失败
   bool? _connectionStatus;
   bool _isTestingConnection = false;
+  // 连接测试请求序号：防止快速切换服务器类型时在途请求乱序覆盖结果
+  int _testConnSeq = 0;
 
   // 防重复提交锁 & 内联错误提示
   bool _isSubmitting = false;
@@ -213,9 +218,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
       // 插入到最前面
       _serverHistory.insert(
           0, _ServerHistoryEntry(url: url, lastUsed: DateTime.now()));
-      // 最多保留 5 条
-      if (_serverHistory.length > 5) {
-        _serverHistory = _serverHistory.sublist(0, 5);
+      // 最多保留 _kMaxServerHistory 条
+      if (_serverHistory.length > _kMaxServerHistory) {
+        _serverHistory = _serverHistory.sublist(0, _kMaxServerHistory);
       }
       await _persistHistory();
       if (mounted) setState(() {});
@@ -251,10 +256,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 测试服务器连接：按服务器类型走不同探测端点
+  /// 请求序号机制：快速切换服务器类型或反复失焦时，后发先至的过期结果被丢弃
   Future<void> _testConnection() async {
     final url = _embyController.text.trim();
     if (url.isEmpty) return;
 
+    final seq = ++_testConnSeq;
     setState(() {
       _isTestingConnection = true;
       _connectionStatus = null;
@@ -281,20 +288,18 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   .statusCode ==
               200,
       };
-      if (mounted) {
-        setState(() {
-          _connectionStatus = ok;
-          _isTestingConnection = false;
-        });
-      }
+      if (!mounted || seq != _testConnSeq) return; // 过期或已卸载，丢弃
+      setState(() {
+        _connectionStatus = ok;
+        _isTestingConnection = false;
+      });
     } catch (e) {
       AppLogger.warn('连接测试失败', data: {'url': url, 'error': e.toString()});
-      if (mounted) {
-        setState(() {
-          _connectionStatus = false;
-          _isTestingConnection = false;
-        });
-      }
+      if (!mounted || seq != _testConnSeq) return; // 过期或已卸载，丢弃
+      setState(() {
+        _connectionStatus = false;
+        _isTestingConnection = false;
+      });
     }
   }
 
@@ -332,7 +337,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     if (_isSubmitting) return;
     if (_formKey.currentState?.validate() != true) return;
 
-    final server = _embyController.text.trim();
+    final server = _embyController.text.trim().replaceAll(RegExp(r'/+$'), '');
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
     final otp = _otpController.text.trim();
@@ -359,17 +364,25 @@ class _LoginViewState extends ConsumerState<LoginView> {
       // 写入服务器注册表（多服务器管理），rememberMe 时保存密码
       final synoSid =
           _serverType == ServerType.synology ? ref.read(synologyAuthProvider).sid : null;
-      await _saveToRegistry(
+      final registrySaved = await _saveToRegistry(
         server: server,
         username: username,
         password: _rememberMe ? password : null,
         synoSid: _serverType == ServerType.synology ? synoSid : null,
       );
+      if (!registrySaved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('服务器配置保存失败，可在设置 → 服务器管理中手动添加')),
+        );
+      }
       if (mounted) {
         // 群晖登录成功 → 进入音乐页；Emby/Plex → 首页
         context.go(_serverType == ServerType.synology ? '/music' : '/');
       }
     } catch (e) {
+      AppLogger.warn('登录失败',
+          data: {'type': _serverType.name, 'server': server, 'error': e.toString()});
       if (mounted) {
         setState(() {
           _errorMessage = _friendlyError(e);
@@ -389,7 +402,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 登录成功后写入服务器注册表（已存在则更新），并设为激活
-  Future<void> _saveToRegistry({
+  /// 返回 true 表示写入成功，false 表示失败（调用方应提示用户）
+  Future<bool> _saveToRegistry({
     required String server,
     required String username,
     String? password,
@@ -430,8 +444,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
       }
       // 设为当前激活服务器
       await ref.read(activeServerIdProvider.notifier).setActive(profile.id);
+      return true;
     } catch (e) {
       AppLogger.error('写入服务器注册表失败', error: e);
+      return false;
     }
   }
 
@@ -694,20 +710,36 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   /// 判断是否为 HTTP（非 HTTPS）以显示安全提示
+  /// 私网段（10/8, 172.16/12, 192.168/16）与回环地址不警告
   bool _isHttpWarning() {
     final url = _embyController.text.trim().toLowerCase();
-    return url.startsWith('http://') &&
-        !url.contains('localhost') &&
-        !url.contains('127.0.0.1') &&
-        !url.contains('192.168.');
+    if (!url.startsWith('http://')) return false;
+    try {
+      final host = Uri.parse(url).host;
+      if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
+        return false;
+      }
+      // 10.0.0.0/8
+      if (host.startsWith('10.')) return false;
+      // 192.168.0.0/16
+      if (host.startsWith('192.168.')) return false;
+      // 172.16.0.0/12（172.16.x.x – 172.31.x.x）
+      if (RegExp(r'^172\.(1[6-9]|2\d|3[01])\.').hasMatch(host)) return false;
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 切换服务器类型：重置连接测试与两步验证状态
   void _onServerTypeChanged(ServerType type) {
     if (type == _serverType) return;
+    // 使在途连接测试失效，避免旧类型结果覆盖新类型状态
+    _testConnSeq++;
     setState(() {
       _serverType = type;
       _connectionStatus = null;
+      _isTestingConnection = false;
       // 切换服务器类型时重置两步验证状态
       _otpRequired = false;
       _otpController.clear();
@@ -829,7 +861,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
       textInputAction: TextInputAction.next,
       autofillHints: const [AutofillHints.url],
       style: TextStyle(color: scheme.onSurface),
-      onChanged: (_) => _clearError(),
+      onChanged: (_) {
+        // 服务器地址变化时总是 rebuild：更新 HTTP 警告与连接状态
+        _clearError();
+        setState(() {});
+      },
       decoration: InputDecoration(
         filled: true,
         fillColor: scheme.surface,
