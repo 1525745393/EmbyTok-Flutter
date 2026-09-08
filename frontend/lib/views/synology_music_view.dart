@@ -44,15 +44,17 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
-    // 首个 Tab（歌曲）自动加载
+    // 首页默认预加载所有分类数据（首页展示热门专辑/歌手/歌单横向卡片）
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref
-            .read(synologyMusicProvider.notifier)
-            .loadTab(SynologyMusicTab.songs);
-      }
+      if (!mounted) return;
+      final notifier = ref.read(synologyMusicProvider.notifier);
+      // 并发加载，首页尽快展示内容
+      notifier.loadTab(SynologyMusicTab.songs);
+      notifier.loadTab(SynologyMusicTab.albums);
+      notifier.loadTab(SynologyMusicTab.artists);
+      notifier.loadTab(SynologyMusicTab.playlists);
     });
   }
 
@@ -68,7 +70,16 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) return;
     final tab = SynologyMusicTab.values[_tabController.index];
-    ref.read(synologyMusicProvider.notifier).loadTab(tab);
+    final notifier = ref.read(synologyMusicProvider.notifier);
+    if (tab == SynologyMusicTab.home) {
+      // 首页需要所有分类数据，并发预加载
+      notifier.loadTab(SynologyMusicTab.songs);
+      notifier.loadTab(SynologyMusicTab.albums);
+      notifier.loadTab(SynologyMusicTab.artists);
+      notifier.loadTab(SynologyMusicTab.playlists);
+    } else {
+      notifier.loadTab(tab);
+    }
   }
 
   /// 搜索输入（300ms 防抖，与项目搜索页一致）
@@ -321,6 +332,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     }
 
     switch (SynologyMusicTab.values[_tabController.index]) {
+      case SynologyMusicTab.home:
+        return _buildHomeTab(state, scheme);
       case SynologyMusicTab.songs:
         return _buildSongList(state.songs, scheme);
       case SynologyMusicTab.albums:
@@ -334,6 +347,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
 
   bool _isEmptyForTab(SynologyMusicState state) {
     switch (SynologyMusicTab.values[_tabController.index]) {
+      case SynologyMusicTab.home:
+        return false; // 首页永不为空（有快捷入口）
       case SynologyMusicTab.songs:
         return state.songs.isEmpty;
       case SynologyMusicTab.albums:
@@ -343,6 +358,273 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       case SynologyMusicTab.playlists:
         return state.playlists.isEmpty;
     }
+  }
+
+  // ============================
+  // 首页 Tab（QQ音乐/酷狗风格：快捷入口 + 横向滚动推荐）
+  // ============================
+
+  Widget _buildHomeTab(SynologyMusicState state, ColorScheme scheme) {
+    return ListView(
+      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      children: [
+        _buildQuickEntries(scheme),
+        const SizedBox(height: 20),
+        if (state.albums.isNotEmpty) ...[
+          _buildHomeSectionHeader('热门专辑', SynologyMusicTab.albums, scheme),
+          const SizedBox(height: 10),
+          _buildAlbumHorizontalList(state.albums.take(10).toList(), scheme),
+          const SizedBox(height: 20),
+        ],
+        if (state.artists.isNotEmpty) ...[
+          _buildHomeSectionHeader('热门歌手', SynologyMusicTab.artists, scheme),
+          const SizedBox(height: 10),
+          _buildArtistHorizontalList(state.artists.take(10).toList(), scheme),
+          const SizedBox(height: 20),
+        ],
+        if (state.playlists.isNotEmpty) ...[
+          _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
+          const SizedBox(height: 10),
+          _buildPlaylistHorizontalList(state.playlists.take(10).toList(), scheme),
+        ],
+        if (state.albums.isEmpty &&
+            state.artists.isEmpty &&
+            state.playlists.isEmpty &&
+            state.songs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 60),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.library_music_outlined,
+                      size: 56, color: scheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text('音乐库暂无内容',
+                      style: TextStyle(color: scheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildQuickEntries(ColorScheme scheme) {
+    final entries = [
+      _QuickEntry(
+        icon: Icons.music_note, label: '歌曲',
+        color: const Color(0xFF4A90D9),
+        onTap: () => _switchTab(SynologyMusicTab.songs),
+      ),
+      _QuickEntry(
+        icon: Icons.album, label: '专辑',
+        color: const Color(0xFFE67E22),
+        onTap: () => _switchTab(SynologyMusicTab.albums),
+      ),
+      _QuickEntry(
+        icon: Icons.person, label: '歌手',
+        color: const Color(0xFF9B59B6),
+        onTap: () => _switchTab(SynologyMusicTab.artists),
+      ),
+      _QuickEntry(
+        icon: Icons.playlist_play, label: '歌单',
+        color: const Color(0xFF27AE60),
+        onTap: () => _switchTab(SynologyMusicTab.playlists),
+      ),
+      _QuickEntry(
+        icon: Icons.shuffle, label: '随机播放',
+        color: const Color(0xFFE74C3C),
+        onTap: _shufflePlay,
+      ),
+      _QuickEntry(
+        icon: Icons.settings, label: '设置',
+        color: const Color(0xFF7F8C8D),
+        onTap: () => context.go('/settings'),
+      ),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: entries.map((e) => _QuickEntryButton(entry: e)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildHomeSectionHeader(
+      String title, SynologyMusicTab targetTab, ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Text(title,
+              style: TextStyle(
+                  fontSize: 17, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+          const Spacer(),
+          TextButton(
+            onPressed: () => _switchTab(targetTab),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+              Icon(Icons.chevron_right, size: 18, color: scheme.onSurfaceVariant),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlbumHorizontalList(List<AudioAlbum> albums, ColorScheme scheme) {
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: albums.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final album = albums[index];
+          final coverUrl = ref
+              .read(synologyAuthProvider.notifier)
+              .api
+              .getAlbumCoverUrl(
+                albumName: album.name,
+                albumArtistName: album.displayArtist ?? album.albumArtist,
+              );
+          return SizedBox(
+            width: 110,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: coverUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: coverUrl, fit: BoxFit.cover,
+                          cacheManager: AppImageCacheManager.thumbnail,
+                          errorWidget: (_, __, ___) => _albumCoverFallback(scheme),
+                        )
+                      : _albumCoverFallback(scheme),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+              Text(album.displayArtist ?? album.albumArtist ?? '',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildArtistHorizontalList(List<AudioArtist> artists, ColorScheme scheme) {
+    return SizedBox(
+      height: 110,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: artists.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final artist = artists[index];
+          final coverUrl = ref
+              .read(synologyAuthProvider.notifier)
+              .api
+              .getArtistCoverUrl(artist.name);
+          return SizedBox(
+            width: 72,
+            child: Column(children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: scheme.surfaceContainerHighest,
+                backgroundImage: coverUrl != null
+                    ? CachedNetworkImageProvider(coverUrl,
+                        cacheManager: AppImageCacheManager.thumbnail)
+                    : null,
+                child: coverUrl == null
+                    ? Text(artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
+                    : null,
+              ),
+              const SizedBox(height: 6),
+              Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlaylistHorizontalList(
+      List<AudioPlaylist> playlists, ColorScheme scheme) {
+    final gradients = [
+      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+      [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
+      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
+      [const Color(0xFFFFD26F), const Color(0xFFFF9472)],
+    ];
+    return SizedBox(
+      height: 150,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: playlists.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final playlist = playlists[index];
+          final gradient = gradients[index % gradients.length];
+          return SizedBox(
+            width: 110,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+                    ),
+                    child: const Icon(Icons.playlist_play, color: Colors.white, size: 36),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(playlist.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _albumCoverFallback(ColorScheme scheme) {
+    return Container(
+      color: scheme.surfaceContainerHighest,
+      child: Icon(Icons.album, color: scheme.onSurfaceVariant, size: 32),
+    );
+  }
+
+  void _switchTab(SynologyMusicTab tab) {
+    _tabController.animateTo(tab.index);
+  }
+
+  void _shufflePlay() {
+    final songs = ref.read(synologyMusicProvider).songs;
+    if (songs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无可播放的歌曲')),
+      );
+      return;
+    }
+    final shuffled = [...songs]..shuffle();
+    ref.read(synologyPlaybackProvider.notifier).playQueue(shuffled, 0);
   }
 
   Widget _buildError(String error, ColorScheme scheme) {
@@ -1087,6 +1369,60 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       await ref.read(synologyAuthProvider.notifier).logout();
       ref.read(synologyMusicProvider.notifier).clearSearch();
     }
+  }
+}
+
+/// 快捷入口数据
+class _QuickEntry {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _QuickEntry(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
+}
+
+/// 快捷入口按钮（圆形渐变背景 + 图标 + 文字）
+class _QuickEntryButton extends StatelessWidget {
+  final _QuickEntry entry;
+  const _QuickEntryButton({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: entry.onTap,
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  entry.color.withValues(alpha: 0.9),
+                  entry.color
+                ]),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                  color: entry.color.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3)),
+            ],
+          ),
+          child: Icon(entry.icon, color: Colors.white, size: 24),
+        ),
+        const SizedBox(height: 6),
+        Text(entry.label,
+            style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      ]),
+    );
   }
 }
 

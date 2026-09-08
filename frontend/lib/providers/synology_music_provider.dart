@@ -12,6 +12,7 @@ import 'synology_auth_provider.dart';
 
 /// 音乐库分类
 enum SynologyMusicTab {
+  home('首页'),
   songs('歌曲'),
   albums('专辑'),
   artists('歌手'),
@@ -125,6 +126,10 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       switch (tab) {
+        case SynologyMusicTab.home:
+          // 首页复用其他 Tab 数据，无需单独加载
+          state = state.copyWith(isLoading: false);
+          break;
         case SynologyMusicTab.songs:
           final songs = await _api.getSongs(offset: 0, limit: _pageSize);
           state = state.copyWith(
