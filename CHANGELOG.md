@@ -1,3 +1,10 @@
+## [2.53.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.2...v2.53.3) (2026-09-08)
+
+
+### Bug Fixes
+
+* 音乐服务模式下首页不显示音乐库 ([dfffad9](https://github.com/1525745393/EmbyTok-Flutter/commit/dfffad9de5187176cd8d3bd4b0bed569279736f6))
+
 ## [2.53.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.1...v2.53.2) (2026-09-08)
 
 
