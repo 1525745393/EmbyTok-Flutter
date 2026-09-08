@@ -1,3 +1,10 @@
+# [2.53.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.52.0...v2.53.0) (2026-09-08)
+
+
+### Features
+
+* 多服务器管理控制台（阶段2） ([de5f4df](https://github.com/1525745393/EmbyTok-Flutter/commit/de5f4df850b7e85aac55f3be08f558c9bd01dd49))
+
 # [2.52.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.51.0...v2.52.0) (2026-09-08)
 
 
