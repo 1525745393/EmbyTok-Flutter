@@ -1,3 +1,10 @@
+# [2.54.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.4...v2.54.0) (2026-09-08)
+
+
+### Features
+
+* 音乐库首页优化——新增首页推荐 Tab ([5b2562a](https://github.com/1525745393/EmbyTok-Flutter/commit/5b2562a7257d8159b3088ebc5cfacd522b26a24d))
+
 ## [2.53.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.3...v2.53.4) (2026-09-08)
 
 
