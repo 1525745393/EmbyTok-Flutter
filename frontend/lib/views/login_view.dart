@@ -447,38 +447,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   ),
                   const SizedBox(height: 40),
 
-                  // 服务器类型选择（Emby / 群晖 Audio Station）
-                  SegmentedButton<ServerType>(
-                    segments: const [
-                      ButtonSegment(
-                          value: ServerType.emby,
-                          label: Text('Emby'),
-                          icon: Icon(Icons.movie_outlined, size: 16)),
-                      ButtonSegment(
-                          value: ServerType.synology,
-                          label: Text('群晖音乐'),
-                          icon: Icon(Icons.library_music_outlined, size: 16)),
-                    ],
-                    selected: {_serverType},
-                    onSelectionChanged: (selection) {
-                      final type = selection.first;
-                      if (type != _serverType) {
-                        setState(() {
-                          _serverType = type;
-                          _connectionStatus = null;
-                          // 切换服务器类型时重置两步验证状态
-                          _otpRequired = false;
-                          _otpController.clear();
-                        });
-                      }
-                    },
-                    showSelectedIcon: false,
-                    style: ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                      textStyle:
-                          WidgetStatePropertyAll(TextStyle(fontSize: 13)),
-                    ),
-                  ),
+                  // 服务器类型选择（先选类型，再填信息）：
+                  // 卡片网格 —— 视频服务（Emby/Plex） / 音乐服务（群晖 Audio Station）
+                  _buildServerTypeSelector(scheme),
                   const SizedBox(height: 16),
 
                   // 服务器地址
@@ -653,6 +624,123 @@ class _LoginViewState extends ConsumerState<LoginView> {
         !url.contains('localhost') &&
         !url.contains('127.0.0.1') &&
         !url.contains('192.168.');
+  }
+
+  /// 切换服务器类型：重置连接测试与两步验证状态
+  void _onServerTypeChanged(ServerType type) {
+    if (type == _serverType) return;
+    setState(() {
+      _serverType = type;
+      _connectionStatus = null;
+      // 切换服务器类型时重置两步验证状态
+      _otpRequired = false;
+      _otpController.clear();
+    });
+  }
+
+  /// 服务器类型选择：图标卡片网格（先选类型，再填信息）
+  ///
+  /// 设计参考：AudioDock / AuthPortal —— 用卡片直观区分视频服务与音乐服务，
+  /// 选中态以主题色边框 + 背景 + 勾选角标标识，表单随选择动态适配。
+  Widget _buildServerTypeSelector(ColorScheme scheme) {
+    // 注意：登录表单在 SingleChildScrollView 内，垂直方向无界，
+    // 不能使用 crossAxisAlignment.stretch（需要有限高度），用默认 center
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: _buildServerTypeCard(
+            scheme: scheme,
+            type: ServerType.emby,
+            title: 'Emby 视频',
+            subtitle: 'Emby / Plex 视频流',
+            icon: Icons.movie_outlined,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildServerTypeCard(
+            scheme: scheme,
+            type: ServerType.synology,
+            title: '群晖音乐',
+            subtitle: 'Audio Station 音乐库',
+            icon: Icons.library_music_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServerTypeCard({
+    required ColorScheme scheme,
+    required ServerType type,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    final selected = _serverType == type;
+    return GestureDetector(
+      onTap: () => _onServerTypeChanged(type),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primary.withValues(alpha: 0.08)
+              : scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? scheme.primary
+                : scheme.outlineVariant.withValues(alpha: 0.4),
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 30,
+              color: selected ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: selected ? scheme.primary : scheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 选中角标（未选中时占位保持高度一致，避免卡片跳动）
+            selected
+                ? Icon(Icons.check_circle, size: 16, color: scheme.primary)
+                : const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: Icon(Icons.check_circle,
+                        size: 16, color: Colors.transparent),
+                  ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// 服务器地址输入框（带连接测试状态指示器）
