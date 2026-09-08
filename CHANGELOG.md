@@ -1,3 +1,10 @@
+## [2.53.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.1...v2.53.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* 登录界面审查修复（连接测试乱序+注册表静默失败+URL尾斜杠） ([d8b4ccb](https://github.com/1525745393/EmbyTok-Flutter/commit/d8b4ccba4c40d3164a2d570da80ed1183f6b478c))
+
 ## [2.53.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.0...v2.53.1) (2026-09-08)
 
 
