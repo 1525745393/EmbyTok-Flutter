@@ -232,6 +232,7 @@ class SynologyAudioApi {
   Future<List<AudioSong>> getSongs({
     String? album,
     String? artist,
+    String? genre,
     int offset = 0,
     int limit = 200,
   }) async {
@@ -245,6 +246,7 @@ class SynologyAudioApi {
       'additional': jsonify(['song_tag', 'song_audio', 'song_rating']),
       if (album != null && album.isNotEmpty) 'album': album,
       if (artist != null && artist.isNotEmpty) 'artist': artist,
+      if (genre != null && genre.isNotEmpty) 'genre': genre,
     });
     final songs = _asList(data?['songs']);
     return songs

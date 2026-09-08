@@ -533,29 +533,32 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 albumName: album.name,
                 albumArtistName: album.displayArtist ?? album.albumArtist,
               );
-          return SizedBox(
-            width: 110,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: coverUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: coverUrl, fit: BoxFit.cover,
-                          cacheManager: AppImageCacheManager.thumbnail,
-                          errorWidget: (_, __, ___) => _albumCoverFallback(scheme),
-                        )
-                      : _albumCoverFallback(scheme),
+          return GestureDetector(
+            onTap: () => _showAlbumSongs(album),
+            child: SizedBox(
+              width: 110,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: coverUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: coverUrl, fit: BoxFit.cover,
+                            cacheManager: AppImageCacheManager.thumbnail,
+                            errorWidget: (_, __, ___) => _albumCoverFallback(scheme),
+                          )
+                        : _albumCoverFallback(scheme),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-              Text(album.displayArtist ?? album.albumArtist ?? '',
-                  maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-            ]),
+                const SizedBox(height: 6),
+                Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                Text(album.displayArtist ?? album.albumArtist ?? '',
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+              ]),
+            ),
           );
         },
       ),
@@ -576,26 +579,29 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               .read(synologyAuthProvider.notifier)
               .api
               .getArtistCoverUrl(artist.name);
-          return SizedBox(
-            width: 72,
-            child: Column(children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: scheme.surfaceContainerHighest,
-                backgroundImage: coverUrl != null
-                    ? CachedNetworkImageProvider(coverUrl,
-                        cacheManager: AppImageCacheManager.thumbnail)
-                    : null,
-                child: coverUrl == null
-                    ? Text(artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
-                    : null,
-              ),
-              const SizedBox(height: 6),
-              Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-            ]),
+          return GestureDetector(
+            onTap: () => _showArtistSongs(artist),
+            child: SizedBox(
+              width: 72,
+              child: Column(children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: scheme.surfaceContainerHighest,
+                  backgroundImage: coverUrl != null
+                      ? CachedNetworkImageProvider(coverUrl,
+                          cacheManager: AppImageCacheManager.thumbnail)
+                      : null,
+                  child: coverUrl == null
+                      ? Text(artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
+                      : null,
+                ),
+                const SizedBox(height: 6),
+                Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+              ]),
+            ),
           );
         },
       ),
@@ -621,26 +627,29 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         itemBuilder: (context, index) {
           final playlist = playlists[index];
           final gradient = gradients[index % gradients.length];
-          return SizedBox(
-            width: 110,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+          return GestureDetector(
+            onTap: () => _showPlaylistSongs(playlist),
+            child: SizedBox(
+              width: 110,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+                      ),
+                      child: const Icon(Icons.playlist_play, color: Colors.white, size: 36),
                     ),
-                    child: const Icon(Icons.playlist_play, color: Colors.white, size: 36),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(playlist.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-            ]),
+                const SizedBox(height: 6),
+                Text(playlist.name, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+              ]),
+            ),
           );
         },
       ),
@@ -662,13 +671,15 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final record = records[index];
-          return SizedBox(
-            width: 110,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onLongPress: () => _showRecentPlaybackMenu(record, scheme),
+          return GestureDetector(
+            onTap: () => _playRecentPlayback(record),
+            child: SizedBox(
+              width: 110,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onLongPress: () => _showRecentPlaybackMenu(record, scheme),
                   child: Stack(
                     children: [
                       ClipRRect(
@@ -728,6 +739,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     style:
                         TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
               ],
+            ),
             ),
           );
         },
@@ -851,12 +863,32 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   /// 随机播放指定流派的全部歌曲（shuffle 模式）
-  void _playGenreShuffle(AudioGenre genre) {
+  /// 随机播放指定流派的全部歌曲（shuffle 模式，PRD 要求）
+  Future<void> _playGenreShuffle(AudioGenre genre) async {
+    final name = genre.name.isEmpty ? '未分类' : genre.name;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('正在加载「${genre.name.isEmpty ? '未分类' : genre.name}」流派...')),
+      SnackBar(content: Text('正在加载「$name」流派...')),
     );
-    // 通过 artist 参数过滤不支持流派，这里提示用户到歌曲列表筛选
-    // PRD 要求点击直接随机播放该流派，后续可扩展 getSongs(genre:) 参数
+    try {
+      final api = ref.read(synologyAuthProvider.notifier).api;
+      final songs = await api.getSongs(genre: genre.name, limit: 500);
+      if (songs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('「$name」流派暂无歌曲')),
+          );
+        }
+        return;
+      }
+      final shuffled = [...songs]..shuffle();
+      ref.read(synologyPlaybackProvider.notifier).playQueue(shuffled, 0);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载「$name」失败：$e')),
+        );
+      }
+    }
   }
 
   Widget _albumCoverFallback(ColorScheme scheme) {

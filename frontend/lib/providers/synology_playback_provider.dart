@@ -119,14 +119,26 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   /// 播放队列中的第 [index] 首
   Future<void> playQueue(List<AudioSong> queue, int index) async {
     if (queue.isEmpty || index < 0 || index >= queue.length) return;
+    final song = queue[index];
     state = SynologyPlaybackState(
-      currentSong: queue[index],
+      currentSong: song,
       queue: queue,
       currentIndex: index,
       isLoading: true,
-      coverUrl: _coverUrlOf(queue[index]),
+      coverUrl: _coverUrlOf(song),
     );
-    await _playSong(queue[index]);
+    // 写入最近播放记录（PRD 首页核心模块，客户端本地存储）
+    try {
+      _ref.read(recentPlaybacksProvider.notifier).add(RecentPlayback(
+            mediaId: song.id,
+            mediaType: RecentPlaybackType.song,
+            title: song.title,
+            subtitle: song.artistDisplay,
+            coverUrl: _coverUrlOf(song),
+            lastPlayTime: DateTime.now().millisecondsSinceEpoch,
+          ));
+    } catch (_) {}
+    await _playSong(song);
   }
 
   /// 播放单曲（队列为该曲目单曲）
