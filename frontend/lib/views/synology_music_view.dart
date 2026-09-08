@@ -145,7 +145,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               height: kToolbarHeight,
               child: Row(
                 children: [
-                  // 首页模式（无返回按钮）时占位，保持标题居中布局
+                  // 返回按钮：独立路由可 pop；首页（/）时进入设置页
                   if (widget.showBackButton)
                     IconButton(
                       icon: Icon(Icons.arrow_back, color: onGradient),
@@ -154,7 +154,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         if (context.canPop()) {
                           context.pop();
                         } else {
-                          context.go('/');
+                          context.go('/settings');
                         }
                       },
                     )

@@ -146,7 +146,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           final mode = ProviderScope.containerOf(context)
               .read(serviceModeProvider);
           if (mode == AppServiceMode.music) {
-            return const SynologyMusicView(showBackButton: false);
+            return const SynologyMusicView();
           }
           final initialId = state.uri.queryParameters['initialId'];
           return HomeScaffold(initialItemId: initialId);
