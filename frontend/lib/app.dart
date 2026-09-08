@@ -68,16 +68,21 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
       redirect: (BuildContext context, GoRouterState state) {
-        final isLoggedIn = ref.read(
+        // 登录判定：Emby 或群晖任一登录即可（音乐模式用户可能只登录群晖）
+        final embyLoggedIn = ref.read(
           authProvider.select((s) => s.isAuthenticated),
         );
+        final synoLoggedIn = ref.read(
+          synologyAuthProvider.select((s) => s.isLoggedIn),
+        );
+        final isLoggedIn = embyLoggedIn || synoLoggedIn;
         final goingToLogin = state.matchedLocation == '/login';
         // 路由守卫日志：记录重定向决策
         if (!isLoggedIn && !goingToLogin) {
           AppLogger.debug('路由守卫', data: {
             'from': state.matchedLocation,
             'to': '/login',
-            'reason': '未登录',
+            'reason': '未登录（Emby 与群晖均未登录）',
           });
           return '/login';
         }
@@ -386,6 +391,20 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     ref.listen(authProvider.select((s) => s.isAuthenticated), (prev, next) {
       if (prev != next) {
         AppLogger.debug('认证状态变化', data: {'isLoggedIn': next});
+        _refreshNotifier.notify();
+      }
+    });
+    // 监听群晖认证状态变化（音乐模式用户的登录/登出也需触发路由重评估）
+    ref.listen(synologyAuthProvider.select((s) => s.isLoggedIn), (prev, next) {
+      if (prev != next) {
+        AppLogger.debug('群晖认证状态变化', data: {'isLoggedIn': next});
+        _refreshNotifier.notify();
+      }
+    });
+    // 监听服务模式变化，触发首页重建（视频首页 ↔ 音乐库）
+    ref.listen(serviceModeProvider, (prev, next) {
+      if (prev != next) {
+        AppLogger.debug('服务模式变化', data: {'mode': next.name});
         _refreshNotifier.notify();
       }
     });

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
+import '../providers/service_mode_provider.dart';
 import '../services/api_client.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';
@@ -377,8 +378,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
         );
       }
       if (mounted) {
-        // 群晖登录成功 → 进入音乐页；Emby/Plex → 首页
-        context.go(_serverType == ServerType.synology ? '/music' : '/');
+        // 群晖登录成功：音乐模式下首页即音乐库（无返回按钮），视频模式下进 /music
+        if (_serverType == ServerType.synology) {
+          final mode = ref.read(serviceModeProvider);
+          context.go(mode == AppServiceMode.music ? '/' : '/music');
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       AppLogger.warn('登录失败',
