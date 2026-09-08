@@ -92,8 +92,9 @@ class ServerProfile {
   });
 
   /// 按网络模式解析实际连接地址（auto：内网优先，无内网地址用主地址）
+  /// 同时防御性补全 http:// 协议（用户可能只填 IP/主机名）
   String resolveUrl() {
-    return switch (networkMode) {
+    final raw = switch (networkMode) {
       NetworkMode.internal => (internalUrl?.isNotEmpty ?? false)
           ? internalUrl!
           : url,
@@ -102,6 +103,14 @@ class ServerProfile {
           : url,
       NetworkMode.auto => (internalUrl?.isNotEmpty ?? false) ? internalUrl! : url,
     };
+    return _ensureScheme(raw);
+  }
+
+  /// 无协议前缀时补 http://（端口由各 API 层按类型补默认值）
+  static String _ensureScheme(String url) {
+    final u = url.trim();
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    return 'http://$u';
   }
 
   ServerProfile copyWith({

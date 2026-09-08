@@ -86,6 +86,30 @@ void main() {
       expect(profile(networkMode: NetworkMode.internal).resolveUrl(),
           'http://192.168.1.10:8096');
     });
+
+    test('resolveUrl：无协议地址自动补 http://，有协议不重复补', () {
+      // 纯 IP（无协议无端口）→ 补 http://
+      expect(
+        profile(url: '192.168.1.6', networkMode: NetworkMode.internal)
+            .resolveUrl(),
+        'http://192.168.1.6',
+      );
+      // IP:端口（无协议）→ 补 http://
+      expect(
+        profile(internalUrl: '192.168.1.6:5000').resolveUrl(),
+        'http://192.168.1.6:5000',
+      );
+      // 已有 https → 不重复补
+      expect(
+        profile(url: 'https://emby.example.com').resolveUrl(),
+        'https://emby.example.com',
+      );
+      // 已有 http → 不重复补
+      expect(
+        profile(internalUrl: 'http://10.0.0.5:5000').resolveUrl(),
+        'http://10.0.0.5:5000',
+      );
+    });
   });
 
   group('ServerRegistryNotifier', () {

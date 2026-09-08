@@ -316,18 +316,27 @@ class ServersView extends ConsumerWidget {
                         final registry =
                             ref.read(serverRegistryProvider.notifier);
                         final password = passCtrl.text;
+                        // 保存时规范化地址：trim + 补 http:// 协议（端口由 API 层补默认值）
+                        String norm(String? v) {
+                          if (v == null || v.trim().isEmpty) return '';
+                          final t = v.trim();
+                          return (t.startsWith('http://') ||
+                                  t.startsWith('https://'))
+                              ? t
+                              : 'http://$t';
+                        }
                         final profile = ServerProfile(
                           id: server?.id ??
                               'srv_${DateTime.now().microsecondsSinceEpoch}',
                           kind: kind,
                           name: name,
-                          url: url,
-                          internalUrl: internalCtrl.text.trim().isEmpty
+                          url: norm(url),
+                          internalUrl: norm(internalCtrl.text).isEmpty
                               ? null
-                              : internalCtrl.text.trim(),
-                          externalUrl: externalCtrl.text.trim().isEmpty
+                              : norm(internalCtrl.text),
+                          externalUrl: norm(externalCtrl.text).isEmpty
                               ? null
-                              : externalCtrl.text.trim(),
+                              : norm(externalCtrl.text),
                           username: userCtrl.text.trim(),
                           networkMode: networkMode,
                           isDefault: server?.isDefault ?? false,

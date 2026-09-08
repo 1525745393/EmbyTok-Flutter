@@ -111,7 +111,7 @@ class SynologyAudioApi {
   /// 已登录时可离线构造（从持久化恢复会话）
   void restoreSession(
       {required String serverUrl, required String sid, String? account}) {
-    _serverUrl = _serverUrl ?? serverUrl;
+    _serverUrl = _normalizeServerUrl(serverUrl);
     _sid = sid;
     _account = account;
   }
