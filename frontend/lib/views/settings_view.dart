@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/lastfm_provider.dart';
+import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../utils/app_preferences.dart'
@@ -161,7 +162,7 @@ class SettingsView extends ConsumerWidget {
               _buildWatchStatsTile(context, ref),
             ],
           ),
-          // 服务器设置
+          // 服务器设置：服务模式（视频/音乐）+ 各自数据源
           _buildSection(
             context,
             ref,
@@ -169,7 +170,12 @@ class SettingsView extends ConsumerWidget {
             Icons.cloud_outlined,
             Colors.blue,
             [
+              _buildServiceModeSelector(context, ref),
+              _buildServerGroupLabel(
+                  context, ref, '视频数据源', Icons.movie_outlined),
               _buildServerInfoTile(context, ref),
+              _buildServerGroupLabel(
+                  context, ref, '音乐数据源', Icons.library_music_outlined),
               _buildSynologyMusicTile(context, ref),
               _buildLastFmTile(context, ref),
             ],
@@ -980,6 +986,78 @@ class SettingsView extends ConsumerWidget {
           ? '暂无数据'
           : '总 ${stats.totalCount} 次 · 平均完播率 $avg%',
       onTap: () => _showWatchStatsDialog(context, ref),
+    );
+  }
+
+  // 服务器 - 服务模式选择（视频服务 / 音乐服务）
+  Widget _buildServiceModeSelector(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final mode = ref.watch(serviceModeProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SegmentedButton<AppServiceMode>(
+            segments: [
+              for (final m in AppServiceMode.values)
+                ButtonSegment(
+                  value: m,
+                  label: Text(m.label),
+                  icon: Icon(m.icon, size: 16),
+                ),
+            ],
+            selected: {mode},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) async {
+              final next = selection.first;
+              if (next == mode) return;
+              await ref.read(serviceModeProvider.notifier).setMode(next);
+              if (!context.mounted) return;
+              // 切换模式后回到首页，立即展示对应界面
+              context.go('/');
+            },
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mode == AppServiceMode.music
+                ? '首页将显示音乐库界面（群晖 Audio Station）'
+                : '首页将显示视频流界面（Emby / Plex）',
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 服务器 - 数据源分组标签（视频 / 音乐）
+  Widget _buildServerGroupLabel(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    IconData icon,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
+      child: Row(
+        children: [
+          Icon(icon, size: 15, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

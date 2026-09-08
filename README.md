@@ -88,6 +88,7 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 
 **群晖 Audio Station**
 - 服务器类型支持（登录页 Emby / 群晖切换，sid 会话持久化）
+- 服务模式切换（设置页选择视频 / 音乐服务，音乐模式下首页直接显示音乐库）
 - 音乐库浏览（歌曲 / 专辑 / 歌手 / 歌单 分类 Tab）
 - 音乐搜索（歌曲 / 专辑 / 歌手，300ms 防抖）
 - 音乐播放（队列 / 上下首 / 进度 / 自动切歌 / 音频焦点）
@@ -95,6 +96,9 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 - 触底分页加载（每页 200 首）
 - 专辑 / 歌单 / 歌手弹层快速播放、底部 mini player 常驻控制
 - 整轨（CUE）音轨自动转码播放
+- 歌手头像 / 简介（群晖 cover.cgi + Wikipedia + Last.fm 聚合，可搜索各数据源并手动选用）
+- LRC 歌词显示（SYNO.AudioStation.Lyrics）
+- 锁屏 / 通知栏媒体控制（audio_service）
 
 **系统功能**
 - 主题切换（浅色 / 深色 / 跟随系统）
@@ -111,8 +115,6 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 - 投屏 (Chromecast / DLNA)
 - 字幕 AI 翻译
 - TV 模式适配 (遥控器方向键)
-- 锁屏 / 通知栏媒体控制（audio_service）
-- 音乐歌词显示（SYNO.AudioStation.Lyrics）
 - 音乐目录浏览（SYNO.AudioStation.Folder）
 
 ---

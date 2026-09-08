@@ -25,7 +25,11 @@ import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 
 class SynologyMusicView extends ConsumerStatefulWidget {
-  const SynologyMusicView({super.key});
+  /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
+  /// 作为音乐服务模式首页（/）时不显示返回。
+  const SynologyMusicView({super.key, this.showBackButton = true});
+
+  final bool showBackButton;
 
   @override
   ConsumerState<SynologyMusicView> createState() => _SynologyMusicViewState();
@@ -141,17 +145,21 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               height: kToolbarHeight,
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: onGradient),
-                    tooltip: '返回',
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/');
-                      }
-                    },
-                  ),
+                  // 首页模式（无返回按钮）时占位，保持标题居中布局
+                  if (widget.showBackButton)
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: onGradient),
+                      tooltip: '返回',
+                      onPressed: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/');
+                        }
+                      },
+                    )
+                  else
+                    const SizedBox(width: 48),
                   Expanded(
                     child: Row(
                       children: [

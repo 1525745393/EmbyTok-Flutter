@@ -592,6 +592,10 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(logoutButtonFinder, findsOneWidget);
+      // ListView 懒加载下按钮首次被 build 时可能仍在屏幕外（设置项变长时更明显），
+      // ensureVisible 滚动到完全可见后再点击，避免 tap 命中屏幕外区域失败
+      await tester.ensureVisible(logoutButtonFinder);
+      await tester.pump(const Duration(milliseconds: 100));
 
       await tester.tap(logoutButtonFinder);
       await tester.pump(const Duration(seconds: 1));

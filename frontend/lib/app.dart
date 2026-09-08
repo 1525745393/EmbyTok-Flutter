@@ -16,6 +16,7 @@ import '../utils/memory_pressure_handler.dart';
 import '../utils/safe_unawaited.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
+import 'providers/service_mode_provider.dart';
 import 'views/actors_view.dart';
 import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
@@ -132,9 +133,15 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       ),
       // 首页（视频流 + 底部导航）
       // 支持 ?initialId=<itemId>：从网格/搜索/演员详情等入口跳转到指定视频
+      // 服务模式为 music 时，首页直接展示群晖音乐库界面
       GoRoute(
         path: '/',
         builder: (context, state) {
+          final mode = ProviderScope.containerOf(context)
+              .read(serviceModeProvider);
+          if (mode == AppServiceMode.music) {
+            return const SynologyMusicView(showBackButton: false);
+          }
           final initialId = state.uri.queryParameters['initialId'];
           return HomeScaffold(initialItemId: initialId);
         },
