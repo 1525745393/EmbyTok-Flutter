@@ -1,3 +1,10 @@
+# [2.52.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.51.0...v2.52.0) (2026-09-08)
+
+
+### Features
+
+* **login:** 登录页服务器类型卡片网格选择器（先选类型再填信息） ([e4d53a4](https://github.com/1525745393/EmbyTok-Flutter/commit/e4d53a4a6e01734c2f29dcef2d33fdd87dce439d))
+
 # [2.51.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.50.1...v2.51.0) (2026-09-08)
 
 
