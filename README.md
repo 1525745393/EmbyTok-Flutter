@@ -1,6 +1,6 @@
 # EmbyTok-Flutter
 
-> 为 Emby 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的沉浸式滑动体验。
+> 为 Emby / 群晖等多媒体服务器设计的竖屏浏览客户端，提供类似 TikTok 的沉浸式滑动体验与统一多服务器管理。
 
 [![Flutter 3.x](https://img.shields.io/badge/Flutter-3.x-0175C2?logo=flutter)](https://flutter.dev)
 [![Dart 3.x](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)](https://dart.dev)
@@ -87,7 +87,9 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 - 排除已观看过滤（视频流 + 推荐）
 
 **群晖 Audio Station**
-- 服务器类型支持（登录页卡片选择 Emby / 群晖，表单随类型动态适配，sid 会话持久化）
+- 服务器类型支持（登录页卡片选择 Emby / 群晖，表单随类型动态适配）
+- 多服务器管理（服务器注册表：添加 / 编辑 / 删除 / 设为默认 / 一键切换，密码与群晖 sid 加密存储于安全存储）
+- 网络模式智能切换（每台服务器可配内网 / 外网地址，auto 内网优先）
 - 服务模式切换（设置页选择视频 / 音乐服务，音乐模式下首页直接显示音乐库）
 - 音乐库浏览（歌曲 / 专辑 / 歌手 / 歌单 分类 Tab）
 - 音乐搜索（歌曲 / 专辑 / 歌手，300ms 防抖）
@@ -116,6 +118,8 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 - 字幕 AI 翻译
 - TV 模式适配 (遥控器方向键)
 - 音乐目录浏览（SYNO.AudioStation.Folder）
+- 群晖 QuickConnect ID 支持
+- 按网络环境自动探测内网 / 外网（当前 auto 模式为内网优先）
 
 ---
 

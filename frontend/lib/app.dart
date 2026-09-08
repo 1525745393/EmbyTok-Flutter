@@ -27,6 +27,7 @@ import 'views/login_view.dart';
 import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/search_view.dart';
+import 'views/servers_view.dart';
 import 'views/settings_view.dart';
 import 'views/synology_music_view.dart';
 import 'widgets/video_page_item.dart';
@@ -237,6 +238,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/music',
         builder: (context, state) => const SynologyMusicView(),
+      ),
+      // 服务器管理（多服务器控制台）
+      GoRoute(
+        path: '/servers',
+        builder: (context, state) => const ServersView(),
       ),
       // 设置
       GoRoute(

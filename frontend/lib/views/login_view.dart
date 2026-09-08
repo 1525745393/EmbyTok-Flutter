@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/providers.dart';
+import '../providers/server_registry_provider.dart';
 import '../services/api_client.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';
@@ -355,6 +356,15 @@ class _LoginViewState extends ConsumerState<LoginView> {
       }
       await _saveServerHistory(server);
       await _saveCredentials(server, username, password);
+      // 写入服务器注册表（多服务器管理），rememberMe 时保存密码
+      final synoSid =
+          _serverType == ServerType.synology ? ref.read(synologyAuthProvider).sid : null;
+      await _saveToRegistry(
+        server: server,
+        username: username,
+        password: _rememberMe ? password : null,
+        synoSid: _serverType == ServerType.synology ? synoSid : null,
+      );
       if (mounted) {
         // 群晖登录成功 → 进入音乐页；Emby/Plex → 首页
         context.go(_serverType == ServerType.synology ? '/music' : '/');
@@ -375,6 +385,72 @@ class _LoginViewState extends ConsumerState<LoginView> {
           _isSubmitting = false;
         });
       }
+    }
+  }
+
+  /// 登录成功后写入服务器注册表（已存在则更新），并设为激活
+  Future<void> _saveToRegistry({
+    required String server,
+    required String username,
+    String? password,
+    String? synoSid,
+  }) async {
+    try {
+      final kind = switch (_serverType) {
+        ServerType.emby => ServerKind.emby,
+        ServerType.plex => ServerKind.plex,
+        ServerType.synology => ServerKind.synology,
+      };
+      final registry = ref.read(serverRegistryProvider.notifier);
+      final host = _hostOf(server);
+      ServerProfile? existing;
+      for (final s in ref.read(serverRegistryProvider)) {
+        if (s.kind == kind && s.username == username && s.url.contains(host)) {
+          existing = s;
+          break;
+        }
+      }
+      final profile = ServerProfile(
+        id: existing?.id ?? 'srv_${DateTime.now().microsecondsSinceEpoch}',
+        kind: kind,
+        name: existing?.name ?? _extractHostPortName(server),
+        url: existing?.url ?? server,
+        internalUrl: existing?.internalUrl,
+        externalUrl: existing?.externalUrl,
+        username: username,
+        networkMode: existing?.networkMode ?? NetworkMode.auto,
+        isDefault: existing?.isDefault ?? ref.read(serverRegistryProvider).isEmpty,
+        lastUsed: DateTime.now(),
+      );
+      if (existing != null) {
+        await registry.update(profile,
+            password: password, synoSid: synoSid);
+      } else {
+        await registry.add(profile, password: password, synoSid: synoSid);
+      }
+      // 设为当前激活服务器
+      await ref.read(activeServerIdProvider.notifier).setActive(profile.id);
+    } catch (e) {
+      AppLogger.error('写入服务器注册表失败', error: e);
+    }
+  }
+
+  /// 从 URL 提取 host:port 作为默认显示名
+  static String _extractHostPortName(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.host;
+    } catch (_) {
+      return url;
+    }
+  }
+
+  /// 提取 host（用于匹配已有服务器）
+  static String _hostOf(String url) {
+    try {
+      return Uri.parse(url).host;
+    } catch (_) {
+      return url;
     }
   }
 

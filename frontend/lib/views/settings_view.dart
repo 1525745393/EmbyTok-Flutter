@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/lastfm_provider.dart';
+import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
@@ -171,6 +172,7 @@ class SettingsView extends ConsumerWidget {
             Colors.blue,
             [
               _buildServiceModeSelector(context, ref),
+              _buildServerRegistryTile(context, ref),
               _buildServerGroupLabel(
                   context, ref, '视频数据源', Icons.movie_outlined),
               _buildServerInfoTile(context, ref),
@@ -986,6 +988,21 @@ class SettingsView extends ConsumerWidget {
           ? '暂无数据'
           : '总 ${stats.totalCount} 次 · 平均完播率 $avg%',
       onTap: () => _showWatchStatsDialog(context, ref),
+    );
+  }
+
+  // 服务器 - 服务器管理入口（多服务器控制台）
+  Widget _buildServerRegistryTile(BuildContext context, WidgetRef ref) {
+    final servers = ref.watch(serverRegistryProvider);
+    final active = ref.watch(activeServerProvider);
+    return _TapTile(
+      icon: Icons.dns_outlined,
+      iconColor: Colors.blueGrey,
+      title: '服务器管理',
+      subtitle: servers.isEmpty
+          ? '配置 Emby / 群晖等多台服务器并快速切换'
+          : '${servers.length} 台服务器 · 当前：${active?.name ?? '未激活'}',
+      onTap: () => context.push('/servers'),
     );
   }
 
