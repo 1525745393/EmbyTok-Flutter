@@ -1,3 +1,10 @@
+# [2.55.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.54.0...v2.55.0) (2026-09-08)
+
+
+### Features
+
+* 按PRD实现音乐库首页核心模块（V1.0+V1.1） ([98f077a](https://github.com/1525745393/EmbyTok-Flutter/commit/98f077a8f657e9a3b5d27fd8be62fadd3fa834e4))
+
 # [2.54.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.53.4...v2.54.0) (2026-09-08)
 
 
