@@ -1,3 +1,10 @@
+# [2.60.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.59.0...v2.60.0) (2026-09-09)
+
+
+### Features
+
+* PRD V1.5 — 底部Tab导航（首页/音乐库/我的） ([98a9f02](https://github.com/1525745393/EmbyTok-Flutter/commit/98a9f028a86f1fed8bcd7cad70293cf6c23f78d0))
+
 # [2.59.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.58.0...v2.59.0) (2026-09-09)
 
 
