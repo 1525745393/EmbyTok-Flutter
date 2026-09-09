@@ -294,6 +294,26 @@ class AudioPin {
   }
 }
 
+/// 文件夹浏览条目类型
+enum AudioFolderItemType { folder, song }
+
+/// 文件夹浏览条目（子文件夹或歌曲）
+///
+/// Folder API 返回 folders + songs 的混合列表，统一为此模型
+class AudioFolderItem {
+  final AudioFolderItemType type;
+  final String name;
+  final String path;
+  final AudioSong? song; // type=song 时的完整歌曲信息
+
+  const AudioFolderItem({
+    required this.type,
+    required this.name,
+    this.path = '',
+    this.song,
+  });
+}
+
 /// 搜索结果（歌曲 + 专辑 + 歌手）
 class AudioSearchResult {
   final List<AudioSong> songs;

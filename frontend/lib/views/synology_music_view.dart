@@ -541,6 +541,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         onTap: _scrollToGenres,
       ),
       _QuickEntry(
+        icon: Icons.folder, label: '文件夹',
+        color: const Color(0xFF3498DB),
+        onTap: () => context.go('/folder'),
+      ),
+      _QuickEntry(
         icon: Icons.shuffle, label: 'Random100',
         color: const Color(0xFFE74C3C),
         onTap: _shufflePlay,

@@ -365,6 +365,45 @@ class SynologyAudioApi {
         .toList(growable: false);
   }
 
+  /// 获取文件夹内容（子文件夹 + 歌曲，按目录结构浏览）
+  ///
+  /// SYNO.AudioStation.Folder，路径 AudioStation/folder.cgi
+  /// [folderPath] 为 null 时返回根目录（所有索引文件夹）
+  Future<List<AudioFolderItem>> getFolders({String? folderPath}) async {
+    final params = <String, dynamic>{
+      'method': 'list',
+      'version': 2,
+      'library': 'all',
+      'additional': jsonify(['song_tag', 'song_audio', 'song_rating']),
+      if (folderPath != null && folderPath.isNotEmpty)
+        'folder_path': folderPath,
+    };
+    final data = await _callList(
+        'SYNO.AudioStation.Folder', 'AudioStation/folder.cgi', params);
+    // Folder API 可能返回 folders 和/或 songs，统一转为 AudioFolderItem
+    final items = <AudioFolderItem>[];
+    final folders = _asList(data?['folders']);
+    for (final f in folders) {
+      final m = _asMap(f);
+      items.add(AudioFolderItem(
+        type: AudioFolderItemType.folder,
+        name: (m['name'] as String?) ?? '',
+        path: (m['path'] as String?) ?? (m['folder_path'] as String?) ?? '',
+      ));
+    }
+    final songs = _asList(data?['songs']);
+    for (final s in songs) {
+      final song = AudioSong.fromJson(_asMap(s));
+      items.add(AudioFolderItem(
+        type: AudioFolderItemType.song,
+        name: song.title,
+        path: song.path ?? '',
+        song: song,
+      ));
+    }
+    return items;
+  }
+
   /// 获取歌单内歌曲
   Future<List<AudioSong>> getPlaylistSongs(String playlistId) async {
     final data = await _callList(
