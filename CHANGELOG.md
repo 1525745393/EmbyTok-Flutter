@@ -1,3 +1,10 @@
+# [2.58.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.57.0...v2.58.0) (2026-09-09)
+
+
+### Features
+
+* PRD V1.3 — 个人中心页面+播放恢复进度seek ([2f6ae7d](https://github.com/1525745393/EmbyTok-Flutter/commit/2f6ae7d5339003496ae8a37cc5964e76b4589ee3))
+
 # [2.57.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.56.0...v2.57.0) (2026-09-09)
 
 
