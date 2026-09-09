@@ -1,3 +1,10 @@
+## [2.60.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.1...v2.60.2) (2026-09-09)
+
+
+### Bug Fixes
+
+* 音乐库UI审查修复 — 精选专辑缓存/更多按钮/去重key/超窄屏响应式 ([52a835e](https://github.com/1525745393/EmbyTok-Flutter/commit/52a835e6363d531412e6f0938a75e8606e3660d8))
+
 ## [2.60.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.0...v2.60.1) (2026-09-09)
 
 
