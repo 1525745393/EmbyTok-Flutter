@@ -31,6 +31,7 @@ import 'views/servers_view.dart';
 import 'views/settings_view.dart';
 import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
+import 'views/main_view.dart';
 import 'views/synology_music_view.dart';
 import 'widgets/video_page_item.dart';
 
@@ -148,7 +149,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           final mode = ProviderScope.containerOf(context)
               .read(serviceModeProvider);
           if (mode == AppServiceMode.music) {
-            return const SynologyMusicView();
+            return const MainView();
           }
           final initialId = state.uri.queryParameters['initialId'];
           return HomeScaffold(initialItemId: initialId);

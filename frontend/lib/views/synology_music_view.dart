@@ -28,9 +28,21 @@ import '../utils/logger.dart';
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
-  const SynologyMusicView({super.key, this.showBackButton = true});
+  /// [initialTab]：初始显示的 Tab，默认首页。
+  /// [showTabBar]：是否显示顶部分类 TabBar，MainView 首页 Tab 设为 false。
+  /// [showMiniPlayer]：是否显示底部迷你播放条，MainView 统一显示时设为 false。
+  const SynologyMusicView({
+    super.key,
+    this.showBackButton = true,
+    this.initialTab = SynologyMusicTab.home,
+    this.showTabBar = true,
+    this.showMiniPlayer = true,
+  });
 
   final bool showBackButton;
+  final SynologyMusicTab initialTab;
+  final bool showTabBar;
+  final bool showMiniPlayer;
 
   @override
   ConsumerState<SynologyMusicView> createState() => _SynologyMusicViewState();
@@ -46,7 +58,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: widget.initialTab.index,
+    );
     _tabController.addListener(_onTabChanged);
     // 首页默认预加载所有分类数据 + 首页专用数据（最近添加/热门艺术家/流派）
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -127,8 +143,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       child: _buildTabContent(scheme),
                     ),
                   ),
-                  // 底部迷你播放条
-                  const _MiniPlayerBar(),
+                  // 底部迷你播放条（MainView 统一显示时隐藏）
+                  if (widget.showMiniPlayer) const MiniPlayerBar(),
                 ],
               ),
             ),
@@ -207,7 +223,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             ),
           ),
           _buildSearchBar(scheme, onGradient),
-          _buildTabBar(scheme, onGradient),
+          if (widget.showTabBar) _buildTabBar(scheme, onGradient),
         ],
       ),
     );
@@ -2180,8 +2196,8 @@ class _AlbumCover extends ConsumerWidget {
 // 底部迷你播放条
 // ============================
 
-class _MiniPlayerBar extends ConsumerWidget {
-  const _MiniPlayerBar();
+class MiniPlayerBar extends ConsumerWidget {
+  const MiniPlayerBar();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
