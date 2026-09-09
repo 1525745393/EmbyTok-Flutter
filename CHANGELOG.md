@@ -1,3 +1,10 @@
+## [2.60.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.4...v2.60.5) (2026-09-09)
+
+
+### Bug Fixes
+
+* 视频流页面审查修复 — 字幕按钮动态化/删除重复间距/长按取消独立方法/命名常量 ([073bd14](https://github.com/1525745393/EmbyTok-Flutter/commit/073bd1435e5e5fb51c94f9c0af4122d3bf8ffd04))
+
 ## [2.60.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.3...v2.60.4) (2026-09-09)
 
 
