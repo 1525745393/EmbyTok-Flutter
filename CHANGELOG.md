@@ -1,3 +1,10 @@
+## [2.60.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.0...v2.60.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* 代码审查修复 — MainView重复初始化/文件夹返回/未使用变量/播放持久化 ([738e431](https://github.com/1525745393/EmbyTok-Flutter/commit/738e4315d5ab1b768a255446f998c799270bb648))
+
 # [2.60.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.59.0...v2.60.0) (2026-09-09)
 
 
