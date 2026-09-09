@@ -1,3 +1,10 @@
+# [2.56.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.55.1...v2.56.0) (2026-09-09)
+
+
+### Features
+
+* PRD V1.1 — NAS连接状态/头像入口/流派快捷入口/播放状态恢复 ([1e82b60](https://github.com/1525745393/EmbyTok-Flutter/commit/1e82b6007e48c24175a284f051688f09da52c003))
+
 ## [2.55.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.55.0...v2.55.1) (2026-09-08)
 
 
