@@ -1,3 +1,10 @@
+# [2.57.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.56.0...v2.57.0) (2026-09-09)
+
+
+### Features
+
+* PRD V1.2 — 我的锁定(My Pins)+Random100+下拉刷新联动首页 ([50b2c2b](https://github.com/1525745393/EmbyTok-Flutter/commit/50b2c2b38770eebe6db4489a6ba2e8c14782d57e))
+
 # [2.56.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.55.1...v2.56.0) (2026-09-09)
 
 
