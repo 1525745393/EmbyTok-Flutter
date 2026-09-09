@@ -1,3 +1,10 @@
+## [2.60.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.2...v2.60.3) (2026-09-09)
+
+
+### Bug Fixes
+
+* 精选专辑缓存空列表导致模块永远不显示 ([3cc14e2](https://github.com/1525745393/EmbyTok-Flutter/commit/3cc14e22b5de2507ae2051be7dc41b9acc6cff72))
+
 ## [2.60.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.1...v2.60.2) (2026-09-09)
 
 
