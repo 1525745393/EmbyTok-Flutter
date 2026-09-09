@@ -404,7 +404,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (preloadedInitSucceeded) return;
     if (_isDisposed) return;
 
-    // ---- 路径 2：动态创建控制器（仅使用 Direct Play） ----
+    // ---- 路径 2：动态创建控制器（仅当前页创建，非当前页只显示缩略图）----
+    // OOM 防护：PageView 缓存的相邻页面若也创建控制器，每个 1080p 控制器
+    // 解码缓冲区约 30-50MB，快速滑动时 3-5 个控制器同时存在可导致 OOM。
+    // 非当前页跳过动态创建，仅在 isCurrentPage 变为 true 时由 didUpdateWidget 触发创建。
+    if (!widget.isCurrentPage) {
+      AppLogger.debug('非当前页跳过动态创建控制器，仅显示缩略图',
+          data: {'itemId': widget.item.id});
+      return;
+    }
+
     final url = _playbackUrl;
     if (url == null) {
       if (mounted && !_isDisposed) {
