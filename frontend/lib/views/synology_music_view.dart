@@ -60,6 +60,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   final _homeScrollController = ScrollController();
   Timer? _searchDebounce;
 
+  /// 精选专辑缓存：首次计算后缓存，避免每次 build 重新 shuffle 导致内容跳变
+  /// 下拉刷新时清除，重新抽样
+  List<AudioAlbum>? _cachedFeaturedAlbums;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +149,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         // 首页下拉时同时刷新首页专用数据（最近添加/热门艺术家/流派）
                         if (tab == SynologyMusicTab.home) {
                           await notifier.loadHomeData(force: true);
+                          // 下拉刷新时清除精选专辑缓存，重新随机抽样
+                          _cachedFeaturedAlbums = null;
                         }
                       },
                       child: _buildTabContent(scheme),
@@ -447,13 +453,19 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     // 最近播放记录（客户端本地存储，PRD 首屏核心模块）
     final recentPlaybacks = ref.watch(recentPlaybacksProvider);
 
-    // 精选专辑：从全量专辑中随机抽样，与最近添加去重
-    final recentNames = state.recentAlbums.map((e) => e.name).toSet();
-    final featuredAlbums = state.albums
-        .where((a) => !recentNames.contains(a.name))
-        .toList()
-      ..shuffle();
-    final featured = featuredAlbums.take(12).toList();
+    // 精选专辑：从全量专辑中随机抽样，与最近添加去重（name+artist 组合，避免同名不同艺术家被错误去重）
+    // 首次计算后缓存，避免每次 build 重新 shuffle 导致内容频繁跳变
+    final featured = _cachedFeaturedAlbums ??= () {
+      final recentKeys = state.recentAlbums
+          .map((e) => '${e.name}||${e.displayArtist ?? e.albumArtist}')
+          .toSet();
+      final candidates = state.albums
+          .where((a) =>
+              !recentKeys.contains('${a.name}||${a.displayArtist ?? a.albumArtist}'))
+          .toList()
+        ..shuffle();
+      return candidates.take(12).toList();
+    }();
 
     return ListView(
       controller: _homeScrollController,
@@ -478,7 +490,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         ],
         // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
         if (state.pins.isNotEmpty) ...[
-          _buildHomeSectionHeader('我的锁定', SynologyMusicTab.songs, scheme),
+          _buildHomeSectionHeader('我的锁定', null, scheme),
           const SizedBox(height: 10),
           _buildPinsList(state.pins, scheme),
           const SizedBox(height: 20),
@@ -506,11 +518,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         ],
         // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
         if (state.genres.isNotEmpty) ...[
-          _buildHomeSectionHeader('音乐流派', SynologyMusicTab.songs, scheme),
+          _buildHomeSectionHeader('音乐流派', null, scheme),
           const SizedBox(height: 10),
           _buildGenreGrid(state.genres, scheme),
         ],
-        // 全空占位
+        // 全空占位（注意：不检查 pins —— 只要有锁定歌曲就不显示全空占位）
         if (state.recentAlbums.isEmpty &&
             state.topArtists.isEmpty &&
             state.genres.isEmpty &&
@@ -604,7 +616,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   Widget _buildHomeSectionHeader(
-      String title, SynologyMusicTab targetTab, ColorScheme scheme) {
+      String title, SynologyMusicTab? targetTab, ColorScheme scheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -613,13 +625,15 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               style: TextStyle(
                   fontSize: 17, fontWeight: FontWeight.w700, color: scheme.onSurface)),
           const Spacer(),
-          TextButton(
-            onPressed: () => _switchTab(targetTab),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
-              Icon(Icons.chevron_right, size: 18, color: scheme.onSurfaceVariant),
-            ]),
-          ),
+          // targetTab 为 null 时隐藏"更多"按钮（如我的锁定/音乐流派，无对应完整列表页）
+          if (targetTab != null)
+            TextButton(
+              onPressed: () => _switchTab(targetTab),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                Icon(Icons.chevron_right, size: 18, color: scheme.onSurfaceVariant),
+              ]),
+            ),
         ],
       ),
     );
@@ -2214,6 +2228,8 @@ class MiniPlayerBar extends ConsumerWidget {
     if (song == null) return const SizedBox.shrink();
 
     final notifier = ref.read(synologyPlaybackProvider.notifier);
+    // 超窄屏（<360px）隐藏播放模式和停止按钮，保留核心上一首/播放/下一首
+    final isNarrow = MediaQuery.sizeOf(context).width < 360;
 
     return Material(
       color: scheme.surfaceContainerHighest,
@@ -2269,23 +2285,24 @@ class MiniPlayerBar extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    // 播放控制（紧凑布局，防窄屏溢出）
-                    _compactButton(
-                      scheme: scheme,
-                      icon: Icon(
-                        switch (state.mode) {
-                          SynologyPlaybackMode.listLoop => Icons.repeat,
-                          SynologyPlaybackMode.singleLoop => Icons.repeat_one,
-                          SynologyPlaybackMode.shuffle => Icons.shuffle,
-                        },
-                        size: 17,
+                    // 播放控制（紧凑布局，防窄屏溢出；超窄屏隐藏播放模式和停止按钮）
+                    if (!isNarrow)
+                      _compactButton(
+                        scheme: scheme,
+                        icon: Icon(
+                          switch (state.mode) {
+                            SynologyPlaybackMode.listLoop => Icons.repeat,
+                            SynologyPlaybackMode.singleLoop => Icons.repeat_one,
+                            SynologyPlaybackMode.shuffle => Icons.shuffle,
+                          },
+                          size: 17,
+                        ),
+                        color: state.mode == SynologyPlaybackMode.listLoop
+                            ? scheme.onSurfaceVariant
+                            : scheme.primary,
+                        tooltip: '播放模式：${state.mode.label}',
+                        onPressed: notifier.cycleMode,
                       ),
-                      color: state.mode == SynologyPlaybackMode.listLoop
-                          ? scheme.onSurfaceVariant
-                          : scheme.primary,
-                      tooltip: '播放模式：${state.mode.label}',
-                      onPressed: notifier.cycleMode,
-                    ),
                     _compactButton(
                       scheme: scheme,
                       icon: const Icon(Icons.skip_previous, size: 22),
@@ -2317,13 +2334,14 @@ class MiniPlayerBar extends ConsumerWidget {
                           ? notifier.next
                           : null,
                     ),
-                    _compactButton(
-                      scheme: scheme,
-                      icon: const Icon(Icons.close, size: 17),
-                      color: scheme.onSurfaceVariant,
-                      tooltip: '停止',
-                      onPressed: notifier.stop,
-                    ),
+                    if (!isNarrow)
+                      _compactButton(
+                        scheme: scheme,
+                        icon: const Icon(Icons.close, size: 17),
+                        color: scheme.onSurfaceVariant,
+                        tooltip: '停止',
+                        onPressed: notifier.stop,
+                      ),
                   ],
                 ),
               ],
