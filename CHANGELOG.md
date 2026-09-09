@@ -1,3 +1,10 @@
+# [2.59.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.58.0...v2.59.0) (2026-09-09)
+
+
+### Features
+
+* PRD V1.4 — 文件夹浏览入口+快捷入口达到8个 ([60c0a97](https://github.com/1525745393/EmbyTok-Flutter/commit/60c0a97d68f80ec338485763f8b7c3915e3a5428))
+
 # [2.58.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.57.0...v2.58.0) (2026-09-09)
 
 
