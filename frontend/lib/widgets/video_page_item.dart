@@ -31,6 +31,32 @@ import 'video/video_sheet_utils.dart' as sheet_utils;
 import 'video/video_draggable_clean_actions.dart';
 
 /// 单个视频页：TikTok 卡片样式
+// ===== UI 布局常量（避免魔法数字，提升可维护性）=====
+
+/// 底部信息栏渐变遮罩高度
+const double _kBottomInfoGradientHeight = 80;
+
+/// 底部控制栏高度（VideoControls compact 模式）
+const double _kBottomControlBarHeight = 24;
+
+/// 右侧操作栏宽度
+const double _kRightActionWidth = 80;
+
+/// 右侧操作栏按钮间距
+const double _kRightActionSpacing = 16;
+
+/// 右侧操作栏顶部偏移（有 toolbar 时避开刘海 + 额外间距）
+const double _kRightActionTopWithToolbar = 48;
+
+/// 右侧操作栏顶部偏移（无 toolbar 时）
+const double _kRightActionTopNoToolbar = 32;
+
+/// 右侧操作栏右侧内边距
+const double _kRightActionRightPadding = 6;
+
+/// 水平方向通用内边距
+const double _kHorizontalPadding = 16;
+
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
   final PlaybackSession? preloadedSession;
@@ -1171,14 +1197,14 @@ class _BottomInfoBar extends StatelessWidget {
           curve: Curves.easeOut,
           child: Container(
             padding: EdgeInsets.fromLTRB(
-              16,
-              80,
-              rs(80, 2.0) + 16,
+              _kHorizontalPadding,
+              _kBottomInfoGradientHeight,
+              rs(_kRightActionWidth, 2.0) + _kHorizontalPadding,
               // 全面屏适配：底部叠加导航栏高度，避免进度条 / 时间文字
               // 与 HomeScaffold 底部导航栏发生视觉重叠。
               toolbarVisible
-                  ? bottomPadding + 24 + 80 + kBottomNavHeight
-                  : bottomPadding + 24 + kBottomNavHeight,
+                  ? bottomPadding + _kBottomControlBarHeight + _kBottomInfoGradientHeight + kBottomNavHeight
+                  : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
             ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1360,19 +1386,19 @@ class _RightActionButtons extends ConsumerWidget {
       right: 0,
       top: 0,
       bottom: 0,
-      width: rs(80, 2.0),
+      width: rs(_kRightActionWidth, 2.0),
       child: RepaintBoundary(
         child: Container(
           padding: EdgeInsets.fromLTRB(
             0,
             // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
-            toolbarVisible ? SafeInsets.topOf(context) + rs(48) : rs(32),
-            rs(6),
+            toolbarVisible ? SafeInsets.topOf(context) + _kRightActionTopWithToolbar : _kRightActionTopNoToolbar,
+            _kRightActionRightPadding,
             // 全面屏适配：底部叠加导航栏高度 kBottomNavHeight，避免最下方 2 个按钮
             // （字幕按钮 / DiscMute 唱片+头像）被 HomeScaffold 的底部导航栏吃掉一半。
             toolbarVisible
-                ? bottomPadding + 24 + 80 + kBottomNavHeight
-                : bottomPadding + 24 + kBottomNavHeight,
+                ? bottomPadding + _kBottomControlBarHeight + _kBottomInfoGradientHeight + kBottomNavHeight
+                : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
           ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -1427,9 +1453,8 @@ class _RightActionButtons extends ConsumerWidget {
                 onTap: onSpeedTap ?? () {},
               ),
               SizedBox(height: rs(16, 1.5)),
-              SizedBox(height: rs(16, 1.5)),
               SubtitleButton(
-                hasSubtitles: true,
+                hasSubtitles: item.subtitleTracks.isNotEmpty,
                 onTap: onSubtitleTap,
               ),
               SizedBox(height: rs(16, 1.5)),
