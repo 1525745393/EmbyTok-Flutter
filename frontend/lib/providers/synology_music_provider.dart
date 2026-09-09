@@ -36,6 +36,7 @@ class SynologyMusicState {
   final List<AudioAlbum> recentAlbums; // 最近添加（time_add 倒序）
   final List<AudioArtist> topArtists; // 热门艺术家（song_count 倒序）
   final List<AudioGenre> genres; // 音乐流派
+  final List<AudioPin> pins; // 我的锁定（用户收藏的歌曲）
   final bool isHomeLoaded; // 首页数据是否已加载
 
   /// 歌曲分页状态
@@ -65,6 +66,7 @@ class SynologyMusicState {
     this.recentAlbums = const [],
     this.topArtists = const [],
     this.genres = const [],
+    this.pins = const [],
     this.isHomeLoaded = false,
     this.hasMoreSongs = false,
     this.isLoadingMoreSongs = false,
@@ -87,6 +89,7 @@ class SynologyMusicState {
     List<AudioAlbum>? recentAlbums,
     List<AudioArtist>? topArtists,
     List<AudioGenre>? genres,
+    List<AudioPin>? pins,
     bool? isHomeLoaded,
     bool? hasMoreSongs,
     bool? isLoadingMoreSongs,
@@ -108,6 +111,7 @@ class SynologyMusicState {
       recentAlbums: recentAlbums ?? this.recentAlbums,
       topArtists: topArtists ?? this.topArtists,
       genres: genres ?? this.genres,
+      pins: pins ?? this.pins,
       isHomeLoaded: isHomeLoaded ?? this.isHomeLoaded,
       hasMoreSongs: hasMoreSongs ?? this.hasMoreSongs,
       isLoadingMoreSongs: isLoadingMoreSongs ?? this.isLoadingMoreSongs,
@@ -191,17 +195,19 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
     if (!force && state.isHomeLoaded) return;
 
     try {
-      // 并发加载三个首页模块
+      // 并发加载四个首页模块（最近添加/热门艺术家/流派/我的锁定）
       final results = await Future.wait([
         _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
         _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
         _api.getGenres(limit: 50),
+        _api.getPins(),
       ], eagerError: false);
 
       state = state.copyWith(
         recentAlbums: results[0] as List<AudioAlbum>,
         topArtists: results[1] as List<AudioArtist>,
         genres: results[2] as List<AudioGenre>,
+        pins: results[3] as List<AudioPin>,
         isHomeLoaded: true,
         error: null,
       );

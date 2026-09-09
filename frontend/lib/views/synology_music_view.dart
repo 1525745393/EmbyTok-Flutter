@@ -115,11 +115,15 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   _buildGradientHeader(scheme),
                   Expanded(
                     child: RefreshIndicator(
-                      onRefresh: () =>
-                          ref.read(synologyMusicProvider.notifier).loadTab(
-                                SynologyMusicTab.values[_tabController.index],
-                                force: true,
-                              ),
+                      onRefresh: () async {
+                        final tab = SynologyMusicTab.values[_tabController.index];
+                        final notifier = ref.read(synologyMusicProvider.notifier);
+                        await notifier.loadTab(tab, force: true);
+                        // 首页下拉时同时刷新首页专用数据（最近添加/热门艺术家/流派）
+                        if (tab == SynologyMusicTab.home) {
+                          await notifier.loadHomeData(force: true);
+                        }
+                      },
                       child: _buildTabContent(scheme),
                     ),
                   ),
@@ -449,6 +453,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           _buildAlbumHorizontalList(state.recentAlbums, scheme),
           const SizedBox(height: 20),
         ],
+        // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
+        if (state.pins.isNotEmpty) ...[
+          _buildHomeSectionHeader('我的锁定', SynologyMusicTab.songs, scheme),
+          const SizedBox(height: 10),
+          _buildPinsList(state.pins, scheme),
+          const SizedBox(height: 20),
+        ],
         // 我的歌单
         if (state.playlists.isNotEmpty) ...[
           _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
@@ -530,7 +541,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         onTap: _scrollToGenres,
       ),
       _QuickEntry(
-        icon: Icons.shuffle, label: '随机播放',
+        icon: Icons.shuffle, label: 'Random100',
         color: const Color(0xFFE74C3C),
         onTap: _shufflePlay,
       ),
@@ -832,6 +843,73 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     }
   }
 
+  /// 我的锁定（My Pins）横向卡片列表
+  ///
+  /// Pin 接口返回简化歌曲信息（id/title/artist/album），无封面 URL，
+  /// 卡片用渐变色占位封面 + 标题 + 歌手展示。
+  Widget _buildPinsList(List<AudioPin> pins, ColorScheme scheme) {
+    final gradients = [
+      [const Color(0xFFFF6B6B), const Color(0xFFEE5A6F)],
+      [const Color(0xFF4ECDC4), const Color(0xFF44A08D)],
+      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
+      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
+      [const Color(0xFFFFA751), const Color(0xFFFF6B6B)],
+    ];
+    return SizedBox(
+      height: 150,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: pins.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final pin = pins[index];
+          final gradient = gradients[index % gradients.length];
+          return GestureDetector(
+            onTap: () => _playPin(pin),
+            child: SizedBox(
+              width: 110,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+                      ),
+                      child: const Icon(Icons.favorite, color: Colors.white, size: 32),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(pin.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                Text(pin.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 播放锁定的歌曲（从全量歌曲列表按 ID 匹配完整歌曲）
+  void _playPin(AudioPin pin) {
+    final songs = ref.read(synologyMusicProvider).songs;
+    final match = songs.where((s) => s.id == pin.id).toList();
+    if (match.isNotEmpty) {
+      ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('「${pin.title}」已不在当前歌曲列表中')),
+      );
+    }
+  }
+
   /// 最近播放长按菜单：播放 / 移除该记录
   void _showRecentPlaybackMenu(RecentPlayback record, ColorScheme scheme) {
     showModalBottomSheet(
@@ -972,6 +1050,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     _tabController.animateTo(tab.index);
   }
 
+  /// Random100：从全量歌曲中随机抽取 100 首播放（PRD 系统内置随机歌单）
+  ///
+  /// 全量歌曲少于 100 首时全部播放。
   void _shufflePlay() {
     final songs = ref.read(synologyMusicProvider).songs;
     if (songs.isEmpty) {
@@ -981,7 +1062,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       return;
     }
     final shuffled = [...songs]..shuffle();
-    ref.read(synologyPlaybackProvider.notifier).playQueue(shuffled, 0);
+    final random100 = shuffled.take(100).toList();
+    ref.read(synologyPlaybackProvider.notifier).playQueue(random100, 0);
   }
 
   Widget _buildError(String error, ColorScheme scheme) {

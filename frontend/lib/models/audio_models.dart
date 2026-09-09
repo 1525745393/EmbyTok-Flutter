@@ -267,6 +267,33 @@ class AudioGenre {
   }
 }
 
+/// 用户锁定的歌曲（My Pins / 收藏）
+///
+/// Pin 接口返回简化信息（id/title/artist/album），
+/// 播放时需从全量歌曲列表按 ID 匹配完整 AudioSong
+class AudioPin {
+  final String id;
+  final String title;
+  final String? artist;
+  final String? album;
+
+  const AudioPin({
+    required this.id,
+    required this.title,
+    this.artist,
+    this.album,
+  });
+
+  factory AudioPin.fromJson(Map<String, dynamic> json) {
+    return AudioPin(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      artist: json['artist'] as String?,
+      album: json['album'] as String?,
+    );
+  }
+}
+
 /// 搜索结果（歌曲 + 专辑 + 歌手）
 class AudioSearchResult {
   final List<AudioSong> songs;

@@ -350,6 +350,21 @@ class SynologyAudioApi {
         .toList(growable: false);
   }
 
+  /// 获取用户锁定的歌曲列表（My Pins / 收藏）
+  ///
+  /// Pin 接口路径特殊：entry.cgi（非 AudioStation/pin.cgi）
+  /// 返回简化歌曲信息（id/title/artist/album），播放时需从全量列表匹配完整歌曲
+  Future<List<AudioPin>> getPins() async {
+    final data = await _callList('SYNO.AudioStation.Pin', 'entry.cgi', {
+      'method': 'list',
+      'version': 1,
+    });
+    final songs = _asList(data?['songs']);
+    return songs
+        .map((e) => AudioPin.fromJson(_asMap(e)))
+        .toList(growable: false);
+  }
+
   /// 获取歌单内歌曲
   Future<List<AudioSong>> getPlaylistSongs(String playlistId) async {
     final data = await _callList(
