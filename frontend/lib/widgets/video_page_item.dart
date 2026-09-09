@@ -1181,8 +1181,6 @@ class _BottomInfoBar extends StatelessWidget {
         responsiveSize(context, base, maxScale);
 
     final hasController = controller != null && controller!.value.isInitialized;
-    final isLandscapeVideo = hasController &&
-        controller!.value.size.width > controller!.value.size.height;
 
     return Positioned(
       left: 0,
@@ -1222,40 +1220,6 @@ class _BottomInfoBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 横屏视频：居中显示「全屏观看」按钮
-                if (isLandscapeVideo)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onTap: onToggleFullscreen,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: scheme.surface.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.fullscreen,
-                                  color: scheme.onSurface, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                '全屏观看',
-                                style: TextStyle(
-                                  color: scheme.onSurface,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                 // 类型标签
                 Container(
                   padding:
@@ -1378,10 +1342,6 @@ class _RightActionButtons extends ConsumerWidget {
       favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
     );
 
-    final hasController = controller != null && controller!.value.isInitialized;
-    final isPortraitVideo = !hasController ||
-        controller!.value.size.width <= controller!.value.size.height;
-
     return Positioned(
       right: 0,
       top: 0,
@@ -1413,14 +1373,13 @@ class _RightActionButtons extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // 顶部全屏按钮（仅竖屏视频时显示，横屏视频下方已有居中"全屏观看"按钮）
-              if (isPortraitVideo)
-                PressableActionButton(
-                  icon: Icons.fullscreen,
-                  label: '全屏',
-                  color: scheme.onSurface,
-                  onTap: onToggleFullscreen,
-                ),
+              // 顶部全屏按钮（竖屏/横屏视频均显示，统一入口避免底部居中按钮遮挡画面）
+              PressableActionButton(
+                icon: Icons.fullscreen,
+                label: '全屏',
+                color: scheme.onSurface,
+                onTap: onToggleFullscreen,
+              ),
               SizedBox(height: rs(16, 1.5)),
               const AutoPlayButton(),
               SizedBox(height: rs(16, 1.5)),
