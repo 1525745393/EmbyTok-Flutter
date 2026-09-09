@@ -455,17 +455,20 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
 
     // 精选专辑：从全量专辑中随机抽样，与最近添加去重（name+artist 组合，避免同名不同艺术家被错误去重）
     // 首次计算后缓存，避免每次 build 重新 shuffle 导致内容频繁跳变
-    final featured = _cachedFeaturedAlbums ??= () {
-      final recentKeys = state.recentAlbums
-          .map((e) => '${e.name}||${e.displayArtist ?? e.albumArtist}')
-          .toSet();
-      final candidates = state.albums
-          .where((a) =>
-              !recentKeys.contains('${a.name}||${a.displayArtist ?? a.albumArtist}'))
-          .toList()
-        ..shuffle();
-      return candidates.take(12).toList();
-    }();
+    // 注意：仅当 state.albums 非空时才缓存，避免异步数据未加载时缓存空列表导致模块永远不显示
+    final featured = _cachedFeaturedAlbums ?? (state.albums.isNotEmpty
+        ? _cachedFeaturedAlbums = () {
+            final recentKeys = state.recentAlbums
+                .map((e) => '${e.name}||${e.displayArtist ?? e.albumArtist}')
+                .toSet();
+            final candidates = state.albums
+                .where((a) => !recentKeys
+                    .contains('${a.name}||${a.displayArtist ?? a.albumArtist}'))
+                .toList()
+              ..shuffle();
+            return candidates.take(12).toList();
+          }()
+        : const <AudioAlbum>[]);
 
     return ListView(
       controller: _homeScrollController,
