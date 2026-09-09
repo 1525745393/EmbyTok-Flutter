@@ -92,8 +92,8 @@ class VideoGridCard extends ConsumerWidget {
       cacheManager: AppImageCacheManager.thumbnail,
       fit: BoxFit.cover,
       // 性能优化：限制内存中解码的图片宽度
-      // 网格 3 列，每列约 120px，2x 像素密度 = 240px
-      // 限制为 300 避免解码原图（可能 1000px+）浪费内存和 CPU
+      // 网格卡片实际显示宽度约 120-190px（2-5列动态适配），
+      // 2x-3x 像素密度下 300px 足够，避免解码原图（可能 1000px+）浪费内存和 CPU
       memCacheWidth: 300,
       placeholder: (context, url) => _buildPlaceholder(scheme),
       errorWidget: (context, url, error) => _buildPlaceholder(scheme),
@@ -124,8 +124,8 @@ class VideoGridCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildDurationBadge(double seconds, ColorScheme scheme) {
-    final duration = _formatDuration(seconds);
+  Widget _buildDurationBadge(num seconds, ColorScheme scheme) {
+    final duration = _formatDuration(seconds.toDouble());
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(

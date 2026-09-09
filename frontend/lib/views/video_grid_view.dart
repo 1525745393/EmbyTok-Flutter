@@ -46,6 +46,13 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
     // 过滤后的视频列表（用于显示）
     final displayItems = ref.watch(filteredVideoListProvider);
 
+    // 监听媒体库选择变化：用户切换媒体库后自动刷新视频列表
+    ref.listen(selectedLibraryIdsProvider, (prev, next) {
+      if (prev != next && next.isNotEmpty) {
+        _loadVideos();
+      }
+    });
+
     return Scaffold(
       backgroundColor: scheme.surface,
       appBar: AppBar(
@@ -123,12 +130,18 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
       VideoListState videoState, List<MediaItem> displayItems) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 根据屏幕方向计算列数：竖屏2列，横屏4列
-        final isPortrait = constraints.maxHeight > constraints.maxWidth;
-        final crossAxisCount = isPortrait ? 2 : 4;
+        // 根据屏幕宽度动态计算列数（适配手机/平板/横屏）
+        // - <400px：手机竖屏，2列
+        // - 400-700px：大屏手机/小平板竖屏，3列
+        // - 700-1000px：平板竖屏/手机横屏，4列
+        // - >=1000px：平板横屏/桌面，5列
+        final width = constraints.maxWidth;
+        final crossAxisCount = width < 400 ? 2 : (width < 700 ? 3 : (width < 1000 ? 4 : 5));
 
-        // 计算卡片宽高比（竖屏接近 9:16，横屏接近 16:9）
-        final childAspectRatio = isPortrait ? 9 / 16 : 16 / 9;
+        // 根据列数计算卡片宽高比：列数越少卡片越宽越高，列数越多卡片越扁
+        final childAspectRatio = crossAxisCount <= 2
+            ? 9 / 16
+            : (crossAxisCount <= 4 ? 3 / 4 : 16 / 9);
 
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
