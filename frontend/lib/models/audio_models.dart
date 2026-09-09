@@ -40,6 +40,16 @@ class AudioSongAudio {
       frequency: json['frequency'] as int?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        if (bitrate != null) 'bitrate': bitrate,
+        if (channel != null) 'channel': channel,
+        if (codec != null) 'codec': codec,
+        if (container != null) 'container': container,
+        if (duration != null) 'duration': duration,
+        if (filesize != null) 'filesize': filesize,
+        if (frequency != null) 'frequency': frequency,
+      };
 }
 
 /// 歌曲标签信息（additional.song_tag）
@@ -79,6 +89,18 @@ class AudioSongTag {
       year: json['year'] as int?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        if (album != null) 'album': album,
+        if (albumArtist != null) 'album_artist': albumArtist,
+        if (artist != null) 'artist': artist,
+        if (comment != null) 'comment': comment,
+        if (composer != null) 'composer': composer,
+        if (disc != null) 'disc': disc,
+        if (genre != null) 'genre': genre,
+        if (track != null) 'track': track,
+        if (year != null) 'year': year,
+      };
 }
 
 /// 歌曲
@@ -136,6 +158,18 @@ class AudioSong {
       rating: ratingJson?['rating'] as int?,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        if (path != null) 'path': path,
+        if (type != null) 'type': type,
+        'additional': {
+          if (audio != null) 'song_audio': audio!.toJson(),
+          if (tag != null) 'song_tag': tag!.toJson(),
+          if (rating != null) 'song_rating': {'rating': rating},
+        },
+      };
 }
 
 /// 专辑

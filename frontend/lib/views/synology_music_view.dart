@@ -40,6 +40,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final _searchController = TextEditingController();
+  final _homeScrollController = ScrollController();
   Timer? _searchDebounce;
 
   @override
@@ -57,6 +58,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       notifier.loadTab(SynologyMusicTab.artists);
       notifier.loadTab(SynologyMusicTab.playlists);
       notifier.loadHomeData();
+      // 恢复上次播放状态（PRD：退出 App 后续听，不自动播放）
+      ref.read(synologyPlaybackProvider.notifier).restorePlayback();
     });
   }
 
@@ -244,6 +247,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
 
   Widget _buildSearchBar(ColorScheme scheme, Color onGradient) {
     final state = ref.watch(synologyMusicProvider);
+    final auth = ref.watch(synologyAuthProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // 渐变上的搜索框：浅色模式白底、深色模式深底
     final fieldColor =
@@ -253,44 +257,89 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         isDark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF7A8BA0);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 2, 14, 6),
-      child: TextField(
-        controller: _searchController,
-        onChanged: _onSearchChanged,
-        style: TextStyle(fontSize: 14, color: textColor),
-        decoration: InputDecoration(
-          hintText: '搜索歌曲 / 专辑 / 歌手',
-          hintStyle: TextStyle(fontSize: 14, color: hintColor),
-          prefixIcon: Icon(Icons.search, size: 20, color: hintColor),
-          suffixIcon: state.isSearching
-              ? IconButton(
-                  icon: Icon(Icons.clear, size: 18, color: hintColor),
-                  tooltip: '清空',
-                  onPressed: () {
-                    _searchController.clear();
-                    ref.read(synologyMusicProvider.notifier).clearSearch();
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: fieldColor,
-          isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(22),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.fromLTRB(14, 2, 8, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              style: TextStyle(fontSize: 14, color: textColor),
+              decoration: InputDecoration(
+                hintText: '搜索歌曲 / 专辑 / 歌手',
+                hintStyle: TextStyle(fontSize: 14, color: hintColor),
+                prefixIcon: Icon(Icons.search, size: 20, color: hintColor),
+                suffixIcon: state.isSearching
+                    ? IconButton(
+                        icon: Icon(Icons.clear, size: 18, color: hintColor),
+                        tooltip: '清空',
+                        onPressed: () {
+                          _searchController.clear();
+                          ref.read(synologyMusicProvider.notifier).clearSearch();
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: fieldColor,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide(color: onGradient.withValues(alpha: 0.8)),
+                ),
+              ),
+            ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(22),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(22),
-            borderSide: BorderSide(color: onGradient.withValues(alpha: 0.8)),
+          // NAS 连接状态指示器（绿色=在线，灰色=离线）
+          _buildConnectionIndicator(auth, onGradient),
+          // 头像入口（点击进入设置/个人中心）
+          _buildAvatarEntry(onGradient),
+        ],
+      ),
+    );
+  }
+
+  /// NAS 连接状态指示器
+  Widget _buildConnectionIndicator(SynologyAuthState auth, Color onGradient) {
+    final isOnline = auth.isLoggedIn;
+    return Tooltip(
+      message: isOnline ? 'NAS 已连接：${auth.account ?? ''}' : 'NAS 未连接',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: isOnline ? Colors.greenAccent : Colors.grey,
+            shape: BoxShape.circle,
+            boxShadow: isOnline
+                ? [BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.5), blurRadius: 4)]
+                : null,
           ),
         ),
       ),
+    );
+  }
+
+  /// 头像入口（点击进入设置页，个人中心后续独立页面）
+  Widget _buildAvatarEntry(Color onGradient) {
+    return IconButton(
+      icon: CircleAvatar(
+        radius: 14,
+        backgroundColor: onGradient.withValues(alpha: 0.2),
+        child: Icon(Icons.person, size: 18, color: onGradient),
+      ),
+      tooltip: '个人中心',
+      onPressed: () => context.go('/settings'),
     );
   }
 
@@ -380,6 +429,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     final featured = featuredAlbums.take(12).toList();
 
     return ListView(
+      controller: _homeScrollController,
       padding: const EdgeInsets.only(top: 12, bottom: 24),
       children: [
         // 快捷入口
@@ -475,6 +525,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         onTap: () => _switchTab(SynologyMusicTab.playlists),
       ),
       _QuickEntry(
+        icon: Icons.category, label: '流派',
+        color: const Color(0xFF1ABC9C),
+        onTap: _scrollToGenres,
+      ),
+      _QuickEntry(
         icon: Icons.shuffle, label: '随机播放',
         color: const Color(0xFFE74C3C),
         onTap: _shufflePlay,
@@ -485,13 +540,28 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         onTap: () => context.go('/settings'),
       ),
     ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: entries.map((e) => _QuickEntryButton(entry: e)).toList(),
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: entries.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) =>
+            _QuickEntryButton(entry: entries[index]),
       ),
     );
+  }
+
+  /// 滚动到音乐流派区域（首页底部）
+  void _scrollToGenres() {
+    if (_homeScrollController.hasClients) {
+      _homeScrollController.animateTo(
+        _homeScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   Widget _buildHomeSectionHeader(

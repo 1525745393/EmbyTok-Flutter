@@ -7,9 +7,11 @@
 // - 提供 mini player 所需的实时状态（曲目、封面、进度、时长）
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/audio_models.dart';
@@ -139,10 +141,76 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
           ));
     } catch (_) {}
     await _playSong(song);
+    _persistPlayback();
   }
 
   /// 播放单曲（队列为该曲目单曲）
   Future<void> playSong(AudioSong song) => playQueue([song], 0);
+
+  // ===== 播放状态持久化（PRD：退出 App 后续听） =====
+
+  static const String _persistKey = 'playback_state_v1';
+
+  /// 持久化当前播放队列、索引、进度、模式到 SharedPreferences
+  ///
+  /// 在切歌（playQueue）和暂停时调用，不自动播放。
+  Future<void> _persistPlayback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'queue': state.queue.map((s) => s.toJson()).toList(),
+        'currentIndex': state.currentIndex,
+        'position': state.position.inSeconds,
+        'mode': state.mode.name,
+      };
+      await prefs.setString(_persistKey, jsonEncode(data));
+    } catch (e) {
+      AppLogger.warn('持久化播放状态失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 从 SharedPreferences 恢复播放队列和进度（不自动播放）
+  ///
+  /// App 启动时调用，恢复后 Mini 播放栏显示上次曲目，
+  /// 用户点击播放后从恢复的进度继续。
+  Future<void> restorePlayback() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_persistKey);
+      if (raw == null || raw.isEmpty) return;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final queueJson = data['queue'] as List<dynamic>?;
+      if (queueJson == null || queueJson.isEmpty) return;
+      final queue = queueJson
+          .map((e) => AudioSong.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final index = (data['currentIndex'] as int?) ?? 0;
+      if (index < 0 || index >= queue.length) return;
+      final position = Duration(seconds: (data['position'] as int?) ?? 0);
+      final modeName = data['mode'] as String?;
+      final mode = SynologyPlaybackMode.values.firstWhere(
+        (m) => m.name == modeName,
+        orElse: () => SynologyPlaybackMode.listLoop,
+      );
+      state = SynologyPlaybackState(
+        currentSong: queue[index],
+        queue: queue,
+        currentIndex: index,
+        isPlaying: false,
+        position: position,
+        duration: Duration(seconds: queue[index].audio?.duration ?? 0),
+        coverUrl: _coverUrlOf(queue[index]),
+        mode: mode,
+      );
+      AppLogger.info('恢复播放状态', data: {
+        'songs': queue.length,
+        'index': index,
+        'position': position.inSeconds,
+      });
+    } catch (e) {
+      AppLogger.warn('恢复播放状态失败', data: {'error': e.toString()});
+    }
+  }
 
   /// 暂停 / 继续
   Future<void> togglePlay() async {
@@ -151,6 +219,7 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       await _controller!.pause();
       state = state.copyWith(isPlaying: false);
       _syncMediaSession(isPlaying: false, position: state.position);
+      _persistPlayback(); // 暂停时持久化进度
     } else {
       await _controller!.play();
       state = state.copyWith(isPlaying: true);
