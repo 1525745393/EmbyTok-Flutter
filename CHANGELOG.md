@@ -1,3 +1,10 @@
+## [2.60.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.5...v2.60.6) (2026-09-09)
+
+
+### Bug Fixes
+
+* OOM防护 — 非当前页不创建视频控制器，避免快速滑动时内存峰值过高 ([83cd4c4](https://github.com/1525745393/EmbyTok-Flutter/commit/83cd4c4b0767ec2da2afe66f69c2f567a7389b82))
+
 ## [2.60.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.4...v2.60.5) (2026-09-09)
 
 
