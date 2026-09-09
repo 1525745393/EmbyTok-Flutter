@@ -107,6 +107,9 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   bool _disposed = false;
   final Random _random = Random();
 
+  /// 恢复播放时待 seek 的进度（restorePlayback 设置，_playSong 播放后清除）
+  Duration? _pendingSeek;
+
   SynologyPlaybackNotifier(this._ref) : super(const SynologyPlaybackState()) {
     // 中断回调：焦点丢失暂停 / 恢复续播
     final handler = _ref.read(audioSessionHandlerProvider);
@@ -202,6 +205,10 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         coverUrl: _coverUrlOf(queue[index]),
         mode: mode,
       );
+      // 记录待 seek 的进度，_playSong 播放后自动跳转到该位置
+      if (position.inSeconds > 0) {
+        _pendingSeek = position;
+      }
       AppLogger.info('恢复播放状态', data: {
         'songs': queue.length,
         'index': index,
@@ -391,6 +398,12 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         return;
       }
       await controller.play();
+      // 恢复播放进度：如果有 pendingSeek，跳转到该位置后清除
+      final pending = _pendingSeek;
+      if (pending != null && pending.inSeconds > 0) {
+        await controller.seekTo(pending);
+        _pendingSeek = null;
+      }
       // 开始轮询进度
       _startPositionTimer();
       state = state.copyWith(

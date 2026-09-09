@@ -29,6 +29,7 @@ import 'views/recommend_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/settings_view.dart';
+import 'views/profile_view.dart';
 import 'views/synology_music_view.dart';
 import 'widgets/video_page_item.dart';
 
@@ -264,6 +265,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           },
           child: const SettingsView(),
         ),
+      ),
+      // 个人中心
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileView(),
       ),
       // 媒体项详情页：/item/:itemId（自定义上滑转场动画）
       GoRoute(

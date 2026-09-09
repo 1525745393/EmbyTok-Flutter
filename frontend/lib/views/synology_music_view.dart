@@ -343,7 +343,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         child: Icon(Icons.person, size: 18, color: onGradient),
       ),
       tooltip: '个人中心',
-      onPressed: () => context.go('/settings'),
+      onPressed: () => context.go('/profile'),
     );
   }
 
