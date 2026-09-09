@@ -1,3 +1,10 @@
+## [2.60.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.3...v2.60.4) (2026-09-09)
+
+
+### Bug Fixes
+
+* 视频库UI审查修复 — 网格响应式/媒体库切换刷新/注释/类型 ([5445b75](https://github.com/1525745393/EmbyTok-Flutter/commit/5445b75264e2ea316def43257b0faa236a66df82))
+
 ## [2.60.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.2...v2.60.3) (2026-09-09)
 
 
