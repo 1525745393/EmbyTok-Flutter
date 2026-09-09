@@ -54,7 +54,6 @@ class _MainViewState extends ConsumerState<MainView> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final auth = ref.watch(synologyAuthProvider);
 
     // 未登录时直接显示音乐库视图（会显示未登录提示）

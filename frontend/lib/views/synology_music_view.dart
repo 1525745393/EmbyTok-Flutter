@@ -50,6 +50,11 @@ class SynologyMusicView extends ConsumerStatefulWidget {
 
 class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     with SingleTickerProviderStateMixin {
+  /// 全局初始化标志：MainView 中有两个 SynologyMusicView 实例（首页+音乐库），
+  /// 仅第一个实例执行全局初始化（loadTab/loadHomeData/restorePlayback），
+  /// 避免双倍网络请求和恢复逻辑竞态。两个实例共享同一 Provider，数据互通。
+  static bool _globalInitDone = false;
+
   late final TabController _tabController;
   final _searchController = TextEditingController();
   final _homeScrollController = ScrollController();
@@ -64,9 +69,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       initialIndex: widget.initialTab.index,
     );
     _tabController.addListener(_onTabChanged);
-    // 首页默认预加载所有分类数据 + 首页专用数据（最近添加/热门艺术家/流派）
+    // 全局初始化仅执行一次（MainView 中两个实例共享 Provider，数据互通）
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (_globalInitDone) return;
+      _globalInitDone = true;
       final notifier = ref.read(synologyMusicProvider.notifier);
       // 并发加载，首页尽快展示内容
       notifier.loadTab(SynologyMusicTab.songs);

@@ -144,7 +144,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
           ));
     } catch (_) {}
     await _playSong(song);
-    _persistPlayback();
+    // 切歌时仅持久化队列和索引，不持久化进度（新歌曲 position 为 0）
+    _persistPlayback(persistPosition: false);
   }
 
   /// 播放单曲（队列为该曲目单曲）
@@ -156,14 +157,17 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
 
   /// 持久化当前播放队列、索引、进度、模式到 SharedPreferences
   ///
-  /// 在切歌（playQueue）和暂停时调用，不自动播放。
-  Future<void> _persistPlayback() async {
+  /// [persistPosition]：是否持久化播放进度。
+  /// - 切歌（playQueue）时传 false：新歌曲刚开始播放，position 为 0，
+  ///   持久化无意义且可能覆盖暂停时保存的正确进度。
+  /// - 暂停时传 true（默认）：保存当前实际播放进度。
+  Future<void> _persistPlayback({bool persistPosition = true}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final data = {
         'queue': state.queue.map((s) => s.toJson()).toList(),
         'currentIndex': state.currentIndex,
-        'position': state.position.inSeconds,
+        'position': persistPosition ? state.position.inSeconds : 0,
         'mode': state.mode.name,
       };
       await prefs.setString(_persistKey, jsonEncode(data));

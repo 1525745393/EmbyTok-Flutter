@@ -75,6 +75,9 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
     if (_pathStack.isNotEmpty) {
       _pathStack.removeLast();
       _loadFolder();
+    } else if (Navigator.of(context).canPop()) {
+      // 从其他页面进入时优先 pop，保留原页面上下文
+      Navigator.of(context).pop();
     } else {
       context.go('/');
     }
