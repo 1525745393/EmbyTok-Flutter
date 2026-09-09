@@ -1,3 +1,10 @@
+## [2.60.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.6...v2.60.7) (2026-09-09)
+
+
+### Bug Fixes
+
+* 视频流全屏按钮遮挡画面 — 移除底部居中按钮，统一右侧操作栏入口 ([223585f](https://github.com/1525745393/EmbyTok-Flutter/commit/223585fdaac20d73d50e74ae1539558ec9cc99ff))
+
 ## [2.60.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.5...v2.60.6) (2026-09-09)
 
 
