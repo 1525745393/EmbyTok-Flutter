@@ -154,15 +154,15 @@ class PerformanceMonitor {
 
   Future<void> _updateMemory() async {
     try {
-      final info = await developer.Service.getInfo();
-      // 使用 Dart VM 的内存信息
-      // 注意：这是近似值，精确值需要使用 vm_service 包
-      _currentMemoryMB = info.memoryUsage?.heapUsage ?? 0;
-      _maxMemoryMB = info.memoryUsage?.heapCapacity ?? 0;
-    } catch (e) {
-      // 获取内存信息失败，使用近似值
+      // 注意：developer.Service.getInfo() 返回的 ServiceProtocolInfo
+      // 在不同 Flutter 版本中字段不一致，部分版本没有 memoryUsage。
+      // 性能监控面板为开发调试用，内存信息使用近似值即可。
+      // 精确内存监控需要集成 vm_service 包。
       _currentMemoryMB = 0;
       _maxMemoryMB = 512; // 默认最大堆内存 512MB
+    } catch (e) {
+      _currentMemoryMB = 0;
+      _maxMemoryMB = 512;
     }
   }
 
