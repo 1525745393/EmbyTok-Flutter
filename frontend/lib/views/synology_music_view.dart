@@ -25,6 +25,53 @@ import '../providers/recent_playbacks_provider.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 
+// ===== 音乐库 UI 常量（避免魔法数字，提升可维护性）=====
+
+/// 超小字体（时间戳、辅助信息）
+const double _kFontSizeTiny = 10;
+
+/// 小字体（标签、副标题）
+const double _kFontSizeSmall = 12;
+
+/// 中等字体（列表项正文）
+const double _kFontSizeBody = 13;
+
+/// 中字体（标题、按钮）
+const double _kFontSizeMedium = 14;
+
+/// 大字体（页面标题、歌手名）
+const double _kFontSizeLarge = 16;
+
+/// 超大字体（专辑名、歌手详情标题）
+const double _kFontSizeXLarge = 22;
+
+/// 特大字体（首页大标题）
+const double _kFontSizeXXLarge = 30;
+
+/// 超小间距
+const double _kSpacingXSmall = 2;
+
+/// 小间距
+const double _kSpacingSmall = 4;
+
+/// 中间距
+const double _kSpacingMedium = 6;
+
+/// 大间距
+const double _kSpacingLarge = 8;
+
+/// 超大间距
+const double _kSpacingXLarge = 10;
+
+/// 特大间距
+const double _kSpacingXXLarge = 12;
+
+/// 巨大间距
+const double _kSpacingXXXLarge = 16;
+
+/// 最大间距
+const double _kSpacingXXXXLarge = 20;
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -253,17 +300,17 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         children: [
           Icon(Icons.library_music_outlined,
               size: 64, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kSpacingXXXLarge),
           Text(
             '尚未连接群晖 Audio Station',
-            style: TextStyle(fontSize: 16, color: scheme.onSurface),
+            style: TextStyle(fontSize: _kFontSizeLarge, color: scheme.onSurface),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingLarge),
           Text(
             '登录后可浏览和播放 NAS 上的音乐',
-            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: _kFontSizeBody, color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
           ElevatedButton.icon(
             onPressed: () => context.go('/login'),
             icon: const Icon(Icons.login, size: 18),
@@ -297,10 +344,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             child: TextField(
               controller: _searchController,
               onChanged: _onSearchChanged,
-              style: TextStyle(fontSize: 14, color: textColor),
+              style: TextStyle(fontSize: _kFontSizeMedium, color: textColor),
               decoration: InputDecoration(
                 hintText: '搜索歌曲 / 专辑 / 歌手',
-                hintStyle: TextStyle(fontSize: 14, color: hintColor),
+                hintStyle: TextStyle(fontSize: _kFontSizeMedium, color: hintColor),
                 prefixIcon: Icon(Icons.search, size: 20, color: hintColor),
                 suffixIcon: state.isSearching
                     ? IconButton(
@@ -387,9 +434,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         indicatorWeight: 3,
         labelColor: onGradient,
         unselectedLabelColor: onGradient.withValues(alpha: 0.65),
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        labelStyle: const TextStyle(fontSize: _kFontSizeMedium, fontWeight: FontWeight.w700),
         unselectedLabelStyle:
-            const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            const TextStyle(fontSize: _kFontSizeMedium, fontWeight: FontWeight.w500),
         tabs: [
           for (final tab in SynologyMusicTab.values) Tab(text: tab.label),
         ],
@@ -476,53 +523,53 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       children: [
         // 快捷入口
         _buildQuickEntries(scheme),
-        const SizedBox(height: 20),
+        const SizedBox(height: _kSpacingXXXXLarge),
         // 最近播放（无记录时整个模块隐藏，PRD 要求）
         if (recentPlaybacks.isNotEmpty) ...[
           _buildHomeSectionHeader('最近播放', SynologyMusicTab.songs, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildRecentPlaybacksList(recentPlaybacks, scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 最近添加（time_add 倒序，NAS 原生接口）
         if (state.recentAlbums.isNotEmpty) ...[
           _buildHomeSectionHeader('最近添加', SynologyMusicTab.albums, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildAlbumHorizontalList(state.recentAlbums, scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
         if (state.pins.isNotEmpty) ...[
           _buildHomeSectionHeader('我的锁定', null, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildPinsList(state.pins, scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 我的歌单
         if (state.playlists.isNotEmpty) ...[
           _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildPlaylistHorizontalList(state.playlists.take(8).toList(), scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 精选专辑（客户端随机抽样，与最近添加去重）
         if (featured.isNotEmpty) ...[
           _buildHomeSectionHeader('精选专辑', SynologyMusicTab.albums, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildAlbumHorizontalList(featured, scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 热门艺术家（song_count 倒序）
         if (state.topArtists.isNotEmpty) ...[
           _buildHomeSectionHeader('热门艺术家', SynologyMusicTab.artists, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildArtistHorizontalList(state.topArtists, scheme),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
         if (state.genres.isNotEmpty) ...[
           _buildHomeSectionHeader('音乐流派', null, scheme),
-          const SizedBox(height: 10),
+          const SizedBox(height: _kSpacingXLarge),
           _buildGenreGrid(state.genres, scheme),
         ],
         // 全空占位（注意：不检查 pins —— 只要有锁定歌曲就不显示全空占位）
@@ -540,7 +587,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 children: [
                   Icon(Icons.library_music_outlined,
                       size: 56, color: scheme.onSurfaceVariant),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: _kSpacingXXLarge),
                   Text('音乐库暂无内容',
                       style: TextStyle(color: scheme.onSurfaceVariant)),
                 ],
@@ -633,7 +680,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             TextButton(
               onPressed: () => _switchTab(targetTab),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody)),
                 Icon(Icons.chevron_right, size: 18, color: scheme.onSurfaceVariant),
               ]),
             ),
@@ -677,9 +724,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         : _albumCoverFallback(scheme),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingMedium),
                 Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
                 Text(album.displayArtist ?? album.albumArtist ?? '',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
@@ -719,13 +766,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       : null,
                   child: coverUrl == null
                       ? Text(artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
+                          style: TextStyle(fontSize: _kFontSizeXLarge, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
                       : null,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingMedium),
                 Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                    style: TextStyle(fontSize: _kFontSizeSmall, fontWeight: FontWeight.w600, color: scheme.onSurface)),
               ]),
             ),
           );
@@ -771,9 +818,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingMedium),
                 Text(playlist.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
               ]),
             ),
           );
@@ -851,12 +898,12 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingMedium),
                 Text(record.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 13,
+                        fontSize: _kFontSizeBody,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurface)),
                 Text(record.subtitle,
@@ -929,9 +976,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingMedium),
                 Text(pin.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: scheme.onSurface)),
+                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
                 Text(pin.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
               ]),
@@ -1036,10 +1083,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: _kFontSizeMedium,
                         fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: _kSpacingXSmall),
                   Text(
                     '${genre.songCount} 首',
                     style: TextStyle(
@@ -1117,16 +1164,16 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.error_outline, size: 48, color: scheme.error),
-          const SizedBox(height: 12),
+          const SizedBox(height: _kSpacingXXLarge),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kSpacingXXXLarge),
           OutlinedButton.icon(
             onPressed: () => ref.read(synologyMusicProvider.notifier).loadTab(
                 SynologyMusicTab.values[_tabController.index],
@@ -1212,7 +1259,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: _kFontSizeMedium,
                                 fontWeight: isCurrent
                                     ? FontWeight.w700
                                     : FontWeight.w500,
@@ -1233,7 +1280,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 12, color: scheme.onSurfaceVariant),
+                            fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -1242,7 +1289,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 Text(
                   song.durationText,
                   style:
-                      TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                      TextStyle(fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -1320,17 +1367,17 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: _kSpacingLarge),
               Text(
                 album.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: _kFontSizeBody,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: _kSpacingXSmall),
               Text(
                 album.artistDisplay.isEmpty ? '未知歌手' : album.artistDisplay,
                 maxLines: 1,
@@ -1394,14 +1441,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           child: Column(
             children: [
               _ArtistAvatar(artistName: artist.name, size: 72),
-              const SizedBox(height: 8),
+              const SizedBox(height: _kSpacingLarge),
               Text(
                 artist.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: _kFontSizeBody,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface),
               ),
@@ -1487,7 +1534,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                           child: Text(
                             playlist.type == 'smart' ? '智能' : '普通',
                             style: const TextStyle(
-                              fontSize: 10,
+                              fontSize: _kFontSizeTiny,
                               color: Colors.white,
                             ),
                           ),
@@ -1497,13 +1544,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: _kSpacingLarge),
               Text(
                 playlist.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 13,
+                    fontSize: _kFontSizeBody,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface),
               ),
@@ -1555,7 +1602,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: _kFontSizeBody,
           fontWeight: FontWeight.w700,
           color: scheme.onSurfaceVariant,
         ),
@@ -1594,11 +1641,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               children: [
                 Icon(Icons.music_off_outlined,
                     size: 48, color: scheme.onSurfaceVariant),
-                const SizedBox(height: 12),
+                const SizedBox(height: _kSpacingXXLarge),
                 Text(
                   text,
                   style:
-                      TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+                      TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
                 ),
               ],
             ),
@@ -1715,7 +1762,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: _kFontSizeLarge,
                             fontWeight: FontWeight.w700,
                             color: scheme.onSurface,
                           ),
@@ -1727,7 +1774,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                fontSize: 12,
+                                fontSize: _kFontSizeSmall,
                                 height: 1.4,
                                 color: scheme.onSurfaceVariant),
                           ),
@@ -1757,7 +1804,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       child: Text(
                         emptyText,
                         style: TextStyle(
-                            color: scheme.onSurfaceVariant, fontSize: 13),
+                            color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
                       ),
                     )
                   : ListView.builder(
@@ -1778,7 +1825,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: _kFontSizeMedium,
                               fontWeight:
                                   isCurrent ? FontWeight.w700 : FontWeight.w500,
                               color:
@@ -1791,14 +1838,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: _kFontSizeSmall,
                                       color: scheme.onSurfaceVariant),
                                 )
                               : null,
                           trailing: Text(
                             song.durationText,
                             style: TextStyle(
-                                fontSize: 12, color: scheme.onSurfaceVariant),
+                                fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
                           ),
                           onTap: () {
                             ref
@@ -1900,7 +1947,7 @@ class _QuickEntryButton extends StatelessWidget {
           ),
           child: Icon(entry.icon, color: Colors.white, size: 24),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: _kSpacingMedium),
         Text(entry.label,
             style: TextStyle(
                 fontSize: 11,
@@ -2034,7 +2081,7 @@ class _ArtistAvatarState extends ConsumerState<_ArtistAvatar> {
         initial,
         style: TextStyle(
           color: scheme.onPrimary,
-          fontSize: 30,
+          fontSize: _kFontSizeXXLarge,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -2114,13 +2161,13 @@ class _ArtistSearchTile extends ConsumerWidget {
                         ],
                       ),
                       if (bio != null && bio.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: _kSpacingSmall),
                         Text(
                           bio,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: _kFontSizeSmall,
                             height: 1.4,
                             color: scheme.onSurfaceVariant,
                           ),
@@ -2179,7 +2226,7 @@ class _SourceBadge extends StatelessWidget {
       child: Text(
         shown.label,
         style:
-            TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+            TextStyle(fontSize: _kFontSizeTiny, color: color, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -2257,7 +2304,7 @@ class MiniPlayerBar extends ConsumerWidget {
                   backgroundColor: scheme.outlineVariant.withValues(alpha: 0.4),
                   color: scheme.primary,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: _kSpacingSmall),
                 Row(
                   children: [
                     _SongCover(songId: song.id, size: 44),
@@ -2272,7 +2319,7 @@ class MiniPlayerBar extends ConsumerWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: _kFontSizeBody,
                               fontWeight: FontWeight.w600,
                               color: scheme.onSurface,
                             ),
@@ -2601,7 +2648,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                       child: Text(
                         '该歌手暂无歌曲',
                         style: TextStyle(
-                            color: scheme.onSurfaceVariant, fontSize: 13),
+                            color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
                       ),
                     )
                   : ListView.builder(
@@ -2622,7 +2669,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: _kFontSizeMedium,
                               fontWeight:
                                   isCurrent ? FontWeight.w700 : FontWeight.w500,
                               color:
@@ -2635,7 +2682,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: _kFontSizeSmall,
                                       color: scheme.onSurfaceVariant),
                                 )
                               : null,
@@ -2684,7 +2731,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: _kFontSizeLarge,
                               fontWeight: FontWeight.w700,
                               color: scheme.onSurface,
                             ),
@@ -2705,7 +2752,7 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: _kFontSizeSmall,
                           height: 1.4,
                           color: scheme.onSurfaceVariant,
                         ),
@@ -2748,10 +2795,10 @@ class _ArtistDetailSheetState extends ConsumerState<_ArtistDetailSheet> {
         children: [
           Icon(Icons.person_search_outlined,
               size: 48, color: scheme.onSurfaceVariant),
-          const SizedBox(height: 12),
+          const SizedBox(height: _kSpacingXXLarge),
           Text(
             '输入歌手名，搜索头像与简介',
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
           ),
         ],
       ),
@@ -2902,7 +2949,7 @@ class _ArtistSourcePickerState extends ConsumerState<_ArtistSourcePicker> {
                   ),
                 ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: _kSpacingXXXLarge),
             // ---- 简介来源 ----
             _SourceSectionTitle('简介来源', scheme),
             if (!hasBio)
@@ -2991,7 +3038,7 @@ class _SourceSectionTitle extends StatelessWidget {
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: _kFontSizeBody,
           fontWeight: FontWeight.w700,
           color: scheme.onSurfaceVariant,
         ),
@@ -3013,7 +3060,7 @@ class _SourceEmptyHint extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         text,
-        style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+        style: TextStyle(fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
       ),
     );
   }
@@ -3061,7 +3108,7 @@ class _AvatarSourceCard extends StatelessWidget {
           children: [
             Text(hint,
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: _kFontSizeMedium,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface)),
             const SizedBox(width: 8),
@@ -3100,7 +3147,7 @@ class _BioSourceCard extends StatelessWidget {
           children: [
             Text('简介',
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: _kFontSizeMedium,
                     fontWeight: FontWeight.w600,
                     color: scheme.onSurface)),
             const SizedBox(width: 8),
@@ -3114,7 +3161,7 @@ class _BioSourceCard extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontSize: 12, height: 1.4, color: scheme.onSurfaceVariant),
+                fontSize: _kFontSizeSmall, height: 1.4, color: scheme.onSurfaceVariant),
           ),
         ),
         trailing:
