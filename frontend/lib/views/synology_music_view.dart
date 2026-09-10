@@ -28,6 +28,7 @@ import 'music/artist_detail_sheet.dart';
 import 'music/music_cover_widgets.dart';
 import 'music/mini_player_bar.dart';
 import 'music/home_widgets.dart';
+import 'music/horizontal_lists.dart';
 
 // ===== 音乐库 UI 常量（避免魔法数字，提升可维护性）=====
 
@@ -533,7 +534,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         if (state.recentAlbums.isNotEmpty) ...[
           _buildHomeSectionHeader('最近添加', SynologyMusicTab.albums, scheme),
           const SizedBox(height: _kSpacingXLarge),
-          _buildAlbumHorizontalList(state.recentAlbums, scheme),
+          AlbumHorizontalList(albums: state.recentAlbums, scheme: scheme, onAlbumTap: _showAlbumSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
@@ -547,21 +548,21 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         if (state.playlists.isNotEmpty) ...[
           _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
           const SizedBox(height: _kSpacingXLarge),
-          _buildPlaylistHorizontalList(state.playlists.take(8).toList(), scheme),
+          PlaylistHorizontalList(playlists: state.playlists.take(8).toList(), scheme: scheme, onPlaylistTap: _showPlaylistSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 精选专辑（客户端随机抽样，与最近添加去重）
         if (featured.isNotEmpty) ...[
           _buildHomeSectionHeader('精选专辑', SynologyMusicTab.albums, scheme),
           const SizedBox(height: _kSpacingXLarge),
-          _buildAlbumHorizontalList(featured, scheme),
+          AlbumHorizontalList(albums: featured, scheme: scheme, onAlbumTap: _showAlbumSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 热门艺术家（song_count 倒序）
         if (state.topArtists.isNotEmpty) ...[
           _buildHomeSectionHeader('热门艺术家', SynologyMusicTab.artists, scheme),
           const SizedBox(height: _kSpacingXLarge),
-          _buildArtistHorizontalList(state.topArtists, scheme),
+          ArtistHorizontalList(artists: state.topArtists, scheme: scheme, onArtistTap: _showArtistSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
@@ -687,138 +688,6 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     );
   }
 
-  Widget _buildAlbumHorizontalList(List<AudioAlbum> albums, ColorScheme scheme) {
-    return SizedBox(
-      height: 160,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: albums.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final album = albums[index];
-          // P2-2：直接使用模型层预计算的 coverUrl，避免重复计算
-          final coverUrl = album.coverUrl;
-          return GestureDetector(
-            onTap: () => _showAlbumSongs(album),
-            child: SizedBox(
-              width: 110,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: coverUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: coverUrl, fit: BoxFit.cover,
-                            cacheManager: AppImageCacheManager.thumbnail,
-                            errorWidget: (_, __, ___) => _albumCoverFallback(scheme),
-                          )
-                        : _albumCoverFallback(scheme),
-                  ),
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                Text(album.displayArtist ?? album.albumArtist ?? '',
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildArtistHorizontalList(List<AudioArtist> artists, ColorScheme scheme) {
-    return SizedBox(
-      height: 110,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: artists.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final artist = artists[index];
-          // P2-2：直接使用模型层预计算的 coverUrl，避免重复计算
-          final coverUrl = artist.coverUrl;
-          return GestureDetector(
-            onTap: () => _showArtistSongs(artist),
-            child: SizedBox(
-              width: 72,
-              child: Column(children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  backgroundImage: coverUrl != null
-                      ? CachedNetworkImageProvider(coverUrl,
-                          cacheManager: AppImageCacheManager.thumbnail)
-                      : null,
-                  child: coverUrl == null
-                      ? Text(artist.name.isNotEmpty ? artist.name[0].toUpperCase() : '?',
-                          style: TextStyle(fontSize: _kFontSizeXLarge, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant))
-                      : null,
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: _kFontSizeSmall, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPlaylistHorizontalList(
-      List<AudioPlaylist> playlists, ColorScheme scheme) {
-    final gradients = [
-      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-      [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
-      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
-      [const Color(0xFFFFD26F), const Color(0xFFFF9472)],
-    ];
-    return SizedBox(
-      height: 150,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: playlists.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final playlist = playlists[index];
-          final gradient = gradients[index % gradients.length];
-          return GestureDetector(
-            onTap: () => _showPlaylistSongs(playlist),
-            child: SizedBox(
-              width: 110,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
-                      ),
-                      child: const Icon(Icons.playlist_play, color: Colors.white, size: 36),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                Text(playlist.name, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   /// 最近播放横向卡片列表（PRD 首屏核心模块，客户端本地存储）
   ///
