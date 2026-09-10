@@ -1255,17 +1255,16 @@ class SettingsView extends ConsumerWidget {
           ? '已开启：歌手简介/头像同步到群晖，多设备共享'
           : '开启后同步到 NAS（需先登录群晖）',
       value: service.nasSyncEnabled,
-      onChanged: isLoggedIn
-          ? (value) {
-              service.nasSyncEnabled = value;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(value ? 'NAS 元数据同步已开启' : 'NAS 元数据同步已关闭'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          : null, // 未登录时禁用
+      onChanged: (value) {
+        if (!isLoggedIn) return;
+        service.nasSyncEnabled = value;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(value ? 'NAS 元数据同步已开启' : 'NAS 元数据同步已关闭'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
     );
   }
 

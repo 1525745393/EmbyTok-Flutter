@@ -152,9 +152,9 @@ class PerformanceMonitor {
     });
   }
 
-  void _updateMemory() {
+  Future<void> _updateMemory() async {
     try {
-      final info = developer.Service.getInfo();
+      final info = await developer.Service.getInfo();
       // 使用 Dart VM 的内存信息
       // 注意：这是近似值，精确值需要使用 vm_service 包
       _currentMemoryMB = info.memoryUsage?.heapUsage ?? 0;

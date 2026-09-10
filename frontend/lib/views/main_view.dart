@@ -15,6 +15,7 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
 import 'profile_view.dart';
 import 'synology_music_view.dart';
+import 'music/mini_player_bar.dart';
 
 class MainView extends ConsumerStatefulWidget {
   const MainView({super.key});
