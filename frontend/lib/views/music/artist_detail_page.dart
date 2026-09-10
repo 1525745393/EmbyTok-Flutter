@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
 import '../../providers/artist_metadata_provider.dart';
+import '../../utils/html_parser.dart';
 import 'mini_player_bar.dart';
 
 /// 歌手详情页
@@ -336,6 +337,9 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     ColorScheme scheme,
     ArtistMetadata metadata,
   ) {
+    final bioContent = metadata.bioContent ?? metadata.bioSummary ?? '';
+    final hasHtml = bioContent.contains('<') && bioContent.contains('>');
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
@@ -350,17 +354,29 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // 简介内容
-          Text(
-            metadata.bioSummary ?? '',
-            maxLines: _bioExpanded ? null : 3,
-            overflow: _bioExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: 14,
-              height: 1.5,
+          // 简介内容（支持 HTML 富文本渲染）
+          if (hasHtml)
+            HtmlText(
+              bioContent,
+              maxLines: _bioExpanded ? null : 3,
+              overflow: _bioExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            )
+          else
+            Text(
+              metadata.bioSummary ?? '',
+              maxLines: _bioExpanded ? null : 3,
+              overflow: _bioExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
-          ),
           const SizedBox(height: 4),
           // 展开/收起按钮 + 来源标注
           Row(
