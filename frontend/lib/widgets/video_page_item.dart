@@ -57,6 +57,55 @@ const double _kRightActionRightPadding = 6;
 /// 水平方向通用内边距
 const double _kHorizontalPadding = 16;
 
+// ===== 动画与时长常量 =====
+
+/// 快速动画时长（淡入淡出、过渡等）
+const Duration _kAnimationFast = Duration(milliseconds: 300);
+
+/// 正常动画时长
+const Duration _kAnimationNormal = Duration(seconds: 2);
+
+/// SnackBar 显示时长
+const Duration _kSnackBarDuration = Duration(seconds: 2);
+
+/// 播放进度上报间隔
+const Duration _kProgressReportInterval = Duration(seconds: 5);
+
+/// 自动隐藏控制栏延迟
+const Duration _kControlsAutoHideDelay = Duration(seconds: 4);
+
+// ===== 字体大小常量 =====
+
+/// 小字体（标签、辅助信息）
+const double _kFontSizeSmall = 12;
+
+/// 中字体（正文、副标题）
+const double _kFontSizeMedium = 14;
+
+/// 中等字体（按钮、列表项）
+const double _kFontSizeBody = 13;
+
+/// 大字体（标题）
+const double _kFontSizeLarge = 18;
+
+// ===== 间距与内边距常量 =====
+
+/// 超小间距
+const double _kSpacingXSmall = 4;
+
+/// 小间距
+const double _kSpacingSmall = 6;
+
+/// 中间距
+const double _kSpacingMedium = 8;
+
+/// 大间距
+const double _kSpacingLarge = 12;
+
+/// 标签内边距（水平/垂直）
+const double _kTagPaddingHorizontal = 10;
+const double _kTagPaddingVertical = 4;
+
 class VideoPageItem extends ConsumerStatefulWidget {
   final MediaItem item;
   final PlaybackSession? preloadedSession;
@@ -148,7 +197,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
     _discRotationCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: _kControlsAutoHideDelay,
     );
     _discRotation = Tween<double>(begin: 0.0, end: 1.0).animate(
         CurvedAnimation(parent: _discRotationCtrl, curve: Curves.linear));
@@ -640,7 +689,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   void _startProgressTimer() {
     _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _progressTimer = Timer.periodic(_kProgressReportInterval, (_) {
       if (!mounted) return;
       _reportPlaybackProgress();
     });
@@ -689,7 +738,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         const SnackBar(
           content: Text('视频正在准备中，请稍后'),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: _kSnackBarDuration,
         ),
       );
     }
@@ -770,7 +819,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('认证信息缺失，请重新登录后再试'),
-              duration: Duration(seconds: 2),
+              duration: _kSnackBarDuration,
             ),
           );
         }
@@ -784,7 +833,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('已删除'), duration: Duration(seconds: 2)));
+              content: Text('已删除'), duration: _kSnackBarDuration));
           // 从视频列表中移除当前 item，避免用户反向滑回已删除的视频
           ref.read(videoListProvider.notifier).removeItem(widget.item.id);
           widget.onVideoEnded?.call();
@@ -794,7 +843,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text('删除失败: $e'),
-                duration: const Duration(seconds: 2)),
+                duration: _kAnimationNormal),
           );
         }
       }
@@ -855,7 +904,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       children: [
         // 骨架占位：视频未 ready 时显示渐变色块
         AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: _kAnimationFast,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -874,7 +923,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         RepaintBoundary(
           child: AnimatedOpacity(
             opacity: isReady ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
+            duration: _kAnimationFast,
             curve: Curves.easeOut,
             child: GestureOverlay(
               controller: _videoController,
@@ -1089,7 +1138,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   bottomSafeArea: bottomPadding + 80 + 16,
                   rightSafeArea: 16,
                   buttons: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(_kSpacingLarge),
                     decoration: BoxDecoration(
                       color: scheme.surface.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(16),
@@ -1233,7 +1282,7 @@ class _BottomInfoBar extends StatelessWidget {
                 // 类型标签
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: _kTagPaddingHorizontal, vertical: _kTagPaddingVertical),
                   decoration: BoxDecoration(
                     color: scheme.primary,
                     borderRadius: BorderRadius.circular(8),
@@ -1242,12 +1291,12 @@ class _BottomInfoBar extends StatelessWidget {
                     item.type,
                     style: TextStyle(
                       color: scheme.onPrimary,
-                      fontSize: 12,
+                      fontSize: _kFontSizeSmall,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: _kSpacingMedium),
                 // 标题 + 评分
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -1262,24 +1311,24 @@ class _BottomInfoBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: scheme.onSurface,
-                          fontSize: 18,
+                          fontSize: _kFontSizeLarge,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: _kSpacingLarge),
                     if (item.displayRating != null && item.displayRating! > 0)
                       Text(
                         '★ ${item.displayRating!.toStringAsFixed(1)}',
                         style: TextStyle(
                           color: scheme.primary,
-                          fontSize: 14,
+                          fontSize: _kFontSizeMedium,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: _kSpacingSmall),
                 // 简介
                 if (item.overview != null && item.overview!.isNotEmpty)
                   Text(
@@ -1288,13 +1337,13 @@ class _BottomInfoBar extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 14,
+                      fontSize: _kFontSizeMedium,
                     ),
                   ),
                 // 进度条
                 if (hasController)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12),
+                    padding: const EdgeInsets.only(top: _kSpacingLarge),
                     child: SeekableProgressBar(
                       controller: controller!,
                       formatDuration: formatDuration,
@@ -1614,7 +1663,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
                     ? () {
                         // 自动播放下一个
                         _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
+                          duration: _kAnimationFast,
                           curve: Curves.easeOut,
                         );
                       }
@@ -1641,7 +1690,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
               right: 16,
               child: Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: _kSpacingLarge, vertical: _kSpacingSmall),
                 decoration: BoxDecoration(
                   color: scheme.surface.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(16),
@@ -1650,7 +1699,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
                   '${_currentIndex + 1}/${_items.length}',
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 13,
+                    fontSize: _kFontSizeBody,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
