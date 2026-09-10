@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType;
+import 'loading_state_card.dart';
 import 'tv_focusable.dart';
 
 /// 媒体库选择器作用域（PR #66）
@@ -185,11 +186,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             // 内容区域
             Expanded(
               child: librariesAsync.when(
-                loading: () => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: scheme.primary),
-                  ),
+                loading: () => const Center(
+                  child: LoadingStateCard(title: '加载中...'),
                 ),
                 // PR #67：error 分支增强——显示具体错误 + 重试按钮
                 // 解决：libraryListProvider 之前失败后缓存 error 状态，

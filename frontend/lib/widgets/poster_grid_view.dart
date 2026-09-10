@@ -8,6 +8,7 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType, ViewMode;
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
+import '../widgets/loading_state_card.dart';
 import '../widgets/tv_focusable.dart';
 
 /// 海报墙视图：网格布局展示视频缩略图
@@ -180,7 +181,7 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
     }
 
     if (gridItems.isEmpty && videoState.isLoading) {
-      return Center(child: CircularProgressIndicator(color: scheme.primary));
+      return const Center(child: LoadingStateCard(title: '加载中...'));
     }
     if (gridItems.isEmpty) {
       return Center(
