@@ -181,6 +181,9 @@ class AudioAlbum {
   final int? year;
   final int? rating;
 
+  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
+  final String? coverUrl;
+
   const AudioAlbum({
     required this.name,
     this.albumArtist,
@@ -188,11 +191,25 @@ class AudioAlbum {
     this.displayArtist,
     this.year,
     this.rating,
+    this.coverUrl,
   });
 
   /// 展示用歌手
   String get artistDisplay =>
       displayArtist?.trim().isNotEmpty == true ? displayArtist! : (albumArtist ?? '');
+
+  /// 返回带 coverUrl 的新实例（不可变模型的 copyWith 模式）
+  AudioAlbum copyWith({String? coverUrl}) {
+    return AudioAlbum(
+      name: name,
+      albumArtist: albumArtist,
+      artist: artist,
+      displayArtist: displayArtist,
+      year: year,
+      rating: rating,
+      coverUrl: coverUrl ?? this.coverUrl,
+    );
+  }
 
   factory AudioAlbum.fromJson(Map<String, dynamic> json) {
     final additional = json['additional'] as Map<String, dynamic>?;
@@ -213,7 +230,19 @@ class AudioArtist {
   final String name;
   final int? rating;
 
-  const AudioArtist({required this.name, this.rating});
+  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
+  final String? coverUrl;
+
+  const AudioArtist({required this.name, this.rating, this.coverUrl});
+
+  /// 返回带 coverUrl 的新实例（不可变模型的 copyWith 模式）
+  AudioArtist copyWith({String? coverUrl}) {
+    return AudioArtist(
+      name: name,
+      rating: rating,
+      coverUrl: coverUrl ?? this.coverUrl,
+    );
+  }
 
   factory AudioArtist.fromJson(Map<String, dynamic> json) {
     final additional = json['additional'] as Map<String, dynamic>?;

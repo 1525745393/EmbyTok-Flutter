@@ -277,7 +277,16 @@ class SynologyAudioApi {
     });
     final albums = _asList(data?['albums']);
     return albums
-        .map((e) => AudioAlbum.fromJson(_asMap(e)))
+        .map((e) {
+          final album = AudioAlbum.fromJson(_asMap(e));
+          // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
+          return album.copyWith(
+            coverUrl: getAlbumCoverUrl(
+              albumName: album.name,
+              albumArtistName: album.displayArtist ?? album.albumArtist,
+            ),
+          );
+        })
         .toList(growable: false);
   }
 
@@ -303,7 +312,13 @@ class SynologyAudioApi {
     });
     final artists = _asList(data?['artists']);
     return artists
-        .map((e) => AudioArtist.fromJson(_asMap(e)))
+        .map((e) {
+          final artist = AudioArtist.fromJson(_asMap(e));
+          // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
+          return artist.copyWith(
+            coverUrl: getArtistCoverUrl(artist.name),
+          );
+        })
         .toList(growable: false);
   }
 

@@ -699,13 +699,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final album = albums[index];
-          final coverUrl = ref
-              .read(synologyAuthProvider.notifier)
-              .api
-              .getAlbumCoverUrl(
-                albumName: album.name,
-                albumArtistName: album.displayArtist ?? album.albumArtist,
-              );
+          // P2-2：直接使用模型层预计算的 coverUrl，避免重复计算
+          final coverUrl = album.coverUrl;
           return GestureDetector(
             onTap: () => _showAlbumSongs(album),
             child: SizedBox(
@@ -748,10 +743,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         separatorBuilder: (_, __) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           final artist = artists[index];
-          final coverUrl = ref
-              .read(synologyAuthProvider.notifier)
-              .api
-              .getArtistCoverUrl(artist.name);
+          // P2-2：直接使用模型层预计算的 coverUrl，避免重复计算
+          final coverUrl = artist.coverUrl;
           return GestureDetector(
             onTap: () => _showArtistSongs(artist),
             child: SizedBox(
