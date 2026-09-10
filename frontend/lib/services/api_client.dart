@@ -65,21 +65,25 @@ class ApiClient {
   ///
   /// [validateCertificate] 为 true 时启用证书校验（默认），
   /// 为 false 时允许自签名证书（仅内网调试用，存在安全风险）。
+  ///
+  /// 实现说明：使用动态类型访问 onHttpClientCreate，避免不同 Flutter/Dio
+  /// 版本中 DefaultHttpClientAdapter 类名变化导致的编译错误。
   void _setupCertificateValidation(bool validateCertificate) {
     if (validateCertificate) return;
     // 禁用证书校验：允许自签名证书
     // 注意：这会降低安全性，仅建议在受信任的内网环境中使用
     try {
       final adapter = _dio.httpClientAdapter;
-      if (adapter is DefaultHttpClientAdapter) {
-        adapter.onHttpClientCreate = (client) {
-          client.badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true;
-          return client;
-        };
-      }
+      // 使用动态类型访问，兼容不同 Dio 版本的 HttpClientAdapter 实现
+      // ignore: avoid_dynamic_calls
+      (adapter as dynamic).onHttpClientCreate = (HttpClient client) {
+        client.badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true;
+        return client;
+      };
     } catch (_) {
       // 配置失败静默处理，不影响主流程
+      // 可能原因：Web 平台不支持、Dio 版本不兼容等
     }
   }
 
