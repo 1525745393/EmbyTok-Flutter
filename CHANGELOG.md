@@ -1,3 +1,10 @@
+## [2.62.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.1...v2.62.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **ci:** 修复 analyze error 误匹配问题 — 使用退出码和精确 grep 模式 ([06f7dff](https://github.com/1525745393/EmbyTok-Flutter/commit/06f7dff308dcb28ee44d51e03a0eb6ef0e886430))
+
 ## [2.62.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.0...v2.62.1) (2026-09-10)
 
 
