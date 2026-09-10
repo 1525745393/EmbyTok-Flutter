@@ -110,7 +110,7 @@ frontend/lib/
 │   └── services.dart          #   统一导出
 │
 ├── views/                     # 页面
-│   ├── login_view.dart        #   登录页
+│   ├── login_view.dart        #   登录页（多源服务器选择：Emby/Jellyfin/群晖 Audio Station）
 │   ├── feed_view.dart         #   视频流首页（TikTok 式滑动）
 │   ├── video_grid_view.dart   #   媒体库网格视图
 │   ├── fullscreen_video_page.dart #   全屏播放页
@@ -122,36 +122,48 @@ frontend/lib/
 │   ├── search_view.dart       #   搜索页
 │   ├── favorites_view.dart    #   收藏页
 │   ├── history_view.dart      #   观看历史页
-│   ├── settings_view.dart     #   设置页
+│   ├── settings_view.dart     #   设置页（服务器管理、SSL 证书开关、主题等）
 │   ├── home_scaffold.dart     #   首页脚手架（底部导航容器）
 │   ├── standard_root_view.dart#   标准模式根视图
 │   ├── tv_root_view.dart      #   TV 模式根视图
+│   ├── synology_music_view.dart # 群晖音乐库主页面（首页/歌曲/专辑/歌手/歌单 5 个 Tab）
+│   ├── synology_full_player.dart # 群晖音乐全屏播放器
+│   ├── music/                 #   音乐库组件子目录（P1-1 大文件拆分）
+│   │   ├── equalizer_bars.dart    #   均衡器柱状图组件
+│   │   ├── artist_detail_sheet.dart #  歌手详情弹层（头像/简介/数据源选择）
+│   │   ├── music_cover_widgets.dart #  通用封面组件（SongCover/AlbumCover/ArtistAvatar/SourceBadge）
+│   │   ├── mini_player_bar.dart    #   底部迷你播放栏（播放控制/进度条/超窄屏适配）
+│   │   ├── home_widgets.dart       #   首页快捷入口组件（QuickEntry/QuickEntryButton）
+│   │   └── horizontal_lists.dart   #   首页横向列表组件（专辑/歌手/歌单横向列表）
 │   └── views.dart             #   统一导出
 │
 ├── widgets/                   # 可复用 UI 组件
-│   ├── video/                 #   视频相关组件子目录
-│   │   ├── video_action_button.dart    #   视频操作按钮
-│   │   ├── video_control_buttons.dart  #   视频控制按钮组
+│   ├── video/                 #   视频相关组件子目录（P2-3 文件组织优化）
+│   │   ├── video.dart              #   视频组件统一导出（barrel 文件）
+│   │   ├── video_player_widget.dart#   视频播放器封装（video_player）
+│   │   ├── video_page_item.dart    #   单个视频页（在 PageView 中）
+│   │   ├── video_controls.dart     #   播放控制条（暂停/进度/倍速）
+│   │   ├── video_action_button.dart#   视频操作按钮
+│   │   ├── video_control_buttons.dart # 视频控制按钮组
 │   │   ├── video_draggable_clean_actions.dart # 可拖拽纯净模式按钮
-│   │   ├── video_progress_bars.dart    #   视频进度条
-│   │   └── video_sheet_utils.dart      #   视频底部面板工具
-│   ├── video_player_widget.dart#   视频播放器封装（video_player）
-│   ├── video_page_item.dart   #   单个视频页（在 PageView 中）
-│   ├── video_controls.dart    #   播放控制条（暂停/进度/倍速）
-│   ├── gesture_overlay.dart   #   手势识别层（单击/双击/长按/拖拽）
-│   ├── heart_animation.dart   #   爱心动画效果
-│   ├── subtitle_renderer.dart #   字幕渲染
-│   ├── subtitle_controls.dart #   字幕语言切换
-│   ├── subtitle_selector.dart #   字幕选择器
-│   ├── subtitle_widget.dart   #   字幕 Widget
+│   │   ├── video_progress_bars.dart #  视频进度条
+│   │   ├── video_sheet_utils.dart  #   视频底部面板工具
+│   │   ├── video_gesture_mixin.dart #   视频手势识别 Mixin
+│   │   ├── gesture_overlay.dart    #   手势识别层（单击/双击/长按/拖拽）
+│   │   ├── heart_animation.dart    #   爱心动画效果
+│   │   ├── subtitle_renderer.dart  #   字幕渲染
+│   │   ├── subtitle_controls.dart  #   字幕语言切换
+│   │   ├── subtitle_selector.dart  #   字幕选择器
+│   │   ├── subtitle_widget.dart    #   字幕 Widget
+│   │   ├── top_tool_bar.dart       #   顶部工具栏
+│   │   └── video_grid_card.dart    #   视频网格卡片
 │   ├── poster_grid_view.dart  #   海报网格视图
-│   ├── video_grid_card.dart   #   视频网格卡片
 │   ├── library_selector.dart  #   媒体库选择器
-│   ├── top_tool_bar.dart      #   顶部工具栏
 │   ├── tv_focusable.dart      #   TV 焦点组件
 │   ├── empty_state_card.dart  #   空状态卡片
 │   ├── error_state_card.dart  #   错误状态卡片
-│   └── widgets.dart           #   统一导出
+│   ├── loading_state_card.dart #  加载状态卡片（P1-4 通用状态组件）
+│   └── widgets.dart           #   通用组件统一导出（barrel 文件）
 │
 ├── theme/                     # 主题配置
 │   ├── app_theme.dart         #   应用主题（浅色 / 深色）
@@ -161,10 +173,18 @@ frontend/lib/
     ├── constants.dart         #   常量配置
     ├── formatters.dart        #   数字/时间格式化
     ├── colors.dart            #   颜色工具
+    ├── donate_colors.dart     #   捐赠页面颜色配置
     ├── app_preferences.dart   #   应用偏好存储
     ├── image_cache_manager.dart#  图片缓存管理
     ├── keyboard_shortcuts.dart#   键盘快捷键
-    ├── logger.dart            #   日志工具
+    ├── logger.dart            #   日志工具（P0-2 支持敏感字段脱敏）
+    ├── error_handler.dart     #   统一错误处理工具（P2-4，6 种错误类型分类）
+    ├── safe_unawaited.dart    #   安全的异步忽略工具
+    ├── safe_insets.dart       #   安全边距工具（刘海屏/底部黑条适配）
+    ├── lrc_parser.dart        #   LRC 歌词解析器
+    ├── memory_cache.dart      #   内存缓存工具
+    ├── memory_pressure_handler.dart # 内存压力处理
+    ├── fullscreen_navigator.dart # 全屏导航工具
     ├── version.dart           #   版本信息
     └── utils.dart             #   通用工具
 ```
