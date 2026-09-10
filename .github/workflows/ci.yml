@@ -47,31 +47,31 @@ jobs:
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
           echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
           
-          # 运行 flutter analyze，使用退出码判断是否有 error
-          # 退出码 0 = 无 error（可能有 info/warning），非 0 = 有 error
+          # 运行 flutter analyze，将输出保存到文件
+          # 注意：flutter analyze 退出码 1 可能表示有 warning/info，不一定是 error
+          # 所以我们只统计 error 级别的问题数量来判断是否失败
           set +e
-          flutter analyze --no-pub lib 2>&1 | tee /tmp/analyze_lib.txt
-          ANALYZE_EXIT_CODE=${PIPESTATUS[0]}
+          flutter analyze --no-pub lib > /tmp/analyze_lib.txt 2>&1
           set -e
           
           echo ""
-          echo "📊 analyze 退出码：$ANALYZE_EXIT_CODE（0=无 error，非0=有 error）"
+          echo "📊 analyze 完成"
           
-          # 统计各类型问题数量
-          ERROR_COUNT=$(grep -c "^\s*error •" /tmp/analyze_lib.txt || echo "0")
-          WARNING_COUNT=$(grep -c "^\s*warning •" /tmp/analyze_lib.txt || echo "0")
-          INFO_COUNT=$(grep -c "^\s*info •" /tmp/analyze_lib.txt || echo "0")
+          # 统计各类型问题数量（使用精确匹配，避免误匹配文件名中的 error）
+          ERROR_COUNT=$(grep -c "^   error •" /tmp/analyze_lib.txt || true)
+          WARNING_COUNT=$(grep -c "^   warning •" /tmp/analyze_lib.txt || true)
+          INFO_COUNT=$(grep -c "^   info •" /tmp/analyze_lib.txt || true)
           
           echo "📊 error: $ERROR_COUNT, warning: $WARNING_COUNT, info: $INFO_COUNT"
           
           # 只有 error 级别问题才会阻断发布
-          if [ "$ANALYZE_EXIT_CODE" -ne 0 ] || [ "$ERROR_COUNT" -gt 0 ]; then
+          if [ "$ERROR_COUNT" -gt 0 ]; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ 发现 error 级别的编译错误！请修复后再提交"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ ERROR（严重错误 - 必须修复）："
-            grep "^\s*error •" /tmp/analyze_lib.txt || echo "（无 error 级别问题）"
+            grep "^   error •" /tmp/analyze_lib.txt
             exit 1
           fi
           
