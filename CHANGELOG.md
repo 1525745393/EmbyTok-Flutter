@@ -1,3 +1,15 @@
+# [2.62.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.61.0...v2.62.0) (2026-09-10)
+
+
+### Features
+
+* **P2-4:** 新增 ErrorHandler 统一错误处理工具类 ([785be61](https://github.com/1525745393/EmbyTok-Flutter/commit/785be613159774862c66e6b9d5749fb72519cc5d))
+
+
+### Performance Improvements
+
+* **P2-2:** 横向列表 coverUrl 缓存 — 模型层预计算，UI 层直接使用 ([93b54f8](https://github.com/1525745393/EmbyTok-Flutter/commit/93b54f87fef0db9ce747d6d3caa1a38e9b9d692c))
+
 # [2.61.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.7...v2.61.0) (2026-09-10)
 
 
