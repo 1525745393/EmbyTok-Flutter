@@ -52,11 +52,33 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
+      - name: 缓存 Gradle 依赖（节省 2-3 分钟构建时间）
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: 缓存 Android NDK（避免每次重新下载安装）
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/ndk
+          key: ${{ runner.os }}-ndk-28.2.13676358
+          restore-keys: |
+            ${{ runner.os }}-ndk-
+
       - name: 安装 Android NDK 28.2.13676358（jni 插件要求）
         run: |
-          echo "📥 安装 NDK 28.2.13676358..."
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
-          echo "✅ NDK 安装完成"
+          echo "📥 检查/安装 NDK 28.2.13676358..."
+          if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
+            echo "✅ NDK 已缓存，跳过安装"
+          else
+            echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
+            echo "✅ NDK 安装完成"
+          fi
 
       - name: 设置 Flutter 3.44.8
         uses: subosito/flutter-action@v2

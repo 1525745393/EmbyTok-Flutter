@@ -47,27 +47,29 @@ jobs:
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
           echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
           
-          # 运行 flutter analyze 并分别捕获各级别日志
+          # 运行一次 flutter analyze，将输出保存到变量（避免重复运行 4 次，节省时间）
+          ANALYZE_OUTPUT=$(flutter analyze --no-pub lib 2>&1)
+          
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "❌ ERROR（严重错误 - 必须修复）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub lib 2>&1 | grep "error •" || echo "✅ 没有 error 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "error •" || echo "✅ 没有 error 级别的问题"
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "⚠️  WARNING（警告 - 建议修复）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub lib 2>&1 | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "warning •" || echo "✅ 没有 warning 级别的问题"
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "ℹ️  INFO（风格建议 - 可选修复）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub lib 2>&1 | grep "info •" || echo "✅ 没有 info 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "info •" || echo "✅ 没有 info 级别的问题"
           
           # 检查是否存在 error 级别问题
-          if flutter analyze --no-pub lib 2>&1 | grep -q "error •"; then
+          if echo "$ANALYZE_OUTPUT" | grep -q "error •"; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ 发现 error 级别的编译错误！请修复后再提交"
@@ -84,23 +86,26 @@ jobs:
           echo "ℹ️  说明：这里的问题不会影响发布 APK，但测试代码需要保持最新"
           echo "⚠️  如果这一步失败，只表示测试文件可能过时了，不会阻止发布"
           
+          # 运行一次 flutter analyze，将输出保存到变量
+          ANALYZE_OUTPUT=$(flutter analyze --no-pub test 2>&1)
+          
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "❌ ERROR（严重错误）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub test 2>&1 | grep "error •" || echo "✅ 没有 error 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "error •" || echo "✅ 没有 error 级别的问题"
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "⚠️  WARNING（警告）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub test 2>&1 | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "warning •" || echo "✅ 没有 warning 级别的问题"
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "ℹ️  INFO（风格建议）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          flutter analyze --no-pub test 2>&1 | grep "info •" || echo "✅ 没有 info 级别的问题"
+          echo "$ANALYZE_OUTPUT" | grep "info •" || echo "✅ 没有 info 级别的问题"
           
           echo ""
           echo "✅ 测试代码检查完成（如有问题需要后续修复，不影响发布）"
