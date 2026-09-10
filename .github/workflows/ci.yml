@@ -50,6 +50,12 @@ jobs:
           # 运行一次 flutter analyze，将输出保存到变量（避免重复运行 4 次，节省时间）
           ANALYZE_OUTPUT=$(flutter analyze --no-pub lib 2>&1)
           
+          # 调试：输出完整的 analyze 结果（用于排查 CI 与本地环境差异）
+          echo "🔍 完整 analyze 输出（前 100 行）："
+          echo "$ANALYZE_OUTPUT" | head -100
+          echo "🔍 完整 analyze 输出（包含 error 的行）："
+          echo "$ANALYZE_OUTPUT" | grep -i "error" || echo "（无包含 error 的行）"
+          
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "❌ ERROR（严重错误 - 必须修复）"
