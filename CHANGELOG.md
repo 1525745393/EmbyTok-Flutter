@@ -1,3 +1,17 @@
+# [2.61.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.7...v2.61.0) (2026-09-10)
+
+
+### Bug Fixes
+
+* **P0-1:** 修复 CI 编译错误 — DefaultHttpClientAdapter 在 Flutter 3.44.8 中未定义 ([60e6085](https://github.com/1525745393/EmbyTok-Flutter/commit/60e6085fbac03d071ef9aac594c9f513608e6513))
+
+
+### Features
+
+* **P0-1:** SSL 证书校验开关 — 设置页新增允许自签名证书选项 ([ca18ee2](https://github.com/1525745393/EmbyTok-Flutter/commit/ca18ee274fb548fb12d7e6bef0c071d0f4dac141))
+* **P0-2:** 日志脱敏 — 自动过滤 Token/密码等敏感字段 ([0ae93fc](https://github.com/1525745393/EmbyTok-Flutter/commit/0ae93fc5a891dd1cd9d577825ab5cd8fe7bd97ed))
+* **P1-4:** 通用状态组件提取 — 新增 LoadingStateCard 统一加载状态 ([1d0c56c](https://github.com/1525745393/EmbyTok-Flutter/commit/1d0c56c1cdc48c84b6d4a2b67bea38d501dec5d7))
+
 ## [2.60.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.60.6...v2.60.7) (2026-09-09)
 
 
