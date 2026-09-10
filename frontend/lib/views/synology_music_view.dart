@@ -1533,29 +1533,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   Future<void> _showArtistSongs(AudioArtist artist) async {
-    // 通过 API 按歌手名过滤歌曲
-    final api = ref.read(synologyAuthProvider.notifier).api;
-    List<AudioSong> songs;
-    try {
-      songs = await api.getSongs(artist: artist.name);
-    } catch (e) {
-      AppLogger.warn('加载歌手歌曲失败',
-          data: {'artist': artist.name, 'error': e.toString()});
-      songs = const [];
-    }
-    if (!mounted) return;
-    // 歌手详情弹层：歌曲列表 + 顶部搜索按钮（可搜索其他歌手选择）
-    final scheme = Theme.of(context).colorScheme;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: scheme.surface,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => ArtistDetailSheet(
-        artist: artist,
-        initialSongs: songs,
-      ),
-    );
+    // 跳转到独立的歌手详情页（V1.0 歌手简介功能）
+    // 歌手详情页包含：可折叠头部、操作按钮、简介模块、专辑列表、歌曲列表
+    context.push('/music/artist/${Uri.encodeComponent(artist.name)}');
   }
 
   Future<void> _showPlaylistSongs(AudioPlaylist playlist) async {

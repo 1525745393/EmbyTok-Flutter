@@ -33,6 +33,7 @@ import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
 import 'views/main_view.dart';
 import 'views/synology_music_view.dart';
+import 'views/music/artist_detail_page.dart';
 import 'widgets/performance_overlay.dart';
 import 'widgets/video/video_page_item.dart';
 
@@ -248,6 +249,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/music',
         builder: (context, state) => const SynologyMusicView(),
       ),
+      // 歌手详情页
+      GoRoute(
+        path: '/music/artist/:name',
+        builder: (context, state) {
+          final artistName = state.pathParameters['name'] ?? '';
+          return ArtistDetailPage(artistName: artistName);
+        },
+      ),
       // 服务器管理（多服务器控制台）
       GoRoute(
         path: '/servers',
@@ -435,7 +444,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: systemOverlayStyleOf(context),
-          child: PerformanceOverlay(
+          child: AppPerformanceOverlay(
             child: child ?? const SizedBox.shrink(),
           ),
         );

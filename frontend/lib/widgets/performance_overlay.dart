@@ -15,24 +15,24 @@ import 'package:flutter/material.dart';
 import '../utils/performance_monitor.dart';
 
 /// 性能监控悬浮面板
-class PerformanceOverlay extends StatefulWidget {
+class AppPerformanceOverlay extends StatefulWidget {
   /// 子组件（通常是应用的根组件）
   final Widget child;
 
   /// 是否默认显示
   final bool showByDefault;
 
-  const PerformanceOverlay({
+  const AppPerformanceOverlay({
     super.key,
     required this.child,
     this.showByDefault = false,
   });
 
   @override
-  State<PerformanceOverlay> createState() => _PerformanceOverlayState();
+  State<AppPerformanceOverlay> createState() => _PerformanceOverlayState();
 }
 
-class _PerformanceOverlayState extends State<PerformanceOverlay> {
+class _PerformanceOverlayState extends State<AppPerformanceOverlay> {
   bool _visible = false;
   bool _expanded = true;
   Offset _position = const Offset(16, 100);
