@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
@@ -21,10 +22,61 @@ import '../providers/providers.dart';
 import '../services/services.dart';
 import '../utils/app_preferences.dart'
     show AppPreferencesService, OrientationMode;
+import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
 import '../widgets/library_selector.dart';
+
+// ===== 设置页面 UI 常量（避免魔法数字，提升可维护性）=====
+
+/// 超小字体（辅助信息、时间戳）
+const double _kFontSizeTiny = 11;
+
+/// 小字体（标签、副标题）
+const double _kFontSizeSmall = 12;
+
+/// 中等字体（列表项正文、设置值）
+const double _kFontSizeBody = 13;
+
+/// 中字体（标题、按钮）
+const double _kFontSizeMedium = 14;
+
+/// 大字体（分组标题、重要值）
+const double _kFontSizeLarge = 15;
+
+/// 超大字体（页面标题、对话框标题）
+const double _kFontSizeXLarge = 16;
+
+/// 特大字体（强调标题）
+const double _kFontSizeXXLarge = 18;
+
+/// 最大字体（捐赠/关于页面大标题）
+const double _kFontSizeXXXLarge = 20;
+
+/// 超小间距
+const double _kSpacingXSmall = 4;
+
+/// 小间距
+const double _kSpacingSmall = 6;
+
+/// 中间距
+const double _kSpacingMedium = 8;
+
+/// 大间距
+const double _kSpacingLarge = 10;
+
+/// 超大间距
+const double _kSpacingXLarge = 12;
+
+/// 特大间距
+const double _kSpacingXXLarge = 16;
+
+/// 巨大间距
+const double _kSpacingXXXLarge = 20;
+
+/// 最大间距（页面底部留白）
+const double _kSpacingXXXXLarge = 32;
 
 // ==================== 主页面 ====================
 
@@ -208,9 +260,9 @@ class SettingsView extends ConsumerWidget {
               _buildSelfSignedCertificateTile(context, ref),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kSpacingXXLarge),
           _buildLogoutButton(context, ref),
-          const SizedBox(height: 32),
+          const SizedBox(height: _kSpacingXXXXLarge),
         ],
       ),
     );
@@ -249,7 +301,7 @@ class SettingsView extends ConsumerWidget {
                 title,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 14,
+                  fontSize: _kFontSizeMedium,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
                 ),
@@ -401,7 +453,7 @@ class SettingsView extends ConsumerWidget {
                 Text(
                   current == 0 ? '不过滤' : '≥ ${current.toStringAsFixed(1)}',
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: _kFontSizeXXLarge, fontWeight: FontWeight.bold),
                 ),
                 Slider(
                   min: 0,
@@ -419,7 +471,7 @@ class SettingsView extends ConsumerWidget {
                 ),
                 const Text(
                   '0 = 不过滤；越高越严格（小众片变少）',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
                 ),
               ],
             ),
@@ -451,7 +503,7 @@ class SettingsView extends ConsumerWidget {
                 Text(
                   current == 0 ? '不过滤' : '$current 秒以上',
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: _kFontSizeXXLarge, fontWeight: FontWeight.bold),
                 ),
                 Slider(
                   min: 0,
@@ -471,7 +523,7 @@ class SettingsView extends ConsumerWidget {
                 ),
                 const Text(
                   '过滤测试片 / 预告片（默认 30s）',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
                 ),
               ],
             ),
@@ -609,7 +661,7 @@ class SettingsView extends ConsumerWidget {
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
                       '越短 = 推荐越关注最近的偏好；越长 = 老的偏好也会影响推荐。\n0 = 不衰减',
-                      style: TextStyle(fontSize: 13),
+                      style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
                   ...options.map((days) {
@@ -700,7 +752,7 @@ class SettingsView extends ConsumerWidget {
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
                       '越长 = 越不容易看到重复内容；越短 = 推荐变化越快。',
-                      style: TextStyle(fontSize: 13),
+                      style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
                   ...options.map((d) {
@@ -788,7 +840,7 @@ class SettingsView extends ConsumerWidget {
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
                       '用户评分 < 阈值的 item 不再推荐（收藏项豁免）。0 = 关闭该过滤。',
-                      style: TextStyle(fontSize: 13),
+                      style: TextStyle(fontSize: _kFontSizeBody),
                     ),
                   ),
                   ...options.map((d) {
@@ -1037,15 +1089,15 @@ class SettingsView extends ConsumerWidget {
             },
             style: ButtonStyle(
               visualDensity: VisualDensity.compact,
-              textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13)),
+              textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _kFontSizeBody)),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingMedium),
           Text(
             mode == AppServiceMode.music
                 ? '首页将显示音乐库界面（群晖 Audio Station）'
                 : '首页将显示视频流界面（Emby / Plex）',
-            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            style: TextStyle(fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -1069,7 +1121,7 @@ class SettingsView extends ConsumerWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: _kFontSizeSmall,
               fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
@@ -1134,14 +1186,14 @@ class SettingsView extends ConsumerWidget {
             children: [
               const Text(
                 '免费申请：https://www.last.fm/api/account/create',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: _kFontSizeSmall),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: _kSpacingXSmall),
               const Text(
                 '用于补充歌手头像与简介（未配置时自动使用群晖/Wikipedia 数据）',
-                style: TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: _kFontSizeSmall),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               TextField(
                 controller: controller,
                 decoration: const InputDecoration(
@@ -1261,7 +1313,7 @@ class SettingsView extends ConsumerWidget {
               _showSelfSignedCertificateWarning(context, ref);
             } else {
               // 关闭时直接保存
-              _setAllowSelfSignedCertificate(false);
+              _setAllowSelfSignedCertificate(context, false);
             }
           },
         );
@@ -1279,7 +1331,8 @@ class SettingsView extends ConsumerWidget {
   ///
   /// 注意：证书校验配置在 ApiClient 初始化时读取，
   /// 修改后需要重启 App 才能生效。
-  Future<void> _setAllowSelfSignedCertificate(bool allow) async {
+  Future<void> _setAllowSelfSignedCertificate(
+      BuildContext context, bool allow) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(kStorageKeyAllowSelfSignedCertificate, allow);
     if (allow) {
@@ -1327,7 +1380,7 @@ class SettingsView extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              _setAllowSelfSignedCertificate(true);
+              _setAllowSelfSignedCertificate(context, true);
             },
             style: TextButton.styleFrom(foregroundColor: scheme.error),
             child: const Text('确认开启'),
@@ -1348,7 +1401,7 @@ class SettingsView extends ConsumerWidget {
           icon: Icon(Icons.logout, color: scheme.onError),
           label: Text(
             '退出登录',
-            style: TextStyle(color: scheme.onError, fontSize: 16),
+            style: TextStyle(color: scheme.onError, fontSize: _kFontSizeXLarge),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.error,
@@ -1618,14 +1671,14 @@ class SettingsView extends ConsumerWidget {
         leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
         title: Text(
           title,
-          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
         ),
         subtitle: subtitle != null
             ? Text(
                 subtitle,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                 ),
               )
             : null,
@@ -1650,14 +1703,14 @@ class SettingsView extends ConsumerWidget {
         leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
         title: Text(
           title,
-          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
         ),
         subtitle: subtitle != null
             ? Text(
                 subtitle,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                 ),
               )
             : null,
@@ -1683,14 +1736,14 @@ class SettingsView extends ConsumerWidget {
         leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
         title: Text(
           title,
-          style: TextStyle(color: scheme.onSurface, fontSize: 15),
+          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
         ),
         subtitle: subtitle != null
             ? Text(
                 subtitle,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                 ),
               )
             : null,
@@ -1778,37 +1831,37 @@ class SettingsView extends ConsumerWidget {
               title: '单击',
               description: '显示/隐藏控制栏',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.double_arrow,
               title: '双击左右侧',
               description: '快退 / 快进 10 秒',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.favorite,
               title: '双击中间',
               description: '点赞（加入收藏）',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.fast_forward,
               title: '长按',
               description: '2x 倍速播放，松开恢复',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.swipe_up,
               title: '上下滑动（左半屏）',
               description: '调节屏幕亮度',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.volume_up,
               title: '上下滑动（右半屏）',
               description: '调节音量',
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             _GestureItem(
               icon: Icons.swipe,
               title: '左右滑动',
@@ -2085,7 +2138,7 @@ class SettingsView extends ConsumerWidget {
             const Spacer(),
             Text(
               '共 ${logContent.length} 字符',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
             ),
           ],
         ),
@@ -2101,7 +2154,7 @@ class SettingsView extends ConsumerWidget {
                   child: Text(
                     '... 省略前 ${lines.length - 20} 行',
                     style:
-                        TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                        TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
                   ),
                 ),
               Container(
@@ -2116,7 +2169,7 @@ class SettingsView extends ConsumerWidget {
                     preview,
                     style: TextStyle(
                       fontFamily: 'monospace',
-                      fontSize: 11,
+                      fontSize: _kFontSizeTiny,
                       color: scheme.onSurface,
                       height: 1.6,
                     ),
@@ -2251,18 +2304,18 @@ class SettingsView extends ConsumerWidget {
                     '近 7 天完播率',
                     '${(stats.last7DaysAvgCompletion * 100).toStringAsFixed(0)}%',
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: _kSpacingXXLarge),
                   // 最近 10 条
                   if (stats.records.isNotEmpty) ...[
                     Text(
                       '最近观看',
                       style: TextStyle(
                         color: scheme.onSurface,
-                        fontSize: 14,
+                        fontSize: _kFontSizeMedium,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: _kSpacingMedium),
                     ...stats.records.take(10).map((r) {
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -2273,7 +2326,7 @@ class SettingsView extends ConsumerWidget {
                                 r.itemTitle ?? r.itemId,
                                 style: TextStyle(
                                   color: scheme.onSurface,
-                                  fontSize: 12,
+                                  fontSize: _kFontSizeSmall,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2286,7 +2339,7 @@ class SettingsView extends ConsumerWidget {
                                 color: r.completionRate >= 0.8
                                     ? Colors.green
                                     : scheme.onSurfaceVariant,
-                                fontSize: 12,
+                                fontSize: _kFontSizeSmall,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2301,7 +2354,7 @@ class SettingsView extends ConsumerWidget {
                         '暂无观看记录。开始播放视频后这里会显示统计。',
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
-                          fontSize: 13,
+                          fontSize: _kFontSizeBody,
                         ),
                       ),
                     ),
@@ -2377,11 +2430,11 @@ class SettingsView extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody)),
           Text(value,
               style: TextStyle(
                 color: scheme.onSurface,
-                fontSize: 15,
+                fontSize: _kFontSizeLarge,
                 fontWeight: FontWeight.w600,
               )),
         ],
@@ -2447,7 +2500,7 @@ class SettingsView extends ConsumerWidget {
             ),
             const SizedBox(width: 20),
             Text('正在检查更新…',
-                style: TextStyle(color: scheme.onSurface, fontSize: 15)),
+                style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge)),
           ],
         ),
       ),
@@ -2591,13 +2644,13 @@ class SettingsView extends ConsumerWidget {
                   const Text(
                     '正在下载更新',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: _kFontSizeXLarge,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: _kSpacingXXXLarge),
               ValueListenableBuilder<double>(
                 valueListenable: progressNotifier,
                 builder: (_, progress, __) {
@@ -2608,7 +2661,7 @@ class SettingsView extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: _kSpacingLarge),
               ValueListenableBuilder<String>(
                 valueListenable: statusNotifier,
                 builder: (_, status, __) {
@@ -2616,7 +2669,7 @@ class SettingsView extends ConsumerWidget {
                     status,
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 12,
+                      fontSize: _kFontSizeSmall,
                     ),
                   );
                 },
@@ -2653,20 +2706,20 @@ class SettingsView extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline, size: 48, color: scheme.error),
-            const SizedBox(height: 16),
+            const SizedBox(height: _kSpacingXXLarge),
             const Text(
               '下载失败',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: _kFontSizeXXLarge,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             Text(
               error,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
-                fontSize: 13,
+                fontSize: _kFontSizeBody,
                 height: 1.5,
               ),
             ),
@@ -2704,20 +2757,20 @@ class SettingsView extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.check_circle, size: 48, color: Colors.green),
-            const SizedBox(height: 16),
+            const SizedBox(height: _kSpacingXXLarge),
             const Text(
               '下载完成',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: _kFontSizeXXLarge,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: _kSpacingMedium),
             Text(
               '版本 ${release.version} 已下载完成，是否立即安装？',
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
-                fontSize: 13,
+                fontSize: _kFontSizeBody,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -2803,21 +2856,21 @@ class SettingsView extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 48, color: scheme.primary),
-            const SizedBox(height: 16),
+            const SizedBox(height: _kSpacingXXLarge),
             Text(
               title,
               style: TextStyle(
                 color: scheme.onSurface,
-                fontSize: 18,
+                fontSize: _kFontSizeXXLarge,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             Text(
               message,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
-                fontSize: 14,
+                fontSize: _kFontSizeMedium,
                 height: 1.5,
               ),
             ),
@@ -2886,26 +2939,26 @@ class SettingsView extends ConsumerWidget {
                 child: const Icon(Icons.volunteer_activism,
                     color: DonateColors.donateAccent, size: 32),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               Text(
                 '打赏支持',
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 18,
+                  fontSize: _kFontSizeXXLarge,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: _kSpacingSmall),
               Text(
                 '如果这个应用对你有帮助，\n可以请作者喝杯咖啡 ☕',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: _kSpacingXXLarge),
               // 收款码区域：用 errorBuilder 处理图片缺失
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -2922,7 +2975,7 @@ class SettingsView extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               // 支付宝收款码
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -2939,7 +2992,7 @@ class SettingsView extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: _kSpacingXXLarge),
               // 外部打赏链接（如爱发电等）
               InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -2957,7 +3010,7 @@ class SettingsView extends ConsumerWidget {
                         '前往 GitHub 仓库',
                         style: TextStyle(
                           color: scheme.primary,
-                          fontSize: 13,
+                          fontSize: _kFontSizeBody,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2965,7 +3018,7 @@ class SettingsView extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: _kSpacingMedium),
             ],
           ),
         ),
@@ -3014,54 +3067,54 @@ class SettingsView extends ConsumerWidget {
                 child: Icon(Icons.play_circle_filled,
                     color: scheme.onPrimary, size: 44),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               // 应用名
               Text(
                 'EmbyTok',
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 20,
+                  fontSize: _kFontSizeXXXLarge,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: _kSpacingXSmall),
               // 版本号
               Text(
                 '版本 $version',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: _kSpacingXXXLarge),
               // 应用介绍
               Text(
                 'EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的上下滑动体验，让你以更现代、便捷的方式浏览个人媒体库。',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 14,
+                  fontSize: _kFontSizeMedium,
                   height: 1.5,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: _kSpacingXXLarge),
               // 功能亮点
               _AboutFeatureRow(
                 icon: Icons.swipe_vertical,
                 text: '上下滑动，沉浸式刷片体验',
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: _kSpacingLarge),
               _AboutFeatureRow(
                 icon: Icons.favorite_border,
                 text: '收藏管理，快速访问心仪内容',
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: _kSpacingLarge),
               _AboutFeatureRow(
                 icon: Icons.tv,
                 text: '支持 Emby / Plex 媒体服务器',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: _kSpacingXXXLarge),
               const Divider(height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               // GitHub 仓库入口：点击跳转到项目仓库
               InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -3080,7 +3133,7 @@ class SettingsView extends ConsumerWidget {
                           'GitHub 仓库',
                           style: TextStyle(
                             color: scheme.primary,
-                            fontSize: 13,
+                            fontSize: _kFontSizeBody,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -3091,21 +3144,21 @@ class SettingsView extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: _kSpacingXLarge),
               // 版权
               Text(
                 '© $copyrightYear EmbyTok  contributors',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 12,
+                  fontSize: _kFontSizeSmall,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: _kSpacingXSmall),
               Text(
                 '本软件基于开源协议发布',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-                  fontSize: 12,
+                  fontSize: _kFontSizeSmall,
                 ),
               ),
             ],
@@ -3221,21 +3274,21 @@ class _DonatePlaceholder extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 40, color: color),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingMedium),
           Text(
             label,
             style: TextStyle(
               color: color,
-              fontSize: 14,
+              fontSize: _kFontSizeMedium,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: _kSpacingXSmall),
           Text(
             hint,
             style: TextStyle(
               color: color.withValues(alpha: 0.6),
-              fontSize: 11,
+              fontSize: _kFontSizeTiny,
             ),
           ),
         ],
@@ -3262,7 +3315,7 @@ class _AboutFeatureRow extends StatelessWidget {
             text,
             style: TextStyle(
               color: scheme.onSurface,
-              fontSize: 13,
+              fontSize: _kFontSizeBody,
               height: 1.4,
             ),
           ),
@@ -3380,7 +3433,7 @@ class _LicensePageState extends State<_LicensePage> {
                   border: InputBorder.none,
                   hintStyle: TextStyle(color: scheme.onSurfaceVariant),
                 ),
-                style: TextStyle(color: scheme.onSurface, fontSize: 16),
+                style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeXLarge),
                 onChanged: (v) => setState(() => _searchQuery = v),
               )
             : const Text('开源许可证'),
@@ -3417,10 +3470,10 @@ class _LicensePageState extends State<_LicensePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             CircularProgressIndicator(color: widget.primaryColor),
-            const SizedBox(height: 12),
+            const SizedBox(height: _kSpacingXLarge),
             Text(
               '正在加载许可证...',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
             ),
           ],
         ),
@@ -3432,7 +3485,7 @@ class _LicensePageState extends State<_LicensePage> {
           padding: const EdgeInsets.all(24),
           child: Text(
             _error!,
-            style: TextStyle(color: scheme.error, fontSize: 14),
+            style: TextStyle(color: scheme.error, fontSize: _kFontSizeMedium),
             textAlign: TextAlign.center,
           ),
         ),
@@ -3443,7 +3496,7 @@ class _LicensePageState extends State<_LicensePage> {
       return Center(
         child: Text(
           _searchQuery.isEmpty ? '暂无许可证信息' : '没有匹配「$_searchQuery」的包',
-          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
         ),
       );
     }
@@ -3482,18 +3535,18 @@ class _LicensePageState extends State<_LicensePage> {
                 '${widget.applicationName} · 版本 ${widget.applicationVersion}',
                 style: TextStyle(
                   color: scheme.onSurface,
-                  fontSize: 13,
+                  fontSize: _kFontSizeBody,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingMedium),
           Text(
             '本应用使用了 $count 个开源软件包，谨向以下项目的作者致以诚挚谢意。',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 12,
+              fontSize: _kFontSizeSmall,
               height: 1.5,
             ),
           ),
@@ -3511,20 +3564,20 @@ class _LicensePageState extends State<_LicensePage> {
         entry.packageName,
         style: TextStyle(
           color: scheme.onSurface,
-          fontSize: 14,
+          fontSize: _kFontSizeMedium,
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
         '点击查看许可证全文',
-        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeTiny),
       ),
       children: [
         SelectableText(
           entry.body.isEmpty ? '（无许可证文本）' : entry.body,
           style: TextStyle(
             color: scheme.onSurfaceVariant,
-            fontSize: 12,
+            fontSize: _kFontSizeSmall,
             height: 1.5,
             fontFamily: 'monospace',
           ),
@@ -3572,13 +3625,13 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
           ),
           title: Text(
             '高级选项',
-            style: TextStyle(color: scheme.onSurface, fontSize: 15),
+            style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
           ),
           subtitle: Text(
             '完播率门控、时间衰减、反疲劳、用户评分',
             style: TextStyle(
               color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-              fontSize: 13,
+              fontSize: _kFontSizeBody,
             ),
           ),
           trailing: Icon(
@@ -3645,7 +3698,7 @@ class _GestureItem extends StatelessWidget {
                 description,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 12,
+                  fontSize: _kFontSizeSmall,
                 ),
               ),
             ],
@@ -3686,7 +3739,7 @@ class _OptionDialog<T> extends StatelessWidget {
               opt.$1,
               style: TextStyle(
                 color: selected ? scheme.primary : scheme.onSurface,
-                fontSize: 15,
+                fontSize: _kFontSizeLarge,
               ),
             ),
             trailing:
@@ -3824,7 +3877,7 @@ class _SettingsSearchSheetState extends State<_SettingsSearchSheet> {
                             entry.section,
                             style: TextStyle(
                               color: scheme.onSurfaceVariant,
-                              fontSize: 12,
+                              fontSize: _kFontSizeSmall,
                             ),
                           ),
                           trailing: const Icon(Icons.chevron_right),
