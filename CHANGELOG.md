@@ -1,3 +1,11 @@
+## [2.62.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.2...v2.62.3) (2026-09-10)
+
+
+### Bug Fixes
+
+* **ci:** 修复 analyze 退出码误判 — 只使用 error 数量判断 ([ee45f32](https://github.com/1525745393/EmbyTok-Flutter/commit/ee45f325adbcd2cd05183bf2483bb9359724f843))
+* **ci:** 修复 test/ 目录 analyze 步骤 — set -e 导致提前失败 ([1081cf6](https://github.com/1525745393/EmbyTok-Flutter/commit/1081cf6780dd05872a7c61ad2649780afb12017e))
+
 ## [2.62.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.1...v2.62.2) (2026-09-10)
 
 
