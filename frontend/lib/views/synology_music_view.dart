@@ -27,6 +27,7 @@ import 'music/equalizer_bars.dart';
 import 'music/artist_detail_sheet.dart';
 import 'music/music_cover_widgets.dart';
 import 'music/mini_player_bar.dart';
+import 'music/home_widgets.dart';
 
 // ===== 音乐库 UI 常量（避免魔法数字，提升可维护性）=====
 
@@ -597,42 +598,42 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
 
   Widget _buildQuickEntries(ColorScheme scheme) {
     final entries = [
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.music_note, label: '歌曲',
         color: const Color(0xFF4A90D9),
         onTap: () => _switchTab(SynologyMusicTab.songs),
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.album, label: '专辑',
         color: const Color(0xFFE67E22),
         onTap: () => _switchTab(SynologyMusicTab.albums),
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.person, label: '歌手',
         color: const Color(0xFF9B59B6),
         onTap: () => _switchTab(SynologyMusicTab.artists),
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.playlist_play, label: '歌单',
         color: const Color(0xFF27AE60),
         onTap: () => _switchTab(SynologyMusicTab.playlists),
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.category, label: '流派',
         color: const Color(0xFF1ABC9C),
         onTap: _scrollToGenres,
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.folder, label: '文件夹',
         color: const Color(0xFF3498DB),
         onTap: () => context.go('/folder'),
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.shuffle, label: 'Random100',
         color: const Color(0xFFE74C3C),
         onTap: _shufflePlay,
       ),
-      _QuickEntry(
+      QuickEntry(
         icon: Icons.settings, label: '设置',
         color: const Color(0xFF7F8C8D),
         onTap: () => context.go('/settings'),
@@ -646,7 +647,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         itemCount: entries.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) =>
-            _QuickEntryButton(entry: entries[index]),
+            QuickEntryButton(entry: entries[index]),
       ),
     );
   }
@@ -1890,60 +1891,6 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       await ref.read(synologyAuthProvider.notifier).logout();
       ref.read(synologyMusicProvider.notifier).clearSearch();
     }
-  }
-}
-
-/// 快捷入口数据
-class _QuickEntry {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _QuickEntry(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
-}
-
-/// 快捷入口按钮（圆形渐变背景 + 图标 + 文字）
-class _QuickEntryButton extends StatelessWidget {
-  final _QuickEntry entry;
-  const _QuickEntryButton({required this.entry});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: entry.onTap,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  entry.color.withValues(alpha: 0.9),
-                  entry.color
-                ]),
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                  color: entry.color.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3)),
-            ],
-          ),
-          child: Icon(entry.icon, color: Colors.white, size: 24),
-        ),
-        const SizedBox(height: _kSpacingMedium),
-        Text(entry.label,
-            style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      ]),
-    );
   }
 }
 
