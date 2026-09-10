@@ -47,14 +47,17 @@ jobs:
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
           echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
           
-          # 运行一次 flutter analyze，将输出保存到变量（避免重复运行 4 次，节省时间）
+          # 运行一次 flutter analyze，将输出保存到变量和文件（避免重复运行 4 次，节省时间）
           ANALYZE_OUTPUT=$(flutter analyze --no-pub lib 2>&1)
+          echo "$ANALYZE_OUTPUT" > /tmp/analyze_output.txt
           
           # 调试：输出完整的 analyze 结果（用于排查 CI 与本地环境差异）
           echo "🔍 完整 analyze 输出（前 100 行）："
-          echo "$ANALYZE_OUTPUT" | head -100
+          cat /tmp/analyze_output.txt | head -100
           echo "🔍 完整 analyze 输出（包含 error 的行）："
-          echo "$ANALYZE_OUTPUT" | grep -i "error" || echo "（无包含 error 的行）"
+          cat /tmp/analyze_output.txt | grep -i "error" || echo "（无包含 error 的行）"
+          echo "🔍 analyze 输出总行数："
+          wc -l /tmp/analyze_output.txt
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
