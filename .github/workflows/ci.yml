@@ -47,44 +47,44 @@ jobs:
           echo "ℹ️  说明：info = 风格建议，warning = 需要注意，error = 严重错误（会导致失败）"
           echo "🚦 检查标准：只有 error 级别问题才会阻断发布，info 和 warning 不影响发布"
           
-          # 调试：直接运行 analyze 并输出完整结果（不使用变量，避免输出被隐藏）
-          echo "🔍 直接运行 flutter analyze："
-          flutter analyze --no-pub lib 2>&1 | tee /tmp/analyze_output.txt
-          echo "🔍 analyze 退出码：$?"
-          echo "🔍 analyze 输出总行数："
-          wc -l /tmp/analyze_output.txt
-          echo "🔍 包含 error 的行："
-          grep -i "error" /tmp/analyze_output.txt || echo "（无包含 error 的行）"
-          
-          # 运行一次 flutter analyze，将输出保存到变量（避免重复运行 4 次，节省时间）
-          ANALYZE_OUTPUT=$(cat /tmp/analyze_output.txt)
+          # 运行 flutter analyze，使用退出码判断是否有 error
+          # 退出码 0 = 无 error（可能有 info/warning），非 0 = 有 error
+          set +e
+          flutter analyze --no-pub lib 2>&1 | tee /tmp/analyze_lib.txt
+          ANALYZE_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
           
           echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "❌ ERROR（严重错误 - 必须修复）"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "error •" || echo "✅ 没有 error 级别的问题"
+          echo "📊 analyze 退出码：$ANALYZE_EXIT_CODE（0=无 error，非0=有 error）"
           
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "⚠️  WARNING（警告 - 建议修复）"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          # 统计各类型问题数量
+          ERROR_COUNT=$(grep -c "^\s*error •" /tmp/analyze_lib.txt || echo "0")
+          WARNING_COUNT=$(grep -c "^\s*warning •" /tmp/analyze_lib.txt || echo "0")
+          INFO_COUNT=$(grep -c "^\s*info •" /tmp/analyze_lib.txt || echo "0")
           
-          echo ""
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "ℹ️  INFO（风格建议 - 可选修复）"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "info •" || echo "✅ 没有 info 级别的问题"
+          echo "📊 error: $ERROR_COUNT, warning: $WARNING_COUNT, info: $INFO_COUNT"
           
-          # 检查是否存在 error 级别问题
-          if echo "$ANALYZE_OUTPUT" | grep -q "error •"; then
+          # 只有 error 级别问题才会阻断发布
+          if [ "$ANALYZE_EXIT_CODE" -ne 0 ] || [ "$ERROR_COUNT" -gt 0 ]; then
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "❌ 发现 error 级别的编译错误！请修复后再提交"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "❌ ERROR（严重错误 - 必须修复）："
+            grep "^\s*error •" /tmp/analyze_lib.txt || echo "（无 error 级别问题）"
             exit 1
           fi
+          
+          echo ""
+          echo "⚠️  WARNING（警告 - 建议修复）："
+          grep "^\s*warning •" /tmp/analyze_lib.txt || echo "✅ 没有 warning 级别的问题"
+          echo ""
+          echo "ℹ️  INFO（风格建议 - 可选修复）："
+          grep "^\s*info •" /tmp/analyze_lib.txt | head -20 || echo "✅ 没有 info 级别的问题"
+          if [ "$INFO_COUNT" -gt 20 ]; then
+            echo "... 还有 $((INFO_COUNT - 20)) 条 info 级别问题（已省略）"
+          fi
+          
           echo ""
           echo "✅ 发布代码检查通过！lib/ 目录没有编译错误，可以正常构建 APK"
         working-directory: frontend
