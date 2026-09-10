@@ -109,6 +109,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             child: _buildBioSection(context, scheme, metadata),
           ),
 
+        // 相似歌手（V1.1）
+        if (metadata.hasSimilarArtists)
+          SliverToBoxAdapter(
+            child: _buildSimilarArtistsSection(context, scheme, metadata),
+          ),
+
         // 歌手专辑列表
         SliverToBoxAdapter(
           child: _buildAlbumsSection(context, scheme, albumsAsync),
@@ -396,6 +402,89 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建相似歌手部分（V1.1）
+  ///
+  /// 横向滚动列表，显示相似歌手头像和名称，点击跳转到对应歌手详情页。
+  Widget _buildSimilarArtistsSection(
+    BuildContext context,
+    ColorScheme scheme,
+    ArtistMetadata metadata,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 标题
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              '相似歌手',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 横向滚动列表
+          SizedBox(
+            height: 110,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: metadata.similarArtists.length,
+              itemBuilder: (context, index) {
+                final artist = metadata.similarArtists[index];
+                return GestureDetector(
+                  onTap: () {
+                    // 跳转到相似歌手详情页
+                    context.push('/music/artist/${Uri.encodeComponent(artist.name)}');
+                  },
+                  child: Container(
+                    width: 80,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      children: [
+                        // 歌手头像（圆形）
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundImage: artist.imageUrl != null
+                              ? NetworkImage(artist.imageUrl!)
+                              : null,
+                          backgroundColor: scheme.surfaceVariant,
+                          child: artist.imageUrl != null
+                              ? null
+                              : Icon(
+                                  Icons.person,
+                                  size: 32,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                        ),
+                        const SizedBox(height: 8),
+                        // 歌手名称
+                        Text(
+                          artist.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

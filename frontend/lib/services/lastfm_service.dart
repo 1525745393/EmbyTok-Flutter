@@ -15,7 +15,7 @@ import 'package:http/http.dart' as http;
 
 import '../utils/logger.dart';
 
-/// Last.fm 歌手信息（简介 + 头像大图）
+/// Last.fm 歌手信息（简介 + 头像大图 + 相似歌手）
 ///
 /// [bio] 可空：Last.fm 很多歌手有头像但无简介，此时仍返回头像，
 /// 简介由调用方回退 Wikipedia 等兜底来源。
@@ -23,7 +23,27 @@ class LastFmArtistInfo {
   final String? bio;
   final String? imageUrl;
 
-  const LastFmArtistInfo({this.bio, this.imageUrl});
+  /// 相似歌手列表（名称 + 头像 URL）
+  final List<LastFmSimilarArtist> similarArtists;
+
+  const LastFmArtistInfo({
+    this.bio,
+    this.imageUrl,
+    this.similarArtists = const [],
+  });
+}
+
+/// Last.fm 相似歌手
+class LastFmSimilarArtist {
+  final String name;
+  final String? imageUrl;
+  final String? url;
+
+  const LastFmSimilarArtist({
+    required this.name,
+    this.imageUrl,
+    this.url,
+  });
 }
 
 class LastFmService {
@@ -87,6 +107,36 @@ class LastFmService {
       }
       if (bio != null) bio = _stripHtml(bio).trim();
       if (bio != null && bio.length > 200) bio = '${bio.substring(0, 200)}…';
+
+      // 相似歌手：解析 similar.artist[] 字段
+      final similarArtists = <LastFmSimilarArtist>[];
+      final similarMap = artist['similar'] as Map<String, dynamic>?;
+      final similarList = similarMap?['artist'] as List<dynamic>?;
+      if (similarList != null && similarList.isNotEmpty) {
+        for (final item in similarList.take(10)) {
+          final entry = item as Map<String, dynamic>?;
+          if (entry == null) continue;
+          final name = entry['name'] as String?;
+          if (name == null || name.isEmpty) continue;
+          // 头像：取最大尺寸
+          String? artistImageUrl;
+          final images = entry['image'] as List<dynamic>? ?? const [];
+          for (final img in images.reversed) {
+            final imgEntry = img as Map<String, dynamic>?;
+            final url = imgEntry?['#text'] as String?;
+            if (url != null && url.isNotEmpty) {
+              artistImageUrl = url;
+              break;
+            }
+          }
+          similarArtists.add(LastFmSimilarArtist(
+            name: name,
+            imageUrl: artistImageUrl,
+            url: entry['url'] as String?,
+          ));
+        }
+      }
+
       // 头像或简介任一存在即返回（Last.fm 常见「有图无简介」歌手，
       // 此时简介由调用方回退 Wikipedia 等来源）
       if ((bio == null || bio.isEmpty) &&
@@ -94,7 +144,10 @@ class LastFmService {
         return _artistCache[key] = null;
       }
       info = LastFmArtistInfo(
-          bio: (bio == null || bio.isEmpty) ? null : bio, imageUrl: imageUrl);
+        bio: (bio == null || bio.isEmpty) ? null : bio,
+        imageUrl: imageUrl,
+        similarArtists: similarArtists,
+      );
     } catch (e) {
       AppLogger.warn('Last.fm 获取歌手信息失败',
           data: {'artist': key, 'error': e.toString()});

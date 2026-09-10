@@ -200,6 +200,9 @@ class ArtistMetadataService {
       bioContent: info.bio, // Last.fm 简介已去 HTML，暂用同一份
       bioLang: lang,
       source: ArtistMetadataSource.lastFm,
+      similarArtists: info.similarArtists
+          .map((e) => SimilarArtist(name: e.name, imageUrl: e.imageUrl))
+          .toList(),
       cachedAt: DateTime.now(),
     );
   }
