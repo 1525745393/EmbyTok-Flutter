@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
-import '../providers/subtitle_settings_provider.dart';
-import '../utils/constants.dart';
+import '../../models/models.dart';
+import '../../providers/subtitle_settings_provider.dart';
+import '../../utils/constants.dart';
 
 class SubtitleControls extends ConsumerWidget {
   final List<SubtitleTrack> tracks;

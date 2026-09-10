@@ -4,31 +4,31 @@
 
 import 'dart:async';
 
-import '../utils/safe_insets.dart';
-import '../utils/safe_unawaited.dart';
+import '../../utils/safe_insets.dart';
+import '../../utils/safe_unawaited.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
-import '../models/models.dart';
-import '../providers/providers.dart';
-import '../services/embytok_service.dart';
-import '../services/video_pool_service.dart';
-import '../utils/logger.dart';
-import '../utils/fullscreen_navigator.dart';
-import '../utils/constants.dart';
+import '../../models/models.dart';
+import '../../providers/providers.dart';
+import '../../services/embytok_service.dart';
+import '../../services/video_pool_service.dart';
+import '../../utils/logger.dart';
+import '../../utils/fullscreen_navigator.dart';
+import '../../utils/constants.dart';
 import 'gesture_overlay.dart';
 import 'video_controls.dart';
 import 'video_player_widget.dart';
 
 // 拆分出的子组件
-import 'video/video_action_button.dart';
-import 'video/video_control_buttons.dart';
-import 'video/video_progress_bars.dart';
-import 'video/video_sheet_utils.dart' as sheet_utils;
-import 'video/video_draggable_clean_actions.dart';
+import 'video_action_button.dart';
+import 'video_control_buttons.dart';
+import 'video_progress_bars.dart';
+import 'video_sheet_utils.dart' as sheet_utils;
+import 'video_draggable_clean_actions.dart';
 
 /// 单个视频页：TikTok 卡片样式
 // ===== UI 布局常量（避免魔法数字，提升可维护性）=====

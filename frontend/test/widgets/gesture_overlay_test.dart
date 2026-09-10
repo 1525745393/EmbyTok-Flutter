@@ -5,7 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:embytok_flutter/models/models.dart';
-import 'package:embytok_flutter/widgets/gesture_overlay.dart';
+import 'package:embytok_flutter/widgets/video/gesture_overlay.dart';
 import 'package:embytok_flutter/widgets/video/video_gesture_mixin.dart';
 
 class MockVideoPlayerController extends Mock implements VideoPlayerController {}

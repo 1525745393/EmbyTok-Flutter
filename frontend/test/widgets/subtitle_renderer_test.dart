@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:embytok_flutter/models/subtitle_track.dart';
-import 'package:embytok_flutter/widgets/subtitle_renderer.dart';
+import 'package:embytok_flutter/widgets/video/subtitle_renderer.dart';
 import 'package:embytok_flutter/providers/subtitle_settings_provider.dart';
 
 void main() {

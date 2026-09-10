@@ -9,7 +9,7 @@ import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
 import '../person_avatar_image.dart';
-import '../subtitle_selector.dart';
+import 'subtitle_selector.dart';
 
 // ===== 倍速调节面板（BottomSheet + 滑块）=====
 Future<void> showSpeedControlPanel(

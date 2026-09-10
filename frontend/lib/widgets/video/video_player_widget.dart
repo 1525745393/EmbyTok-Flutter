@@ -8,10 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
-import '../models/models.dart';
-import '../providers/providers.dart';
-import '../utils/image_cache_manager.dart';
-import '../utils/logger.dart';
+import '../../models/models.dart';
+import '../../providers/providers.dart';
+import '../../utils/image_cache_manager.dart';
+import '../../utils/logger.dart';
 import 'subtitle_renderer.dart';
 
 // 视频播放器：优先使用 preloadedController（已预加载），否则动态构造

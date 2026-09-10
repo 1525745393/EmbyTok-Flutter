@@ -10,7 +10,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
 import '../widgets/library_selector.dart';
-import '../widgets/video_grid_card.dart';
+import '../widgets/video/video_grid_card.dart';
 
 // 视频网格视图
 class VideoGridView extends ConsumerStatefulWidget {

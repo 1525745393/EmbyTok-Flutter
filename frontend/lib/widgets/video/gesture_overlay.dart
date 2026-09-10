@@ -10,11 +10,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
-import '../models/models.dart';
-import '../providers/providers.dart';
-import '../utils/constants.dart';
-import '../utils/logger.dart';
-import 'video/video_gesture_mixin.dart';
+import '../../models/models.dart';
+import '../../providers/providers.dart';
+import '../../utils/constants.dart';
+import '../../utils/logger.dart';
+import 'video_gesture_mixin.dart';
 
 // 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {

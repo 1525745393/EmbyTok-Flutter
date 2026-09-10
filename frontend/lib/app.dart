@@ -33,7 +33,7 @@ import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
 import 'views/main_view.dart';
 import 'views/synology_music_view.dart';
-import 'widgets/video_page_item.dart';
+import 'widgets/video/video_page_item.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
 /// 当认证状态变化时调用 notify() 触发 GoRouter 重新评估 redirect

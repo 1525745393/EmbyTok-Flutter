@@ -6,8 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/models.dart';
-import '../providers/providers.dart';
+import '../../models/models.dart';
+import '../../providers/providers.dart';
 
 /// 字幕选择器回调
 typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);

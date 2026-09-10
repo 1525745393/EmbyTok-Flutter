@@ -12,7 +12,7 @@ import '../utils/constants.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
-import '../widgets/video_page_item.dart';
+import '../widgets/video/video_page_item.dart';
 import '../widgets/person_avatar_image.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {

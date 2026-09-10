@@ -6,8 +6,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/subtitle_track.dart';
-import '../providers/subtitle_settings_provider.dart';
+import '../../models/subtitle_track.dart';
+import '../../providers/subtitle_settings_provider.dart';
 
 // 字幕渲染器：接收当前播放时间和字幕数据
 class SubtitleRenderer extends ConsumerWidget {

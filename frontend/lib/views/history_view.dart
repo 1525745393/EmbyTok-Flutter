@@ -13,7 +13,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
-import '../widgets/video_page_item.dart';
+import '../widgets/video/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
   // 是否使用 Scaffold（true=独立路由模式，false=覆盖层模式）

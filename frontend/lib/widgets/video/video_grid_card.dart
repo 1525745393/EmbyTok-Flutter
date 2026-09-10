@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../models/models.dart';
-import '../providers/providers.dart';
-import '../utils/image_cache_manager.dart';
+import '../../models/models.dart';
+import '../../providers/providers.dart';
+import '../../utils/image_cache_manager.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {

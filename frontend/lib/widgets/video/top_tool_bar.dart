@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../providers/providers.dart';
-import '../utils/app_preferences.dart' show ViewMode, OrientationMode;
+import '../../providers/providers.dart';
+import '../../utils/app_preferences.dart' show ViewMode, OrientationMode;
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();

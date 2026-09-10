@@ -25,8 +25,8 @@ import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../utils/safe_insets.dart';
-import '../widgets/subtitle_renderer.dart';
-import '../widgets/subtitle_selector.dart';
+import '../widgets/video/subtitle_renderer.dart';
+import '../widgets/video/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
 
 // ===== UI 常量（避免魔法数字，提升可维护性）=====

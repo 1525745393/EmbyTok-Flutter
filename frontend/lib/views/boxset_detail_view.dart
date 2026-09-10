@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
-import '../widgets/video_page_item.dart';
+import '../widgets/video/video_page_item.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
   final MediaItem item;
