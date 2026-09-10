@@ -273,7 +273,9 @@ Future<void> markItemPlayed(String itemId, Ref ref) async {
       cacheController.invalidateItemDetail(itemId, serverUrl);
       cacheController.invalidateNextUp(serverUrl);
       cacheController.invalidateWatchHistory(serverUrl);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   // 刷新相关 Provider
@@ -298,7 +300,9 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
       cacheController.invalidateItemDetail(itemId, serverUrl);
       cacheController.invalidateNextUp(serverUrl);
       cacheController.invalidateWatchHistory(serverUrl);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   ref.invalidate(resumeItemsProvider);

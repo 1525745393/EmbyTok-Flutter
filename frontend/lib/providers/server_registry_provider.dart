@@ -283,7 +283,9 @@ class ServerRegistryNotifier extends StateNotifier<List<ServerProfile>> {
     try {
       await _secureStorage.delete(key: serverPasswordKey(id));
       await _secureStorage.delete(key: serverSynoSidKey(id));
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     // 删除激活的服务器时清除激活状态
     if (_ref.read(activeServerIdProvider) == id) {
       _ref.read(activeServerIdProvider.notifier).setActive(null);
@@ -335,7 +337,9 @@ class ActiveServerNotifier extends StateNotifier<String?> {
       final prefs = await SharedPreferences.getInstance();
       final id = prefs.getString(kStorageKeyActiveServerId);
       if (id != null && id.isNotEmpty) state = id;
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 重新从本地存储加载（测试用）
@@ -350,6 +354,8 @@ class ActiveServerNotifier extends StateNotifier<String?> {
       } else {
         await prefs.setString(kStorageKeyActiveServerId, id);
       }
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 }

@@ -67,14 +67,18 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
           index <= PageIndices.settings) {
         state = PageNavigationState(currentIndex: index, isOverlayPage: false);
       }
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   Future<void> _saveIndex(int index) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyLastPageIndex, index);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   // 切换到底部导航栏的页面

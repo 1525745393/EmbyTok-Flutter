@@ -469,7 +469,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     if (wasForeground && !isForeground) {
       try {
         controller?.pause();
-      } catch (_) {}
+      } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
     }
 
     if (!wasForeground && isForeground && wasPlaying) {
@@ -480,7 +482,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           if (mounted) {
             try {
               controller?.play();
-            } catch (_) {}
+            } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
           }
         },
       );

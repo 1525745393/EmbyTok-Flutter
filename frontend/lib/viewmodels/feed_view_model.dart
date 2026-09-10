@@ -390,7 +390,9 @@ class FeedViewModel {
         final offset = getOffset();
         final prefs = await SharedPreferences.getInstance();
         await prefs.setDouble(kStorageKeyLastGridScrollOffset, offset);
-      } catch (_) {}
+      } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
     });
   }
 
@@ -409,7 +411,9 @@ class FeedViewModel {
         final safeOffset = lastOffset.clamp(0.0, maxScroll);
         onRestored(safeOffset);
       }
-    } catch (_) {}
+    } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
   }
 
   // ==================== 页面变更回调（由 View 层 onPageChanged 调用） ====================

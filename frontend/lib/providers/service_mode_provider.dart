@@ -57,7 +57,9 @@ class ServiceModeNotifier extends StateNotifier<AppServiceMode> {
       final value = prefs.getString(_kStorageKeyServiceMode);
       // 校验值合法（避免旧版配置或异常值导致类型错误）
       state = AppServiceMode.fromStorage(value);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 切换服务模式（持久化）
@@ -66,7 +68,9 @@ class ServiceModeNotifier extends StateNotifier<AppServiceMode> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kStorageKeyServiceMode, mode.storageValue);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 从本地存储重新加载模式（应用启动时自动调用；也可用于外部刷新）

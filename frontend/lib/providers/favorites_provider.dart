@@ -598,7 +598,9 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
         final cacheController = _ref.read(cacheControllerProvider);
         cacheController.invalidateFavorites(serverUrl, token, userId);
         cacheController.invalidateItemDetail(item.id, serverUrl);
-      } catch (_) {}
+      } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     } catch (e) {
       // 4. 失败回滚：恢复到乐观更新前的状态
       final rollbackIds = Set<String>.from(state.favoriteIds);

@@ -180,7 +180,9 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
       if (single != null && single.isNotEmpty) {
         _savedLibraryIds = <String>[single];
       }
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 持久化整个 ID 列表（PR #70：多选不再丢）
@@ -194,7 +196,9 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
       } else {
         await prefs.setStringList(_storageKey, ids);
       }
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 全选可见媒体库
@@ -289,7 +293,9 @@ class _BoolConfigNotifier extends StateNotifier<bool> {
     try {
       final prefs = await SharedPreferences.getInstance();
       state = prefs.getBool(_storageKey) ?? false;
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   Future<void> set(bool value) async {
@@ -297,7 +303,9 @@ class _BoolConfigNotifier extends StateNotifier<bool> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_storageKey, value);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 }
 

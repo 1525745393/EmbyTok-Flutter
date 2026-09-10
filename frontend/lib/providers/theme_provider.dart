@@ -27,7 +27,9 @@ class ThemeModeNotifier extends StateNotifier<String> {
           (value == 'dark' || value == 'light' || value == 'system')) {
         state = value;
       }
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   Future<void> setTheme(String mode) async {
@@ -36,6 +38,8 @@ class ThemeModeNotifier extends StateNotifier<String> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kStorageKeyTheme, mode);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 }

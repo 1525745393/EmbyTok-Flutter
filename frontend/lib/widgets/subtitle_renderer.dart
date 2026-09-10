@@ -127,7 +127,9 @@ class SubtitleRenderer extends ConsumerWidget {
       } else if (cleaned.length == 8) {
         return Color(int.parse(cleaned, radix: 16));
       }
-    } catch (_) {}
+    } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
     return Colors.white;
   }
 }

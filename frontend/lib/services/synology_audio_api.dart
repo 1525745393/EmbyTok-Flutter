@@ -634,7 +634,9 @@ class SynologyAudioApi {
       try {
         final decoded = jsonDecode(v);
         if (decoded is List) return decoded;
-      } catch (_) {}
+      } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
     }
     return const [];
   }

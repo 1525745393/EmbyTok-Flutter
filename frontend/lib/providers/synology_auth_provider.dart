@@ -192,17 +192,23 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
   Future<void> logout() async {
     try {
       await _api.logout();
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     // 清除持久化（含安全存储 sid）
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_kSynoServerUrl);
       await prefs.remove(_kSynoAccount);
       await prefs.remove(_kSynoSid);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     try {
       await _secureStorage.delete(key: _kSynoSidSecure);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     state = const SynologyAuthState();
   }
 }

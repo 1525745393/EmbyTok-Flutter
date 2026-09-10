@@ -112,7 +112,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
       if (savedGridColumns == 3 || savedGridColumns == 4) {
         _gridColumns = savedGridColumns as int;
       }
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // 保存类型筛选
@@ -125,7 +127,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
       } else {
         await prefs.setString(kStorageKeyActorsSelectedType, type);
       }
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // 保存 Tab 索引
@@ -133,7 +137,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyActorsSelectedTab, index);
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // 保存搜索关键词（防抖 300ms，与 actorsProvider 搜索节奏一致）
@@ -144,7 +150,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(kStorageKeyActorsSearchQuery, query);
-      } catch (_) {}
+      } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
     });
   }
 
@@ -153,7 +161,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(kStorageKeyActorsSortMode, mode);
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // 保存网格列数
@@ -161,7 +171,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyActorsGridColumns, columns);
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // 保存滚动位置（防抖）
@@ -173,7 +185,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
         final prefs = await SharedPreferences.getInstance();
         await prefs.setDouble(
             kStorageKeyActorsScrollOffset, _scrollController.offset);
-      } catch (_) {}
+      } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
     });
   }
 
@@ -187,7 +201,9 @@ class _ActorsViewState extends ConsumerState<ActorsView>
         final safeOffset = offset.clamp(0.0, maxScroll);
         _scrollController.jumpTo(safeOffset);
       }
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
   }
 
   // Tab 变化时保存

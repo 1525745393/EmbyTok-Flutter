@@ -336,7 +336,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       controller.setVolume(isMuted ? 0.0 : 1.0);
       try {
         controller.play();
-      } catch (_) {}
+      } catch (_) {
+        // 播放器操作失败不影响主流程，静默处理
+      }
       ref.read(isPlayingProvider.notifier).state = true;
     }
     ref.read(playbackStateProvider.notifier).setItem(widget.item);
@@ -373,7 +375,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       if (posMs > 0) {
         try {
           await controller.seekTo(Duration(milliseconds: posMs));
-        } catch (_) {}
+        } catch (_) {
+        // 播放器操作失败不影响主流程，静默处理
+      }
       }
     }
 
@@ -501,7 +505,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 .invalidateItemDetail(widget.item.id, serverUrl);
             ref.read(cacheControllerProvider).invalidateNextUp(serverUrl);
             ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
-          } catch (_) {}
+          } catch (_) {
+        // 播放器操作失败不影响主流程，静默处理
+      }
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
         // 视频播放结束：已移除自动播放和下一集功能
@@ -625,7 +631,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             .read(cacheControllerProvider)
             .invalidateItemDetail(widget.item.id, serverUrl);
         ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
-      } catch (_) {}
+      } catch (_) {
+        // 播放器操作失败不影响主流程，静默处理
+      }
     }
     _hasStartedReported = false;
   }
@@ -908,7 +916,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   if (old != null) {
                     try {
                       old.removeListener(_onVideoChanged);
-                    } catch (_) {}
+                    } catch (_) {
+        // 播放器操作失败不影响主流程，静默处理
+      }
                     // 同步清除 currentVideoControllerProvider（如果持有相同引用）
                     // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
                     // 进入全屏页后 isControllerReady=false，导致黑屏

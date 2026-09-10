@@ -157,14 +157,18 @@ class SubtitleSettingsNotifier extends StateNotifier<SubtitleSettings> {
       if (raw == null || raw.isEmpty) return;
       final map = json.decode(raw) as Map<String, dynamic>;
       state = SubtitleSettings.fromJson(map);
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(kStorageKeySubtitle, json.encode(state.toJson()));
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 批量更新设置

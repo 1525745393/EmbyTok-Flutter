@@ -237,13 +237,19 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (c != null) {
       try {
         c.removeListener(_onControllerChanged);
-      } catch (_) {}
+      } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
       try {
         c.pause();
-      } catch (_) {}
+      } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
       try {
         c.dispose();
-      } catch (_) {}
+      } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
     }
     _controller = null;
     _sizeWasEmpty = false;
@@ -349,13 +355,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         if (_isCancelled()) {
           try {
             c.dispose();
-          } catch (_) {}
+          } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
           return;
         }
         if (_isDisposed) {
           try {
             c.dispose();
-          } catch (_) {}
+          } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
           return;
         }
         c.setLooping(widget.loop);
@@ -370,7 +380,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           if (_isCancelled()) {
             try {
               c.dispose();
-            } catch (_) {}
+            } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
             return;
           }
           // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
@@ -446,13 +458,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (_isCancelled()) {
         try {
           c.dispose();
-        } catch (_) {}
+        } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
         return;
       }
       if (_isDisposed) {
         try {
           c.dispose();
-        } catch (_) {}
+        } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
         return;
       }
       if (mounted && !_isDisposed) {
@@ -464,7 +480,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         if (_isCancelled()) {
           try {
             c.dispose();
-          } catch (_) {}
+          } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
           return;
         }
         // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
@@ -844,15 +862,21 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (widget.autoPlay) {
         try {
           c.play();
-        } catch (_) {}
+        } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
       }
     } else {
       try {
         c.pause();
-      } catch (_) {}
+      } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
       try {
         c.setVolume(0.0);
-      } catch (_) {}
+      } catch (_) {
+        // 资源释放失败不影响主流程，静默处理
+      }
     }
   }
 

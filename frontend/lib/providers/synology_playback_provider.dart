@@ -142,7 +142,9 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
             coverUrl: _coverUrlOf(song),
             lastPlayTime: DateTime.now().millisecondsSinceEpoch,
           ));
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     await _playSong(song);
     // 切歌时仅持久化队列和索引，不持久化进度（新歌曲 position 为 0）
     _persistPlayback(persistPosition: false);

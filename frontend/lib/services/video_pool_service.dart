@@ -39,7 +39,9 @@ class PlaybackSession {
     _isDisposed = true;
     try {
       controller.dispose();
-    } catch (_) {}
+    } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
   }
 }
 
@@ -166,7 +168,9 @@ class VideoPoolService {
           if (_disposed) {
             try {
               controller.dispose();
-            } catch (_) {}
+            } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
             return null;
           }
           created = PlaybackSession(
@@ -182,7 +186,9 @@ class VideoPoolService {
               data: {'level': level, 'error': e.toString()});
           try {
             controller?.dispose();
-          } catch (_) {}
+          } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
         }
       }
     } finally {

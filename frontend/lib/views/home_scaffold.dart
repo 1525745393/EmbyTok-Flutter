@@ -123,7 +123,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
           ref.read(videoPoolProvider).disposeAll(),
           context: 'HomeScaffold._onAppLifecycle.disposeAll',
         );
-      } catch (_) {}
+      } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
     }
 
     applyLifecyclePlaybackChange(
@@ -222,7 +224,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
           // FeedView.dispose() 中的批量 dispose 叠加导致 OOM
           try {
             await ref.read(videoPoolProvider).disposeAll();
-          } catch (_) {}
+          } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
           // 让出一帧给 GC 和 native texture 回收
           await Future<void>.delayed(Duration.zero);
           if (context.mounted) {

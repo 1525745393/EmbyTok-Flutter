@@ -291,7 +291,9 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       try {
         final cacheController = _ref.read(cacheControllerProvider);
         cacheController.invalidateFavorites(serverUrl, token, userId);
-      } catch (_) {}
+      } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
     } catch (e) {
       AppLogger.error('切换关注状态失败', error: e);
       // 失败回滚：恢复乐观更新前的状态

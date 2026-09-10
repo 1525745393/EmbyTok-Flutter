@@ -108,7 +108,9 @@ class ServersView extends ConsumerWidget {
         String? sid;
         try {
           sid = await secureStorage.read(key: serverSynoSidKey(server.id));
-        } catch (_) {}
+        } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
         final synoAuth = ref.read(synologyAuthProvider.notifier);
         if (sid != null && sid.isNotEmpty) {
           await synoAuth.restoreSession(

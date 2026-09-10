@@ -432,7 +432,9 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyRecommendGridColumns, columns);
-    } catch (_) {}
+    } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
   }
 
   // P1-1：错误态卡片 —— 根据错误类型展示不同 CTA，避免用户看完文案无下一步可走

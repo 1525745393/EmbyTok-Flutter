@@ -89,7 +89,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       String? token;
       try {
         token = await _secureStorage.read(key: kStorageKeyAccessToken);
-      } catch (_) {}
+      } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
 
       // 旧数据迁移：如果安全存储中没有，从旧配置中读取并迁移
       if (token == null || token.isEmpty) {
@@ -108,7 +110,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
               token = oldToken;
               AppLogger.info('完成 token 从明文存储迁移到安全存储');
             }
-          } catch (_) {}
+          } catch (e) {
+            AppLogger.warn('token 明文迁移失败，忽略旧数据',
+                data: {'error': e.toString()});
+          }
         }
       }
 
@@ -126,7 +131,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
             name: userMap['user_name'] as String? ?? '',
             accessToken: token ?? '',
           );
-        } catch (_) {}
+        } catch (e) {
+          AppLogger.warn('用户信息解析失败，使用空用户对象',
+              data: {'error': e.toString()});
+        }
       }
 
       if (token != null && token.isNotEmpty && embyServerUrl != null) {
@@ -199,18 +207,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // 清除安全存储中的敏感信息
     try {
       await _secureStorage.delete(key: kStorageKeyAccessToken);
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
     // 清除 SharedPreferences
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(kStorageKeyEmbyServerUrl);
       await prefs.remove(kStorageKeyUser);
       await prefs.remove(kStorageKeyConfig);
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
     // 登出时清除所有内存缓存，避免账号切换后数据污染
     try {
       _ref.read(cacheControllerProvider).invalidateAll();
-    } catch (_) {}
+    } catch (_) {
+      // 存储操作失败不影响主流程，静默处理
+    }
     state = const AuthState();
   }
 }

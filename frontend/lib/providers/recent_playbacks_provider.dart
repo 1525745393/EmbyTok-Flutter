@@ -90,7 +90,9 @@ class RecentPlaybacksNotifier extends StateNotifier<List<RecentPlayback>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_kStorageKey, jsonEncode(state));
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 添加或更新一条播放记录（已存在则更新时间，移到最前）

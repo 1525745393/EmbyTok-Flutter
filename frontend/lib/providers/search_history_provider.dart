@@ -33,7 +33,9 @@ class SearchHistoryNotifier extends StateNotifier<List<String>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(kStorageKeySearchHistory, json.encode(state));
-    } catch (_) {}
+    } catch (_) {
+    // 存储操作失败不影响主流程，静默处理
+  }
   }
 
   /// 添加一条搜索关键词（若已存在则移到最前）
