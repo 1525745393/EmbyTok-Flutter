@@ -35,6 +35,9 @@ const String kStorageKeyViewMode = 'embytok_view_mode';
 const String kStorageKeyOrientationMode = 'embytok_orientation_mode';
 const String kStorageKeyIsMuted = 'embytok_is_muted';
 const String kStorageKeyIsAutoPlay = 'embytok_is_autoplay';
+// P0-1：是否允许自签名证书（默认 false，即启用 SSL 证书校验）
+const String kStorageKeyAllowSelfSignedCertificate =
+    'embytok_allow_self_signed_certificate';
 // 焦点恢复自动续播（来电结束后是否自动恢复播放，默认 true）
 const String kStorageKeyAutoResumeAfterInterruption =
     'embytok_auto_resume_after_interruption';

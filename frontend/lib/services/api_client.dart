@@ -5,26 +5,51 @@
 // - 去重 key 加入 baseUrl + token，修复跨账号错误复用问题
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_error.dart';
+import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
 class ApiClient {
   final Dio _dio;
   String? _token;
 
+  /// 全局配置：是否允许自签名证书（在 App 启动时加载）
+  ///
+  /// 所有 ApiClient 实例在创建时读取此配置，
+  /// 修改后需要重启 App 才能生效。
+  static bool _globalAllowSelfSignedCertificate = false;
+
+  /// 加载全局证书校验配置（推荐在 main() 中调用）
+  static Future<void> loadGlobalSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _globalAllowSelfSignedCertificate =
+          prefs.getBool(kStorageKeyAllowSelfSignedCertificate) ?? false;
+    } catch (_) {
+      // 加载失败时使用默认值（启用证书校验）
+      _globalAllowSelfSignedCertificate = false;
+    }
+  }
+
   // GET 请求去重：相同 path + queryParameters 的并发请求复用同一个 Future
   final Map<String, Completer<Response<dynamic>>> _pendingGets = {};
 
-  ApiClient({String? baseUrl})
+  ApiClient({String? baseUrl, bool? validateCertificate})
       : _dio = Dio(BaseOptions(
           baseUrl: baseUrl ?? '',
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 30),
           contentType: Headers.jsonContentType,
         )) {
+    // 优先使用传入参数，否则使用全局配置
+    final shouldValidate =
+        validateCertificate ?? !_globalAllowSelfSignedCertificate;
+    _setupCertificateValidation(shouldValidate);
     _setupInterceptors();
   }
 
@@ -34,6 +59,35 @@ class ApiClient {
       _dio.options.baseUrl = baseUrl;
     }
     _setupInterceptors();
+  }
+
+  /// 配置 SSL 证书校验
+  ///
+  /// [validateCertificate] 为 true 时启用证书校验（默认），
+  /// 为 false 时允许自签名证书（仅内网调试用，存在安全风险）。
+  void _setupCertificateValidation(bool validateCertificate) {
+    if (validateCertificate) return;
+    // 禁用证书校验：允许自签名证书
+    // 注意：这会降低安全性，仅建议在受信任的内网环境中使用
+    try {
+      final adapter = _dio.httpClientAdapter;
+      if (adapter is DefaultHttpClientAdapter) {
+        adapter.onHttpClientCreate = (client) {
+          client.badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+          return client;
+        };
+      }
+    } catch (_) {
+      // 配置失败静默处理，不影响主流程
+    }
+  }
+
+  /// 运行时切换证书校验
+  ///
+  /// 注意：切换后已建立的连接不受影响，仅对新连接生效。
+  void setValidateCertificate(bool validate) {
+    _setupCertificateValidation(validate);
   }
 
   /// 暴露内部 Dio 实例，用于测试验证

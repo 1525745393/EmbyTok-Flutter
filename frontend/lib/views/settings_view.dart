@@ -205,6 +205,7 @@ class SettingsView extends ConsumerWidget {
             Colors.blue,
             [
               _buildProfileTile(context, ref),
+              _buildSelfSignedCertificateTile(context, ref),
             ],
           ),
           const SizedBox(height: 16),
@@ -1236,6 +1237,103 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blue,
       title: name,
       subtitle: auth.backendUrl ?? '未连接服务器',
+    );
+  }
+
+  // P0-1：允许自签名证书（默认关闭，即启用 SSL 证书校验）
+  // 开启时允许连接使用自签名证书的内网 NAS，存在中间人攻击风险
+  Widget _buildSelfSignedCertificateTile(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<bool>(
+      future: _loadAllowSelfSignedCertificate(),
+      builder: (context, snapshot) {
+        final allow = snapshot.data ?? false;
+        return _SwitchTile(
+          icon: Icons.security_outlined,
+          iconColor: Colors.orange,
+          title: '允许自签名证书',
+          subtitle: allow
+              ? '已允许：可连接自签名证书的内网服务器（存在安全风险）'
+              : '已禁用：严格校验 SSL 证书（推荐）',
+          value: allow,
+          onChanged: (value) {
+            if (value) {
+              // 开启时弹出安全风险提示
+              _showSelfSignedCertificateWarning(context, ref);
+            } else {
+              // 关闭时直接保存
+              _setAllowSelfSignedCertificate(false);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  /// 从 SharedPreferences 读取是否允许自签名证书
+  Future<bool> _loadAllowSelfSignedCertificate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(kStorageKeyAllowSelfSignedCertificate) ?? false;
+  }
+
+  /// 保存是否允许自签名证书到 SharedPreferences
+  ///
+  /// 注意：证书校验配置在 ApiClient 初始化时读取，
+  /// 修改后需要重启 App 才能生效。
+  Future<void> _setAllowSelfSignedCertificate(bool allow) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kStorageKeyAllowSelfSignedCertificate, allow);
+    if (allow) {
+      AppLogger.warn('已允许自签名证书，SSL 校验已禁用，存在安全风险');
+    } else {
+      AppLogger.info('已禁用自签名证书，SSL 校验已启用');
+    }
+    // 提示用户重启 App 生效
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(allow
+              ? '已允许自签名证书，重启 App 后生效'
+              : '已禁用自签名证书，重启 App 后生效'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  /// 显示自签名证书安全风险提示对话框
+  void _showSelfSignedCertificateWarning(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: scheme.error, size: 24),
+            const SizedBox(width: 8),
+            const Text('安全风险提示'),
+          ],
+        ),
+        content: const Text(
+          '允许自签名证书将禁用 SSL 证书校验，可能导致中间人攻击，'
+          '使您的账号密码和播放数据面临泄露风险。\n\n'
+          '仅建议在受信任的内网环境中使用，且仅连接您自己的服务器。\n\n'
+          '确定要开启吗？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _setAllowSelfSignedCertificate(true);
+            },
+            style: TextButton.styleFrom(foregroundColor: scheme.error),
+            child: const Text('确认开启'),
+          ),
+        ],
+      ),
     );
   }
 
