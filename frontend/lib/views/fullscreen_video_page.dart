@@ -29,6 +29,38 @@ import '../widgets/subtitle_renderer.dart';
 import '../widgets/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
 
+// ===== UI 常量（避免魔法数字，提升可维护性）=====
+
+/// 小字体（标签、辅助信息）
+const double _kFontSizeSmall = 12;
+
+/// 中等字体（按钮、列表项）
+const double _kFontSizeBody = 13;
+
+/// 大字体（标题、按钮文字）
+const double _kFontSizeLarge = 16;
+
+/// 超大字体（错误标题、手势提示）
+const double _kFontSizeXLarge = 42;
+
+/// 超小字体（时间戳、进度提示）
+const double _kFontSizeTiny = 11;
+
+/// 超小间距
+const double _kSpacingXSmall = 4;
+
+/// 小间距
+const double _kSpacingSmall = 6;
+
+/// 中间距
+const double _kSpacingMedium = 8;
+
+/// 大间距
+const double _kSpacingLarge = 16;
+
+/// 超大间距
+const double _kSpacingXLarge = 20;
+
 /// 全屏视频播放页
 ///
 /// 作为覆盖层渲染在 VideoPageItem 的 Stack 中（非导航路由），
@@ -953,7 +985,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                     '${kLongPressPlaybackRate.toStringAsFixed(0)}x',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 42,
+                      fontSize: _kFontSizeXLarge,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -1,
                     ),
@@ -998,12 +1030,12 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                       color: Colors.white,
                       size: 48,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: _kSpacingXSmall),
                     Text(
                       '${isSeekForward ? '+' : '-'}${seekFeedbackCount * kDoubleTapSeekStepSec}s',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: _kFontSizeLarge,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1022,22 +1054,22 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Icons.error_outline, color: Colors.white70, size: 56),
-          const SizedBox(height: 16),
+          const SizedBox(height: _kSpacingLarge),
           const Text(
             '视频加载失败',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+            style: TextStyle(color: Colors.white70, fontSize: _kFontSizeLarge),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingMedium),
           Text(
             controller?.value.errorDescription ?? '网络错误或资源不可用',
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            style: const TextStyle(color: Colors.white54, fontSize: _kFontSizeBody),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: _kSpacingXLarge),
           TextButton.icon(
             onPressed: _retryVideo,
             icon: const Icon(Icons.refresh, size: 20),
-            label: const Text('重试', style: TextStyle(fontSize: 16)),
+            label: const Text('重试', style: TextStyle(fontSize: _kFontSizeLarge)),
             style: TextButton.styleFrom(
               foregroundColor: Colors.white,
               backgroundColor: Colors.white24,
@@ -1114,7 +1146,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                       playingItem.title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: _kFontSizeLarge,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
@@ -1201,9 +1233,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                         Text(
                           _formatDuration(displayPosition),
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 12),
+                              color: Colors.white, fontSize: _kFontSizeSmall),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: _kSpacingMedium),
                         Expanded(
                           child: Slider(
                             value: progress.clamp(0.0, 1.0),
@@ -1227,11 +1259,11 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                             inactiveColor: Colors.white24,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: _kSpacingMedium),
                         Text(
                           _formatDuration(duration),
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 12),
+                              color: Colors.white70, fontSize: _kFontSizeSmall),
                         ),
                       ],
                     );
@@ -1283,7 +1315,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                             '${value.playbackSpeed.toStringAsFixed(1)}x',
                             style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: _kFontSizeBody,
                                 fontWeight: FontWeight.w600),
                           );
                         },
@@ -1448,13 +1480,13 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
               mainAxisSize: MainAxisSize.min,
               children: const [
                 Icon(Icons.lock_outline, color: Colors.white, size: 28),
-                SizedBox(height: 6),
+                SizedBox(height: _kSpacingSmall),
                 Text(
                   '点击\n解锁',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 11,
+                    fontSize: _kFontSizeTiny,
                     height: 1.2,
                   ),
                 ),
@@ -1484,10 +1516,10 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.info_outline, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
+              const SizedBox(width: _kSpacingMedium),
               Text(
                 _networkToastMessage ?? '',
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: Colors.white, fontSize: _kFontSizeBody),
               ),
             ],
           ),
@@ -1525,7 +1557,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, color: Colors.white, size: 36),
-              const SizedBox(height: 8),
+              const SizedBox(height: _kSpacingMedium),
               SizedBox(
                 width: kFullscreenVolumeBarWidth,
                 child: LinearProgressIndicator(
@@ -1535,7 +1567,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                   minHeight: 4,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: _kSpacingXSmall),
               Text(
                 '${(value * 100).round()}%',
                 style: const TextStyle(
@@ -1651,13 +1683,13 @@ class _SeekPreviewBar extends StatelessWidget {
                 '${_format(current)} / ${_format(total)}',
                 style: const TextStyle(
                   color: Colors.white70,
-                  fontSize: 12,
+                  fontSize: _kFontSizeSmall,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _kSpacingMedium),
           LinearProgressIndicator(
             value: clampedProgress,
             backgroundColor: Colors.white24,
