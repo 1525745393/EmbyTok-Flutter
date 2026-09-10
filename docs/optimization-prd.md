@@ -467,14 +467,19 @@ lib/widgets/
 
 **验收标准**：
 - [x] 架构文档与实际代码一致（已更新 music/ 子目录、video/ 子目录、error_handler.dart 等）
-- [ ] 所有公共类和方法有文档注释
-- [ ] 新成员可通过文档在 1 天内搭建开发环境
-- [ ] API 文档覆盖所有外部接口
+- [x] API 文档覆盖所有外部接口（已补充群晖 Audio Station API 文档）
+- [x] 新成员可通过文档在 1 天内搭建开发环境（已补充调试技巧、常见问题排查）
+- [ ] 所有公共类和方法有文档注释（进行中）
 
 **实施记录**：
-- 2026-09-11：更新 `docs/architecture.md`，补充 P1-1 大文件拆分后的 music/ 子目录（6 个组件）、P2-3 文件组织优化后的 video/ 子目录（18 个组件）、P2-4 新增 error_handler.dart、P1-4 新增 loading_state_card.dart 等
+- 2026-09-11（第一阶段）：更新 `docs/architecture.md`，补充 P1-1 大文件拆分后的 music/ 子目录（6 个组件）、P2-3 文件组织优化后的 video/ 子目录（18 个组件）、P2-4 新增 error_handler.dart、P1-4 新增 loading_state_card.dart 等
+- 2026-09-11（第二阶段）：
+  - 更新 `docs/api-reference.md`，新增第十一章"群晖 Audio Station API（前端直连）"，包含 17 个 API 接口、登录/歌曲列表示例、错误码、注意事项
+  - 新增 `docs/testing-guide.md`（272 行）：测试架构、测试规范、常用测试模式、运行测试、CI 中的测试、测试最佳实践、新增测试清单
+  - 新增 `docs/performance-guide.md`（367 行）：性能指标、已实施的性能优化、性能优化策略（Widget 重建/列表/内存/网络）、性能监控工具、性能优化检查清单、常见性能问题与解决方案
+  - 更新 `docs/developer-guide.md`，新增第十四章"调试技巧"，包含 Flutter 调试、后端调试、常见问题排查、性能调试
 
-**工作量估算**：3 人天（已完成架构文档更新，剩余文档补充中）
+**工作量估算**：3 人天（已完成架构文档、API 文档、测试指南、性能指南、开发指南更新，剩余代码注释补充中）
 
 ---
 

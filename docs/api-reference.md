@@ -688,4 +688,126 @@ curl -X DELETE "http://192.168.1.6:8000/api/favorites/{item_id}" \
 
 ---
 
-*文档版本：v1.0 | 最后更新：2026-06-12 | 对应项目版本：EmbyTok-Flutter v1.0.x*
+## 十一、群晖 Audio Station API（前端直连）
+
+> 群晖 Audio Station API 由 Flutter 前端直接调用，不经过 FastAPI 中间层。
+>
+> **相关源码**：`frontend/lib/services/synology_audio_api.dart`
+
+### 11.1 Base URL
+
+群晖 NAS 的 Audio Station API 地址：
+- 内网：`http://<NAS-IP>:5000/webapi`
+- 外网/HTTPS：`https://<NAS-IP>:5001/webapi`
+- QuickConnect：`https://<quickconnect-id>.quickconnect.cn/webapi`
+
+### 11.2 认证方式
+
+群晖 Audio Station 使用 **SID（Session ID）** 认证：
+
+1. 调用 `auth.cgi` 登录，获取 `sid`
+2. 后续所有请求在查询参数中携带 `_sid=<sid>`
+3. 调用 `auth.cgi` 登出，使 sid 失效
+
+### 11.3 API 接口列表
+
+| 接口 | CGI 路径 | 方法 | 说明 |
+|------|----------|------|------|
+| 登录 | `auth.cgi` | GET | 使用账密登录，获取 sid |
+| 登出 | `auth.cgi` | GET | 登出，使 sid 失效 |
+| 歌曲列表 | `AudioStation/song.cgi` | GET | 获取歌曲列表（支持按专辑/歌手/流派筛选） |
+| 专辑列表 | `AudioStation/album.cgi` | GET | 获取专辑列表（支持排序） |
+| 歌手列表 | `AudioStation/artist.cgi` | GET | 获取歌手列表（支持排序） |
+| 歌单列表 | `AudioStation/playlist.cgi` | GET | 获取歌单列表（全部/个人/智能） |
+| 流派列表 | `AudioStation/genre.cgi` | GET | 获取音乐流派列表 |
+| 收藏列表 | `AudioStation/pin.cgi` | GET | 获取用户收藏（My Pins） |
+| 文件夹浏览 | `AudioStation/folder.cgi` | GET | 按文件夹浏览音乐 |
+| 歌单歌曲 | `AudioStation/song.cgi` | GET | 获取指定歌单的歌曲列表 |
+| 搜索 | `AudioStation/search.cgi` | GET | 搜索歌曲/专辑/歌手 |
+| 歌词 | `AudioStation/lyric.cgi` | GET | 获取歌曲歌词 |
+| 歌曲封面 | `AudioStation/cover.cgi` | GET | 获取歌曲封面图 |
+| 专辑封面 | `AudioStation/cover.cgi` | GET | 获取专辑封面图 |
+| 歌手头像 | `AudioStation/cover.cgi` | GET | 获取歌手头像图 |
+| 音频流 | `AudioStation/stream.cgi` | GET | 获取音频流地址（播放用） |
+
+### 11.4 登录接口示例
+
+**请求**：
+```
+GET /webapi/auth.cgi?api=SYNO.API.Auth&version=6&method=login&account=<username>&passwd=<password>&session=AudioStation&format=cookie
+```
+
+**响应**：
+```json
+{
+  "success": true,
+  "data": {
+    "sid": "abcdef1234567890",
+    "account": "username",
+    "device_id": "device-uuid"
+  }
+}
+```
+
+### 11.5 歌曲列表示例
+
+**请求**：
+```
+GET /webapi/AudioStation/song.cgi?api=SYNO.AudioStation.Song&version=3&method=list&library=all&limit=100&offset=0&sort=title&direction=asc&_sid=<sid>
+```
+
+**响应**：
+```json
+{
+  "success": true,
+  "data": {
+    "total": 1234,
+    "offset": 0,
+    "songs": [
+      {
+        "id": "music_123",
+        "title": "歌曲名",
+        "artist": "歌手名",
+        "album": "专辑名",
+        "album_artist": "专辑歌手",
+        "genre": "流行",
+        "year": 2024,
+        "duration": 240,
+        "track": 1,
+        "disc": 1,
+        "path": "/music/album/song.mp3",
+        "filesize": 5242880,
+        "suffix": "mp3",
+        "bitrate": 320000,
+        "samplerate": 44100,
+        "channel": 2
+      }
+    ]
+  }
+}
+```
+
+### 11.6 错误码
+
+| 错误码 | 说明 |
+|--------|------|
+| 400 | 无效的参数 |
+| 401 | 未认证或 sid 失效 |
+| 403 | 无权限访问 |
+| 404 | 资源不存在 |
+| 408 | 请求超时 |
+| 500 | 服务器内部错误 |
+| 502 | 网关错误 |
+| 503 | 服务不可用 |
+
+### 11.7 注意事项
+
+1. **SID 有效期**：群晖 sid 默认有效期约 24 小时，过期后需要重新登录
+2. **并发限制**：群晖 Audio Station 对并发请求有限制，建议使用请求队列
+3. **封面缓存**：封面图 URL 是固定的，建议使用缓存管理器（AppImageCacheManager）缓存
+4. **音频格式**：支持 MP3、FLAC、AAC、WAV、OGG 等常见格式，移动端建议使用 MP3/AAC 流式播放
+5. **DSM 版本差异**：DSM 6.2 和 7.0+ 的 API 略有差异，建议在实际环境中测试
+
+---
+
+*文档版本：v1.1 | 最后更新：2026-09-11 | 对应项目版本：EmbyTok-Flutter v1.2.x*

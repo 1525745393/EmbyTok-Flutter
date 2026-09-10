@@ -612,4 +612,242 @@ lsof -ti:8000 | xargs kill -9   # macOS / Linux
 
 ---
 
-*文档版本：v1.0 | 最后更新：2026-06-12 | 对应项目版本：EmbyTok-Flutter v1.0.x*
+## 十四、调试技巧
+
+### 14.1 Flutter 调试
+
+#### 14.1.1 常用调试命令
+
+```bash
+# 运行开发版本（支持热重载）
+flutter run
+
+# 热重载（在 flutter run 终端中按 r）
+# 热重启（在 flutter run 终端中按 R）
+
+# 运行性能模式（接近发布性能）
+flutter run --profile
+
+# 运行发布模式
+flutter run --release
+
+# 查看设备列表
+flutter devices
+
+# 指定设备运行
+flutter run -d <device-id>
+
+# 查看日志
+flutter logs
+
+# 清除构建缓存
+flutter clean
+
+# 获取依赖
+flutter pub get
+
+# 升级依赖
+flutter pub upgrade
+```
+
+#### 14.1.2 DevTools 使用
+
+Flutter DevTools 是强大的调试和性能分析工具：
+
+```bash
+# 启动 DevTools
+flutter pub global run devtools
+
+# 运行应用时自动打开 DevTools
+flutter run --devtools
+```
+
+**DevTools 主要功能**：
+- **Flutter Inspector**：查看 Widget 树、检查布局问题
+- **Performance**：帧率分析、CPU 分析
+- **Memory**：内存分析、内存泄漏检测
+- **Network**：网络请求监控
+- **Debugger**：断点调试、变量查看
+- **Logging**：日志查看
+
+#### 14.1.3 常用调试 Widget
+
+```dart
+// 显示 Widget 边界（调试布局问题）
+debugPaintSizeEnabled = true;
+
+// 显示可点击区域
+debugPaintPointersEnabled = true;
+
+// 显示基线
+debugPaintBaselinesEnabled = true;
+
+// 检查性能开销
+debugProfileBuildsEnabled = true;
+
+// 检查图片缓存
+debugInvertOversizedImages = true;
+```
+
+在 `main.dart` 中添加：
+```dart
+void main() {
+  // 调试模式下启用布局检查
+  if (kDebugMode) {
+    debugPaintSizeEnabled = false;  // 设为 true 查看 Widget 边界
+  }
+  runApp(const MyApp());
+}
+```
+
+#### 14.1.4 日志调试
+
+项目使用 `AppLogger` 统一日志管理：
+
+```dart
+import 'package:embbytok/utils/logger.dart';
+
+// 不同级别的日志
+AppLogger.debug('调试信息');
+AppLogger.info('普通信息');
+AppLogger.warn('警告信息');
+AppLogger.error('错误信息', error: e, stackTrace: stackTrace);
+
+// 带数据的日志
+AppLogger.info('用户登录', data: {'userId': '123', 'username': 'test'});
+```
+
+**日志脱敏**（P0-2 已实现）：
+- 密码、Token 等敏感字段自动脱敏
+- 支持 17 个敏感字段过滤
+- 可在配置中开关脱敏功能
+
+### 14.2 后端调试
+
+#### 14.2.1 启动调试模式
+
+```bash
+# 进入后端目录
+cd backend
+
+# 激活虚拟环境
+source venv/bin/activate  # Linux/macOS
+# venv\Scripts\activate  # Windows
+
+# 启动开发服务器（自动重载）
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# 启动调试模式（支持断点）
+python -m debugpy --listen 0.0.0.0:5678 -m uvicorn main:app --reload
+```
+
+#### 14.2.2 API 调试
+
+```bash
+# 使用 curl 测试 API
+curl -X GET http://localhost:8000/health
+
+# 带认证信息的请求
+curl -X GET http://localhost:8000/api/libraries \
+  -H "X-Emby-Server-Url: http://192.168.1.6:8010" \
+  -H "X-Emby-Token: your-token"
+
+# 查看 API 文档（Swagger UI）
+open http://localhost:8000/docs
+
+# 查看 ReDoc 文档
+open http://localhost:8000/redoc
+```
+
+#### 14.2.3 数据库调试
+
+```bash
+# 项目使用 SQLite，可使用 sqlite3 命令行工具
+sqlite3 data/embbytok.db
+
+# 查看所有表
+.tables
+
+# 查看表结构
+.schema users
+
+# 查询数据
+SELECT * FROM users LIMIT 10;
+```
+
+### 14.3 常见问题排查
+
+#### 14.3.1 Flutter 常见问题
+
+| 问题 | 解决方案 |
+|------|---------|
+| 依赖冲突 | `flutter clean && flutter pub get` |
+| 热重载不生效 | 检查是否修改了 main.dart 或全局变量，需要热重启 |
+| 编译错误 | 运行 `flutter analyze` 查看详细错误 |
+| 白屏 | 检查 main.dart 中的 ProviderScope 和路由配置 |
+| 图片不显示 | 检查图片 URL、网络连接、缓存配置 |
+| 内存泄漏 | 使用 DevTools Memory 分析，检查 dispose 释放 |
+
+#### 14.3.2 后端常见问题
+
+| 问题 | 解决方案 |
+|------|---------|
+| 端口被占用 | `lsof -ti:8000 | xargs kill -9`（Linux/macOS） |
+| 数据库锁定 | 检查是否有其他进程访问数据库，删除 `*.db-journal` |
+| 认证失败 | 检查 Emby 服务器地址、Token、用户权限 |
+| CORS 错误 | 检查后端 CORS 配置，允许前端域名 |
+| 500 错误 | 查看后端日志，检查堆栈跟踪 |
+
+#### 14.3.3 网络问题排查
+
+```bash
+# 测试网络连通性
+ping 192.168.1.6
+
+# 测试端口连通性
+nc -zv 192.168.1.6 8000
+
+# 测试 API 响应时间
+curl -w "Time: %{time_total}s\n" -o /dev/null -s http://localhost:8000/health
+
+# 查看 HTTP 请求详情
+curl -v http://localhost:8000/api/libraries
+```
+
+### 14.4 性能调试
+
+#### 14.4.1 Flutter 性能分析
+
+```bash
+# 运行性能模式
+flutter run --profile
+
+# 启动性能追踪
+flutter run --trace-startup --profile
+
+# 分析应用大小
+flutter build apk --analyze-size
+
+# 查看性能数据
+# 在 DevTools 中查看 Performance 和 CPU Profiler
+```
+
+#### 14.4.2 后端性能分析
+
+```bash
+# 使用 cProfile 分析 Python 代码性能
+python -m cProfile -o profile.out main.py
+
+# 查看性能分析结果
+python -m pstats profile.out
+
+# 使用 py-spy 实时分析
+pip install py-spy
+py-spy top --pid <python-pid>
+```
+
+详细的性能优化指南请参考 [docs/performance-guide.md](performance-guide.md)。
+
+---
+
+*文档版本：v1.1 | 最后更新：2026-09-11 | 对应项目版本：EmbyTok-Flutter v1.2.x*
