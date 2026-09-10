@@ -24,10 +24,17 @@ import '../models/artist_metadata.dart';
 import '../utils/logger.dart';
 import 'deezer_service.dart';
 import 'lastfm_service.dart';
+import 'nas_metadata_sync_service.dart';
+import 'synology_audio_api.dart';
 
 /// 歌手元数据统一服务
 ///
-/// 提供统一的歌手元数据获取接口，自动处理多源降级和缓存。
+/// 提供统一的歌手元数据获取接口，自动处理多源降级和三级缓存。
+///
+/// 三级缓存架构（V1.1）：
+/// - L1 内存缓存：Map LRU 淘汰，最多 50 个，最快
+/// - L2 本地缓存：SharedPreferences 持久化，应用重启后仍有效
+/// - L3 NAS 缓存：群晖 File Station 存储，多设备共享（可选，需开启）
 ///
 /// 多源降级策略（V1.1）：
 /// 1. Last.fm 中文简介（lang=zh）
@@ -39,14 +46,23 @@ class ArtistMetadataService {
   ArtistMetadataService({
     LastFmService? lastFmService,
     DeezerService? deezerService,
+    NasMetadataSyncService? nasSyncService,
+    SynologyAudioApi? synologyApi,
     SharedPreferences? prefs,
   })  : _lastFmService = lastFmService,
         _deezerService = deezerService ?? DeezerService(),
+        _nasSyncService = nasSyncService ?? NasMetadataSyncService(),
+        _synologyApi = synologyApi,
         _prefs = prefs;
 
   final LastFmService? _lastFmService;
   final DeezerService _deezerService;
+  final NasMetadataSyncService _nasSyncService;
+  final SynologyAudioApi? _synologyApi;
   SharedPreferences? _prefs;
+
+  /// 是否启用 NAS 同步（L3 缓存）
+  bool nasSyncEnabled = false;
 
   /// L1 内存缓存：歌手名 → 元数据
   final Map<String, ArtistMetadata> _memoryCache = {};
@@ -102,13 +118,42 @@ class ArtistMetadataService {
       }
     }
 
-    // 3. 多源降级获取
+    // 3. 检查 L3 NAS 缓存（非强制刷新时，需启用 NAS 同步且已登录）
+    if (!forceRefresh && nasSyncEnabled && _synologyApi != null) {
+      try {
+        final nasCached = await _nasSyncService.downloadMetadata(
+          key,
+          api: _synologyApi!,
+        );
+        if (nasCached != null && !_isExpired(nasCached)) {
+          AppLogger.debug('歌手元数据 L3 NAS 缓存命中', data: {'artist': key});
+          _saveToMemory(key, nasCached);
+          await _saveToPrefs(key, nasCached);
+          return nasCached;
+        }
+      } catch (e) {
+        AppLogger.warn('歌手元数据 L3 NAS 缓存读取失败',
+            data: {'artist': key, 'error': e.toString()});
+      }
+    }
+
+    // 4. 多源降级获取
     AppLogger.debug('开始多源获取歌手元数据', data: {'artist': key, 'lang': lang});
     final metadata = await _fetchFromMultipleSources(key, lang: lang);
 
-    // 4. 写入缓存（即使是空数据也写入，避免重复请求）
+    // 5. 写入缓存（即使是空数据也写入，避免重复请求）
     _saveToMemory(key, metadata);
     await _saveToPrefs(key, metadata);
+
+    // 6. 异步上传到 NAS（L3 缓存，需启用且已登录，非空数据才上传）
+    if (nasSyncEnabled && _synologyApi != null && metadata.hasBio) {
+      _nasSyncService
+          .uploadMetadata(metadata, api: _synologyApi!)
+          .catchError((e) {
+        AppLogger.warn('歌手元数据 L3 NAS 上传失败',
+            data: {'artist': key, 'error': e.toString()});
+      });
+    }
 
     return metadata;
   }

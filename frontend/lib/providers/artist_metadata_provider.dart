@@ -14,7 +14,11 @@ import 'synology_auth_provider.dart';
 /// ArtistMetadataService 单例 Provider
 final artistMetadataServiceProvider = Provider<ArtistMetadataService>((ref) {
   final lastFmService = ref.watch(lastFmServiceProvider);
-  final service = ArtistMetadataService(lastFmService: lastFmService);
+  final synologyApi = ref.watch(synologyAuthProvider.notifier).api;
+  final service = ArtistMetadataService(
+    lastFmService: lastFmService,
+    synologyApi: synologyApi,
+  );
   // 异步初始化（加载 SharedPreferences）
   service.init();
   return service;

@@ -235,6 +235,7 @@ class SettingsView extends ConsumerWidget {
                   context, ref, '音乐数据源', Icons.library_music_outlined),
               _buildSynologyMusicTile(context, ref),
               _buildLastFmTile(context, ref),
+              _buildNasMetadataSyncTile(context, ref),
             ],
           ),
           // 关于
@@ -1235,6 +1236,36 @@ class SettingsView extends ConsumerWidget {
           ? '已配置：歌手头像/简介优先用 Last.fm'
           : '配置 API Key，补充歌手图与简介（免费）',
       onTap: () => _showLastFmKeyDialog(context, ref, keyAsync.valueOrNull ?? ''),
+    );
+  }
+
+  /// NAS 歌手元数据同步开关（V1.1）
+  ///
+  /// 开启后，歌手元数据会同步到群晖 NAS（/appdata/EmbTok/artist_metadata/），
+  /// 支持多设备共享。需要先登录群晖 Audio Station。
+  Widget _buildNasMetadataSyncTile(BuildContext context, WidgetRef ref) {
+    final service = ref.read(artistMetadataServiceProvider);
+    final isLoggedIn = ref.read(synologyAuthProvider).isLoggedIn;
+
+    return _SwitchTile(
+      icon: Icons.cloud_sync_outlined,
+      iconColor: Colors.teal,
+      title: 'NAS 元数据同步',
+      subtitle: service.nasSyncEnabled
+          ? '已开启：歌手简介/头像同步到群晖，多设备共享'
+          : '开启后同步到 NAS（需先登录群晖）',
+      value: service.nasSyncEnabled,
+      onChanged: isLoggedIn
+          ? (value) {
+              service.nasSyncEnabled = value;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(value ? 'NAS 元数据同步已开启' : 'NAS 元数据同步已关闭'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          : null, // 未登录时禁用
     );
   }
 
