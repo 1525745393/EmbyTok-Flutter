@@ -60,6 +60,121 @@ class AppLogger {
   /// Release 模式：仅记录 WARN 及以上
   static LogLevel _minLevel = kDebugMode ? LogLevel.debug : LogLevel.warn;
 
+  // ============ 敏感信息脱敏 ============
+  /// 是否启用敏感信息脱敏（默认启用）
+  ///
+  /// 启用后，日志中的 Token、密码等敏感字段会被自动脱敏，
+  /// 避免敏感信息写入日志文件造成隐私泄露。
+  /// 调试时可通过 [disableSensitiveRedaction] 临时关闭。
+  static bool _sensitiveRedactionEnabled = true;
+
+  /// 需要脱敏的敏感字段名（不区分大小写）
+  static const List<String> _sensitiveKeys = [
+    'token',
+    'password',
+    'authorization',
+    'x-emby-token',
+    'x-emby-authorization',
+    'access_token',
+    'refreshtoken',
+    'refresh_token',
+    'apikey',
+    'api_key',
+    'secret',
+    'clientsecret',
+    'client_secret',
+    'sessionid',
+    'session_id',
+    'cookie',
+    'set-cookie',
+  ];
+
+  /// 启用敏感信息脱敏（默认状态）
+  static void enableSensitiveRedaction() {
+    _sensitiveRedactionEnabled = true;
+  }
+
+  /// 禁用敏感信息脱敏（仅调试用）
+  ///
+  /// 注意：禁用后完整的 Token 和密码可能写入日志文件，
+  /// 仅在本地调试时使用，切勿在生产环境禁用。
+  static void disableSensitiveRedaction() {
+    _sensitiveRedactionEnabled = false;
+  }
+
+  /// 脱敏字符串值：保留前 4 位 + *** + 后 4 位
+  ///
+  /// 长度不足 8 位时全部替换为 ***
+  static String _redactValue(String value) {
+    if (value.isEmpty) return value;
+    if (value.length < 8) return '***';
+    return '${value.substring(0, 4)}***${value.substring(value.length - 4)}';
+  }
+
+  /// 判断 key 是否为敏感字段（不区分大小写，支持包含匹配）
+  static bool _isSensitiveKey(String key) {
+    final lowerKey = key.toLowerCase();
+    return _sensitiveKeys.any((sensitive) =>
+        lowerKey == sensitive || lowerKey.contains(sensitive));
+  }
+
+  /// 脱敏 Map 数据中的敏感字段
+  static Map<String, dynamic> _redactMap(Map<String, dynamic> data) {
+    if (!_sensitiveRedactionEnabled) return data;
+    final redacted = <String, dynamic>{};
+    data.forEach((key, value) {
+      if (_isSensitiveKey(key) && value is String) {
+        redacted[key] = _redactValue(value);
+      } else if (value is Map<String, dynamic>) {
+        redacted[key] = _redactMap(value);
+      } else if (value is List) {
+        redacted[key] = _redactList(value);
+      } else {
+        redacted[key] = value;
+      }
+    });
+    return redacted;
+  }
+
+  /// 脱敏 List 数据中的敏感字段
+  static List<dynamic> _redactList(List<dynamic> list) {
+    return list.map((item) {
+      if (item is Map<String, dynamic>) {
+        return _redactMap(item);
+      } else if (item is List) {
+        return _redactList(item);
+      }
+      return item;
+    }).toList();
+  }
+
+  /// 脱敏消息字符串中的敏感信息（如 URL 中的 token 参数）
+  ///
+  /// 处理格式：?token=xxx&password=xxx 或 token: xxx
+  static String _redactMessage(String message) {
+    if (!_sensitiveRedactionEnabled) return message;
+    var result = message;
+    // 匹配 URL 参数格式：?key=value 或 &key=value
+    for (final key in _sensitiveKeys) {
+      // URL 参数格式
+      result = result.replaceAllMapped(
+        RegExp('([?&]$key=)([^&\\s]+)', caseSensitive: false),
+        (match) => '${match.group(1)}${_redactValue(match.group(2)!)}',
+      );
+      // JSON 格式："key": "value"
+      result = result.replaceAllMapped(
+        RegExp('("$key"\\s*:\\s*")([^"]+)(")', caseSensitive: false),
+        (match) => '${match.group(1)}${_redactValue(match.group(2)!)}${match.group(3)}',
+      );
+      // Header 格式：key: value
+      result = result.replaceAllMapped(
+        RegExp('($key:\\s*)([^\\s,]+)', caseSensitive: false),
+        (match) => '${match.group(1)}${_redactValue(match.group(2)!)}',
+      );
+    }
+    return result;
+  }
+
   // ============ 本地日志持久化 ============
   // 环形缓冲：最多保留 500 条 WARN/ERROR 日志
   static const int _maxPersistedLogs = 500;
@@ -154,6 +269,10 @@ class AppLogger {
       return;
     }
 
+    // 敏感信息脱敏：对 message 和 data 中的 Token、密码等字段脱敏
+    final safeMessage = _redactMessage(message);
+    final safeData = data != null ? _redactMap(data) : null;
+
     // 构建日志内容
     final timestamp = DateTime.now().toIso8601String();
     final buffer = StringBuffer();
@@ -163,11 +282,11 @@ class AppLogger {
     if (tag != null && tag.isNotEmpty) {
       buffer.write('][$tag');
     }
-    buffer.write('] $timestamp - $message');
+    buffer.write('] $timestamp - $safeMessage');
 
     // 添加结构化数据
-    if (data != null && data.isNotEmpty) {
-      buffer.write(' | ${_formatData(data)}');
+    if (safeData != null && safeData.isNotEmpty) {
+      buffer.write(' | ${_formatData(safeData)}');
     }
 
     // 添加错误信息
@@ -312,24 +431,9 @@ class AppLogger {
 
   /// 格式化结构化数据
   static String _formatData(Map<String, dynamic> data) {
-    final entries = data.entries.map((e) {
-      // 过滤敏感信息
-      if (_isSensitiveKey(e.key)) {
-        return '${e.key}: ***';
-      }
-      return '${e.key}: ${e.value}';
-    });
+    // 敏感信息已在 _log 中通过 _redactMap 脱敏，此处直接格式化
+    final entries = data.entries.map((e) => '${e.key}: ${e.value}');
     return '{${entries.join(', ')}}';
-  }
-
-  /// 检查是否为敏感键名
-  static bool _isSensitiveKey(String key) {
-    final lowerKey = key.toLowerCase();
-    return lowerKey.contains('token') ||
-        lowerKey.contains('password') ||
-        lowerKey.contains('secret') ||
-        lowerKey.contains('key') ||
-        lowerKey.contains('auth');
   }
 
   /// 映射到 developer.log 级别
