@@ -33,6 +33,7 @@ import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
 import 'views/main_view.dart';
 import 'views/synology_music_view.dart';
+import 'widgets/performance_overlay.dart';
 import 'widgets/video/video_page_item.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
@@ -434,7 +435,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: systemOverlayStyleOf(context),
-          child: child ?? const SizedBox.shrink(),
+          child: PerformanceOverlay(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

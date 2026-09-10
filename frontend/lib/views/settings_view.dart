@@ -4,7 +4,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show LicenseRegistry;
+import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +26,7 @@ import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
+import '../utils/performance_monitor.dart';
 import '../widgets/library_selector.dart';
 
 // ===== 设置页面 UI 常量（避免魔法数字，提升可维护性）=====
@@ -248,6 +249,18 @@ class SettingsView extends ConsumerWidget {
               _buildVersionTile(context, ref),
             ],
           ),
+          // 开发者选项（仅开发模式显示）
+          if (kDebugMode)
+            _buildSection(
+              context,
+              ref,
+              '开发者选项',
+              Icons.developer_mode,
+              Colors.purple,
+              [
+                _buildPerformanceMonitorTile(context, ref),
+              ],
+            ),
           // 账户
           _buildSection(
             context,
@@ -1277,6 +1290,30 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blueGrey,
       title: '版本',
       subtitle: subtitle,
+    );
+  }
+
+  // P2-5：性能监控面板（仅开发模式）
+  // 开启后显示悬浮面板，监控内存使用、帧率、Widget 重建次数、API 请求统计
+  Widget _buildPerformanceMonitorTile(BuildContext context, WidgetRef ref) {
+    final enabled = PerformanceMonitor.instance.enabled;
+    return _SwitchTile(
+      icon: Icons.analytics_outlined,
+      iconColor: Colors.purple,
+      title: '性能监控面板',
+      subtitle: enabled
+          ? '已开启：悬浮显示内存/FPS/重建次数/API 请求'
+          : '已关闭：开发调试用，不影响发布版本',
+      value: enabled,
+      onChanged: (value) {
+        setState(() {
+          if (value) {
+            PerformanceMonitor.instance.enable();
+          } else {
+            PerformanceMonitor.instance.disable();
+          }
+        });
+      },
     );
   }
 
