@@ -1,3 +1,21 @@
+# [2.63.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.3...v2.63.0) (2026-09-10)
+
+
+### Bug Fixes
+
+* **release:** 修复 ServiceProtocolInfo 无 memoryUsage 属性的编译错误 ([bfa0bf7](https://github.com/1525745393/EmbyTok-Flutter/commit/bfa0bf769c50cc33092e7a617beeab9646b9c2b7))
+* **release:** 修复自动发布编译错误 ([1f5bb00](https://github.com/1525745393/EmbyTok-Flutter/commit/1f5bb00445c5a5855017880adda3fd8aec1bc747))
+
+
+### Features
+
+* **P2-5:** 新增性能监控面板 - 内存/FPS/重建次数/API请求统计 ([d1f783b](https://github.com/1525745393/EmbyTok-Flutter/commit/d1f783b55f8a1b3fadf265e709405f5bbdc1e097))
+* **歌手简介V1.0:** 新增独立歌手详情页 + 统一元数据服务 + 多源降级 ([8e03a37](https://github.com/1525745393/EmbyTok-Flutter/commit/8e03a37825c1c01dcb540e97dbdc63c3b7510a8c))
+* **歌手简介V1.1:** 新增Deezer补源 + 缓存管理页 ([06e10c7](https://github.com/1525745393/EmbyTok-Flutter/commit/06e10c7033209e4d3ffcc7eb364eff67d9418eb8))
+* **歌手简介V1.1:** 新增HTML富文本渲染 ([2288739](https://github.com/1525745393/EmbyTok-Flutter/commit/228873949378953044171d0621aa1c84bf332659)), closes [#39](https://github.com/1525745393/EmbyTok-Flutter/issues/39)
+* **歌手简介V1.1:** 新增NAS元数据同步（L3缓存） ([0e2591d](https://github.com/1525745393/EmbyTok-Flutter/commit/0e2591d1b621862774009e68d62eee612111dab5))
+* **歌手简介V1.1:** 新增相似歌手展示 ([dd7da5a](https://github.com/1525745393/EmbyTok-Flutter/commit/dd7da5a58767a7104c7890c8c8ce2c3f62df859a))
+
 ## [2.62.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.2...v2.62.3) (2026-09-10)
 
 
