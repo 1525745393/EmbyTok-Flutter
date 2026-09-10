@@ -22,19 +22,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/artist_metadata.dart';
 import '../utils/logger.dart';
+import 'deezer_service.dart';
 import 'lastfm_service.dart';
 
 /// 歌手元数据统一服务
 ///
 /// 提供统一的歌手元数据获取接口，自动处理多源降级和缓存。
+///
+/// 多源降级策略（V1.1）：
+/// 1. Last.fm 中文简介（lang=zh）
+/// 2. Last.fm 英文简介（默认英文）
+/// 3. Deezer（补源，头像质量高，简介多为英文）
+/// 4. Wikipedia 中文简介（兜底源）
+/// 5. Wikipedia 英文简介
 class ArtistMetadataService {
   ArtistMetadataService({
     LastFmService? lastFmService,
+    DeezerService? deezerService,
     SharedPreferences? prefs,
   })  : _lastFmService = lastFmService,
+        _deezerService = deezerService ?? DeezerService(),
         _prefs = prefs;
 
   final LastFmService? _lastFmService;
+  final DeezerService _deezerService;
   SharedPreferences? _prefs;
 
   /// L1 内存缓存：歌手名 → 元数据
@@ -103,39 +114,70 @@ class ArtistMetadataService {
   }
 
   /// 多源降级获取歌手元数据
+  ///
+  /// 优先级：Last.fm 中文 → Last.fm 英文 → Deezer → Wikipedia 中文 → Wikipedia 英文
   Future<ArtistMetadata> _fetchFromMultipleSources(
     String artistName, {
     String lang = 'zh',
   }) async {
     // 1. Last.fm（如果已配置 API Key）
     if (_lastFmService != null) {
+      // 1a. Last.fm 中文
       try {
-        final lastFmResult = await _fetchFromLastFm(artistName, lang: lang);
+        final lastFmResult = await _fetchFromLastFm(artistName, lang: 'zh');
         if (lastFmResult != null && lastFmResult.hasBio) {
-          AppLogger.debug('Last.fm 获取歌手元数据成功',
-              data: {'artist': artistName, 'source': 'lastfm', 'lang': lang});
+          AppLogger.debug('Last.fm(中文) 获取歌手元数据成功',
+              data: {'artist': artistName, 'source': 'lastfm', 'lang': 'zh'});
           return lastFmResult;
         }
       } catch (e) {
-        AppLogger.warn('Last.fm 获取歌手元数据失败',
+        AppLogger.warn('Last.fm(中文) 获取歌手元数据失败',
+            data: {'artist': artistName, 'error': e.toString()});
+      }
+
+      // 1b. Last.fm 英文
+      try {
+        final lastFmResult = await _fetchFromLastFm(artistName, lang: 'en');
+        if (lastFmResult != null && lastFmResult.hasBio) {
+          AppLogger.debug('Last.fm(英文) 获取歌手元数据成功',
+              data: {'artist': artistName, 'source': 'lastfm', 'lang': 'en'});
+          return lastFmResult;
+        }
+      } catch (e) {
+        AppLogger.warn('Last.fm(英文) 获取歌手元数据失败',
             data: {'artist': artistName, 'error': e.toString()});
       }
     }
 
-    // 2. Wikipedia（兜底源，无需 API Key）
+    // 2. Deezer（补源，头像质量高，简介多为英文）
     try {
-      final wikiResult = await _fetchFromWikipedia(artistName, lang: lang);
-      if (wikiResult != null && wikiResult.hasBio) {
-        AppLogger.debug('Wikipedia 获取歌手元数据成功',
-            data: {'artist': artistName, 'source': 'wikipedia', 'lang': lang});
-        return wikiResult;
+      final deezerResult = await _fetchFromDeezer(artistName);
+      if (deezerResult != null && (deezerResult.hasBio || deezerResult.hasImage)) {
+        AppLogger.debug('Deezer 获取歌手元数据成功',
+            data: {'artist': artistName, 'source': 'deezer'});
+        return deezerResult;
       }
     } catch (e) {
-      AppLogger.warn('Wikipedia 获取歌手元数据失败',
+      AppLogger.warn('Deezer 获取歌手元数据失败',
           data: {'artist': artistName, 'error': e.toString()});
     }
 
-    // 3. 所有源都失败，返回空数据（标记为无简介）
+    // 3. Wikipedia（兜底源，无需 API Key）
+    for (final wikiLang in [lang, 'en']) {
+      try {
+        final wikiResult = await _fetchFromWikipedia(artistName, lang: wikiLang);
+        if (wikiResult != null && wikiResult.hasBio) {
+          AppLogger.debug('Wikipedia 获取歌手元数据成功',
+              data: {'artist': artistName, 'source': 'wikipedia', 'lang': wikiLang});
+          return wikiResult;
+        }
+      } catch (e) {
+        AppLogger.warn('Wikipedia 获取歌手元数据失败',
+            data: {'artist': artistName, 'lang': wikiLang, 'error': e.toString()});
+      }
+    }
+
+    // 4. 所有源都失败，返回空数据（标记为无简介）
     AppLogger.info('所有数据源均无歌手简介', data: {'artist': artistName});
     return ArtistMetadata.empty(artistName);
   }
@@ -158,6 +200,28 @@ class ArtistMetadataService {
       bioContent: info.bio, // Last.fm 简介已去 HTML，暂用同一份
       bioLang: lang,
       source: ArtistMetadataSource.lastFm,
+      cachedAt: DateTime.now(),
+    );
+  }
+
+  /// 从 Deezer 获取歌手元数据
+  ///
+  /// Deezer 头像质量高（最大 1000x1000），适合作为头像补源；
+  /// 简介多为英文，中文覆盖率较低。
+  Future<ArtistMetadata?> _fetchFromDeezer(String artistName) async {
+    final info = await _deezerService.fetchArtistInfo(artistName);
+    if (info == null) return null;
+
+    // Deezer 简介可能为空，此时只返回头像（调用方会继续降级到其他源获取简介）
+    return ArtistMetadata(
+      name: artistName,
+      imageUrl: info.bestImageUrl,
+      imageSmallUrl: info.pictureMedium,
+      bioSummary: info.description,
+      bioContent: info.description,
+      bioLang: 'en', // Deezer 简介多为英文
+      listeners: info.nbFan,
+      source: ArtistMetadataSource.deezer,
       cachedAt: DateTime.now(),
     );
   }

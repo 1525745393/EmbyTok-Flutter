@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
+import '../providers/artist_metadata_provider.dart';
 import '../providers/lastfm_provider.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
@@ -200,6 +201,7 @@ class SettingsView extends ConsumerWidget {
             Colors.grey,
             [
               _buildCacheTile(context, ref),
+              _buildArtistMetadataCacheTile(context, ref),
               _buildResetSettingsTile(context, ref),
               _buildExportLogsTile(context, ref),
               _buildClearLogsTile(context, ref),
@@ -1003,6 +1005,58 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 存储 - 歌手元数据缓存管理（V1.1）
+  // 查看歌手简介/头像缓存大小，支持单独清除
+  Widget _buildArtistMetadataCacheTile(BuildContext context, WidgetRef ref) {
+    return FutureBuilder<int>(
+      future: ref.read(artistMetadataServiceProvider).getCacheSize(),
+      builder: (context, snapshot) {
+        final size = snapshot.data ?? 0;
+        return _TapTile(
+          icon: Icons.person_outline,
+          iconColor: Colors.purple,
+          title: '歌手元数据缓存',
+          subtitle: '简介/头像缓存 ${formatBytes(size)}，点击清除',
+          onTap: () => _showClearArtistMetadataDialog(context, ref),
+        );
+      },
+    );
+  }
+
+  // 显示清除歌手元数据缓存对话框
+  Future<void> _showClearArtistMetadataDialog(
+      BuildContext context, WidgetRef ref) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清除歌手元数据缓存'),
+        content: const Text('确定要清除所有歌手简介和头像缓存吗？清除后下次访问歌手时将重新从网络获取。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await ref.read(artistMetadataServiceProvider).clearAllCache();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('歌手元数据缓存已清除'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   // 存储 - 重置所有偏好设置到默认值
   // 仅清除"设置类"偏好，不影响登录信息、观看历史、收藏等用户数据
   Widget _buildResetSettingsTile(BuildContext context, WidgetRef ref) {
@@ -1306,13 +1360,18 @@ class SettingsView extends ConsumerWidget {
           : '已关闭：开发调试用，不影响发布版本',
       value: enabled,
       onChanged: (value) {
-        setState(() {
-          if (value) {
-            PerformanceMonitor.instance.enable();
-          } else {
-            PerformanceMonitor.instance.disable();
-          }
-        });
+        if (value) {
+          PerformanceMonitor.instance.enable();
+        } else {
+          PerformanceMonitor.instance.disable();
+        }
+        // 提示用户
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(value ? '性能监控面板已开启' : '性能监控面板已关闭'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
       },
     );
   }
