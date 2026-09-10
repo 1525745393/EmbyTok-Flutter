@@ -24,6 +24,7 @@ import '../providers/providers.dart';
 import '../providers/recent_playbacks_provider.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
+import 'music/equalizer_bars.dart';
 
 // ===== 音乐库 UI 常量（避免魔法数字，提升可维护性）=====
 
@@ -1241,7 +1242,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                           if (isCurrent && playback.isPlaying)
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
-                              child: _EqualizerBars(
+                              child: EqualizerBars(
                                 color: scheme.primary,
                                 size: 12,
                               ),
@@ -2411,72 +2412,6 @@ class MiniPlayerBar extends ConsumerWidget {
       constraints: const BoxConstraints(minWidth: 34, minHeight: 40),
       padding: EdgeInsets.zero,
       onPressed: onPressed,
-    );
-  }
-}
-
-// ============================
-// 动态均衡器（当前播放歌曲指示）
-// ============================
-
-/// 三根跳动柱子的动态均衡器动画，参考主流音乐 App 的"正在播放"指示
-class _EqualizerBars extends StatefulWidget {
-  final Color color;
-  final double size;
-
-  const _EqualizerBars({required this.color, required this.size});
-
-  @override
-  State<_EqualizerBars> createState() => _EqualizerBarsState();
-}
-
-class _EqualizerBarsState extends State<_EqualizerBars>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  final List<double> _phases = [0.0, 2.1, 4.2];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final t = _controller.value * 2 * 3.1415926;
-        return SizedBox(
-          width: widget.size,
-          height: widget.size,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              for (final phase in _phases)
-                Container(
-                  width: widget.size / 4,
-                  height: widget.size *
-                      (0.35 + 0.55 * (0.5 + 0.5 * math.sin(t + phase))),
-                  decoration: BoxDecoration(
-                    color: widget.color,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
