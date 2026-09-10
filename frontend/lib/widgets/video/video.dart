@@ -26,7 +26,10 @@ export 'top_tool_bar.dart';
 export 'heart_animation.dart';
 
 // 视频工具
-export 'video_sheet_utils.dart';
+// 注意：hide showSubtitleSelector 避免与 subtitle_selector.dart 中的同名函数冲突
+// video_sheet_utils.dart 中的 showSubtitleSelector 是依赖 provider 的包装版本，
+// 需要使用时请直接 import 'video_sheet_utils.dart'
+export 'video_sheet_utils.dart' hide showSubtitleSelector;
 export 'video_action_button.dart';
 export 'video_control_buttons.dart';
 export 'video_draggable_clean_actions.dart';
