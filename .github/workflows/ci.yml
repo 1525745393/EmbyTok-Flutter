@@ -95,26 +95,52 @@ jobs:
           echo "ℹ️  说明：这里的问题不会影响发布 APK，但测试代码需要保持最新"
           echo "⚠️  如果这一步失败，只表示测试文件可能过时了，不会阻止发布"
           
-          # 运行一次 flutter analyze，将输出保存到变量
-          ANALYZE_OUTPUT=$(flutter analyze --no-pub test 2>&1)
+          # 运行 flutter analyze，将输出保存到文件
+          # 注意：使用 set +e 避免 analyze 退出码非零时脚本提前失败
+          set +e
+          flutter analyze --no-pub test > /tmp/analyze_test.txt 2>&1
+          set -e
+          
+          # 统计各类型问题数量（使用精确匹配）
+          ERROR_COUNT=$(grep -c "^   error •" /tmp/analyze_test.txt || true)
+          WARNING_COUNT=$(grep -c "^   warning •" /tmp/analyze_test.txt || true)
+          INFO_COUNT=$(grep -c "^   info •" /tmp/analyze_test.txt || true)
+          
+          echo ""
+          echo "📊 error: $ERROR_COUNT, warning: $WARNING_COUNT, info: $INFO_COUNT"
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "❌ ERROR（严重错误）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "error •" || echo "✅ 没有 error 级别的问题"
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            grep "^   error •" /tmp/analyze_test.txt
+          else
+            echo "✅ 没有 error 级别的问题"
+          fi
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "⚠️  WARNING（警告）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "warning •" || echo "✅ 没有 warning 级别的问题"
+          if [ "$WARNING_COUNT" -gt 0 ]; then
+            grep "^   warning •" /tmp/analyze_test.txt
+          else
+            echo "✅ 没有 warning 级别的问题"
+          fi
           
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "ℹ️  INFO（风格建议）"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "$ANALYZE_OUTPUT" | grep "info •" || echo "✅ 没有 info 级别的问题"
+          if [ "$INFO_COUNT" -gt 0 ]; then
+            grep "^   info •" /tmp/analyze_test.txt | head -20
+            if [ "$INFO_COUNT" -gt 20 ]; then
+              echo "... 还有 $((INFO_COUNT - 20)) 条 info 级别问题（已省略）"
+            fi
+          else
+            echo "✅ 没有 info 级别的问题"
+          fi
           
           echo ""
           echo "✅ 测试代码检查完成（如有问题需要后续修复，不影响发布）"
