@@ -1,3 +1,10 @@
+## [2.62.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.0...v2.62.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* **ci:** 修复 barrel 文件 ambiguous_export 错误 — showSubtitleSelector 命名冲突 ([245f58f](https://github.com/1525745393/EmbyTok-Flutter/commit/245f58feda0130cfdd21b1ba7ccaaa53dca37881))
+
 # [2.62.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.61.0...v2.62.0) (2026-09-10)
 
 
