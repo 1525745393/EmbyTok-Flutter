@@ -977,13 +977,36 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
 
   /// 构建错误状态
   Widget _buildError(BuildContext context, Object error) {
+    final scheme = Theme.of(context).colorScheme;
+
+    // 根据错误类型显示用户友好的提示
+    String errorMessage;
+    if (error.toString().contains('SocketException') ||
+        error.toString().contains('NetworkException')) {
+      errorMessage = '网络连接失败，请检查网络设置';
+    } else if (error.toString().contains('TimeoutException')) {
+      errorMessage = '请求超时，请稍后重试';
+    } else if (error.toString().contains('401') ||
+        error.toString().contains('403') ||
+        error.toString().contains('Unauthorized')) {
+      errorMessage = '登录已过期，请重新登录';
+    } else if (error.toString().contains('404')) {
+      errorMessage = '未找到相关歌手信息';
+    } else {
+      errorMessage = '加载失败，请稍后重试';
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          Icon(Icons.error_outline, size: 48, color: scheme.error),
           const SizedBox(height: 16),
-          Text('加载失败: $error'),
+          Text(
+            errorMessage,
+            style: TextStyle(color: scheme.onSurface),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: () => setState(() {}),

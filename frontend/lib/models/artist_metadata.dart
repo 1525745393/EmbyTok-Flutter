@@ -262,9 +262,13 @@ class ArtistMetadata {
         cachedAt: DateTime.now(),
       );
 
-  /// 判断缓存是否过期（默认30天）
-  bool isExpired({Duration maxAge = const Duration(days: 30)}) {
-    return DateTime.now().difference(cachedAt) > maxAge;
+  /// 判断缓存是否过期（默认30天，空数据7天）
+  bool isExpired({
+    Duration maxAge = const Duration(days: 30),
+    Duration emptyMaxAge = const Duration(days: 7),
+  }) {
+    final effectiveMaxAge = isEmpty ? emptyMaxAge : maxAge;
+    return DateTime.now().difference(cachedAt) > effectiveMaxAge;
   }
 
   /// 判断是否为"无数据"标记

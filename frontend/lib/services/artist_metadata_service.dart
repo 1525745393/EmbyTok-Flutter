@@ -109,8 +109,8 @@ class ArtistMetadataService {
 
     // 1. 检查 L1 内存缓存（非强制刷新时）
     if (!forceRefresh) {
-      final cached = _memoryCache[key];
-      if (cached != null && !_isExpired(cached)) {
+      final cached = _getFromMemory(key);
+      if (cached != null && !cached.isExpired()) {
         AppLogger.debug('歌手元数据 L1 缓存命中', data: {'artist': key});
         return cached;
       }
@@ -119,7 +119,7 @@ class ArtistMetadataService {
     // 2. 检查 L2 本地缓存（非强制刷新时）
     if (!forceRefresh) {
       final cached = await _loadFromPrefs(key);
-      if (cached != null && !_isExpired(cached)) {
+      if (cached != null && !cached.isExpired()) {
         AppLogger.debug('歌手元数据 L2 缓存命中', data: {'artist': key});
         _saveToMemory(key, cached);
         return cached;
@@ -133,7 +133,7 @@ class ArtistMetadataService {
           key,
           api: _synologyApi!,
         );
-        if (nasCached != null && !_isExpired(nasCached)) {
+        if (nasCached != null && !nasCached.isExpired()) {
           AppLogger.debug('歌手元数据 L3 NAS 缓存命中', data: {'artist': key});
           _saveToMemory(key, nasCached);
           await _saveToPrefs(key, nasCached);
@@ -203,12 +203,19 @@ class ArtistMetadataService {
     }
 
     // 2. Deezer（补源，头像质量高，简介多为英文）
+    // 修复：分离头像和简介获取，避免只有头像时停止降级
+    ArtistMetadata? deezerResult;
     try {
-      final deezerResult = await _fetchFromDeezer(artistName);
-      if (deezerResult != null && (deezerResult.hasBio || deezerResult.hasImage)) {
-        AppLogger.debug('Deezer 获取歌手元数据成功',
+      deezerResult = await _fetchFromDeezer(artistName);
+      if (deezerResult != null && deezerResult.hasBio) {
+        AppLogger.debug('Deezer 获取歌手简介成功',
             data: {'artist': artistName, 'source': 'deezer'});
         return deezerResult;
+      }
+      // Deezer 只有头像无简介时，记录头像，继续降级获取简介
+      if (deezerResult != null && deezerResult.hasImage) {
+        AppLogger.debug('Deezer 仅获取到头像，继续降级获取简介',
+            data: {'artist': artistName, 'source': 'deezer'});
       }
     } catch (e) {
       AppLogger.warn('Deezer 获取歌手元数据失败',
@@ -222,6 +229,16 @@ class ArtistMetadataService {
         if (wikiResult != null && wikiResult.hasBio) {
           AppLogger.debug('Wikipedia 获取歌手元数据成功',
               data: {'artist': artistName, 'source': 'wikipedia', 'lang': wikiLang});
+          // 如果 Deezer 有头像但 Wikipedia 有简介，合并两者
+          if (deezerResult != null && deezerResult.hasImage) {
+            AppLogger.debug('合并 Deezer 头像和 Wikipedia 简介',
+                data: {'artist': artistName});
+            return wikiResult.copyWith(
+              imageUrl: deezerResult.imageUrl,
+              imageSmallUrl: deezerResult.imageSmallUrl,
+              listeners: deezerResult.listeners,
+            );
+          }
           return wikiResult;
         }
       } catch (e) {
@@ -230,7 +247,14 @@ class ArtistMetadataService {
       }
     }
 
-    // 4. 所有源都失败，返回空数据（标记为无简介）
+    // 4. 如果 Wikipedia 也无简介，但 Deezer 有头像，返回 Deezer 结果
+    if (deezerResult != null && deezerResult.hasImage) {
+      AppLogger.debug('Wikipedia 无简介，返回 Deezer 头像数据',
+          data: {'artist': artistName});
+      return deezerResult;
+    }
+
+    // 5. 所有源都失败，返回空数据（标记为无简介）
     AppLogger.info('所有数据源均无歌手简介', data: {'artist': artistName});
     return ArtistMetadata.empty(artistName);
   }
@@ -282,76 +306,84 @@ class ArtistMetadataService {
     );
   }
 
-  /// 从 Wikipedia 获取歌手元数据
+  /// 从 Wikipedia 获取歌手元数据（指定语言）
+  ///
+  /// [lang] 语言代码（zh / en），默认中文
   Future<ArtistMetadata?> _fetchFromWikipedia(
     String artistName, {
     String lang = 'zh',
   }) async {
     // 使用 Wikipedia REST Summary API（无需 Key）
-    // 中文优先，失败回退英文
-    for (final wikiLang in [lang, 'en']) {
-      try {
-        final encoded = Uri.encodeComponent(artistName);
-        final url = Uri.parse(
-            'https://$wikiLang.wikipedia.org/api/rest_v1/page/summary/$encoded');
+    try {
+      final encoded = Uri.encodeComponent(artistName);
+      final url = Uri.parse(
+          'https://$lang.wikipedia.org/api/rest_v1/page/summary/$encoded');
 
-        final response = await _httpClient.get(
-          url,
-          headers: const {'User-Agent': 'EmbyTok-Flutter/1.0'},
-        ).timeout(const Duration(seconds: 6));
+      final response = await _httpClient.get(
+        url,
+        headers: const {'User-Agent': 'EmbyTok-Flutter/1.0'},
+      ).timeout(const Duration(seconds: 8));
 
-        if (response.statusCode != 200) continue;
+      if (response.statusCode != 200) return null;
 
-        // HttpClientResponse 是 Stream<List<int>>，需要转换为字符串
-        final responseBody = await response.transform(utf8.decoder).join();
-        final json = jsonDecode(responseBody) as Map<String, dynamic>;
-        final extract = json['extract'] as String?;
-        if (extract == null || extract.trim().isEmpty) continue;
+      // HttpClientResponse 是 Stream<List<int>>，需要转换为字符串
+      final responseBody = await response.transform(utf8.decoder).join();
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+      final extract = json['extract'] as String?;
+      if (extract == null || extract.trim().isEmpty) return null;
 
-        final thumbnail = json['thumbnail'] as Map<String, dynamic>?;
-        final imageUrl = thumbnail?['source'] as String?;
+      final thumbnail = json['thumbnail'] as Map<String, dynamic>?;
+      final imageUrl = thumbnail?['source'] as String?;
 
-        // 截断过长的简介（摘要约 200 字符）
-        final bioSummary = extract.trim().length > 200
-            ? '${extract.trim().substring(0, 200)}…'
-            : extract.trim();
+      // 截断过长的简介（摘要约 200 字符）
+      final bioSummary = extract.trim().length > 200
+          ? '${extract.trim().substring(0, 200)}…'
+          : extract.trim();
 
-        return ArtistMetadata(
-          name: artistName,
-          imageUrl: imageUrl,
-          imageSmallUrl: imageUrl,
-          bioSummary: bioSummary,
-          bioContent: extract.trim(),
-          bioLang: wikiLang,
-          source: ArtistMetadataSource.wikipedia,
-          cachedAt: DateTime.now(),
-        );
-      } catch (e) {
-        AppLogger.debug('Wikipedia 获取失败',
-            data: {'artist': artistName, 'lang': wikiLang, 'error': e.toString()});
-        continue;
-      }
+      return ArtistMetadata(
+        name: artistName,
+        imageUrl: imageUrl,
+        imageSmallUrl: imageUrl,
+        bioSummary: bioSummary,
+        bioContent: extract.trim(),
+        bioLang: lang,
+        source: ArtistMetadataSource.wikipedia,
+        cachedAt: DateTime.now(),
+      );
+    } catch (e) {
+      AppLogger.warn('Wikipedia($lang) 获取歌手元数据失败',
+          data: {'artist': artistName, 'lang': lang, 'error': e.toString()});
+      return null;
     }
-    return null;
   }
 
   // ===== 缓存管理 =====
 
-  /// 判断缓存是否过期
-  bool _isExpired(ArtistMetadata metadata) {
-    final validity =
-        metadata.isEmpty ? _emptyCacheValidity : _cacheValidity;
-    return DateTime.now().difference(metadata.cachedAt) > validity;
-  }
-
   /// 保存到 L1 内存缓存（LRU 淘汰）
   void _saveToMemory(String key, ArtistMetadata metadata) {
-    if (_memoryCache.length >= _maxMemoryCacheSize) {
-      // 移除最早的条目（简单 LRU）
+    // 如果 key 已存在，先移除以更新插入顺序（实现 LRU）
+    if (_memoryCache.containsKey(key)) {
+      _memoryCache.remove(key);
+    }
+
+    // 超出容量时移除最早的条目（最久未使用）
+    while (_memoryCache.length >= _maxMemoryCacheSize) {
       final firstKey = _memoryCache.keys.first;
       _memoryCache.remove(firstKey);
     }
+
     _memoryCache[key] = metadata;
+  }
+
+  /// 从 L1 内存缓存读取（更新 LRU 顺序）
+  ArtistMetadata? _getFromMemory(String key) {
+    final cached = _memoryCache[key];
+    if (cached != null) {
+      // 命中时更新 LRU 顺序：移除再插入到末尾
+      _memoryCache.remove(key);
+      _memoryCache[key] = cached;
+    }
+    return cached;
   }
 
   /// 保存到 L2 本地缓存（SharedPreferences）
@@ -496,7 +528,7 @@ class ArtistMetadataService {
   /// 检查歌手元数据是否为手动修正
   Future<bool> isManualOverride(String artistName) async {
     final key = artistName.trim();
-    final cached = _memoryCache[key] ?? await _loadFromPrefs(key);
+    final cached = _getFromMemory(key) ?? await _loadFromPrefs(key);
     return cached?.isManualOverride ?? false;
   }
 
@@ -547,7 +579,7 @@ class ArtistMetadataService {
         try {
           // 检查是否已有完整元数据（头像 + 简介）
           if (skipExisting) {
-            final cached = _memoryCache[artistName] ?? await _loadFromPrefs(artistName);
+            final cached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
             if (cached != null && cached.hasImage && cached.hasBio) {
               skipped++;
               onProgress?.call(currentIndex + 1, total, artistName);
@@ -557,7 +589,7 @@ class ArtistMetadataService {
 
           // 获取元数据
           // 优化：只有完全没有数据的歌手才强制刷新，已有部分数据的歌手使用缓存逻辑
-          final cached = _memoryCache[artistName] ?? await _loadFromPrefs(artistName);
+          final cached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
           final hasPartialData = cached != null && (cached.hasImage || cached.hasBio);
           final metadata = await getArtistMetadata(
             artistName,
@@ -604,7 +636,7 @@ class ArtistMetadataService {
     for (final name in artistNames) {
       final key = name.trim();
       if (key.isEmpty) continue;
-      final cached = _memoryCache[key] ?? await _loadFromPrefs(key);
+      final cached = _getFromMemory(key) ?? await _loadFromPrefs(key);
       if (cached == null || !cached.hasImage || !cached.hasBio) {
         missing.add(key);
       }
