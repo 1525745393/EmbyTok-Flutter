@@ -153,6 +153,44 @@ const double _kGestureItemIconSize = 24.0;
 /// 手势项图标与文字间距
 const double _kGestureItemIconSpacing = 12.0;
 
+// ===== 设置项标题常量 =====
+
+/// 设置项：视频流使用
+const String _kTitleFeedLibrary = '视频流使用';
+
+/// 设置项：排除已观看
+const String _kTitleExcludePlayed = '排除已观看';
+
+/// 设置项：推荐使用
+const String _kTitleRecommendLibrary = '推荐使用';
+
+/// 设置项：自动播放
+const String _kTitleAutoPlay = '自动播放';
+
+/// 设置项：默认播放倍速
+const String _kTitlePlaybackRate = '默认播放倍速';
+
+/// 设置项：手势控制
+const String _kTitleGestureControl = '手势控制';
+
+/// 设置项：主题
+const String _kTitleTheme = '主题';
+
+/// 设置项：清除缓存
+const String _kTitleClearCache = '清除缓存';
+
+/// 设置项：关于
+const String _kTitleAbout = '关于';
+
+/// 设置项：检查更新
+const String _kTitleCheckUpdate = '检查更新';
+
+/// 设置项：版本
+const String _kTitleVersion = '版本';
+
+/// 设置项：退出登录
+const String _kTitleLogout = '退出登录';
+
 // ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
@@ -444,7 +482,7 @@ class SettingsView extends ConsumerWidget {
     return _TapTile(
       icon: Icons.video_library_outlined,
       iconColor: Colors.deepPurple,
-      title: '视频流使用',
+      title: _kTitleFeedLibrary,
       subtitle: subtitle,
       onTap: () => LibrarySelector.show(context, scope: LibraryScope.feed),
     );
@@ -456,7 +494,7 @@ class SettingsView extends ConsumerWidget {
     return _SwitchTile(
       icon: Icons.visibility_off_outlined,
       iconColor: Colors.teal,
-      title: '排除已观看',
+      title: _kTitleExcludePlayed,
       subtitle: exclude ? '视频流不显示已看过的视频' : '已看过的也会显示',
       value: exclude,
       onChanged: (value) {
@@ -1003,7 +1041,7 @@ class SettingsView extends ConsumerWidget {
     return _TapTile(
       icon: Icons.speed_outlined,
       iconColor: Colors.orange,
-      title: '默认播放倍速',
+      title: _kTitlePlaybackRate,
       subtitle: '${rate.toStringAsFixed(1)}x',
       onTap: () => _showPlaybackRateDialog(context, ref, rate),
     );
@@ -1014,7 +1052,7 @@ class SettingsView extends ConsumerWidget {
     return _TapTile(
       icon: Icons.touch_app_outlined,
       iconColor: Colors.purple,
-      title: '手势控制',
+      title: _kTitleGestureControl,
       subtitle: '查看手势说明',
       onTap: () => _showGestureControlDialog(context),
     );
@@ -1050,7 +1088,7 @@ class SettingsView extends ConsumerWidget {
     return _TapTile(
       icon: Icons.dark_mode_outlined,
       iconColor: Colors.indigo,
-      title: '主题',
+      title: _kTitleTheme,
       subtitle: _themeLabel(themeMode),
       onTap: () => _showThemeDialog(context, ref, themeMode),
     );
