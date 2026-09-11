@@ -1,3 +1,10 @@
+## [2.65.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.65.0...v2.65.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **音乐库首页:** 修复代码审查发现的P2问题 ([7bdc8ba](https://github.com/1525745393/EmbyTok-Flutter/commit/7bdc8ba6f04f3f62e9c04681b0d681eb80f8a5e3))
+
 # [2.65.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.64.0...v2.65.0) (2026-09-11)
 
 
