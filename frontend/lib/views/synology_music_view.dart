@@ -109,6 +109,53 @@ const List<List<Color>> _kGenreGradients = [
   [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
 ];
 
+// ===== 列表/网格布局常量 =====
+
+/// 歌曲列表：封面尺寸
+const double _kSongCoverSize = 46.0;
+
+/// 歌曲列表：水平内边距
+const double _kSongListHorizontalPadding = 12.0;
+
+/// 歌曲列表：垂直内边距
+const double _kSongListVerticalPadding = 4.0;
+
+/// 歌曲列表：圆角
+const double _kSongListBorderRadius = 12.0;
+
+/// 专辑网格：列数
+const int _kAlbumGridCrossAxisCount = 2;
+
+/// 专辑网格：宽高比
+const double _kAlbumGridChildAspectRatio = 0.78;
+
+/// 专辑网格：主轴间距
+const double _kAlbumGridMainAxisSpacing = 16.0;
+
+/// 专辑网格：交叉轴间距
+const double _kAlbumGridCrossAxisSpacing = 14.0;
+
+/// 专辑网格：圆角
+const double _kAlbumGridBorderRadius = 14.0;
+
+/// 歌手网格：列数
+const int _kArtistGridCrossAxisCount = 3;
+
+/// 歌手网格：宽高比
+const double _kArtistGridChildAspectRatio = 0.82;
+
+/// 歌手网格：主轴间距
+const double _kArtistGridMainAxisSpacing = 14.0;
+
+/// 歌手网格：交叉轴间距
+const double _kArtistGridCrossAxisSpacing = 12.0;
+
+/// 加载指示器：尺寸
+const double _kLoadingIndicatorSize = 20.0;
+
+/// 加载指示器：线宽
+const double _kLoadingIndicatorStrokeWidth = 2.0;
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -1057,6 +1104,23 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     );
   }
 
+  /// 通用加载指示器（歌曲/专辑/歌手列表触底加载时使用）
+  Widget _buildLoadingIndicator(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: SizedBox(
+          width: _kLoadingIndicatorSize,
+          height: _kLoadingIndicatorSize,
+          child: CircularProgressIndicator(
+            strokeWidth: _kLoadingIndicatorStrokeWidth,
+            color: scheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _switchTab(SynologyMusicTab tab) {
     _tabController.animateTo(tab.index);
   }
@@ -1129,26 +1193,16 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               }
             });
           }
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: scheme.primary,
-                ),
-              ),
-            ),
-          );
+          return _buildLoadingIndicator(scheme);
         }
         final song = songs[index];
         final isCurrent = playback.currentSong?.id == song.id;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(
+              horizontal: _kSongListHorizontalPadding,
+              vertical: _kSongListVerticalPadding),
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_kSongListBorderRadius),
             onTap: () {
               ref
                   .read(synologyPlaybackProvider.notifier)
@@ -1156,7 +1210,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             },
             child: Row(
               children: [
-                SongCover(songId: song.id, size: 46),
+                SongCover(songId: song.id, size: _kSongCoverSize),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1232,10 +1286,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.78,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 14,
+        crossAxisCount: _kAlbumGridCrossAxisCount,
+        childAspectRatio: _kAlbumGridChildAspectRatio,
+        mainAxisSpacing: _kAlbumGridMainAxisSpacing,
+        crossAxisSpacing: _kAlbumGridCrossAxisSpacing,
       ),
       itemCount: albums.length + (showLoadingCell ? 1 : 0),
       itemBuilder: (context, index) {
@@ -1249,20 +1303,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               }
             });
           }
-          return Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: scheme.primary,
-              ),
-            ),
-          );
+          return _buildLoadingIndicator(scheme);
         }
         final album = albums[index];
         return InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
           onTap: () => _showAlbumSongs(album),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1271,7 +1316,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.12),
@@ -1281,7 +1326,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     ],
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
                     child: AlbumCover(album: album),
                   ),
                 ),
@@ -1324,10 +1369,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.82,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 12,
+        crossAxisCount: _kArtistGridCrossAxisCount,
+        childAspectRatio: _kArtistGridChildAspectRatio,
+        mainAxisSpacing: _kArtistGridMainAxisSpacing,
+        crossAxisSpacing: _kArtistGridCrossAxisSpacing,
       ),
       itemCount: artists.length + (showLoadingCell ? 1 : 0),
       itemBuilder: (context, index) {
@@ -1340,16 +1385,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               }
             });
           }
-          return Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: scheme.primary,
-              ),
-            ),
-          );
+          return _buildLoadingIndicator(scheme);
         }
         final artist = artists[index];
         // 圆形头像网格（QQ音乐/酷狗歌手风格）：优先显示 NAS 歌手图，
