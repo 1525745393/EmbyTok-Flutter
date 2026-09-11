@@ -198,6 +198,44 @@ const String _kGroupPeopleLabelSuffix = ' 位演员/导演';
 /// 分组间距
 const double _kGroupSpacing = 14.0;
 
+// ===== 卡片组件常量 =====
+
+/// 卡片选中时透明度
+const double _kCardSelectedOpacity = 0.78;
+
+/// 卡片选中动画时长（ms）
+const int _kCardSelectedAnimationDuration = 150;
+
+/// 卡片角标动画时长（ms）
+const int _kCardBadgeAnimationDuration = 180;
+
+/// 卡片角标位置偏移
+const double _kCardBadgeOffset = 4.0;
+
+/// 卡片角标尺寸
+const double _kCardBadgeSize = 20.0;
+
+/// 卡片角标圆角
+const double _kCardBadgeRadius = 6.0;
+
+/// 卡片角标边框宽度
+const double _kCardBadgeBorderWidth = 1.6;
+
+/// 卡片角标勾选图标尺寸
+const double _kCardBadgeCheckIconSize = 13.0;
+
+/// 卡片角标阴影模糊半径
+const double _kCardBadgeShadowBlurRadius = 6.0;
+
+/// 影片海报圆角
+const double _kMoviePosterRadius = 10.0;
+
+/// 影片海报最大宽度
+const int _kMoviePosterMaxWidth = 260;
+
+/// 影片海报边框透明度
+const double _kMoviePosterBorderAlpha = 0.45;
+
 /// AppBar 图标尺寸
 const double _kAppBarIconSize = 22.0;
 
@@ -1535,36 +1573,36 @@ class _SelectableCard extends StatelessWidget {
       child: Stack(
         children: [
           AnimatedOpacity(
-            opacity: selected ? 0.78 : 1,
-            duration: const Duration(milliseconds: 150),
+            opacity: selected ? _kCardSelectedOpacity : 1,
+            duration: const Duration(milliseconds: _kCardSelectedAnimationDuration),
             child: child,
           ),
           Positioned(
-            top: 4,
-            left: 4,
+            top: _kCardBadgeOffset,
+            left: _kCardBadgeOffset,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: const Duration(milliseconds: _kCardBadgeAnimationDuration),
               curve: Curves.easeOutCubic,
-              width: 20,
-              height: 20,
+              width: _kCardBadgeSize,
+              height: _kCardBadgeSize,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(_kCardBadgeRadius),
                 border: Border.all(
                   color: selected ? scheme.primary : Colors.white.withValues(alpha: 0.85),
-                  width: 1.6,
+                  width: _kCardBadgeBorderWidth,
                 ),
                 color: selected ? scheme.primary : Colors.black.withValues(alpha: 0.35),
                 boxShadow: selected
                     ? [
                         BoxShadow(
                           color: scheme.primary.withValues(alpha: 0.35),
-                          blurRadius: 6,
+                          blurRadius: _kCardBadgeShadowBlurRadius,
                         ),
                       ]
                     : null,
               ),
               child: selected
-                  ? Icon(Icons.check, size: 13, color: scheme.onPrimary)
+                  ? Icon(Icons.check, size: _kCardBadgeCheckIconSize, color: scheme.onPrimary)
                   : null,
             ),
           ),
@@ -1591,12 +1629,12 @@ class _MoviePosterCard extends ConsumerWidget {
     final imageUrl = item.thumbnailUrlWithAuth(
       authState.embyServerUrl,
       authState.token,
-      maxWidth: 260,
+      maxWidth: _kMoviePosterMaxWidth,
     );
     final headers = item.authHeaders(authState.token);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(_kMoviePosterRadius),
       onTap: () {
         ref
             .read(playbackListProvider.notifier)
@@ -1610,13 +1648,13 @@ class _MoviePosterCard extends ConsumerWidget {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_kMoviePosterRadius),
                 color: scheme.surfaceContainerHighest,
                 border: Border.all(
-                    color: scheme.outlineVariant.withValues(alpha: 0.45)),
+                    color: scheme.outlineVariant.withValues(alpha: _kMoviePosterBorderAlpha)),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_kMoviePosterRadius),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
