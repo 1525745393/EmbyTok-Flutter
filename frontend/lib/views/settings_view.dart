@@ -153,6 +153,43 @@ const double _kGestureItemIconSize = 24.0;
 /// 手势项图标与文字间距
 const double _kGestureItemIconSpacing = 12.0;
 
+// ===== 对话框标题常量 =====
+
+/// 对话框：选择主题
+const String _kDialogSelectTheme = '选择主题';
+
+// ===== 更多设置项标题常量 =====
+
+/// 设置项：重置设置
+const String _kTitleResetSettings = '重置设置';
+
+/// 设置项：导出日志
+const String _kTitleExportLogs = '导出日志';
+
+/// 设置项：清除日志
+const String _kTitleClearLogs = '清除日志';
+
+/// 设置项：观看统计
+const String _kTitleWatchStats = '观看统计';
+
+/// 设置项：服务器管理
+const String _kTitleServerManagement = '服务器管理';
+
+/// 设置项：群晖音乐
+const String _kTitleSynologyMusic = '群晖音乐';
+
+/// 设置项：关于
+const String _kTitleAboutEmbyTok = '关于 EmbyTok';
+
+/// 设置项：打赏支持
+const String _kTitleDonate = '打赏支持';
+
+/// 设置项：性能监控面板
+const String _kTitlePerformanceMonitor = '性能监控面板';
+
+/// 设置项：允许自签名证书
+const String _kTitleSelfSignedCert = '允许自签名证书';
+
 // ===== 设置项标题常量 =====
 
 /// 设置项：视频流使用
@@ -2105,7 +2142,7 @@ class SettingsView extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (_) => _OptionDialog(
-        title: '选择主题',
+        title: _kDialogSelectTheme,
         options: const [
           ('跟随系统', 'system'),
           ('深色', 'dark'),
