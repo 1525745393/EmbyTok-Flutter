@@ -190,6 +190,22 @@ const String _kTitlePerformanceMonitor = '性能监控面板';
 /// 设置项：允许自签名证书
 const String _kTitleSelfSignedCert = '允许自签名证书';
 
+// ===== 设置项副标题常量 =====
+
+/// 副标题：自动播放说明
+const String _kSubtitleAutoPlay = '视频结束后自动播放下一个';
+
+/// 副标题：焦点恢复说明
+const String _kSubtitleAutoResume = '来电结束后自动恢复播放';
+
+/// 副标题：手势控制说明
+const String _kSubtitleGestureControl = '查看手势说明';
+
+// ===== 对话框按钮文本常量 =====
+
+/// 对话框：完成按钮
+const String _kDialogDoneButton = '完成';
+
 // ===== 设置项标题常量 =====
 
 /// 设置项：视频流使用
@@ -1059,8 +1075,8 @@ class SettingsView extends ConsumerWidget {
     return _SwitchTile(
       icon: Icons.play_circle_outline,
       iconColor: Colors.green,
-      title: '自动播放',
-      subtitle: '视频结束后自动播放下一个',
+      title: _kTitleAutoPlay,
+      subtitle: _kSubtitleAutoPlay,
       value: isAutoPlay,
       onChanged: (value) {
         ref.read(isAutoPlayProvider.notifier).setEnabled(value);
@@ -1102,7 +1118,7 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.touch_app_outlined,
       iconColor: Colors.purple,
       title: _kTitleGestureControl,
-      subtitle: '查看手势说明',
+      subtitle: _kSubtitleGestureControl,
       onTap: () => _showGestureControlDialog(context),
     );
   }
