@@ -191,6 +191,18 @@ const String _kTitleVersion = '版本';
 /// 设置项：退出登录
 const String _kTitleLogout = '退出登录';
 
+/// 设置项：批量补全歌手元数据
+const String _kTitleBatchScan = '批量补全歌手元数据';
+
+/// 提示：请先登录群晖音乐服务器
+const String _kHintLoginFirst = '请先登录群晖音乐服务器';
+
+/// 提示：音乐库中没有歌手
+const String _kHintNoArtists = '音乐库中没有歌手';
+
+/// SnackBar 时长（秒）
+const int _kSnackBarDurationShort = 2;
+
 // ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
@@ -1142,7 +1154,7 @@ class SettingsView extends ConsumerWidget {
     return _TapTile(
       icon: Icons.auto_fix_high,
       iconColor: Colors.teal,
-      title: '批量补全歌手元数据',
+      title: _kTitleBatchScan,
       subtitle: '扫描音乐库中所有歌手，批量获取缺失的头像和简介',
       onTap: () => _startBatchScan(context, ref),
     );
@@ -1154,9 +1166,9 @@ class SettingsView extends ConsumerWidget {
     final authState = ref.read(synologyAuthProvider);
     if (!authState.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先登录群晖音乐服务器'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(_kHintLoginFirst),
+          duration: const Duration(seconds: _kSnackBarDurationShort),
         ),
       );
       return;
@@ -1184,9 +1196,9 @@ class SettingsView extends ConsumerWidget {
 
       if (artistNames.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('音乐库中没有歌手'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(_kHintNoArtists),
+            duration: const Duration(seconds: _kSnackBarDurationShort),
           ),
         );
         return;
