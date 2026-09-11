@@ -136,6 +136,68 @@ const double _kBulkBarBlurRadius = 18.0;
 /// 批量操作栏阴影偏移
 const double _kBulkBarShadowOffset = 8.0;
 
+// ===== 空状态和错误状态文本常量 =====
+
+/// 空状态标题
+const String _kEmptyStateTitle = '还没有收藏';
+
+/// 空状态副标题
+const String _kEmptyStateSubtitle = '双击视频即可收藏';
+
+/// 空状态按钮文本
+const String _kEmptyStateAction = '去逛逛';
+
+/// 错误状态按钮文本
+const String _kErrorStateAction = '重试';
+
+/// 分组标题：收藏影片
+const String _kGroupTitleMovies = '收藏影片';
+
+/// 分组标题：收藏合集
+const String _kGroupTitleBoxSets = '收藏合集';
+
+/// 分组标题：收藏人物
+const String _kGroupTitlePeople = '收藏人物';
+
+/// 分组最近标签前缀
+const String _kGroupRecentLabelPrefix = '按 ';
+
+/// 分组最近标签后缀
+const String _kGroupRecentLabelSuffix = ' 排序';
+
+/// 加载失败标签
+const String _kLoadFailedLabel = '加载失败';
+
+/// 搜索框与统计卡间距
+const double _kSearchStatsSpacing = 14.0;
+
+/// 统计卡与内容区间距
+const double _kStatsContentSpacing = 18.0;
+
+/// 列表顶部内边距
+const double _kListTopPadding = 12.0;
+
+/// 列表底部内边距（普通模式）
+const double _kListBottomPaddingNormal = 32.0;
+
+/// 列表底部内边距（选择模式）
+const double _kListBottomPaddingSelect = 120.0;
+
+/// 合集分组标签前缀
+const String _kGroupBoxSetsLabelPrefix = '';
+
+/// 合集分组标签后缀
+const String _kGroupBoxSetsLabelSuffix = ' 个系列';
+
+/// 人物分组标签前缀
+const String _kGroupPeopleLabelPrefix = '';
+
+/// 人物分组标签后缀
+const String _kGroupPeopleLabelSuffix = ' 位演员/导演';
+
+/// 分组间距
+const double _kGroupSpacing = 14.0;
+
 /// AppBar 图标尺寸
 const double _kAppBarIconSize = 22.0;
 
@@ -549,7 +611,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         state.people.isEmpty) {
       return ErrorStateCard(
         title: globalErr,
-        actionLabel: '重试',
+        actionLabel: _kErrorStateAction,
         onAction: () => ref.read(favoritesProvider.notifier).loadFavorites(),
       );
     }
@@ -564,9 +626,9 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         state.error == null) {
       return EmptyStateCard(
         icon: Icons.favorite_border,
-        title: '还没有收藏',
-        subtitle: '双击视频即可收藏',
-        actionLabel: '去逛逛',
+        title: _kEmptyStateTitle,
+        subtitle: _kEmptyStateSubtitle,
+        actionLabel: _kEmptyStateAction,
         onAction: () => context.go('/'),
       );
     }
@@ -576,14 +638,14 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     final isSearchNoResult = _searchQuery.isNotEmpty && filteredCount == 0;
     return ListView(
       padding: EdgeInsets.fromLTRB(
-          16, 12, 16, _selectMode ? 120 : 32),
+          16, _kListTopPadding, 16, _selectMode ? _kListBottomPaddingSelect : _kListBottomPaddingNormal),
       children: [
         // 搜索框（常驻：即使搜索无结果也保留，便于用户清空搜索词返回全量）
         _buildSearchField(scheme),
-        const SizedBox(height: 14),
+        const SizedBox(height: _kSearchStatsSpacing),
         // 统计概览卡
         _buildStatsRow(scheme, state),
-        const SizedBox(height: 18),
+        const SizedBox(height: _kStatsContentSpacing),
         // 搜索无结果：给出明确提示 + 一键清空搜索词返回全量
         if (isSearchNoResult)
           _SearchNoResultHint(
@@ -601,7 +663,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
           // 分组：收藏影片
           _GroupSection(
             key: const ValueKey('grp-movie'),
-            title: '收藏影片',
+            title: _kGroupTitleMovies,
             icon: Icons.movie_outlined,
             accentColor: scheme.primary,
             count: movies.length,
@@ -617,7 +679,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                 ? () => context.push('/favorites/category/movie')
                 : null,
             child: movies.isEmpty
-                ? _buildEmptyListHint(scheme, '暂无影片')
+                ? _buildEmptyListHint(scheme, _kEmptyMoviesHint)
                 : _MovieGrid(
                     items: movies,
                     allItems: movies,
@@ -633,15 +695,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                         .loadMore(FavoritesCategory.movie),
                   ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _kGroupSpacing),
           // 分组：收藏合集
           _GroupSection(
             key: const ValueKey('grp-boxset'),
-            title: '收藏合集',
+            title: _kGroupTitleBoxSets,
             icon: Icons.featured_play_list,
             accentColor: scheme.tertiary,
             count: boxSets.length,
-            recentLabel: '${state.boxSets.length} 个系列',
+            recentLabel: '$_kGroupBoxSetsLabelPrefix${state.boxSets.length}$_kGroupBoxSetsLabelSuffix',
             error: _searchQuery.isEmpty ? state.boxSetsError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
             isOpen: _groupOpen[_FavGroup.boxSet] ?? false,
@@ -653,7 +715,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                 ? () => context.push('/favorites/category/boxset')
                 : null,
             child: boxSets.isEmpty
-                ? _buildEmptyListHint(scheme, '暂无合集')
+                ? _buildEmptyListHint(scheme, _kEmptyBoxSetsHint)
                 : _BoxSetList(
                     items: boxSets,
                     allItems: boxSets,
@@ -662,15 +724,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                     onToggle: _toggleSelect,
                   ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _kGroupSpacing),
           // 分组：收藏人物
           _GroupSection(
             key: const ValueKey('grp-person'),
-            title: '收藏人物',
+            title: _kGroupTitlePeople,
             icon: Icons.person_outline,
             accentColor: scheme.error,
             count: people.length,
-            recentLabel: '${people.length} 位演员/导演',
+            recentLabel: '$_kGroupPeopleLabelPrefix${people.length}$_kGroupPeopleLabelSuffix',
             error: _searchQuery.isEmpty ? state.peopleError : null,
             onRetry: () => ref.read(favoritesProvider.notifier).loadFavorites(),
             isOpen: _groupOpen[_FavGroup.person] ?? false,
@@ -682,7 +744,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                 ? () => context.push('/favorites/category/person')
                 : null,
             child: people.isEmpty
-                ? _buildEmptyListHint(scheme, '暂无人物')
+                ? _buildEmptyListHint(scheme, _kEmptyPeopleHint)
                 : _PersonGrid(
                     items: people,
                     selectMode: _selectMode,
@@ -696,8 +758,8 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   }
 
   String _recentLabel(String? err) {
-    if (err != null) return '加载失败';
-    return '按 $_sortLabel 排序';
+    if (err != null) return _kLoadFailedLabel;
+    return '$_kGroupRecentLabelPrefix$_sortLabel$_kGroupRecentLabelSuffix';
   }
 
   // ---------- 搜索 ----------
