@@ -2,7 +2,7 @@
 //
 // P2-5 / 歌手简介功能 V1.0
 // 统一的歌手元数据模型，支持多数据源（Last.fm / Deezer / Wikipedia）
-// 和三级缓存（L1 内存 / L2 Hive / L3 NAS）。
+// 和三级缓存（L1 内存 / L2 SharedPreferences / L3 NAS）。
 
 import 'dart:convert';
 

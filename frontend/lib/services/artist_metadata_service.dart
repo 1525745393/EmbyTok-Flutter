@@ -1,18 +1,20 @@
 // 歌手元数据统一服务
 //
 // 歌手简介功能 V1.0
-// 整合多数据源（Last.fm / Wikipedia），实现多源降级策略和二级缓存
-// （L1 内存 / L2 SharedPreferences）。
+// 整合多数据源（Last.fm / Deezer / Wikipedia），实现多源降级策略和三级缓存
+// （L1 内存 / L2 SharedPreferences / L3 NAS）。
 //
-// 多源降级策略：
+// 多源降级策略（V1.1）：
 // 1. Last.fm 中文简介（lang=zh）
 // 2. Last.fm 英文简介（默认英文）
-// 3. Wikipedia 中文简介
-// 4. Wikipedia 英文简介
+// 3. Deezer（补源，头像质量高，简介多为英文）
+// 4. Wikipedia 中文简介（兜底源）
+// 5. Wikipedia 英文简介
 //
-// 缓存策略：
+// 缓存策略（V1.1）：
 // - L1 内存：Map（LRU 淘汰，最多 50 个）
 // - L2 本地：SharedPreferences（JSON 字符串，持久化存储）
+// - L3 NAS：群晖 File Station（可选，需开启，多设备共享）
 // - 缓存有效期：30 天（无简介标记 7 天）
 
 import 'dart:convert';
@@ -501,6 +503,11 @@ class ArtistMetadataService {
   /// 批量扫描歌手元数据（V1.2）
   ///
   /// 扫描音乐库中所有歌手，批量获取缺失的头像和简介。
+  ///
+  /// [artistNames] 歌手名称列表
+  /// [onProgress] 进度回调（当前索引，总数，当前歌手名）
+  /// [skipExisting] 是否跳过已有完整元数据的歌手（默认 true）
+  /// [concurrency] 并发数（默认 3）
   Future<BatchScanResult> batchScanArtists({
     required List<String> artistNames,
     void Function(int current, int total, String artistName)? onProgress,
@@ -523,15 +530,22 @@ class ArtistMetadataService {
     AppLogger.info('开始批量扫描歌手元数据',
         data: {'total': total, 'unique': uniqueNames.length, 'skipExisting': skipExisting});
 
-    // 简单的并发控制
-    var index = 0;
+    // 使用线程安全的索引分配（Dart 单线程，但保持代码清晰）
+    var nextIndex = 0;
+    int? getNextIndex() {
+      if (nextIndex >= uniqueNames.length) return null;
+      return nextIndex++;
+    }
+
+    // 并发 worker
     final workers = List.generate(concurrency, (_) async {
-      while (index < uniqueNames.length) {
-        final currentIndex = index++;
+      while (true) {
+        final currentIndex = getNextIndex();
+        if (currentIndex == null) break;
         final artistName = uniqueNames[currentIndex];
 
         try {
-          // 检查是否已有元数据
+          // 检查是否已有完整元数据（头像 + 简介）
           if (skipExisting) {
             final cached = _memoryCache[artistName] ?? await _loadFromPrefs(artistName);
             if (cached != null && cached.hasImage && cached.hasBio) {
@@ -541,8 +555,15 @@ class ArtistMetadataService {
             }
           }
 
-          // 获取元数据（强制刷新）
-          final metadata = await getArtistMetadata(artistName, forceRefresh: true);
+          // 获取元数据
+          // 优化：只有完全没有数据的歌手才强制刷新，已有部分数据的歌手使用缓存逻辑
+          final cached = _memoryCache[artistName] ?? await _loadFromPrefs(artistName);
+          final hasPartialData = cached != null && (cached.hasImage || cached.hasBio);
+          final metadata = await getArtistMetadata(
+            artistName,
+            forceRefresh: !hasPartialData,
+          );
+
           if (metadata.hasImage || metadata.hasBio) {
             success++;
           } else {

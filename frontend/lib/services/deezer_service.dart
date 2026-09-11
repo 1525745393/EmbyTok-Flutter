@@ -135,7 +135,7 @@ class DeezerService {
     if (key.isEmpty) return [];
 
     try {
-      final searchResult = await _searchArtist(key);
+      final searchResult = await _searchArtist(key, limit: limit);
       if (searchResult == null || searchResult.isEmpty) return [];
 
       final results = <DeezerArtistInfo>[];
@@ -143,22 +143,19 @@ class DeezerService {
         final name = item['name'] as String?;
         if (name == null || name.isEmpty) continue;
 
-        // 头像：取最大尺寸
-        String? imageUrl;
-        final images = item['image'] as List<dynamic>? ?? const [];
-        for (final img in images.reversed) {
-          final imgEntry = img as Map<String, dynamic>?;
-          final url = imgEntry?['#text'] as String?;
-          if (url != null && url.isNotEmpty) {
-            imageUrl = url;
-            break;
-          }
-        }
+        // 头像：Deezer API 直接返回 picture_xl/picture_big/picture_medium/picture_small 字段
+        // 取最大尺寸的头像
+        final imageUrl = item['picture_xl'] as String?
+            ?? item['picture_big'] as String?
+            ?? item['picture_medium'] as String?
+            ?? item['picture_small'] as String?;
 
         results.add(DeezerArtistInfo(
           name: name,
-          pictureXl: imageUrl,
-          pictureBig: imageUrl,
+          pictureXl: item['picture_xl'] as String?,
+          pictureBig: item['picture_big'] as String?,
+          pictureMedium: item['picture_medium'] as String?,
+          pictureSmall: item['picture_small'] as String?,
           nbFan: item['nb_fan'] as int?,
           nbAlbum: item['nb_album'] as int?,
         ));
@@ -173,9 +170,12 @@ class DeezerService {
   }
 
   /// 搜索歌手
-  Future<List<Map<String, dynamic>>> _searchArtist(String artistName) async {
+  Future<List<Map<String, dynamic>>> _searchArtist(
+    String artistName, {
+    int limit = 10,
+  }) async {
     final encoded = Uri.encodeComponent(artistName);
-    final url = Uri.parse('$_base/search/artist?q=$encoded&limit=5');
+    final url = Uri.parse('$_base/search/artist?q=$encoded&limit=$limit');
 
     final request = await _client.getUrl(url).timeout(_timeout);
     final response = await request.close().timeout(_timeout);
