@@ -20,6 +20,9 @@ enum ArtistMetadataSource {
   /// 群晖 Audio Station（本地数据）
   synology,
 
+  /// 用户手动修正
+  manual,
+
   /// 无数据
   none,
 }
@@ -95,6 +98,11 @@ class ArtistMetadata {
   /// 数据格式版本号（当前为1，用于未来迁移）
   final int version;
 
+  /// 是否为用户手动修正（V1.2）
+  ///
+  /// 为 true 时表示该元数据由用户手动编辑，优先于自动获取的数据。
+  final bool isManualOverride;
+
   const ArtistMetadata({
     required this.name,
     this.musicBrainzId,
@@ -110,6 +118,7 @@ class ArtistMetadata {
     this.source = ArtistMetadataSource.none,
     required this.cachedAt,
     this.version = 1,
+    this.isManualOverride = false,
   });
 
   /// 是否有头像
@@ -135,6 +144,8 @@ class ArtistMetadata {
         return 'Wikipedia';
       case ArtistMetadataSource.synology:
         return '群晖 Audio Station';
+      case ArtistMetadataSource.manual:
+        return '用户手动修正';
       case ArtistMetadataSource.none:
         return '无';
     }
@@ -168,6 +179,7 @@ class ArtistMetadata {
     ArtistMetadataSource? source,
     DateTime? cachedAt,
     int? version,
+    bool? isManualOverride,
   }) {
     return ArtistMetadata(
       name: name ?? this.name,
@@ -184,6 +196,7 @@ class ArtistMetadata {
       source: source ?? this.source,
       cachedAt: cachedAt ?? this.cachedAt,
       version: version ?? this.version,
+      isManualOverride: isManualOverride ?? this.isManualOverride,
     );
   }
 
@@ -203,6 +216,7 @@ class ArtistMetadata {
         'source': source.name,
         'cachedAt': cachedAt.toIso8601String(),
         'version': version,
+        'isManualOverride': isManualOverride,
       };
 
   /// 从 JSON 反序列化
@@ -230,6 +244,7 @@ class ArtistMetadata {
       cachedAt: DateTime.tryParse(json['cachedAt'] as String? ?? '') ??
           DateTime.now(),
       version: json['version'] as int? ?? 1,
+      isManualOverride: json['isManualOverride'] as bool? ?? false,
     );
   }
 

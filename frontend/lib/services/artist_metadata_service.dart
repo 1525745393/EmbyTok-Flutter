@@ -432,6 +432,72 @@ class ArtistMetadataService {
     }
   }
 
+  /// 手动修正歌手元数据（V1.2）
+  ///
+  /// 用户可以手动修改歌手头像和简介，覆盖自动获取的元数据。
+  /// 修正后的数据会标记为手动修正，并优先于自动获取的数据。
+  ///
+  /// [artistName] 歌手名称
+  /// [imageUrl] 新的头像 URL（可空，表示不修改）
+  /// [bioSummary] 新的简介摘要（可空，表示不修改）
+  /// [bioContent] 新的简介全文（可空，表示不修改）
+  Future<ArtistMetadata> updateArtistMetadata({
+    required String artistName,
+    String? imageUrl,
+    String? bioSummary,
+    String? bioContent,
+  }) async {
+    final key = artistName.trim();
+
+    // 获取当前元数据（从缓存或网络）
+    final current = await getArtistMetadata(key);
+
+    // 创建新的元数据，标记为手动修正
+    final updated = ArtistMetadata(
+      name: key,
+      imageUrl: imageUrl ?? current.imageUrl,
+      imageSmallUrl: imageUrl ?? current.imageSmallUrl,
+      bioSummary: bioSummary ?? current.bioSummary,
+      bioContent: bioContent ?? current.bioContent,
+      bioLang: current.bioLang,
+      tags: current.tags,
+      listeners: current.listeners,
+      similarArtists: current.similarArtists,
+      source: ArtistMetadataSource.manual,
+      isManualOverride: true,
+      cachedAt: DateTime.now(),
+    );
+
+    // 写入缓存
+    _saveToMemory(key, updated);
+    await _saveToPrefs(key, updated);
+
+    AppLogger.info('歌手元数据已手动修正',
+        data: {'artist': key, 'hasImage': updated.hasImage, 'hasBio': updated.hasBio});
+
+    return updated;
+  }
+
+  /// 重置歌手元数据（清除手动修正，重新从网络获取）
+  ///
+  /// [artistName] 歌手名称
+  Future<ArtistMetadata> resetArtistMetadata(String artistName) async {
+    final key = artistName.trim();
+
+    // 清除缓存
+    await clearCache(key);
+
+    // 重新从网络获取
+    return getArtistMetadata(key, forceRefresh: true);
+  }
+
+  /// 检查歌手元数据是否为手动修正
+  Future<bool> isManualOverride(String artistName) async {
+    final key = artistName.trim();
+    final cached = _memoryCache[key] ?? await _loadFromPrefs(key);
+    return cached?.isManualOverride ?? false;
+  }
+
   /// 简易 HTTP 客户端（用于 Wikipedia API）
   final _httpClient = _SimpleHttpClient();
 }

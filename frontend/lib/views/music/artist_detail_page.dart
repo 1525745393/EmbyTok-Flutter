@@ -18,6 +18,7 @@ import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
 import '../../providers/artist_metadata_provider.dart';
 import '../../utils/html_parser.dart';
+import 'artist_metadata_editor.dart';
 import 'artist_search_picker.dart';
 import 'mini_player_bar.dart';
 
@@ -393,7 +394,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 onPressed: () => setState(() => _bioExpanded = !_bioExpanded),
                 child: Text(_bioExpanded ? '收起 ▲' : '展开全文 ▼'),
               ),
-              // 数据来源标注 + 切换歌手按钮
+              // 数据来源标注 + 切换歌手 + 编辑按钮
               Row(
                 children: [
                   Text(
@@ -419,6 +420,30 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  TextButton(
+                    onPressed: () => _showMetadataEditor(context, metadata),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.edit, size: 12, color: scheme.primary),
+                        const SizedBox(width: 2),
+                        Text(
+                          '编辑',
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -455,6 +480,39 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => ArtistDetailPage(artistName: selected.name),
+        ),
+      );
+    }
+  }
+
+  /// 显示歌手元数据编辑界面（V1.2）
+  ///
+  /// 当用户点击"编辑"按钮时，弹出编辑界面，
+  /// 允许用户手动修改歌手头像和简介。
+  Future<void> _showMetadataEditor(
+    BuildContext context,
+    ArtistMetadata currentMetadata,
+  ) async {
+    final updated = await showModalBottomSheet<ArtistMetadata>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ArtistMetadataEditor(
+        artistName: _artistName,
+        currentMetadata: currentMetadata,
+      ),
+    );
+
+    if (updated != null && mounted) {
+      // 刷新页面，显示更新后的元数据
+      setState(() {
+        // 触发 provider 重新加载
+        ref.invalidate(artistMetadataProvider(_artistName));
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('歌手信息已更新'),
+          duration: Duration(seconds: 2),
         ),
       );
     }
