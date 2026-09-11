@@ -120,6 +120,23 @@ const double _kSectionCardBorderAlpha = 0.06;
 /// 列表项分隔线缩进
 const double _kDividerIndent = 56.0;
 
+// ===== 设置项组件常量 =====
+
+/// 设置项图标容器尺寸
+const double _kTileIconContainerSize = 36.0;
+
+/// 设置项图标容器圆角
+const double _kTileIconContainerRadius = 8.0;
+
+/// 设置项图标容器背景透明度
+const double _kTileIconContainerBgAlpha = 0.12;
+
+/// 设置项图标尺寸
+const double _kTileIconSize = 20.0;
+
+/// 设置项副标题透明度
+const double _kTileSubtitleAlpha = 0.8;
+
 // ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
@@ -1929,7 +1946,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: scheme.onSurfaceVariant.withValues(alpha: _kTileSubtitleAlpha),
                   fontSize: _kFontSizeBody,
                 ),
               )
@@ -1961,7 +1978,7 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  color: scheme.onSurfaceVariant.withValues(alpha: _kTileSubtitleAlpha),
                   fontSize: _kFontSizeBody,
                 ),
               )
@@ -2006,13 +2023,13 @@ class SettingsView extends ConsumerWidget {
   // 图标容器
   static Widget _IconContainer({required IconData icon, required Color color}) {
     return Container(
-      width: 36,
-      height: 36,
+      width: _kTileIconContainerSize,
+      height: _kTileIconContainerSize,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: _kTileIconContainerBgAlpha),
+        borderRadius: BorderRadius.circular(_kTileIconContainerRadius),
       ),
-      child: Icon(icon, color: color, size: 20),
+      child: Icon(icon, color: color, size: _kTileIconSize),
     );
   }
 
