@@ -1,3 +1,10 @@
+# [2.64.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.63.0...v2.64.0) (2026-09-11)
+
+
+### Features
+
+* **歌手简介V1.2:** 新增同名歌手选择界面 ([d76f64d](https://github.com/1525745393/EmbyTok-Flutter/commit/d76f64d7ba1cbd7317dab1a87d50efc7c7b34a72))
+
 # [2.63.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.62.3...v2.63.0) (2026-09-10)
 
 
