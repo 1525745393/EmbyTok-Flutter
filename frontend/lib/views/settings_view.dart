@@ -137,6 +137,22 @@ const double _kTileIconSize = 20.0;
 /// 设置项副标题透明度
 const double _kTileSubtitleAlpha = 0.8;
 
+// ===== 对话框常量 =====
+
+/// 对话框关闭按钮文本
+const String _kDialogCloseLabel = '关闭';
+
+/// 对话框选中图标尺寸
+const double _kDialogSelectedIconSize = 24.0;
+
+// ===== 手势项常量 =====
+
+/// 手势项图标尺寸
+const double _kGestureItemIconSize = 24.0;
+
+/// 手势项图标与文字间距
+const double _kGestureItemIconSpacing = 12.0;
+
 // ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
@@ -3950,8 +3966,8 @@ class _GestureItem extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Icon(icon, color: scheme.primary, size: 24),
-        const SizedBox(width: 12),
+        Icon(icon, color: scheme.primary, size: _kGestureItemIconSize),
+        const SizedBox(width: _kGestureItemIconSpacing),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4024,7 +4040,7 @@ class _OptionDialog<T> extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('关闭', style: TextStyle(color: scheme.onSurfaceVariant)),
+          child: Text(_kDialogCloseLabel, style: TextStyle(color: scheme.onSurfaceVariant)),
         ),
       ],
     );
