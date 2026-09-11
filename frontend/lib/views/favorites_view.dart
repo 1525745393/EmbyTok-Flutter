@@ -38,6 +38,77 @@ enum FavoritesSortMode {
 /// 分组标识：三个可折叠分组
 enum _FavGroup { movie, boxSet, person }
 
+// ===== 收藏页面常量（避免魔法数字和硬编码字符串）=====
+
+/// AppBar 标题
+const String _kAppBarTitle = '我的收藏';
+
+/// 批量管理按钮文本
+const String _kBulkManageButton = '批量管理';
+
+/// 完成按钮文本
+const String _kDoneButton = '完成';
+
+/// 刷新按钮提示
+const String _kRefreshTooltip = '刷新';
+
+/// 排序按钮提示前缀
+const String _kSortTooltipPrefix = '排序（';
+
+/// 空列表提示：暂无影片
+const String _kEmptyMoviesHint = '暂无影片';
+
+/// 空列表提示：暂无合集
+const String _kEmptyBoxSetsHint = '暂无合集';
+
+/// 空列表提示：暂无人物
+const String _kEmptyPeopleHint = '暂无人物';
+
+/// 搜索框提示
+const String _kSearchHint = '搜索收藏内容';
+
+/// AppBar 图标尺寸
+const double _kAppBarIconSize = 22.0;
+
+/// AppBar 标题间距
+const double _kAppBarTitleSpacing = 8.0;
+
+/// AppBar 计数间距
+const double _kAppBarCountSpacing = 10.0;
+
+/// AppBar 计数字体大小
+const double _kAppBarCountFontSize = 13.0;
+
+/// 加载指示器尺寸
+const double _kLoadingIndicatorSize = 20.0;
+
+/// 加载指示器线宽
+const double _kLoadingIndicatorStrokeWidth = 2.0;
+
+/// 影片网格列数
+const int _kMovieGridCrossAxisCount = 3;
+
+/// 人物网格列数
+const int _kPersonGridCrossAxisCount = 4;
+
+/// 影片网格宽高比
+const double _kMovieGridChildAspectRatio = 0.65;
+
+/// 人物网格宽高比
+const double _kPersonGridChildAspectRatio = 0.85;
+
+/// 网格主轴间距
+const double _kGridMainAxisSpacing = 12.0;
+
+/// 网格交叉轴间距
+const double _kGridCrossAxisSpacing = 10.0;
+
+/// 卡片圆角
+const double _kCardBorderRadius = 12.0;
+
+/// 海报圆角
+const double _kPosterBorderRadius = 8.0;
+
 class FavoritesView extends ConsumerStatefulWidget {
   const FavoritesView({super.key});
 
@@ -118,6 +189,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         });
         break;
       case FavoritesSortMode.defaultOrder:
+        // 已在方法开头处理，这里不会到达
         break;
     }
     return sorted;
@@ -269,15 +341,15 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       foregroundColor: scheme.onSurface,
       title: Row(
         children: [
-          Icon(Icons.favorite, color: scheme.primary, size: 22),
-          const SizedBox(width: 8),
-          const Text('我的收藏'),
-          const SizedBox(width: 10),
+          Icon(Icons.favorite, color: scheme.primary, size: _kAppBarIconSize),
+          const SizedBox(width: _kAppBarTitleSpacing),
+          const Text(_kAppBarTitle),
+          const SizedBox(width: _kAppBarCountSpacing),
           Text(
             '$totalCount',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
-              fontSize: 13,
+              fontSize: _kAppBarCountFontSize,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -297,12 +369,12 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                 }
               });
             },
-            child: Text(_selectMode ? '完成' : '批量管理'),
+            child: Text(_selectMode ? _kDoneButton : _kBulkManageButton),
           ),
         // 排序
         PopupMenuButton<FavoritesSortMode>(
-          icon: Icon(Icons.sort, color: scheme.onSurfaceVariant, size: 22),
-          tooltip: '排序（$_sortLabel）',
+          icon: Icon(Icons.sort, color: scheme.onSurfaceVariant, size: _kAppBarIconSize),
+          tooltip: '$_kSortTooltipPrefix$_sortLabel）',
           onSelected: (mode) => setState(() => _sortMode = mode),
           itemBuilder: (ctx) => [
             _sortMenuItem(FavoritesSortMode.defaultOrder, '默认顺序'),
@@ -315,18 +387,18 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
         IconButton(
           icon: isLoading
               ? SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: _kLoadingIndicatorSize,
+                  height: _kLoadingIndicatorSize,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                    strokeWidth: _kLoadingIndicatorStrokeWidth,
                     color: scheme.onSurfaceVariant,
                   ),
                 )
-              : Icon(Icons.refresh, color: scheme.onSurfaceVariant, size: 22),
+              : Icon(Icons.refresh, color: scheme.onSurfaceVariant, size: _kAppBarIconSize),
           onPressed: isLoading
               ? null
               : () => ref.read(favoritesProvider.notifier).loadFavorites(),
-          tooltip: '刷新',
+          tooltip: _kRefreshTooltip,
         ),
       ],
     );
