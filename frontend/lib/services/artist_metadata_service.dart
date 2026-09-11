@@ -61,6 +61,12 @@ class ArtistMetadataService {
   final SynologyAudioApi? _synologyApi;
   SharedPreferences? _prefs;
 
+  /// 获取 Last.fm 服务（可空，未配置 API Key 时为 null）
+  LastFmService? get lastFmService => _lastFmService;
+
+  /// 获取 Deezer 服务
+  DeezerService get deezerService => _deezerService;
+
   /// 是否启用 NAS 同步（L3 缓存）
   bool nasSyncEnabled = false;
 

@@ -18,6 +18,7 @@ import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
 import '../../providers/artist_metadata_provider.dart';
 import '../../utils/html_parser.dart';
+import 'artist_search_picker.dart';
 import 'mini_player_bar.dart';
 
 /// 歌手详情页
@@ -392,20 +393,71 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 onPressed: () => setState(() => _bioExpanded = !_bioExpanded),
                 child: Text(_bioExpanded ? '收起 ▲' : '展开全文 ▼'),
               ),
-              // 数据来源标注
-              Text(
-                '数据来源：${metadata.sourceDisplayName}'
-                '${metadata.bioLang == 'en' ? ' · 英文' : ''}',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
+              // 数据来源标注 + 切换歌手按钮
+              Row(
+                children: [
+                  Text(
+                    '数据来源：${metadata.sourceDisplayName}'
+                    '${metadata.bioLang == 'en' ? ' · 英文' : ''}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => _showArtistPicker(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      '切换歌手',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  /// 显示同名歌手选择界面（V1.2）
+  ///
+  /// 当用户点击"切换歌手"按钮时，弹出搜索结果列表，
+  /// 让用户选择正确的歌手。选择后跳转到对应歌手详情页。
+  Future<void> _showArtistPicker(BuildContext context) async {
+    final service = ref.read(artistMetadataServiceProvider);
+    final lastFmService = service.lastFmService;
+    final deezerService = service.deezerService;
+
+    final selected = await showModalBottomSheet<ArtistSearchResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ArtistSearchPicker(
+        searchQuery: _artistName,
+        lastFmService: lastFmService,
+        deezerService: deezerService,
+      ),
+    );
+
+    if (selected != null && mounted) {
+      // 跳转到选中的歌手详情页
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => ArtistDetailPage(artistName: selected.name),
+        ),
+      );
+    }
   }
 
   /// 构建相似歌手部分（V1.1）

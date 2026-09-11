@@ -124,6 +124,54 @@ class DeezerService {
     return info;
   }
 
+  /// 搜索歌手（返回多个匹配结果，用于同名歌手选择）
+  ///
+  /// 返回最多 [limit] 个搜索结果，每个结果包含歌手名和头像 URL。
+  Future<List<DeezerArtistInfo>> searchArtists(
+    String query, {
+    int limit = 10,
+  }) async {
+    final key = query.trim();
+    if (key.isEmpty) return [];
+
+    try {
+      final searchResult = await _searchArtist(key);
+      if (searchResult == null || searchResult.isEmpty) return [];
+
+      final results = <DeezerArtistInfo>[];
+      for (final item in searchResult.take(limit)) {
+        final name = item['name'] as String?;
+        if (name == null || name.isEmpty) continue;
+
+        // 头像：取最大尺寸
+        String? imageUrl;
+        final images = item['image'] as List<dynamic>? ?? const [];
+        for (final img in images.reversed) {
+          final imgEntry = img as Map<String, dynamic>?;
+          final url = imgEntry?['#text'] as String?;
+          if (url != null && url.isNotEmpty) {
+            imageUrl = url;
+            break;
+          }
+        }
+
+        results.add(DeezerArtistInfo(
+          name: name,
+          pictureXl: imageUrl,
+          pictureBig: imageUrl,
+          nbFan: item['nb_fan'] as int?,
+          nbAlbum: item['nb_album'] as int?,
+        ));
+      }
+
+      return results;
+    } catch (e) {
+      AppLogger.warn('Deezer 搜索歌手失败',
+          data: {'query': key, 'error': e.toString()});
+      return [];
+    }
+  }
+
   /// 搜索歌手
   Future<List<Map<String, dynamic>>> _searchArtist(String artistName) async {
     final encoded = Uri.encodeComponent(artistName);
