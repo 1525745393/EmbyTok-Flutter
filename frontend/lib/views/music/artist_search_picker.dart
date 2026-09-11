@@ -348,6 +348,8 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
         return 'Wikipedia';
       case ArtistMetadataSource.synology:
         return '群晖';
+      case ArtistMetadataSource.manual:
+        return '手动修正';
       case ArtistMetadataSource.none:
         return '未知';
     }
@@ -364,6 +366,8 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
         return const Color(0xFF636466); // Wikipedia 灰色
       case ArtistMetadataSource.synology:
         return const Color(0xFF0088CC); // 群晖蓝色
+      case ArtistMetadataSource.manual:
+        return Colors.orange; // 手动修正橙色
       case ArtistMetadataSource.none:
         return Colors.grey;
     }
