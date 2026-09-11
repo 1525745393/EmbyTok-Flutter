@@ -71,6 +71,44 @@ const double _kSpacingXXXLarge = 16;
 /// 最大间距
 const double _kSpacingXXXXLarge = 20;
 
+// ===== 快捷入口颜色常量（避免硬编码，支持主题扩展）=====
+
+/// 快捷入口：歌曲 - 蓝色
+const Color _kQuickEntryColorSongs = Color(0xFF4A90D9);
+
+/// 快捷入口：专辑 - 橙色
+const Color _kQuickEntryColorAlbums = Color(0xFFE67E22);
+
+/// 快捷入口：歌手 - 紫色
+const Color _kQuickEntryColorArtists = Color(0xFF9B59B6);
+
+/// 快捷入口：歌单 - 绿色
+const Color _kQuickEntryColorPlaylists = Color(0xFF27AE60);
+
+/// 快捷入口：流派 - 青色
+const Color _kQuickEntryColorGenres = Color(0xFF1ABC9C);
+
+/// 快捷入口：文件夹 - 蓝色
+const Color _kQuickEntryColorFolders = Color(0xFF3498DB);
+
+/// 快捷入口：Random100 - 红色
+const Color _kQuickEntryColorRandom = Color(0xFFE74C3C);
+
+/// 快捷入口：设置 - 灰色
+const Color _kQuickEntryColorSettings = Color(0xFF7F8C8D);
+
+// ===== 音乐流派渐变色常量 =====
+
+/// 音乐流派卡片渐变色组（6组循环使用）
+const List<List<Color>> _kGenreGradients = [
+  [Color(0xFF667EEA), Color(0xFF764BA2)],
+  [Color(0xFFF093FB), Color(0xFFF5576C)],
+  [Color(0xFF4FACFE), Color(0xFF00F2FE)],
+  [Color(0xFF43E97B), Color(0xFF38F9D7)],
+  [Color(0xFFFFD26F), Color(0xFFFF9472)],
+  [Color(0xFFA18CD1), Color(0xFFFBC2EB)],
+];
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -610,42 +648,42 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     final entries = [
       QuickEntry(
         icon: Icons.music_note, label: '歌曲',
-        color: const Color(0xFF4A90D9),
+        color: _kQuickEntryColorSongs,
         onTap: () => _switchTab(SynologyMusicTab.songs),
       ),
       QuickEntry(
         icon: Icons.album, label: '专辑',
-        color: const Color(0xFFE67E22),
+        color: _kQuickEntryColorAlbums,
         onTap: () => _switchTab(SynologyMusicTab.albums),
       ),
       QuickEntry(
         icon: Icons.person, label: '歌手',
-        color: const Color(0xFF9B59B6),
+        color: _kQuickEntryColorArtists,
         onTap: () => _switchTab(SynologyMusicTab.artists),
       ),
       QuickEntry(
         icon: Icons.playlist_play, label: '歌单',
-        color: const Color(0xFF27AE60),
+        color: _kQuickEntryColorPlaylists,
         onTap: () => _switchTab(SynologyMusicTab.playlists),
       ),
       QuickEntry(
         icon: Icons.category, label: '流派',
-        color: const Color(0xFF1ABC9C),
+        color: _kQuickEntryColorGenres,
         onTap: _scrollToGenres,
       ),
       QuickEntry(
         icon: Icons.folder, label: '文件夹',
-        color: const Color(0xFF3498DB),
+        color: _kQuickEntryColorFolders,
         onTap: () => context.go('/folder'),
       ),
       QuickEntry(
         icon: Icons.shuffle, label: 'Random100',
-        color: const Color(0xFFE74C3C),
+        color: _kQuickEntryColorRandom,
         onTap: _shufflePlay,
       ),
       QuickEntry(
         icon: Icons.settings, label: '设置',
-        color: const Color(0xFF7F8C8D),
+        color: _kQuickEntryColorSettings,
         onTap: () => context.go('/settings'),
       ),
     ];
@@ -716,8 +754,17 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   /// + 右下角悬浮播放按钮。点击卡片播放该歌曲，长按弹出移除菜单。
   Widget _buildRecentPlaybacksList(
       List<RecentPlayback> records, ColorScheme scheme) {
+    // 动态计算卡片宽度：根据屏幕宽度自适应
+    // 小屏手机(<360dp): 100, 中屏(360-414dp): 110, 大屏/平板(>414dp): 120
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth < 360 ? 100.0
+        : screenWidth <= 414 ? 110.0
+        : 120.0;
+    // 列表高度 = 封面(正方形) + 间距 + 标题(1行) + 副标题(1行) + 边距
+    final listHeight = cardWidth + 6 + 16 + 14 + 8; // 约 cardWidth + 44
+
     return SizedBox(
-      height: 160,
+      height: listHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -729,7 +776,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             onTap: () => _playRecentPlayback(record),
             onLongPress: () => _showRecentPlaybackMenu(record, scheme),
             child: SizedBox(
-              width: 110,
+              width: cardWidth,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -917,14 +964,6 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   ///
   /// 每个卡片：渐变色块 + 流派名称 + 歌曲数量。点击随机播放该流派全部歌曲。
   Widget _buildGenreGrid(List<AudioGenre> genres, ColorScheme scheme) {
-    final gradients = [
-      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-      [const Color(0xFF4FACFE), const Color(0xFF00F2FE)],
-      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
-      [const Color(0xFFFFD26F), const Color(0xFFFF9472)],
-      [const Color(0xFFA18CD1), const Color(0xFFFBC2EB)],
-    ];
     return Padding(
       key: _genreKey,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -940,7 +979,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         itemCount: genres.length,
         itemBuilder: (context, index) {
           final genre = genres[index];
-          final gradient = gradients[index % gradients.length];
+          final gradient = _kGenreGradients[index % _kGenreGradients.length];
           return GestureDetector(
             onTap: () => _playGenreShuffle(genre),
             child: Container(
