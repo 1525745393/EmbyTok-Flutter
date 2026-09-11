@@ -104,11 +104,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   late final TabController _tabController;
   final _searchController = TextEditingController();
   final _homeScrollController = ScrollController();
+  final _genreKey = GlobalKey(); // 音乐流派模块 GlobalKey，用于精确滚动
   Timer? _searchDebounce;
 
   /// 精选专辑缓存：首次计算后缓存，避免每次 build 重新 shuffle 导致内容跳变
   /// 下拉刷新时清除，重新抽样
   List<AudioAlbum>? _cachedFeaturedAlbums;
+  int? _cachedAlbumsLength; // 记录缓存时的专辑数量，用于检测数据变化
 
   @override
   void initState() {
@@ -502,8 +504,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     // 精选专辑：从全量专辑中随机抽样，与最近添加去重（name+artist 组合，避免同名不同艺术家被错误去重）
     // 首次计算后缓存，避免每次 build 重新 shuffle 导致内容频繁跳变
     // 注意：仅当 state.albums 非空时才缓存，避免异步数据未加载时缓存空列表导致模块永远不显示
+    // 优化：当专辑数量变化时（如分页加载更多），清除缓存重新抽样
+    if (_cachedFeaturedAlbums != null && _cachedAlbumsLength != state.albums.length) {
+      _cachedFeaturedAlbums = null;
+      _cachedAlbumsLength = null;
+    }
     final featured = _cachedFeaturedAlbums ?? (state.albums.isNotEmpty
         ? _cachedFeaturedAlbums = () {
+            _cachedAlbumsLength = state.albums.length;
             final recentKeys = state.recentAlbums
                 .map((e) => '${e.name}||${e.displayArtist ?? e.albumArtist}')
                 .toSet();
@@ -571,13 +579,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           const SizedBox(height: _kSpacingXLarge),
           _buildGenreGrid(state.genres, scheme),
         ],
-        // 全空占位（注意：不检查 pins —— 只要有锁定歌曲就不显示全空占位）
+        // 全空占位（检查所有模块，包括我的锁定）
         if (state.recentAlbums.isEmpty &&
             state.topArtists.isEmpty &&
             state.genres.isEmpty &&
             state.playlists.isEmpty &&
             state.albums.isEmpty &&
             state.songs.isEmpty &&
+            state.pins.isEmpty &&
             recentPlaybacks.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 60),
@@ -654,8 +663,20 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   /// 滚动到音乐流派区域（首页底部）
+  ///
+  /// 使用 GlobalKey + Scrollable.ensureVisible 精确滚动，
+  /// 避免直接滚动到 maxScrollExtent 导致位置不准确。
   void _scrollToGenres() {
-    if (_homeScrollController.hasClients) {
+    final context = _genreKey.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+        alignment: 0.1, // 滚动到距顶部 10% 的位置
+      );
+    } else if (_homeScrollController.hasClients) {
+      // 兜底：如果 GlobalKey 未就绪，滚动到页面底部
       _homeScrollController.animateTo(
         _homeScrollController.position.maxScrollExtent,
         duration: const Duration(milliseconds: 500),
@@ -706,14 +727,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           final record = records[index];
           return GestureDetector(
             onTap: () => _playRecentPlayback(record),
+            onLongPress: () => _showRecentPlaybackMenu(record, scheme),
             child: SizedBox(
               width: 110,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onLongPress: () => _showRecentPlaybackMenu(record, scheme),
-                  child: Stack(
+                  Stack(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
@@ -757,22 +777,21 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                Text(record.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: _kFontSizeBody,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface)),
-                Text(record.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-              ],
-            ),
+                  const SizedBox(height: _kSpacingMedium),
+                  Text(record.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: _kFontSizeBody,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface)),
+                  Text(record.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                ],
+              ),
             ),
           );
         },
@@ -907,6 +926,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       [const Color(0xFFA18CD1), const Color(0xFFFBC2EB)],
     ];
     return Padding(
+      key: _genreKey,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
         shrinkWrap: true,
