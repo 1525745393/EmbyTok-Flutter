@@ -289,6 +289,32 @@ const double _kMenuPadding = 20.0;
 /// 菜单标题上下间距
 const double _kMenuTitleVerticalSpacing = 12.0;
 
+// ===== 菜单文本和 SnackBar 常量 =====
+
+/// 菜单项：取消收藏
+const String _kMenuItemRemoveFavorite = '取消收藏';
+
+/// 菜单项：播放
+const String _kMenuItemPlay = '播放';
+
+/// 菜单项：查看详情
+const String _kMenuItemViewDetails = '查看详情';
+
+/// SnackBar：已取消收藏前缀
+const String _kSnackBarRemovedPrefix = '已取消收藏「';
+
+/// SnackBar：已取消收藏后缀
+const String _kSnackBarRemovedSuffix = '」';
+
+/// SnackBar：撤销
+const String _kSnackBarUndo = '撤销';
+
+/// SnackBar 时长（秒）
+const int _kSnackBarDuration = 5;
+
+/// 菜单底部间距
+const double _kMenuBottomSpacing = 6.0;
+
 /// AppBar 图标尺寸
 const double _kAppBarIconSize = 22.0;
 
@@ -1826,7 +1852,7 @@ class _MoviePosterCard extends ConsumerWidget {
       context: context,
       backgroundColor: scheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(_kMenuTopRadius)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -1834,7 +1860,7 @@ class _MoviePosterCard extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: const EdgeInsets.fromLTRB(_kMenuPadding, 16, _kMenuPadding, 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -1842,7 +1868,7 @@ class _MoviePosterCard extends ConsumerWidget {
                         item.title,
                         style: TextStyle(
                           color: scheme.onSurface,
-                          fontSize: 16,
+                          fontSize: _kMenuTitleFontSize,
                           fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
@@ -1855,7 +1881,7 @@ class _MoviePosterCard extends ConsumerWidget {
               const Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.favorite_border, color: scheme.error),
-                title: Text('取消收藏',
+                title: Text(_kMenuItemRemoveFavorite,
                     style: TextStyle(color: scheme.error)),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -1864,13 +1890,13 @@ class _MoviePosterCard extends ConsumerWidget {
                   final messenger = ScaffoldMessenger.of(context);
                   messenger.showSnackBar(
                     SnackBar(
-                      content: Text('已取消收藏「${item.title}」'),
+                      content: Text('$_kSnackBarRemovedPrefix${item.title}$_kSnackBarRemovedSuffix'),
                       action: SnackBarAction(
-                        label: '撤销',
+                        label: _kSnackBarUndo,
                         onPressed: () =>
                             _undoUnfavorite(messenger, notifier, item),
                       ),
-                      duration: const Duration(seconds: 5),
+                      duration: const Duration(seconds: _kSnackBarDuration),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -1878,7 +1904,7 @@ class _MoviePosterCard extends ConsumerWidget {
               ),
               ListTile(
                 leading: Icon(Icons.play_arrow, color: scheme.primary),
-                title: Text('播放'),
+                title: Text(_kMenuItemPlay),
                 onTap: () {
                   Navigator.pop(ctx);
                   ref
@@ -1890,13 +1916,13 @@ class _MoviePosterCard extends ConsumerWidget {
               ListTile(
                 leading: Icon(Icons.info_outline,
                     color: scheme.onSurfaceVariant),
-                title: const Text('查看详情'),
+                title: const Text(_kMenuItemViewDetails),
                 onTap: () {
                   Navigator.pop(ctx);
                   context.push('/item/${item.id}', extra: item);
                 },
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: _kMenuBottomSpacing),
             ],
           ),
         );
