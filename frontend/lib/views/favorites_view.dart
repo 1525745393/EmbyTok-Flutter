@@ -161,22 +161,52 @@ const int _kMovieGridCrossAxisCount = 3;
 const int _kPersonGridCrossAxisCount = 4;
 
 /// 影片网格宽高比
-const double _kMovieGridChildAspectRatio = 0.65;
+const double _kMovieGridChildAspectRatio = 0.62;
 
 /// 人物网格宽高比
-const double _kPersonGridChildAspectRatio = 0.85;
+const double _kPersonGridChildAspectRatio = 0.72;
 
 /// 网格主轴间距
-const double _kGridMainAxisSpacing = 12.0;
+const double _kGridMainAxisSpacing = 8.0;
 
 /// 网格交叉轴间距
-const double _kGridCrossAxisSpacing = 10.0;
+const double _kGridCrossAxisSpacing = 8.0;
+
+/// 人物网格主轴间距
+const double _kPersonGridMainAxisSpacing = 6.0;
+
+/// 人物网格交叉轴间距
+const double _kPersonGridCrossAxisSpacing = 6.0;
 
 /// 卡片圆角
 const double _kCardBorderRadius = 12.0;
 
 /// 海报圆角
 const double _kPosterBorderRadius = 8.0;
+
+/// 影片网格预览数量
+const int _kMovieGridPreviewCount = 6;
+
+/// 人物网格预览数量
+const int _kPersonGridPreviewCount = 8;
+
+/// 全选复选框尺寸
+const double _kSelectCheckboxSize = 20.0;
+
+/// 全选复选框圆角
+const double _kSelectCheckboxRadius = 6.0;
+
+/// 全选复选框边框宽度
+const double _kSelectCheckboxBorderWidth = 1.5;
+
+/// 全选复选框勾选图标尺寸
+const double _kSelectCheckIconSize = 13.0;
+
+/// 全选提示字体大小
+const double _kSelectHintFontSize = 11.0;
+
+/// 全选提示间距
+const double _kSelectHintSpacing = 8.0;
 
 class FavoritesView extends ConsumerStatefulWidget {
   const FavoritesView({super.key});
@@ -1215,7 +1245,7 @@ class _MovieGrid extends StatelessWidget {
   });
 
   // 预览数量：分组内只显示前 6 张（更多请进"全部"页面）
-  static const int _previewMax = 6;
+  static const int _previewMax = _kMovieGridPreviewCount;
 
   @override
   Widget build(BuildContext context) {
@@ -1234,30 +1264,30 @@ class _MovieGrid extends StatelessWidget {
                 GestureDetector(
                   onTap: onToggleAll,
                   child: Container(
-                    width: 20,
-                    height: 20,
+                    width: _kSelectCheckboxSize,
+                    height: _kSelectCheckboxSize,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(_kSelectCheckboxRadius),
                       border: Border.all(
                         color: allSelected
                             ? scheme.primary
                             : scheme.outlineVariant,
-                        width: 1.5,
+                        width: _kSelectCheckboxBorderWidth,
                       ),
                       color: allSelected ? scheme.primary : Colors.transparent,
                     ),
                     child: allSelected
                         ? Icon(Icons.check,
-                            size: 13, color: scheme.onPrimary)
+                            size: _kSelectCheckIconSize, color: scheme.onPrimary)
                         : null,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: _kSelectHintSpacing),
                 Text(
                   allSelected ? '取消全选本组影片' : '全选本组影片',
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    fontSize: 11,
+                    fontSize: _kSelectHintFontSize,
                   ),
                 ),
               ],
@@ -1267,10 +1297,10 @@ class _MovieGrid extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.62,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
+            crossAxisCount: _kMovieGridCrossAxisCount,
+            childAspectRatio: _kMovieGridChildAspectRatio,
+            crossAxisSpacing: _kGridCrossAxisSpacing,
+            mainAxisSpacing: _kGridMainAxisSpacing,
           ),
           itemCount: preview.length + (showMoreTile ? 1 : 0),
           itemBuilder: (context, index) {
@@ -1380,24 +1410,24 @@ class _PersonGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preview = items.take(8).toList();
-    final showMore = items.length > 8;
+    final preview = items.take(_kPersonGridPreviewCount).toList();
+    final showMore = items.length > _kPersonGridPreviewCount;
     return Column(
       children: [
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            childAspectRatio: 0.72,
-            crossAxisSpacing: 6,
-            mainAxisSpacing: 6,
+            crossAxisCount: _kPersonGridCrossAxisCount,
+            childAspectRatio: _kPersonGridChildAspectRatio,
+            crossAxisSpacing: _kPersonGridCrossAxisSpacing,
+            mainAxisSpacing: _kPersonGridMainAxisSpacing,
           ),
           itemCount: preview.length + (showMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == preview.length) {
               return _MorePersonTile(
-                remaining: (items.length - 8).clamp(0, 1 << 31),
+                remaining: (items.length - _kPersonGridPreviewCount).clamp(0, 1 << 31),
                 onTap: () => context.push('/favorites/category/person'),
               );
             }
