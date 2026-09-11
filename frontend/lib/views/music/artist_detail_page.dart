@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
@@ -281,7 +282,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
               child: CircleAvatar(
                 radius: 16,
                 backgroundImage:
-                    metadata.hasImage ? NetworkImage(metadata.imageUrl!) : null,
+                    metadata.hasImage ? CachedNetworkImageProvider(metadata.imageUrl!) : null,
                 backgroundColor: scheme.surfaceVariant,
                 child: metadata.hasImage
                     ? null
@@ -306,7 +307,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         CircleAvatar(
           radius: 60,
           backgroundImage: metadata.hasImage
-              ? NetworkImage(metadata.imageUrl!)
+              ? CachedNetworkImageProvider(metadata.imageUrl!)
               : null,
           backgroundColor: scheme.surfaceVariant,
           child: metadata.hasImage
@@ -349,7 +350,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           CircleAvatar(
             radius: 50,
             backgroundImage: metadata.hasImage
-                ? NetworkImage(metadata.imageUrl!)
+                ? CachedNetworkImageProvider(metadata.imageUrl!)
                 : null,
             backgroundColor: scheme.surfaceVariant,
             child: metadata.hasImage
@@ -727,7 +728,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                         CircleAvatar(
                           radius: 32,
                           backgroundImage: artist.imageUrl != null
-                              ? NetworkImage(artist.imageUrl!)
+                              ? CachedNetworkImageProvider(artist.imageUrl!)
                               : null,
                           backgroundColor: scheme.surfaceVariant,
                           child: artist.imageUrl != null
@@ -836,12 +837,13 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: album.coverUrl != null && album.coverUrl!.isNotEmpty
-                  ? Image.network(
-                      album.coverUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: album.coverUrl!,
                       width: 120,
                       height: 120,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildAlbumPlaceholder(scheme),
+                      placeholder: (_, __) => _buildAlbumPlaceholder(scheme),
+                      errorWidget: (_, __, ___) => _buildAlbumPlaceholder(scheme),
                     )
                   : _buildAlbumPlaceholder(scheme),
             ),
