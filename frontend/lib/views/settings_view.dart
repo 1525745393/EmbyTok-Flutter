@@ -82,6 +82,44 @@ const double _kSpacingXXXLarge = 20;
 /// 最大间距（页面底部留白）
 const double _kSpacingXXXXLarge = 32;
 
+// ===== 分组标题和卡片容器常量 =====
+
+/// 分组标题图标容器尺寸
+const double _kSectionIconContainerSize = 28.0;
+
+/// 分组标题图标容器圆角
+const double _kSectionIconContainerRadius = 7.0;
+
+/// 分组标题图标尺寸
+const double _kSectionIconSize = 16.0;
+
+/// 分组标题图标与文字间距
+const double _kSectionIconTextSpacing = 8.0;
+
+/// 分组标题字间距
+const double _kSectionTitleLetterSpacing = 0.5;
+
+/// 分组标题垂直内边距
+const double _kSectionTitleVerticalPadding = 10.0;
+
+/// 分组标题顶部内边距
+const double _kSectionTitleTopPadding = 24.0;
+
+/// 分组卡片圆角
+const double _kSectionCardRadius = 16.0;
+
+/// 分组卡片水平边距
+const double _kSectionCardHorizontalMargin = 16.0;
+
+/// 分组卡片边框宽度
+const double _kSectionCardBorderWidth = 0.5;
+
+/// 分组卡片边框透明度
+const double _kSectionCardBorderAlpha = 0.06;
+
+/// 列表项分隔线缩进
+const double _kDividerIndent = 56.0;
+
 // ==================== 主页面 ====================
 
 class SettingsView extends ConsumerWidget {
@@ -303,26 +341,26 @@ class SettingsView extends ConsumerWidget {
       children: [
         // 分组标题：图标 + 文字，增加视觉层次
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          padding: const EdgeInsets.fromLTRB(20, _kSectionTitleTopPadding, 20, _kSectionTitleVerticalPadding),
           child: Row(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: _kSectionIconContainerSize,
+                height: _kSectionIconContainerSize,
                 decoration: BoxDecoration(
                   color: sectionColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(7),
+                  borderRadius: BorderRadius.circular(_kSectionIconContainerRadius),
                 ),
-                child: Icon(sectionIcon, color: sectionColor, size: 16),
+                child: Icon(sectionIcon, color: sectionColor, size: _kSectionIconSize),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _kSectionIconTextSpacing),
               Text(
                 title,
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontSize: _kFontSizeMedium,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+                  letterSpacing: _kSectionTitleLetterSpacing,
                 ),
               ),
             ],
@@ -332,17 +370,17 @@ class SettingsView extends ConsumerWidget {
         // 修复：将背景色从 Container 移到 Material 上，避免 Container 的背景色
         // 遮挡 ListTile 的墨水效果（Flutter 警告：ListTile background invisible）
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.symmetric(horizontal: _kSectionCardHorizontalMargin),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_kSectionCardRadius),
             border: Border.all(
-              color: scheme.onSurface.withValues(alpha: 0.06),
-              width: 0.5,
+              color: scheme.onSurface.withValues(alpha: _kSectionCardBorderAlpha),
+              width: _kSectionCardBorderWidth,
             ),
           ),
           child: Material(
             color: scheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_kSectionCardRadius),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: _buildItemList(children),
@@ -358,7 +396,7 @@ class SettingsView extends ConsumerWidget {
     for (var i = 0; i < children.length; i++) {
       widgets.add(children[i]);
       if (i < children.length - 1) {
-        widgets.add(const Divider(height: 1, indent: 56));
+        widgets.add(Divider(height: 1, indent: _kDividerIndent));
       }
     }
     return widgets;
