@@ -236,6 +236,59 @@ const int _kMoviePosterMaxWidth = 260;
 /// 影片海报边框透明度
 const double _kMoviePosterBorderAlpha = 0.45;
 
+// ===== 影片卡片角标和文本常量 =====
+
+/// 评分角标圆角
+const double _kRatingBadgeRadius = 6.0;
+
+/// 评分角标背景透明度
+const double _kRatingBadgeBgAlpha = 0.65;
+
+/// 评分角标字体大小
+const double _kRatingBadgeFontSize = 9.0;
+
+/// 评分角标字间距
+const double _kRatingBadgeLetterSpacing = 0.2;
+
+/// 心形角标位置偏移
+const double _kHeartBadgeOffset = 5.0;
+
+/// 心形角标尺寸
+const double _kHeartBadgeSize = 13.0;
+
+/// 心形角标阴影模糊半径
+const double _kHeartBadgeShadowBlurRadius = 3.0;
+
+/// 心形角标阴影透明度
+const double _kHeartBadgeShadowAlpha = 0.3;
+
+/// 影片卡片标题字体大小
+const double _kMovieTitleFontSize = 11.5;
+
+/// 影片卡片标题行高
+const double _kMovieTitleLineHeight = 1.18;
+
+/// 影片卡片标题与副标题间距
+const double _kMovieTitleSubtitleSpacing = 5.0;
+
+/// 影片卡片副标题字体大小
+const double _kMovieSubtitleFontSize = 10.0;
+
+/// 影片卡片副标题与底部间距
+const double _kMovieSubtitleBottomSpacing = 2.0;
+
+/// 菜单顶部圆角
+const double _kMenuTopRadius = 18.0;
+
+/// 菜单标题字体大小
+const double _kMenuTitleFontSize = 16.0;
+
+/// 菜单内边距
+const double _kMenuPadding = 20.0;
+
+/// 菜单标题上下间距
+const double _kMenuTitleVerticalSpacing = 12.0;
+
 /// AppBar 图标尺寸
 const double _kAppBarIconSize = 22.0;
 
@@ -1691,38 +1744,38 @@ class _MoviePosterCard extends ConsumerWidget {
                     // 评分角标
                     if ((item.displayRating ?? 0) > 0)
                       Positioned(
-                        top: 5,
-                        right: 5,
+                        top: _kHeartBadgeOffset,
+                        right: _kHeartBadgeOffset,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 5, vertical: 1.5),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(_kRatingBadgeRadius),
+                            color: Colors.black.withValues(alpha: _kRatingBadgeBgAlpha),
                           ),
                           child: Text(
                             '★ ${item.displayRating!.toStringAsFixed(1)}',
                             style: TextStyle(
                               color: Colors.amber.shade300,
-                              fontSize: 9,
+                              fontSize: _kRatingBadgeFontSize,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
+                              letterSpacing: _kRatingBadgeLetterSpacing,
                             ),
                           ),
                         ),
                       ),
                     // 心形角标
                     Positioned(
-                      bottom: 5,
-                      right: 5,
+                      bottom: _kHeartBadgeOffset,
+                      right: _kHeartBadgeOffset,
                       child: Icon(
                         Icons.favorite,
                         color: scheme.primary,
-                        size: 13,
+                        size: _kHeartBadgeSize,
                         shadows: [
                           Shadow(
-                            color: scheme.onSurface.withValues(alpha: 0.3),
-                            blurRadius: 3,
+                            color: scheme.onSurface.withValues(alpha: _kHeartBadgeShadowAlpha),
+                            blurRadius: _kHeartBadgeShadowBlurRadius,
                           ),
                         ],
                       ),
@@ -1732,25 +1785,25 @@ class _MoviePosterCard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: _kMovieTitleSubtitleSpacing),
           Text(
             item.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: _kMovieTitleFontSize,
               color: scheme.onSurface,
               fontWeight: FontWeight.w600,
-              height: 1.18,
+              height: _kMovieTitleLineHeight,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: _kMovieSubtitleBottomSpacing),
           Text(
             _subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: _kMovieSubtitleFontSize,
               color: scheme.onSurfaceVariant,
             ),
           ),
