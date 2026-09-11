@@ -1,3 +1,18 @@
+# [2.65.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.64.0...v2.65.0) (2026-09-11)
+
+
+### Bug Fixes
+
+* **release:** 修复 ArtistMetadataSource 枚举穷尽匹配错误 ([6fd0b4d](https://github.com/1525745393/EmbyTok-Flutter/commit/6fd0b4d5dc587cb1a046c7b91781a6a6252ff42f))
+* **歌手简介:** 修复代码审查发现的P0/P1/P2问题 ([8aed4e3](https://github.com/1525745393/EmbyTok-Flutter/commit/8aed4e3df8a5683474a183c05fbb912773c7ea80))
+
+
+### Features
+
+* **歌手简介V1.2:** 新增元数据手动修正功能 ([adcacbf](https://github.com/1525745393/EmbyTok-Flutter/commit/adcacbfbd0e6c73cef4782a9f7f1903c14500e42))
+* **歌手简介V1.2:** 新增平板横屏适配 ([77c4ef4](https://github.com/1525745393/EmbyTok-Flutter/commit/77c4ef40fe4212f8f8e607305950c69c7e627d06))
+* **歌手简介V1.2:** 新增批量元数据扫描补全功能 ([6a8b9a9](https://github.com/1525745393/EmbyTok-Flutter/commit/6a8b9a96502d721178d8cb1e109085b07bd3ab1c))
+
 # [2.64.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.63.0...v2.64.0) (2026-09-11)
 
 
