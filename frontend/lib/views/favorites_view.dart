@@ -65,7 +65,76 @@ const String _kEmptyBoxSetsHint = '暂无合集';
 const String _kEmptyPeopleHint = '暂无人物';
 
 /// 搜索框提示
-const String _kSearchHint = '搜索收藏内容';
+const String _kSearchHint = '搜索收藏的影片、合集、人物';
+
+/// 搜索框圆角
+const double _kSearchBorderRadius = 14.0;
+
+/// 搜索框图标尺寸
+const double _kSearchIconSize = 18.0;
+
+/// 搜索框图标间距
+const double _kSearchIconSpacing = 8.0;
+
+/// 搜索框字体大小
+const double _kSearchFontSize = 14.0;
+
+/// 搜索框垂直内边距
+const double _kSearchVerticalPadding = 12.0;
+
+/// 统计卡标签：收藏影片
+const String _kStatLabelMovies = '收藏影片';
+
+/// 统计卡标签：收藏合集
+const String _kStatLabelBoxSets = '收藏合集';
+
+/// 统计卡标签：收藏人物
+const String _kStatLabelPeople = '收藏人物';
+
+/// 统计卡间距
+const double _kStatCardSpacing = 10.0;
+
+/// 批量操作栏：已选择文本前缀
+const String _kBulkSelectedPrefix = '已选择 ';
+
+/// 批量操作栏：已选择文本后缀
+const String _kBulkSelectedSuffix = ' 项';
+
+/// 批量操作栏：空选择提示
+const String _kBulkEmptyHint = '点击卡片进行选择';
+
+/// 批量操作栏：有选择提示
+const String _kBulkActionHint = '点击下方按钮执行批量操作';
+
+/// 批量操作栏圆角
+const double _kBulkBarBorderRadius = 18.0;
+
+/// 批量操作栏水平边距
+const double _kBulkBarHorizontalMargin = 16.0;
+
+/// 批量操作栏底部边距
+const double _kBulkBarBottomMargin = 16.0;
+
+/// 批量操作栏计数容器尺寸
+const double _kBulkCountContainerSize = 32.0;
+
+/// 批量操作栏计数容器圆角
+const double _kBulkCountContainerRadius = 10.0;
+
+/// 批量操作栏计数字体大小
+const double _kBulkCountFontSize = 13.0;
+
+/// 批量操作栏标题字体大小
+const double _kBulkTitleFontSize = 13.0;
+
+/// 批量操作栏提示字体大小
+const double _kBulkHintFontSize = 10.0;
+
+/// 批量操作栏阴影模糊半径
+const double _kBulkBarBlurRadius = 18.0;
+
+/// 批量操作栏阴影偏移
+const double _kBulkBarShadowOffset = 8.0;
 
 /// AppBar 图标尺寸
 const double _kAppBarIconSize = 22.0;
@@ -606,29 +675,29 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   Widget _buildSearchField(ColorScheme scheme) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(_kSearchBorderRadius),
         color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.4)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       child: Row(
         children: [
-          Icon(Icons.search, size: 18, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 8),
+          Icon(Icons.search, size: _kSearchIconSize, color: scheme.onSurfaceVariant),
+          const SizedBox(width: _kSearchIconSpacing),
           Expanded(
             child: TextField(
               controller: _searchController,
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
-                hintText: '搜索收藏的影片、合集、人物',
+                hintText: _kSearchHint,
                 hintStyle: TextStyle(
                   color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: _kSearchVerticalPadding),
               ),
-              style: TextStyle(color: scheme.onSurface, fontSize: 14),
+              style: TextStyle(color: scheme.onSurface, fontSize: _kSearchFontSize),
             ),
           ),
           if (_searchQuery.isNotEmpty)
@@ -641,7 +710,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
               },
               child: Icon(
                 Icons.cancel,
-                size: 18,
+                size: _kSearchIconSize,
                 color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
             ),
@@ -657,27 +726,27 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
       children: [
         Expanded(
           child: _StatCard(
-            label: '收藏影片',
+            label: _kStatLabelMovies,
             count: state.movies.length,
             icon: Icons.movie_outlined,
             bgColor: scheme.primary.withValues(alpha: 0.10),
             fgColor: scheme.primary,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: _kStatCardSpacing),
         Expanded(
           child: _StatCard(
-            label: '收藏合集',
+            label: _kStatLabelBoxSets,
             count: state.boxSets.length,
             icon: Icons.featured_play_list,
             bgColor: scheme.tertiary.withValues(alpha: 0.10),
             fgColor: scheme.tertiary,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: _kStatCardSpacing),
         Expanded(
           child: _StatCard(
-            label: '收藏人物',
+            label: _kStatLabelPeople,
             count: state.people.length,
             icon: Icons.person_outline,
             bgColor: scheme.error.withValues(alpha: 0.10),
@@ -693,20 +762,20 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
   Widget _buildBulkActionBar(ColorScheme scheme) {
     final n = _selectedIds.length;
     return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 16 + MediaQuery.of(context).padding.bottom,
+      left: _kBulkBarHorizontalMargin,
+      right: _kBulkBarHorizontalMargin,
+      bottom: _kBulkBarBottomMargin + MediaQuery.of(context).padding.bottom,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(_kBulkBarBorderRadius),
           color: scheme.surface.withValues(alpha: 0.95),
           border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              blurRadius: _kBulkBarBlurRadius,
+              offset: const Offset(0, _kBulkBarShadowOffset),
             ),
           ],
         ),
@@ -717,10 +786,10 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
           child: Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: _kBulkCountContainerSize,
+                height: _kBulkCountContainerSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(_kBulkCountContainerRadius),
                   color: scheme.primary.withValues(alpha: 0.18),
                 ),
                 alignment: Alignment.center,
@@ -728,7 +797,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                   '$n',
                   style: TextStyle(
                     color: scheme.primary,
-                    fontSize: 13,
+                    fontSize: _kBulkCountFontSize,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -740,14 +809,14 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '已选择 $n 项',
+                      '$_kBulkSelectedPrefix$n$_kBulkSelectedSuffix',
                       style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600),
+                          fontSize: _kBulkTitleFontSize, fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      n == 0 ? '点击卡片进行选择' : '点击下方按钮执行批量操作',
+                      n == 0 ? _kBulkEmptyHint : _kBulkActionHint,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: _kBulkHintFontSize,
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
