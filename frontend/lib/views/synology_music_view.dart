@@ -156,6 +156,36 @@ const double _kLoadingIndicatorSize = 20.0;
 /// 加载指示器：线宽
 const double _kLoadingIndicatorStrokeWidth = 2.0;
 
+// ===== 歌单列表布局常量 =====
+
+/// 歌单网格：列数
+const int _kPlaylistGridCrossAxisCount = 2;
+
+/// 歌单网格：宽高比
+const double _kPlaylistGridChildAspectRatio = 0.95;
+
+/// 歌单网格：主轴间距
+const double _kPlaylistGridMainAxisSpacing = 14.0;
+
+/// 歌单网格：交叉轴间距
+const double _kPlaylistGridCrossAxisSpacing = 14.0;
+
+/// 歌单网格：圆角
+const double _kPlaylistGridBorderRadius = 14.0;
+
+/// 歌单封面图标尺寸
+const double _kPlaylistCoverIconSize = 40.0;
+
+/// 歌单列表渐变色组（6组循环使用，QQ音乐/酷狗歌单卡风格）
+const List<List<Color>> _kPlaylistGradients = [
+  [Color(0xFF5B8DEF), Color(0xFF8E6BF0)],
+  [Color(0xFF26B8A0), Color(0xFF3F9DE0)],
+  [Color(0xFFF07B5B), Color(0xFFF0A94F)],
+  [Color(0xFFE05B8D), Color(0xFF8E5BF0)],
+  [Color(0xFF3FA7D8), Color(0xFF6B8FE0)],
+  [Color(0xFF6BC75B), Color(0xFF3FA7A0)],
+];
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -1425,26 +1455,18 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.95,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
+        crossAxisCount: _kPlaylistGridCrossAxisCount,
+        childAspectRatio: _kPlaylistGridChildAspectRatio,
+        mainAxisSpacing: _kPlaylistGridMainAxisSpacing,
+        crossAxisSpacing: _kPlaylistGridCrossAxisSpacing,
       ),
       itemCount: playlists.length,
       itemBuilder: (context, index) {
         final playlist = playlists[index];
         // 歌单封面渐变取色（QQ音乐/酷狗歌单卡风格）
-        const palettes = [
-          [Color(0xFF5B8DEF), Color(0xFF8E6BF0)],
-          [Color(0xFF26B8A0), Color(0xFF3F9DE0)],
-          [Color(0xFFF07B5B), Color(0xFFF0A94F)],
-          [Color(0xFFE05B8D), Color(0xFF8E5BF0)],
-          [Color(0xFF3FA7D8), Color(0xFF6B8FE0)],
-          [Color(0xFF6BC75B), Color(0xFF3FA7A0)],
-        ];
-        final colors = palettes[index % palettes.length];
+        final colors = _kPlaylistGradients[index % _kPlaylistGradients.length];
         return InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(_kPlaylistGridBorderRadius),
           onTap: () => _showPlaylistSongs(playlist),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1452,7 +1474,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(_kPlaylistGridBorderRadius),
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -1472,7 +1494,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         child: Icon(
                           Icons.queue_music,
                           color: Colors.white.withValues(alpha: 0.9),
-                          size: 40,
+                          size: _kPlaylistCoverIconSize,
                         ),
                       ),
                       // 右上角类型角标
@@ -1615,16 +1637,24 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // ============================
 
   Future<void> _showAlbumSongs(AudioAlbum album) async {
-    final songs =
-        await ref.read(synologyMusicProvider.notifier).loadAlbumSongs(album);
-    if (!mounted) return;
-    await _showSongsSheet(
-      title: album.name,
-      subtitle: album.artistDisplay,
-      songs: songs,
-      emptyText: '专辑内暂无歌曲',
-      cover: _albumCoverUrl(album),
-    );
+    try {
+      final songs =
+          await ref.read(synologyMusicProvider.notifier).loadAlbumSongs(album);
+      if (!mounted) return;
+      await _showSongsSheet(
+        title: album.name,
+        subtitle: album.artistDisplay,
+        songs: songs,
+        emptyText: '专辑内暂无歌曲',
+        cover: _albumCoverUrl(album),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppLogger.warn('加载专辑歌曲失败', data: {'album': album.name, 'error': e.toString()});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('加载专辑歌曲失败：${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}')),
+      );
+    }
   }
 
   Future<void> _showArtistSongs(AudioArtist artist) async {
@@ -1634,15 +1664,23 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   }
 
   Future<void> _showPlaylistSongs(AudioPlaylist playlist) async {
-    final songs = await ref
-        .read(synologyMusicProvider.notifier)
-        .loadPlaylistSongs(playlist.id);
-    if (!mounted) return;
-    await _showSongsSheet(
-      title: playlist.name,
-      songs: songs,
-      emptyText: '歌单内暂无歌曲',
-    );
+    try {
+      final songs = await ref
+          .read(synologyMusicProvider.notifier)
+          .loadPlaylistSongs(playlist.id);
+      if (!mounted) return;
+      await _showSongsSheet(
+        title: playlist.name,
+        songs: songs,
+        emptyText: '歌单内暂无歌曲',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      AppLogger.warn('加载歌单歌曲失败', data: {'playlist': playlist.name, 'error': e.toString()});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('加载歌单歌曲失败：${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}')),
+      );
+    }
   }
 
   Future<void> _showSongsSheet({
