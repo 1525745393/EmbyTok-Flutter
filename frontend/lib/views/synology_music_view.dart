@@ -186,6 +186,38 @@ const List<List<Color>> _kPlaylistGradients = [
   [Color(0xFF6BC75B), Color(0xFF3FA7A0)],
 ];
 
+// ===== 首页模块标题常量 =====
+
+/// 首页模块：最近播放
+const String _kHomeSectionRecentPlaybacks = '最近播放';
+
+/// 首页模块：最近添加
+const String _kHomeSectionRecentAlbums = '最近添加';
+
+/// 首页模块：我的锁定
+const String _kHomeSectionPins = '我的锁定';
+
+/// 首页模块：我的歌单
+const String _kHomeSectionPlaylists = '我的歌单';
+
+/// 首页模块：精选专辑
+const String _kHomeSectionFeaturedAlbums = '精选专辑';
+
+/// 首页模块：热门艺术家
+const String _kHomeSectionTopArtists = '热门艺术家';
+
+/// 首页模块：音乐流派
+const String _kHomeSectionGenres = '音乐流派';
+
+/// 首页模块：全空占位文本
+const String _kHomeEmptyText = '音乐库暂无内容';
+
+/// 精选专辑数量
+const int _kFeaturedAlbumsCount = 12;
+
+/// 首页歌单展示数量
+const int _kHomePlaylistsCount = 8;
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -635,7 +667,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     .contains('${a.name}||${a.displayArtist ?? a.albumArtist}'))
                 .toList()
               ..shuffle();
-            return candidates.take(12).toList();
+            return candidates.take(_kFeaturedAlbumsCount).toList();
           }()
         : const <AudioAlbum>[]);
 
@@ -648,49 +680,49 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         const SizedBox(height: _kSpacingXXXXLarge),
         // 最近播放（无记录时整个模块隐藏，PRD 要求）
         if (recentPlaybacks.isNotEmpty) ...[
-          _buildHomeSectionHeader('最近播放', SynologyMusicTab.songs, scheme),
+          _buildHomeSectionHeader(_kHomeSectionRecentPlaybacks, SynologyMusicTab.songs, scheme),
           const SizedBox(height: _kSpacingXLarge),
           _buildRecentPlaybacksList(recentPlaybacks, scheme),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 最近添加（time_add 倒序，NAS 原生接口）
         if (state.recentAlbums.isNotEmpty) ...[
-          _buildHomeSectionHeader('最近添加', SynologyMusicTab.albums, scheme),
+          _buildHomeSectionHeader(_kHomeSectionRecentAlbums, SynologyMusicTab.albums, scheme),
           const SizedBox(height: _kSpacingXLarge),
           AlbumHorizontalList(albums: state.recentAlbums, scheme: scheme, onAlbumTap: _showAlbumSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
         if (state.pins.isNotEmpty) ...[
-          _buildHomeSectionHeader('我的锁定', null, scheme),
+          _buildHomeSectionHeader(_kHomeSectionPins, null, scheme),
           const SizedBox(height: _kSpacingXLarge),
           _buildPinsList(state.pins, scheme),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 我的歌单
         if (state.playlists.isNotEmpty) ...[
-          _buildHomeSectionHeader('我的歌单', SynologyMusicTab.playlists, scheme),
+          _buildHomeSectionHeader(_kHomeSectionPlaylists, SynologyMusicTab.playlists, scheme),
           const SizedBox(height: _kSpacingXLarge),
-          PlaylistHorizontalList(playlists: state.playlists.take(8).toList(), scheme: scheme, onPlaylistTap: _showPlaylistSongs),
+          PlaylistHorizontalList(playlists: state.playlists.take(_kHomePlaylistsCount).toList(), scheme: scheme, onPlaylistTap: _showPlaylistSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 精选专辑（客户端随机抽样，与最近添加去重）
         if (featured.isNotEmpty) ...[
-          _buildHomeSectionHeader('精选专辑', SynologyMusicTab.albums, scheme),
+          _buildHomeSectionHeader(_kHomeSectionFeaturedAlbums, SynologyMusicTab.albums, scheme),
           const SizedBox(height: _kSpacingXLarge),
           AlbumHorizontalList(albums: featured, scheme: scheme, onAlbumTap: _showAlbumSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 热门艺术家（song_count 倒序）
         if (state.topArtists.isNotEmpty) ...[
-          _buildHomeSectionHeader('热门艺术家', SynologyMusicTab.artists, scheme),
+          _buildHomeSectionHeader(_kHomeSectionTopArtists, SynologyMusicTab.artists, scheme),
           const SizedBox(height: _kSpacingXLarge),
           ArtistHorizontalList(artists: state.topArtists, scheme: scheme, onArtistTap: _showArtistSongs),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
         // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
         if (state.genres.isNotEmpty) ...[
-          _buildHomeSectionHeader('音乐流派', null, scheme),
+          _buildHomeSectionHeader(_kHomeSectionGenres, null, scheme),
           const SizedBox(height: _kSpacingXLarge),
           _buildGenreGrid(state.genres, scheme),
         ],
@@ -711,7 +743,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   Icon(Icons.library_music_outlined,
                       size: 56, color: scheme.onSurfaceVariant),
                   const SizedBox(height: _kSpacingXXLarge),
-                  Text('音乐库暂无内容',
+                  Text(_kHomeEmptyText,
                       style: TextStyle(color: scheme.onSurfaceVariant)),
                 ],
               ),
