@@ -498,8 +498,125 @@ class ArtistMetadataService {
     return cached?.isManualOverride ?? false;
   }
 
+  /// 批量扫描歌手元数据（V1.2）
+  ///
+  /// 扫描音乐库中所有歌手，批量获取缺失的头像和简介。
+  Future<BatchScanResult> batchScanArtists({
+    required List<String> artistNames,
+    void Function(int current, int total, String artistName)? onProgress,
+    bool skipExisting = true,
+    int concurrency = 3,
+  }) async {
+    final total = artistNames.length;
+    var success = 0;
+    var failed = 0;
+    var skipped = 0;
+    final failedArtists = <String>[];
+
+    // 过滤掉空名称和重复名称
+    final uniqueNames = artistNames
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+
+    AppLogger.info('开始批量扫描歌手元数据',
+        data: {'total': total, 'unique': uniqueNames.length, 'skipExisting': skipExisting});
+
+    // 简单的并发控制
+    var index = 0;
+    final workers = List.generate(concurrency, (_) async {
+      while (index < uniqueNames.length) {
+        final currentIndex = index++;
+        final artistName = uniqueNames[currentIndex];
+
+        try {
+          // 检查是否已有元数据
+          if (skipExisting) {
+            final cached = _memoryCache[artistName] ?? await _loadFromPrefs(artistName);
+            if (cached != null && cached.hasImage && cached.hasBio) {
+              skipped++;
+              onProgress?.call(currentIndex + 1, total, artistName);
+              continue;
+            }
+          }
+
+          // 获取元数据（强制刷新）
+          final metadata = await getArtistMetadata(artistName, forceRefresh: true);
+          if (metadata.hasImage || metadata.hasBio) {
+            success++;
+          } else {
+            failed++;
+            failedArtists.add(artistName);
+          }
+        } catch (e) {
+          failed++;
+          failedArtists.add(artistName);
+          AppLogger.warn('批量扫描歌手元数据失败',
+              data: {'artist': artistName, 'error': e.toString()});
+        }
+
+        onProgress?.call(currentIndex + 1, total, artistName);
+      }
+    });
+
+    await Future.wait(workers);
+
+    final result = BatchScanResult(
+      total: total,
+      unique: uniqueNames.length,
+      success: success,
+      failed: failed,
+      skipped: skipped,
+      failedArtists: failedArtists,
+    );
+
+    AppLogger.info('批量扫描歌手元数据完成',
+        data: {'total': total, 'success': success, 'failed': failed, 'skipped': skipped});
+
+    return result;
+  }
+
+  /// 获取缺失元数据的歌手列表
+  Future<List<String>> getMissingArtists(List<String> artistNames) async {
+    final missing = <String>[];
+    for (final name in artistNames) {
+      final key = name.trim();
+      if (key.isEmpty) continue;
+      final cached = _memoryCache[key] ?? await _loadFromPrefs(key);
+      if (cached == null || !cached.hasImage || !cached.hasBio) {
+        missing.add(key);
+      }
+    }
+    return missing;
+  }
+
   /// 简易 HTTP 客户端（用于 Wikipedia API）
   final _httpClient = _SimpleHttpClient();
+}
+
+/// 批量扫描结果统计
+class BatchScanResult {
+  final int total;
+  final int unique;
+  final int success;
+  final int failed;
+  final int skipped;
+  final List<String> failedArtists;
+
+  const BatchScanResult({
+    required this.total,
+    required this.unique,
+    required this.success,
+    required this.failed,
+    required this.skipped,
+    required this.failedArtists,
+  });
+
+  double get successRate => unique == 0 ? 0 : success / unique;
+
+  String get summary =>
+      '共 $unique 个歌手，成功 $success，失败 $failed，跳过 $skipped';
 }
 
 /// 简易 HTTP 客户端（避免引入新依赖，使用 dart:io HttpClient）

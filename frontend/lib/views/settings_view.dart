@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
 import 'package:flutter/material.dart';
+import '../models/audio_models.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +30,7 @@ import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import '../widgets/library_selector.dart';
+import 'music/artist_batch_scan_dialog.dart';
 
 // ===== 设置页面 UI 常量（避免魔法数字，提升可维护性）=====
 
@@ -202,6 +204,7 @@ class SettingsView extends ConsumerWidget {
             [
               _buildCacheTile(context, ref),
               _buildArtistMetadataCacheTile(context, ref),
+              _buildBatchScanTile(context, ref),
               _buildResetSettingsTile(context, ref),
               _buildExportLogsTile(context, ref),
               _buildClearLogsTile(context, ref),
@@ -1022,6 +1025,91 @@ class SettingsView extends ConsumerWidget {
         );
       },
     );
+  }
+
+  // 存储 - 批量补全歌手元数据（V1.2）
+  // 扫描音乐库中所有歌手，批量获取缺失的头像和简介
+  Widget _buildBatchScanTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.auto_fix_high,
+      iconColor: Colors.teal,
+      title: '批量补全歌手元数据',
+      subtitle: '扫描音乐库中所有歌手，批量获取缺失的头像和简介',
+      onTap: () => _startBatchScan(context, ref),
+    );
+  }
+
+  // 开始批量扫描
+  Future<void> _startBatchScan(BuildContext context, WidgetRef ref) async {
+    // 检查是否已登录群晖
+    final authState = ref.read(synologyAuthProvider);
+    if (!authState.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先登录群晖音乐服务器'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // 获取音乐库中所有歌手
+    try {
+      final api = ref.read(synologyAuthProvider.notifier).api;
+      // 循环获取所有歌曲（每页 200 首）
+      final allSongs = <AudioSong>[];
+      int offset = 0;
+      const int limit = 200;
+      while (true) {
+        final batch = await api.getSongs(offset: offset, limit: limit);
+        if (batch.isEmpty) break;
+        allSongs.addAll(batch);
+        if (batch.length < limit) break;
+        offset += limit;
+      }
+      final artistNames = allSongs
+          .map((s) => s.artistDisplay ?? '')
+          .where((name) => name.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (artistNames.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('音乐库中没有歌手'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // 显示批量扫描对话框
+      if (context.mounted) {
+        final result = await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => ArtistBatchScanDialog(
+            artistNames: artistNames,
+          ),
+        );
+
+        if (result != null && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('扫描完成：${result.summary}'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('获取歌手列表失败：${e.toString()}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   // 显示清除歌手元数据缓存对话框
