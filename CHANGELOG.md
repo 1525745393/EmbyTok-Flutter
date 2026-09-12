@@ -1,3 +1,10 @@
+# [2.81.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.80.1...v2.81.0) (2026-09-12)
+
+
+### Features
+
+* 取消视频库首页媒体库选择功能以设置为准 ([a5475fa](https://github.com/1525745393/EmbyTok-Flutter/commit/a5475fa6f380e90735ec35d5842adc6132957053))
+
 ## [2.80.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.80.0...v2.80.1) (2026-09-12)
 
 
