@@ -120,11 +120,17 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
           setState(() {
             _personDetail = detail;
           });
+          // 如果 Emby 不返回简介，从 Last.fm 获取
+          if (detail.overview == null || detail.overview!.isEmpty) {
+            _fetchBioFromLastFm(detail.title);
+          }
         }
       } catch (e) {
         // 详情加载失败，保留 widget.person 作为 fallback，不设置 _error
         // 仅记录日志便于排查
         AppLogger.error('加载人员详情失败', error: e);
+        // 即使 Emby 详情加载失败，也尝试从 Last.fm 获取简介
+        _fetchBioFromLastFm(widget.person.title);
       }
     } catch (e) {
       if (mounted) {
@@ -166,6 +172,25 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       if (mounted) {
         setState(() => _isLoadingMore = false);
       }
+    }
+  }
+
+  // 从 Last.fm 获取演员简介（Emby 不返回时的补充）
+  Future<void> _fetchBioFromLastFm(String artistName) async {
+    if (artistName.isEmpty) return;
+    try {
+      final lastFmService = ref.read(lastfmServiceProvider);
+      if (lastFmService == null) return;
+      final info = await lastFmService.fetchArtistInfo(artistName);
+      if (mounted && info != null && info.bio != null && info.bio!.isNotEmpty) {
+        setState(() {
+          _personDetail = (_personDetail ?? widget.person).copyWith(
+            overview: info.bio,
+          );
+        });
+      }
+    } catch (e) {
+      AppLogger.error('从 Last.fm 获取演员简介失败', error: e);
     }
   }
 
