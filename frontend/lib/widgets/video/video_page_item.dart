@@ -40,7 +40,7 @@ const double _kBottomInfoGradientHeight = 80;
 const double _kBottomControlBarHeight = 24;
 
 /// 右侧操作栏宽度
-const double _kRightActionWidth = 80;
+const double _kRightActionWidth = 72;
 
 /// 右侧操作栏按钮间距
 const double _kRightActionSpacing = 16;
@@ -385,8 +385,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       controller.setVolume(isMuted ? 0.0 : 1.0);
       try {
         controller.play();
-      } catch (_) {
-        // 播放器操作失败不影响主流程，静默处理
+      } catch (e) {
+        AppLogger.warn('播放视频失败', data: {'error': e.toString()});
       }
       ref.read(isPlayingProvider.notifier).state = true;
     }
@@ -424,9 +424,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       if (posMs > 0) {
         try {
           await controller.seekTo(Duration(milliseconds: posMs));
-        } catch (_) {
-        // 播放器操作失败不影响主流程，静默处理
-      }
+        } catch (e) {
+          AppLogger.warn('跳转播放位置失败', data: {'error': e.toString(), 'position': posMs});
+        }
       }
     }
 
@@ -554,9 +554,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                 .invalidateItemDetail(widget.item.id, serverUrl);
             ref.read(cacheControllerProvider).invalidateNextUp(serverUrl);
             ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
-          } catch (_) {
-        // 播放器操作失败不影响主流程，静默处理
-      }
+          } catch (e) {
+            AppLogger.warn('视频播放结束后更新缓存失败', data: {'error': e.toString()});
+          }
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
         // 视频播放结束：已移除自动播放和下一集功能
@@ -680,8 +680,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             .read(cacheControllerProvider)
             .invalidateItemDetail(widget.item.id, serverUrl);
         ref.read(cacheControllerProvider).invalidateWatchHistory(serverUrl);
-      } catch (_) {
-        // 播放器操作失败不影响主流程，静默处理
+      } catch (e) {
+        AppLogger.warn('更新观看历史缓存失败', data: {'error': e.toString()});
       }
     }
     _hasStartedReported = false;
@@ -965,9 +965,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                   if (old != null) {
                     try {
                       old.removeListener(_onVideoChanged);
-                    } catch (_) {
-        // 播放器操作失败不影响主流程，静默处理
-      }
+                    } catch (e) {
+                      AppLogger.warn('移除视频控制器监听器失败', data: {'error': e.toString()});
+                    }
                     // 同步清除 currentVideoControllerProvider（如果持有相同引用）
                     // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
                     // 进入全屏页后 isControllerReady=false，导致黑屏
@@ -1424,7 +1424,7 @@ class _RightActionButtons extends ConsumerWidget {
               begin: Alignment.centerRight,
               end: Alignment.centerLeft,
               colors: [
-                scheme.surface.withValues(alpha: 0.54),
+                scheme.surface.withValues(alpha: 0.36),
                 Colors.transparent
               ],
             ),
