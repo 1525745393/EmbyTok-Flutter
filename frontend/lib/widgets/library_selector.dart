@@ -447,6 +447,14 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                             ref
                                 .read(selectedLibraryIdsProvider.notifier)
                                 .setLibraries(_localSelectedIds.toList());
+                            // 修复：如果当前是收藏夹模式，切换回最新模式
+                            // 否则选择了媒体库但仍然显示收藏夹内容
+                            final currentFeedType = ref.read(feedTypeProvider);
+                            if (currentFeedType == FeedType.favorites) {
+                              ref
+                                  .read(feedTypeProvider.notifier)
+                                  .setType(FeedType.latest);
+                            }
                           }
                           ref
                               .read(feedLibraryConfiguredProvider.notifier)
