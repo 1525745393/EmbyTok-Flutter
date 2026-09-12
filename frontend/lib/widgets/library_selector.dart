@@ -328,10 +328,21 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 收藏夹入口（特殊卡片，仅视频流显示，PR #66）
+          // 收藏夹模式（特殊卡片，仅视频流显示）
           if (widget.scope == LibraryScope.feed) ...[
-            _buildSectionTitle(scheme, '快捷入口'),
-            const SizedBox(height: 8),
+            _buildSectionTitle(scheme, '收藏夹模式'),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '显示您收藏的影片、剧集和人物',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.5),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -376,10 +387,27 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               ],
             ),
             const SizedBox(height: 20),
+            // 分隔线
+            Divider(
+              height: 1,
+              color: scheme.onSurface.withValues(alpha: 0.1),
+            ),
+            const SizedBox(height: 20),
           ],
-          // 媒体库分组
-          _buildSectionTitle(scheme, '媒体库'),
-          const SizedBox(height: 8),
+          // 媒体库模式
+          _buildSectionTitle(scheme, '媒体库模式'),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '从服务器媒体库中选择内容',
+              style: TextStyle(
+                color: scheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
