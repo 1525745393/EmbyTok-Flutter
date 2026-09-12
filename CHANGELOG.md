@@ -1,3 +1,10 @@
+## [2.83.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.7...v2.83.8) (2026-09-12)
+
+
+### Bug Fixes
+
+* 收藏夹模式支持排除已观看 ([7a1dc21](https://github.com/1525745393/EmbyTok-Flutter/commit/7a1dc21b0a3919dce937b9f705af181c26b0bf56))
+
 ## [2.83.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.6...v2.83.7) (2026-09-12)
 
 
