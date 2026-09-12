@@ -1,3 +1,10 @@
+## [2.83.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.0...v2.83.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* 选择收藏夹后标题正确显示收藏夹模式 ([2986b65](https://github.com/1525745393/EmbyTok-Flutter/commit/2986b6578a8142d1178345d91ccb3771a2ff081a))
+
 # [2.83.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.82.0...v2.83.0) (2026-09-12)
 
 
