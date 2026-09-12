@@ -13,7 +13,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/audio_models.dart';
 import '../../providers/providers.dart';
 import '../synology_full_player.dart';
 import 'music_cover_widgets.dart';
@@ -23,8 +22,56 @@ import 'music_cover_widgets.dart';
 /// 小间距
 const double kMiniPlayerSpacingSmall = 4;
 
+/// 中等间距
+const double kMiniPlayerSpacingMedium = 10;
+
 /// 中等字体（列表项正文）
 const double kMiniPlayerFontSizeBody = 13;
+
+/// 小字体（歌手名）
+const double kMiniPlayerFontSizeSmall = 11;
+
+/// 封面尺寸
+const double kMiniPlayerCoverSize = 44;
+
+/// 进度条高度
+const double kMiniPlayerProgressHeight = 2;
+
+/// 超窄屏宽度阈值
+const double kMiniPlayerNarrowWidthThreshold = 360;
+
+/// 播放模式按钮图标尺寸
+const double kMiniPlayerModeIconSize = 17;
+
+/// 上一首/下一首按钮图标尺寸
+const double kMiniPlayerSkipIconSize = 22;
+
+/// 播放/暂停按钮图标尺寸
+const double kMiniPlayerPlayIconSize = 34;
+
+/// 停止按钮图标尺寸
+const double kMiniPlayerStopIconSize = 17;
+
+/// 按钮最小宽度
+const double kMiniPlayerButtonMinWidth = 34;
+
+/// 按钮最小高度
+const double kMiniPlayerButtonMinHeight = 40;
+
+/// 左侧水平边距
+const double kMiniPlayerPaddingLeft = 12;
+
+/// 右侧水平边距
+const double kMiniPlayerPaddingRight = 4;
+
+/// 底部垂直边距
+const double kMiniPlayerPaddingBottom = 4;
+
+/// 进度条与内容间距
+const double kMiniPlayerProgressContentSpacing = 4;
+
+/// 封面与文字间距
+const double kMiniPlayerCoverTextSpacing = 10;
 
 /// 底部迷你播放栏
 class MiniPlayerBar extends ConsumerWidget {
@@ -39,7 +86,7 @@ class MiniPlayerBar extends ConsumerWidget {
 
     final notifier = ref.read(synologyPlaybackProvider.notifier);
     // 超窄屏（<360px）隐藏播放模式和停止按钮，保留核心上一首/播放/下一首
-    final isNarrow = MediaQuery.sizeOf(context).width < 360;
+    final isNarrow = MediaQuery.sizeOf(context).width < kMiniPlayerNarrowWidthThreshold;
 
     return Material(
       color: scheme.surfaceContainerHighest,
@@ -49,7 +96,12 @@ class MiniPlayerBar extends ConsumerWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 4, 4),
+            padding: const EdgeInsets.fromLTRB(
+              kMiniPlayerPaddingLeft,
+              0,
+              kMiniPlayerPaddingRight,
+              kMiniPlayerPaddingBottom,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -60,15 +112,15 @@ class MiniPlayerBar extends ConsumerWidget {
                               state.duration.inMilliseconds)
                           .clamp(0.0, 1.0)
                       : 0,
-                  minHeight: 2,
+                  minHeight: kMiniPlayerProgressHeight,
                   backgroundColor: scheme.outlineVariant.withValues(alpha: 0.4),
                   color: scheme.primary,
                 ),
-                const SizedBox(height: kMiniPlayerSpacingSmall),
+                const SizedBox(height: kMiniPlayerProgressContentSpacing),
                 Row(
                   children: [
-                    SongCover(songId: song.id, size: 44),
-                    const SizedBox(width: 10),
+                    SongCover(songId: song.id, size: kMiniPlayerCoverSize),
+                    const SizedBox(width: kMiniPlayerCoverTextSpacing),
                     // 标题 + 歌手
                     Expanded(
                       child: Column(
@@ -90,7 +142,7 @@ class MiniPlayerBar extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 11, color: scheme.onSurfaceVariant),
+                                  fontSize: kMiniPlayerFontSizeSmall, color: scheme.onSurfaceVariant),
                             ),
                         ],
                       ),
@@ -105,7 +157,7 @@ class MiniPlayerBar extends ConsumerWidget {
                             SynologyPlaybackMode.singleLoop => Icons.repeat_one,
                             SynologyPlaybackMode.shuffle => Icons.shuffle,
                           },
-                          size: 17,
+                          size: kMiniPlayerModeIconSize,
                         ),
                         color: state.mode == SynologyPlaybackMode.listLoop
                             ? scheme.onSurfaceVariant
@@ -115,7 +167,7 @@ class MiniPlayerBar extends ConsumerWidget {
                       ),
                     _compactButton(
                       scheme: scheme,
-                      icon: const Icon(Icons.skip_previous, size: 22),
+                      icon: const Icon(Icons.skip_previous, size: kMiniPlayerSkipIconSize),
                       color: scheme.onSurface,
                       tooltip: '上一首',
                       onPressed:
@@ -129,7 +181,7 @@ class MiniPlayerBar extends ConsumerWidget {
                             : state.isPlaying
                                 ? Icons.pause_circle_filled
                                 : Icons.play_circle_filled,
-                        size: 34,
+                        size: kMiniPlayerPlayIconSize,
                       ),
                       color: scheme.primary,
                       tooltip: state.isPlaying ? '暂停' : '播放',
@@ -137,7 +189,7 @@ class MiniPlayerBar extends ConsumerWidget {
                     ),
                     _compactButton(
                       scheme: scheme,
-                      icon: const Icon(Icons.skip_next, size: 22),
+                      icon: const Icon(Icons.skip_next, size: kMiniPlayerSkipIconSize),
                       color: scheme.onSurface,
                       tooltip: '下一首',
                       onPressed: state.currentIndex < state.queue.length - 1
@@ -147,7 +199,7 @@ class MiniPlayerBar extends ConsumerWidget {
                     if (!isNarrow)
                       _compactButton(
                         scheme: scheme,
-                        icon: const Icon(Icons.close, size: 17),
+                        icon: const Icon(Icons.close, size: kMiniPlayerStopIconSize),
                         color: scheme.onSurfaceVariant,
                         tooltip: '停止',
                         onPressed: notifier.stop,
@@ -175,7 +227,10 @@ class MiniPlayerBar extends ConsumerWidget {
       color: color,
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 34, minHeight: 40),
+      constraints: const BoxConstraints(
+        minWidth: kMiniPlayerButtonMinWidth,
+        minHeight: kMiniPlayerButtonMinHeight,
+      ),
       padding: EdgeInsets.zero,
       onPressed: onPressed,
     );
