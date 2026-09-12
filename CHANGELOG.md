@@ -1,3 +1,10 @@
+## [2.70.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.3...v2.70.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* **检查更新:** 修复版本对比和获取最新Release的问题 ([d077851](https://github.com/1525745393/EmbyTok-Flutter/commit/d0778513c1f387add486e7b746ad859ba263b084))
+
 ## [2.70.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.2...v2.70.3) (2026-09-12)
 
 
