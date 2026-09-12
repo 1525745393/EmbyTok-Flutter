@@ -1,3 +1,10 @@
+# [2.74.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.73.0...v2.74.0) (2026-09-12)
+
+
+### Features
+
+* **更新:** 添加 GitHub 国内镜像加速下载 ([bff2740](https://github.com/1525745393/EmbyTok-Flutter/commit/bff2740549ebd3283aee6331e07b9056c91f2428))
+
 # [2.73.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.3...v2.73.0) (2026-09-12)
 
 
