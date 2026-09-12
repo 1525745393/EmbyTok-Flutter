@@ -1,3 +1,10 @@
+## [2.77.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.3...v2.77.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* 优化媒体库选择器卡片宽高比避免内容溢出 ([699c3c2](https://github.com/1525745393/EmbyTok-Flutter/commit/699c3c2296189d1584cd2b0188234a774cc1c432))
+
 ## [2.77.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.2...v2.77.3) (2026-09-12)
 
 
