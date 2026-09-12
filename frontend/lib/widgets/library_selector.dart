@@ -283,9 +283,12 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   // 构建标题文本
   String _buildTitleText() {
     final baseTitle = '选择媒体库 - ${widget.scope.title}';
+    // 修复：优先判断收藏夹模式
     if (_localIsFavorites) {
       return '$baseTitle (收藏夹模式)';
-    } else if (_localSelectedIds.isEmpty) {
+    }
+    // 媒体库模式
+    if (_localSelectedIds.isEmpty) {
       return baseTitle;
     } else {
       return '$baseTitle (已选 ${_localSelectedIds.length} 个)';
