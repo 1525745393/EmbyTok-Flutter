@@ -7,6 +7,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../services/embytok_service.dart';
@@ -139,9 +140,23 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
 
   /// 加载关注列表（仅调用一次，结果存入 favoritedIds）
   ///
-  /// 通过缓存仓库获取，避免短时间内重复请求；
+  /// 优先从本地缓存读取，立即显示上次关注状态；
+  /// 然后后台从服务器更新，保证数据最新。
   /// toggleFavorite 后会失效缓存，保证数据一致性。
   Future<void> _loadFavorites() async {
+    // 1. 先从本地缓存读取，立即显示上次关注状态
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedIds = prefs.getStringList('embytok_favorite_people_ids');
+      if (cachedIds != null && cachedIds.isNotEmpty) {
+        state = state.copyWith(favoritedIds: cachedIds.toSet());
+        AppLogger.debug('从本地缓存加载关注列表', data: {'count': cachedIds.length});
+      }
+    } catch (_) {
+      // 本地缓存读取失败不影响主流程
+    }
+
+    // 2. 后台从服务器更新关注列表
     try {
       final auth = _ref.read(authProvider);
       final serverUrl = auth.embyServerUrl;
@@ -158,6 +173,13 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
       final ids = result.items.map((e) => e.id).whereType<String>().toSet();
       if (ids.isNotEmpty) {
         state = state.copyWith(favoritedIds: ids);
+        // 保存到本地缓存
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setStringList('embytok_favorite_people_ids', ids.toList());
+        } catch (_) {
+          // 本地缓存保存失败不影响主流程
+        }
       }
     } catch (e) {
       AppLogger.error('加载关注列表失败', error: e);
