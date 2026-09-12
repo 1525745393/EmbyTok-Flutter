@@ -240,6 +240,65 @@ const int _kFeaturedAlbumsCount = 12;
 /// 首页歌单展示数量
 const int _kHomePlaylistsCount = 8;
 
+// ===== 卡片布局常量 =====
+
+/// 最近播放卡片：小屏宽度
+const double _kRecentCardWidthSmall = 100.0;
+
+/// 最近播放卡片：中屏宽度
+const double _kRecentCardWidthMedium = 110.0;
+
+/// 最近播放卡片：大屏宽度
+const double _kRecentCardWidthLarge = 120.0;
+
+/// 最近播放卡片：小屏宽度阈值
+const double _kRecentCardSmallThreshold = 360.0;
+
+/// 最近播放卡片：中屏宽度阈值
+const double _kRecentCardMediumThreshold = 414.0;
+
+/// 卡片圆角
+const double _kCardBorderRadius = 10.0;
+
+/// 卡片间距
+const double _kCardSpacing = 12.0;
+
+// ===== 播放按钮常量 =====
+
+/// 悬浮播放按钮：尺寸
+const double _kPlayButtonSize = 32.0;
+
+/// 悬浮播放按钮：图标尺寸
+const double _kPlayButtonIconSize = 18.0;
+
+/// 悬浮播放按钮：边距
+const double _kPlayButtonMargin = 4.0;
+
+// ===== 模块标题常量 =====
+
+/// 模块标题：字号
+const double _kSectionTitleFontSize = 17.0;
+
+/// 模块标题：字重
+const FontWeight _kSectionTitleFontWeight = FontWeight.w700;
+
+/// 更多按钮：字号
+const double _kMoreButtonFontSize = 14.0;
+
+/// 更多按钮：图标尺寸
+const double _kMoreButtonIconSize = 18.0;
+
+// ===== 空状态常量 =====
+
+/// 空状态：图标尺寸
+const double _kEmptyIconSize = 56.0;
+
+/// 空状态：图标与文字间距
+const double _kEmptyIconTextSpacing = 24.0;
+
+/// 快捷入口高度
+const double _kQuickEntriesHeight = 72.0;
+
 class SynologyMusicView extends ConsumerStatefulWidget {
   /// [showBackButton]：独立路由（/music）进入时显示返回按钮；
   /// 作为音乐服务模式首页（/）时不显示返回。
@@ -627,7 +686,19 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     }
 
     if (state.isLoading && _isEmptyForTab(state)) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              '正在加载音乐库...',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
     }
     if (state.error != null && _isEmptyForTab(state)) {
       return _buildError(state.error!, scheme);
@@ -763,10 +834,20 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               child: Column(
                 children: [
                   Icon(Icons.library_music_outlined,
-                      size: 56, color: scheme.onSurfaceVariant),
-                  const SizedBox(height: _kSpacingXXLarge),
+                      size: _kEmptyIconSize, color: scheme.onSurfaceVariant),
+                  const SizedBox(height: _kEmptyIconTextSpacing),
                   Text(_kHomeEmptyText,
                       style: TextStyle(color: scheme.onSurfaceVariant)),
+                  const SizedBox(height: _kSpacingLarge),
+                  FilledButton.icon(
+                    onPressed: state.isLoading
+                        ? null
+                        : () => ref.read(synologyMusicProvider.notifier).loadTab(
+                            SynologyMusicTab.values[_tabController.index],
+                            force: true),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('刷新音乐库'),
+                  ),
                 ],
               ),
             ),
@@ -819,7 +900,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       ),
     ];
     return SizedBox(
-      height: 72,
+      height: _kQuickEntriesHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
@@ -862,15 +943,21 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         children: [
           Text(title,
               style: TextStyle(
-                  fontSize: 17, fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                  fontSize: _kSectionTitleFontSize,
+                  fontWeight: _kSectionTitleFontWeight,
+                  color: scheme.onSurface)),
           const Spacer(),
           // targetTab 为 null 时隐藏"更多"按钮（如我的锁定/音乐流派，无对应完整列表页）
           if (targetTab != null)
             TextButton(
               onPressed: () => _switchTab(targetTab),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('更多', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody)),
-                Icon(Icons.chevron_right, size: 18, color: scheme.onSurfaceVariant),
+                Text('更多',
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: _kMoreButtonFontSize)),
+                Icon(Icons.chevron_right,
+                    size: _kMoreButtonIconSize, color: scheme.onSurfaceVariant),
               ]),
             ),
         ],
@@ -888,9 +975,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     // 动态计算卡片宽度：根据屏幕宽度自适应
     // 小屏手机(<360dp): 100, 中屏(360-414dp): 110, 大屏/平板(>414dp): 120
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth < 360 ? 100.0
-        : screenWidth <= 414 ? 110.0
-        : 120.0;
+    final cardWidth = screenWidth < _kRecentCardSmallThreshold ? _kRecentCardWidthSmall
+        : screenWidth <= _kRecentCardMediumThreshold ? _kRecentCardWidthMedium
+        : _kRecentCardWidthLarge;
     // 列表高度 = 封面(正方形) + 间距 + 标题(1行) + 副标题(1行) + 边距
     final listHeight = cardWidth + 6 + 16 + 14 + 8; // 约 cardWidth + 44
 
@@ -900,7 +987,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
         itemCount: records.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: _kCardSpacing),
         itemBuilder: (context, index) {
           final record = records[index];
           return GestureDetector(
@@ -914,7 +1001,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   Stack(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(_kCardBorderRadius),
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: record.coverUrl != null
@@ -930,13 +1017,13 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       ),
                       // 右下角悬浮播放按钮
                       Positioned(
-                        right: 4,
-                        bottom: 4,
+                        right: _kPlayButtonMargin,
+                        bottom: _kPlayButtonMargin,
                         child: GestureDetector(
                           onTap: () => _playRecentPlayback(record),
                           child: Container(
-                            width: 32,
-                            height: 32,
+                            width: _kPlayButtonSize,
+                            height: _kPlayButtonSize,
                             decoration: BoxDecoration(
                               color: scheme.primary.withValues(alpha: 0.9),
                               shape: BoxShape.circle,
@@ -949,7 +1036,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                               ],
                             ),
                             child: Icon(Icons.play_arrow,
-                                color: Colors.white, size: 18),
+                                color: Colors.white, size: _kPlayButtonIconSize),
                           ),
                         ),
                       ),
