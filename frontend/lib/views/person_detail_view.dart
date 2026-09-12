@@ -328,7 +328,8 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: () {
-                        final overview = person.overview;
+                        // 修复：overview 优先用 _personDetail，为空时 fallback 到 widget.person
+                        final overview = _personDetail?.overview ?? widget.person.overview;
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
