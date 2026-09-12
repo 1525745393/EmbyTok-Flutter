@@ -753,7 +753,9 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
     // 主内容：搜索框 + 统计卡 + 内容区（分组堆叠 / 搜索无结果提示）
     final allAny = movies.isNotEmpty || boxSets.isNotEmpty || people.isNotEmpty;
     final isSearchNoResult = _searchQuery.isNotEmpty && filteredCount == 0;
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () => ref.read(favoritesProvider.notifier).loadFavorites(),
+      child: ListView(
       padding: EdgeInsets.fromLTRB(
           16, _kListTopPadding, 16, _selectMode ? _kListBottomPaddingSelect : _kListBottomPaddingNormal),
       children: [
@@ -871,6 +873,7 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
           ),
         ],
       ],
+      ),
     );
   }
 
