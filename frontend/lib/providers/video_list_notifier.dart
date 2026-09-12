@@ -88,8 +88,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       feedExcludePlayedProvider,
       (previous, next) {
         if (next != previous) {
-          AppLogger.debug('视频流排除已观看变化：$previous -> $next，刷新视频列表');
-          refresh();
+          AppLogger.debug('视频流排除已观看变化：$previous -> $next，强制刷新视频列表');
+          // 修复：排除已观看变化时强制刷新，清除缓存
+          // 否则显示的还是旧缓存数据，排除开关无作用
+          refresh(forceRefresh: true);
         }
       },
     );
