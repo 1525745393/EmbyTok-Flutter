@@ -1,3 +1,10 @@
+## [2.70.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.0...v2.70.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **歌手详情页:** 修复无法播放歌曲的问题 ([e2ac93a](https://github.com/1525745393/EmbyTok-Flutter/commit/e2ac93a1ff5aba79465deb4b761e296345eed73c))
+
 # [2.70.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.69.0...v2.70.0) (2026-09-12)
 
 
