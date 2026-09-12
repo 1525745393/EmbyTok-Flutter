@@ -1,3 +1,10 @@
+# [2.72.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.71.0...v2.72.0) (2026-09-12)
+
+
+### Features
+
+* **视频流:** 持久化视频流当前索引，重新打开恢复上次位置 ([a2c6495](https://github.com/1525745393/EmbyTok-Flutter/commit/a2c649521815e0106d8a3fc70d0f650a41d63ee7))
+
 # [2.71.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.6...v2.71.0) (2026-09-12)
 
 
