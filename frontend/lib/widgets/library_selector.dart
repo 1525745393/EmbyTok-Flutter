@@ -81,6 +81,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.invalidate(libraryListProvider);
+      // 初始化本地选中状态：从 provider 读取当前选中的 ID
+      // 修复：之前在 build 中初始化，时机不对，导致打勾不显示
+      final selectedIds = widget.scope == LibraryScope.feed
+          ? ref.read(selectedLibraryIdsProvider)
+          : ref.read(recommendLibraryIdsProvider);
+      if (selectedIds.isNotEmpty) {
+        setState(() {
+          _localSelectedIds = Set.from(selectedIds);
+        });
+      }
     });
   }
 
@@ -89,24 +99,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
     final visibleLibraries = ref.watch(visibleLibraryListProvider);
-    // PR #66：根据 scope 选择当前读哪个 provider
-    final selectedIds = widget.scope == LibraryScope.feed
-        ? ref.watch(selectedLibraryIdsProvider)
-        : ref.watch(recommendLibraryIdsProvider);
     final currentFeedType = ref.watch(feedTypeProvider);
 
     // 判断是否为收藏夹模式（仅视频流有收藏夹）
     final isFavoritesMode = widget.scope == LibraryScope.feed &&
         currentFeedType == FeedType.favorites;
 
-    // 初始化本地选中状态（仅首次打开弹窗时）
-    if (_localSelectedIds.isEmpty && selectedIds.isNotEmpty) {
-      _localSelectedIds = Set.from(selectedIds);
-    } else if (_localSelectedIds.isEmpty) {
-      // 默认选中第一个库
-      if (visibleLibraries.isNotEmpty) {
-        _localSelectedIds.add(visibleLibraries.first.id);
-      }
+    // 如果还没有初始化本地选中状态，默认选中第一个库
+    if (_localSelectedIds.isEmpty && visibleLibraries.isNotEmpty) {
+      _localSelectedIds.add(visibleLibraries.first.id);
     }
 
     // 判断是否全选
