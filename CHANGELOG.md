@@ -1,3 +1,10 @@
+## [2.77.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.4...v2.77.5) (2026-09-12)
+
+
+### Bug Fixes
+
+* 修复打开媒体库选择器时打勾不显示的问题 ([00598e2](https://github.com/1525745393/EmbyTok-Flutter/commit/00598e21edd584f3d4fd63f6b854c1dab178b3a0))
+
 ## [2.77.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.3...v2.77.4) (2026-09-12)
 
 
