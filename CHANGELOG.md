@@ -1,3 +1,10 @@
+## [2.70.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.1...v2.70.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* **歌手详情页:** 修复不显示详情的问题 ([cbca42a](https://github.com/1525745393/EmbyTok-Flutter/commit/cbca42a7f978de0a0620efb402d1b8097c0e15e7))
+
 ## [2.70.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.0...v2.70.1) (2026-09-12)
 
 
