@@ -269,6 +269,7 @@ abstract class MediaServerApi {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
   });
 
   /// 收藏合集（BoxSet）

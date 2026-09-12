@@ -79,6 +79,7 @@ class EmbyRepository implements MediaRepository {
     required String token,
     String? userId,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
   }) {
     return _service.getFavoriteMovies(
       limit: limit,
@@ -87,6 +88,7 @@ class EmbyRepository implements MediaRepository {
       token: token,
       userId: userId,
       cancelToken: cancelToken,
+      includeTypes: includeTypes,
     );
   }
 
