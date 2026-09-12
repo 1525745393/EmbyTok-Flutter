@@ -1,3 +1,10 @@
+# [2.73.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.3...v2.73.0) (2026-09-12)
+
+
+### Features
+
+* **历史页:** 添加下拉刷新和优化加载状态 ([0b19937](https://github.com/1525745393/EmbyTok-Flutter/commit/0b199370ebe22119c69c315e50b9eb7582790c54))
+
 ## [2.72.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.2...v2.72.3) (2026-09-12)
 
 
