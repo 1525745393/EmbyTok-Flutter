@@ -1,3 +1,10 @@
+## [2.72.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.0...v2.72.1) (2026-09-12)
+
+
+### Performance Improvements
+
+* **推荐页:** 搜索框添加防抖优化，避免每次按键都重建 ([7e698d1](https://github.com/1525745393/EmbyTok-Flutter/commit/7e698d1a82c5d52239144e6b88b919f8c7b8efcc))
+
 # [2.72.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.71.0...v2.72.0) (2026-09-12)
 
 
