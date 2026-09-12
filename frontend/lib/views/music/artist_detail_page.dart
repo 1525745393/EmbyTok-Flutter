@@ -18,6 +18,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
 import '../../providers/artist_metadata_provider.dart';
+import '../../providers/synology_playback_provider.dart';
 import '../../utils/html_parser.dart';
 import 'artist_metadata_editor.dart';
 import 'artist_search_picker.dart';
@@ -1162,22 +1163,28 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
 
   /// 播放全部歌曲
   void _playAll(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('播放全部功能开发中'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+    final songsAsync = ref.read(artistSongsProvider(_artistName));
+    final songs = songsAsync.value ?? [];
+    if (songs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂无歌曲可播放')),
+      );
+      return;
+    }
+    ref.read(synologyPlaybackProvider.notifier).playQueue(songs, 0);
   }
 
   /// 播放单首歌曲
   void _playSong(BuildContext context, AudioSong song) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('播放: ${song.title}'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    final songsAsync = ref.read(artistSongsProvider(_artistName));
+    final songs = songsAsync.value ?? [];
+    final index = songs.indexWhere((s) => s.id == song.id);
+    if (index >= 0) {
+      ref.read(synologyPlaybackProvider.notifier).playQueue(songs, index);
+    } else {
+      // 如果找不到索引，直接播放该歌曲
+      ref.read(synologyPlaybackProvider.notifier).playQueue([song], 0);
+    }
   }
 
 }
