@@ -296,6 +296,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
       title: actor.name,
       type: 'Person',
       thumbnailUrl: actor.imageUrl,
+      overview: actor.overview,
     );
     context.push('/person/$personId', extra: {
       'item': mediaItem,

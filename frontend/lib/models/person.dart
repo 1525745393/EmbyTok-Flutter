@@ -6,6 +6,7 @@ class Person {
   final String type; // 类型：Actor/Director/Writer 等
   final String? imageUrl; // 头像图片 URL
   final int? itemId; // 关联的媒体项 ID（如存在）
+  final String? overview; // 演员简介
 
   const Person({
     required this.name,
@@ -14,6 +15,7 @@ class Person {
     this.type = 'Actor',
     this.imageUrl,
     this.itemId,
+    this.overview,
   });
 
   factory Person.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class Person {
       itemId: (json['ItemId'] as int?) ??
           (json['itemId'] as int?) ??
           (json['item_id'] as int?),
+      overview: (json['Overview'] as String?) ?? (json['overview'] as String?),
     );
   }
 
@@ -39,5 +42,6 @@ class Person {
         'type': type,
         'image_url': imageUrl,
         'item_id': itemId,
+        'overview': overview,
       };
 }

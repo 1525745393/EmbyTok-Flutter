@@ -567,6 +567,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                         title: person.name,
                         type: 'Person',
                         thumbnailUrl: person.imageUrl,
+                        overview: person.overview,
                       ),
                       'personType': person.type,
                     });
