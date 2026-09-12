@@ -169,9 +169,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   // 修复：标题在窄屏（竖屏手机）上会溢出 Row，用 Expanded 约束宽度并截断
                   Expanded(
                     child: Text(
-                      _localSelectedIds.isEmpty
-                          ? '选择媒体库 - ${widget.scope.title}'
-                          : '选择媒体库 - ${widget.scope.title} (已选 ${_localSelectedIds.length} 个)',
+                      _buildTitleText(),
                       style: TextStyle(
                         color: scheme.onSurface,
                         fontSize: 18,
@@ -280,6 +278,18 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
         ),
       ),
     );
+  }
+
+  // 构建标题文本
+  String _buildTitleText() {
+    final baseTitle = '选择媒体库 - ${widget.scope.title}';
+    if (_localIsFavorites) {
+      return '$baseTitle (收藏夹模式)';
+    } else if (_localSelectedIds.isEmpty) {
+      return baseTitle;
+    } else {
+      return '$baseTitle (已选 ${_localSelectedIds.length} 个)';
+    }
   }
 
   Widget _buildGridContent(
