@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/artist_metadata.dart';
 import '../../providers/artist_metadata_provider.dart';
@@ -401,14 +402,12 @@ class _ArtistMetadataEditorState extends ConsumerState<ArtistMetadataEditor> {
             ),
             clipBehavior: Clip.antiAlias,
             child: imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _initialFallback(scheme),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
-                    },
+                    placeholder: (_, __) =>
+                        const Center(child: CircularProgressIndicator()),
+                    errorWidget: (_, __, ___) => _initialFallback(scheme),
                   )
                 : _initialFallback(scheme),
           ),

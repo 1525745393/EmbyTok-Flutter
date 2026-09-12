@@ -186,6 +186,28 @@ const List<List<Color>> _kPlaylistGradients = [
   [Color(0xFF6BC75B), Color(0xFF3FA7A0)],
 ];
 
+// ===== 通用布局常量 =====
+
+/// 导航栏搜索框宽度
+const double _kSearchBarWidth = 48.0;
+
+/// 搜索框内边距
+const double _kSearchBarPaddingH = 12.0;
+const double _kSearchBarPaddingV = 10.0;
+
+/// 列表项水平内边距
+const double _kListItemHorizontalPadding = 16.0;
+
+/// 列表项间距
+const double _kListItemSpacing = 8.0;
+
+/// 模块标题上下间距
+const double _kSectionTitleTopPadding = 12.0;
+const double _kSectionTitleBottomPadding = 24.0;
+
+/// 顶部留白
+const double _kTopSpacing = 60.0;
+
 // ===== 首页模块标题常量 =====
 
 /// 首页模块：最近播放
@@ -404,12 +426,12 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                       },
                     )
                   else
-                    const SizedBox(width: 48),
+                    const SizedBox(width: _kSearchBarWidth),
                   Expanded(
                     child: Row(
                       children: [
                         Icon(Icons.library_music, color: onGradient, size: 22),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: _kSpacingMedium),
                         Text(
                           '群晖音乐',
                           style: TextStyle(
@@ -673,7 +695,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
 
     return ListView(
       controller: _homeScrollController,
-      padding: const EdgeInsets.only(top: 12, bottom: 24),
+      padding: const EdgeInsets.only(top: _kSectionTitleTopPadding, bottom: _kSectionTitleBottomPadding),
       children: [
         // 快捷入口
         _buildQuickEntries(scheme),
@@ -736,7 +758,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             state.pins.isEmpty &&
             recentPlaybacks.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 60),
+            padding: const EdgeInsets.only(top: _kTopSpacing),
             child: Center(
               child: Column(
                 children: [
@@ -800,9 +822,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       height: 72,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
         itemCount: entries.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: _kListItemSpacing),
         itemBuilder: (context, index) =>
             QuickEntryButton(entry: entries[index]),
       ),
@@ -835,7 +857,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   Widget _buildHomeSectionHeader(
       String title, SynologyMusicTab? targetTab, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
       child: Row(
         children: [
           Text(title,
@@ -876,7 +898,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       height: listHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
         itemCount: records.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
@@ -987,7 +1009,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       height: 150,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
         itemCount: pins.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
@@ -1075,7 +1097,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   Widget _buildGenreGrid(List<AudioGenre> genres, ColorScheme scheme) {
     return Padding(
       key: _genreKey,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),

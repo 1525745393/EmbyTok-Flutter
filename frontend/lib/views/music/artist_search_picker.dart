@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/artist_metadata.dart';
 import '../../services/deezer_service.dart';
@@ -285,7 +286,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
       leading: CircleAvatar(
         radius: 28,
         backgroundImage:
-            result.imageUrl != null ? NetworkImage(result.imageUrl!) : null,
+            result.imageUrl != null ? CachedNetworkImageProvider(result.imageUrl!) : null,
         backgroundColor: scheme.surfaceVariant,
         child: result.imageUrl != null
             ? null
