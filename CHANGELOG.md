@@ -1,3 +1,10 @@
+## [2.80.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.80.0...v2.80.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* 修复视频流媒体库选择打勾不显示问题 ([b5ff94f](https://github.com/1525745393/EmbyTok-Flutter/commit/b5ff94f96356f980412e7de1d0bbaeec1b4a2866))
+
 # [2.80.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.79.1...v2.80.0) (2026-09-12)
 
 
