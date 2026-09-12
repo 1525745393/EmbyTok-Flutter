@@ -1,3 +1,10 @@
+# [2.83.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.82.0...v2.83.0) (2026-09-12)
+
+
+### Features
+
+* 媒体库选择器区分收藏夹模式和媒体库模式 ([ad1bb96](https://github.com/1525745393/EmbyTok-Flutter/commit/ad1bb9616ab6e913710a85cda04fae8e7a35bc6d))
+
 # [2.82.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.81.1...v2.82.0) (2026-09-12)
 
 
