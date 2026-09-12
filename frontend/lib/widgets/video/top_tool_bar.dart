@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/providers.dart';
+import '../../models/library.dart';
 import '../../utils/app_preferences.dart' show ViewMode, OrientationMode;
+import '../library_selector.dart';
 
 // 侧边菜单控制器回调
 typedef MenuButtonCallback = void Function();
@@ -29,10 +31,8 @@ class TopToolBar extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     // 监听视图模式
     final viewMode = ref.watch(viewModeProvider);
-    // 监听当前选中的媒体库
-    final selectedLibrary = ref.watch(selectedLibraryProvider);
-    // 监听可见媒体库列表
-    final visibleLibraries = ref.watch(visibleLibraryListProvider);
+    // 监听当前选中的所有媒体库（多选）
+    final selectedLibraries = ref.watch(selectedLibrariesProvider);
     // 监听静音状态
     final isMuted = ref.watch(isMutedProvider);
     // 监听方向过滤模式
@@ -57,60 +57,15 @@ class TopToolBar extends ConsumerWidget {
               onPressed: onMenuPressed ?? () => _openDrawer(context),
               tooltip: '菜单',
             ),
-            // 中间：当前媒体库名称（点击切换）
+            // 中间：当前媒体库名称（点击打开多选弹窗）
             Expanded(
               child: Center(
-                child: PopupMenuButton<String>(
-                  color: scheme.surface.withValues(alpha: 0.95),
-                  onSelected: (libraryId) => _selectLibrary(ref, libraryId),
-                  itemBuilder: (context) {
-                    if (visibleLibraries.isEmpty) {
-                      return [
-                        PopupMenuItem<String>(
-                          enabled: false,
-                          value: '',
-                          child: Text(
-                            '暂无可用媒体库',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ];
-                    }
-                    return visibleLibraries
-                        .map((lib) => PopupMenuItem<String>(
-                              value: lib.id,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    selectedLibrary?.id == lib.id
-                                        ? Icons.check_circle
-                                        : Icons.folder_outlined,
-                                    color: selectedLibrary?.id == lib.id
-                                        ? scheme.primary
-                                        : scheme.onSurfaceVariant,
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      lib.name,
-                                      style: TextStyle(
-                                        color: selectedLibrary?.id == lib.id
-                                            ? scheme.primary
-                                            : scheme.onSurfaceVariant,
-                                        fontWeight:
-                                            selectedLibrary?.id == lib.id
-                                                ? FontWeight.w600
-                                                : FontWeight.normal,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ))
-                        .toList();
+                child: InkWell(
+                  onTap: () {
+                    // 打开多选媒体库选择器
+                    LibrarySelector.show(context, scope: LibraryScope.feed);
                   },
+                  borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -131,14 +86,16 @@ class TopToolBar extends ConsumerWidget {
                           color: scheme.onSurface.withValues(alpha: 0.9),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          selectedLibrary?.name ?? '加载中...',
-                          style: TextStyle(
-                            color: scheme.onSurface,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Text(
+                            _getLibraryDisplayName(selectedLibraries),
+                            style: TextStyle(
+                              color: scheme.onSurface,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(width: 4),
                         Icon(
@@ -289,10 +246,14 @@ class TopToolBar extends ConsumerWidget {
   void _setOrientationMode(WidgetRef ref, OrientationMode mode) {
     ref.read(orientationModeProvider.notifier).setMode(mode);
   }
+}
 
-  // 切换当前媒体库（单选快捷操作，选中一个库时清空其他）
-  void _selectLibrary(WidgetRef ref, String libraryId) {
-    if (libraryId.isEmpty) return;
-    ref.read(selectedLibraryIdsProvider.notifier).setLibrary(libraryId);
+/// 获取媒体库显示名称（多选时显示前两个 + 数量）
+String _getLibraryDisplayName(List<Library> libraries) {
+  if (libraries.isEmpty) return '加载中...';
+  if (libraries.length == 1) return libraries.first.name;
+  if (libraries.length == 2) {
+    return '${libraries[0].name} + ${libraries[1].name}';
   }
+  return '已选 ${libraries.length} 个库';
 }
