@@ -1,3 +1,10 @@
+## [2.77.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.0...v2.77.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* 修复演员详情页跳转personId为空导致异常 ([d43887e](https://github.com/1525745393/EmbyTok-Flutter/commit/d43887eb707b93384054a32da428c309ee0a9067))
+
 # [2.77.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.76.1...v2.77.0) (2026-09-12)
 
 
