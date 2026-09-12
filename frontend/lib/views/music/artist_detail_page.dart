@@ -23,6 +23,62 @@ import 'artist_metadata_editor.dart';
 import 'artist_search_picker.dart';
 import 'mini_player_bar.dart';
 
+// ===== 歌手详情页常量 =====
+
+/// 头部默认展开高度
+const double _kHeaderExpandedHeight = 320.0;
+
+/// 横屏模式头部展开高度
+const double _kHeaderExpandedHeightLandscape = 220.0;
+
+/// 竖屏头像半径
+const double _kAvatarRadiusPortrait = 60.0;
+
+/// 横屏头像半径
+const double _kAvatarRadiusLandscape = 50.0;
+
+/// 折叠状态小头像半径
+const double _kAvatarRadiusCollapsed = 16.0;
+
+/// 头像图标尺寸（无图片时）
+const double _kAvatarIconSize = 60.0;
+
+/// 折叠头像图标尺寸
+const double _kAvatarIconSizeCollapsed = 16.0;
+
+/// 歌手名称字号（竖屏）
+const double _kArtistNameFontSizePortrait = 24.0;
+
+/// 歌手名称字号（横屏）
+const double _kArtistNameFontSizeLandscape = 20.0;
+
+/// 头部顶部间距
+const double _kHeaderTopSpacing = 40.0;
+
+/// 头部元素间距
+const double _kHeaderElementSpacing = 16.0;
+
+/// 头部小间距
+const double _kHeaderSmallSpacing = 8.0;
+
+/// 横屏头部水平边距
+const double _kHeaderHorizontalPaddingLandscape = 32.0;
+
+/// 头像下方歌手名称间距
+const double _kAvatarNameSpacing = 16.0;
+
+/// 歌手名称下方标签间距
+const double _kNameTagsSpacing = 8.0;
+
+/// 页面底部间距
+const double _kBottomSpacing = 80.0;
+
+/// 平板横屏阈值（宽度）
+const double _kTabletLandscapeWidthThreshold = 600.0;
+
+/// 折叠状态头像显示阈值
+const double _kCollapsedAvatarThreshold = 40.0;
+
 /// 歌手详情页
 ///
 /// 通过路由 `/music/artist/:name` 访问，或通过构造函数传入歌手对象。
@@ -81,7 +137,19 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           songsAsync,
           albumsAsync,
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                '正在加载歌手信息...',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
         error: (e, s) => _buildError(context, e),
       ),
       bottomNavigationBar: const MiniPlayerBar(),
@@ -94,7 +162,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   /// 此时使用两栏布局，充分利用宽屏空间。
   bool _isTabletLandscape(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return size.width > 600 && size.width > size.height;
+    return size.width > _kTabletLandscapeWidthThreshold && size.width > size.height;
   }
 
   /// 构建页面主体内容
@@ -149,7 +217,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         ),
 
         // 底部间距
-        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
       ],
     );
   }
@@ -168,7 +236,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     return CustomScrollView(
       slivers: [
         // 可折叠头部区域（横屏模式下高度更小）
-        _buildSliverAppBar(context, scheme, metadata, expandedHeight: 220),
+        _buildSliverAppBar(context, scheme, metadata, expandedHeight: _kHeaderExpandedHeightLandscape),
 
         // 操作按钮行
         SliverToBoxAdapter(
@@ -209,7 +277,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         ),
 
         // 底部间距
-        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
       ],
     );
   }
@@ -275,18 +343,18 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         LayoutBuilder(
           builder: (context, constraints) {
             final top = constraints.biggest.height;
-            final showAvatar = top < kToolbarHeight + 40;
+            final showAvatar = top < kToolbarHeight + _kCollapsedAvatarThreshold;
             if (!showAvatar) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(right: 16),
               child: CircleAvatar(
-                radius: 16,
+                radius: _kAvatarRadiusCollapsed,
                 backgroundImage:
                     metadata.hasImage ? CachedNetworkImageProvider(metadata.imageUrl!) : null,
                 backgroundColor: scheme.surfaceVariant,
                 child: metadata.hasImage
                     ? null
-                    : Icon(Icons.person, size: 16, color: scheme.onSurfaceVariant),
+                    : Icon(Icons.person, size: _kAvatarIconSizeCollapsed, color: scheme.onSurfaceVariant),
               ),
             );
           },
@@ -302,10 +370,10 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: 40),
+        const SizedBox(height: _kHeaderTopSpacing),
         // 歌手头像（圆形）
         CircleAvatar(
-          radius: 60,
+          radius: _kAvatarRadiusPortrait,
           backgroundImage: metadata.hasImage
               ? CachedNetworkImageProvider(metadata.imageUrl!)
               : null,
@@ -314,21 +382,21 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
               ? null
               : Icon(
                   Icons.person,
-                  size: 60,
+                  size: _kAvatarIconSize,
                   color: scheme.onSurfaceVariant,
                 ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: _kAvatarNameSpacing),
         // 歌手名称
         Text(
           _artistName,
           style: TextStyle(
             color: scheme.onSurface,
-            fontSize: 24,
+            fontSize: _kArtistNameFontSizePortrait,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: _kNameTagsSpacing),
         // 风格标签 + 听众数
         _buildTagsAndListeners(scheme, metadata),
       ],
@@ -341,14 +409,18 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   /// 充分利用宽屏空间，减少垂直高度。
   Widget _buildLandscapeHeader(ColorScheme scheme, ArtistMetadata metadata) {
     return Padding(
-      padding: const EdgeInsets.only(top: 40, left: 32, right: 32),
+      padding: const EdgeInsets.only(
+        top: _kHeaderTopSpacing,
+        left: _kHeaderHorizontalPaddingLandscape,
+        right: _kHeaderHorizontalPaddingLandscape,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 歌手头像（圆形）
           CircleAvatar(
-            radius: 50,
+            radius: _kAvatarRadiusLandscape,
             backgroundImage: metadata.hasImage
                 ? CachedNetworkImageProvider(metadata.imageUrl!)
                 : null,
@@ -357,7 +429,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 ? null
                 : Icon(
                     Icons.person,
-                    size: 50,
+                    size: _kAvatarRadiusLandscape,
                     color: scheme.onSurfaceVariant,
                   ),
           ),
@@ -373,13 +445,13 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   _artistName,
                   style: TextStyle(
                     color: scheme.onSurface,
-                    fontSize: 28,
+                    fontSize: _kArtistNameFontSizeLandscape + 8,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: _kHeaderSmallSpacing),
                 // 风格标签 + 听众数
                 _buildTagsAndListeners(scheme, metadata, align: CrossAxisAlignment.start),
               ],
