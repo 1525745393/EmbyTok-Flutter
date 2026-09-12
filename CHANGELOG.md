@@ -1,3 +1,10 @@
+## [2.72.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.2...v2.72.3) (2026-09-12)
+
+
+### Performance Improvements
+
+* **搜索建议:** 移除 Provider 层防抖，避免双重防抖延迟 ([4dda7ae](https://github.com/1525745393/EmbyTok-Flutter/commit/4dda7aeb681885edd473054885e4dbe4783cd499))
+
 ## [2.72.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.72.1...v2.72.2) (2026-09-12)
 
 
