@@ -242,8 +242,20 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // 恢复视频流上次位置
   Future<void> _restoreFeedVideoIndex() async {
-    // 延迟等待视频列表加载
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 等待视频列表加载完成后再恢复位置
+    // 最多等待 10 秒，避免无限等待
+    int attempts = 0;
+    while (attempts < 20) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      final videoState = ref.read(videoListProvider);
+      if (videoState.items.isNotEmpty && !videoState.isLoading) {
+        break;
+      }
+      attempts++;
+    }
+
     if (!mounted) return;
 
     final lastIndex = await _viewModel.restoreFeedVideoIndex();
