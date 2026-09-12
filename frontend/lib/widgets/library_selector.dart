@@ -479,20 +479,20 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                             ref
                                 .read(feedTypeProvider.notifier)
                                 .setType(FeedType.favorites);
-                            ref.read(videoListProvider.notifier).refresh();
                           } else {
-                            // 选中媒体库：设置选中的媒体库 ID
-                            ref
-                                .read(selectedLibraryIdsProvider.notifier)
-                                .setLibraries(_localSelectedIds.toList());
-                            // 修复：如果当前是收藏夹模式，切换回最新模式
-                            // 否则选择了媒体库但仍然显示收藏夹内容
+                            // 修复：先切换 feedType，再设置媒体库
+                            // 避免 selectedLibraryIds 变化时 feedType 还是 favorites 导致状态不一致
                             final currentFeedType = ref.read(feedTypeProvider);
                             if (currentFeedType == FeedType.favorites) {
                               ref
                                   .read(feedTypeProvider.notifier)
                                   .setType(FeedType.latest);
                             }
+                            // 选中媒体库：设置选中的媒体库 ID
+                            // selectedLibraryIds 变化会自动触发 refresh()
+                            ref
+                                .read(selectedLibraryIdsProvider.notifier)
+                                .setLibraries(_localSelectedIds.toList());
                           }
                           ref
                               .read(feedLibraryConfiguredProvider.notifier)
