@@ -493,14 +493,18 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         case FeedType.favorites:
           if (_refreshGeneration != gen) return;
           final includeTypes = _ref.read(favoriteIncludeTypesProvider).toList();
+          final excludePlayed = _ref.read(feedExcludePlayedProvider);
+          // 修复：影片和剧集类型不过滤已观看，合集和演员类型过滤已观看
+          // 因为影片和剧集是用户直接收藏的，合集和演员是容器，里面的视频需要过滤
+          final shouldExcludePlayed = excludePlayed &&
+              (includeTypes.contains('BoxSet') || includeTypes.contains('Person'));
           final favResult = await _repo.getFavoriteMovies(
             serverUrl: serverUrl,
             token: token,
             userId: userId,
             cancelToken: _refreshCancelToken,
             includeTypes: includeTypes,
-            // 修复：传递排除已观看参数
-            excludePlayed: _ref.read(feedExcludePlayedProvider),
+            excludePlayed: shouldExcludePlayed,
           );
           if (_refreshGeneration != gen) return;
           loadedItems = favResult.items;
