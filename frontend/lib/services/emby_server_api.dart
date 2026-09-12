@@ -906,8 +906,8 @@ class EmbyServerApi implements MediaServerApi {
       'Recursive': 'true',
       'Filters': 'IsFavorite',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series,BoxSet,Person',
       'ExcludeItemTypes': 'Playlist',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
