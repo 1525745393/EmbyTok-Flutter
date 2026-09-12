@@ -72,9 +72,8 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
 
   AuthState get _auth => _ref.read(authProvider);
 
-  /// 获取搜索建议（带防抖和缓存）
+  /// 获取搜索建议（View 层已做防抖，这里直接执行）
   ///
-  /// 300ms 内的连续调用只发起最后一次请求。
   /// 相同查询 30 秒内命中缓存。
   void fetchHints(String query) {
     // 空查询：立即清空，取消 pending 请求
@@ -84,11 +83,10 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
       return;
     }
 
-    // 防抖：取消上一次 pending 请求，300ms 后再执行
+    // View 层已做防抖（150ms），这里直接执行
+    // 取消上一次 pending 请求
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(_kSearchHintsDebounce, () {
-      _doFetchHints(query);
-    });
+    _doFetchHints(query);
   }
 
   /// 实际执行搜索建议查询
