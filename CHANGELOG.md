@@ -1,3 +1,10 @@
+## [2.77.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.2...v2.77.3) (2026-09-12)
+
+
+### Bug Fixes
+
+* 视频流顶部栏添加媒体库选择按钮 ([a656d71](https://github.com/1525745393/EmbyTok-Flutter/commit/a656d71059c24231a6abbf8e3c46d051d13af67c))
+
 ## [2.77.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.1...v2.77.2) (2026-09-12)
 
 
