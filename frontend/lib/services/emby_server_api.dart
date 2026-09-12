@@ -710,25 +710,18 @@ class EmbyServerApi implements MediaServerApi {
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
-      'Ids': personId,
-      'Recursive': 'true',
       'Fields':
-          'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData,People',
     };
-    final effectiveUserId = userId ?? _defaultUserId;
-    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
     try {
+      // 使用 /Items/{id} 端点获取单条详情，确保 Overview 字段返回
       final resp = await _apiClient.get<dynamic>(
-        path,
+        '/Items/$personId',
         queryParameters: params,
       );
       final data = resp.data;
-      final items =
-          data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
-      if (items.isNotEmpty && items.first is Map<String, dynamic>) {
-        return MediaItem.fromJson(items.first as Map<String, dynamic>);
+      if (data is Map<String, dynamic>) {
+        return MediaItem.fromJson(data);
       }
       return null;
     } catch (e) {
