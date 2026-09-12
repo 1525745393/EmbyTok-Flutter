@@ -1,3 +1,10 @@
+# [2.80.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.79.1...v2.80.0) (2026-09-12)
+
+
+### Features
+
+* 收藏夹卡片改为确认制交互与媒体库一致 ([6e5413e](https://github.com/1525745393/EmbyTok-Flutter/commit/6e5413e6434248f4d52dc660e1b79352074e682a))
+
 ## [2.79.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.79.0...v2.79.1) (2026-09-12)
 
 
