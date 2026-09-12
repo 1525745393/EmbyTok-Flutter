@@ -1,3 +1,10 @@
+## [2.83.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.4...v2.83.5) (2026-09-12)
+
+
+### Bug Fixes
+
+* getPersonDetail优先使用Persons端点确保返回Overview ([1c910a4](https://github.com/1525745393/EmbyTok-Flutter/commit/1c910a45f0f7183f93d506e1e6e85584628abafb))
+
 ## [2.83.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.3...v2.83.4) (2026-09-12)
 
 
