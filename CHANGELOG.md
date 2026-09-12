@@ -1,3 +1,10 @@
+## [2.70.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.5...v2.70.6) (2026-09-12)
+
+
+### Bug Fixes
+
+* **视频库适配:** 修复收藏缓存失效空 catch 块 ([6ecb11e](https://github.com/1525745393/EmbyTok-Flutter/commit/6ecb11e201a71599fa45a516caea3444e6e1e9e0))
+
 ## [2.70.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.4...v2.70.5) (2026-09-12)
 
 
