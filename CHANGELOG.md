@@ -1,3 +1,22 @@
+# [2.79.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.78.0...v2.79.0) (2026-09-12)
+
+
+### Bug Fixes
+
+* 修复includeTypes参数在所有层级的定义 ([7b6e480](https://github.com/1525745393/EmbyTok-Flutter/commit/7b6e480d5fe2724d147b378af772c74556b3ba6b))
+* 修复演员详情API改用/Items/{id}端点确保返回简介 ([fb0d1c9](https://github.com/1525745393/EmbyTok-Flutter/commit/fb0d1c94237c9ea56977ed051afcde096faa9e73))
+* 演员详情页使用Last.fm补充简介 ([38ee211](https://github.com/1525745393/EmbyTok-Flutter/commit/38ee211056e53e569bbc4dec2503ea8afa68f91c))
+
+
+### Features
+
+* 添加收藏夹类型筛选功能 ([93c3a92](https://github.com/1525745393/EmbyTok-Flutter/commit/93c3a92ee93bec37eaf6433fff85f5e296d3fcd6))
+
+
+### Reverts
+
+* 撤销演员详情页Last.fm简介获取 ([369216b](https://github.com/1525745393/EmbyTok-Flutter/commit/369216befe6f4292f8d8e65bbf97b035f3f3eaa0))
+
 # [2.78.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.5...v2.78.0) (2026-09-12)
 
 
