@@ -1,3 +1,10 @@
+# [2.82.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.81.1...v2.82.0) (2026-09-12)
+
+
+### Features
+
+* 类型筛选显示每种类型的收藏数量 ([1ebea6c](https://github.com/1525745393/EmbyTok-Flutter/commit/1ebea6cd0ade6d6ba968fe4d18ad0c1307b24707))
+
 ## [2.81.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.81.0...v2.81.1) (2026-09-12)
 
 
