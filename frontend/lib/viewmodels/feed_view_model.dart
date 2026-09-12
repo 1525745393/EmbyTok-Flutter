@@ -427,11 +427,33 @@ class FeedViewModel {
     _playbackCoordinator.syncCurrentPlaying(index: index, items: items);
     // 更新当前索引（供键盘快捷键等使用）
     _ref.read(feedCurrentIndexProvider.notifier).state = index;
+    // 保存当前索引到本地持久化
+    _saveFeedVideoIndex(index);
     // 判断是否需要加载更多
     if (hasMore && index >= items.length - 2 && !isLoading) {
       return true; // 通知 View 层触发 loadMore
     }
     return false;
+  }
+
+  /// 保存视频流当前索引到本地持久化
+  void _saveFeedVideoIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(kStorageKeyLastFeedVideoIndex, index);
+    } catch (_) {
+      // 操作失败不影响主流程
+    }
+  }
+
+  /// 从本地恢复视频流当前索引
+  Future<int> restoreFeedVideoIndex() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getInt(kStorageKeyLastFeedVideoIndex) ?? 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// 页面切换防抖结束后调用（执行预加载和清理）

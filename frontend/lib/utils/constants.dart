@@ -80,6 +80,9 @@ const String kStorageKeyWatchStats = 'embytok_watch_stats';
 const String kStorageKeyLastPageIndex = 'embytok_last_page_index';
 const String kStorageKeyLastGridScrollOffset =
     'embytok_last_grid_scroll_offset';
+// 视频流当前视频索引（PageView 位置持久化）
+const String kStorageKeyLastFeedVideoIndex =
+    'embytok_last_feed_video_index';
 const String kStorageKeySelectedLibraryId = 'embytok_selected_library_id';
 // 媒体库选择：推荐页独立（PR #66：视频流 / 推荐可分别设置）
 const String kStorageKeySelectedLibraryIdForRecommend =

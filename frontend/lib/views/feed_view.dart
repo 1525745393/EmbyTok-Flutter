@@ -123,6 +123,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       context: 'FeedView.initState.checkCloudSyncOnStartup',
     );
 
+    // 恢复视频流上次位置：延迟到首帧后执行，等待视频列表加载
+    _restoreFeedVideoIndex();
+
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
 
@@ -235,6 +238,25 @@ class _FeedViewState extends ConsumerState<FeedView>
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
+  }
+
+  // 恢复视频流上次位置
+  Future<void> _restoreFeedVideoIndex() async {
+    // 延迟等待视频列表加载
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    final lastIndex = await _viewModel.restoreFeedVideoIndex();
+    if (!mounted || lastIndex <= 0) return;
+
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isEmpty) return;
+
+    // 确保索引在有效范围内
+    final targetIndex = lastIndex.clamp(0, videoState.items.length - 1);
+    if (targetIndex != _currentIndex) {
+      _pageController.jumpToPage(targetIndex);
+    }
   }
 
   // PageView 滚动状态变化回调：快速滑动时立即释放非当前页 controller
