@@ -1,3 +1,10 @@
+## [2.66.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.66.0...v2.66.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **设置:** 检查更新功能优化 ([37be105](https://github.com/1525745393/EmbyTok-Flutter/commit/37be1051d7716c41f258ebffa41650b870bba914))
+
 # [2.66.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.65.2...v2.66.0) (2026-09-12)
 
 
