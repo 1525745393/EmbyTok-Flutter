@@ -1,3 +1,10 @@
+## [2.79.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.79.0...v2.79.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* Person模型添加overview字段并在跳转时传递 ([25c248a](https://github.com/1525745393/EmbyTok-Flutter/commit/25c248a987a5de0a33fff249dc21c1a7fb9d5740))
+
 # [2.79.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.78.0...v2.79.0) (2026-09-12)
 
 
