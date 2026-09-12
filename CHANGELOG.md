@@ -1,3 +1,10 @@
+## [2.83.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.6...v2.83.7) (2026-09-12)
+
+
+### Bug Fixes
+
+* 排除已观看变化时强制刷新清除缓存 ([951ca25](https://github.com/1525745393/EmbyTok-Flutter/commit/951ca258572216cbbadc542d0d97250bfdb57148))
+
 ## [2.83.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.5...v2.83.6) (2026-09-12)
 
 
