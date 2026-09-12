@@ -271,6 +271,7 @@ abstract class MediaServerApi {
     String? token,
     CancelToken? cancelToken,
     List<String>? includeTypes,
+    bool excludePlayed = false,
   });
 
   /// 收藏合集（BoxSet）

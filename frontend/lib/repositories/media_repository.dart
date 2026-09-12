@@ -106,6 +106,7 @@ abstract class MediaRepository {
     String? userId,
     CancelToken? cancelToken,
     List<String>? includeTypes,
+    bool excludePlayed = false,
   });
 
   /// 纯缓存读取收藏的电影/视频列表，同步，不触发网络请求

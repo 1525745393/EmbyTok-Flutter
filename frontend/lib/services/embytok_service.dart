@@ -421,6 +421,7 @@ class EmbytokService {
     String? token,
     CancelToken? cancelToken,
     List<String>? includeTypes,
+    bool excludePlayed = false,
   }) {
     return _api.getFavoriteMovies(
       limit: limit,
@@ -430,6 +431,7 @@ class EmbytokService {
       token: token,
       cancelToken: cancelToken,
       includeTypes: includeTypes,
+      excludePlayed: excludePlayed,
     );
   }
 

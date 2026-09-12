@@ -906,6 +906,7 @@ class EmbyServerApi implements MediaServerApi {
     String? token,
     CancelToken? cancelToken,
     List<String>? includeTypes,
+    bool excludePlayed = false,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -922,6 +923,10 @@ class EmbyServerApi implements MediaServerApi {
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
     };
+    // 修复：支持排除已观看
+    if (excludePlayed) {
+      params['Filters'] = 'IsFavorite,IsPlayed=false';
+    }
 
     final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)

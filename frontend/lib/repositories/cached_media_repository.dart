@@ -448,6 +448,7 @@ class CachedMediaRepository implements MediaRepository {
     String? userId,
     CancelToken? cancelToken,
     List<String>? includeTypes,
+    bool excludePlayed = false,
   }) {
     final key = _favoritesKey(serverUrl, token, userId, limit, offset);
     return _withCache(
@@ -461,6 +462,7 @@ class CachedMediaRepository implements MediaRepository {
               userId: userId,
               cancelToken: cancelToken,
               includeTypes: includeTypes,
+              excludePlayed: excludePlayed,
             ));
   }
 

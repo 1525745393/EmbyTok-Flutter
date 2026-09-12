@@ -499,6 +499,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             userId: userId,
             cancelToken: _refreshCancelToken,
             includeTypes: includeTypes,
+            // 修复：传递排除已观看参数
+            excludePlayed: _ref.read(feedExcludePlayedProvider),
           );
           if (_refreshGeneration != gen) return;
           loadedItems = favResult.items;
