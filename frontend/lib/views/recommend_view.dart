@@ -12,6 +12,8 @@
 // - 推荐内容是"个性化推荐 + 多库评分推荐"混合，一次性加载不分页
 // - 包含独立 Scaffold + AppBar + 返回按钮
 
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,6 +42,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   // P0-2：常驻搜索框（本地过滤，不触发网络）
   late final TextEditingController _searchController;
   String _searchQuery = '';
+  // 搜索防抖：避免每次按键都触发整页重建
+  Timer? _searchDebounce;
   // P2-2：网格列数（2/3），持久化到 SharedPreferences，对齐演员页
   int _gridColumns = 3;
 
@@ -48,9 +52,15 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     // P0-2：搜索框文本变化 → 本地过滤（纯客户端，不请求服务器）
+    // 添加防抖：延迟 300ms 更新搜索结果，避免每次按键都触发整页重建
     _searchController = TextEditingController();
     _searchController.addListener(() {
-      setState(() => _searchQuery = _searchController.text);
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() => _searchQuery = _searchController.text);
+        }
+      });
     });
     // P2-2：恢复用户上次选择的网格列数（2/3）
     SharedPreferences.getInstance().then((prefs) {
@@ -106,6 +116,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
