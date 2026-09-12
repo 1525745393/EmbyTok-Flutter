@@ -290,6 +290,13 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 获取收藏的各类型数量
+  Future<Map<String, int>> getFavoriteCounts({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 切换收藏状态
   Future<void> toggleFavorite({
     required String itemId,

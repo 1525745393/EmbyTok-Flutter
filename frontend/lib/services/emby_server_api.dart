@@ -1055,6 +1055,44 @@ class EmbyServerApi implements MediaServerApi {
     AppLogger.debug('收藏状态已更新');
   }
 
+  /// 获取收藏的各类型数量
+  ///
+  /// 返回 Map<类型代码, 数量>，例如：{'Movie': 100, 'Series': 50, ...}
+  Future<Map<String, int>> getFavoriteCounts({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    const types = ['Movie', 'Series', 'BoxSet', 'Person'];
+    final params = <String, dynamic>{
+      'Filters': 'IsFavorite',
+      'IncludeItemTypes': types.join(','),
+    };
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId ?? '').isNotEmpty
+        ? '/Users/$effectiveUserId/Items/Counts'
+        : '/Items/Counts';
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        path,
+        queryParameters: params,
+      );
+      final data = resp.data;
+      if (data is Map<String, dynamic>) {
+        final result = <String, int>{};
+        for (final type in types) {
+          result[type] = (data[type] as int?) ?? 0;
+        }
+        return result;
+      }
+      return {};
+    } catch (e) {
+      AppLogger.error('获取收藏数量失败', error: e);
+      return {};
+    }
+  }
+
   // ============================
   // 标记已看 / 未看
   // ============================

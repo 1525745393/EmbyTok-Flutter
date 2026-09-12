@@ -469,6 +469,19 @@ class EmbytokService {
     );
   }
 
+  /// 获取收藏的各类型数量
+  Future<Map<String, int>> getFavoriteCounts({
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getFavoriteCounts(
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
   // ============================
   // 切换收藏状态（带 userId 端点，与 EmbyX 对齐）
   // ============================
