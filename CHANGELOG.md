@@ -1,3 +1,10 @@
+# [2.78.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.5...v2.78.0) (2026-09-12)
+
+
+### Features
+
+* 收藏夹视频流添加收藏的人物和合集 ([2d0578b](https://github.com/1525745393/EmbyTok-Flutter/commit/2d0578b42e71daf4e8bc858b55735fd9c33113d8))
+
 ## [2.77.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.4...v2.77.5) (2026-09-12)
 
 
