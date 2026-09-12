@@ -1,3 +1,10 @@
+# [2.66.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.65.2...v2.66.0) (2026-09-12)
+
+
+### Features
+
+* **歌手简介:** 头像和专辑封面添加磁盘缓存 ([3e787d1](https://github.com/1525745393/EmbyTok-Flutter/commit/3e787d1babfdb15774a2e68dce93ddbc40b76047))
+
 ## [2.65.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.65.1...v2.65.2) (2026-09-11)
 
 
