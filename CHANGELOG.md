@@ -1,3 +1,10 @@
+# [2.68.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.67.0...v2.68.0) (2026-09-12)
+
+
+### Features
+
+* **歌手详情页:** 优化用户体验和代码质量 ([94197f3](https://github.com/1525745393/EmbyTok-Flutter/commit/94197f300378f6b21245fad81d1df6eedb991a64))
+
 # [2.67.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.66.2...v2.67.0) (2026-09-12)
 
 
