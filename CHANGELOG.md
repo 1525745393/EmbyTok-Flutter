@@ -1,3 +1,10 @@
+# [2.75.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.74.0...v2.75.0) (2026-09-12)
+
+
+### Features
+
+* **演员页:** 添加加载更多文字提示 ([571073b](https://github.com/1525745393/EmbyTok-Flutter/commit/571073b1fb10d6de2e145495bf5142f122ac9f51))
+
 # [2.74.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.73.0...v2.74.0) (2026-09-12)
 
 
