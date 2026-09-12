@@ -125,13 +125,24 @@ class UpdateCheckService {
             ));
 
   /// 获取最新 Release
+  ///
+  /// 使用 /releases 而非 /releases/latest，以便获取预发布版本
+  /// 按 published_at 降序排列，取第一个
   Future<ReleaseInfo?> getLatestRelease() async {
     try {
       final resp = await _dio.get<dynamic>(
-        '$_apiBase/repos/$_owner/$_repo/releases/latest',
+        '$_apiBase/repos/$_owner/$_repo/releases',
+        queryParameters: {'per_page': 5},
       );
-      if (resp.statusCode == 200 && resp.data is Map<String, dynamic>) {
-        return ReleaseInfo.fromJson(resp.data as Map<String, dynamic>);
+      if (resp.statusCode == 200 && resp.data is List<dynamic>) {
+        final releases = (resp.data as List<dynamic>)
+            .whereType<Map<String, dynamic>>()
+            .map(ReleaseInfo.fromJson)
+            .toList();
+        if (releases.isEmpty) return null;
+        // 按发布时间降序，取最新的
+        releases.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+        return releases.first;
       }
       return null;
     } on DioException catch (e) {
@@ -205,7 +216,29 @@ class UpdateCheckService {
     if (aHasPreRelease && !bHasPreRelease) return false;
     if (!aHasPreRelease && bHasPreRelease) return true;
 
+    // 两者都是预发布版本，比较预发布标签
+    if (aHasPreRelease && bHasPreRelease) {
+      final aPre = a.substring(a.indexOf('-') + 1);
+      final bPre = b.substring(b.indexOf('-') + 1);
+      return _comparePreRelease(aPre, bPre) > 0;
+    }
+
     return false; // 相同版本
+  }
+
+  /// 比较预发布版本标签
+  /// 如 beta.2 > beta.1 > beta
+  int _comparePreRelease(String a, String b) {
+    final aParts = a.split('.');
+    final bParts = b.split('.');
+    final maxLen = aParts.length > bParts.length ? aParts.length : bParts.length;
+    for (var i = 0; i < maxLen; i++) {
+      final aNum = int.tryParse(i < aParts.length ? aParts[i] : '0') ?? 0;
+      final bNum = int.tryParse(i < bParts.length ? bParts[i] : '0') ?? 0;
+      if (aNum > bNum) return 1;
+      if (aNum < bNum) return -1;
+    }
+    return 0;
   }
 
   /// 解析版本号，提取数字段
