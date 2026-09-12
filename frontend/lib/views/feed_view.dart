@@ -556,9 +556,23 @@ class _FeedViewState extends ConsumerState<FeedView>
     final error = videoState.error;
     final errorMsg = error?.message;
     if (videoState.items.isEmpty && videoState.isLoading) {
+      final scheme = Theme.of(context).colorScheme;
       return Center(
-          child: CircularProgressIndicator(
-              color: Theme.of(context).colorScheme.primary));
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: scheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              '正在加载视频...',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (videoState.items.isEmpty && errorMsg != null) {
       return ErrorStateCard(
@@ -626,9 +640,23 @@ class _FeedViewState extends ConsumerState<FeedView>
       },
       itemBuilder: (context, index) {
         if (index >= videoState.items.length) {
+          final scheme = Theme.of(context).colorScheme;
           return Center(
-              child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary));
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: scheme.primary),
+                const SizedBox(height: 12),
+                Text(
+                  '加载更多视频...',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
         final item = videoState.items[index];
         // 从协调器取出预加载的会话
