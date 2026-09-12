@@ -2789,6 +2789,7 @@ class SettingsView extends ConsumerWidget {
           if (!isDialogActive) return;
           updateService.downloadApk(
             apkAsset,
+            version: release.version,
             onProgress: (p) {
               if (!isDialogActive) return;
               progressNotifier.value = p;

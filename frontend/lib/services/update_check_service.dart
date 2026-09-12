@@ -257,10 +257,12 @@ class UpdateCheckService {
   /// 下载 APK 到本地缓存目录
   ///
   /// - [asset] 要下载的 APK 附件
+  /// - [version] 版本号（用于文件名，避免不同版本缓存冲突）
   /// - [onProgress] 下载进度回调（0.0 ~ 1.0）
   /// - 返回下载后的本地文件路径
   Future<String> downloadApk(
     ReleaseAsset asset, {
+    required String version,
     required void Function(double progress) onProgress,
     CancelToken? cancelToken,
   }) async {
@@ -270,7 +272,9 @@ class UpdateCheckService {
     if (!await downloadsDir.exists()) {
       await downloadsDir.create(recursive: true);
     }
-    final savePath = '${downloadsDir.path}/${asset.name}';
+    // 文件名加入版本号，避免不同版本同名缓存
+    final fileName = '${version}_${asset.name}';
+    final savePath = '${downloadsDir.path}/$fileName';
 
     // 已下载过同名文件且大小匹配则直接返回
     final existingFile = File(savePath);
