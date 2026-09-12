@@ -180,9 +180,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
   }
 
-  // 发起一次新搜索（带防抖，重置状态）
+  // 发起一次新搜索（View 层已做防抖，这里直接执行）
   //
-  // 300ms 内的连续调用只发起最后一次请求。
   // 相同查询+分类 30 秒内命中缓存。
   void search(String query, {SearchCategory? category}) {
     final searchCategory = category ?? SearchCategory.all;
@@ -194,11 +193,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
       return;
     }
 
-    // 防抖：取消上一次 pending 请求，300ms 后再执行
+    // View 层已做防抖（300ms），这里直接执行搜索
+    // 取消上一次 pending 请求
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(_kSearchDebounce, () {
-      _doSearch(query, searchCategory);
-    });
+    _doSearch(query, searchCategory);
   }
 
   /// 实际执行搜索
