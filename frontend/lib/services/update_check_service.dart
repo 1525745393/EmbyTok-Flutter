@@ -97,6 +97,12 @@ class UpdateCheckResult {
   });
 }
 
+/// API 限流异常（429）
+class UpdateRateLimitException implements Exception {
+  @override
+  String toString() => 'GitHub API 请求过于频繁，请稍后再试';
+}
+
 /// 更新检查服务
 ///
 /// 通过 GitHub API 检查仓库最新 Release，与当前版本对比。
@@ -134,6 +140,11 @@ class UpdateCheckService {
         AppLogger.info('GitHub: 暂无 Release');
         return null;
       }
+      // 429 表示 API 限流
+      if (e.response?.statusCode == 429) {
+        AppLogger.warn('GitHub API 限流，请稍后再试');
+        throw UpdateRateLimitException();
+      }
       AppLogger.error('检查更新失败（网络）', error: e);
       return null;
     } catch (e) {
@@ -145,6 +156,7 @@ class UpdateCheckService {
   /// 检查是否有更新
   ///
   /// [currentVersion] 当前版本号（如 "1.133.0"）
+  /// 抛出 [UpdateRateLimitException] 当 API 限流时
   Future<UpdateCheckResult> checkForUpdate(String currentVersion) async {
     final release = await getLatestRelease();
     if (release == null) {
@@ -166,23 +178,44 @@ class UpdateCheckService {
 
   /// 判断 [a] 是否比 [b] 更新
   /// 版本格式：x.y.z，逐段比较数字大小
+  /// 预发布版本（如 1.0.0-beta）视为正式版本的更低优先级
   bool _isNewer(String a, String b) {
-    final partsA = a.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    final partsB = b.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    // 分离主版本号和预发布标签
+    final aParts = _parseVersion(a);
+    final bParts = _parseVersion(b);
+
     // 补齐到相同长度
     final maxLen =
-        partsA.length > partsB.length ? partsA.length : partsB.length;
-    while (partsA.length < maxLen) {
-      partsA.add(0);
+        aParts.length > bParts.length ? aParts.length : bParts.length;
+    while (aParts.length < maxLen) {
+      aParts.add(0);
     }
-    while (partsB.length < maxLen) {
-      partsB.add(0);
+    while (bParts.length < maxLen) {
+      bParts.add(0);
     }
     for (var i = 0; i < maxLen; i++) {
-      if (partsA[i] > partsB[i]) return true;
-      if (partsA[i] < partsB[i]) return false;
+      if (aParts[i] > bParts[i]) return true;
+      if (aParts[i] < bParts[i]) return false;
     }
+
+    // 主版本号相同，比较预发布标签
+    // 有预发布标签的版本 < 无预发布标签的正式版本
+    final aHasPreRelease = a.contains('-');
+    final bHasPreRelease = b.contains('-');
+    if (aHasPreRelease && !bHasPreRelease) return false;
+    if (!aHasPreRelease && bHasPreRelease) return true;
+
     return false; // 相同版本
+  }
+
+  /// 解析版本号，提取数字段
+  /// 如 "1.0.0-beta" → [1, 0, 0]
+  List<int> _parseVersion(String version) {
+    // 去掉预发布标签（-beta, -rc.1 等）
+    final dashIndex = version.indexOf('-');
+    final mainVersion = dashIndex > 0 ? version.substring(0, dashIndex) : version;
+
+    return mainVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
   }
 
   /// 获取 GitHub Release 页面 URL（用于浏览器打开）
@@ -198,8 +231,13 @@ class UpdateCheckService {
     required void Function(double progress) onProgress,
     CancelToken? cancelToken,
   }) async {
-    final dir = await getTemporaryDirectory();
-    final savePath = '${dir.path}/${asset.name}';
+    // 使用应用支持目录，避免被系统自动清理
+    final dir = await getApplicationSupportDirectory();
+    final downloadsDir = Directory('${dir.path}/downloads');
+    if (!await downloadsDir.exists()) {
+      await downloadsDir.create(recursive: true);
+    }
+    final savePath = '${downloadsDir.path}/${asset.name}';
 
     // 已下载过同名文件且大小匹配则直接返回
     final existingFile = File(savePath);

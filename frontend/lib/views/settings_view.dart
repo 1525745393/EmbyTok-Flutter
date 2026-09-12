@@ -2740,11 +2740,23 @@ class SettingsView extends ConsumerWidget {
       AppLogger.error('检查更新失败', error: e);
       if (context.mounted) Navigator.pop(context);
       if (!context.mounted) return;
+
+      // 根据错误类型显示不同提示
+      String errorTitle;
+      String errorMessage;
+      if (e is UpdateRateLimitException) {
+        errorTitle = '请求过于频繁';
+        errorMessage = 'GitHub API 请求次数已达上限，请稍后再试。';
+      } else {
+        errorTitle = '检查失败';
+        errorMessage = '检查更新时出错：$e';
+      }
+
       _showUpdateResultDialog(
         context,
         icon: Icons.error_outline,
-        title: '检查失败',
-        message: '检查更新时出错：$e',
+        title: errorTitle,
+        message: errorMessage,
         actionText: '关闭',
         onAction: null,
         secondaryActionText: '前往 GitHub',
