@@ -548,6 +548,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
             isSearchActive: isSearchActive,
             loading: actorsState.loading,
             isSearching: actorsState.isSearching,
+            isLoadingMore: actorsState.isLoadingMore,
             error: actorsState.error,
             scheme: scheme,
             hasScrollController: true,
@@ -561,6 +562,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
             isSearchActive: isSearchActive,
             loading: actorsState.loading,
             isSearching: actorsState.isSearching,
+            isLoadingMore: actorsState.isLoadingMore,
             error: actorsState.error,
             scheme: scheme,
             hasScrollController: false,
@@ -575,6 +577,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
             isSearchActive: isSearchActive,
             loading: actorsState.loading,
             isSearching: actorsState.isSearching,
+            isLoadingMore: actorsState.isLoadingMore,
             error: actorsState.error,
             scheme: scheme,
             hasScrollController: false,
@@ -605,6 +608,7 @@ class _ActorsViewState extends ConsumerState<ActorsView>
     required bool isSearchActive,
     required bool loading,
     required bool isSearching,
+    required bool isLoadingMore,
     required String? error,
     required ColorScheme scheme,
     required bool hasScrollController,
@@ -635,6 +639,33 @@ class _ActorsViewState extends ConsumerState<ActorsView>
           _buildActorGrid(
               actors, embyServerUrl, token, favoritedIds, isSearchActive,
               isFavoriteTab: isFavoriteTab),
+          // 加载更多提示
+          if (hasScrollController && isLoadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        '加载更多演员...',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // 已加载全部演员的提示（仅在有滚动控制器的 Tab 显示，避免重复）
           if (hasScrollController && !loading && actors.isNotEmpty)
             SliverToBoxAdapter(
