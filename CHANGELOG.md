@@ -1,3 +1,10 @@
+## [2.83.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.5...v2.83.6) (2026-09-12)
+
+
+### Bug Fixes
+
+* 设置页视频流使用subtitle正确显示收藏夹模式 ([3343188](https://github.com/1525745393/EmbyTok-Flutter/commit/3343188e2e3055ecf5c7f0f1d80d24d6894f9826))
+
 ## [2.83.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.4...v2.83.5) (2026-09-12)
 
 
