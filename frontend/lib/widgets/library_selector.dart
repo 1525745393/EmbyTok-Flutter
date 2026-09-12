@@ -311,7 +311,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
-              childAspectRatio: 1.4,
+              childAspectRatio: 1.2,
               children: [
                 _buildLibraryCard(
                   scheme: scheme,
@@ -346,7 +346,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             crossAxisCount: 2,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.4,
+            childAspectRatio: 1.2,
             children: libraries.map((lib) {
               final isSelected =
                   !isFavoritesMode && _localSelectedIds.contains(lib.id);
