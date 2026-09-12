@@ -1,3 +1,10 @@
+## [2.83.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.9...v2.83.10) (2026-09-12)
+
+
+### Bug Fixes
+
+* 收藏夹模式影片剧集不过滤已观看合集演员过滤 ([5d8a8bc](https://github.com/1525745393/EmbyTok-Flutter/commit/5d8a8bcb01facff10cabd01a2d5e164901a5e8af))
+
 ## [2.83.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.8...v2.83.9) (2026-09-12)
 
 
