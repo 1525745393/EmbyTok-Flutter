@@ -334,6 +334,19 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     scheme.primary.withValues(alpha: 0.2),
                   ],
                 ),
+                // 收藏类型筛选卡片
+                _buildLibraryCard(
+                  scheme: scheme,
+                  icon: Icons.filter_list,
+                  name: '类型筛选',
+                  count: null,
+                  isSelected: false,
+                  onTap: () => _showFavoriteTypeFilter(context, scheme),
+                  gradientColors: [
+                    scheme.tertiary.withValues(alpha: 0.6),
+                    scheme.tertiary.withValues(alpha: 0.2),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -567,5 +580,62 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       default:
         return Icons.folder;
     }
+  }
+
+  // 显示收藏类型筛选弹窗
+  void _showFavoriteTypeFilter(BuildContext context, ColorScheme scheme) {
+    showDialog(
+      context: context,
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final selectedTypes = ref.watch(favoriteIncludeTypesProvider);
+          final availableTypes = const [
+            {'code': 'Movie', 'name': '影片', 'icon': Icons.movie},
+            {'code': 'Series', 'name': '剧集', 'icon': Icons.tv},
+            {'code': 'BoxSet', 'name': '合集', 'icon': Icons.collections},
+            {'code': 'Person', 'name': '人物', 'icon': Icons.person},
+          ];
+          return AlertDialog(
+            title: const Text('收藏类型筛选'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: availableTypes.map((type) {
+                final code = type['code'] as String;
+                final name = type['name'] as String;
+                final icon = type['icon'] as IconData;
+                final isSelected = selectedTypes.contains(code);
+                return CheckboxListTile(
+                  value: isSelected,
+                  onChanged: (_) {
+                    ref.read(favoriteIncludeTypesProvider.notifier).toggle(code);
+                  },
+                  title: Row(
+                    children: [
+                      Icon(icon, size: 20, color: scheme.primary),
+                      const SizedBox(width: 12),
+                      Text(name),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // 刷新收藏夹列表
+                  ref.read(videoListProvider.notifier).refresh();
+                },
+                child: const Text('确认'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

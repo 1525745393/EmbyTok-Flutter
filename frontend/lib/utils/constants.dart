@@ -66,6 +66,9 @@ const String kStorageKeyRecommendAntiFatigueEnabled =
     'embytok_recommend_anti_fatigue_enabled';
 const String kStorageKeyRecommendAntiFatigueDays =
     'embytok_recommend_anti_fatigue_days';
+// 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
+const String kStorageKeyFavoriteIncludeTypes =
+    'embytok_favorite_include_types';
 const String kStorageKeyRecentlyShownItemIds =
     'embytok_recently_shown_item_ids';
 // PR #89：推荐 - 用户评分加权（Emby UserData.Rating 0-10）

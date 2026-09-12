@@ -490,11 +490,13 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
         case FeedType.favorites:
           if (_refreshGeneration != gen) return;
+          final includeTypes = _ref.read(favoriteIncludeTypesProvider).toList();
           final favResult = await _repo.getFavoriteMovies(
             serverUrl: serverUrl,
             token: token,
             userId: userId,
             cancelToken: _refreshCancelToken,
+            includeTypes: includeTypes,
           );
           if (_refreshGeneration != gen) return;
           loadedItems = favResult.items;

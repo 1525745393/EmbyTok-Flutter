@@ -608,3 +608,50 @@ final recommendUserRatingMinProvider =
     StateNotifierProvider<RecommendUserRatingMinNotifier, double>(
   (ref) => RecommendUserRatingMinNotifier(),
 );
+
+// ==================== 收藏夹类型筛选 ====================
+
+/// 收藏夹显示的媒体类型（Movie/Series/BoxSet/Person 的子集）
+class FavoriteIncludeTypesNotifier extends StateNotifier<Set<String>> {
+  FavoriteIncludeTypesNotifier()
+      : super(const <String>{
+          'Movie',
+          'Series',
+          'BoxSet',
+          'Person',
+        }) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(kStorageKeyFavoriteIncludeTypes);
+      if (list != null) {
+        state = list.toSet();
+      }
+    } catch (_) {}
+  }
+
+  /// 切换某个类型
+  Future<void> toggle(String type) async {
+    final next = state.contains(type)
+        ? (state.toSet()..remove(type))
+        : (state.toSet()..add(type));
+    // 至少保留一个类型
+    if (next.isEmpty) {
+      AppLogger.debug('收藏：类型偏好不能全空');
+      return;
+    }
+    state = next;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(kStorageKeyFavoriteIncludeTypes, next.toList());
+    } catch (_) {}
+  }
+}
+
+final favoriteIncludeTypesProvider =
+    StateNotifierProvider<FavoriteIncludeTypesNotifier, Set<String>>(
+  (ref) => FavoriteIncludeTypesNotifier(),
+);

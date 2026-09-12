@@ -898,6 +898,7 @@ class EmbyServerApi implements MediaServerApi {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -907,7 +908,9 @@ class EmbyServerApi implements MediaServerApi {
       'Filters': 'IsFavorite',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series,BoxSet,Person',
+      'IncludeItemTypes': includeTypes != null && includeTypes.isNotEmpty
+          ? includeTypes.join(',')
+          : 'Movie,Episode,Video,MusicVideo,Series,BoxSet,Person',
       'ExcludeItemTypes': 'Playlist',
       'SortBy': 'DateCreated',
       'SortOrder': 'Descending',
