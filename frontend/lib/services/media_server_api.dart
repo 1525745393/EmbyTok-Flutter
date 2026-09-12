@@ -208,6 +208,7 @@ abstract class MediaServerApi {
   /// 获取单个演员详情（包含 overview）
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     String? serverUrl,
     String? token,
     String? userId,

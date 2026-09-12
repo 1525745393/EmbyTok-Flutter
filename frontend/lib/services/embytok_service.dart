@@ -311,12 +311,14 @@ class EmbytokService {
   // ============================
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     String? serverUrl,
     String? token,
     String? userId,
   }) {
     return _api.getPersonDetail(
       personId,
+      personName: personName,
       serverUrl: serverUrl,
       token: token,
       userId: userId,

@@ -659,6 +659,7 @@ class CachedMediaRepository implements MediaRepository {
   @override
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     required String serverUrl,
     required String token,
     String? userId,
@@ -669,6 +670,7 @@ class CachedMediaRepository implements MediaRepository {
         key,
         () => _inner.getPersonDetail(
               personId,
+              personName: personName,
               serverUrl: serverUrl,
               token: token,
               userId: userId,

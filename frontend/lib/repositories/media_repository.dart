@@ -220,6 +220,7 @@ abstract class MediaRepository {
   /// 演员详情极少变化，适合长 TTL 缓存。
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     required String serverUrl,
     required String token,
     String? userId,

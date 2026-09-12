@@ -704,6 +704,7 @@ class EmbyServerApi implements MediaServerApi {
   @override
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     String? serverUrl,
     String? token,
     String? userId,
@@ -714,14 +715,27 @@ class EmbyServerApi implements MediaServerApi {
           'Overview,Genres,CommunityRating,ProductionYear,ImageTags,UserData,People',
     };
     try {
-      // 使用 /Items/{id} 端点获取单条详情，确保 Overview 字段返回
-      final resp = await _apiClient.get<dynamic>(
+      // 优先使用 /Persons/{name} 端点，确保 Overview 字段返回
+      // /Items/{id} 对 Person 类型可能不返回 Overview
+      if (personName != null && personName.isNotEmpty) {
+        final resp = await _apiClient.get<dynamic>(
+          '/Persons/${Uri.encodeComponent(personName)}',
+          queryParameters: params,
+        );
+        final data = resp.data;
+        if (data is Map<String, dynamic> &&
+            (data['Overview'] as String?)?.isNotEmpty == true) {
+          return MediaItem.fromJson(data);
+        }
+      }
+      // fallback: 使用 /Items/{id} 端点
+      final resp2 = await _apiClient.get<dynamic>(
         '/Items/$personId',
         queryParameters: params,
       );
-      final data = resp.data;
-      if (data is Map<String, dynamic>) {
-        return MediaItem.fromJson(data);
+      final data2 = resp2.data;
+      if (data2 is Map<String, dynamic>) {
+        return MediaItem.fromJson(data2);
       }
       return null;
     } catch (e) {

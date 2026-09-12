@@ -89,6 +89,7 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
       );
       final detailFuture = cachedRepo.getPersonDetail(
         widget.person.id,
+        personName: widget.person.title,
         serverUrl: serverUrl,
         token: token,
         userId: userId,
