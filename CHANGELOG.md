@@ -1,3 +1,10 @@
+## [2.83.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.8...v2.83.9) (2026-09-12)
+
+
+### Bug Fixes
+
+* 排除已观看使用IsUnplayed而非IsPlayed=false ([bbf0eff](https://github.com/1525745393/EmbyTok-Flutter/commit/bbf0eff72a3fd93b040b0758fb113514898ab9fd))
+
 ## [2.83.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.7...v2.83.8) (2026-09-12)
 
 
