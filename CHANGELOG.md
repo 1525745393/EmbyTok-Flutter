@@ -1,3 +1,10 @@
+## [2.77.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.1...v2.77.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* 修复多选媒体库时顶部工具栏显示异常 ([8a0b766](https://github.com/1525745393/EmbyTok-Flutter/commit/8a0b766963d7523efec613b2fe6c11f9e65564a5))
+
 ## [2.77.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.77.0...v2.77.1) (2026-09-12)
 
 
