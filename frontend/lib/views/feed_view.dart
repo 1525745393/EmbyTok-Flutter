@@ -509,8 +509,6 @@ class _FeedViewState extends ConsumerState<FeedView>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 媒体库选择按钮
-          _buildLibrarySelectorButton(scheme),
           _buildTopBarButton(
             icon: Icons.search,
             label: '搜索',
@@ -547,65 +545,6 @@ class _FeedViewState extends ConsumerState<FeedView>
             },
           ),
         ],
-      ),
-    );
-  }
-
-  // 媒体库选择按钮
-  Widget _buildLibrarySelectorButton(ColorScheme scheme) {
-    final selectedLibraries = ref.watch(selectedLibrariesProvider);
-    String label;
-    if (selectedLibraries.isEmpty) {
-      label = '选择库';
-    } else if (selectedLibraries.length == 1) {
-      label = selectedLibraries.first.name;
-    } else {
-      label = '${selectedLibraries.length}个库';
-    }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
-        onTap: () {
-          LibrarySelector.show(context, scope: LibraryScope.feed);
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: scheme.primary.withValues(alpha: 0.4),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.folder_outlined,
-                size: 16,
-                color: scheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: scheme.primary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(width: 2),
-              Icon(
-                Icons.expand_more,
-                size: 16,
-                color: scheme.primary,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

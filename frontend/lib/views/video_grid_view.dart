@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show ViewMode;
-import '../widgets/library_selector.dart';
 import '../widgets/video/video_grid_card.dart';
 
 // 视频网格视图
@@ -62,13 +61,6 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
           style: TextStyle(color: scheme.onSurface),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.library_books, color: scheme.onSurface),
-            onPressed: () => LibrarySelector.show(context),
-            tooltip: '媒体库',
-          ),
-        ],
       ),
       body: _buildBody(videoState, displayItems),
     );
@@ -101,21 +93,10 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              isLibraryEmpty ? '暂无视频，请选择媒体库' : '没有符合筛选条件的视频',
+              isLibraryEmpty ? '暂无视频，请在设置中选择媒体库' : '没有符合筛选条件的视频',
               style: TextStyle(
                   color: scheme.onSurface.withValues(alpha: 0.6), fontSize: 16),
             ),
-            if (isLibraryEmpty) ...[
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => LibrarySelector.show(
-                  context,
-                  scope: LibraryScope.feed,
-                ),
-                icon: const Icon(Icons.library_add_outlined),
-                label: const Text('选择媒体库'),
-              ),
-            ],
           ],
         ),
       );
