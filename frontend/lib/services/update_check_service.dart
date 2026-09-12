@@ -284,26 +284,58 @@ class UpdateCheckService {
       return savePath;
     }
 
-    try {
-      await _dio.download(
-        asset.downloadUrl,
-        savePath,
-        cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total <= 0) return;
-          onProgress(received / total);
-        },
-      );
-      AppLogger.debug('APK 下载完成：$savePath');
-      return savePath;
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) {
-        AppLogger.info('APK 下载已取消');
-      } else {
-        AppLogger.error('APK 下载失败', error: e);
+    // GitHub 国内加速镜像列表（按优先级排序）
+    // 原始链接优先，失败后依次尝试镜像
+    final downloadUrls = <String>[
+      asset.downloadUrl, // 原始 GitHub 链接
+      'https://ghproxy.com/${asset.downloadUrl}',
+      'https://mirror.ghproxy.com/${asset.downloadUrl}',
+      'https://gh-proxy.com/${asset.downloadUrl}',
+      'https://github.moeyy.xyz/${asset.downloadUrl}',
+    ];
+
+    Object? lastError;
+    for (int i = 0; i < downloadUrls.length; i++) {
+      final url = downloadUrls[i];
+      final isMirror = i > 0;
+      try {
+        AppLogger.info('开始下载 APK', data: {
+          'url': isMirror ? '镜像 #${i}' : '原始链接',
+          'fileName': asset.name,
+        });
+        await _dio.download(
+          url,
+          savePath,
+          cancelToken: cancelToken,
+          onReceiveProgress: (received, total) {
+            if (total <= 0) return;
+            onProgress(received / total);
+          },
+        );
+        AppLogger.info('APK 下载完成', data: {
+          'source': isMirror ? '镜像 #$i' : '原始链接',
+          'path': savePath,
+        });
+        return savePath;
+      } on DioException catch (e) {
+        if (CancelToken.isCancel(e)) {
+          AppLogger.info('APK 下载已取消');
+          rethrow;
+        }
+        lastError = e;
+        AppLogger.warn('下载失败，尝试下一个源', data: {
+          'source': isMirror ? '镜像 #$i' : '原始链接',
+          'error': e.message,
+        });
+        // 删除未完成的文件
+        if (await existingFile.exists()) {
+          await existingFile.delete();
+        }
+        continue;
       }
-      rethrow;
     }
+    AppLogger.error('所有下载源都失败了', error: lastError);
+    throw Exception('下载失败，请检查网络连接后重试');
   }
 }
 
