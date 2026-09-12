@@ -1,3 +1,15 @@
+# [2.84.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.10...v2.84.0) (2026-09-12)
+
+
+### Bug Fixes
+
+* 补充EmbytokService和抽象类getBoxSetItems方法 ([7313770](https://github.com/1525745393/EmbyTok-Flutter/commit/73137705afbdd5dd2a9101b66b694e013593a5fb))
+
+
+### Features
+
+* 收藏夹模式合集显示合集里视频演员显示演员视频 ([255a2fd](https://github.com/1525745393/EmbyTok-Flutter/commit/255a2fdf6e22ee11f08392307dcb41e1f3163358))
+
 ## [2.83.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.9...v2.83.10) (2026-09-12)
 
 
