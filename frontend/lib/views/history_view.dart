@@ -107,6 +107,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
 
   Widget _buildBody(WatchHistoryState state) {
     final authState = ref.watch(authProvider);
+    final scheme = Theme.of(context).colorScheme;
 
     // 未登录时显示明确提示
     if (!authState.isAuthenticated) {
@@ -116,9 +117,21 @@ class _HistoryViewState extends ConsumerState<HistoryView>
     }
 
     if (state.isLoading && state.items.isEmpty) {
-      final scheme = Theme.of(context).colorScheme;
       return Center(
-        child: CircularProgressIndicator(color: scheme.primary),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: scheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              '正在加载观看历史...',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       );
     }
     final error = state.error;
@@ -136,15 +149,18 @@ class _HistoryViewState extends ConsumerState<HistoryView>
       return EmptyStateCard.noHistory();
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = state.items[index];
-        return _HistoryTile(
-            key: Key(item.id), item: item, allItems: state.items);
-      },
+    return RefreshIndicator(
+      onRefresh: () => ref.read(watchHistoryProvider.notifier).refresh(),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: state.items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final item = state.items[index];
+          return _HistoryTile(
+              key: Key(item.id), item: item, allItems: state.items);
+        },
+      ),
     );
   }
 }
