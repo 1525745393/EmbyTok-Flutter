@@ -68,6 +68,8 @@ class LibrarySelector extends ConsumerStatefulWidget {
 class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
   // 本地选中状态（确认前临时使用）
   Set<String> _localSelectedIds = {};
+  // 是否选中收藏夹（确认前临时使用）
+  bool _localIsFavorites = false;
 
   @override
   void initState() {
@@ -91,6 +93,13 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           _localSelectedIds = Set.from(selectedIds);
         });
       }
+      // 初始化收藏夹选中状态
+      if (widget.scope == LibraryScope.feed) {
+        final currentFeedType = ref.read(feedTypeProvider);
+        setState(() {
+          _localIsFavorites = currentFeedType == FeedType.favorites;
+        });
+      }
     });
   }
 
@@ -99,14 +108,9 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final scheme = Theme.of(context).colorScheme;
     final librariesAsync = ref.watch(libraryListProvider);
     final visibleLibraries = ref.watch(visibleLibraryListProvider);
-    final currentFeedType = ref.watch(feedTypeProvider);
 
-    // 判断是否为收藏夹模式（仅视频流有收藏夹）
-    final isFavoritesMode = widget.scope == LibraryScope.feed &&
-        currentFeedType == FeedType.favorites;
-
-    // 如果还没有初始化本地选中状态，默认选中第一个库
-    if (_localSelectedIds.isEmpty && visibleLibraries.isNotEmpty) {
+    // 如果还没有初始化本地选中状态，默认选中第一个库（仅非收藏夹模式）
+    if (!_localIsFavorites && _localSelectedIds.isEmpty && visibleLibraries.isNotEmpty) {
       _localSelectedIds.add(visibleLibraries.first.id);
     }
 
@@ -242,7 +246,6 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   scheme,
                   visibleLibraries,
                   _localSelectedIds.toList(),
-                  isFavoritesMode,
                 ),
               ),
             ),
@@ -256,7 +259,6 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     ColorScheme scheme,
     List<Library> libraries,
     List<String> selectedIds,
-    bool isFavoritesMode,
   ) {
     if (libraries.isEmpty) {
       return Center(
@@ -293,9 +295,6 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       );
     }
 
-    // 收藏夹是否选中
-    final favoritesSelected = isFavoritesMode;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -319,15 +318,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   icon: Icons.favorite,
                   name: '收藏夹',
                   count: null,
-                  isSelected: favoritesSelected,
+                  isSelected: _localIsFavorites,
                   onTap: () {
-                    ref
-                        .read(feedTypeProvider.notifier)
-                        .setType(FeedType.favorites);
-                    ref.read(videoListProvider.notifier).refresh();
-                    // PR #66：标记视频流媒体库已配置（避免再次弹引导）
-                    ref.read(feedLibraryConfiguredProvider.notifier).set(true);
-                    Navigator.of(context).pop();
+                    setState(() {
+                      _localIsFavorites = !_localIsFavorites;
+                      // 互斥：选中收藏夹时清空媒体库选中
+                      if (_localIsFavorites) {
+                        _localSelectedIds.clear();
+                      }
+                    });
                   },
                   gradientColors: [
                     scheme.primary.withValues(alpha: 0.6),
@@ -363,7 +362,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             childAspectRatio: 1.2,
             children: libraries.map((lib) {
               final isSelected =
-                  !isFavoritesMode && _localSelectedIds.contains(lib.id);
+                  !_localIsFavorites && _localSelectedIds.contains(lib.id);
               return _buildLibraryCard(
                 scheme: scheme,
                 icon: _getLibraryIcon(lib.type),
@@ -373,13 +372,16 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 onTap: () {
                   // 多选模式：切换该库的选中状态，不关闭弹窗
                   setState(() {
-                    if (_localSelectedIds.contains(lib.id)) {
+                    // 互斥：点击媒体库时取消收藏夹选中
+                    if (!_localIsFavorites && _localSelectedIds.contains(lib.id)) {
                       _localSelectedIds.remove(lib.id);
                       // 确保至少保留一个
                       if (_localSelectedIds.isEmpty) {
                         _localSelectedIds.add(lib.id);
                       }
                     } else {
+                      // 点击媒体库时取消收藏夹选中
+                      _localIsFavorites = false;
                       _localSelectedIds.add(lib.id);
                     }
                   });
@@ -402,16 +404,23 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               ),
               const SizedBox(width: 12),
               FilledButton(
-                onPressed: _localSelectedIds.isEmpty
+                onPressed: (_localSelectedIds.isEmpty && !_localIsFavorites)
                     ? null
                     : () {
                         // PR #66：根据 scope 写到对应 provider
-                        // 仅 setLibraries：selectedLibraryIdsProvider / recommendLibraryIdsProvider
-                        // 监听器会自动触发 refresh（PR #60 修复过的逻辑）
                         if (widget.scope == LibraryScope.feed) {
-                          ref
-                              .read(selectedLibraryIdsProvider.notifier)
-                              .setLibraries(_localSelectedIds.toList());
+                          if (_localIsFavorites) {
+                            // 选中收藏夹：设置 feedType 为 favorites
+                            ref
+                                .read(feedTypeProvider.notifier)
+                                .setType(FeedType.favorites);
+                            ref.read(videoListProvider.notifier).refresh();
+                          } else {
+                            // 选中媒体库：设置选中的媒体库 ID
+                            ref
+                                .read(selectedLibraryIdsProvider.notifier)
+                                .setLibraries(_localSelectedIds.toList());
+                          }
                           ref
                               .read(feedLibraryConfiguredProvider.notifier)
                               .set(true);
