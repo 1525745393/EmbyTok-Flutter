@@ -302,6 +302,24 @@ class EmbytokService {
     );
   }
 
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getBoxSetItems(
+      boxSetId,
+      limit: limit,
+      offset: offset,
+      excludePlayed: excludePlayed,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
   // ============================
   // 获取单个演员详情（包含 overview）
   //

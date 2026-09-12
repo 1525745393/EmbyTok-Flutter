@@ -205,6 +205,16 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 获取合集（BoxSet）里的视频
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 获取单个演员详情（包含 overview）
   Future<MediaItem?> getPersonDetail(
     String personId, {
