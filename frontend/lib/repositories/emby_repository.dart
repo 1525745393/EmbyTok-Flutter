@@ -277,6 +277,25 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getBoxSetItems(
+      boxSetId,
+      limit: limit,
+      offset: offset,
+      excludePlayed: excludePlayed,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
   Future<FavoritesPageResult> getFavoritePeople({
     int limit = 50,
     int offset = 0,

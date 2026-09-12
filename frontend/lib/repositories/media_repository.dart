@@ -238,6 +238,16 @@ abstract class MediaRepository {
     required String token,
   });
 
+  /// 获取合集（BoxSet）里的视频
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    required String serverUrl,
+    required String token,
+  });
+
   /// 获取收藏的人物列表（支持分页）
   ///
   /// 收藏切换时数据会变，使用中 TTL 缓存，并在 toggleFavorite 后失效。

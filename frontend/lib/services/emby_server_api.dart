@@ -695,6 +695,35 @@ class EmbyServerApi implements MediaServerApi {
   }
 
   // ============================
+  // 获取合集（BoxSet）里的视频
+  // ============================
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'ParentId': boxSetId,
+      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+      if (excludePlayed) 'Filters': 'IsUnplayed',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
   // 获取单个演员详情（包含 overview）
   //
   // 注意：Emby 的 /Items/{id} 端点对 Person 类型可能不返回 Overview，

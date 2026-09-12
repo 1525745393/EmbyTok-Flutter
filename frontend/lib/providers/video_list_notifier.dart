@@ -494,21 +494,100 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           if (_refreshGeneration != gen) return;
           final includeTypes = _ref.read(favoriteIncludeTypesProvider).toList();
           final excludePlayed = _ref.read(feedExcludePlayedProvider);
-          // 修复：影片和剧集类型不过滤已观看，合集和演员类型过滤已观看
-          // 因为影片和剧集是用户直接收藏的，合集和演员是容器，里面的视频需要过滤
-          final shouldExcludePlayed = excludePlayed &&
-              (includeTypes.contains('BoxSet') || includeTypes.contains('Person'));
-          final favResult = await _repo.getFavoriteMovies(
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-            cancelToken: _refreshCancelToken,
-            includeTypes: includeTypes,
-            excludePlayed: shouldExcludePlayed,
-          );
-          if (_refreshGeneration != gen) return;
-          loadedItems = favResult.items;
-          loadedTotal = favResult.items.length;
+
+          // 收集所有视频
+          final allItems = <MediaItem>[];
+          final seenIds = <String>{};
+
+          // 1. 处理影片和剧集：直接显示收藏的影片/剧集
+          final directTypes = includeTypes.where((t) => t == 'Movie' || t == 'Episode').toList();
+          if (directTypes.isNotEmpty) {
+            final directResult = await _repo.getFavoriteMovies(
+              serverUrl: serverUrl,
+              token: token,
+              userId: userId,
+              cancelToken: _refreshCancelToken,
+              includeTypes: directTypes,
+              excludePlayed: false, // 影片和剧集不过滤已观看
+            );
+            if (_refreshGeneration != gen) return;
+            for (final item in directResult.items) {
+              if (!seenIds.contains(item.id)) {
+                seenIds.add(item.id);
+                allItems.add(item);
+              }
+            }
+          }
+
+          // 2. 处理合集：显示所有收藏合集里的视频
+          if (includeTypes.contains('BoxSet')) {
+            final boxSetsResult = await _repo.getFavoriteMovies(
+              serverUrl: serverUrl,
+              token: token,
+              userId: userId,
+              cancelToken: _refreshCancelToken,
+              includeTypes: ['BoxSet'],
+              excludePlayed: false,
+            );
+            if (_refreshGeneration != gen) return;
+            // 获取每个合集里的视频
+            for (final boxSet in boxSetsResult.items.take(10)) { // 限制最多10个合集
+              try {
+                final boxSetItems = await _repo.getBoxSetItems(
+                  boxSet.id,
+                  limit: 50,
+                  excludePlayed: excludePlayed,
+                  serverUrl: serverUrl,
+                  token: token,
+                );
+                if (_refreshGeneration != gen) return;
+                for (final item in boxSetItems.items) {
+                  if (!seenIds.contains(item.id)) {
+                    seenIds.add(item.id);
+                    allItems.add(item);
+                  }
+                }
+              } catch (e) {
+                // 忽略单个合集的错误
+              }
+            }
+          }
+
+          // 3. 处理演员：显示所有收藏演员的视频
+          if (includeTypes.contains('Person')) {
+            final peopleResult = await _repo.getFavoriteMovies(
+              serverUrl: serverUrl,
+              token: token,
+              userId: userId,
+              cancelToken: _refreshCancelToken,
+              includeTypes: ['Person'],
+              excludePlayed: false,
+            );
+            if (_refreshGeneration != gen) return;
+            // 获取每个演员出演的视频
+            for (final person in peopleResult.items.take(10)) { // 限制最多10个演员
+              try {
+                final personItems = await _repo.getPersonItems(
+                  person.id,
+                  limit: 50,
+                  serverUrl: serverUrl,
+                  token: token,
+                );
+                if (_refreshGeneration != gen) return;
+                for (final item in personItems.items) {
+                  if (!seenIds.contains(item.id)) {
+                    seenIds.add(item.id);
+                    allItems.add(item);
+                  }
+                }
+              } catch (e) {
+                // 忽略单个演员的错误
+              }
+            }
+          }
+
+          loadedItems = allItems;
+          loadedTotal = allItems.length;
           canPaginate = false;
 
         case FeedType.resume:
