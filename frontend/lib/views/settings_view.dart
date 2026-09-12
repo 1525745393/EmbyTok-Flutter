@@ -23,7 +23,7 @@ import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
 import '../utils/app_preferences.dart'
-    show AppPreferencesService, OrientationMode;
+    show AppPreferencesService, OrientationMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
@@ -325,7 +325,11 @@ class SettingsView extends ConsumerWidget {
   // 媒体库 - 视频流使用（PR #66）
   Widget _buildFeedLibraryTile(BuildContext context, WidgetRef ref) {
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
-    final subtitle = _libraryNamesSubtitle(selectedLibraries);
+    final feedType = ref.watch(feedTypeProvider);
+    // 修复：收藏夹模式下显示"收藏夹模式"，否则显示媒体库名称
+    final subtitle = feedType == FeedType.favorites
+        ? '收藏夹模式'
+        : _libraryNamesSubtitle(selectedLibraries);
     return _TapTile(
       icon: Icons.video_library_outlined,
       iconColor: Colors.deepPurple,
