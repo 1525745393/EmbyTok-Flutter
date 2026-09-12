@@ -1,3 +1,10 @@
+## [2.83.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.3...v2.83.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* 演员简介fallback逻辑修复 ([cf1ef04](https://github.com/1525745393/EmbyTok-Flutter/commit/cf1ef04886c990f072c6ca92f0871b4db312c35b))
+
 ## [2.83.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.2...v2.83.3) (2026-09-12)
 
 
