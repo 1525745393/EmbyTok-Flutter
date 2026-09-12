@@ -1,3 +1,10 @@
+## [2.81.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.81.0...v2.81.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* 选择媒体库时自动切换feedType避免显示异常 ([1143b9b](https://github.com/1525745393/EmbyTok-Flutter/commit/1143b9b85943391ff95d64cd5c70378c337ec3f4))
+
 # [2.81.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.80.1...v2.81.0) (2026-09-12)
 
 
