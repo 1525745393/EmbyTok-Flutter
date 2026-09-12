@@ -1,3 +1,10 @@
+## [2.75.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.75.0...v2.75.1) (2026-09-12)
+
+
+### Performance Improvements
+
+* **演员页:** 关注状态本地缓存，立即显示上次关注状态 ([8278dbe](https://github.com/1525745393/EmbyTok-Flutter/commit/8278dbe7daa6258b5b15716052d6a533d84aaa34))
+
 # [2.75.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.74.0...v2.75.0) (2026-09-12)
 
 
