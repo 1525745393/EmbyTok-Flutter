@@ -1,3 +1,10 @@
+# [2.71.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.6...v2.71.0) (2026-09-12)
+
+
+### Features
+
+* **视频流:** 优化加载状态和错误提示 ([963f6c3](https://github.com/1525745393/EmbyTok-Flutter/commit/963f6c3e3a17372e6dfa0445dd4b31c1c8b8bec6))
+
 ## [2.70.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.5...v2.70.6) (2026-09-12)
 
 
