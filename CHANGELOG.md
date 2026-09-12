@@ -1,3 +1,10 @@
+# [2.77.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.76.1...v2.77.0) (2026-09-12)
+
+
+### Features
+
+* 优化媒体库选择器空状态提示 ([dc44b74](https://github.com/1525745393/EmbyTok-Flutter/commit/dc44b7413a28461bf080b99ea99e018d9675f3ce))
+
 ## [2.76.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.76.0...v2.76.1) (2026-09-12)
 
 
