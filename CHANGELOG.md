@@ -1,3 +1,10 @@
+# [2.76.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.75.1...v2.76.0) (2026-09-12)
+
+
+### Features
+
+* **收藏页:** 添加下拉刷新 ([9ac9b37](https://github.com/1525745393/EmbyTok-Flutter/commit/9ac9b375ec14d6527d757230a318db677d2b8f9d))
+
 ## [2.75.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.75.0...v2.75.1) (2026-09-12)
 
 
