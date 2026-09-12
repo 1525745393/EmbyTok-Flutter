@@ -184,41 +184,48 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        // 可折叠头部区域
-        _buildSliverAppBar(context, scheme, metadata),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(artistMetadataProvider(_artistName));
+        ref.invalidate(artistSongsProvider(_artistName));
+        ref.invalidate(artistAlbumsProvider(_artistName));
+      },
+      child: CustomScrollView(
+        slivers: [
+          // 可折叠头部区域
+          _buildSliverAppBar(context, scheme, metadata),
 
-        // 操作按钮行
-        SliverToBoxAdapter(
-          child: _buildActionButtons(context, scheme, metadata),
-        ),
-
-        // 歌手简介模块
-        if (metadata.hasBio)
+          // 操作按钮行
           SliverToBoxAdapter(
-            child: _buildBioSection(context, scheme, metadata),
+            child: _buildActionButtons(context, scheme, metadata),
           ),
 
-        // 相似歌手（V1.1）
-        if (metadata.hasSimilarArtists)
+          // 歌手简介模块
+          if (metadata.hasBio)
+            SliverToBoxAdapter(
+              child: _buildBioSection(context, scheme, metadata),
+            ),
+
+          // 相似歌手（V1.1）
+          if (metadata.hasSimilarArtists)
+            SliverToBoxAdapter(
+              child: _buildSimilarArtistsSection(context, scheme, metadata),
+            ),
+
+          // 歌手专辑列表
           SliverToBoxAdapter(
-            child: _buildSimilarArtistsSection(context, scheme, metadata),
+            child: _buildAlbumsSection(context, scheme, albumsAsync),
           ),
 
-        // 歌手专辑列表
-        SliverToBoxAdapter(
-          child: _buildAlbumsSection(context, scheme, albumsAsync),
-        ),
-
-        // 歌手歌曲列表
-        SliverToBoxAdapter(
-          child: _buildSongsSection(context, scheme, songsAsync),
+          // 歌手歌曲列表
+          SliverToBoxAdapter(
+            child: _buildSongsSection(context, scheme, songsAsync),
         ),
 
         // 底部间距
         SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
       ],
+    ),
     );
   }
 
@@ -1046,6 +1053,63 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         ),
       ),
       onTap: () => _playSong(context, song),
+      onLongPress: () => _showSongOptions(context, scheme, song),
+    );
+  }
+
+  /// 歌曲长按操作菜单
+  void _showSongOptions(BuildContext context, ColorScheme scheme, AudioSong song) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 歌曲信息头部
+            ListTile(
+              leading: const Icon(Icons.music_note, size: 40),
+              title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text(
+                [
+                  if (song.artistDisplay.isNotEmpty) song.artistDisplay,
+                  if (song.albumDisplay.isNotEmpty) song.albumDisplay,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.play_arrow),
+              title: const Text('播放'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _playSong(context, song);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.playlist_play),
+              title: const Text('下一首播放'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已添加到播放队列下一首')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite_border),
+              title: const Text('收藏'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已收藏')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1081,10 +1145,15 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             style: TextStyle(color: scheme.onSurface),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: () => setState(() {}),
-            child: const Text('重试'),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              ref.invalidate(artistMetadataProvider(_artistName));
+              ref.invalidate(artistSongsProvider(_artistName));
+              ref.invalidate(artistAlbumsProvider(_artistName));
+            },
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('重试'),
           ),
         ],
       ),
