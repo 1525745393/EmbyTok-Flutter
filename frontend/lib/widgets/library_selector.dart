@@ -83,22 +83,49 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.invalidate(libraryListProvider);
-      // 初始化本地选中状态：从 provider 读取当前选中的 ID
-      // 修复：之前在 build 中初始化，时机不对，导致打勾不显示
-      final selectedIds = widget.scope == LibraryScope.feed
-          ? ref.read(selectedLibraryIdsProvider)
-          : ref.read(recommendLibraryIdsProvider);
-      if (selectedIds.isNotEmpty) {
-        setState(() {
-          _localSelectedIds = Set.from(selectedIds);
-        });
-      }
+
       // 初始化收藏夹选中状态
       if (widget.scope == LibraryScope.feed) {
         final currentFeedType = ref.read(feedTypeProvider);
         setState(() {
           _localIsFavorites = currentFeedType == FeedType.favorites;
         });
+      }
+
+      // 监听选中 ID 变化，确保异步加载完成后更新本地状态
+      // 修复：之前直接 ref.read 可能读到空 state（异步加载未完成）
+      if (widget.scope == LibraryScope.feed) {
+        ref.listenManual(selectedLibraryIdsProvider, (prev, next) {
+          if (!mounted) return;
+          if (next.isNotEmpty) {
+            setState(() {
+              _localSelectedIds = Set.from(next);
+            });
+          }
+        });
+        // 立即读取当前值（可能已经加载完成）
+        final current = ref.read(selectedLibraryIdsProvider);
+        if (current.isNotEmpty) {
+          setState(() {
+            _localSelectedIds = Set.from(current);
+          });
+        }
+      } else {
+        ref.listenManual(recommendLibraryIdsProvider, (prev, next) {
+          if (!mounted) return;
+          if (next.isNotEmpty) {
+            setState(() {
+              _localSelectedIds = Set.from(next);
+            });
+          }
+        });
+        // 立即读取当前值
+        final current = ref.read(recommendLibraryIdsProvider);
+        if (current.isNotEmpty) {
+          setState(() {
+            _localSelectedIds = Set.from(current);
+          });
+        }
       }
     });
   }
