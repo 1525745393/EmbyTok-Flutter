@@ -221,12 +221,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           // 歌手歌曲列表
           SliverToBoxAdapter(
             child: _buildSongsSection(context, scheme, songsAsync),
-        ),
+          ),
 
-        // 底部间距
-        SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
-      ],
-    ),
+          // 底部间距
+          SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
+        ],
+      ),
     );
   }
 
@@ -241,52 +241,59 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     AsyncValue<List<AudioSong>> songsAsync,
     AsyncValue<List<AudioAlbum>> albumsAsync,
   ) {
-    return CustomScrollView(
-      slivers: [
-        // 可折叠头部区域（横屏模式下高度更小）
-        _buildSliverAppBar(context, scheme, metadata, expandedHeight: _kHeaderExpandedHeightLandscape),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(artistMetadataProvider(_artistName));
+        ref.invalidate(artistSongsProvider(_artistName));
+        ref.invalidate(artistAlbumsProvider(_artistName));
+      },
+      child: CustomScrollView(
+        slivers: [
+          // 可折叠头部区域（横屏模式下高度更小）
+          _buildSliverAppBar(context, scheme, metadata, expandedHeight: _kHeaderExpandedHeightLandscape),
 
-        // 操作按钮行
-        SliverToBoxAdapter(
-          child: _buildActionButtons(context, scheme, metadata),
-        ),
-
-        // 歌手简介模块
-        if (metadata.hasBio)
+          // 操作按钮行
           SliverToBoxAdapter(
-            child: _buildBioSection(context, scheme, metadata),
+            child: _buildActionButtons(context, scheme, metadata),
           ),
 
-        // 相似歌手（V1.1）
-        if (metadata.hasSimilarArtists)
-          SliverToBoxAdapter(
-            child: _buildSimilarArtistsSection(context, scheme, metadata),
-          ),
+          // 歌手简介模块
+          if (metadata.hasBio)
+            SliverToBoxAdapter(
+              child: _buildBioSection(context, scheme, metadata),
+            ),
 
-        // 两栏布局：左侧专辑，右侧歌曲
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 左侧：专辑列表
-                Expanded(
-                  child: _buildAlbumsSection(context, scheme, albumsAsync),
-                ),
-                const SizedBox(width: 24),
-                // 右侧：歌曲列表
-                Expanded(
-                  child: _buildSongsSection(context, scheme, songsAsync),
-                ),
-              ],
+          // 相似歌手（V1.1）
+          if (metadata.hasSimilarArtists)
+            SliverToBoxAdapter(
+              child: _buildSimilarArtistsSection(context, scheme, metadata),
+            ),
+
+          // 两栏布局：左侧专辑，右侧歌曲
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 左侧：专辑列表
+                  Expanded(
+                    child: _buildAlbumsSection(context, scheme, albumsAsync),
+                  ),
+                  const SizedBox(width: 24),
+                  // 右侧：歌曲列表
+                  Expanded(
+                    child: _buildSongsSection(context, scheme, songsAsync),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // 底部间距
-        SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
-      ],
+          // 底部间距
+          SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
+        ],
+      ),
     );
   }
 
@@ -297,11 +304,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     BuildContext context,
     ColorScheme scheme,
     ArtistMetadata metadata, {
-    double expandedHeight = 280,
+    double? expandedHeight,
   }) {
     final isLandscape = _isTabletLandscape(context);
+    final height = expandedHeight ?? (isLandscape ? _kHeaderExpandedHeightLandscape : _kHeaderExpandedHeight);
     return SliverAppBar(
-      expandedHeight: expandedHeight,
+      expandedHeight: height,
       pinned: true,
       backgroundColor: scheme.surface,
       foregroundColor: scheme.onSurface,
