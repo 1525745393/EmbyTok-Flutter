@@ -283,13 +283,21 @@ class _ActorsViewState extends ConsumerState<ActorsView>
 
   // 导航到演员详情
   void _navigateToPersonDetail(Person actor) {
+    // 确保 personId 不为空，否则路由匹配失败
+    final personId = actor.id ?? '';
+    if (personId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该演员缺少 ID，无法查看详情')),
+      );
+      return;
+    }
     final mediaItem = MediaItem(
-      id: actor.id ?? '',
+      id: personId,
       title: actor.name,
       type: 'Person',
       thumbnailUrl: actor.imageUrl,
     );
-    context.push('/person/${actor.id}', extra: {
+    context.push('/person/$personId', extra: {
       'item': mediaItem,
       'personType': actor.type,
     });
