@@ -1,3 +1,10 @@
+## [2.76.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.76.0...v2.76.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* **视频流:** 修复位置恢复不生效，等待视频列表加载完成 ([155c495](https://github.com/1525745393/EmbyTok-Flutter/commit/155c4959c742d40e268102e26b183594ec724b5f))
+
 # [2.76.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.75.1...v2.76.0) (2026-09-12)
 
 
