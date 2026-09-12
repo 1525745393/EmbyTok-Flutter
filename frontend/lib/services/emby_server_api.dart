@@ -215,7 +215,7 @@ class EmbyServerApi implements MediaServerApi {
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
-      if (excludePlayed) 'Filters': 'IsPlayed=false',
+      if (excludePlayed) 'Filters': 'IsUnplayed',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
@@ -369,7 +369,7 @@ class EmbyServerApi implements MediaServerApi {
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': types.join(','),
       'ExcludeItemTypes': 'Playlist',
-      if (excludePlayed) 'Filters': 'IsPlayed=false',
+      if (excludePlayed) 'Filters': 'IsUnplayed',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
@@ -924,8 +924,9 @@ class EmbyServerApi implements MediaServerApi {
       'SortOrder': 'Descending',
     };
     // 修复：支持排除已观看
+    // 正确用法是 IsUnplayed，而不是 IsPlayed=false
     if (excludePlayed) {
-      params['Filters'] = 'IsFavorite,IsPlayed=false';
+      params['Filters'] = 'IsFavorite,IsUnplayed';
     }
 
     final effectiveUserId = userId ?? _defaultUserId;
