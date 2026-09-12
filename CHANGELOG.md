@@ -1,3 +1,10 @@
+## [2.70.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.2...v2.70.3) (2026-09-12)
+
+
+### Bug Fixes
+
+* **视频库:** 全面审查修复 ([8042486](https://github.com/1525745393/EmbyTok-Flutter/commit/8042486b504fc2ff51ba0b4ce5a93dab66553414))
+
 ## [2.70.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.70.1...v2.70.2) (2026-09-12)
 
 
