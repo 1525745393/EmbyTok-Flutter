@@ -261,9 +261,32 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(
-            '暂无可用媒体库',
-            style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.6)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.video_library_outlined,
+                size: 48,
+                color: scheme.onSurface.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '暂无可用媒体库',
+                style: TextStyle(
+                  color: scheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '请在 Emby 服务器上创建媒体库后重试',
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.6),
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ),
       );
