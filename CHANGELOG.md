@@ -1,3 +1,10 @@
+# [2.91.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.90.2...v2.91.0) (2026-09-13)
+
+
+### Features
+
+* 视频库增强 - 滚动位置记忆 + 卡片点击反馈 + 加载更多优化 ([fb724ec](https://github.com/1525745393/EmbyTok-Flutter/commit/fb724ec96a85b193e600cca35b92e257140554be))
+
 ## [2.90.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.90.1...v2.90.2) (2026-09-13)
 
 
