@@ -1,3 +1,10 @@
+## [2.90.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.90.1...v2.90.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* 升级 Kotlin 版本到 2.2.0 修复 share_plus 编译兼容性问题 ([2fd8a5a](https://github.com/1525745393/EmbyTok-Flutter/commit/2fd8a5afb264c3076019029a3b087a328ca21359))
+
 ## [2.90.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.90.0...v2.90.1) (2026-09-13)
 
 
