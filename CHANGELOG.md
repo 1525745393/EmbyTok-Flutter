@@ -1,3 +1,10 @@
+# [2.98.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.2...v2.98.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 追剧过滤已看完的收藏演员作品 ([dad546b](https://github.com/1525745393/EmbyTok-Flutter/commit/dad546bc99b850634088a8c5ffb0b0ba6b491515))
+
 ## [2.97.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.1...v2.97.2) (2026-09-13)
 
 
