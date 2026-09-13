@@ -1,3 +1,10 @@
+## [2.97.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.1...v2.97.2) (2026-09-13)
+
+
+### Performance Improvements
+
+* **recommend:** 最新影片切换到 Emby 原生 /Items/Latest 端点 ([f0f7a8f](https://github.com/1525745393/EmbyTok-Flutter/commit/f0f7a8f679e6a4f08802dbcde4681b36cebe055d))
+
 ## [2.97.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.0...v2.97.1) (2026-09-13)
 
 
