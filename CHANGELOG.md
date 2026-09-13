@@ -1,3 +1,10 @@
+# [2.95.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.94.0...v2.95.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 追剧对接收藏演员新作品，移动客户端推荐接本地收藏 ([7bbaf1d](https://github.com/1525745393/EmbyTok-Flutter/commit/7bbaf1ddfcfc98e97ff3096c085862f5da137b61))
+
 # [2.94.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.93.0...v2.94.0) (2026-09-13)
 
 
