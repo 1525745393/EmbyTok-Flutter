@@ -1,3 +1,10 @@
+## [2.84.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.2...v2.84.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* 修复P2级别代码问题未使用导入字段变量 null比较 ([c06789f](https://github.com/1525745393/EmbyTok-Flutter/commit/c06789ff45403e8a600ace6ed8b738e9e5df4ade))
+
 ## [2.84.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.1...v2.84.2) (2026-09-13)
 
 
