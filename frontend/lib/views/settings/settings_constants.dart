@@ -113,9 +113,6 @@ const double _kTileSubtitleAlpha = 0.8;
 /// 对话框关闭按钮文本
 const String _kDialogCloseLabel = '关闭';
 
-/// 对话框选中图标尺寸
-const double _kDialogSelectedIconSize = 24.0;
-
 // ===== 手势项常量 =====
 
 /// 手势项图标尺寸
@@ -137,9 +134,6 @@ const String _kTitleFeedLibrary = '视频流使用';
 /// 设置项：排除已观看
 const String _kTitleExcludePlayed = '排除已观看';
 
-/// 设置项：推荐使用
-const String _kTitleRecommendLibrary = '推荐使用';
-
 /// 设置项：自动播放
 const String _kTitleAutoPlay = '自动播放';
 
@@ -151,21 +145,6 @@ const String _kTitleGestureControl = '手势控制';
 
 /// 设置项：主题
 const String _kTitleTheme = '主题';
-
-/// 设置项：清除缓存
-const String _kTitleClearCache = '清除缓存';
-
-/// 设置项：关于
-const String _kTitleAbout = '关于';
-
-/// 设置项：检查更新
-const String _kTitleCheckUpdate = '检查更新';
-
-/// 设置项：版本
-const String _kTitleVersion = '版本';
-
-/// 设置项：退出登录
-const String _kTitleLogout = '退出登录';
 
 /// 设置项：批量补全歌手元数据
 const String _kTitleBatchScan = '批量补全歌手元数据';
@@ -179,48 +158,10 @@ const String _kHintNoArtists = '音乐库中没有歌手';
 /// SnackBar 时长（秒）
 const int _kSnackBarDurationShort = 2;
 
-/// 设置项：重置设置
-const String _kTitleResetSettings = '重置设置';
-
-/// 设置项：导出日志
-const String _kTitleExportLogs = '导出日志';
-
-/// 设置项：清除日志
-const String _kTitleClearLogs = '清除日志';
-
-/// 设置项：观看统计
-const String _kTitleWatchStats = '观看统计';
-
-/// 设置项：服务器管理
-const String _kTitleServerManagement = '服务器管理';
-
-/// 设置项：群晖音乐
-const String _kTitleSynologyMusic = '群晖音乐';
-
-/// 设置项：关于
-const String _kTitleAboutEmbyTok = '关于 EmbyTok';
-
-/// 设置项：打赏支持
-const String _kTitleDonate = '打赏支持';
-
-/// 设置项：性能监控面板
-const String _kTitlePerformanceMonitor = '性能监控面板';
-
-/// 设置项：允许自签名证书
-const String _kTitleSelfSignedCert = '允许自签名证书';
-
 // ===== 设置项副标题常量 =====
 
 /// 副标题：自动播放说明
 const String _kSubtitleAutoPlay = '视频结束后自动播放下一个';
 
-/// 副标题：焦点恢复说明
-const String _kSubtitleAutoResume = '来电结束后自动恢复播放';
-
 /// 副标题：手势控制说明
 const String _kSubtitleGestureControl = '查看手势说明';
-
-// ===== 对话框按钮文本常量 =====
-
-/// 对话框：完成按钮
-const String _kDialogDoneButton = '完成';
