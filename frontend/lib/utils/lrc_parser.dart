@@ -7,10 +7,10 @@
 
 /// 一行歌词（时间 + 文本）
 class LrcLine {
-  final Duration time;
-  final String text;
 
   const LrcLine(this.time, this.text);
+  final Duration time;
+  final String text;
 
   @override
   String toString() => '[${time.inMilliseconds}ms] $text';

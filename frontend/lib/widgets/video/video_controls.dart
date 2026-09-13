@@ -12,6 +12,19 @@ import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
+
+  const VideoControls({
+    super.key,
+    required this.controller,
+    this.subtitleTracks = const <SubtitleTrack>[],
+    this.onPrevEpisode,
+    this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
+    this.onToggleFullscreen,
+    this.isInFullscreen = false,
+    this.onSeekStart,
+    this.onSeekEnd,
+    this.compact = false,
+  });
   final VideoPlayerController controller;
   // 字幕轨道列表（从 MediaSource.MediaStreams 提取）
   final List<SubtitleTrack> subtitleTracks;
@@ -28,19 +41,6 @@ class VideoControls extends ConsumerStatefulWidget {
   final VoidCallback? onSeekEnd;
   // 紧凑模式：双层布局（按钮行+进度条行），精简按钮，纯净模式使用
   final bool compact;
-
-  const VideoControls({
-    super.key,
-    required this.controller,
-    this.subtitleTracks = const <SubtitleTrack>[],
-    this.onPrevEpisode,
-    this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
-    this.onToggleFullscreen,
-    this.isInFullscreen = false,
-    this.onSeekStart,
-    this.onSeekEnd,
-    this.compact = false,
-  });
 
   @override
   ConsumerState<VideoControls> createState() => _VideoControlsState();

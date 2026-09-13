@@ -6,6 +6,7 @@
 /// - 黑名单规则（连续 3 次低完播 + 极低完播）
 /// - 高完播种子提取
 /// - PR #84：时间衰减（半衰期 14 天）
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 
@@ -251,7 +252,7 @@ void main() {
 
   group('weightFor 辅助方法', () {
     test('未知 source 返回 1.0', () {
-      final signal = UserBehaviorSignal.defaults;
+      const signal = UserBehaviorSignal.defaults;
       // 5 个源都有默认值
       for (final s in RecommendSource.values) {
         expect(signal.weightFor(s), 1.0);

@@ -26,6 +26,14 @@ import 'watch_stats_provider.dart';
 
 /// 用户行为信号（推荐门控用）
 class UserBehaviorSignal {
+
+  const UserBehaviorSignal({
+    required this.sourceWeights,
+    required this.blacklist,
+    required this.highCompletionSeeds,
+    required this.favoriteSeeds,
+    required this.strength,
+  });
   /// 5 数据源各自的权重系数
   /// - 1.0 = 中性
   /// - > 1.0 = 加权（用户爱看）
@@ -52,20 +60,12 @@ class UserBehaviorSignal {
   /// - strong = 记录数 >= 20
   final SignalStrength strength;
 
-  const UserBehaviorSignal({
-    required this.sourceWeights,
-    required this.blacklist,
-    required this.highCompletionSeeds,
-    required this.favoriteSeeds,
-    required this.strength,
-  });
-
   /// 默认信号：冷启动 / 无数据 / 记录数不足
   /// - 所有源权重 1.0
   /// - 黑名单空
   /// - 种子空（调用方降级为"最近高分项"）
   /// 注意：用 static final 而非 const，避免循环 import 时初始化顺序问题
-  static final UserBehaviorSignal defaults = UserBehaviorSignal(
+  static const UserBehaviorSignal defaults = UserBehaviorSignal(
     sourceWeights: <RecommendSource, double>{
       RecommendSource.nextUp: 1.0,
       RecommendSource.resume: 1.0,

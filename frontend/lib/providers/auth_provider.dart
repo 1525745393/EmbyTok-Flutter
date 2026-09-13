@@ -15,15 +15,6 @@ import 'embytok_service_provider.dart';
 
 // 认证状态类
 class AuthState {
-  final bool isAuthenticated;
-  final User? user;
-  final String? backendUrl;
-  final String? embyServerUrl;
-  final String? token;
-  final bool isLoading;
-  // error 使用 Object? 以兼容 String 与 AppError 两种错误形式，
-  // 避免调用方传入 String 时触发类型转换异常
-  final Object? error;
 
   const AuthState({
     this.isAuthenticated = false,
@@ -34,6 +25,15 @@ class AuthState {
     this.isLoading = false,
     this.error,
   });
+  final bool isAuthenticated;
+  final User? user;
+  final String? backendUrl;
+  final String? embyServerUrl;
+  final String? token;
+  final bool isLoading;
+  // error 使用 Object? 以兼容 String 与 AppError 两种错误形式，
+  // 避免调用方传入 String 时触发类型转换异常
+  final Object? error;
 
   // sentinel：用于区分"未传参"和"传了 null"，使 copyWith(error: null) 能正确清除 error
   static const Object _sentinel = Object();
@@ -69,15 +69,15 @@ final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 // 认证 Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
-  final Ref _ref;
-  late final EmbytokService _service;
-  late final FlutterSecureStorage _secureStorage;
 
   AuthNotifier(this._ref) : super(const AuthState()) {
     _service = _ref.read(embytokServiceProvider);
     _secureStorage = _ref.read(secureStorageProvider);
     _loadFromStorage();
   }
+  final Ref _ref;
+  late final EmbytokService _service;
+  late final FlutterSecureStorage _secureStorage;
 
   // 从本地存储恢复登录状态
   Future<void> _loadFromStorage() async {

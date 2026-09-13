@@ -16,7 +16,6 @@ import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/cache_providers.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/repositories/cached_media_repository.dart';
-import 'package:embytok_flutter/services/embytok_service.dart';
 
 import '../mocks/mock_services.dart';
 
@@ -194,9 +193,9 @@ void main() {
     setUp(() {
       mockService = MockEmbytokService();
       mockCachedRepo = _MockCachedMediaRepository();
-      testAuthState = AuthState(
+      testAuthState = const AuthState(
         isAuthenticated: true,
-        user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+        user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
         embyServerUrl: 'http://emby.example.com',
         token: 'test-token',
       );
@@ -553,7 +552,7 @@ void main() {
 // 但 _TestAuthNotifier 在构造函数中同步设置 state = initialState，
 // 测试环境中 _loadFromStorage 会失败但不会崩溃（有 try-catch），不会覆盖预设状态。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }

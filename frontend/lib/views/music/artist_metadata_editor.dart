@@ -25,17 +25,17 @@ import '../../utils/logger.dart';
 /// );
 /// ```
 class ArtistMetadataEditor extends ConsumerStatefulWidget {
-  /// 歌手名称
-  final String artistName;
-
-  /// 当前元数据
-  final ArtistMetadata currentMetadata;
 
   const ArtistMetadataEditor({
     super.key,
     required this.artistName,
     required this.currentMetadata,
   });
+  /// 歌手名称
+  final String artistName;
+
+  /// 当前元数据
+  final ArtistMetadata currentMetadata;
 
   @override
   ConsumerState<ArtistMetadataEditor> createState() => _ArtistMetadataEditorState();

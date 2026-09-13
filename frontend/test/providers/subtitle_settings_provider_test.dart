@@ -4,6 +4,7 @@
 /// - 初始状态
 /// - 设置语言、字号、颜色、位置
 /// - 持久化到 SharedPreferences
+library;
 
 import 'dart:convert';
 
@@ -49,7 +50,7 @@ void main() {
     });
 
     test('toJson / fromJson 序列化与反序列化', () {
-      final original = const SubtitleSettings(
+      const original = SubtitleSettings(
         language: 'chi',
         size: kSubtitleSizeLarge,
         color: kSubtitleColorWhite,

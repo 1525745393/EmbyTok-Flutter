@@ -27,7 +27,6 @@ import '../utils/constants.dart';
 import '../utils/fullscreen_navigator.dart';
 import '../utils/safe_insets.dart';
 import '../utils/keyboard_shortcuts.dart';
-import '../viewmodels/feed_view_model.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
@@ -35,13 +34,13 @@ import '../widgets/poster_grid_view.dart';
 import '../widgets/video/video_page_item.dart';
 
 class FeedView extends ConsumerStatefulWidget {
+
+  const FeedView({super.key, this.initialItemId});
   // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`
   // - 网格点击 → 跳转前 context.go('/?initialId=$id')
   // - 搜索/收藏/演员详情 → 跳转前 context.go('/?initialId=$id')
   // - 跨进程清空：每次新路由都是一次新的"起点"
   final String? initialItemId;
-
-  const FeedView({super.key, this.initialItemId});
 
   @override
   ConsumerState<FeedView> createState() => _FeedViewState();

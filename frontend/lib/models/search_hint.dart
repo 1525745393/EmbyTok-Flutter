@@ -1,11 +1,5 @@
 // 搜索建议模型：Emby SearchHints
-class SearchHint {
-  final String id;
-  final String name;
-  final String? type; // 类型：Movie/Series/Episode/Person/MusicAlbum 等
-  final String? thumbnailUrl; // 缩略图 URL
-  final int? year;
-  final String? seriesName; // 如果是剧集/集数
+class SearchHint { // 如果是剧集/集数
 
   const SearchHint({
     required this.id,
@@ -31,4 +25,10 @@ class SearchHint {
           (json['seriesName'] as String?),
     );
   }
+  final String id;
+  final String name;
+  final String? type; // 类型：Movie/Series/Episode/Person/MusicAlbum 等
+  final String? thumbnailUrl; // 缩略图 URL
+  final int? year;
+  final String? seriesName;
 }

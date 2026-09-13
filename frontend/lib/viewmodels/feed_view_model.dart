@@ -40,6 +40,17 @@ import '../utils/logger.dart';
 /// - 所有需要 UI 操作的场景通过回调通知 View 层
 /// - ViewModel 持有 WidgetRef，可直接读写 Provider
 class FeedViewModel {
+
+  FeedViewModel(
+    this._ref,
+    this._playbackCoordinator, {
+    this.onJumpToPage,
+    this.onJumpToPageInstant,
+    this.onShowSnackBar,
+    this.onOpenFullscreen,
+    this.onShowLibrarySelector,
+    this.onUpdateHelpVisibility,
+  });
   final WidgetRef _ref;
   final PlaybackCoordinator _playbackCoordinator;
 
@@ -72,17 +83,6 @@ class FeedViewModel {
   ProviderSubscription<int?>? _pageJumpRequestSubscription;
   ProviderSubscription<ViewMode>? _viewModeSubscription;
   ProviderSubscription<AsyncValue<List<Library>>>? _libraryListSubscription;
-
-  FeedViewModel(
-    this._ref,
-    this._playbackCoordinator, {
-    this.onJumpToPage,
-    this.onJumpToPageInstant,
-    this.onShowSnackBar,
-    this.onOpenFullscreen,
-    this.onShowLibrarySelector,
-    this.onUpdateHelpVisibility,
-  });
 
   // ==================== 生命周期 ====================
 

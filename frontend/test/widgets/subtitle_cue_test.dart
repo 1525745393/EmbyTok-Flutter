@@ -2,6 +2,7 @@
 ///
 /// SubtitleCue 定义在 models/subtitle_track.dart 中，
 /// 此处测试其基本构造和时间边界行为。
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/subtitle_track.dart';

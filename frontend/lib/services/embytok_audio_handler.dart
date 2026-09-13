@@ -25,9 +25,9 @@ import '../providers/synology_playback_provider.dart';
 import '../utils/logger.dart';
 
 class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
-  final Ref _ref;
 
   EmbytokAudioHandler(this._ref);
+  final Ref _ref;
 
   /// 当前是否为群晖音乐播放场景（有音乐曲目在队列中）
   bool get _isSynologyMusic =>
@@ -243,7 +243,7 @@ class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// 音乐停止/清除时移除通知栏媒体控制
   void clearMusicSession() {
-    mediaItem.add(MediaItem(
+    mediaItem.add(const MediaItem(
       id: 'synology-music',
       title: '群晖音乐',
       artist: '已停止播放',

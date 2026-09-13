@@ -18,7 +18,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 
 import 'package:embytok_flutter/models/models.dart';
-import 'package:embytok_flutter/providers/cache_providers.dart';
 import 'package:embytok_flutter/providers/providers.dart';
 import 'package:embytok_flutter/repositories/cached_media_repository.dart';
 import 'package:embytok_flutter/views/video_grid_view.dart';
@@ -35,7 +34,7 @@ class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
 /// selectedLibraryIdsProvider 等），但这些监听器只在对应 provider 状态
 /// 变化时触发回调，测试中这些 provider 保持默认值不变，不会触发 refresh。
 class _FakeVideoListNotifier extends VideoListNotifier {
-  _FakeVideoListNotifier(Ref ref, VideoListState initialState) : super(ref) {
+  _FakeVideoListNotifier(super.ref, VideoListState initialState){
     state = initialState;
   }
 }
@@ -83,9 +82,9 @@ void main() {
 
     testWidgets('有数据但筛选无结果时仅文字提示不显示按钮', (tester) async {
       // videoState.items 非空，但 displayItems 为空（筛选无结果）
-      final item = MediaItem(id: 'v1', title: '测试视频', type: 'Movie');
+      const item = MediaItem(id: 'v1', title: '测试视频', type: 'Movie');
       await tester.pumpWidget(buildApp(
-        videoState: VideoListState(items: [item]),
+        videoState: const VideoListState(items: [item]),
         displayItems: const <MediaItem>[],
       ));
       await tester.pumpAndSettle();

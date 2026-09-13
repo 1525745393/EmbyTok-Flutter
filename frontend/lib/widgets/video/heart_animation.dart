@@ -4,10 +4,6 @@ import 'package:flutter/material.dart';
 
 // 双击触发的点赞心形动画（单次播放）
 class HeartAnimation extends StatefulWidget {
-  final bool visible;
-  final Widget child;
-  final Duration duration;
-  final double scale;
 
   const HeartAnimation({
     super.key,
@@ -16,6 +12,10 @@ class HeartAnimation extends StatefulWidget {
     this.duration = const Duration(milliseconds: 700),
     this.scale = 2.5,
   });
+  final bool visible;
+  final Widget child;
+  final Duration duration;
+  final double scale;
 
   @override
   State<HeartAnimation> createState() => _HeartAnimationState();
@@ -80,7 +80,7 @@ class _HeartAnimationState extends State<HeartAnimation>
                         Shadow(
                           color: scheme.onSurface.withValues(alpha: 0.33),
                           blurRadius: 16,
-                          offset: Offset(0, 4),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),

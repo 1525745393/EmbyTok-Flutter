@@ -645,12 +645,6 @@ class ArtistMetadataService {
 
 /// 批量扫描结果统计
 class BatchScanResult {
-  final int total;
-  final int unique;
-  final int success;
-  final int failed;
-  final int skipped;
-  final List<String> failedArtists;
 
   const BatchScanResult({
     required this.total,
@@ -660,6 +654,12 @@ class BatchScanResult {
     required this.skipped,
     required this.failedArtists,
   });
+  final int total;
+  final int unique;
+  final int success;
+  final int failed;
+  final int skipped;
+  final List<String> failedArtists;
 
   double get successRate => unique == 0 ? 0 : success / unique;
 

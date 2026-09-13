@@ -1,6 +1,5 @@
 // 搜索建议 Provider 测试：验证防抖和缓存能力
 
-import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,11 +21,11 @@ void main() {
     container = ProviderContainer(overrides: [
       embytokServiceProvider.overrideWithValue(mockService),
       authProvider.overrideWith((ref) => AuthNotifier(ref)
-        ..state = AuthState(
+        ..state = const AuthState(
           isAuthenticated: true,
           embyServerUrl: 'http://test.local',
           token: 'test-token',
-          user: User(
+          user: const User(
             id: 'user-1',
             name: 'Test',
             accessToken: 'test-token',
@@ -135,7 +134,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
       )).thenAnswer((_) async => [
-        SearchHint(id: '1', name: 'Batman', type: 'Movie'),
+        const SearchHint(id: '1', name: 'Batman', type: 'Movie'),
       ]);
 
       final notifier = container.read(searchHintsStateProvider.notifier);
@@ -197,7 +196,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
       )).thenAnswer((_) async => [
-        SearchHint(id: '1', name: 'Batman', type: 'Movie'),
+        const SearchHint(id: '1', name: 'Batman', type: 'Movie'),
       ]);
 
       final notifier = container.read(searchHintsStateProvider.notifier);

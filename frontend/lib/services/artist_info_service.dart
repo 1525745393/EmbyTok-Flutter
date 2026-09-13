@@ -17,10 +17,10 @@ import '../utils/logger.dart';
 
 /// 歌手简介查询结果
 class ArtistInfo {
-  final String bio;
-  final String? thumbnailUrl;
 
   const ArtistInfo({required this.bio, this.thumbnailUrl});
+  final String bio;
+  final String? thumbnailUrl;
 }
 
 class ArtistInfoService {

@@ -1,12 +1,6 @@
 // 应用配置模型：持久化到本地存储中的用户配置
 
 class AppConfig {
-  final String backendUrl;
-  final String embyServerUrl;
-  final String userId;
-  final String userName;
-  final String themeMode;
-  final bool subtitleEnabled;
 
   AppConfig({
     required this.backendUrl,
@@ -25,6 +19,12 @@ class AppConfig {
         themeMode: json['theme_mode'] as String? ?? 'system',
         subtitleEnabled: json['subtitle_enabled'] as bool? ?? false,
       );
+  final String backendUrl;
+  final String embyServerUrl;
+  final String userId;
+  final String userName;
+  final String themeMode;
+  final bool subtitleEnabled;
 
   Map<String, dynamic> toJson() => {
         'backend_url': backendUrl,

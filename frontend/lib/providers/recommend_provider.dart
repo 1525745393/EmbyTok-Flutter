@@ -52,6 +52,19 @@ import 'recommend_signals.dart';
 
 /// 推荐状态
 class RecommendState {
+
+  const RecommendState({
+    this.taggedItems = const [],
+    this.selectedTag,
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.error,
+    this.offset = 0,
+    this.hasMore = true,
+    this.isColdStart = false,
+    this.displayItems = const [],
+    this.tagCounts = const {},
+  });
   // PR #80：带数据源标签的推荐项（用于标签分类 UI）
   final List<RecommendItem> taggedItems;
   // PR #80：当前选中的标签（null=全部）
@@ -74,19 +87,6 @@ class RecommendState {
 
   /// 各标签的计数（key = RecommendSource.key）
   final Map<String, int> tagCounts;
-
-  const RecommendState({
-    this.taggedItems = const [],
-    this.selectedTag,
-    this.isLoading = false,
-    this.isLoadingMore = false,
-    this.error,
-    this.offset = 0,
-    this.hasMore = true,
-    this.isColdStart = false,
-    this.displayItems = const [],
-    this.tagCounts = const {},
-  });
 
   RecommendState copyWith({
     List<RecommendItem>? taggedItems,
@@ -117,10 +117,10 @@ class RecommendState {
 
 /// PR #80：推荐项 = MediaItem + 数据源标签
 /// - 用于标签分类 UI：UI 可按 source 过滤显示
-class RecommendItem {
-  final MediaItem item;
-  final RecommendSource source; // 数据源
+class RecommendItem { // 数据源
   const RecommendItem({required this.item, required this.source});
+  final MediaItem item;
+  final RecommendSource source;
 }
 
 /// PR #80：5 个数据源枚举 + 中文标签
@@ -168,12 +168,6 @@ extension RecommendSourceLabel on RecommendSource {
 /// PR #79：分页 - 单页加载结果
 /// 记录一页拉到的项 + 各数据源原始项数（用于 load() 冷启动检测）
 class _PageLoadResult {
-  final List<RecommendItem> tagged; // 带 source 标签的推荐项
-  final int nextUpCount; // NextUp 数据源原始项数
-  final int resumeCount; // Resume 数据源原始项数
-  final int suggestionsCount; // Task 3：Suggestions 数据源原始项数
-  // Task 4：所有数据源是否都已耗尽（true 表示服务器端无更多数据）
-  final bool allSourcesExhausted;
   const _PageLoadResult({
     required this.tagged,
     required this.nextUpCount,
@@ -181,25 +175,17 @@ class _PageLoadResult {
     required this.suggestionsCount,
     required this.allSourcesExhausted,
   });
+  final List<RecommendItem> tagged; // 带 source 标签的推荐项
+  final int nextUpCount; // NextUp 数据源原始项数
+  final int resumeCount; // Resume 数据源原始项数
+  final int suggestionsCount; // Task 3：Suggestions 数据源原始项数
+  // Task 4：所有数据源是否都已耗尽（true 表示服务器端无更多数据）
+  final bool allSourcesExhausted;
 }
 
 /// 加载上下文：封装 load() / loadMore() 共用的配置和计算结果
 /// 减少两个方法之间的代码重复
 class _LoadContext {
-  final AuthState auth;
-  final List<String> selectedIds;
-  final MediaRepository repo;
-  final double minRating;
-  final bool excludePlayed;
-  final Set<String> includeTypes;
-  final int minRuntimeSec;
-  final int minRuntimeTicks;
-  final UserBehaviorSignal signal;
-  final Set<String> favoriteIds;
-  final bool antiFatigueEnabled;
-  final Set<String> recentlyShownIds;
-  final bool userRatingEnabled;
-  final double userRatingMin;
 
   const _LoadContext({
     required this.auth,
@@ -217,6 +203,20 @@ class _LoadContext {
     required this.userRatingEnabled,
     required this.userRatingMin,
   });
+  final AuthState auth;
+  final List<String> selectedIds;
+  final MediaRepository repo;
+  final double minRating;
+  final bool excludePlayed;
+  final Set<String> includeTypes;
+  final int minRuntimeSec;
+  final int minRuntimeTicks;
+  final UserBehaviorSignal signal;
+  final Set<String> favoriteIds;
+  final bool antiFatigueEnabled;
+  final Set<String> recentlyShownIds;
+  final bool userRatingEnabled;
+  final double userRatingMin;
 
   // PR #73：过滤非视频类型 item
   bool isVideo(MediaItem item) => _allowedTypes.contains(item.type);
@@ -594,7 +594,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
           userRatingMin: ctx.userRatingMin,
-        )) continue;
+        )) {
+          continue;
+        }
         nextUpQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
       }
@@ -630,7 +632,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
           userRatingMin: ctx.userRatingMin,
-        )) continue;
+        )) {
+          continue;
+        }
         resumeQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.resume));
       }
@@ -710,7 +714,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             recentlyShownIds: ctx.recentlyShownIds,
             userRatingEnabled: ctx.userRatingEnabled,
             userRatingMin: ctx.userRatingMin,
-          )) continue;
+          )) {
+            continue;
+          }
           allNextUp
               .add(RecommendItem(item: item, source: RecommendSource.nextUp));
         }
@@ -751,7 +757,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
           userRatingMin: ctx.userRatingMin,
-        )) continue;
+        )) {
+          continue;
+        }
         suggestionsQueue?.add(
             RecommendItem(item: item, source: RecommendSource.suggestions));
       }
@@ -853,7 +861,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             recentlyShownIds: ctx.recentlyShownIds,
             userRatingEnabled: ctx.userRatingEnabled,
             userRatingMin: ctx.userRatingMin,
-          )) continue;
+          )) {
+            continue;
+          }
           similarQueue
               ?.add(RecommendItem(item: item, source: RecommendSource.similar));
         }
@@ -905,7 +915,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                     recentlyShownIds: ctx.recentlyShownIds,
                     userRatingEnabled: ctx.userRatingEnabled,
                     userRatingMin: ctx.userRatingMin,
-                  )) continue;
+                  )) {
+                    continue;
+                  }
                   if (seenIds.add(item.id)) {
                     queues[_sourceRecommendations]?.add(RecommendItem(
                         item: item, source: RecommendSource.recommendations));
@@ -958,7 +970,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                     recentlyShownIds: ctx.recentlyShownIds,
                     userRatingEnabled: ctx.userRatingEnabled,
                     userRatingMin: ctx.userRatingMin,
-                  )) continue;
+                  )) {
+                    continue;
+                  }
                   if (seenIds.add(item.id)) {
                     results.add(RecommendItem(
                         item: item, source: RecommendSource.recommendations));

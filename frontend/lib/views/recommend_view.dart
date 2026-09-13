@@ -644,25 +644,25 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
 /// PR #80：标签分类 - 单个标签的信息（label + sourceKey + count）
 class _RecommendTagInfo {
-  final String label;
-  final String? sourceKey; // null = 全部
-  final int count;
   const _RecommendTagInfo({
     required this.label,
     required this.sourceKey,
     required this.count,
   });
+  final String label;
+  final String? sourceKey; // null = 全部
+  final int count;
 }
 
 /// 推荐卡片：竖屏海报 + 标题
 class _RecommendCard extends ConsumerWidget {
-  final MediaItem item;
-  final VoidCallback onTap;
 
   const _RecommendCard({
     required this.item,
     required this.onTap,
   });
+  final MediaItem item;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -736,9 +736,9 @@ class _RecommendCard extends ConsumerWidget {
 /// - 加载中：显示 CircularProgressIndicator
 /// - 加载完但 hasMore=false：显示「没有更多了」
 class _LoadMoreIndicator extends StatelessWidget {
+  const _LoadMoreIndicator({required this.isLoading, required this.hasMore});
   final bool isLoading;
   final bool hasMore;
-  const _LoadMoreIndicator({required this.isLoading, required this.hasMore});
 
   @override
   Widget build(BuildContext context) {

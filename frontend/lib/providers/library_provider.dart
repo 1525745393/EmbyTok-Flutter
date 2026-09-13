@@ -70,11 +70,6 @@ final selectedLibraryIdsProvider =
 );
 
 class SelectedLibraryNotifier extends StateNotifier<List<String>> {
-  final Ref _ref;
-  // 持久化 key：默认视频流用原 key；推荐页传自定义 key（PR #66）
-  final String _storageKey;
-  // ProviderSubscription：显式保存并在 dispose 时取消
-  ProviderSubscription<AsyncValue<List<Library>>>? _librarySubscription;
 
   SelectedLibraryNotifier(this._ref, {String? storageKey})
       : _storageKey = storageKey ?? kStorageKeySelectedLibraryId,
@@ -95,6 +90,11 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
       },
     );
   }
+  final Ref _ref;
+  // 持久化 key：默认视频流用原 key；推荐页传自定义 key（PR #66）
+  final String _storageKey;
+  // ProviderSubscription：显式保存并在 dispose 时取消
+  ProviderSubscription<AsyncValue<List<Library>>>? _librarySubscription;
 
   /// 媒体库列表到达后的恢复/校验逻辑
   ///

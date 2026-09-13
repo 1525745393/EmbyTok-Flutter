@@ -8,14 +8,14 @@ import '../../providers/subtitle_settings_provider.dart';
 import '../../utils/constants.dart';
 
 class SubtitleControls extends ConsumerWidget {
-  final List<SubtitleTrack> tracks;
-  final VoidCallback? onClose;
 
   const SubtitleControls({
     super.key,
     required this.tracks,
     this.onClose,
   });
+  final List<SubtitleTrack> tracks;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

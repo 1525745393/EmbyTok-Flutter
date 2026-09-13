@@ -11,6 +11,30 @@ import '../utils/constants.dart';
 
 /// 字幕设置状态：语言、字号、颜色、位置、描边、阴影、背景透明度、时间偏移
 class SubtitleSettings {
+
+  const SubtitleSettings({
+    this.language = '',
+    this.size = kSubtitleSizeMedium,
+    this.color = kSubtitleColorWhite,
+    this.position = kSubtitlePosBottom,
+    this.strokeWidth = kSubtitleStrokeWidthDefault,
+    this.shadowEnabled = kSubtitleShadowDefault,
+    this.bgOpacity = kSubtitleBgOpacityDefault,
+    this.timeOffset = kSubtitleTimeOffsetDefault,
+  });
+
+  factory SubtitleSettings.fromJson(Map<String, dynamic> json) =>
+      SubtitleSettings(
+        language: json['language'] as String? ?? '',
+        size: json['size'] as String? ?? kSubtitleSizeMedium,
+        color: json['color'] as String? ?? kSubtitleColorWhite,
+        position: json['position'] as String? ?? kSubtitlePosBottom,
+        strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ??
+            kSubtitleStrokeWidthDefault,
+        shadowEnabled: json['shadowEnabled'] as bool? ?? kSubtitleShadowDefault,
+        bgOpacity: json['bgOpacity'] as int? ?? kSubtitleBgOpacityDefault,
+        timeOffset: json['timeOffset'] as int? ?? kSubtitleTimeOffsetDefault,
+      );
   /// 选中的字幕语言代码；空字符串表示关闭字幕
   final String language;
 
@@ -34,17 +58,6 @@ class SubtitleSettings {
 
   /// 时间轴微调偏移（毫秒，正数延迟，负数提前）
   final int timeOffset;
-
-  const SubtitleSettings({
-    this.language = '',
-    this.size = kSubtitleSizeMedium,
-    this.color = kSubtitleColorWhite,
-    this.position = kSubtitlePosBottom,
-    this.strokeWidth = kSubtitleStrokeWidthDefault,
-    this.shadowEnabled = kSubtitleShadowDefault,
-    this.bgOpacity = kSubtitleBgOpacityDefault,
-    this.timeOffset = kSubtitleTimeOffsetDefault,
-  });
 
   SubtitleSettings copyWith({
     String? language,
@@ -78,19 +91,6 @@ class SubtitleSettings {
         'bgOpacity': bgOpacity,
         'timeOffset': timeOffset,
       };
-
-  factory SubtitleSettings.fromJson(Map<String, dynamic> json) =>
-      SubtitleSettings(
-        language: json['language'] as String? ?? '',
-        size: json['size'] as String? ?? kSubtitleSizeMedium,
-        color: json['color'] as String? ?? kSubtitleColorWhite,
-        position: json['position'] as String? ?? kSubtitlePosBottom,
-        strokeWidth: (json['strokeWidth'] as num?)?.toDouble() ??
-            kSubtitleStrokeWidthDefault,
-        shadowEnabled: json['shadowEnabled'] as bool? ?? kSubtitleShadowDefault,
-        bgOpacity: json['bgOpacity'] as int? ?? kSubtitleBgOpacityDefault,
-        timeOffset: json['timeOffset'] as int? ?? kSubtitleTimeOffsetDefault,
-      );
 
   /// 是否已开启字幕（即选择了某种语言）
   bool get enabled => language.isNotEmpty;

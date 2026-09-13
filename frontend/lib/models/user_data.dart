@@ -1,16 +1,5 @@
 // 用户数据模型：播放进度、收藏、已观看、用户评分等状态
 class UserData {
-  final double playbackPositionTicks; // 已播放时长（tick 单位）
-  final bool isFavorite; // 是否已收藏
-  final bool played; // 是否已完整观看
-  final int unplayedItemCount; // 未看集数（用于剧集/季）
-  final String? lastPlayedDate; // 最后播放日期
-  final int playCount; // 播放次数
-  // PR #89：用户对该 item 的评分（0-10，null = 未评分）
-  // - 来源：Emby `UserData.Rating`
-  // - 区别于 communityRating（社区评分）
-  // - 用法：推荐时按用户评分加权（高分优先）
-  final double? rating;
 
   const UserData({
     this.playbackPositionTicks = 0.0,
@@ -51,6 +40,17 @@ class UserData {
       rating: rating,
     );
   }
+  final double playbackPositionTicks; // 已播放时长（tick 单位）
+  final bool isFavorite; // 是否已收藏
+  final bool played; // 是否已完整观看
+  final int unplayedItemCount; // 未看集数（用于剧集/季）
+  final String? lastPlayedDate; // 最后播放日期
+  final int playCount; // 播放次数
+  // PR #89：用户对该 item 的评分（0-10，null = 未评分）
+  // - 来源：Emby `UserData.Rating`
+  // - 区别于 communityRating（社区评分）
+  // - 用法：推荐时按用户评分加权（高分优先）
+  final double? rating;
 
   Map<String, dynamic> toJson() => {
         'playback_position_ticks': playbackPositionTicks,

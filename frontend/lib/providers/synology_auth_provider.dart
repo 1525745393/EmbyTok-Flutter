@@ -17,12 +17,6 @@ import 'auth_provider.dart' show secureStorageProvider;
 
 /// 群晖认证状态
 class SynologyAuthState {
-  final bool isLoggedIn;
-  final String? serverUrl;
-  final String? account;
-  final String? sid;
-  final bool isLoading;
-  final String? error;
 
   const SynologyAuthState({
     this.isLoggedIn = false,
@@ -32,6 +26,12 @@ class SynologyAuthState {
     this.isLoading = false,
     this.error,
   });
+  final bool isLoggedIn;
+  final String? serverUrl;
+  final String? account;
+  final String? sid;
+  final bool isLoading;
+  final String? error;
 
   SynologyAuthState copyWith({
     bool? isLoggedIn,
@@ -61,15 +61,15 @@ const _kSynoSid = 'synology_sid';
 const _kSynoSidSecure = 'synology_sid_secure';
 
 class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
-  final Ref _ref;
-  late final SynologyAudioApi _api;
-  late final FlutterSecureStorage _secureStorage;
 
   SynologyAuthNotifier(this._ref) : super(const SynologyAuthState()) {
     _api = _ref.read(synologyAudioApiProvider);
     _secureStorage = _ref.read(secureStorageProvider);
     _restore();
   }
+  final Ref _ref;
+  late final SynologyAudioApi _api;
+  late final FlutterSecureStorage _secureStorage;
 
   SynologyAudioApi get api => _api;
 

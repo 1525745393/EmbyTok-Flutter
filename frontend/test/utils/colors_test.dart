@@ -13,7 +13,7 @@ void main() {
     });
 
     test('primaryPink 值正确', () {
-      expect(primaryPink.value, 0xFFE91E63);
+      expect(primaryPink.toARGB32(), 0xFFE91E63);
     });
 
     test('historyPink 是 Color 类型', () {
@@ -36,20 +36,20 @@ void main() {
 
     test('surfaceColorL1/L2/L3 递增亮度', () {
       // L1 < L2 < L3（数值越大越亮）
-      expect(surfaceColorL1.value < surfaceColorL2.value, true);
-      expect(surfaceColorL2.value < surfaceColorL3.value, true);
+      expect(surfaceColorL1.toARGB32() < surfaceColorL2.toARGB32(), true);
+      expect(surfaceColorL2.toARGB32() < surfaceColorL3.toARGB32(), true);
     });
 
     test('surfaceColorL1 值正确', () {
-      expect(surfaceColorL1.value, 0xFF121212);
+      expect(surfaceColorL1.toARGB32(), 0xFF121212);
     });
 
     test('surfaceColorL2 值正确', () {
-      expect(surfaceColorL2.value, 0xFF1E1E1E);
+      expect(surfaceColorL2.toARGB32(), 0xFF1E1E1E);
     });
 
     test('surfaceColorL3 值正确', () {
-      expect(surfaceColorL3.value, 0xFF2A2A2A);
+      expect(surfaceColorL3.toARGB32(), 0xFF2A2A2A);
     });
   });
 
@@ -128,17 +128,17 @@ void main() {
         grey500, grey600, grey700, grey800, grey850, grey900,
       ];
       for (var i = 0; i < greys.length - 1; i++) {
-        expect(greys[i].value > greys[i + 1].value, true,
+        expect(greys[i].toARGB32() > greys[i + 1].toARGB32(), true,
             reason: 'grey${i * 100} 应比 grey${(i + 1) * 100} 亮');
       }
     });
 
     test('grey500 值正确', () {
-      expect(grey500.value, 0xFF9E9E9E);
+      expect(grey500.toARGB32(), 0xFF9E9E9E);
     });
 
     test('grey900 值正确', () {
-      expect(grey900.value, 0xFF212121);
+      expect(grey900.toARGB32(), 0xFF212121);
     });
   });
 }

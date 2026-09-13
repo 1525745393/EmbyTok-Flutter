@@ -263,9 +263,9 @@ class ProfileView extends ConsumerWidget {
 }
 
 class _StatItem {
+  const _StatItem(
+      {required this.icon, required this.label, required this.value});
   final IconData icon;
   final String label;
   final int value;
-  const _StatItem(
-      {required this.icon, required this.label, required this.value});
 }

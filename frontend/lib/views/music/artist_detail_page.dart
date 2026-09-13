@@ -81,17 +81,17 @@ const double _kCollapsedAvatarThreshold = 40.0;
 ///
 /// 通过路由 `/music/artist/:name` 访问，或通过构造函数传入歌手对象。
 class ArtistDetailPage extends ConsumerStatefulWidget {
-  /// 歌手名称（路由参数）
-  final String? artistName;
-
-  /// 歌手对象（直接传入时优先使用）
-  final AudioArtist? artist;
 
   const ArtistDetailPage({
     super.key,
     this.artistName,
     this.artist,
   });
+  /// 歌手名称（路由参数）
+  final String? artistName;
+
+  /// 歌手对象（直接传入时优先使用）
+  final AudioArtist? artist;
 
   @override
   ConsumerState<ArtistDetailPage> createState() => _ArtistDetailPageState();
@@ -221,7 +221,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           ),
 
           // 底部间距
-          SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
+          const SliverToBoxAdapter(child: const SizedBox(height: _kBottomSpacing)),
         ],
       ),
     );
@@ -288,7 +288,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           ),
 
           // 底部间距
-          SliverToBoxAdapter(child: SizedBox(height: _kBottomSpacing)),
+          const SliverToBoxAdapter(child: const SizedBox(height: _kBottomSpacing)),
         ],
       ),
     );
@@ -364,7 +364,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                 radius: _kAvatarRadiusCollapsed,
                 backgroundImage:
                     metadata.hasImage ? CachedNetworkImageProvider(metadata.imageUrl!) : null,
-                backgroundColor: scheme.surfaceVariant,
+                backgroundColor: scheme.surfaceContainerHighest,
                 child: metadata.hasImage
                     ? null
                     : Icon(Icons.person, size: _kAvatarIconSizeCollapsed, color: scheme.onSurfaceVariant),
@@ -390,7 +390,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           backgroundImage: metadata.hasImage
               ? CachedNetworkImageProvider(metadata.imageUrl!)
               : null,
-          backgroundColor: scheme.surfaceVariant,
+          backgroundColor: scheme.surfaceContainerHighest,
           child: metadata.hasImage
               ? null
               : Icon(
@@ -437,7 +437,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
             backgroundImage: metadata.hasImage
                 ? CachedNetworkImageProvider(metadata.imageUrl!)
                 : null,
-            backgroundColor: scheme.surfaceVariant,
+            backgroundColor: scheme.surfaceContainerHighest,
             child: metadata.hasImage
                 ? null
                 : Icon(
@@ -815,7 +815,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                           backgroundImage: artist.imageUrl != null
                               ? CachedNetworkImageProvider(artist.imageUrl!)
                               : null,
-                          backgroundColor: scheme.surfaceVariant,
+                          backgroundColor: scheme.surfaceContainerHighest,
                           child: artist.imageUrl != null
                               ? null
                               : Icon(
@@ -963,7 +963,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
     return Container(
       width: 120,
       height: 120,
-      color: scheme.surfaceVariant,
+      color: scheme.surfaceContainerHighest,
       child: Icon(
         Icons.album,
         size: 40,

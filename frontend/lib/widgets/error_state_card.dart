@@ -8,23 +8,6 @@ import 'package:flutter/material.dart';
 /// 统一展示加载失败、网络错误等异常状态。
 /// 支持自定义图标、标题、副标题和重试按钮。
 class ErrorStateCard extends StatelessWidget {
-  /// 错误图标，默认 [Icons.error_outline]
-  final IconData icon;
-
-  /// 主标题（错误简述）
-  final String title;
-
-  /// 副标题（错误详情或引导文案）
-  final String? subtitle;
-
-  /// 操作按钮文字（如"重试"），为 null 时不显示按钮
-  final String? actionLabel;
-
-  /// 操作按钮回调
-  final VoidCallback? onAction;
-
-  /// 图标颜色，默认使用主题 error 色
-  final Color? iconColor;
 
   const ErrorStateCard({
     super.key,
@@ -68,6 +51,23 @@ class ErrorStateCard extends StatelessWidget {
       onAction: onLogin,
     );
   }
+  /// 错误图标，默认 [Icons.error_outline]
+  final IconData icon;
+
+  /// 主标题（错误简述）
+  final String title;
+
+  /// 副标题（错误详情或引导文案）
+  final String? subtitle;
+
+  /// 操作按钮文字（如"重试"），为 null 时不显示按钮
+  final String? actionLabel;
+
+  /// 操作按钮回调
+  final VoidCallback? onAction;
+
+  /// 图标颜色，默认使用主题 error 色
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {

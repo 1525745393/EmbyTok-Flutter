@@ -20,8 +20,8 @@ import '../widgets/error_state_card.dart';
 import '../widgets/person_avatar_image.dart';
 
 class SearchView extends ConsumerStatefulWidget {
-  final bool useScaffold;
   const SearchView({super.key, this.useScaffold = true});
+  final bool useScaffold;
 
   @override
   ConsumerState<SearchView> createState() => _SearchViewState();
@@ -496,16 +496,16 @@ class _SearchViewState extends ConsumerState<SearchView>
 }
 
 class _Centered extends StatelessWidget {
-  final Widget child;
   const _Centered({required this.child});
+  final Widget child;
 
   @override
   Widget build(BuildContext context) => Center(child: child);
 }
 
 class _SearchResultTile extends ConsumerWidget {
-  final MediaItem item;
   const _SearchResultTile({super.key, required this.item});
+  final MediaItem item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -582,8 +582,8 @@ class _SearchResultTile extends ConsumerWidget {
 }
 
 class _PersonCard extends ConsumerWidget {
-  final SearchPerson person;
   const _PersonCard({required this.person});
+  final SearchPerson person;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -627,11 +627,11 @@ class _PersonCard extends ConsumerWidget {
 }
 
 class _HistoryChip extends StatelessWidget {
+  const _HistoryChip(
+      {required this.label, required this.onTap, required this.onRemove});
   final String label;
   final VoidCallback onTap;
   final VoidCallback onRemove;
-  const _HistoryChip(
-      {required this.label, required this.onTap, required this.onRemove});
 
   @override
   Widget build(BuildContext context) {
@@ -667,11 +667,11 @@ class _HistoryChip extends StatelessWidget {
 }
 
 class _ConfirmDialog extends StatelessWidget {
+  const _ConfirmDialog(
+      {required this.title, required this.message, required this.onConfirm});
   final String title;
   final String message;
   final VoidCallback onConfirm;
-  const _ConfirmDialog(
-      {required this.title, required this.message, required this.onConfirm});
 
   @override
   Widget build(BuildContext context) {

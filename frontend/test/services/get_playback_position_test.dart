@@ -1,6 +1,7 @@
 /// 服务端播放进度拉取测试 (TDD)
 /// 测试 getPlaybackPosition 能否正确从服务端拉取最新播放进度，
 /// 用于播放开始时实现多端进度互通。
+library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';

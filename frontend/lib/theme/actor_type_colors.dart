@@ -2,6 +2,7 @@
 ///
 /// Director=橙色（导演），Writer=绿色（编剧），Actor=蓝色（演员）
 /// 单独定义在此处便于集中管理，并加入 hardcoded_color_lint 白名单
+library;
 
 import 'package:flutter/material.dart';
 

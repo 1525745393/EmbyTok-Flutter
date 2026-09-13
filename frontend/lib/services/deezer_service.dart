@@ -17,6 +17,30 @@ import '../utils/logger.dart';
 
 /// Deezer 歌手信息
 class DeezerArtistInfo {
+
+  const DeezerArtistInfo({
+    required this.name,
+    this.pictureSmall,
+    this.pictureMedium,
+    this.pictureBig,
+    this.pictureXl,
+    this.nbAlbum,
+    this.nbFan,
+    this.description,
+  });
+
+  factory DeezerArtistInfo.fromJson(Map<String, dynamic> json) {
+    return DeezerArtistInfo(
+      name: json['name'] as String? ?? '',
+      pictureSmall: json['picture_small'] as String?,
+      pictureMedium: json['picture_medium'] as String?,
+      pictureBig: json['picture_big'] as String?,
+      pictureXl: json['picture_xl'] as String?,
+      nbAlbum: json['nb_album'] as int?,
+      nbFan: json['nb_fan'] as int?,
+      description: json['description'] as String?,
+    );
+  }
   /// 歌手名称
   final String name;
 
@@ -41,17 +65,6 @@ class DeezerArtistInfo {
   /// 歌手简介
   final String? description;
 
-  const DeezerArtistInfo({
-    required this.name,
-    this.pictureSmall,
-    this.pictureMedium,
-    this.pictureBig,
-    this.pictureXl,
-    this.nbAlbum,
-    this.nbFan,
-    this.description,
-  });
-
   /// 获取最佳质量的头像 URL
   String? get bestImageUrl =>
       pictureXl ?? pictureBig ?? pictureMedium ?? pictureSmall;
@@ -61,19 +74,6 @@ class DeezerArtistInfo {
 
   /// 是否有简介
   bool get hasBio => description != null && description!.isNotEmpty;
-
-  factory DeezerArtistInfo.fromJson(Map<String, dynamic> json) {
-    return DeezerArtistInfo(
-      name: json['name'] as String? ?? '',
-      pictureSmall: json['picture_small'] as String?,
-      pictureMedium: json['picture_medium'] as String?,
-      pictureBig: json['picture_big'] as String?,
-      pictureXl: json['picture_xl'] as String?,
-      nbAlbum: json['nb_album'] as int?,
-      nbFan: json['nb_fan'] as int?,
-      description: json['description'] as String?,
-    );
-  }
 }
 
 /// Deezer 服务

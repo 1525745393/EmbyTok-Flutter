@@ -23,35 +23,6 @@ import 'dart:async';
 /// 使用装饰器模式包装 [MediaRepository]，为只读操作添加内存缓存。
 /// 不同账号（token 不同）的数据自动隔离，不会互相污染。
 class CachedMediaRepository implements MediaRepository {
-  final MediaRepository _inner;
-  final Duration _ttl;
-
-  /// 列表类缓存（key: 组合参数的哈希）
-  final MemoryCache<PaginatedResponse<MediaItem>> _libraryItemsCache;
-  final MemoryCache<FavoritesPageResult> _favoritesCache;
-  final MemoryCache<FavoritesPageResult> _boxSetsFavoritesCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _resumeCache;
-  final MemoryCache<MediaItem> _itemDetailCache;
-  final MemoryCache<List<Library>> _librariesCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _nextUpCache;
-  final MemoryCache<List<MediaItem>> _seasonsCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _episodesCache;
-  final MemoryCache<List<MediaItem>> _similarItemsCache;
-  // 演员相关缓存
-  final MemoryCache<PaginatedResponse<Person>> _peopleCache;
-  final MemoryCache<MediaItem?> _personDetailCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _personItemsCache;
-  final MemoryCache<FavoritesPageResult> _favoritePeopleCache;
-  // 推荐/建议/历史/子项缓存
-  final MemoryCache<PaginatedResponse<MediaItem>> _recommendationsCache;
-  final MemoryCache<List<MediaItem>> _suggestionsCache;
-  final MemoryCache<List<MediaItem>> _watchHistoryCache;
-  final MemoryCache<List<MediaItem>> _childrenCache;
-  // 类型/工作室缓存
-  final MemoryCache<List<Library>> _genresCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _genreItemsCache;
-  final MemoryCache<List<Library>> _studiosCache;
-  final MemoryCache<PaginatedResponse<MediaItem>> _studioItemsCache;
 
   CachedMediaRepository(
     this._inner, {
@@ -85,6 +56,35 @@ class CachedMediaRepository implements MediaRepository {
         _studiosCache = MemoryCache<List<Library>>(maxSize: 10),
         _studioItemsCache =
             MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50);
+  final MediaRepository _inner;
+  final Duration _ttl;
+
+  /// 列表类缓存（key: 组合参数的哈希）
+  final MemoryCache<PaginatedResponse<MediaItem>> _libraryItemsCache;
+  final MemoryCache<FavoritesPageResult> _favoritesCache;
+  final MemoryCache<FavoritesPageResult> _boxSetsFavoritesCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _resumeCache;
+  final MemoryCache<MediaItem> _itemDetailCache;
+  final MemoryCache<List<Library>> _librariesCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _nextUpCache;
+  final MemoryCache<List<MediaItem>> _seasonsCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _episodesCache;
+  final MemoryCache<List<MediaItem>> _similarItemsCache;
+  // 演员相关缓存
+  final MemoryCache<PaginatedResponse<Person>> _peopleCache;
+  final MemoryCache<MediaItem?> _personDetailCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _personItemsCache;
+  final MemoryCache<FavoritesPageResult> _favoritePeopleCache;
+  // 推荐/建议/历史/子项缓存
+  final MemoryCache<PaginatedResponse<MediaItem>> _recommendationsCache;
+  final MemoryCache<List<MediaItem>> _suggestionsCache;
+  final MemoryCache<List<MediaItem>> _watchHistoryCache;
+  final MemoryCache<List<MediaItem>> _childrenCache;
+  // 类型/工作室缓存
+  final MemoryCache<List<Library>> _genresCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _genreItemsCache;
+  final MemoryCache<List<Library>> _studiosCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _studioItemsCache;
 
   /// 正在后台刷新的 key 集合，防止并发重复刷新
   final Set<String> _pendingRefreshes = {};

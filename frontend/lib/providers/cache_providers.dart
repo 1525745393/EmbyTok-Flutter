@@ -43,9 +43,9 @@ final cachedMediaRepositoryProvider = Provider<CachedMediaRepository>((ref) {
 /// - 用户登出/切换账号
 /// - 标记已观看、收藏切换等可能影响列表数据的操作
 class CacheController {
-  final CachedMediaRepository _cachedRepo;
 
   CacheController(this._cachedRepo);
+  final CachedMediaRepository _cachedRepo;
 
   /// 清除所有缓存
   void invalidateAll() {

@@ -31,26 +31,6 @@ final gridSearchQueryProvider = StateProvider<String>((ref) {
 });
 
 class VideoListNotifier extends StateNotifier<VideoListState> {
-  final Ref _ref;
-  final MediaRepository _repo;
-  Timer? _searchDebounceTimer;
-
-  // 多库分页时，记录每个库已加载的 item 数量（即下一次请求的 offset）
-  // refresh 时清空，loadMore 时各库独立递增，避免多库共用全局 offset 导致的分页错误
-  final Map<String, int> _libraryLoadedCounts = <String, int>{};
-
-  // 请求取消：refresh 前取消上一次未完成的 refresh 请求，防止旧数据覆盖新状态
-  CancelToken? _refreshCancelToken;
-
-  // refresh 代数计数器：即使 CancelToken 无法取消已在途中的请求（如网络已返回但
-  // 尚未解析），也能通过代数对比在 setState 前放弃陈旧结果
-  int _refreshGeneration = 0;
-
-  ProviderSubscription<List<String>>? _libraryIdsSubscription;
-  ProviderSubscription<FeedType>? _feedTypeSubscription;
-  ProviderSubscription<bool>? _excludePlayedSubscription;
-  ProviderSubscription<String>? _searchQuerySubscription;
-  ProviderSubscription<ViewMode>? _viewModeSubscription;
 
   VideoListNotifier(this._ref, {MediaRepository? repo})
       : _repo = repo ?? _ref.read(cachedMediaRepositoryProvider),
@@ -126,6 +106,26 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       }
     });
   }
+  final Ref _ref;
+  final MediaRepository _repo;
+  Timer? _searchDebounceTimer;
+
+  // 多库分页时，记录每个库已加载的 item 数量（即下一次请求的 offset）
+  // refresh 时清空，loadMore 时各库独立递增，避免多库共用全局 offset 导致的分页错误
+  final Map<String, int> _libraryLoadedCounts = <String, int>{};
+
+  // 请求取消：refresh 前取消上一次未完成的 refresh 请求，防止旧数据覆盖新状态
+  CancelToken? _refreshCancelToken;
+
+  // refresh 代数计数器：即使 CancelToken 无法取消已在途中的请求（如网络已返回但
+  // 尚未解析），也能通过代数对比在 setState 前放弃陈旧结果
+  int _refreshGeneration = 0;
+
+  ProviderSubscription<List<String>>? _libraryIdsSubscription;
+  ProviderSubscription<FeedType>? _feedTypeSubscription;
+  ProviderSubscription<bool>? _excludePlayedSubscription;
+  ProviderSubscription<String>? _searchQuerySubscription;
+  ProviderSubscription<ViewMode>? _viewModeSubscription;
 
   // 读取认证信息
   AuthState get _auth => _ref.read(authProvider);
@@ -635,8 +635,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         'feedType': currentFeedType.toStorageString(),
       });
     } catch (e) {
-      if (e is DioException && CancelToken.isCancel(e))
+      if (e is DioException && CancelToken.isCancel(e)) {
         return; // 请求被新版 refresh 取消，静默忽略
+      }
       AppLogger.error('刷新视频列表失败', error: e);
       state = state.copyWith(
           isLoading: false,
@@ -1083,30 +1084,30 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
 /// SWR 模式首屏加载结果（FeedType.latest 多库混合场景）
 class _SWRLatestResult {
-  final List<MediaItem>? cachedItems;
-  final int cachedTotal;
-  final Future<_SWRLatestFreshResult> freshFuture;
 
   const _SWRLatestResult({
     required this.cachedItems,
     required this.cachedTotal,
     required this.freshFuture,
   });
+  final List<MediaItem>? cachedItems;
+  final int cachedTotal;
+  final Future<_SWRLatestFreshResult> freshFuture;
 
   bool get hasCache => cachedItems != null;
 }
 
 /// SWR 网络请求结果
 class _SWRLatestFreshResult {
-  final List<MediaItem> items;
-  final int total;
-  final bool allFailed;
 
   const _SWRLatestFreshResult({
     required this.items,
     required this.total,
     required this.allFailed,
   });
+  final List<MediaItem> items;
+  final int total;
+  final bool allFailed;
 }
 
 /// 单库加载结果（成功 / 失败 二选一）
@@ -1114,10 +1115,6 @@ class _SWRLatestFreshResult {
 /// 用于并行加载时的单库状态包装，便于统一合并。
 /// 成功时 [items] 和 [total] 非空，失败时 [error] 非空。
 class _LibLoadResult {
-  final String libId;
-  final List<MediaItem>? items;
-  final int? total;
-  final Object? error;
 
   const _LibLoadResult.success(this.libId, this.items, this.total)
       : error = null;
@@ -1125,6 +1122,10 @@ class _LibLoadResult {
   const _LibLoadResult.failure(this.libId, this.error)
       : items = null,
         total = null;
+  final String libId;
+  final List<MediaItem>? items;
+  final int? total;
+  final Object? error;
 
   bool get isSuccess => error == null;
 }
@@ -1134,10 +1135,6 @@ class _LibLoadResult {
 /// [items] 和 [total] 是跨库去重后的合并结果；
 /// [perLibraryResults] 保留每个库的原始结果，供调用方做计数等副作用。
 class _ParallelLoadResult {
-  final List<MediaItem> items;
-  final int total;
-  final bool allFailed;
-  final List<_LibLoadResult> perLibraryResults;
 
   const _ParallelLoadResult({
     required this.items,
@@ -1145,6 +1142,10 @@ class _ParallelLoadResult {
     required this.allFailed,
     required this.perLibraryResults,
   });
+  final List<MediaItem> items;
+  final int total;
+  final bool allFailed;
+  final List<_LibLoadResult> perLibraryResults;
 }
 
 /// 顶层视频列表 Provider：暴露 [VideoListState] 给 UI 使用

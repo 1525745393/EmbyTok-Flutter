@@ -33,10 +33,6 @@ const double kQuickEntrySpacing = 6;
 
 /// 快捷入口数据
 class QuickEntry {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
 
   const QuickEntry({
     required this.icon,
@@ -44,13 +40,17 @@ class QuickEntry {
     required this.color,
     required this.onTap,
   });
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 }
 
 /// 快捷入口按钮（圆形渐变背景 + 图标 + 文字）
 class QuickEntryButton extends StatelessWidget {
-  final QuickEntry entry;
 
   const QuickEntryButton({super.key, required this.entry});
+  final QuickEntry entry;
 
   @override
   Widget build(BuildContext context) {

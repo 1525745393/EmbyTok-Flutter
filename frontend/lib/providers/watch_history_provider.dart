@@ -9,15 +9,15 @@ import 'cache_providers.dart';
 
 /// 观看历史状态：从 Emby 获取最近播放（Resume）的视频列表
 class WatchHistoryState {
-  final List<MediaItem> items;
-  final bool isLoading;
-  final String? error;
 
   const WatchHistoryState({
     this.items = const <MediaItem>[],
     this.isLoading = false,
     this.error,
   });
+  final List<MediaItem> items;
+  final bool isLoading;
+  final String? error;
 
   WatchHistoryState copyWith({
     List<MediaItem>? items,
@@ -34,9 +34,9 @@ class WatchHistoryState {
 
 // 观看历史 Notifier
 class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
-  final Ref _ref;
 
   WatchHistoryNotifier(this._ref) : super(const WatchHistoryState());
+  final Ref _ref;
 
   // 从 Emby 服务器加载（走缓存仓库，短 TTL）
   Future<void> load() async {

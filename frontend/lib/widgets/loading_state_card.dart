@@ -29,20 +29,6 @@ import 'package:flutter/material.dart';
 /// )
 /// ```
 class LoadingStateCard extends StatelessWidget {
-  /// 主标题（如"加载中..."）
-  final String? title;
-
-  /// 副标题（如"正在获取数据，请稍候"）
-  final String? subtitle;
-
-  /// 加载指示器颜色，默认使用主题 primary 色
-  final Color? indicatorColor;
-
-  /// 加载指示器尺寸，默认 48
-  final double indicatorSize;
-
-  /// 加载指示器线宽，默认 4
-  final double strokeWidth;
 
   const LoadingStateCard({
     super.key,
@@ -83,6 +69,20 @@ class LoadingStateCard extends StatelessWidget {
       subtitle: '正在同步服务器数据，请稍候',
     );
   }
+  /// 主标题（如"加载中..."）
+  final String? title;
+
+  /// 副标题（如"正在获取数据，请稍候"）
+  final String? subtitle;
+
+  /// 加载指示器颜色，默认使用主题 primary 色
+  final Color? indicatorColor;
+
+  /// 加载指示器尺寸，默认 48
+  final double indicatorSize;
+
+  /// 加载指示器线宽，默认 4
+  final double strokeWidth;
 
   @override
   Widget build(BuildContext context) {

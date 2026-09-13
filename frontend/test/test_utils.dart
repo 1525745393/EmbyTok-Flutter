@@ -36,15 +36,15 @@ class MockDioAdapter implements HttpClientAdapter {
 }
 
 class MockResponse {
-  final String data;
-  final int statusCode;
-  final Map<String, List<String>> headers;
 
   MockResponse({
     required this.data,
     this.statusCode = 200,
     this.headers = const {},
   });
+  final String data;
+  final int statusCode;
+  final Map<String, List<String>> headers;
 }
 
 /// 测试用 JSON fixtures

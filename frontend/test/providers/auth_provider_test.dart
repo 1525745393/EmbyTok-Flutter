@@ -33,7 +33,7 @@ void main() {
 
     test('copyWith 正确更新字段', () {
       const original = AuthState();
-      final user = User(id: 'user-1', name: 'test', accessToken: 'token');
+      const user = User(id: 'user-1', name: 'test', accessToken: 'token');
 
       final updated = original.copyWith(
         isAuthenticated: true,
@@ -55,8 +55,8 @@ void main() {
     });
 
     test('copyWith 未指定字段保持原值', () {
-      final user = User(id: 'user-1', name: 'test', accessToken: 'token');
-      final original = AuthState(
+      const user = User(id: 'user-1', name: 'test', accessToken: 'token');
+      const original = AuthState(
         isAuthenticated: true,
         user: user,
         backendUrl: 'http://backend',
@@ -114,7 +114,7 @@ void main() {
     });
 
     test('login() 成功：状态正确更新', () async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
@@ -227,7 +227,7 @@ void main() {
     });
 
     test('logout()：清除状态', () async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
@@ -568,7 +568,7 @@ void main() {
     });
 
     test('5.4.3 secure_storage 写入失败：登录失败并抛出异常', () async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',

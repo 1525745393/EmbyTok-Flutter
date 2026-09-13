@@ -21,17 +21,6 @@ import 'embytok_service_provider.dart';
 // ============================================================
 
 class ActorsState {
-  final List<Person> actors;
-  final bool loading;
-  final bool isLoadingMore;
-  final String? error;
-  final Set<String> favoritedIds;
-  final String? selectedPersonType;
-  final String searchQuery;
-  final List<Person> searchResults;
-  final bool isSearching;
-  final int total;
-  final bool hasLoaded;
 
   const ActorsState({
     this.actors = const [],
@@ -46,6 +35,17 @@ class ActorsState {
     this.total = 0,
     this.hasLoaded = false,
   });
+  final List<Person> actors;
+  final bool loading;
+  final bool isLoadingMore;
+  final String? error;
+  final Set<String> favoritedIds;
+  final String? selectedPersonType;
+  final String searchQuery;
+  final List<Person> searchResults;
+  final bool isSearching;
+  final int total;
+  final bool hasLoaded;
 
   ActorsState copyWith({
     List<Person>? actors,
@@ -85,6 +85,10 @@ class ActorsState {
 // ============================================================
 
 class ActorsNotifier extends StateNotifier<ActorsState> {
+
+  ActorsNotifier(this._ref) : super(const ActorsState()) {
+    _service = _ref.read(embytokServiceProvider);
+  }
   final Ref _ref;
   late final EmbytokService _service;
   Timer? _debounceTimer;
@@ -92,10 +96,6 @@ class ActorsNotifier extends StateNotifier<ActorsState> {
   static const int _pageSize = 50;
 
   bool _isLoadingFavorites = false;
-
-  ActorsNotifier(this._ref) : super(const ActorsState()) {
-    _service = _ref.read(embytokServiceProvider);
-  }
 
   // ---- 加载演员列表 ----
 

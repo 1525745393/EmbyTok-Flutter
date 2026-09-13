@@ -19,8 +19,11 @@ import '../mocks/mock_secure_storage.dart';
 
 /// 最小 fake：仅实现认证相关成员，其余走 noSuchMethod 兜底
 class _FakeSynologyApi implements SynologyAudioApi {
+  @override
   String? serverUrl;
+  @override
   String? sid;
+  @override
   String? account;
   String? restoredSid;
   int logoutCount = 0;

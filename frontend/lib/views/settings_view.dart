@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
 import 'package:flutter/material.dart';
-import '../models/audio_models.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +16,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/artist_metadata_provider.dart';
-import '../providers/lastfm_provider.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
@@ -314,7 +312,7 @@ class SettingsView extends ConsumerWidget {
     for (var i = 0; i < children.length; i++) {
       widgets.add(children[i]);
       if (i < children.length - 1) {
-        widgets.add(Divider(height: 1, indent: _kDividerIndent));
+        widgets.add(const Divider(height: 1, indent: _kDividerIndent));
       }
     }
     return widgets;
@@ -1005,9 +1003,9 @@ class SettingsView extends ConsumerWidget {
     final authState = ref.read(synologyAuthProvider);
     if (!authState.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_kHintLoginFirst),
-          duration: const Duration(seconds: _kSnackBarDurationShort),
+        const SnackBar(
+          content: const Text(_kHintLoginFirst),
+          duration: Duration(seconds: _kSnackBarDurationShort),
         ),
       );
       return;
@@ -1036,9 +1034,9 @@ class SettingsView extends ConsumerWidget {
       if (!context.mounted) return; // 修复：异步后检查 context.mounted
       if (artistNames.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_kHintNoArtists),
-            duration: const Duration(seconds: _kSnackBarDurationShort),
+          const SnackBar(
+            content: const Text(_kHintNoArtists),
+            duration: Duration(seconds: _kSnackBarDurationShort),
           ),
         );
         return;
@@ -1205,9 +1203,9 @@ class SettingsView extends ConsumerWidget {
               // 切换模式后回到首页，立即展示对应界面
               context.go('/');
             },
-            style: ButtonStyle(
+            style: const ButtonStyle(
               visualDensity: VisualDensity.compact,
-              textStyle: WidgetStatePropertyAll(TextStyle(fontSize: _kFontSizeBody)),
+              textStyle: const WidgetStatePropertyAll(TextStyle(fontSize: _kFontSizeBody)),
             ),
           ),
           const SizedBox(height: _kSpacingMedium),
@@ -1893,7 +1891,7 @@ class SettingsView extends ConsumerWidget {
         trailing: Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: scheme.primary,
+          activeThumbColor: scheme.primary,
         ),
       );
     });
@@ -1998,47 +1996,47 @@ class SettingsView extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
         title: Text('手势控制', style: TextStyle(color: scheme.onSurface)),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _GestureItem(
+            const _GestureItem(
               icon: Icons.touch_app,
               title: '单击',
               description: '显示/隐藏控制栏',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.double_arrow,
               title: '双击左右侧',
               description: '快退 / 快进 10 秒',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.favorite,
               title: '双击中间',
               description: '点赞（加入收藏）',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.fast_forward,
               title: '长按',
               description: '2x 倍速播放，松开恢复',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.swipe_up,
               title: '上下滑动（左半屏）',
               description: '调节屏幕亮度',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.volume_up,
               title: '上下滑动（右半屏）',
               description: '调节音量',
             ),
-            const SizedBox(height: _kSpacingXLarge),
-            _GestureItem(
+            SizedBox(height: _kSpacingXLarge),
+            const _GestureItem(
               icon: Icons.swipe,
               title: '左右滑动',
               description: '拖动进度条定位',
@@ -2945,7 +2943,7 @@ class SettingsView extends ConsumerWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle, size: 48, color: Colors.green),
+            const Icon(Icons.check_circle, size: 48, color: Colors.green),
             const SizedBox(height: _kSpacingXXLarge),
             const Text(
               '下载完成',
@@ -3156,7 +3154,7 @@ class SettingsView extends ConsumerWidget {
                   width: 200,
                   height: 200,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _DonatePlaceholder(
+                  errorBuilder: (_, __, ___) => const _DonatePlaceholder(
                     icon: Icons.chat_outlined,
                     label: '微信收款码',
                     hint: '尚未提供，敬请期待',
@@ -3173,7 +3171,7 @@ class SettingsView extends ConsumerWidget {
                   width: 200,
                   height: 200,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _DonatePlaceholder(
+                  errorBuilder: (_, __, ___) => const _DonatePlaceholder(
                     icon: Icons.account_balance_wallet_outlined,
                     label: '支付宝收款码',
                     hint: '尚未提供，敬请期待',
@@ -3287,17 +3285,17 @@ class SettingsView extends ConsumerWidget {
               ),
               const SizedBox(height: _kSpacingXXLarge),
               // 功能亮点
-              _AboutFeatureRow(
+              const _AboutFeatureRow(
                 icon: Icons.swipe_vertical,
                 text: '上下滑动，沉浸式刷片体验',
               ),
               const SizedBox(height: _kSpacingLarge),
-              _AboutFeatureRow(
+              const _AboutFeatureRow(
                 icon: Icons.favorite_border,
                 text: '收藏管理，快速访问心仪内容',
               ),
               const SizedBox(height: _kSpacingLarge),
-              _AboutFeatureRow(
+              const _AboutFeatureRow(
                 icon: Icons.tv,
                 text: '支持 Emby / Plex 媒体服务器',
               ),
@@ -3437,10 +3435,6 @@ class SettingsView extends ConsumerWidget {
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
 class _DonatePlaceholder extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String hint;
-  final Color color;
 
   const _DonatePlaceholder({
     required this.icon,
@@ -3448,6 +3442,10 @@ class _DonatePlaceholder extends StatelessWidget {
     required this.hint,
     required this.color,
   });
+  final IconData icon;
+  final String label;
+  final String hint;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -3488,9 +3486,9 @@ class _DonatePlaceholder extends StatelessWidget {
 
 // 关于页的功能亮点行
 class _AboutFeatureRow extends StatelessWidget {
+  const _AboutFeatureRow({required this.icon, required this.text});
   final IconData icon;
   final String text;
-  const _AboutFeatureRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -3522,15 +3520,15 @@ class _AboutFeatureRow extends StatelessWidget {
 /// 异步收集所有依赖的许可证条目，渲染为中文界面的可展开列表，
 /// 支持按包名搜索过滤。
 class _LicensePage extends StatefulWidget {
-  final String applicationName;
-  final String applicationVersion;
-  final Color primaryColor;
 
   const _LicensePage({
     required this.applicationName,
     required this.applicationVersion,
     required this.primaryColor,
   });
+  final String applicationName;
+  final String applicationVersion;
+  final Color primaryColor;
 
   @override
   State<_LicensePage> createState() => _LicensePageState();
@@ -3778,9 +3776,9 @@ class _LicensePageState extends State<_LicensePage> {
 
 /// 许可证条目视图模型
 class _LicenseEntryView {
+  const _LicenseEntryView({required this.packageName, required this.body});
   final String packageName;
   final String body;
-  const _LicenseEntryView({required this.packageName, required this.body});
 }
 
 // ==================== 推荐高级选项折叠组件 ====================
@@ -3790,10 +3788,10 @@ class _LicenseEntryView {
 /// 基础推荐设置始终显示；高级选项（完播率门控、时间衰减、反疲劳、用户评分）
 /// 默认折叠，点击"高级选项"后展开。展开状态为局部 state，页面重建后重置为折叠。
 class _RecommendAdvancedTile extends StatefulWidget {
-  /// 高级选项 tile 构建器：每次 build 时调用，确保 ref.watch 生效
-  final List<Widget> Function() advancedTilesBuilder;
 
   const _RecommendAdvancedTile({required this.advancedTilesBuilder});
+  /// 高级选项 tile 构建器：每次 build 时调用，确保 ref.watch 生效
+  final List<Widget> Function() advancedTilesBuilder;
 
   @override
   State<_RecommendAdvancedTile> createState() => _RecommendAdvancedTileState();
@@ -3856,10 +3854,6 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
 
 /// 单个可搜索的设置入口
 class _SettingEntry {
-  final String title;
-  final String section;
-  final String keywords;
-  final void Function(BuildContext context) onTap;
 
   const _SettingEntry({
     required this.title,
@@ -3867,6 +3861,10 @@ class _SettingEntry {
     required this.keywords,
     required this.onTap,
   });
+  final String title;
+  final String section;
+  final String keywords;
+  final void Function(BuildContext context) onTap;
 
   /// 判断该入口是否匹配搜索词（标题、分组、关键词任一命中即可）
   bool matches(String query) {
@@ -3879,9 +3877,9 @@ class _SettingEntry {
 
 /// 设置搜索底部表单：实时过滤设置项，点击后执行对应操作并关闭
 class _SettingsSearchSheet extends StatefulWidget {
-  final List<_SettingEntry> entries;
 
   const _SettingsSearchSheet({required this.entries});
+  final List<_SettingEntry> entries;
 
   @override
   State<_SettingsSearchSheet> createState() => _SettingsSearchSheetState();

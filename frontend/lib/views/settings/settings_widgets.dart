@@ -6,15 +6,15 @@ part of '../settings_view.dart';
 // ==================== 手势项组件 ====================
 
 class _GestureItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
 
   const _GestureItem({
     required this.icon,
     required this.title,
     required this.description,
   });
+  final IconData icon;
+  final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +52,6 @@ class _GestureItem extends StatelessWidget {
 // ==================== 通用选项对话框 ====================
 
 class _OptionDialog<T> extends StatelessWidget {
-  final String title;
-  final List<(String label, T value)> options;
-  final T currentValue;
-  final ValueChanged<T> onSelect;
 
   const _OptionDialog({
     required this.title,
@@ -63,6 +59,10 @@ class _OptionDialog<T> extends StatelessWidget {
     required this.currentValue,
     required this.onSelect,
   });
+  final String title;
+  final List<(String label, T value)> options;
+  final T currentValue;
+  final ValueChanged<T> onSelect;
 
   @override
   Widget build(BuildContext context) {

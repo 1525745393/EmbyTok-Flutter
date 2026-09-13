@@ -13,10 +13,10 @@ export 'embytok_service_provider.dart' show embytokServiceProvider;
 /// 合并原先的 currentPlayingIdProvider + currentPlayingItemProvider，
 /// 保证 id 和 item 原子性更新，消除两者不同步的中间态窗口。
 class PlaybackState {
-  final String? id;
-  final MediaItem? item;
 
   const PlaybackState({this.id, this.item});
+  final String? id;
+  final MediaItem? item;
 
   @override
   bool operator ==(Object other) =>

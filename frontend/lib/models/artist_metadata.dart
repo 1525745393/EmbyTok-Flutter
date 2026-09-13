@@ -29,26 +29,26 @@ enum ArtistMetadataSource {
 
 /// 相似歌手模型
 class SimilarArtist {
-  /// 歌手名称
-  final String name;
-
-  /// 歌手头像URL
-  final String? imageUrl;
 
   const SimilarArtist({
     required this.name,
     this.imageUrl,
   });
 
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'imageUrl': imageUrl,
-      };
-
   factory SimilarArtist.fromJson(Map<String, dynamic> json) => SimilarArtist(
         name: json['name'] as String,
         imageUrl: json['imageUrl'] as String?,
       );
+  /// 歌手名称
+  final String name;
+
+  /// 歌手头像URL
+  final String? imageUrl;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'imageUrl': imageUrl,
+      };
 }
 
 /// 歌手元数据模型
@@ -56,6 +56,64 @@ class SimilarArtist {
 /// 包含歌手头像、简介、风格标签、听众数、相似歌手等富元数据。
 /// 所有字段均可空（无数据时为 null），UI 层需处理空状态。
 class ArtistMetadata {
+
+  const ArtistMetadata({
+    required this.name,
+    this.musicBrainzId,
+    this.imageUrl,
+    this.imageSmallUrl,
+    this.bioSummary,
+    this.bioContent,
+    this.bioLang,
+    this.tags = const [],
+    this.listeners,
+    this.playcount,
+    this.similarArtists = const [],
+    this.source = ArtistMetadataSource.none,
+    required this.cachedAt,
+    this.version = 1,
+    this.isManualOverride = false,
+  });
+
+  /// 从 JSON 反序列化
+  factory ArtistMetadata.fromJson(Map<String, dynamic> json) {
+    return ArtistMetadata(
+      name: json['name'] as String,
+      musicBrainzId: json['musicBrainzId'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      imageSmallUrl: json['imageSmallUrl'] as String?,
+      bioSummary: json['bioSummary'] as String?,
+      bioContent: json['bioContent'] as String?,
+      bioLang: json['bioLang'] as String?,
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+          const [],
+      listeners: json['listeners'] as int?,
+      playcount: json['playcount'] as int?,
+      similarArtists: (json['similarArtists'] as List<dynamic>?)
+              ?.map((e) => SimilarArtist.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      source: ArtistMetadataSource.values.firstWhere(
+        (e) => e.name == json['source'],
+        orElse: () => ArtistMetadataSource.none,
+      ),
+      cachedAt: DateTime.tryParse(json['cachedAt'] as String? ?? '') ??
+          DateTime.now(),
+      version: json['version'] as int? ?? 1,
+      isManualOverride: json['isManualOverride'] as bool? ?? false,
+    );
+  }
+
+  /// 从 JSON 字符串反序列化
+  factory ArtistMetadata.fromJsonString(String jsonString) =>
+      ArtistMetadata.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+
+  /// 创建无数据的空元数据（用于缓存"无简介"标记）
+  factory ArtistMetadata.empty(String name) => ArtistMetadata(
+        name: name,
+        source: ArtistMetadataSource.none,
+        cachedAt: DateTime.now(),
+      );
   /// 歌手名称（主键）
   final String name;
 
@@ -102,24 +160,6 @@ class ArtistMetadata {
   ///
   /// 为 true 时表示该元数据由用户手动编辑，优先于自动获取的数据。
   final bool isManualOverride;
-
-  const ArtistMetadata({
-    required this.name,
-    this.musicBrainzId,
-    this.imageUrl,
-    this.imageSmallUrl,
-    this.bioSummary,
-    this.bioContent,
-    this.bioLang,
-    this.tags = const [],
-    this.listeners,
-    this.playcount,
-    this.similarArtists = const [],
-    this.source = ArtistMetadataSource.none,
-    required this.cachedAt,
-    this.version = 1,
-    this.isManualOverride = false,
-  });
 
   /// 是否有头像
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
@@ -219,48 +259,8 @@ class ArtistMetadata {
         'isManualOverride': isManualOverride,
       };
 
-  /// 从 JSON 反序列化
-  factory ArtistMetadata.fromJson(Map<String, dynamic> json) {
-    return ArtistMetadata(
-      name: json['name'] as String,
-      musicBrainzId: json['musicBrainzId'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      imageSmallUrl: json['imageSmallUrl'] as String?,
-      bioSummary: json['bioSummary'] as String?,
-      bioContent: json['bioContent'] as String?,
-      bioLang: json['bioLang'] as String?,
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-          const [],
-      listeners: json['listeners'] as int?,
-      playcount: json['playcount'] as int?,
-      similarArtists: (json['similarArtists'] as List<dynamic>?)
-              ?.map((e) => SimilarArtist.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      source: ArtistMetadataSource.values.firstWhere(
-        (e) => e.name == json['source'],
-        orElse: () => ArtistMetadataSource.none,
-      ),
-      cachedAt: DateTime.tryParse(json['cachedAt'] as String? ?? '') ??
-          DateTime.now(),
-      version: json['version'] as int? ?? 1,
-      isManualOverride: json['isManualOverride'] as bool? ?? false,
-    );
-  }
-
   /// 序列化为 JSON 字符串
   String toJsonString() => jsonEncode(toJson());
-
-  /// 从 JSON 字符串反序列化
-  factory ArtistMetadata.fromJsonString(String jsonString) =>
-      ArtistMetadata.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
-
-  /// 创建无数据的空元数据（用于缓存"无简介"标记）
-  factory ArtistMetadata.empty(String name) => ArtistMetadata(
-        name: name,
-        source: ArtistMetadataSource.none,
-        cachedAt: DateTime.now(),
-      );
 
   /// 判断缓存是否过期（默认30天，空数据7天）
   bool isExpired({

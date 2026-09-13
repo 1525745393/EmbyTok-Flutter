@@ -44,10 +44,6 @@ const searchCategories = [
 
 /// 搜索人物结果
 class SearchPerson {
-  final String id;
-  final String name;
-  final String? imageUrl;
-  final String? overview;
 
   const SearchPerson({
     required this.id,
@@ -77,22 +73,14 @@ class SearchPerson {
       overview: json['Overview'] as String?,
     );
   }
+  final String id;
+  final String name;
+  final String? imageUrl;
+  final String? overview;
 }
 
 /// 搜索状态：关键字、结果列表、加载状态
 class SearchState {
-  final List<MediaItem> results;
-  final String query;
-  final bool isLoading;
-  final bool hasMore;
-  final String? error;
-  final int offset;
-  final int limit;
-  final int total;
-  final List<String> includeTypes;
-  final SearchCategory category;
-  final List<SearchPerson> persons;
-  final bool isLoadingPersons;
 
   const SearchState({
     this.results = const <MediaItem>[],
@@ -108,6 +96,18 @@ class SearchState {
     this.persons = const [],
     this.isLoadingPersons = false,
   });
+  final List<MediaItem> results;
+  final String query;
+  final bool isLoading;
+  final bool hasMore;
+  final String? error;
+  final int offset;
+  final int limit;
+  final int total;
+  final List<String> includeTypes;
+  final SearchCategory category;
+  final List<SearchPerson> persons;
+  final bool isLoadingPersons;
 
   SearchState copyWith({
     List<MediaItem>? results,
@@ -142,6 +142,10 @@ class SearchState {
 
 // 搜索 Notifier
 class SearchNotifier extends StateNotifier<SearchState> {
+
+  SearchNotifier(this._ref) : super(const SearchState()) {
+    _service = _ref.read(embytokServiceProvider);
+  }
   final Ref _ref;
   late final EmbytokService _service;
 
@@ -151,10 +155,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
   /// 搜索结果缓存（按 query+category 缓存整个 SearchState）
   final MemoryCache<SearchState> _cache =
       MemoryCache<SearchState>(maxSize: _kSearchCacheMaxSize);
-
-  SearchNotifier(this._ref) : super(const SearchState()) {
-    _service = _ref.read(embytokServiceProvider);
-  }
 
   AuthState get _auth => _ref.read(authProvider);
 

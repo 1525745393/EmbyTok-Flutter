@@ -441,13 +441,6 @@ class ServersView extends ConsumerWidget {
 
 /// 服务器卡片
 class _ServerCard extends StatelessWidget {
-  final ServerProfile server;
-  final bool active;
-  final bool isLoggedIn;
-  final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onSetDefault;
 
   const _ServerCard({
     required this.server,
@@ -458,6 +451,13 @@ class _ServerCard extends StatelessWidget {
     required this.onDelete,
     required this.onSetDefault,
   });
+  final ServerProfile server;
+  final bool active;
+  final bool isLoggedIn;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onSetDefault;
 
   @override
   Widget build(BuildContext context) {
@@ -524,7 +524,7 @@ class _ServerCard extends StatelessWidget {
                         ],
                         if (server.isDefault) ...[
                           const SizedBox(width: 6),
-                          Icon(Icons.star, size: 14, color: Colors.amber),
+                          const Icon(Icons.star, size: 14, color: Colors.amber),
                         ],
                       ],
                     ),

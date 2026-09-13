@@ -1,4 +1,5 @@
 /// WatchHistoryItem 模型测试
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/watch_history_item.dart';

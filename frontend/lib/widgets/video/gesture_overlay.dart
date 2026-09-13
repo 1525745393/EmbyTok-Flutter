@@ -6,7 +6,6 @@
 //           避免和小屏 PageView 的垂直滑动切换视频冲突）
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -18,6 +17,16 @@ import 'video_gesture_mixin.dart';
 
 // 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
+
+  const GestureOverlay({
+    super.key,
+    required this.child,
+    required this.item,
+    required this.controller,
+    this.onSingleTap,
+    this.enableGestures = true,
+    this.enableVerticalVolumeDrag = false,
+  });
   final Widget child;
   final MediaItem item;
   final VideoPlayerController? controller;
@@ -33,16 +42,6 @@ class GestureOverlay extends ConsumerStatefulWidget {
   // - true：使用 onPan 同时处理水平/垂直拖动（全屏场景，无 PageView 冲突）
   // - false：仅启用水平拖动 seek（小屏场景，避免和 PageView 垂直滑动切换视频冲突）
   final bool enableVerticalVolumeDrag;
-
-  const GestureOverlay({
-    super.key,
-    required this.child,
-    required this.item,
-    required this.controller,
-    this.onSingleTap,
-    this.enableGestures = true,
-    this.enableVerticalVolumeDrag = false,
-  });
 
   @override
   ConsumerState<GestureOverlay> createState() => _GestureOverlayState();
@@ -63,15 +62,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
     widget.onSingleTap?.call();
   }
 
-  @override
-  void onDoubleTapLeft() {
-    super.onDoubleTapLeft();
-  }
 
-  @override
-  void onDoubleTapRight() {
-    super.onDoubleTapRight();
-  }
 
   @override
   void onDoubleTapCenter() {
@@ -121,7 +112,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             onLongPressStart: widget.enableGestures ? onLongPressStart : null,
             onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
             onLongPressCancel: widget.enableGestures
-                ? () => onLongPressEnd(LongPressEndDetails())
+                ? () => onLongPressEnd(const LongPressEndDetails())
                 : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
             onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
@@ -334,15 +325,15 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
 
 // ---- 内部子组件：拖动进度预览条 ----
 class _SeekPreviewBar extends StatelessWidget {
-  final Duration current;
-  final Duration total;
-  final Duration offset;
 
   const _SeekPreviewBar({
     required this.current,
     required this.total,
     required this.offset,
   });
+  final Duration current;
+  final Duration total;
+  final Duration offset;
 
   String _format(Duration d) {
     if (d.inSeconds < 0) return '0:00';
@@ -480,7 +471,7 @@ class _FlyingHeartState extends State<_FlyingHeart>
                         .onSurface
                         .withValues(alpha: 0.33),
                     blurRadius: 16,
-                    offset: Offset(0, 4)),
+                    offset: const Offset(0, 4)),
               ],
             ),
           ),

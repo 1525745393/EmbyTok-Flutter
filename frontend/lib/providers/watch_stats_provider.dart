@@ -27,14 +27,7 @@ import '../utils/safe_unawaited.dart';
 import 'auth_provider.dart';
 
 /// 单次观看记录
-class WatchRecord {
-  final String itemId; // 视频 ID
-  final String itemType; // Movie/Episode/...
-  final String? itemTitle; // 标题（仅用于设置页展示最近 10 条）
-  final double completionRate; // 完播率 [0.0, 1.0]
-  final int watchedAt; // unix 时间戳（秒）
-  final String
-      source; // 数据源 key（nextUp/resume/suggestions/similar/recommendations/feed）
+class WatchRecord { // 数据源 key（nextUp/resume/suggestions/similar/recommendations/feed）
 
   const WatchRecord({
     required this.itemId,
@@ -45,15 +38,6 @@ class WatchRecord {
     this.source = 'feed',
   });
 
-  Map<String, dynamic> toJson() => {
-        'itemId': itemId,
-        'itemType': itemType,
-        'itemTitle': itemTitle,
-        'completionRate': completionRate,
-        'watchedAt': watchedAt,
-        'source': source,
-      };
-
   factory WatchRecord.fromJson(Map<String, dynamic> json) => WatchRecord(
         itemId: json['itemId'] as String? ?? '',
         itemType: json['itemType'] as String? ?? 'Movie',
@@ -62,10 +46,34 @@ class WatchRecord {
         watchedAt: json['watchedAt'] as int? ?? 0,
         source: json['source'] as String? ?? 'feed',
       );
+  final String itemId; // 视频 ID
+  final String itemType; // Movie/Episode/...
+  final String? itemTitle; // 标题（仅用于设置页展示最近 10 条）
+  final double completionRate; // 完播率 [0.0, 1.0]
+  final int watchedAt; // unix 时间戳（秒）
+  final String
+      source;
+
+  Map<String, dynamic> toJson() => {
+        'itemId': itemId,
+        'itemType': itemType,
+        'itemTitle': itemTitle,
+        'completionRate': completionRate,
+        'watchedAt': watchedAt,
+        'source': source,
+      };
 }
 
 /// 完播率统计状态
 class WatchStatsState {
+
+  const WatchStatsState({
+    this.records = const [],
+    this.totalCount = 0,
+    this.avgCompletion = 0.0,
+    this.last7DaysCount = 0,
+    this.last7DaysAvgCompletion = 0.0,
+  });
   // 最近 N 条观看记录（按时间倒序）
   final List<WatchRecord> records;
   // 总观看次数
@@ -76,14 +84,6 @@ class WatchStatsState {
   final int last7DaysCount;
   // 最近 7 天平均完播率
   final double last7DaysAvgCompletion;
-
-  const WatchStatsState({
-    this.records = const [],
-    this.totalCount = 0,
-    this.avgCompletion = 0.0,
-    this.last7DaysCount = 0,
-    this.last7DaysAvgCompletion = 0.0,
-  });
 
   /// 全量替换记录并重算统计（单次遍历，无中间列表分配）
   /// 用于 _loadForUser 批量加载场景

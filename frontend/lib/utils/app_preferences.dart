@@ -125,6 +125,37 @@ enum OrientationMode {
 
 // 不可变的用户偏好快照
 class AppPreferences {
+
+  const AppPreferences({
+    this.forceDeviceMode = DeviceMode.standard,
+    this.feedType = FeedType.latest,
+    this.viewMode = ViewMode.feed,
+    this.orientationMode = OrientationMode.both,
+    this.isMuted = true,
+    this.isAutoPlay = false,
+    this.autoResumeAfterInterruption = true,
+    this.hiddenLibraryIds = const <String>{},
+    this.defaultPlaybackRate = 1.0,
+    this.defaultSubtitleLanguage = '',
+    this.subtitleSize = 'medium',
+    this.feedExcludePlayed = false,
+    this.recommendMinRating = 4.0,
+    this.recommendExcludePlayed = true,
+    this.recommendMinRuntimeSec = 30,
+    this.recommendIncludeTypes = const <String>{
+      'Movie',
+      'Episode',
+      'Video',
+      'MusicVideo',
+      'Series',
+    },
+    this.recommendUseWatchHistory = true,
+    this.recommendHalfLifeDays = 14.0,
+    this.recommendAntiFatigueEnabled = true,
+    this.recommendAntiFatigueDays = 30,
+    this.recommendUserRatingEnabled = true,
+    this.recommendUserRatingMin = 4.0,
+  });
   final DeviceMode forceDeviceMode;
   final FeedType feedType;
   final ViewMode viewMode;
@@ -172,37 +203,6 @@ class AppPreferences {
   //   - 收藏项豁免（用户主动喜欢 > 用户评分低）
   final bool recommendUserRatingEnabled;
   final double recommendUserRatingMin;
-
-  const AppPreferences({
-    this.forceDeviceMode = DeviceMode.standard,
-    this.feedType = FeedType.latest,
-    this.viewMode = ViewMode.feed,
-    this.orientationMode = OrientationMode.both,
-    this.isMuted = true,
-    this.isAutoPlay = false,
-    this.autoResumeAfterInterruption = true,
-    this.hiddenLibraryIds = const <String>{},
-    this.defaultPlaybackRate = 1.0,
-    this.defaultSubtitleLanguage = '',
-    this.subtitleSize = 'medium',
-    this.feedExcludePlayed = false,
-    this.recommendMinRating = 4.0,
-    this.recommendExcludePlayed = true,
-    this.recommendMinRuntimeSec = 30,
-    this.recommendIncludeTypes = const <String>{
-      'Movie',
-      'Episode',
-      'Video',
-      'MusicVideo',
-      'Series',
-    },
-    this.recommendUseWatchHistory = true,
-    this.recommendHalfLifeDays = 14.0,
-    this.recommendAntiFatigueEnabled = true,
-    this.recommendAntiFatigueDays = 30,
-    this.recommendUserRatingEnabled = true,
-    this.recommendUserRatingMin = 4.0,
-  });
 
   AppPreferences copyWith({
     DeviceMode? forceDeviceMode,

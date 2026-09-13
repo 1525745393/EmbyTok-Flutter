@@ -13,12 +13,11 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
-import '../widgets/video/video_page_item.dart';
 
 class HistoryView extends ConsumerStatefulWidget {
+  const HistoryView({super.key, this.useScaffold = true});
   // 是否使用 Scaffold（true=独立路由模式，false=覆盖层模式）
   final bool useScaffold;
-  const HistoryView({super.key, this.useScaffold = true});
 
   @override
   ConsumerState<HistoryView> createState() => _HistoryViewState();
@@ -165,10 +164,10 @@ class _HistoryViewState extends ConsumerState<HistoryView>
   }
 }
 
-class _HistoryTile extends ConsumerWidget {
-  final MediaItem item;
-  final List<MediaItem> allItems; // 完整列表
+class _HistoryTile extends ConsumerWidget { // 完整列表
   const _HistoryTile({super.key, required this.item, required this.allItems});
+  final MediaItem item;
+  final List<MediaItem> allItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -1,16 +1,6 @@
 // 字幕轨道模型
 
 class SubtitleTrack {
-  final String id;
-  final String name;
-  final String language;
-  final String format;
-  final String? url;
-  final bool isDefault;
-  final bool isForced;
-
-  /// 本地外挂字幕文件路径（服务器字幕为 null）
-  final String? localFilePath;
 
   const SubtitleTrack({
     required this.id,
@@ -22,12 +12,6 @@ class SubtitleTrack {
     this.isForced = false,
     this.localFilePath,
   });
-  // 显示名称：优先使用 name，否则使用 language
-  String get displayName {
-    if (name.isNotEmpty) return name;
-    if (language.isNotEmpty) return language;
-    return 'Unknown';
-  }
 
   factory SubtitleTrack.fromJson(Map<String, dynamic> json) => SubtitleTrack(
         id: json['id'] as String? ?? '',
@@ -38,6 +22,22 @@ class SubtitleTrack {
         isDefault: json['isDefault'] as bool? ?? false,
         isForced: json['isForced'] as bool? ?? false,
       );
+  final String id;
+  final String name;
+  final String language;
+  final String format;
+  final String? url;
+  final bool isDefault;
+  final bool isForced;
+
+  /// 本地外挂字幕文件路径（服务器字幕为 null）
+  final String? localFilePath;
+  // 显示名称：优先使用 name，否则使用 language
+  String get displayName {
+    if (name.isNotEmpty) return name;
+    if (language.isNotEmpty) return language;
+    return 'Unknown';
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -51,13 +51,6 @@ class SubtitleTrack {
 }
 
 class SubtitleCue {
-  final Duration start;
-  final Duration end;
-  final String text;
-  final bool isBold;
-  final bool isItalic;
-  final String? color;
-  final String? alignment;
 
   const SubtitleCue(
     this.start,
@@ -68,6 +61,13 @@ class SubtitleCue {
     this.color,
     this.alignment,
   });
+  final Duration start;
+  final Duration end;
+  final String text;
+  final bool isBold;
+  final bool isItalic;
+  final String? color;
+  final String? alignment;
 }
 
 List<SubtitleCue> parseSrt(String content) {
@@ -370,10 +370,6 @@ List<SubtitleCue> parseAss(String content) {
 
 /// ASS 对话文本解析结果
 class _AssTextResult {
-  final String text;
-  final bool isBold;
-  final bool isItalic;
-  final String? color;
 
   const _AssTextResult({
     required this.text,
@@ -381,6 +377,10 @@ class _AssTextResult {
     this.isItalic = false,
     this.color,
   });
+  final String text;
+  final bool isBold;
+  final bool isItalic;
+  final String? color;
 }
 
 /// 解析 ASS 对话文本，提取样式覆写并清理标签

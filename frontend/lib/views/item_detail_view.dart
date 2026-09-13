@@ -12,19 +12,18 @@ import '../utils/constants.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
-import '../widgets/video/video_page_item.dart';
 import '../widgets/person_avatar_image.dart';
 
 class ItemDetailView extends ConsumerStatefulWidget {
-  final String itemId;
-  // 可选：直接传入已加载的 MediaItem，避免重复请求
-  final MediaItem? initialItem;
 
   const ItemDetailView({
     super.key,
     required this.itemId,
     this.initialItem,
   });
+  final String itemId;
+  // 可选：直接传入已加载的 MediaItem，避免重复请求
+  final MediaItem? initialItem;
 
   @override
   ConsumerState<ItemDetailView> createState() => _ItemDetailViewState();
@@ -784,8 +783,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
 // 顶部背景图占位
 class _BackdropPlaceholder extends StatelessWidget {
-  final String type;
   const _BackdropPlaceholder({required this.type});
+  final String type;
 
   @override
   Widget build(BuildContext context) {
@@ -815,11 +814,11 @@ class _BackdropPlaceholder extends StatelessWidget {
 
 // 演员卡片：圆形头像 + 名称 + 角色
 class _CastCard extends StatelessWidget {
+  const _CastCard(
+      {super.key, required this.person, required this.httpHeaders, this.onTap});
   final Person person;
   final Map<String, String> httpHeaders;
   final VoidCallback? onTap;
-  const _CastCard(
-      {super.key, required this.person, required this.httpHeaders, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -890,9 +889,6 @@ class _CastCard extends StatelessWidget {
 
 // 集数条目：缩略图 + SxEy + 标题 + 简介
 class _EpisodeTile extends StatelessWidget {
-  final MediaItem episode;
-  final AuthState authState;
-  final VoidCallback onTap;
 
   const _EpisodeTile({
     super.key,
@@ -900,6 +896,9 @@ class _EpisodeTile extends StatelessWidget {
     required this.authState,
     required this.onTap,
   });
+  final MediaItem episode;
+  final AuthState authState;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -997,8 +996,8 @@ class _EpisodeTile extends StatelessWidget {
 }
 
 class _ThumbPlaceholder extends StatelessWidget {
-  final ColorScheme scheme;
   const _ThumbPlaceholder({required this.scheme});
+  final ColorScheme scheme;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,9 +1013,6 @@ class _ThumbPlaceholder extends StatelessWidget {
 
 // 相似推荐卡片：竖屏海报 + 标题
 class _SimilarCard extends StatelessWidget {
-  final MediaItem item;
-  final AuthState authState;
-  final VoidCallback onTap;
 
   const _SimilarCard({
     super.key,
@@ -1024,6 +1020,9 @@ class _SimilarCard extends StatelessWidget {
     required this.authState,
     required this.onTap,
   });
+  final MediaItem item;
+  final AuthState authState;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1084,8 +1083,8 @@ class _SimilarCard extends StatelessWidget {
 
 // 海报占位图
 class _PosterPlaceholder extends StatelessWidget {
-  final ColorScheme scheme;
   const _PosterPlaceholder({required this.scheme});
+  final ColorScheme scheme;
 
   @override
   Widget build(BuildContext context) {
@@ -1099,8 +1098,8 @@ class _PosterPlaceholder extends StatelessWidget {
 
 // 相似推荐卡片骨架屏
 class _SimilarCardSkeleton extends StatelessWidget {
-  final ColorScheme scheme;
   const _SimilarCardSkeleton({required this.scheme});
+  final ColorScheme scheme;
 
   @override
   Widget build(BuildContext context) {

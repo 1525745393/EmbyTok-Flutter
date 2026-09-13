@@ -6,6 +6,7 @@
 /// - 清空搜索历史
 /// - 不超过 kMaxSearchHistory 条记录
 /// - 持久化到 SharedPreferences
+library;
 
 import 'dart:convert';
 

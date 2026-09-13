@@ -58,6 +58,35 @@ enum NetworkMode {
 
 /// 服务器配置条目
 class ServerProfile {
+
+  const ServerProfile({
+    required this.id,
+    required this.kind,
+    required this.name,
+    required this.url,
+    this.internalUrl,
+    this.externalUrl,
+    required this.username,
+    this.networkMode = NetworkMode.auto,
+    this.isDefault = false,
+    required this.lastUsed,
+  });
+
+  factory ServerProfile.fromJson(Map<String, dynamic> json) {
+    return ServerProfile(
+      id: json['id'] as String? ?? '',
+      kind: ServerKind.fromStorage(json['kind'] as String?),
+      name: json['name'] as String? ?? '',
+      url: json['url'] as String? ?? '',
+      internalUrl: json['internalUrl'] as String?,
+      externalUrl: json['externalUrl'] as String?,
+      username: json['username'] as String? ?? '',
+      networkMode: NetworkMode.fromStorage(json['networkMode'] as String?),
+      isDefault: json['isDefault'] as bool? ?? false,
+      lastUsed: DateTime.tryParse(json['lastUsed'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
   final String id;
   final ServerKind kind;
 
@@ -77,19 +106,6 @@ class ServerProfile {
   final NetworkMode networkMode;
   final bool isDefault;
   final DateTime lastUsed;
-
-  const ServerProfile({
-    required this.id,
-    required this.kind,
-    required this.name,
-    required this.url,
-    this.internalUrl,
-    this.externalUrl,
-    required this.username,
-    this.networkMode = NetworkMode.auto,
-    this.isDefault = false,
-    required this.lastUsed,
-  });
 
   /// 按网络模式解析实际连接地址（auto：内网优先，无内网地址用主地址）
   /// 同时防御性补全 http:// 协议（用户可能只填 IP/主机名）
@@ -151,22 +167,6 @@ class ServerProfile {
         'isDefault': isDefault,
         'lastUsed': lastUsed.toIso8601String(),
       };
-
-  factory ServerProfile.fromJson(Map<String, dynamic> json) {
-    return ServerProfile(
-      id: json['id'] as String? ?? '',
-      kind: ServerKind.fromStorage(json['kind'] as String?),
-      name: json['name'] as String? ?? '',
-      url: json['url'] as String? ?? '',
-      internalUrl: json['internalUrl'] as String?,
-      externalUrl: json['externalUrl'] as String?,
-      username: json['username'] as String? ?? '',
-      networkMode: NetworkMode.fromStorage(json['networkMode'] as String?),
-      isDefault: json['isDefault'] as bool? ?? false,
-      lastUsed: DateTime.tryParse(json['lastUsed'] as String? ?? '') ??
-          DateTime.now(),
-    );
-  }
 }
 
 /// 存储键
@@ -211,13 +211,13 @@ final defaultServerProvider = Provider<ServerProfile?>((ref) {
 });
 
 class ServerRegistryNotifier extends StateNotifier<List<ServerProfile>> {
-  final Ref _ref;
-  late final FlutterSecureStorage _secureStorage;
 
   ServerRegistryNotifier(this._ref) : super(const []) {
     _secureStorage = _ref.read(secureStorageProvider);
     _loadFromStorage();
   }
+  final Ref _ref;
+  late final FlutterSecureStorage _secureStorage;
 
   Future<void> _loadFromStorage() async {
     try {

@@ -26,13 +26,28 @@ enum SynologyPlaybackMode {
   listLoop('列表循环'),
   singleLoop('单曲循环'),
   shuffle('随机播放');
+  const SynologyPlaybackMode(this.label);
 
   final String label;
-  const SynologyPlaybackMode(this.label);
 }
 
 /// 音乐播放状态
 class SynologyPlaybackState {
+
+  const SynologyPlaybackState({
+    this.currentSong,
+    this.queue = const [],
+    this.currentIndex = -1,
+    this.isPlaying = false,
+    this.isLoading = false,
+    this.position = Duration.zero,
+    this.duration = Duration.zero,
+    this.error,
+    this.coverUrl,
+    this.mode = SynologyPlaybackMode.listLoop,
+    this.lyrics,
+    this.isLoadingLyrics = false,
+  });
   final AudioSong? currentSong;
   final List<AudioSong> queue;
   final int currentIndex;
@@ -49,21 +64,6 @@ class SynologyPlaybackState {
 
   /// 歌词加载中
   final bool isLoadingLyrics;
-
-  const SynologyPlaybackState({
-    this.currentSong,
-    this.queue = const [],
-    this.currentIndex = -1,
-    this.isPlaying = false,
-    this.isLoading = false,
-    this.position = Duration.zero,
-    this.duration = Duration.zero,
-    this.error,
-    this.coverUrl,
-    this.mode = SynologyPlaybackMode.listLoop,
-    this.lyrics,
-    this.isLoadingLyrics = false,
-  });
 
   /// 是否已有曲目（用于 mini player 显隐）
   bool get hasSong => currentSong != null;
@@ -100,6 +100,13 @@ class SynologyPlaybackState {
 }
 
 class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
+
+  SynologyPlaybackNotifier(this._ref) : super(const SynologyPlaybackState()) {
+    // 中断回调：焦点丢失暂停 / 恢复续播
+    final handler = _ref.read(audioSessionHandlerProvider);
+    handler.onPauseRequested = _handleFocusLost;
+    handler.onResumeRequested = _handleFocusGained;
+  }
   final Ref _ref;
 
   VideoPlayerController? _controller;
@@ -109,13 +116,6 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
 
   /// 恢复播放时待 seek 的进度（restorePlayback 设置，_playSong 播放后清除）
   Duration? _pendingSeek;
-
-  SynologyPlaybackNotifier(this._ref) : super(const SynologyPlaybackState()) {
-    // 中断回调：焦点丢失暂停 / 恢复续播
-    final handler = _ref.read(audioSessionHandlerProvider);
-    handler.onPauseRequested = _handleFocusLost;
-    handler.onResumeRequested = _handleFocusGained;
-  }
 
   // ============================
   // 播放控制

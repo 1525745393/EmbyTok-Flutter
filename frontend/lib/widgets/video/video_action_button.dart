@@ -6,10 +6,6 @@ import 'package:flutter/services.dart';
 
 /// 带按下缩放动画的操作按钮
 class PressableActionButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
 
   const PressableActionButton({
     super.key,
@@ -18,6 +14,10 @@ class PressableActionButton extends StatefulWidget {
     required this.color,
     this.onTap,
   });
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
 
   @override
   State<PressableActionButton> createState() => _PressableActionButtonState();

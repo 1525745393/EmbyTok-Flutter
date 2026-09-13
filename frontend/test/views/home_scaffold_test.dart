@@ -261,7 +261,7 @@ Widget _loggedInApp() {
 // 测试用 AuthNotifier：继承 AuthNotifier，跳过 _loadFromStorage 异步加载
 // 与 back_navigation_test.dart 中的 _FakeAuthNotifier 实现一致
 class _FakeAuthNotifier extends AuthNotifier {
-  _FakeAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _FakeAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }

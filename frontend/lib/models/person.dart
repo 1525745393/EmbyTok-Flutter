@@ -1,12 +1,5 @@
 // 人员（演员/导演/编剧）模型
-class Person {
-  final String name;
-  final String? id;
-  final String? role; // 角色名（如 "主角"）
-  final String type; // 类型：Actor/Director/Writer 等
-  final String? imageUrl; // 头像图片 URL
-  final int? itemId; // 关联的媒体项 ID（如存在）
-  final String? overview; // 演员简介
+class Person { // 演员简介
 
   const Person({
     required this.name,
@@ -34,6 +27,13 @@ class Person {
       overview: (json['Overview'] as String?) ?? (json['overview'] as String?),
     );
   }
+  final String name;
+  final String? id;
+  final String? role; // 角色名（如 "主角"）
+  final String type; // 类型：Actor/Director/Writer 等
+  final String? imageUrl; // 头像图片 URL
+  final int? itemId; // 关联的媒体项 ID（如存在）
+  final String? overview;
 
   Map<String, dynamic> toJson() => {
         'name': name,

@@ -151,11 +151,6 @@ class SimpleHtmlParser {
 
 /// HTML 富文本 Widget
 class HtmlText extends StatelessWidget {
-  final String html;
-  final TextStyle? style;
-  final TextAlign? textAlign;
-  final int? maxLines;
-  final TextOverflow? overflow;
 
   const HtmlText(
     this.html, {
@@ -165,6 +160,11 @@ class HtmlText extends StatelessWidget {
     this.maxLines,
     this.overflow,
   });
+  final String html;
+  final TextStyle? style;
+  final TextAlign? textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
 
   @override
   Widget build(BuildContext context) {

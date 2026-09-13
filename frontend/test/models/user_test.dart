@@ -39,7 +39,7 @@ void main() {
 
     group('toJson', () {
       test('正确序列化为 JSON', () {
-        final user = User(
+        const user = User(
           id: 'user-123',
           name: 'testuser',
           accessToken: 'token-abc',

@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 import '../utils/image_cache_manager.dart';
 
 class PersonAvatarImage extends StatelessWidget {
-  final String? imageUrl;
-  final Map<String, String>? httpHeaders;
-  final double size;
-  final int? memCacheWidth;
 
   const PersonAvatarImage({
     super.key,
@@ -15,6 +11,10 @@ class PersonAvatarImage extends StatelessWidget {
     required this.size,
     this.memCacheWidth,
   });
+  final String? imageUrl;
+  final Map<String, String>? httpHeaders;
+  final double size;
+  final int? memCacheWidth;
 
   @override
   Widget build(BuildContext context) {

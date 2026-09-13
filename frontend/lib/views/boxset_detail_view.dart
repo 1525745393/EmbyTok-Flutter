@@ -8,12 +8,11 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
-import '../widgets/video/video_page_item.dart';
 
 class BoxsetDetailView extends ConsumerStatefulWidget {
-  final MediaItem item;
 
   const BoxsetDetailView({super.key, required this.item});
+  final MediaItem item;
 
   @override
   ConsumerState<BoxsetDetailView> createState() => _BoxsetDetailViewState();
@@ -253,10 +252,10 @@ class _CoverPlaceholder extends StatelessWidget {
   }
 }
 
-class _ChildTile extends ConsumerWidget {
-  final MediaItem item;
-  final List<MediaItem> allItems; // 完整列表
+class _ChildTile extends ConsumerWidget { // 完整列表
   const _ChildTile({super.key, required this.item, required this.allItems});
+  final MediaItem item;
+  final List<MediaItem> allItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

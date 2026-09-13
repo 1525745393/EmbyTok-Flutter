@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/media_item.dart';
-import 'package:embytok_flutter/models/user_data.dart';
 
 void main() {
   group('MediaItem', () {
@@ -540,7 +539,7 @@ void main() {
 
     group('toJson', () {
       test('正确序列化为 JSON', () {
-        final item = MediaItem(
+        const item = MediaItem(
           id: 'item-1',
           title: '测试',
           type: 'Movie',

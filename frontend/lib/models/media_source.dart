@@ -1,17 +1,5 @@
 // 媒体源与媒体流：播放信息（音轨/字幕轨）
-class MediaSource {
-  final String id;
-  final String name;
-  final String? directPlayUrl; // 直接播放 URL
-  final String? transcodingUrl; // 转码播放 URL
-  final String? container; // 容器类型：mp4/mkv 等
-  final int? runTimeTicks; // 总时长
-  final int? width; // 视频宽度
-  final int? height; // 视频高度
-  final int? size; // 文件大小（字节）
-  final int? bitrate; // 比特率（bps）
-  final List<MediaStream> mediaStreams;
-  final Map<String, String>? httpHeaders; // 播放需要的请求头（如 X-Emby-Token）
+class MediaSource { // 播放需要的请求头（如 X-Emby-Token）
 
   const MediaSource({
     required this.id,
@@ -27,20 +15,6 @@ class MediaSource {
     this.mediaStreams = const [],
     this.httpHeaders,
   });
-
-  // 判断是否为横屏视频（宽度大于高度）
-  bool get isLandscape {
-    final w = width;
-    final h = height;
-    return w != null && h != null && w > h;
-  }
-
-  // 判断是否为竖屏视频（高度大于宽度）
-  bool get isPortrait {
-    final w = width;
-    final h = height;
-    return w != null && h != null && h > w;
-  }
 
   factory MediaSource.fromJson(Map<String, dynamic> json) {
     final streamsDynamic = json['MediaStreams'] as List<dynamic>? ??
@@ -85,6 +59,32 @@ class MediaSource {
       httpHeaders: null,
     );
   }
+  final String id;
+  final String name;
+  final String? directPlayUrl; // 直接播放 URL
+  final String? transcodingUrl; // 转码播放 URL
+  final String? container; // 容器类型：mp4/mkv 等
+  final int? runTimeTicks; // 总时长
+  final int? width; // 视频宽度
+  final int? height; // 视频高度
+  final int? size; // 文件大小（字节）
+  final int? bitrate; // 比特率（bps）
+  final List<MediaStream> mediaStreams;
+  final Map<String, String>? httpHeaders;
+
+  // 判断是否为横屏视频（宽度大于高度）
+  bool get isLandscape {
+    final w = width;
+    final h = height;
+    return w != null && h != null && w > h;
+  }
+
+  // 判断是否为竖屏视频（高度大于宽度）
+  bool get isPortrait {
+    final w = width;
+    final h = height;
+    return w != null && h != null && h > w;
+  }
 
   List<MediaStream> get audioStreams =>
       mediaStreams.where((s) => s.type == 'Audio').toList();
@@ -99,18 +99,7 @@ class MediaSource {
   }
 }
 
-class MediaStream {
-  final int index;
-  final String type; // 'Video' / 'Audio' / 'Subtitle'
-  final String? language; // 语言代码（如 eng / chi）
-  final String? displayTitle; // 显示名
-  final bool isDefault;
-  final bool isForced;
-  final bool isExternal; // 是否外挂字幕
-  final String? deliveryUrl; // 字幕轨的外部 URL
-  final String? codec; // 编码
-  final int? width; // 视频宽度
-  final int? height; // 视频高度
+class MediaStream { // 视频高度
 
   const MediaStream({
     required this.index,
@@ -149,4 +138,15 @@ class MediaStream {
       height: (json['Height'] as int?) ?? (json['height'] as int?),
     );
   }
+  final int index;
+  final String type; // 'Video' / 'Audio' / 'Subtitle'
+  final String? language; // 语言代码（如 eng / chi）
+  final String? displayTitle; // 显示名
+  final bool isDefault;
+  final bool isForced;
+  final bool isExternal; // 是否外挂字幕
+  final String? deliveryUrl; // 字幕轨的外部 URL
+  final String? codec; // 编码
+  final int? width; // 视频宽度
+  final int? height;
 }

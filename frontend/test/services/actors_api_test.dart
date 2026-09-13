@@ -1,5 +1,6 @@
 /// 演员 API 对接测试 (TDD)
 /// 测试 getPeople 和 getFavoritePeople 与 Emby API 的正确对接
+library;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -148,7 +149,7 @@ void main() {
       });
 
       test('图片URL使用传入的token而非默认token', () async {
-        final customToken = 'custom-token-xyz';
+        const customToken = 'custom-token-xyz';
         final response = <String, dynamic>{
           'Items': [
             buildPersonJson(

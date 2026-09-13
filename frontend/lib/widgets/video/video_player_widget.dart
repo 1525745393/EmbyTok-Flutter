@@ -18,6 +18,20 @@ import 'subtitle_renderer.dart';
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
 // 仅使用 Direct Play 模式
 class VideoPlayerWidget extends ConsumerStatefulWidget {
+
+  const VideoPlayerWidget({
+    super.key,
+    required this.item,
+    this.embyServerUrl,
+    this.token,
+    this.preloadedController,
+    this.onControllerReady,
+    this.onControllerReleased,
+    this.autoPlay = true,
+    this.loop = true,
+    this.startFromResumePosition = false,
+    this.isCurrentPage = true,
+  });
   final MediaItem item;
   // Emby 服务器认证信息（用于动态构造播放 URL）
   final String? embyServerUrl;
@@ -34,20 +48,6 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final bool startFromResumePosition;
   // 是否为当前可见页面（非当前页初始化后暂停+静音，避免并发播放/解码）
   final bool isCurrentPage;
-
-  const VideoPlayerWidget({
-    super.key,
-    required this.item,
-    this.embyServerUrl,
-    this.token,
-    this.preloadedController,
-    this.onControllerReady,
-    this.onControllerReleased,
-    this.autoPlay = true,
-    this.loop = true,
-    this.startFromResumePosition = false,
-    this.isCurrentPage = true,
-  });
 
   @override
   ConsumerState<VideoPlayerWidget> createState() => VideoPlayerWidgetState();
@@ -221,10 +221,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         AppLogger.debug('非当前页初始化完成后超时，释放 controller 资源',
             data: {'itemId': widget.item.id});
         _releaseCurrentController();
-        if (mounted)
+        if (mounted) {
           setState(() {
             _initialized = false;
           });
+        }
       }
     });
   }
@@ -324,7 +325,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Future<void> _initVideo({int token = 0}) async {
     if (_isDisposed) return;
 
-    bool _isCancelled() => _reinitToken != token || _isDisposed;
+    bool isCancelled() => _reinitToken != token || _isDisposed;
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
 
@@ -352,7 +353,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                 onTimeout: () => throw TimeoutException('视频初始化超时'),
               );
         }
-        if (_isCancelled()) {
+        if (isCancelled()) {
           try {
             c.dispose();
           } catch (_) {
@@ -377,7 +378,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _autoLoadDefaultSubtitle();
           // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
           await _seekToResumePosition();
-          if (_isCancelled()) {
+          if (isCancelled()) {
             try {
               c.dispose();
             } catch (_) {
@@ -402,7 +403,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
       try {
         await usePreloaded(preloaded);
-        if (_isCancelled()) return;
+        if (isCancelled()) return;
         if (!_isDisposed) {
           preloadedInitSucceeded = true;
         }
@@ -455,7 +456,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           throw TimeoutException('视频初始化超时');
         },
       );
-      if (_isCancelled()) {
+      if (isCancelled()) {
         try {
           c.dispose();
         } catch (_) {
@@ -477,7 +478,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         _autoLoadDefaultSubtitle();
         // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
         await _seekToResumePosition();
-        if (_isCancelled()) {
+        if (isCancelled()) {
           try {
             c.dispose();
           } catch (_) {
@@ -959,7 +960,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
                       const SizedBox(height: 12),
                       TextButton.icon(
                         onPressed: retryInitialization,
-                        icon: Icon(Icons.refresh, size: 16),
+                        icon: const Icon(Icons.refresh, size: 16),
                         label: const Text('重试', style: TextStyle(fontSize: 12)),
                         style: TextButton.styleFrom(
                           minimumSize: const Size(0, 32),

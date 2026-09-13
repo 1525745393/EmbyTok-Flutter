@@ -16,9 +16,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:embytok_flutter/models/audio_models.dart';
 import 'package:embytok_flutter/providers/providers.dart';
-import 'package:embytok_flutter/providers/synology_auth_provider.dart';
-import 'package:embytok_flutter/providers/synology_music_provider.dart';
-import 'package:embytok_flutter/providers/synology_playback_provider.dart';
 import 'package:embytok_flutter/views/synology_full_player.dart';
 import 'package:embytok_flutter/views/synology_music_view.dart';
 
@@ -42,19 +39,19 @@ class _FakeMusicNotifier extends SynologyMusicNotifier {
 /// 假播放 Notifier：直接持有播放中的曲目，不触发播放器
 class _FakePlaybackNotifier extends SynologyPlaybackNotifier {
   _FakePlaybackNotifier(super.ref) : super() {
-    final song = AudioSong(
+    const song = AudioSong(
       id: 'music_1',
       title: '测试歌曲标题测试歌曲标题',
-      tag: AudioSongTag(artist: '测试歌手'),
+      tag: const AudioSongTag(artist: '测试歌手'),
     );
-    state = SynologyPlaybackState(
+    state = const SynologyPlaybackState(
       currentSong: song,
       queue: [song],
       currentIndex: 0,
       isPlaying: true,
       isLoading: false,
-      position: const Duration(seconds: 65),
-      duration: const Duration(minutes: 4, seconds: 20),
+      position: Duration(seconds: 65),
+      duration: Duration(minutes: 4, seconds: 20),
       coverUrl: null,
     );
   }

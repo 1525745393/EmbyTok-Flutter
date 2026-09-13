@@ -6,6 +6,7 @@
 /// - ViewModeNotifier: 视图模式切换（feed / grid）
 /// - OrientationModeNotifier: 方向过滤模式切换
 /// - HiddenLibraryIdsNotifier: 隐藏媒体库集合管理
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,4 +1,5 @@
 /// PaginatedResponse 模型测试
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/paginated_response.dart';
@@ -75,8 +76,8 @@ void main() {
     });
 
     test('toJson 正确序列化', () {
-      final item1 = MediaItem(id: 'a', title: 'A', type: 'Movie');
-      final item2 = MediaItem(id: 'b', title: 'B', type: 'Movie');
+      const item1 = MediaItem(id: 'a', title: 'A', type: 'Movie');
+      const item2 = MediaItem(id: 'b', title: 'B', type: 'Movie');
       final response = PaginatedResponse<MediaItem>(
         items: [item1, item2],
         total: 200,

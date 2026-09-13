@@ -16,17 +16,17 @@ import '../utils/performance_monitor.dart';
 
 /// 性能监控悬浮面板
 class AppPerformanceOverlay extends StatefulWidget {
-  /// 子组件（通常是应用的根组件）
-  final Widget child;
-
-  /// 是否默认显示
-  final bool showByDefault;
 
   const AppPerformanceOverlay({
     super.key,
     required this.child,
     this.showByDefault = false,
   });
+  /// 子组件（通常是应用的根组件）
+  final Widget child;
+
+  /// 是否默认显示
+  final bool showByDefault;
 
   @override
   State<AppPerformanceOverlay> createState() => _PerformanceOverlayState();

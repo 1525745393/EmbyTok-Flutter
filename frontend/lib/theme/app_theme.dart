@@ -281,8 +281,8 @@ ThemeMode parseThemeMode(String mode) {
 /// AnnotatedRegion 只需要 ThemeData，就能拿到对应主题的 overlay style。
 class _SystemOverlayStyleTheme
     extends ThemeExtension<_SystemOverlayStyleTheme> {
-  final SystemUiOverlayStyle style;
   const _SystemOverlayStyleTheme(this.style);
+  final SystemUiOverlayStyle style;
 
   @override
   _SystemOverlayStyleTheme copyWith({SystemUiOverlayStyle? style}) {

@@ -22,7 +22,6 @@ import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/cache_providers.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/repositories/cached_media_repository.dart';
-import 'package:embytok_flutter/services/embytok_service.dart';
 import 'package:embytok_flutter/views/favorites_view.dart';
 
 import '../mocks/mock_services.dart';
@@ -168,7 +167,7 @@ class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
 /// 但 _TestAuthNotifier 在构造函数中同步设置 state = initialState，
 /// 测试环境中 _loadFromStorage 会失败但不会崩溃（有 try-catch），不会覆盖预设状态。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }
@@ -186,9 +185,9 @@ void main() {
   setUp(() {
     mockService = MockEmbytokService();
     mockCachedRepo = _MockCachedMediaRepository();
-    testAuthState = AuthState(
+    testAuthState = const AuthState(
       isAuthenticated: true,
-      user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+      user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
       embyServerUrl: 'http://emby.example.com',
       token: 'test-token',
     );
@@ -694,11 +693,11 @@ void main() {
 
       // 合集组、人物组默认折叠：先通过对应组的 Key 点击展开标题行，再验证内容可见
       for (final entry in [
-        MapEntry(const ValueKey('grp-boxset'), '合集1'),
-        MapEntry(const ValueKey('grp-person'), '人物1'),
+        const MapEntry(ValueKey('grp-boxset'), '合集1'),
+        const MapEntry(ValueKey('grp-person'), '人物1'),
       ]) {
-        final grpKey = entry.key as ValueKey<String>;
-        final contentText = entry.value as String;
+        final grpKey = entry.key;
+        final contentText = entry.value;
         final grp = find.byKey(grpKey);
         // 若对应组 DOM 不存在（可能该分组为空时被 ListView 省略），就跳过，避免误判
         if (grp.evaluate().isEmpty) continue;

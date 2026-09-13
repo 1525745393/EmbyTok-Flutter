@@ -17,13 +17,36 @@ enum SynologyMusicTab {
   albums('专辑'),
   artists('歌手'),
   playlists('歌单');
+  const SynologyMusicTab(this.label);
 
   final String label;
-  const SynologyMusicTab(this.label);
 }
 
 /// 音乐库状态
 class SynologyMusicState {
+
+  const SynologyMusicState({
+    this.isLoading = false,
+    this.error,
+    this.songs = const [],
+    this.albums = const [],
+    this.artists = const [],
+    this.playlists = const [],
+    this.recentAlbums = const [],
+    this.topArtists = const [],
+    this.genres = const [],
+    this.pins = const [],
+    this.isHomeLoaded = false,
+    this.hasMoreSongs = false,
+    this.isLoadingMoreSongs = false,
+    this.hasMoreAlbums = false,
+    this.isLoadingMoreAlbums = false,
+    this.hasMoreArtists = false,
+    this.isLoadingMoreArtists = false,
+    this.isSearching = false,
+    this.searchKeyword = '',
+    this.searchResult,
+  });
   final bool isLoading;
   final String? error;
 
@@ -55,29 +78,6 @@ class SynologyMusicState {
   final bool isSearching;
   final String searchKeyword;
   final AudioSearchResult? searchResult;
-
-  const SynologyMusicState({
-    this.isLoading = false,
-    this.error,
-    this.songs = const [],
-    this.albums = const [],
-    this.artists = const [],
-    this.playlists = const [],
-    this.recentAlbums = const [],
-    this.topArtists = const [],
-    this.genres = const [],
-    this.pins = const [],
-    this.isHomeLoaded = false,
-    this.hasMoreSongs = false,
-    this.isLoadingMoreSongs = false,
-    this.hasMoreAlbums = false,
-    this.isLoadingMoreAlbums = false,
-    this.hasMoreArtists = false,
-    this.isLoadingMoreArtists = false,
-    this.isSearching = false,
-    this.searchKeyword = '',
-    this.searchResult,
-  });
 
   SynologyMusicState copyWith({
     bool? isLoading,
@@ -130,10 +130,10 @@ class SynologyMusicState {
 const int _pageSize = 200;
 
 class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
-  final Ref _ref;
-  final Map<SynologyMusicTab, bool> _loaded = {};
 
   SynologyMusicNotifier(this._ref) : super(const SynologyMusicState());
+  final Ref _ref;
+  final Map<SynologyMusicTab, bool> _loaded = {};
 
   SynologyAudioApi get _api =>
       _ref.read(synologyAuthProvider.notifier).api;

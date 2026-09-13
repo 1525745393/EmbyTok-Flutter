@@ -7,6 +7,7 @@
 /// 测试策略：
 /// - Provider 层单元测试：验证状态管理逻辑
 /// - 关键常量和配置验证：确保网格配置与滚动计算一致
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,7 +49,7 @@ void main() {
       });
 
       test('setPlaying 同时设置 id 和 item', () {
-        final testItem = MediaItem(id: 'test-1', title: '测试视频', type: 'Movie');
+        const testItem = MediaItem(id: 'test-1', title: '测试视频', type: 'Movie');
         container.read(playbackStateProvider.notifier).setPlaying(testItem.id, testItem);
         final state = container.read(playbackStateProvider);
         expect(state.id, 'test-1');
@@ -57,8 +58,8 @@ void main() {
       });
 
       test('setItem 仅更新 item，保持 id 不变', () {
-        container.read(playbackStateProvider.notifier).setPlaying('keep-id', MediaItem(id: 'keep-id', title: '旧', type: 'Movie'));
-        final newItem = MediaItem(id: 'keep-id', title: '新标题', type: 'Movie');
+        container.read(playbackStateProvider.notifier).setPlaying('keep-id', const MediaItem(id: 'keep-id', title: '旧', type: 'Movie'));
+        const newItem = MediaItem(id: 'keep-id', title: '新标题', type: 'Movie');
         container.read(playbackStateProvider.notifier).setItem(newItem);
         final state = container.read(playbackStateProvider);
         expect(state.id, 'keep-id');
@@ -66,7 +67,7 @@ void main() {
       });
 
       test('clear 后回到空状态', () {
-        container.read(playbackStateProvider.notifier).setPlaying('item-42', MediaItem(id: 'item-42', title: '视频42', type: 'Movie'));
+        container.read(playbackStateProvider.notifier).setPlaying('item-42', const MediaItem(id: 'item-42', title: '视频42', type: 'Movie'));
         container.read(playbackStateProvider.notifier).clear();
         final state = container.read(playbackStateProvider);
         expect(state.id, isNull);

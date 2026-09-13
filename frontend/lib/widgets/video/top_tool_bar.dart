@@ -16,14 +16,14 @@ typedef FullscreenCallback = void Function(bool isFullscreen);
 
 // 顶部工具栏组件
 class TopToolBar extends ConsumerWidget {
-  final MenuButtonCallback? onMenuPressed;
-  final FullscreenCallback? onFullscreenPressed;
 
   const TopToolBar({
     super.key,
     this.onMenuPressed,
     this.onFullscreenPressed,
   });
+  final MenuButtonCallback? onMenuPressed;
+  final FullscreenCallback? onFullscreenPressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

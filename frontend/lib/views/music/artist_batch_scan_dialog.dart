@@ -22,6 +22,13 @@ import '../../services/artist_metadata_service.dart';
 /// );
 /// ```
 class ArtistBatchScanDialog extends ConsumerStatefulWidget {
+
+  const ArtistBatchScanDialog({
+    super.key,
+    required this.artistNames,
+    this.skipExisting = true,
+    this.concurrency = 3,
+  });
   /// 歌手名称列表
   final List<String> artistNames;
 
@@ -30,13 +37,6 @@ class ArtistBatchScanDialog extends ConsumerStatefulWidget {
 
   /// 并发数
   final int concurrency;
-
-  const ArtistBatchScanDialog({
-    super.key,
-    required this.artistNames,
-    this.skipExisting = true,
-    this.concurrency = 3,
-  });
 
   @override
   ConsumerState<ArtistBatchScanDialog> createState() => _ArtistBatchScanDialogState();
@@ -241,7 +241,7 @@ class _ArtistBatchScanDialogState extends ConsumerState<ArtistBatchScanDialog> {
           Container(
             height: 150,
             decoration: BoxDecoration(
-              color: scheme.surfaceVariant.withValues(alpha: 0.3),
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: ListView.builder(

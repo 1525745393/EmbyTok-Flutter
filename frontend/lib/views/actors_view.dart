@@ -15,9 +15,9 @@ import '../utils/utils.dart';
 import '../widgets/person_avatar_image.dart';
 
 class ActorsView extends ConsumerStatefulWidget {
-  final bool useScaffold;
 
   const ActorsView({super.key, this.useScaffold = true});
+  final bool useScaffold;
 
   @override
   ConsumerState<ActorsView> createState() => _ActorsViewState();
@@ -882,12 +882,6 @@ class _ActorsViewState extends ConsumerState<ActorsView>
 
 // 演员卡片组件
 class _ActorCard extends StatelessWidget {
-  final Person actor;
-  final String? embyServerUrl;
-  final String? token;
-  final bool isFavorited;
-  final VoidCallback onFavoriteTap;
-  final VoidCallback onTap;
 
   const _ActorCard({
     required this.actor,
@@ -897,6 +891,12 @@ class _ActorCard extends StatelessWidget {
     required this.onFavoriteTap,
     required this.onTap,
   });
+  final Person actor;
+  final String? embyServerUrl;
+  final String? token;
+  final bool isFavorited;
+  final VoidCallback onFavoriteTap;
+  final VoidCallback onTap;
 
   /// 构建头像图片：合并 actor.imageUrl 和 embyServerUrl/token 拼装逻辑，
   /// 单独抽方法便于处理空安全（Dart 不会跨方法对字段做类型提升）
@@ -1067,13 +1067,13 @@ class _ActorCard extends StatelessWidget {
 
 // 搜索无结果提示组件：复用收藏页空状态视觉模式
 class _SearchNoResultHint extends StatelessWidget {
-  final String query;
-  final VoidCallback onClear;
 
   const _SearchNoResultHint({
     required this.query,
     required this.onClear,
   });
+  final String query;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {

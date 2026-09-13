@@ -12,6 +12,14 @@
 /// 记录缓存的运行时指标，用于性能分析和调优。
 /// 统计数据是累计的，调用 [MemoryCache.resetStats] 可重置。
 class CacheStats {
+
+  const CacheStats({
+    this.hitCount = 0,
+    this.missCount = 0,
+    this.staleHitCount = 0,
+    this.evictionCount = 0,
+    this.swrRefreshCount = 0,
+  });
   /// 命中次数
   final int hitCount;
 
@@ -26,14 +34,6 @@ class CacheStats {
 
   /// 后台刷新触发次数（SWR）
   final int swrRefreshCount;
-
-  const CacheStats({
-    this.hitCount = 0,
-    this.missCount = 0,
-    this.staleHitCount = 0,
-    this.evictionCount = 0,
-    this.swrRefreshCount = 0,
-  });
 
   /// 总请求数（命中 + 未命中）
   int get totalRequests => hitCount + missCount + staleHitCount;
@@ -65,11 +65,11 @@ class CacheStats {
 
 /// 单个缓存条目
 class _CacheEntry<T> {
+
+  _CacheEntry(this.value, {this.ttl}) : createdAt = DateTime.now();
   final T value;
   final DateTime createdAt;
   final Duration? ttl;
-
-  _CacheEntry(this.value, {this.ttl}) : createdAt = DateTime.now();
 
   /// 是否已过期
   bool get isExpired {
@@ -86,6 +86,8 @@ class _CacheEntry<T> {
 ///
 /// 内置统计功能，可通过 [stats] 获取命中率、淘汰数等指标。
 class MemoryCache<T> {
+
+  MemoryCache({required this.maxSize});
   final int maxSize;
 
   final Map<String, _CacheEntry<T>> _cache = <String, _CacheEntry<T>>{};
@@ -94,8 +96,6 @@ class MemoryCache<T> {
   final List<String> _accessOrder = <String>[];
 
   CacheStats _stats = const CacheStats();
-
-  MemoryCache({required this.maxSize});
 
   /// 当前缓存统计信息
   CacheStats get stats => _stats;

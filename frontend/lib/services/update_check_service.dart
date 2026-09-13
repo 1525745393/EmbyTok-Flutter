@@ -13,13 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import '../utils/logger.dart';
 
 /// GitHub Release 信息
-class ReleaseInfo {
-  final String tagName; // 如 "v1.133.0"
-  final String name; // release 标题
-  final String body; // release notes（Markdown）
-  final String htmlUrl; // release 页面链接
-  final DateTime publishedAt;
-  final List<ReleaseAsset> assets; // 附件（APK 等）
+class ReleaseInfo { // 附件（APK 等）
 
   const ReleaseInfo({
     required this.tagName,
@@ -29,16 +23,6 @@ class ReleaseInfo {
     required this.publishedAt,
     required this.assets,
   });
-
-  /// 解析版本号：去掉 "v" 前缀，取 "x.y.z" 部分（忽略 +buildNumber）
-  String get version {
-    var v = tagName;
-    if (v.startsWith('v')) v = v.substring(1);
-    // 去掉 +buildNumber
-    final plusIndex = v.indexOf('+');
-    if (plusIndex > 0) v = v.substring(0, plusIndex);
-    return v.trim();
-  }
 
   factory ReleaseInfo.fromJson(Map<String, dynamic> json) {
     final assetsRaw = json['assets'] as List<dynamic>? ?? [];
@@ -55,14 +39,26 @@ class ReleaseInfo {
           .toList(),
     );
   }
+  final String tagName; // 如 "v1.133.0"
+  final String name; // release 标题
+  final String body; // release notes（Markdown）
+  final String htmlUrl; // release 页面链接
+  final DateTime publishedAt;
+  final List<ReleaseAsset> assets;
+
+  /// 解析版本号：去掉 "v" 前缀，取 "x.y.z" 部分（忽略 +buildNumber）
+  String get version {
+    var v = tagName;
+    if (v.startsWith('v')) v = v.substring(1);
+    // 去掉 +buildNumber
+    final plusIndex = v.indexOf('+');
+    if (plusIndex > 0) v = v.substring(0, plusIndex);
+    return v.trim();
+  }
 }
 
 /// Release 附件（APK 等）
 class ReleaseAsset {
-  final String name;
-  final String downloadUrl;
-  final int size;
-  final String contentType;
 
   const ReleaseAsset({
     required this.name,
@@ -79,6 +75,10 @@ class ReleaseAsset {
       contentType: json['content_type'] as String? ?? '',
     );
   }
+  final String name;
+  final String downloadUrl;
+  final int size;
+  final String contentType;
 
   /// 是否为 APK 文件
   bool get isApk => name.toLowerCase().endsWith('.apk');
@@ -86,15 +86,15 @@ class ReleaseAsset {
 
 /// 版本对比结果
 class UpdateCheckResult {
-  final bool hasUpdate;
-  final String currentVersion;
-  final ReleaseInfo? latestRelease;
 
   const UpdateCheckResult({
     required this.hasUpdate,
     required this.currentVersion,
     this.latestRelease,
   });
+  final bool hasUpdate;
+  final String currentVersion;
+  final ReleaseInfo? latestRelease;
 }
 
 /// API 限流异常（429）
@@ -108,11 +108,6 @@ class UpdateRateLimitException implements Exception {
 /// 通过 GitHub API 检查仓库最新 Release，与当前版本对比。
 /// GitHub 仓库：1525745393/EmbyTok-Flutter
 class UpdateCheckService {
-  static const String _owner = '1525745393';
-  static const String _repo = 'EmbyTok-Flutter';
-  static const String _apiBase = 'https://api.github.com';
-
-  final Dio _dio;
 
   UpdateCheckService({Dio? dio})
       : _dio = dio ??
@@ -123,6 +118,11 @@ class UpdateCheckService {
                 'Accept': 'application/vnd.github+json',
               },
             ));
+  static const String _owner = '1525745393';
+  static const String _repo = 'EmbyTok-Flutter';
+  static const String _apiBase = 'https://api.github.com';
+
+  final Dio _dio;
 
   /// 获取最新 Release
   ///
@@ -300,7 +300,7 @@ class UpdateCheckService {
       final isMirror = i > 0;
       try {
         AppLogger.info('开始下载 APK', data: {
-          'url': isMirror ? '镜像 #${i}' : '原始链接',
+          'url': isMirror ? '镜像 #$i' : '原始链接',
           'fileName': asset.name,
         });
         await _dio.download(

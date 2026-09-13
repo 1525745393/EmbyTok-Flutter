@@ -16,7 +16,7 @@ void main() {
     // 通过尝试构造 VideoPageItem：若 onPreloadThreshold 仍存在，
     // 以下代码会编译失败（命名参数未定义）。
     // 此处的契约是：构造函数参数列表中不包含 onPreloadThreshold。
-    final item = MediaItem(id: 'a', title: 't', type: 'Video');
+    const item = MediaItem(id: 'a', title: 't', type: 'Video');
 
     // 设置竖屏视口避免 Column 布局溢出
     tester.view.physicalSize = const Size(1080, 1920);

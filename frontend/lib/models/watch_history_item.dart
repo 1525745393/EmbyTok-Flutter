@@ -1,12 +1,6 @@
 // 观看历史项：记录用户最近播放的媒体条目
 
 class WatchHistoryItem {
-  final String itemId;
-  final String itemTitle;
-  final String? thumbnailUrl;
-  final DateTime watchedAt;
-  final int progressSeconds;
-  final int totalSeconds;
 
   WatchHistoryItem({
     required this.itemId,
@@ -28,6 +22,12 @@ class WatchHistoryItem {
         progressSeconds: json['progress_seconds'] as int? ?? 0,
         totalSeconds: json['total_seconds'] as int? ?? 0,
       );
+  final String itemId;
+  final String itemTitle;
+  final String? thumbnailUrl;
+  final DateTime watchedAt;
+  final int progressSeconds;
+  final int totalSeconds;
 
   Map<String, dynamic> toJson() => {
         'item_id': itemId,

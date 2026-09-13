@@ -10,17 +10,17 @@ void main() {
   group('DonateColors', () {
     test('wechat 是微信品牌绿', () {
       expect(DonateColors.wechat, isA<Color>());
-      expect(DonateColors.wechat.value, 0xFF07C160);
+      expect(DonateColors.wechat.toARGB32(), 0xFF07C160);
     });
 
     test('alipay 是支付宝品牌蓝', () {
       expect(DonateColors.alipay, isA<Color>());
-      expect(DonateColors.alipay.value, 0xFF1677FF);
+      expect(DonateColors.alipay.toARGB32(), 0xFF1677FF);
     });
 
     test('donateAccent 是打赏主色（红色）', () {
       expect(DonateColors.donateAccent, isA<Color>());
-      expect(DonateColors.donateAccent.value, 0xFFF44336);
+      expect(DonateColors.donateAccent.toARGB32(), 0xFFF44336);
     });
 
     test('品牌色不透明度为 100%', () {

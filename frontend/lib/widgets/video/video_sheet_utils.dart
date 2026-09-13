@@ -16,7 +16,7 @@ Future<void> showSpeedControlPanel(
   BuildContext context,
   VideoPlayerController? controller,
 ) async {
-  double currentSpeed = controller?.value.playbackSpeed ?? 1.0;
+  final double currentSpeed = controller?.value.playbackSpeed ?? 1.0;
   double selectedSpeed = currentSpeed;
   final scheme = Theme.of(context).colorScheme;
 
@@ -270,7 +270,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                 ),
                 const SizedBox(height: 24),
                 if (overview != null && overview.isNotEmpty) ...[
-                  _VideoInfoSectionLabel('简介'),
+                  const _VideoInfoSectionLabel('简介'),
                   const SizedBox(height: 8),
                   Text(overview,
                       style: TextStyle(
@@ -280,13 +280,13 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                   const SizedBox(height: 24),
                 ],
                 if (actors != null && actors.isNotEmpty) ...[
-                  _VideoInfoSectionLabel('主演'),
+                  const _VideoInfoSectionLabel('主演'),
                   const SizedBox(height: 8),
                   _PersonChipList(people: actors),
                   const SizedBox(height: 24),
                 ],
                 if (directors != null && directors.isNotEmpty) ...[
-                  _VideoInfoSectionLabel('导演'),
+                  const _VideoInfoSectionLabel('导演'),
                   const SizedBox(height: 8),
                   _PersonChipList(people: directors),
                   const SizedBox(height: 24),
@@ -303,12 +303,6 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
 
 // ===== 信息面板副标题行 =====
 class _VideoInfoSubtitle extends StatelessWidget {
-  final String type;
-  final int? year;
-  final bool isEpisode;
-  final String? seriesName;
-  final int? season;
-  final int? episode;
 
   const _VideoInfoSubtitle({
     required this.type,
@@ -318,6 +312,12 @@ class _VideoInfoSubtitle extends StatelessWidget {
     required this.season,
     required this.episode,
   });
+  final String type;
+  final int? year;
+  final bool isEpisode;
+  final String? seriesName;
+  final int? season;
+  final int? episode;
 
   @override
   Widget build(BuildContext context) {
@@ -381,10 +381,6 @@ class _VideoInfoSubtitle extends StatelessWidget {
 
 // ===== 信息面板基本信息行 =====
 class _VideoInfoRowItems extends StatelessWidget {
-  final String duration;
-  final double? rating;
-  final List<String> genres;
-  final List<String>? studios;
 
   const _VideoInfoRowItems({
     required this.duration,
@@ -392,6 +388,10 @@ class _VideoInfoRowItems extends StatelessWidget {
     required this.genres,
     required this.studios,
   });
+  final String duration;
+  final double? rating;
+  final List<String> genres;
+  final List<String>? studios;
 
   @override
   Widget build(BuildContext context) {
@@ -419,15 +419,15 @@ class _VideoInfoRowItems extends StatelessWidget {
 
 // ===== 信息面板中的小卡片 =====
 class _VideoInfoChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool highlight;
 
   const _VideoInfoChip({
     required this.label,
     required this.value,
     this.highlight = false,
   });
+  final String label;
+  final String value;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
@@ -465,8 +465,8 @@ class _VideoInfoChip extends StatelessWidget {
 
 // ===== 信息面板中的小节标题 =====
 class _VideoInfoSectionLabel extends StatelessWidget {
-  final String text;
   const _VideoInfoSectionLabel(this.text);
+  final String text;
 
   @override
   Widget build(BuildContext context) {
@@ -483,8 +483,8 @@ class _VideoInfoSectionLabel extends StatelessWidget {
 
 // ===== 人员 chips 列表 =====
 class _PersonChipList extends ConsumerWidget {
-  final List<Person> people;
   const _PersonChipList({required this.people});
+  final List<Person> people;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

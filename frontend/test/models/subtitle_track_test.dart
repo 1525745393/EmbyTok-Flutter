@@ -1,4 +1,5 @@
 /// SubtitleTrack 模型测试
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/subtitle_track.dart';
@@ -126,7 +127,7 @@ void main() {
     });
 
     test('Windows 换行（\\r\\n）正确解析', () {
-      final srt = '1\r\n00:00:01,000 --> 00:00:02,000\r\n字幕文本\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\n第二句';
+      const srt = '1\r\n00:00:01,000 --> 00:00:02,000\r\n字幕文本\r\n\r\n2\r\n00:00:03,000 --> 00:00:04,000\r\n第二句';
       final result = parseSrt(srt);
       expect(result.length, 2);
       expect(result[0].text, '字幕文本');

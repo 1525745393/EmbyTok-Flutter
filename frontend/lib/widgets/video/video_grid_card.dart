@@ -10,14 +10,14 @@ import '../../utils/image_cache_manager.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
-  final MediaItem item;
-  final VoidCallback? onTap;
 
   const VideoGridCard({
     super.key,
     required this.item,
     this.onTap,
   });
+  final MediaItem item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

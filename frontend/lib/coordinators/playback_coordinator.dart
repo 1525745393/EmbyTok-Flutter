@@ -37,6 +37,10 @@ import '../utils/logger.dart';
 ///   需要读写 Provider 状态（read/notifier.state）以及监听变化
 /// - WidgetRef 完整支持这些操作，无需绕道 Ref
 class PlaybackCoordinator {
+
+  PlaybackCoordinator(this._ref,
+      {bool Function(int targetIndex)? onPageIndexReady})
+      : _onPageIndexReady = onPageIndexReady;
   final WidgetRef _ref;
 
   // 路由跳转：当目标 item 已加载时，通过此回调通知 UI 跳页
@@ -46,10 +50,6 @@ class PlaybackCoordinator {
   // 防止重复等待同一 initialId（与 FeedView 的 _processedInitialItemId 对应）
   String? _processedInitialItemId;
   Timer? _waitTimer;
-
-  PlaybackCoordinator(this._ref,
-      {bool Function(int targetIndex)? onPageIndexReady})
-      : _onPageIndexReady = onPageIndexReady;
 
   // ==================== 预加载协调 ====================
 

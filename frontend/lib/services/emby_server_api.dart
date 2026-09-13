@@ -697,6 +697,7 @@ class EmbyServerApi implements MediaServerApi {
   // ============================
   // 获取合集（BoxSet）里的视频
   // ============================
+  @override
   Future<PaginatedResponse<MediaItem>> getBoxSetItems(
     String boxSetId, {
     int limit = 50,
@@ -1107,6 +1108,7 @@ class EmbyServerApi implements MediaServerApi {
   /// 获取收藏的各类型数量
   ///
   /// 返回 Map<类型代码, 数量>，例如：{'Movie': 100, 'Series': 50, ...}
+  @override
   Future<Map<String, int>> getFavoriteCounts({
     String? userId,
     String? serverUrl,

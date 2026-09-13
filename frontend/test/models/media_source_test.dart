@@ -5,6 +5,7 @@
 /// - isLandscape / isPortrait 方向判断
 /// - audioStreams / subtitleStreams 过滤
 /// - defaultAudioStream 默认音轨选择
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/media_source.dart';
@@ -126,7 +127,7 @@ void main() {
     });
 
     test('audioStreams 过滤出所有 Audio 类型的流', () {
-      final source = MediaSource(
+      const source = MediaSource(
         id: '4',
         name: 'multi',
         mediaStreams: const [
@@ -141,7 +142,7 @@ void main() {
     });
 
     test('subtitleStreams 过滤出所有 Subtitle 类型的流', () {
-      final source = MediaSource(
+      const source = MediaSource(
         id: '5',
         name: 'multi',
         mediaStreams: const [
@@ -154,7 +155,7 @@ void main() {
     });
 
     test('defaultAudioStream 返回 isDefault=true 的音轨', () {
-      final source = MediaSource(
+      const source = MediaSource(
         id: '6',
         name: 'multi',
         mediaStreams: const [
@@ -169,7 +170,7 @@ void main() {
     });
 
     test('defaultAudioStream 无默认音轨时返回第一个', () {
-      final source = MediaSource(
+      const source = MediaSource(
         id: '7',
         name: 'no-default',
         mediaStreams: const [

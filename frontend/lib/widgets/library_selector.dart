@@ -732,7 +732,7 @@ class _FavoriteTypeFilterDialogState
   @override
   Widget build(BuildContext context) {
     final selectedTypes = ref.watch(favoriteIncludeTypesProvider);
-    final availableTypes = const [
+    const availableTypes = [
       {'code': 'Movie', 'name': '影片', 'icon': Icons.movie},
       {'code': 'Series', 'name': '剧集', 'icon': Icons.tv},
       {'code': 'BoxSet', 'name': '合集', 'icon': Icons.collections},

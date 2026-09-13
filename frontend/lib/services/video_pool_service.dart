@@ -20,17 +20,17 @@ import '../utils/logger.dart';
 
 /// 单个播放会话：绑定 VideoPlayerController + PlaySessionId
 class PlaybackSession {
-  final String itemId;
-  final VideoPlayerController controller;
-  final String playSessionId;
-  final DateTime createdAt;
-  bool _isDisposed = false;
 
   PlaybackSession({
     required this.itemId,
     required this.controller,
     required this.playSessionId,
   }) : createdAt = DateTime.now();
+  final String itemId;
+  final VideoPlayerController controller;
+  final String playSessionId;
+  final DateTime createdAt;
+  bool _isDisposed = false;
 
   bool get isInitialized => !_isDisposed && controller.value.isInitialized;
 

@@ -12,10 +12,10 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_playback_provider.dart';
 
 class FolderBrowseView extends ConsumerStatefulWidget {
-  /// 初始文件夹路径，null 表示根目录
-  final String? initialPath;
 
   const FolderBrowseView({super.key, this.initialPath});
+  /// 初始文件夹路径，null 表示根目录
+  final String? initialPath;
 
   @override
   ConsumerState<FolderBrowseView> createState() => _FolderBrowseViewState();

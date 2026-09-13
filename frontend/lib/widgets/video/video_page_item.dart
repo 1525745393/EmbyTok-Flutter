@@ -15,7 +15,6 @@ import 'package:video_player/video_player.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../services/embytok_service.dart';
-import '../../services/video_pool_service.dart';
 import '../../utils/logger.dart';
 import '../../utils/fullscreen_navigator.dart';
 import '../../utils/constants.dart';
@@ -101,17 +100,6 @@ const double _kTagPaddingHorizontal = 10;
 const double _kTagPaddingVertical = 4;
 
 class VideoPageItem extends ConsumerStatefulWidget {
-  final MediaItem item;
-  final PlaybackSession? preloadedSession;
-  final VoidCallback? onVideoEnded;
-  final bool startFromResumePosition;
-  final VoidCallback? onPrevEpisode;
-
-  /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
-  final String source;
-
-  /// 是否为当前可见页：非当前页初始化后静音暂停，避免相邻预加载页并发有声播放
-  final bool isCurrentPage;
 
   const VideoPageItem({
     super.key,
@@ -123,6 +111,17 @@ class VideoPageItem extends ConsumerStatefulWidget {
     this.source = 'feed',
     this.isCurrentPage = true,
   });
+  final MediaItem item;
+  final PlaybackSession? preloadedSession;
+  final VoidCallback? onVideoEnded;
+  final bool startFromResumePosition;
+  final VoidCallback? onPrevEpisode;
+
+  /// 数据源标识（用于观看统计）：nextUp/resume/suggestions/similar/feed
+  final String source;
+
+  /// 是否为当前可见页：非当前页初始化后静音暂停，避免相邻预加载页并发有声播放
+  final bool isCurrentPage;
 
   @override
   ConsumerState<VideoPageItem> createState() => _VideoPageItemState();
@@ -864,7 +863,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     // 但物理刘海 / 手势条仍存在，故用 SafeInsets 取物理避让值。
     final bottomPadding = SafeInsets.bottomOf(context);
 
-    final rs = (double base, [double maxScale = 1.7]) =>
+    double rs(double base, [double maxScale = 1.7]) =>
         responsiveSize(context, base, maxScale);
 
     // 封面图 URL（用于唱片按钮）
@@ -1118,11 +1117,11 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                       color: scheme.surface.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Column(
+                    child: const Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // 只保留纯净模式开关，移除倍速按钮等其他功能
-                        const AutoPlayButton(),
+                        AutoPlayButton(),
                       ],
                     ),
                   ),
@@ -1158,11 +1157,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 /// 将 [CenterPlayButton] 的显示逻辑拆分到独立 [ConsumerWidget]，
 /// 这样 isPlayingProvider 状态变化时只重建本组件，不会触发 [VideoPageItem] 重建。
 class _CenterPlayButtonWrapper extends ConsumerWidget {
-  final VideoPlayerController? controller;
-  final VoidCallback onPlay;
-  // 由父组件控制显示状态（非纯净模式下的自动隐藏）
-  final bool visible;
-  final bool isAutoPlay;
 
   const _CenterPlayButtonWrapper({
     required this.controller,
@@ -1170,6 +1164,11 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
     required this.visible,
     required this.isAutoPlay,
   });
+  final VideoPlayerController? controller;
+  final VoidCallback onPlay;
+  // 由父组件控制显示状态（非纯净模式下的自动隐藏）
+  final bool visible;
+  final bool isAutoPlay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1190,15 +1189,8 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
 /// 从 [VideoPageItem] 提取为独立 Widget，减少父组件 build 复杂度。
 /// 内部大部分子组件不随父组件状态变化而重建，提升 PageView 滑动性能。
 class _BottomInfoBar extends StatelessWidget {
-  final MediaItem item;
-  final VideoPlayerController? controller;
-  final bool isVisible;
-  final bool toolbarVisible;
-  final double bottomPadding;
-  final VoidCallback onToggleFullscreen;
-  final String Function(Duration) formatDuration;
 
-  _BottomInfoBar({
+  const _BottomInfoBar({
     required this.item,
     required this.controller,
     required this.isVisible,
@@ -1207,11 +1199,18 @@ class _BottomInfoBar extends StatelessWidget {
     required this.onToggleFullscreen,
     required this.formatDuration,
   });
+  final MediaItem item;
+  final VideoPlayerController? controller;
+  final bool isVisible;
+  final bool toolbarVisible;
+  final double bottomPadding;
+  final VoidCallback onToggleFullscreen;
+  final String Function(Duration) formatDuration;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double maxScale = 1.7]) =>
+    double rs(double base, [double maxScale = 1.7]) =>
         responsiveSize(context, base, maxScale);
 
     final hasController = controller != null && controller!.value.isInitialized;
@@ -1338,20 +1337,8 @@ class _BottomInfoBar extends StatelessWidget {
 /// 从 [VideoPageItem] 提取为独立 ConsumerWidget，
 /// 收藏状态等局部变化只重建本组件，不触发父组件重建。
 class _RightActionButtons extends ConsumerWidget {
-  final MediaItem item;
-  final VideoPlayerController? controller;
-  final Animation<double> discRotation;
-  final String posterUrl;
-  final Map<String, String>? posterHeaders;
-  final bool toolbarVisible;
-  final double bottomPadding;
-  final VoidCallback onToggleFullscreen;
-  final VoidCallback onInfoTap;
-  final VoidCallback onDeleteTap;
-  final VoidCallback? onSpeedTap;
-  final VoidCallback? onSubtitleTap;
 
-  _RightActionButtons({
+  const _RightActionButtons({
     required this.item,
     required this.controller,
     required this.discRotation,
@@ -1365,11 +1352,23 @@ class _RightActionButtons extends ConsumerWidget {
     this.onSpeedTap,
     this.onSubtitleTap,
   });
+  final MediaItem item;
+  final VideoPlayerController? controller;
+  final Animation<double> discRotation;
+  final String posterUrl;
+  final Map<String, String>? posterHeaders;
+  final bool toolbarVisible;
+  final double bottomPadding;
+  final VoidCallback onToggleFullscreen;
+  final VoidCallback onInfoTap;
+  final VoidCallback onDeleteTap;
+  final VoidCallback? onSpeedTap;
+  final VoidCallback? onSubtitleTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final rs = (double base, [double maxScale = 1.7]) =>
+    double rs(double base, [double maxScale = 1.7]) =>
         responsiveSize(context, base, maxScale);
     // 用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化触发重建
     final favorited = ref.watch(
@@ -1468,11 +1467,7 @@ class _RightActionButtons extends ConsumerWidget {
 /// 播放页面外壳：支持滑动切换视频列表
 ///
 /// 使用 PageView 展示视频列表，支持上下滑动切换视频
-class PlaybackShell extends ConsumerStatefulWidget {
-  final MediaItem item; // 当前播放的视频
-  final List<MediaItem> items; // 视频列表（可选）
-  final VoidCallback onBack; // 返回回调
-  final String source; // 数据源标识，用于观看统计，默认 'feed'
+class PlaybackShell extends ConsumerStatefulWidget { // 数据源标识，用于观看统计，默认 'feed'
 
   const PlaybackShell({
     super.key,
@@ -1481,6 +1476,10 @@ class PlaybackShell extends ConsumerStatefulWidget {
     required this.onBack,
     this.source = 'feed',
   });
+  final MediaItem item; // 当前播放的视频
+  final List<MediaItem> items; // 视频列表（可选）
+  final VoidCallback onBack; // 返回回调
+  final String source;
 
   @override
   ConsumerState<PlaybackShell> createState() => _PlaybackShellState();

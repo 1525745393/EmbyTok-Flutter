@@ -8,23 +8,6 @@ import 'package:flutter/material.dart';
 /// 统一展示无内容的友好提示。
 /// 支持自定义图标、标题、副标题、可选操作按钮。
 class EmptyStateCard extends StatelessWidget {
-  /// 空状态图标
-  final IconData icon;
-
-  /// 主标题
-  final String title;
-
-  /// 副标题（引导文案）
-  final String? subtitle;
-
-  /// 图标颜色，默认使用主题 onSurfaceVariant
-  final Color? iconColor;
-
-  /// 操作按钮文案（可选）
-  final String? actionLabel;
-
-  /// 操作按钮回调（可选）
-  final VoidCallback? onAction;
 
   const EmptyStateCard({
     super.key,
@@ -80,6 +63,23 @@ class EmptyStateCard extends StatelessWidget {
       subtitle: '搜索后将自动记录',
     );
   }
+  /// 空状态图标
+  final IconData icon;
+
+  /// 主标题
+  final String title;
+
+  /// 副标题（引导文案）
+  final String? subtitle;
+
+  /// 图标颜色，默认使用主题 onSurfaceVariant
+  final Color? iconColor;
+
+  /// 操作按钮文案（可选）
+  final String? actionLabel;
+
+  /// 操作按钮回调（可选）
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {

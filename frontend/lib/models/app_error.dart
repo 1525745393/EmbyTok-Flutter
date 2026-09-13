@@ -83,23 +83,6 @@ enum ErrorType {
 /// }
 /// ```
 class AppError implements Exception {
-  /// 错误分类
-  final ErrorType type;
-
-  /// 用户可读的中文提示（UI 层直接展示）
-  final String message;
-
-  /// 调试用原始错误信息（不展示给用户，用于日志和排查）
-  final String? debugMessage;
-
-  /// HTTP 状态码（网络请求错误时有值）
-  final int? statusCode;
-
-  /// 原始堆栈（用于日志持久化和上报）
-  final StackTrace? stackTrace;
-
-  /// 错误发生时间戳
-  final DateTime timestamp;
 
   AppError({
     required this.type,
@@ -109,9 +92,6 @@ class AppError implements Exception {
     this.stackTrace,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
-
-  /// 是否可重试
-  bool get isRetryable => type.isRetryable;
 
   /// 便捷构造：网络错误
   factory AppError.network({
@@ -367,6 +347,26 @@ class AppError implements Exception {
     StackTrace? stackTrace,
   }) =>
       AppError.wrap(error, stackTrace: stackTrace);
+  /// 错误分类
+  final ErrorType type;
+
+  /// 用户可读的中文提示（UI 层直接展示）
+  final String message;
+
+  /// 调试用原始错误信息（不展示给用户，用于日志和排查）
+  final String? debugMessage;
+
+  /// HTTP 状态码（网络请求错误时有值）
+  final int? statusCode;
+
+  /// 原始堆栈（用于日志持久化和上报）
+  final StackTrace? stackTrace;
+
+  /// 错误发生时间戳
+  final DateTime timestamp;
+
+  /// 是否可重试
+  bool get isRetryable => type.isRetryable;
 
   @override
   bool operator ==(Object other) =>

@@ -1,9 +1,6 @@
 // 用户模型：封装登录后返回的用户信息
 
 class User {
-  final String id;
-  final String name;
-  final String accessToken;
 
   const User({
     required this.id,
@@ -17,6 +14,9 @@ class User {
         name: json['username'] as String? ?? '',
         accessToken: json['access_token'] as String? ?? '',
       );
+  final String id;
+  final String name;
+  final String accessToken;
 
   Map<String, dynamic> toJson() => {
         'user_id': id,

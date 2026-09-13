@@ -206,9 +206,9 @@ final seasonsProvider =
 // ============================
 
 class EpisodesQuery {
+  const EpisodesQuery({required this.seriesId, this.seasonId});
   final String seriesId;
   final String? seasonId;
-  const EpisodesQuery({required this.seriesId, this.seasonId});
 
   @override
   bool operator ==(Object other) =>
@@ -315,10 +315,6 @@ Future<void> markItemUnplayed(String itemId, Ref ref) async {
 // ============================
 
 class PlaybackSettings {
-  final List<MediaSource>? mediaSources;
-  final String? selectedMediaSourceId;
-  final int? selectedAudioStreamIndex;
-  final int? selectedSubtitleStreamIndex;
 
   const PlaybackSettings({
     this.mediaSources,
@@ -326,6 +322,10 @@ class PlaybackSettings {
     this.selectedAudioStreamIndex,
     this.selectedSubtitleStreamIndex,
   });
+  final List<MediaSource>? mediaSources;
+  final String? selectedMediaSourceId;
+  final int? selectedAudioStreamIndex;
+  final int? selectedSubtitleStreamIndex;
 
   PlaybackSettings copyWith({
     List<MediaSource>? mediaSources,

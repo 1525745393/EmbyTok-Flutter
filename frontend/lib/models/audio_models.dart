@@ -11,13 +11,6 @@
 
 /// 歌曲音频信息（additional.song_audio）
 class AudioSongAudio {
-  final int? bitrate;
-  final int? channel;
-  final String? codec;
-  final String? container;
-  final int? duration; // 秒
-  final int? filesize;
-  final int? frequency;
 
   const AudioSongAudio({
     this.bitrate,
@@ -40,6 +33,13 @@ class AudioSongAudio {
       frequency: json['frequency'] as int?,
     );
   }
+  final int? bitrate;
+  final int? channel;
+  final String? codec;
+  final String? container;
+  final int? duration; // 秒
+  final int? filesize;
+  final int? frequency;
 
   Map<String, dynamic> toJson() => {
         if (bitrate != null) 'bitrate': bitrate,
@@ -54,15 +54,6 @@ class AudioSongAudio {
 
 /// 歌曲标签信息（additional.song_tag）
 class AudioSongTag {
-  final String? album;
-  final String? albumArtist;
-  final String? artist;
-  final String? comment;
-  final String? composer;
-  final int? disc;
-  final String? genre;
-  final int? track;
-  final int? year;
 
   const AudioSongTag({
     this.album,
@@ -89,6 +80,15 @@ class AudioSongTag {
       year: json['year'] as int?,
     );
   }
+  final String? album;
+  final String? albumArtist;
+  final String? artist;
+  final String? comment;
+  final String? composer;
+  final int? disc;
+  final String? genre;
+  final int? track;
+  final int? year;
 
   Map<String, dynamic> toJson() => {
         if (album != null) 'album': album,
@@ -105,13 +105,6 @@ class AudioSongTag {
 
 /// 歌曲
 class AudioSong {
-  final String id; // music_xxx 或 music_v_xxx（整轨音轨）
-  final String title;
-  final String? path;
-  final String? type; // file / folder
-  final AudioSongAudio? audio;
-  final AudioSongTag? tag;
-  final int? rating;
 
   const AudioSong({
     required this.id,
@@ -122,6 +115,29 @@ class AudioSong {
     this.tag,
     this.rating,
   });
+
+  factory AudioSong.fromJson(Map<String, dynamic> json) {
+    final additional = json['additional'] as Map<String, dynamic>?;
+    final audioJson = additional?['song_audio'] as Map<String, dynamic>?;
+    final tagJson = additional?['song_tag'] as Map<String, dynamic>?;
+    final ratingJson = additional?['song_rating'] as Map<String, dynamic>?;
+    return AudioSong(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      path: json['path'] as String?,
+      type: json['type'] as String?,
+      audio: audioJson != null ? AudioSongAudio.fromJson(audioJson) : null,
+      tag: tagJson != null ? AudioSongTag.fromJson(tagJson) : null,
+      rating: ratingJson?['rating'] as int?,
+    );
+  }
+  final String id; // music_xxx 或 music_v_xxx（整轨音轨）
+  final String title;
+  final String? path;
+  final String? type; // file / folder
+  final AudioSongAudio? audio;
+  final AudioSongTag? tag;
+  final int? rating;
 
   /// 是否为整轨文件的某个音轨（此类歌曲需强制转码播放）
   bool get isCueTrack => id.contains('_v_');
@@ -143,22 +159,6 @@ class AudioSong {
   /// 展示用专辑
   String get albumDisplay => tag?.album ?? '';
 
-  factory AudioSong.fromJson(Map<String, dynamic> json) {
-    final additional = json['additional'] as Map<String, dynamic>?;
-    final audioJson = additional?['song_audio'] as Map<String, dynamic>?;
-    final tagJson = additional?['song_tag'] as Map<String, dynamic>?;
-    final ratingJson = additional?['song_rating'] as Map<String, dynamic>?;
-    return AudioSong(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      path: json['path'] as String?,
-      type: json['type'] as String?,
-      audio: audioJson != null ? AudioSongAudio.fromJson(audioJson) : null,
-      tag: tagJson != null ? AudioSongTag.fromJson(tagJson) : null,
-      rating: ratingJson?['rating'] as int?,
-    );
-  }
-
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
@@ -174,15 +174,6 @@ class AudioSong {
 
 /// 专辑
 class AudioAlbum {
-  final String name;
-  final String? albumArtist;
-  final String? artist;
-  final String? displayArtist;
-  final int? year;
-  final int? rating;
-
-  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
-  final String? coverUrl;
 
   const AudioAlbum({
     required this.name,
@@ -193,6 +184,28 @@ class AudioAlbum {
     this.rating,
     this.coverUrl,
   });
+
+  factory AudioAlbum.fromJson(Map<String, dynamic> json) {
+    final additional = json['additional'] as Map<String, dynamic>?;
+    final ratingJson = additional?['avg_rating'] as Map<String, dynamic>?;
+    return AudioAlbum(
+      name: json['name'] as String? ?? '',
+      albumArtist: json['album_artist'] as String?,
+      artist: json['artist'] as String?,
+      displayArtist: json['display_artist'] as String?,
+      year: json['year'] as int?,
+      rating: ratingJson?['rating'] as int?,
+    );
+  }
+  final String name;
+  final String? albumArtist;
+  final String? artist;
+  final String? displayArtist;
+  final int? year;
+  final int? rating;
+
+  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
+  final String? coverUrl;
 
   /// 展示用歌手
   String get artistDisplay =>
@@ -210,39 +223,12 @@ class AudioAlbum {
       coverUrl: coverUrl ?? this.coverUrl,
     );
   }
-
-  factory AudioAlbum.fromJson(Map<String, dynamic> json) {
-    final additional = json['additional'] as Map<String, dynamic>?;
-    final ratingJson = additional?['avg_rating'] as Map<String, dynamic>?;
-    return AudioAlbum(
-      name: json['name'] as String? ?? '',
-      albumArtist: json['album_artist'] as String?,
-      artist: json['artist'] as String?,
-      displayArtist: json['display_artist'] as String?,
-      year: json['year'] as int?,
-      rating: ratingJson?['rating'] as int?,
-    );
-  }
 }
 
 /// 歌手
 class AudioArtist {
-  final String name;
-  final int? rating;
-
-  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
-  final String? coverUrl;
 
   const AudioArtist({required this.name, this.rating, this.coverUrl});
-
-  /// 返回带 coverUrl 的新实例（不可变模型的 copyWith 模式）
-  AudioArtist copyWith({String? coverUrl}) {
-    return AudioArtist(
-      name: name,
-      rating: rating,
-      coverUrl: coverUrl ?? this.coverUrl,
-    );
-  }
 
   factory AudioArtist.fromJson(Map<String, dynamic> json) {
     final additional = json['additional'] as Map<String, dynamic>?;
@@ -252,15 +238,24 @@ class AudioArtist {
       rating: ratingJson?['rating'] as int?,
     );
   }
+  final String name;
+  final int? rating;
+
+  /// 预计算的封面 URL（由 API 层在获取数据后填充，避免 UI 层重复计算）
+  final String? coverUrl;
+
+  /// 返回带 coverUrl 的新实例（不可变模型的 copyWith 模式）
+  AudioArtist copyWith({String? coverUrl}) {
+    return AudioArtist(
+      name: name,
+      rating: rating,
+      coverUrl: coverUrl ?? this.coverUrl,
+    );
+  }
 }
 
 /// 歌单
 class AudioPlaylist {
-  final String id; // playlist_personal_normal/xxx
-  final String name;
-  final String? library; // all / personal
-  final String? type; // normal / smart
-  final String? path;
 
   const AudioPlaylist({
     required this.id,
@@ -279,12 +274,15 @@ class AudioPlaylist {
       path: json['path'] as String?,
     );
   }
+  final String id; // playlist_personal_normal/xxx
+  final String name;
+  final String? library; // all / personal
+  final String? type; // normal / smart
+  final String? path;
 }
 
 /// 音乐流派（NAS 自动聚合的音乐标签分类）
 class AudioGenre {
-  final String name;
-  final int songCount;
 
   const AudioGenre({required this.name, this.songCount = 0});
 
@@ -294,6 +292,8 @@ class AudioGenre {
       songCount: (json['song_count'] as num?)?.toInt() ?? 0,
     );
   }
+  final String name;
+  final int songCount;
 }
 
 /// 用户锁定的歌曲（My Pins / 收藏）
@@ -301,10 +301,6 @@ class AudioGenre {
 /// Pin 接口返回简化信息（id/title/artist/album），
 /// 播放时需从全量歌曲列表按 ID 匹配完整 AudioSong
 class AudioPin {
-  final String id;
-  final String title;
-  final String? artist;
-  final String? album;
 
   const AudioPin({
     required this.id,
@@ -321,6 +317,10 @@ class AudioPin {
       album: json['album'] as String?,
     );
   }
+  final String id;
+  final String title;
+  final String? artist;
+  final String? album;
 }
 
 /// 文件夹浏览条目类型
@@ -329,11 +329,7 @@ enum AudioFolderItemType { folder, song }
 /// 文件夹浏览条目（子文件夹或歌曲）
 ///
 /// Folder API 返回 folders + songs 的混合列表，统一为此模型
-class AudioFolderItem {
-  final AudioFolderItemType type;
-  final String name;
-  final String path;
-  final AudioSong? song; // type=song 时的完整歌曲信息
+class AudioFolderItem { // type=song 时的完整歌曲信息
 
   const AudioFolderItem({
     required this.type,
@@ -341,17 +337,21 @@ class AudioFolderItem {
     this.path = '',
     this.song,
   });
+  final AudioFolderItemType type;
+  final String name;
+  final String path;
+  final AudioSong? song;
 }
 
 /// 搜索结果（歌曲 + 专辑 + 歌手）
 class AudioSearchResult {
-  final List<AudioSong> songs;
-  final List<AudioAlbum> albums;
-  final List<AudioArtist> artists;
 
   const AudioSearchResult({
     this.songs = const [],
     this.albums = const [],
     this.artists = const [],
   });
+  final List<AudioSong> songs;
+  final List<AudioAlbum> albums;
+  final List<AudioArtist> artists;
 }

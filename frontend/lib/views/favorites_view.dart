@@ -1095,11 +1095,6 @@ class _FavoritesViewState extends ConsumerState<FavoritesView>
 
 /// 统计卡
 class _StatCard extends StatelessWidget {
-  final String label;
-  final int count;
-  final IconData icon;
-  final Color bgColor;
-  final Color fgColor;
   const _StatCard({
     required this.label,
     required this.count,
@@ -1107,6 +1102,11 @@ class _StatCard extends StatelessWidget {
     required this.bgColor,
     required this.fgColor,
   });
+  final String label;
+  final int count;
+  final IconData icon;
+  final Color bgColor;
+  final Color fgColor;
 
   @override
   Widget build(BuildContext context) {
@@ -1156,17 +1156,6 @@ class _StatCard extends StatelessWidget {
 
 /// 可折叠分组：标题 + 状态/数量 + chevron + 内容
 class _GroupSection extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color accentColor;
-  final int count;
-  final String recentLabel;
-  final String? error;
-  final VoidCallback? onRetry;
-  final bool isOpen;
-  final VoidCallback onToggleOpen;
-  final VoidCallback? onViewAll;
-  final Widget child;
 
   const _GroupSection({
     super.key,
@@ -1182,6 +1171,17 @@ class _GroupSection extends StatelessWidget {
     required this.onViewAll,
     required this.child,
   });
+  final String title;
+  final IconData icon;
+  final Color accentColor;
+  final int count;
+  final String recentLabel;
+  final String? error;
+  final VoidCallback? onRetry;
+  final bool isOpen;
+  final VoidCallback onToggleOpen;
+  final VoidCallback? onViewAll;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -1354,9 +1354,9 @@ class _GroupSection extends StatelessWidget {
 
 /// 图标按钮：批量操作栏用
 class _IconAction extends StatelessWidget {
+  const _IconAction({required this.icon, required this.onTap});
   final IconData icon;
   final VoidCallback? onTap;
-  const _IconAction({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1394,15 +1394,6 @@ class _IconAction extends StatelessWidget {
 
 /// 影片 3 列网格（可预览最多 6 张 + 加载更多 + 全选）
 class _MovieGrid extends StatelessWidget {
-  final List<MediaItem> items;
-  final List<MediaItem> allItems;
-  final bool selectMode;
-  final Set<String> selectedIds;
-  final ValueChanged<String> onToggle;
-  final VoidCallback onToggleAll;
-  final bool allSelected;
-  final bool hasMore;
-  final VoidCallback onLoadMore;
 
   const _MovieGrid({
     required this.items,
@@ -1415,6 +1406,15 @@ class _MovieGrid extends StatelessWidget {
     required this.hasMore,
     required this.onLoadMore,
   });
+  final List<MediaItem> items;
+  final List<MediaItem> allItems;
+  final bool selectMode;
+  final Set<String> selectedIds;
+  final ValueChanged<String> onToggle;
+  final VoidCallback onToggleAll;
+  final bool allSelected;
+  final bool hasMore;
+  final VoidCallback onLoadMore;
 
   // 预览数量：分组内只显示前 6 张（更多请进"全部"页面）
   static const int _previewMax = _kMovieGridPreviewCount;
@@ -1507,11 +1507,6 @@ class _MovieGrid extends StatelessWidget {
 
 /// 合集列表：横向 ListTile 风格
 class _BoxSetList extends StatelessWidget {
-  final List<MediaItem> items;
-  final List<MediaItem> allItems;
-  final bool selectMode;
-  final Set<String> selectedIds;
-  final ValueChanged<String> onToggle;
 
   const _BoxSetList({
     required this.items,
@@ -1520,6 +1515,11 @@ class _BoxSetList extends StatelessWidget {
     required this.selectedIds,
     required this.onToggle,
   });
+  final List<MediaItem> items;
+  final List<MediaItem> allItems;
+  final bool selectMode;
+  final Set<String> selectedIds;
+  final ValueChanged<String> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -1568,10 +1568,6 @@ class _BoxSetList extends StatelessWidget {
 
 /// 人物 4 列头像网格
 class _PersonGrid extends StatelessWidget {
-  final List<MediaItem> items;
-  final bool selectMode;
-  final Set<String> selectedIds;
-  final ValueChanged<String> onToggle;
 
   const _PersonGrid({
     required this.items,
@@ -1579,6 +1575,10 @@ class _PersonGrid extends StatelessWidget {
     required this.selectedIds,
     required this.onToggle,
   });
+  final List<MediaItem> items;
+  final bool selectMode;
+  final Set<String> selectedIds;
+  final ValueChanged<String> onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -1623,10 +1623,6 @@ class _PersonGrid extends StatelessWidget {
 
 /// 选择包装：左上角勾选角标（选择模式下可点击切换选中）
 class _SelectableCard extends StatelessWidget {
-  final bool selectMode;
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget child;
 
   const _SelectableCard({
     required this.selectMode,
@@ -1634,6 +1630,10 @@ class _SelectableCard extends StatelessWidget {
     required this.onTap,
     required this.child,
   });
+  final bool selectMode;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -1686,13 +1686,13 @@ class _SelectableCard extends StatelessWidget {
 
 /// 影片海报卡（点击跳转播放/详情，长按菜单）
 class _MoviePosterCard extends ConsumerWidget {
-  final MediaItem item;
-  final List<MediaItem> allItems;
 
   const _MoviePosterCard({
     required this.item,
     required this.allItems,
   });
+  final MediaItem item;
+  final List<MediaItem> allItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1897,7 +1897,7 @@ class _MoviePosterCard extends ConsumerWidget {
               ),
               ListTile(
                 leading: Icon(Icons.play_arrow, color: scheme.primary),
-                title: Text(_kMenuItemPlay),
+                title: const Text(_kMenuItemPlay),
                 onTap: () {
                   Navigator.pop(ctx);
                   ref
@@ -1926,8 +1926,8 @@ class _MoviePosterCard extends ConsumerWidget {
 
 /// 合集 ListTile
 class _BoxSetTile extends ConsumerWidget {
-  final MediaItem item;
   const _BoxSetTile({required this.item});
+  final MediaItem item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2124,8 +2124,8 @@ class _BoxSetTile extends ConsumerWidget {
 
 /// 人物头像 + 名称
 class _PersonTile extends ConsumerWidget {
-  final MediaItem item;
   const _PersonTile({required this.item});
+  final MediaItem item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -2259,14 +2259,14 @@ class _PersonTile extends ConsumerWidget {
 
 /// 影片/人物：更多卡片
 class _MoreTile extends StatelessWidget {
-  final int remaining;
-  final bool hasMore;
-  final VoidCallback onTap;
   const _MoreTile({
     required this.remaining,
     required this.hasMore,
     required this.onTap,
   });
+  final int remaining;
+  final bool hasMore;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2315,9 +2315,9 @@ class _MoreTile extends StatelessWidget {
 }
 
 class _MorePersonTile extends StatelessWidget {
+  const _MorePersonTile({required this.remaining, required this.onTap});
   final int remaining;
   final VoidCallback onTap;
-  const _MorePersonTile({required this.remaining, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2365,8 +2365,8 @@ class _MorePersonTile extends StatelessWidget {
 }
 
 class _LoadMoreHint extends StatelessWidget {
-  final VoidCallback onTap;
   const _LoadMoreHint({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2401,13 +2401,13 @@ class _LoadMoreHint extends StatelessWidget {
 /// 这里同时保留搜索框（用户可点 × 清空）并增加显式「清空搜索词」按钮，
 /// 提供双路径返回全量收藏内容。
 class _SearchNoResultHint extends StatelessWidget {
-  final String query;
-  final VoidCallback onClear;
 
   const _SearchNoResultHint({
     required this.query,
     required this.onClear,
   });
+  final String query;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -2506,8 +2506,8 @@ Future<void> _undoUnfavorite(
 // ============================================================
 
 class FavoritesCategoryView extends ConsumerStatefulWidget {
-  final FavoritesCategory category;
   const FavoritesCategoryView({super.key, required this.category});
+  final FavoritesCategory category;
 
   @override
   ConsumerState<FavoritesCategoryView> createState() =>
@@ -2697,9 +2697,6 @@ class _FavoritesCategoryViewState
 }
 
 class _GridCard extends ConsumerWidget {
-  final MediaItem item;
-  final FavoritesCategory category;
-  final List<MediaItem> allItems;
 
   const _GridCard({
     super.key,
@@ -2707,6 +2704,9 @@ class _GridCard extends ConsumerWidget {
     required this.category,
     required this.allItems,
   });
+  final MediaItem item;
+  final FavoritesCategory category;
+  final List<MediaItem> allItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

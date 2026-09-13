@@ -16,14 +16,14 @@ class PageIndices {
 }
 
 // 页面导航状态
-class PageNavigationState {
-  final int currentIndex;
-  final bool isOverlayPage; // 标记是否是覆盖层页面（搜索/历史）
+class PageNavigationState { // 标记是否是覆盖层页面（搜索/历史）
 
   const PageNavigationState({
     this.currentIndex = PageIndices.feed,
     this.isOverlayPage = false,
   });
+  final int currentIndex;
+  final bool isOverlayPage;
 
   PageNavigationState copyWith({
     int? currentIndex,

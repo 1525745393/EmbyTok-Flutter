@@ -8,9 +8,9 @@ import 'package:video_player/video_player.dart';
 /// TikTok 风格底部细线进度条
 /// 高度 2px，始终可见，颜色为 theme.primary，背景半透明 surface
 class ThinProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
 
   const ThinProgressBar({super.key, required this.controller});
+  final VideoPlayerController controller;
 
   @override
   State<ThinProgressBar> createState() => _ThinProgressBarState();
@@ -58,14 +58,14 @@ class _ThinProgressBarState extends State<ThinProgressBar> {
 /// 可点击/可拖拽的进度条（用于底部信息栏）
 /// 支持点击跳转和水平拖拽 seek
 class SeekableProgressBar extends StatefulWidget {
-  final VideoPlayerController controller;
-  final String Function(Duration) formatDuration;
 
   const SeekableProgressBar({
     super.key,
     required this.controller,
     required this.formatDuration,
   });
+  final VideoPlayerController controller;
+  final String Function(Duration) formatDuration;
 
   @override
   State<SeekableProgressBar> createState() => _SeekableProgressBarState();

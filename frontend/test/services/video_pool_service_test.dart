@@ -14,9 +14,7 @@
 // Fake 直接 override 需要的方法，避开 mockito 的 stub 机制。
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
-import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/services/video_pool_service.dart';
 
 // Fake VideoPlayerController：仅实现 PlaybackSession 调用的方法（value、dispose）

@@ -2,10 +2,10 @@
 import 'media_item.dart';
 
 class FavoritesPageResult {
-  final List<MediaItem> items;
-  final int totalCount;
 
   const FavoritesPageResult({required this.items, required this.totalCount});
+  final List<MediaItem> items;
+  final int totalCount;
 
   bool get hasMore => items.length < totalCount;
 }

@@ -24,10 +24,6 @@ const int _kSearchHintsCacheMaxSize = 20;
 
 /// 搜索建议状态
 class SearchHintsState {
-  final List<SearchHint> hints;
-  final String query;
-  final bool isLoading;
-  final String? error;
 
   const SearchHintsState({
     this.hints = const [],
@@ -35,6 +31,10 @@ class SearchHintsState {
     this.isLoading = false,
     this.error,
   });
+  final List<SearchHint> hints;
+  final String query;
+  final bool isLoading;
+  final String? error;
 
   SearchHintsState copyWith({
     List<SearchHint>? hints,
@@ -53,6 +53,10 @@ class SearchHintsState {
 
 // 搜索建议 Notifier
 class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
+
+  SearchHintsNotifier(this._ref) : super(const SearchHintsState()) {
+    _service = _ref.read(embytokServiceProvider);
+  }
   final Ref _ref;
   late final EmbytokService _service;
 
@@ -62,10 +66,6 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
   /// 搜索结果缓存（短 TTL，避免短时间内重复搜索同一关键词）
   final MemoryCache<List<SearchHint>> _cache =
       MemoryCache<List<SearchHint>>(maxSize: _kSearchHintsCacheMaxSize);
-
-  SearchHintsNotifier(this._ref) : super(const SearchHintsState()) {
-    _service = _ref.read(embytokServiceProvider);
-  }
 
   AuthState get _auth => _ref.read(authProvider);
 

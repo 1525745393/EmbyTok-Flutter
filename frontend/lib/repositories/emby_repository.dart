@@ -17,10 +17,10 @@ import 'media_repository.dart';
 /// 上层业务（VideoListNotifier 等）只依赖 MediaRepository 接口，
 /// 未来切换数据源时只需替换实现类。
 class EmbyRepository implements MediaRepository {
-  final EmbytokService _service;
 
   EmbyRepository({EmbytokService? service})
       : _service = service ?? EmbytokService();
+  final EmbytokService _service;
 
   @override
   Future<PaginatedResponse<MediaItem>> getLibraryItems(

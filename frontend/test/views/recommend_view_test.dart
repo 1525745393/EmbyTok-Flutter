@@ -27,7 +27,7 @@ import 'package:embytok_flutter/views/recommend_view.dart';
 /// 通过 override load/loadMore/refresh 为空实现，避免触发真实 HTTP 请求。
 /// 通过 clearErrorCount 计数验证副作用触发次数。
 class _FakeRecommendNotifier extends RecommendNotifier {
-  _FakeRecommendNotifier(Ref ref) : super(ref);
+  _FakeRecommendNotifier(super.ref);
 
   /// clearError 调用计数（用于验证副作用触发次数）
   int clearErrorCount = 0;
@@ -293,8 +293,8 @@ void main() {
         isLoading: false,
         error: null,
         taggedItems: [
-          RecommendItem(
-            item: MediaItem(id: '1', title: '示例', type: 'Movie'),
+          const RecommendItem(
+            item: const MediaItem(id: '1', title: '示例', type: 'Movie'),
             source: RecommendSource.suggestions,
           ),
         ],

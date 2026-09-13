@@ -18,13 +18,6 @@ import '../models/models.dart';
 
 /// 分页参数：用于传递分页请求的通用参数
 class MediaQueryParams {
-  final String libraryId;
-  final int limit;
-  final int offset;
-  final String? sortBy;
-  final String? sortOrder;
-  final String? searchTerm;
-  final bool excludePlayed;
 
   const MediaQueryParams({
     required this.libraryId,
@@ -35,6 +28,13 @@ class MediaQueryParams {
     this.searchTerm,
     this.excludePlayed = false,
   });
+  final String libraryId;
+  final int limit;
+  final int offset;
+  final String? sortBy;
+  final String? sortOrder;
+  final String? searchTerm;
+  final bool excludePlayed;
 
   MediaQueryParams copyWith({
     String? libraryId,

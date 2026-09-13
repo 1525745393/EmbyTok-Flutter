@@ -10,7 +10,6 @@ import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/providers/favorites_provider.dart';
-import 'package:embytok_flutter/services/embytok_service.dart';
 
 import '../mocks/mock_services.dart';
 
@@ -27,8 +26,8 @@ void main() {
     test('copyWith 正确更新字段', () {
       const original = FavoritesState();
       final items = [
-        MediaItem(id: '1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: '2', title: 'Favorite 2', type: 'Movie'),
+        const MediaItem(id: '1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: '2', title: 'Favorite 2', type: 'Movie'),
       ];
       final favoriteIds = {'1', '2'};
 
@@ -53,9 +52,9 @@ void main() {
 
     setUp(() {
       mockService = MockEmbytokService();
-      testAuthState = AuthState(
+      testAuthState = const AuthState(
         isAuthenticated: true,
-        user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+        user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
         embyServerUrl: 'http://emby.example.com',
         token: 'test-token',
       );
@@ -92,9 +91,9 @@ void main() {
 
     test('loadFavorites() 成功加载收藏列表', () async {
       final items = [
-        MediaItem(id: 'fav-1', title: 'Favorite Movie 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite Movie 2', type: 'Movie'),
-        MediaItem(id: 'fav-3', title: 'Favorite Series', type: 'Series'),
+        const MediaItem(id: 'fav-1', title: 'Favorite Movie 1', type: 'Movie'),
+        const MediaItem(id: 'fav-2', title: 'Favorite Movie 2', type: 'Movie'),
+        const MediaItem(id: 'fav-3', title: 'Favorite Series', type: 'Series'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -234,7 +233,7 @@ void main() {
 
     test('toggleFavorite() 添加收藏：乐观更新 UI', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -266,7 +265,7 @@ void main() {
       expect(container.read(favoritesProvider).favoriteIds, {'fav-1'});
 
       // 添加新收藏
-      final newItem = MediaItem(
+      const newItem = MediaItem(
         id: 'fav-2',
         title: 'New Favorite',
         type: 'Movie',
@@ -290,8 +289,8 @@ void main() {
 
     test('toggleFavorite() 取消收藏：乐观更新 UI', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -323,7 +322,7 @@ void main() {
       expect(container.read(favoritesProvider).favoriteIds, {'fav-1', 'fav-2'});
 
       // 取消收藏
-      final itemToRemove = MediaItem(
+      const itemToRemove = MediaItem(
         id: 'fav-1',
         title: 'Favorite 1',
         type: 'Movie',
@@ -347,7 +346,7 @@ void main() {
 
     test('toggleFavorite() 添加失败：回滚状态', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Existing Favorite', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -380,7 +379,7 @@ void main() {
       expect(originalState.favoriteIds, {'fav-1'});
 
       // 尝试添加新收藏（会失败）
-      final newItem = MediaItem(
+      const newItem = MediaItem(
         id: 'fav-2',
         title: 'New Favorite',
         type: 'Movie',
@@ -396,8 +395,8 @@ void main() {
 
     test('toggleFavorite() 取消失败：回滚状态', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
-        MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-2', title: 'Favorite 2', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -429,7 +428,7 @@ void main() {
       expect(container.read(favoritesProvider).favoriteIds, {'fav-1', 'fav-2'});
 
       // 尝试取消收藏（会失败）
-      final itemToRemove = MediaItem(
+      const itemToRemove = MediaItem(
         id: 'fav-1',
         title: 'Favorite 1',
         type: 'Movie',
@@ -445,7 +444,7 @@ void main() {
 
     test('isFavorite() 正确判断收藏状态', () async {
       final items = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -484,7 +483,7 @@ void main() {
       );
 
       final notifier = container.read(favoritesProvider.notifier);
-      final item = MediaItem(id: 'fav-1', title: 'Test', type: 'Movie');
+      const item = MediaItem(id: 'fav-1', title: 'Test', type: 'Movie');
       await notifier.toggleFavorite(item);
 
       final state = container.read(favoritesProvider);
@@ -501,7 +500,7 @@ void main() {
 
     test('toggleFavorite() 添加已存在的项目不重复插入', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -530,7 +529,7 @@ void main() {
       await notifier.loadFavorites();
 
       // 再次添加已存在的项目
-      final existingItem = MediaItem(
+      const existingItem = MediaItem(
         id: 'fav-1',
         title: 'Favorite 1',
         type: 'Movie',
@@ -550,9 +549,9 @@ void main() {
 
     setUp(() {
       mockService = MockEmbytokService();
-      testAuthState = AuthState(
+      testAuthState = const AuthState(
         isAuthenticated: true,
-        user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+        user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
         embyServerUrl: 'http://emby.example.com',
         token: 'test-token',
       );
@@ -578,7 +577,7 @@ void main() {
 
     test('快速连续 toggleFavorite 只执行一次网络请求', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -611,7 +610,7 @@ void main() {
       final notifier = container.read(favoritesProvider.notifier);
       await notifier.loadFavorites();
 
-      final newItem = MediaItem(
+      const newItem = MediaItem(
         id: 'fav-2',
         title: 'New Favorite',
         type: 'Movie',
@@ -634,7 +633,7 @@ void main() {
 
     test('网络失败时回滚状态', () async {
       final existingItems = [
-        MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
+        const MediaItem(id: 'fav-1', title: 'Favorite 1', type: 'Movie'),
       ];
 
       when(mockService.getFavoriteMovies(
@@ -662,7 +661,7 @@ void main() {
       await notifier.loadFavorites();
 
       final originalIds = container.read(favoritesProvider).favoriteIds;
-      final newItem = MediaItem(
+      const newItem = MediaItem(
         id: 'fav-2',
         title: 'New Favorite',
         type: 'Movie',
@@ -714,8 +713,8 @@ void main() {
       final notifier = container.read(favoritesProvider.notifier);
       await notifier.loadFavorites();
 
-      final item1 = MediaItem(id: 'item-1', title: 'Item 1', type: 'Movie');
-      final item2 = MediaItem(id: 'item-2', title: 'Item 2', type: 'Movie');
+      const item1 = MediaItem(id: 'item-1', title: 'Item 1', type: 'Movie');
+      const item2 = MediaItem(id: 'item-2', title: 'Item 2', type: 'Movie');
 
       final future1 = notifier.toggleFavorite(item1);
       final future2 = notifier.toggleFavorite(item2);
@@ -762,7 +761,7 @@ void main() {
       final notifier = container.read(favoritesProvider.notifier);
       await notifier.loadFavorites();
 
-      final item = MediaItem(id: 'item-1', title: 'Item 1', type: 'Movie');
+      const item = MediaItem(id: 'item-1', title: 'Item 1', type: 'Movie');
 
       final future1 = notifier.toggleFavorite(item);
       final future2 = notifier.toggleFavorite(item);
@@ -810,11 +809,11 @@ void main() {
       await notifier.loadFavorites();
 
       final items = [
-        MediaItem(id: 'batch-1', title: 'Batch 1', type: 'Movie'),
-        MediaItem(id: 'batch-2', title: 'Batch 2', type: 'Movie'),
-        MediaItem(id: 'batch-3', title: 'Batch 3', type: 'Movie'),
-        MediaItem(id: 'batch-4', title: 'Batch 4', type: 'Movie'),
-        MediaItem(id: 'batch-5', title: 'Batch 5', type: 'Movie'),
+        const MediaItem(id: 'batch-1', title: 'Batch 1', type: 'Movie'),
+        const MediaItem(id: 'batch-2', title: 'Batch 2', type: 'Movie'),
+        const MediaItem(id: 'batch-3', title: 'Batch 3', type: 'Movie'),
+        const MediaItem(id: 'batch-4', title: 'Batch 4', type: 'Movie'),
+        const MediaItem(id: 'batch-5', title: 'Batch 5', type: 'Movie'),
       ];
 
       final futures = items.map((item) => notifier.toggleFavorite(item)).toList();
@@ -843,7 +842,7 @@ void main() {
 // 但 _TestAuthNotifier 在构造函数中同步设置 state = initialState，
 // 测试环境中 _loadFromStorage 会失败但不会崩溃（有 try-catch），不会覆盖预设状态。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }

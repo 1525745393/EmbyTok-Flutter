@@ -3,6 +3,7 @@
 /// 重点验证：
 /// - Emby PascalCase / 简化字段解析
 /// - toJson 序列化
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/user_data.dart';

@@ -14,10 +14,10 @@ import 'embytok_service_provider.dart';
 
 /// 基于 Emby Playlist 的收藏服务：管理媒体库级别的收藏列表
 class FavoritesService {
-  final EmbytokService _service;
-  final AuthState _auth;
 
   FavoritesService(this._service, this._auth);
+  final EmbytokService _service;
+  final AuthState _auth;
 
   bool get isAuthenticated =>
       _auth.isAuthenticated &&

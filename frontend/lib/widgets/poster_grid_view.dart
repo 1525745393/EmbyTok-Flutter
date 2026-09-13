@@ -17,9 +17,9 @@ import '../widgets/tv_focusable.dart';
 /// - 顶部 Header 显示媒体库名、总数、换一批按钮、分页控件
 /// - 支持分页导航（上一页/下一页）
 class PosterGridView extends ConsumerStatefulWidget {
-  final ScrollController? scrollController;
 
   const PosterGridView({super.key, this.scrollController});
+  final ScrollController? scrollController;
 
   @override
   ConsumerState<PosterGridView> createState() => _PosterGridViewState();
@@ -381,15 +381,15 @@ class _PosterGridViewState extends ConsumerState<PosterGridView> {
 
 /// 单个海报卡片
 class _PosterCard extends ConsumerWidget {
-  final MediaItem item;
-  // 是否为当前正在播放的视频（用于回显高亮）
-  final bool isPlaying;
 
   const _PosterCard({
     super.key,
     required this.item,
     this.isPlaying = false,
   });
+  final MediaItem item;
+  // 是否为当前正在播放的视频（用于回显高亮）
+  final bool isPlaying;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

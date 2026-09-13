@@ -40,7 +40,7 @@ import '../mocks/mock_services.dart';
 
 /// 固定认证状态的 AuthNotifier（跳过 _loadFromStorage 的异步恢复）
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }
@@ -48,7 +48,7 @@ class _TestAuthNotifier extends AuthNotifier {
 /// 固定媒体库 ID 列表的 SelectedLibraryNotifier
 /// 构造函数中直接设置 state，避免依赖 SharedPreferences 和 libraryListProvider
 class _FixedSelectedLibraryNotifier extends SelectedLibraryNotifier {
-  _FixedSelectedLibraryNotifier(Ref ref, List<String> ids) : super(ref) {
+  _FixedSelectedLibraryNotifier(super.ref, List<String> ids){
     state = ids;
   }
 }
@@ -56,7 +56,7 @@ class _FixedSelectedLibraryNotifier extends SelectedLibraryNotifier {
 /// 固定收藏 ID 集合的 FavoritesNotifier
 /// authProvider 初始即已认证，不触发 loadFavorites，state 保持固定值
 class _FixedFavoritesNotifier extends FavoritesNotifier {
-  _FixedFavoritesNotifier(Ref ref, Set<String> favIds) : super(ref) {
+  _FixedFavoritesNotifier(super.ref, Set<String> favIds){
     state = FavoritesState(favoriteIds: favIds);
   }
 }
@@ -1359,12 +1359,12 @@ void main() {
     });
 
     /// 构造 N 个合法 MediaItem（Movie，10 分钟，通过 isVideo + isTooShort）
-    List<MediaItem> _nItems(int n) {
+    List<MediaItem> nItems(int n) {
       return List.generate(n, (i) => _item('item-$i'));
     }
 
     /// 通用 setup：仅 Resume 返回指定数量，其余源返回空
-    void _setupResumeOnly(int resumeCount) {
+    void setupResumeOnly(int resumeCount) {
       repo = _MockMediaRepository();
       when(repo.getNextUp(
         serverUrl: anyNamed('serverUrl'),
@@ -1378,7 +1378,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
-      )).thenAnswer((_) async => _page(_nItems(resumeCount)));
+      )).thenAnswer((_) async => _page(nItems(resumeCount)));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
@@ -1411,7 +1411,7 @@ void main() {
     }
 
     /// 通用 setup：仅 Suggestions 返回指定数量，其余源返回空
-    void _setupSuggestionsOnly(int suggestionsCount) {
+    void setupSuggestionsOnly(int suggestionsCount) {
       repo = _MockMediaRepository();
       when(repo.getNextUp(
         serverUrl: anyNamed('serverUrl'),
@@ -1431,7 +1431,7 @@ void main() {
         token: anyNamed('token'),
         limit: anyNamed('limit'),
         userId: anyNamed('userId'),
-      )).thenAnswer((_) async => _nItems(suggestionsCount));
+      )).thenAnswer((_) async => nItems(suggestionsCount));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
@@ -1458,7 +1458,7 @@ void main() {
     }
 
     test('Resume 恰好满页（30 条）→ hasMore=true', () async {
-      _setupResumeOnly(30);
+      setupResumeOnly(30);
       container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
       final state = await _waitForLoad(container);
       // 修复前：items.isNotEmpty → true（但实际 30 条可能是最后一页）
@@ -1468,7 +1468,7 @@ void main() {
     });
 
     test('Resume 未满页（29 条）→ hasMore=false（P1-3 修复核心场景）', () async {
-      _setupResumeOnly(29);
+      setupResumeOnly(29);
       container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
       final state = await _waitForLoad(container);
       // 修复前：items.isNotEmpty=true → hasMore=true（误判）
@@ -1478,7 +1478,7 @@ void main() {
     });
 
     test('Suggestions 恰好满页（30 条）→ hasMore=true', () async {
-      _setupSuggestionsOnly(30);
+      setupSuggestionsOnly(30);
       container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
       final state = await _waitForLoad(container);
       expect(state.hasMore, true,
@@ -1486,7 +1486,7 @@ void main() {
     });
 
     test('Suggestions 未满页（29 条）→ hasMore=false（P1-3 修复核心场景）', () async {
-      _setupSuggestionsOnly(29);
+      setupSuggestionsOnly(29);
       container = _createContainer(repo: repo, signal: UserBehaviorSignal.defaults);
       final state = await _waitForLoad(container);
       expect(state.hasMore, false,

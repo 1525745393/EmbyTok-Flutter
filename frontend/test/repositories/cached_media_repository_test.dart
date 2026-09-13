@@ -8,7 +8,6 @@ import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/repositories/media_repository.dart';
 import 'package:embytok_flutter/repositories/cached_media_repository.dart';
 
-import '../mocks/mock_services.dart';
 
 class _MockMediaRepository extends Mock implements MediaRepository {
   @override
@@ -146,9 +145,9 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           #token: token,
           #userId: userId,
         }),
-        returnValue: Future.value(MediaItem(id: '', title: '', type: '')),
+        returnValue: Future.value(const MediaItem(id: '', title: '', type: '')),
         returnValueForMissingStub:
-            Future.value(MediaItem(id: '', title: '', type: '')),
+            Future.value(const MediaItem(id: '', title: '', type: '')),
       ) as Future<MediaItem>;
 
   @override
@@ -463,7 +462,7 @@ void main() {
     late _MockMediaRepository mockRepo;
     late CachedMediaRepository cachedRepo;
 
-    final testParams = MediaQueryParams(
+    const testParams = MediaQueryParams(
       libraryId: 'lib-1',
       limit: 20,
       offset: 0,
@@ -471,7 +470,7 @@ void main() {
     const testServerUrl = 'http://test.emby.local';
     const testToken = 'test-token-123';
 
-    final testItem = MediaItem(id: 'item-1', title: 'Test Video', type: 'Movie');
+    const testItem = MediaItem(id: 'item-1', title: 'Test Video', type: 'Movie');
     final testResponse = PaginatedResponse<MediaItem>(
       items: [testItem],
       total: 1,
@@ -563,7 +562,7 @@ void main() {
       );
 
       // 第二次：lib-2（不同 libraryId）
-      final params2 = MediaQueryParams(libraryId: 'lib-2', limit: 20, offset: 0);
+      const params2 = MediaQueryParams(libraryId: 'lib-2', limit: 20, offset: 0);
       await cachedRepo.getLibraryItems(
         params2,
         serverUrl: testServerUrl,
@@ -632,8 +631,8 @@ void main() {
         );
       });
 
-      final params1 = MediaQueryParams(libraryId: 'lib-1', limit: 20, offset: 0);
-      final params2 = MediaQueryParams(libraryId: 'lib-2', limit: 20, offset: 0);
+      const params1 = MediaQueryParams(libraryId: 'lib-1', limit: 20, offset: 0);
+      const params2 = MediaQueryParams(libraryId: 'lib-2', limit: 20, offset: 0);
 
       // 填充两个缓存
       await cachedRepo.getLibraryItems(params1, serverUrl: testServerUrl, token: testToken);
@@ -804,8 +803,8 @@ void main() {
     });
 
     group('getFavoriteMovies', () {
-      final testFavResult = FavoritesPageResult(
-        items: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
+      const testFavResult = FavoritesPageResult(
+        items: [const MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
         totalCount: 1,
       );
 
@@ -898,7 +897,7 @@ void main() {
 
     group('getResumeItems', () {
       final testResumeResult = PaginatedResponse<MediaItem>(
-        items: [MediaItem(id: 'resume-1', title: 'Resume Video', type: 'Movie')],
+        items: [const MediaItem(id: 'resume-1', title: 'Resume Video', type: 'Movie')],
         total: 1,
         offset: 0,
         limit: 50,
@@ -1088,7 +1087,7 @@ void main() {
     });
 
     group('getItemDetail', () {
-      final testDetailItem = MediaItem(
+      const testDetailItem = MediaItem(
         id: 'detail-1',
         title: 'Detail Test Movie',
         type: 'Movie',
@@ -1212,8 +1211,8 @@ void main() {
 
     group('getSimilarItems', () {
       final testSimilarItems = <MediaItem>[
-        MediaItem(id: 'sim-1', title: 'Similar Movie 1', type: 'Movie'),
-        MediaItem(id: 'sim-2', title: 'Similar Movie 2', type: 'Movie'),
+        const MediaItem(id: 'sim-1', title: 'Similar Movie 1', type: 'Movie'),
+        const MediaItem(id: 'sim-2', title: 'Similar Movie 2', type: 'Movie'),
       ];
 
       test('首次请求：转发到底层 Repository', () async {
@@ -1352,8 +1351,8 @@ void main() {
 
     group('getPeople', () {
       final testPeople = <Person>[
-        Person(id: 'person-1', name: 'Actor A', type: 'Actor'),
-        Person(id: 'person-2', name: 'Actor B', type: 'Director'),
+        const Person(id: 'person-1', name: 'Actor A', type: 'Actor'),
+        const Person(id: 'person-2', name: 'Actor B', type: 'Director'),
       ];
       final testPeopleResult = PaginatedResponse<Person>(
         items: testPeople,
@@ -1495,7 +1494,7 @@ void main() {
     });
 
     group('getPersonDetail', () {
-      final testPersonItem = MediaItem(id: 'person-1', title: 'Actor A', type: 'Person');
+      const testPersonItem = MediaItem(id: 'person-1', title: 'Actor A', type: 'Person');
 
       test('首次请求：转发到底层 Repository', () async {
         when(mockRepo.getPersonDetail(
@@ -1584,8 +1583,8 @@ void main() {
     group('getPersonItems', () {
       final testPersonItems = PaginatedResponse<MediaItem>(
         items: <MediaItem>[
-          MediaItem(id: 'movie-1', title: 'Movie A', type: 'Movie'),
-          MediaItem(id: 'movie-2', title: 'Movie B', type: 'Movie'),
+          const MediaItem(id: 'movie-1', title: 'Movie A', type: 'Movie'),
+          const MediaItem(id: 'movie-2', title: 'Movie B', type: 'Movie'),
         ],
         total: 2,
         offset: 0,
@@ -1686,8 +1685,8 @@ void main() {
     });
 
     group('getFavoritePeople', () {
-      final testFavPeopleResult = FavoritesPageResult(
-        items: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+      const testFavPeopleResult = FavoritesPageResult(
+        items: [const MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
         totalCount: 1,
       );
 
@@ -1774,8 +1773,8 @@ void main() {
     });
 
     group('getFavoriteBoxSets', () {
-      final testFavBoxSetsResult = FavoritesPageResult(
-        items: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
+      const testFavBoxSetsResult = FavoritesPageResult(
+        items: [const MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
         totalCount: 1,
       );
 
@@ -1862,8 +1861,8 @@ void main() {
 
     group('peek 收藏三栏', () {
       group('peekFavoriteMovies', () {
-        final testFavResult = FavoritesPageResult(
-          items: [MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
+        const testFavResult = FavoritesPageResult(
+          items: [const MediaItem(id: 'fav-1', title: 'Fav Movie', type: 'Movie')],
           totalCount: 1,
         );
 
@@ -1908,8 +1907,8 @@ void main() {
       });
 
       group('peekFavoriteBoxSets', () {
-        final testFavBoxSetsResult = FavoritesPageResult(
-          items: [MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
+        const testFavBoxSetsResult = FavoritesPageResult(
+          items: [const MediaItem(id: 'fav-boxset-1', title: 'Fav BoxSet', type: 'BoxSet')],
           totalCount: 1,
         );
 
@@ -1954,8 +1953,8 @@ void main() {
       });
 
       group('peekFavoritePeople', () {
-        final testFavPeopleResult = FavoritesPageResult(
-          items: [MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
+        const testFavPeopleResult = FavoritesPageResult(
+          items: [const MediaItem(id: 'fav-person-1', title: 'Fav Actor', type: 'Person')],
           totalCount: 1,
         );
 
@@ -2002,7 +2001,7 @@ void main() {
 
     group('getRecommendations', () {
       final testRecResponse = PaginatedResponse<MediaItem>(
-        items: [MediaItem(id: 'rec-1', title: 'Recommended', type: 'Movie')],
+        items: [const MediaItem(id: 'rec-1', title: 'Recommended', type: 'Movie')],
         total: 1,
         offset: 0,
         limit: 20,
@@ -2084,7 +2083,7 @@ void main() {
 
     group('getSuggestions', () {
       final testSuggestions = <MediaItem>[
-        MediaItem(id: 'sugg-1', title: 'Suggested', type: 'Movie'),
+        const MediaItem(id: 'sugg-1', title: 'Suggested', type: 'Movie'),
       ];
 
       test('首次请求：转发到底层 Repository', () async {
@@ -2144,7 +2143,7 @@ void main() {
 
     group('getWatchHistory', () {
       final testHistory = <MediaItem>[
-        MediaItem(id: 'hist-1', title: 'Watched', type: 'Movie'),
+        const MediaItem(id: 'hist-1', title: 'Watched', type: 'Movie'),
       ];
 
       test('首次请求：转发到底层 Repository', () async {
@@ -2222,7 +2221,7 @@ void main() {
 
     group('getChildren', () {
       final testChildren = <MediaItem>[
-        MediaItem(id: 'child-1', title: 'Child Item', type: 'Movie'),
+        const MediaItem(id: 'child-1', title: 'Child Item', type: 'Movie'),
       ];
 
       test('首次请求：转发到底层 Repository', () async {
@@ -2444,8 +2443,8 @@ void main() {
 
     group('getItemsByGenre', () {
       final items = [
-        MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
-        MediaItem(id: 'm2', title: '电影2', type: 'Movie'),
+        const MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
+        const MediaItem(id: 'm2', title: '电影2', type: 'Movie'),
       ];
       final response = PaginatedResponse<MediaItem>(
         items: items,
@@ -2614,7 +2613,7 @@ void main() {
 
     group('getItemsByStudio', () {
       final items = [
-        MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
+        const MediaItem(id: 'm1', title: '电影1', type: 'Movie'),
       ];
       final response = PaginatedResponse<MediaItem>(
         items: items,

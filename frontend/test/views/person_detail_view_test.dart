@@ -103,9 +103,9 @@ void main() {
 
   setUp(() {
     mockCachedRepo = _MockCachedMediaRepository();
-    testAuthState = AuthState(
+    testAuthState = const AuthState(
       isAuthenticated: true,
-      user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+      user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
       embyServerUrl: 'http://emby.example.com',
       token: 'test-token',
     );
@@ -278,7 +278,7 @@ void main() {
       // stub 详情：返回带新标题的 MediaItem
       // widget.person.title='测试演员'，详情返回 title='详情演员名'
       // 验证 UI 显示详情中的姓名而非 widget.person 的姓名
-      final detailItem = MediaItem(
+      const detailItem = MediaItem(
         id: 'person-1',
         title: '详情演员名',
         type: 'Person',
@@ -449,7 +449,7 @@ void main() {
 // 但 _TestAuthNotifier 在构造函数中同步设置 state = initialState，
 // 测试环境中 _loadFromStorage 会失败但不会崩溃（有 try-catch），不会覆盖预设状态。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 

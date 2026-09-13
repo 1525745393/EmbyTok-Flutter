@@ -39,10 +39,10 @@ const double kCoverFontSizeXXLarge = 30;
 
 /// 歌曲封面组件
 class SongCover extends ConsumerWidget {
-  final String songId;
-  final double size;
 
   const SongCover({super.key, required this.songId, required this.size});
+  final String songId;
+  final double size;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -80,9 +80,9 @@ class SongCover extends ConsumerWidget {
 
 /// 专辑封面组件
 class AlbumCover extends ConsumerWidget {
-  final AudioAlbum album;
 
   const AlbumCover({super.key, required this.album});
+  final AudioAlbum album;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -118,10 +118,10 @@ class AlbumCover extends ConsumerWidget {
 /// 优先加载 NAS 歌手图（cover.cgi + artist_name）；无图/加载失败时
 /// 回退为「渐变背景 + 歌手名首字母」（QQ音乐/酷狗风格）。
 class ArtistAvatar extends ConsumerStatefulWidget {
-  final String artistName;
-  final double size;
 
   const ArtistAvatar({super.key, required this.artistName, required this.size});
+  final String artistName;
+  final double size;
 
   @override
   ConsumerState<ArtistAvatar> createState() => _ArtistAvatarState();
@@ -211,10 +211,10 @@ class _ArtistAvatarState extends ConsumerState<ArtistAvatar> {
 
 /// 数据出处小标签
 class SourceBadge extends StatelessWidget {
-  final ArtistInfoSource source;
-  final ArtistInfoSource imageSource;
 
   const SourceBadge({super.key, required this.source, required this.imageSource});
+  final ArtistInfoSource source;
+  final ArtistInfoSource imageSource;
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +260,13 @@ class SourceBadge extends StatelessWidget {
 
 /// 歌手搜索结果条目：头像 + 名字 + 简介 + 出处标签
 class ArtistSearchTile extends ConsumerWidget {
+
+  const ArtistSearchTile({
+    super.key,
+    required this.artist,
+    required this.onTap,
+    this.hitSource = ArtistInfoSource.none,
+  });
   final AudioArtist artist;
 
   /// 条目来源（在哪搜到的）：群晖 NAS 本地库 / Last.fm 在线搜索。
@@ -268,13 +275,6 @@ class ArtistSearchTile extends ConsumerWidget {
 
   /// 点击回调（由页面层提供，复用现有歌手歌曲弹层逻辑）
   final VoidCallback onTap;
-
-  const ArtistSearchTile({
-    super.key,
-    required this.artist,
-    required this.onTap,
-    this.hitSource = ArtistInfoSource.none,
-  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

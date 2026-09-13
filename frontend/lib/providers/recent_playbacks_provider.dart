@@ -19,13 +19,7 @@ const int _kMaxRecords = 8;
 enum RecentPlaybackType { song, album, playlist }
 
 /// 单条最近播放记录
-class RecentPlayback {
-  final String mediaId;
-  final RecentPlaybackType mediaType;
-  final String title;
-  final String subtitle;
-  final String? coverUrl;
-  final int lastPlayTime; // 毫秒时间戳
+class RecentPlayback { // 毫秒时间戳
 
   const RecentPlayback({
     required this.mediaId,
@@ -35,15 +29,6 @@ class RecentPlayback {
     this.coverUrl,
     required this.lastPlayTime,
   });
-
-  Map<String, dynamic> toJson() => {
-        'mediaId': mediaId,
-        'mediaType': mediaType.name,
-        'title': title,
-        'subtitle': subtitle,
-        'coverUrl': coverUrl,
-        'lastPlayTime': lastPlayTime,
-      };
 
   factory RecentPlayback.fromJson(Map<String, dynamic> json) {
     return RecentPlayback(
@@ -58,6 +43,21 @@ class RecentPlayback {
       lastPlayTime: (json['lastPlayTime'] as num?)?.toInt() ?? 0,
     );
   }
+  final String mediaId;
+  final RecentPlaybackType mediaType;
+  final String title;
+  final String subtitle;
+  final String? coverUrl;
+  final int lastPlayTime;
+
+  Map<String, dynamic> toJson() => {
+        'mediaId': mediaId,
+        'mediaType': mediaType.name,
+        'title': title,
+        'subtitle': subtitle,
+        'coverUrl': coverUrl,
+        'lastPlayTime': lastPlayTime,
+      };
 }
 
 /// 最近播放记录 Provider

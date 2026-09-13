@@ -77,7 +77,7 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
       ),
     );
 
-    return Container(
+    return SizedBox(
       height: MediaQuery.sizeOf(context).height,
       child: Stack(
         children: [
@@ -387,15 +387,15 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
 // ============================
 
 class _RotatingCover extends StatefulWidget {
-  final bool playing;
-  final String? coverUrl;
-  final IconData fallbackIcon;
 
   const _RotatingCover({
     required this.playing,
     required this.coverUrl,
     required this.fallbackIcon,
   });
+  final bool playing;
+  final String? coverUrl;
+  final IconData fallbackIcon;
 
   @override
   State<_RotatingCover> createState() => _RotatingCoverState();

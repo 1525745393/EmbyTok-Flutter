@@ -4,6 +4,7 @@
 /// - DefaultPlaybackRateNotifier: 倍速设置
 /// - DefaultSubtitleLanguageNotifier: 默认字幕语言
 /// - CacheSizeNotifier: 缓存大小
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

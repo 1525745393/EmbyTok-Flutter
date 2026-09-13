@@ -11,6 +11,13 @@ import 'subtitle_renderer.dart';
 /// 字幕显示组件
 /// 接收字幕 cues 数据和当前播放位置，自动显示对应时间的字幕
 class SubtitleWidget extends ConsumerWidget {
+
+  const SubtitleWidget({
+    super.key,
+    required this.position,
+    required this.cues,
+    this.enabled = true,
+  });
   /// 当前播放位置
   final Duration position;
 
@@ -19,13 +26,6 @@ class SubtitleWidget extends ConsumerWidget {
 
   /// 是否启用字幕显示
   final bool enabled;
-
-  const SubtitleWidget({
-    super.key,
-    required this.position,
-    required this.cues,
-    this.enabled = true,
-  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,14 +40,6 @@ class SubtitleWidget extends ConsumerWidget {
 
 /// 字幕样式配置
 class SubtitleStyle {
-  final double fontSize;
-  final Color textColor;
-  final Color backgroundColor;
-  final FontWeight fontWeight;
-  final double letterSpacing;
-  final double wordSpacing;
-  final double lineHeight;
-  final bool showBackground;
 
   const SubtitleStyle({
     this.fontSize = 18.0,
@@ -59,6 +51,27 @@ class SubtitleStyle {
     this.lineHeight = 1.3,
     this.showBackground = true,
   });
+
+  /// 从 SubtitleSettings 创建样式
+  factory SubtitleStyle.fromSettings(
+      SubtitleSettings settings, ColorScheme scheme) {
+    return SubtitleStyle(
+      fontSize: settings.fontSize,
+      textColor: settings.textColor,
+      backgroundColor: scheme.surface.withValues(alpha: 0.54),
+      fontWeight: FontWeight.w600,
+      lineHeight: 1.3,
+      showBackground: true,
+    );
+  }
+  final double fontSize;
+  final Color textColor;
+  final Color backgroundColor;
+  final FontWeight fontWeight;
+  final double letterSpacing;
+  final double wordSpacing;
+  final double lineHeight;
+  final bool showBackground;
 
   SubtitleStyle copyWith({
     double? fontSize,
@@ -79,19 +92,6 @@ class SubtitleStyle {
       wordSpacing: wordSpacing ?? this.wordSpacing,
       lineHeight: lineHeight ?? this.lineHeight,
       showBackground: showBackground ?? this.showBackground,
-    );
-  }
-
-  /// 从 SubtitleSettings 创建样式
-  factory SubtitleStyle.fromSettings(
-      SubtitleSettings settings, ColorScheme scheme) {
-    return SubtitleStyle(
-      fontSize: settings.fontSize,
-      textColor: settings.textColor,
-      backgroundColor: scheme.surface.withValues(alpha: 0.54),
-      fontWeight: FontWeight.w600,
-      lineHeight: 1.3,
-      showBackground: true,
     );
   }
 }

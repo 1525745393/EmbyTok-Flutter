@@ -13,7 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
-import '../services/api_client.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
@@ -35,10 +34,6 @@ enum ServerType {
 
 /// 服务器历史记录条目
 class _ServerHistoryEntry {
-  final String url;
-  final ServerType serverType;
-  final String displayName;
-  final DateTime lastUsed;
 
   _ServerHistoryEntry({
     required this.url,
@@ -47,6 +42,23 @@ class _ServerHistoryEntry {
     DateTime? lastUsed,
   })  : displayName = displayName ?? _extractHostPort(url),
         lastUsed = lastUsed ?? DateTime.now();
+
+  factory _ServerHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return _ServerHistoryEntry(
+      url: json['url'] as String? ?? '',
+      serverType: ServerType.values.firstWhere(
+        (e) => e.name == (json['t'] as String?),
+        orElse: () => ServerType.emby,
+      ),
+      displayName: json['n'] as String?,
+      lastUsed:
+          json['d'] != null ? DateTime.tryParse(json['d'] as String) : null,
+    );
+  }
+  final String url;
+  final ServerType serverType;
+  final String displayName;
+  final DateTime lastUsed;
 
   /// 从 URL 提取 host:port 作为显示名称
   static String _extractHostPort(String url) {
@@ -66,19 +78,6 @@ class _ServerHistoryEntry {
         'n': displayName,
         'd': lastUsed.toIso8601String(),
       };
-
-  factory _ServerHistoryEntry.fromJson(Map<String, dynamic> json) {
-    return _ServerHistoryEntry(
-      url: json['url'] as String? ?? '',
-      serverType: ServerType.values.firstWhere(
-        (e) => e.name == (json['t'] as String?),
-        orElse: () => ServerType.emby,
-      ),
-      displayName: json['n'] as String?,
-      lastUsed:
-          json['d'] != null ? DateTime.tryParse(json['d'] as String) : null,
-    );
-  }
 }
 
 class LoginView extends ConsumerStatefulWidget {
@@ -934,7 +933,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
       );
     }
     if (_connectionStatus == true) {
-      return Icon(Icons.check_circle, color: Colors.green, size: 22);
+      return const Icon(Icons.check_circle, color: Colors.green, size: 22);
     }
     if (_connectionStatus == false) {
       return Icon(Icons.cancel, color: scheme.error, size: 22);

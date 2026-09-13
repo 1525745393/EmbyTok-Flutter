@@ -83,7 +83,7 @@ void main() {
     });
 
     testWidgets('1. 登录成功后进入首页', (WidgetTester tester) async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
@@ -175,7 +175,7 @@ void main() {
     });
 
     testWidgets('2. 首页能看到视频列表', (WidgetTester tester) async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
@@ -269,13 +269,13 @@ void main() {
     });
 
     testWidgets('3. 点击视频进入详情页', (WidgetTester tester) async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
       );
 
-      final testItem = MediaItem(
+      const testItem = MediaItem(
         id: 'item-1',
         title: '测试视频 1',
         type: 'Movie',
@@ -366,17 +366,17 @@ void main() {
     });
 
     testWidgets('4. 收藏功能正常工作', (WidgetTester tester) async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',
       );
 
-      final testItem = MediaItem(
+      const testItem = MediaItem(
         id: 'item-1',
         title: '测试视频 1',
         type: 'Movie',
-        userData: UserData(isFavorite: false),
+        userData: const UserData(isFavorite: false),
       );
 
       when(mockService.login(
@@ -488,7 +488,7 @@ void main() {
     });
 
     testWidgets('5. 退出登录回到登录页', (WidgetTester tester) async {
-      final testUser = User(
+      const testUser = User(
         id: 'user-123',
         name: 'testuser',
         accessToken: 'test-token',

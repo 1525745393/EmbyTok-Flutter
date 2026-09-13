@@ -18,6 +18,17 @@ import 'package:flutter/material.dart';
 
 /// 性能数据快照
 class PerformanceSnapshot {
+
+  const PerformanceSnapshot({
+    required this.currentMemoryMB,
+    required this.maxMemoryMB,
+    required this.memoryRatio,
+    required this.fps,
+    required this.avgFps,
+    required this.buildCount,
+    required this.apiRequestCount,
+    required this.apiErrorCount,
+  });
   /// 当前堆内存使用量（MB）
   final double currentMemoryMB;
 
@@ -41,17 +52,6 @@ class PerformanceSnapshot {
 
   /// API 请求失败数
   final int apiErrorCount;
-
-  const PerformanceSnapshot({
-    required this.currentMemoryMB,
-    required this.maxMemoryMB,
-    required this.memoryRatio,
-    required this.fps,
-    required this.avgFps,
-    required this.buildCount,
-    required this.apiRequestCount,
-    required this.apiErrorCount,
-  });
 
   /// 内存状态
   MemoryStatus get memoryStatus {
@@ -268,9 +268,9 @@ class PerformanceMonitor {
 /// 性能监控 Widget 包装器
 /// 用于记录 Widget 重建次数
 class PerformanceMonitorWrapper extends StatelessWidget {
-  final Widget child;
 
   const PerformanceMonitorWrapper({super.key, required this.child});
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {

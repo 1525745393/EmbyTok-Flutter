@@ -251,7 +251,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
       final delta = -dy / (screenHeight * 0.6);
 
       if (isVolumeSide) {
-        var newVolume = (_volumeStartValue + delta).clamp(0.0, 1.0);
+        final newVolume = (_volumeStartValue + delta).clamp(0.0, 1.0);
         previewVolumeNotifier.value = newVolume;
         try {
           onSetVolume(newVolume);

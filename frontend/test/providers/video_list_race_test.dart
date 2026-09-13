@@ -20,7 +20,6 @@ import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/cache_providers.dart';
 import 'package:embytok_flutter/providers/library_provider.dart';
 import 'package:embytok_flutter/providers/video_list_provider.dart';
-import 'package:embytok_flutter/providers/video_playback_controller.dart';
 import 'package:embytok_flutter/repositories/media_repository.dart';
 import 'package:embytok_flutter/utils/app_preferences.dart';
 
@@ -534,11 +533,11 @@ class _MockMediaRepository implements MediaRepository {
 
 /// 待处理请求封装
 class _PendingRequest {
+
+  _PendingRequest(this.type, this.params, this.completer);
   final String type;
   final Map<String, dynamic> params;
   final Completer<dynamic> completer;
-
-  _PendingRequest(this.type, this.params, this.completer);
 
   MediaQueryParams get queryParams => params['params'] as MediaQueryParams;
 }
@@ -570,7 +569,7 @@ PaginatedResponse<MediaItem> _paginatedResponse(
 /// 继承 AuthNotifier 以满足 authProvider 的类型约束，
 /// 调用 super(ref) 后再用预设状态覆盖 state，避免触发 _loadFromStorage 的副作用影响断言。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(Ref ref, AuthState initialState) : super(ref) {
+  _TestAuthNotifier(super.ref, AuthState initialState){
     state = initialState;
   }
 }
@@ -579,8 +578,7 @@ class _TestAuthNotifier extends AuthNotifier {
 ///
 /// 继承 SelectedLibraryNotifier 以满足 selectedLibraryIdsProvider 的类型约束。
 class _TestSelectedLibraryIdsNotifier extends SelectedLibraryNotifier {
-  _TestSelectedLibraryIdsNotifier(Ref ref, List<String> initialState)
-      : super(ref) {
+  _TestSelectedLibraryIdsNotifier(super.ref, List<String> initialState){
     state = initialState;
   }
 
@@ -625,9 +623,9 @@ void main() {
     late _MockMediaRepository mockRepo;
     late ProviderContainer container;
 
-    AuthState _testAuthState() => AuthState(
+    AuthState testAuthState() => const AuthState(
           isAuthenticated: true,
-          user: User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+          user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
           embyServerUrl: 'http://emby.example.com',
           token: 'test-token',
         );
@@ -652,7 +650,7 @@ void main() {
     /// mockRepo.getLibraries() 创建 pending 请求（否则该请求占据 index 0，
     /// 导致后续 completeRequest(0, ...) 完成的是 getLibraries 而非 getLibraryItems，
     /// refresh 永远不会完成 → 测试超时 30s）。
-    ProviderContainer _createContainer({
+    ProviderContainer createContainer({
       List<String> libraryIds = const ['lib-1'],
       FeedType feedType = FeedType.latest,
       bool excludePlayed = false,
@@ -664,7 +662,7 @@ void main() {
           // 覆盖 libraryListProvider：返回空列表，阻止 getLibraries 调用
           libraryListProvider.overrideWith((ref) async => <Library>[]),
           authProvider.overrideWith(
-            (ref) => _TestAuthNotifier(ref, _testAuthState()),
+            (ref) => _TestAuthNotifier(ref, testAuthState()),
           ),
           selectedLibraryIdsProvider.overrideWith(
             (ref) => _TestSelectedLibraryIdsNotifier(ref, libraryIds),
@@ -691,7 +689,7 @@ void main() {
 
     group('快速连续 refresh', () {
       test('连续调用 refresh 只保留最后一次结果，不会被旧请求覆盖', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -730,7 +728,7 @@ void main() {
       });
 
       test('连续调用 refresh 只更新状态一次，最终数据正确', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -766,7 +764,7 @@ void main() {
       });
 
       test('快速连续 refresh 期间 isLoading 始终为 true', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -801,7 +799,7 @@ void main() {
 
     group('快速连续 loadMore', () {
       test('快速连续调用 loadMore 不会重复加载同一页', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -854,7 +852,7 @@ void main() {
       });
 
       test('loadMore 数据按顺序追加', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -902,7 +900,7 @@ void main() {
       });
 
       test('所有页加载完后不再请求（hasMore=false 时 loadMore 直接返回）', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -959,7 +957,7 @@ void main() {
 
     group('dispose 竞态', () {
       test('dispose 后请求完成不抛出异常', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -997,7 +995,7 @@ void main() {
       });
 
       test('dispose 后 loadMore 请求完成不崩溃', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1046,7 +1044,7 @@ void main() {
 
     group('refresh 与 loadMore 并发', () {
       test('loadMore 进行中调用 refresh，最终状态是 refresh 的结果', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1108,7 +1106,7 @@ void main() {
       });
 
       test('refresh 会重置分页状态（offset、hasMore）', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1172,14 +1170,14 @@ void main() {
 
     group('isLoading 状态正确性', () {
       test('初始状态 isLoading 为 false', () {
-        container = _createContainer();
+        container = createContainer();
 
         final state = container.read(videoListProvider);
         expect(state.isLoading, false);
       });
 
       test('调用 refresh 后 isLoading 变为 true', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1198,7 +1196,7 @@ void main() {
       });
 
       test('请求完成后 isLoading 变为 false', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1216,7 +1214,7 @@ void main() {
       });
 
       test('loadMore 期间 isLoading 为 true', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1252,7 +1250,7 @@ void main() {
 
       test('连续 refresh 时 isLoading 不会乱跳（始终为 true 直到最后完成）',
           () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 
@@ -1281,7 +1279,7 @@ void main() {
       });
 
       test('refresh 失败时 isLoading 也会变为 false', () async {
-        container = _createContainer();
+        container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);
 

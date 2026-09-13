@@ -23,7 +23,7 @@ void main() {
     late MediaItem testMediaItem;
 
     setUp(() {
-      testMediaItem = MediaItem(
+      testMediaItem = const MediaItem(
         id: 'test-item-1',
         title: '测试视频',
         type: 'Movie',
@@ -649,14 +649,6 @@ void main() {
 }
 
 class _GestureTestWidget extends StatefulWidget {
-  final VideoPlayerController? controller;
-  final VoidCallback? onSingleTap;
-  final VoidCallback? onDoubleTapLeft;
-  final VoidCallback? onDoubleTapRight;
-  final VoidCallback? onDoubleTapCenter;
-  final bool enableGestures;
-  final bool enableVerticalVolumeDrag;
-  final bool handleLeftVerticalDrag;
 
   const _GestureTestWidget({
     this.controller,
@@ -668,6 +660,14 @@ class _GestureTestWidget extends StatefulWidget {
     this.enableVerticalVolumeDrag = false,
     this.handleLeftVerticalDrag = false,
   });
+  final VideoPlayerController? controller;
+  final VoidCallback? onSingleTap;
+  final VoidCallback? onDoubleTapLeft;
+  final VoidCallback? onDoubleTapRight;
+  final VoidCallback? onDoubleTapCenter;
+  final bool enableGestures;
+  final bool enableVerticalVolumeDrag;
+  final bool handleLeftVerticalDrag;
 
   @override
   State<_GestureTestWidget> createState() => _GestureTestWidgetState();

@@ -23,7 +23,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../providers/providers.dart';
-import '../services/video_pool_service.dart';
 import '../utils/constants.dart';
 import '../utils/safe_insets.dart';
 import 'feed_view.dart';
@@ -36,11 +35,11 @@ import 'actors_view.dart';
 
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
+
+  const HomeScaffold({super.key, this.initialItemId});
   // 从路由 ?initialId= 透传过来的初始播放视频 ID
   // HomeScaffold 不消费此参数，仅透传给 FeedView
   final String? initialItemId;
-
-  const HomeScaffold({super.key, this.initialItemId});
 
   @override
   ConsumerState<HomeScaffold> createState() => _HomeScaffoldState();

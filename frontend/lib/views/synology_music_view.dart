@@ -443,7 +443,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           : const [Color(0xFF2C8EF4), Color(0xFF63B3F8)],
     );
     // 渐变上文字统一白色（深色模式同样适用）
-    final onGradient = Colors.white;
+    const onGradient = Colors.white;
 
     return Container(
       decoration: BoxDecoration(
@@ -463,7 +463,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   // 返回按钮：独立路由可 pop；首页（/）时进入设置页
                   if (widget.showBackButton)
                     IconButton(
-                      icon: Icon(Icons.arrow_back, color: onGradient),
+                      icon: const Icon(Icons.arrow_back, color: onGradient),
                       tooltip: '返回',
                       onPressed: () {
                         if (context.canPop()) {
@@ -475,14 +475,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     )
                   else
                     const SizedBox(width: _kSearchBarWidth),
-                  Expanded(
+                  const Expanded(
                     child: Row(
                       children: [
-                        Icon(Icons.library_music, color: onGradient, size: 22),
-                        const SizedBox(width: _kSpacingMedium),
-                        Text(
+                        const Icon(Icons.library_music, color: onGradient, size: 22),
+                        SizedBox(width: _kSpacingMedium),
+                        const Text(
                           '群晖音乐',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: onGradient,
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -492,7 +492,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.logout, color: onGradient),
+                    icon: const Icon(Icons.logout, color: onGradient),
                     tooltip: '退出群晖账号',
                     onPressed: () => _confirmLogout(scheme),
                   ),
@@ -1050,7 +1050,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                                 ),
                               ],
                             ),
-                            child: Icon(Icons.play_arrow,
+                            child: const Icon(Icons.play_arrow,
                                 color: Colors.white, size: _kPlayButtonIconSize),
                           ),
                         ),
@@ -1890,7 +1890,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       if (!mounted) return;
       AppLogger.warn('加载专辑歌曲失败', data: {'album': album.name, 'error': e.toString()});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载专辑歌曲失败：${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}')),
+        SnackBar(content: Text('加载专辑歌曲失败：${e.toString().length > 50 ? '${e.toString().substring(0, 50)}...' : e.toString()}')),
       );
     }
   }
@@ -1916,7 +1916,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
       if (!mounted) return;
       AppLogger.warn('加载歌单歌曲失败', data: {'playlist': playlist.name, 'error': e.toString()});
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载歌单歌曲失败：${e.toString().length > 50 ? e.toString().substring(0, 50) + '...' : e.toString()}')),
+        SnackBar(content: Text('加载歌单歌曲失败：${e.toString().length > 50 ? '${e.toString().substring(0, 50)}...' : e.toString()}')),
       );
     }
   }

@@ -24,19 +24,6 @@ import '../utils/constants.dart';
 /// - [sortOrder] 排序顺序（Ascending/Descending）
 /// - [searchTerm] 搜索关键词
 class VideoListState {
-  final List<MediaItem> items;
-  final List<MediaItem> gridItems; // 网格视图专用列表（裁剪后）
-  final int gridStartIndex; // 网格视图的全局起始偏移
-  final bool isLoading;
-  final bool hasMore;
-  final AppError? error; // 统一错误模型（替代裸 String）
-  final int offset;
-  final int limit;
-  final int totalCount; // 媒体库总视频数，用于分页显示
-  final FeedType feedType; // 当前浏览模式
-  final String sortBy;
-  final String sortOrder;
-  final String searchTerm;
 
   const VideoListState({
     this.items = const <MediaItem>[],
@@ -53,6 +40,19 @@ class VideoListState {
     this.sortOrder = 'Descending',
     this.searchTerm = '',
   });
+  final List<MediaItem> items;
+  final List<MediaItem> gridItems; // 网格视图专用列表（裁剪后）
+  final int gridStartIndex; // 网格视图的全局起始偏移
+  final bool isLoading;
+  final bool hasMore;
+  final AppError? error; // 统一错误模型（替代裸 String）
+  final int offset;
+  final int limit;
+  final int totalCount; // 媒体库总视频数，用于分页显示
+  final FeedType feedType; // 当前浏览模式
+  final String sortBy;
+  final String sortOrder;
+  final String searchTerm;
 
   /// copyWith：error 字段使用 [AppError?] 类型
   ///

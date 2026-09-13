@@ -19,12 +19,12 @@ import 'dart:io';
 
 /// 单条违规记录：文件路径、行号、列号、匹配到的文本
 class Violation {
+
+  Violation(this.filePath, this.line, this.column, this.matched);
   final String filePath;
   final int line;
   final int column;
   final String matched;
-
-  Violation(this.filePath, this.line, this.column, this.matched);
 }
 
 // ---- 正则模式 ----

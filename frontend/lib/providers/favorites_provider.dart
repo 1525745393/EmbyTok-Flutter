@@ -33,19 +33,6 @@ const String _kCacheKeyPrefix = 'embytok_favorites_cache_';
 /// - [moviesError]/[boxSetsError]/[peopleError] 各栏独立的错误信息（部分失败时使用）
 /// - [hasMoreMovies]/[hasMoreBoxSets]/[hasMorePeople] 各栏是否还有更多数据
 class FavoritesState {
-  final List<MediaItem> movies;
-  final List<MediaItem> boxSets;
-  final List<MediaItem> people;
-  final bool isLoading;
-  final bool isLoadingMore; // 加载更多中
-  final String? error;
-  final String? moviesError;
-  final String? boxSetsError;
-  final String? peopleError;
-  final Set<String> favoriteIds;
-  final bool hasMoreMovies;
-  final bool hasMoreBoxSets;
-  final bool hasMorePeople;
 
   const FavoritesState({
     this.movies = const <MediaItem>[],
@@ -62,6 +49,19 @@ class FavoritesState {
     this.hasMoreBoxSets = false,
     this.hasMorePeople = false,
   });
+  final List<MediaItem> movies;
+  final List<MediaItem> boxSets;
+  final List<MediaItem> people;
+  final bool isLoading;
+  final bool isLoadingMore; // 加载更多中
+  final String? error;
+  final String? moviesError;
+  final String? boxSetsError;
+  final String? peopleError;
+  final Set<String> favoriteIds;
+  final bool hasMoreMovies;
+  final bool hasMoreBoxSets;
+  final bool hasMorePeople;
 
   FavoritesState copyWith({
     List<MediaItem>? movies,
@@ -128,19 +128,6 @@ enum FavoritesCategory { movie, boxSet, person }
 /// - 分页加载：每栏独立 offset，支持 loadMore 追加
 /// - 本地缓存：SharedPreferences 缓存 JSON，先展示缓存再后台刷新
 class FavoritesNotifier extends StateNotifier<FavoritesState> {
-  final Ref _ref;
-  late final EmbytokService _service;
-
-  bool _hasLoaded = false;
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  final Set<String> _pendingToggles = <String>{};
-  // 每栏已加载的数量（用于分页 offset）
-  int _moviesLoaded = 0;
-  int _boxSetsLoaded = 0;
-  int _peopleLoaded = 0;
-
-  ProviderSubscription<AuthState>? _authSubscription;
 
   FavoritesNotifier(this._ref) : super(const FavoritesState()) {
     _service = _ref.read(embytokServiceProvider);
@@ -158,6 +145,19 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       }
     });
   }
+  final Ref _ref;
+  late final EmbytokService _service;
+
+  bool _hasLoaded = false;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  final Set<String> _pendingToggles = <String>{};
+  // 每栏已加载的数量（用于分页 offset）
+  int _moviesLoaded = 0;
+  int _boxSetsLoaded = 0;
+  int _peopleLoaded = 0;
+
+  ProviderSubscription<AuthState>? _authSubscription;
 
   @override
   void dispose() {

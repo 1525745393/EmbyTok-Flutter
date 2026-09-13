@@ -31,10 +31,6 @@ import '../utils/logger.dart';
 
 /// 群晖 API 返回的数据包裹层
 class SynologyResponse<T> {
-  final bool success;
-  final T? data;
-  final int? errorCode;
-  final String? errorMsg;
 
   const SynologyResponse({
     required this.success,
@@ -43,17 +39,21 @@ class SynologyResponse<T> {
     this.errorMsg,
   });
 
-  bool get hasError => !success;
-
   factory SynologyResponse.failure(int? code, String? msg) =>
       SynologyResponse(success: false, errorCode: code, errorMsg: msg);
+  final bool success;
+  final T? data;
+  final int? errorCode;
+  final String? errorMsg;
+
+  bool get hasError => !success;
 }
 
 /// 群晖登录失败（用于携带 DSM 错误码，便于 UI 提示 OTP/密码错误）
 class SynologyAuthException implements Exception {
+  SynologyAuthException(this.message, {this.errorCode});
   final int? errorCode;
   final String message;
-  SynologyAuthException(this.message, {this.errorCode});
 
   @override
   String toString() => message;
@@ -61,27 +61,14 @@ class SynologyAuthException implements Exception {
 
 /// 两步验证（OTP）已开启：登录返回 403 + token，需要带 otp_code 重试
 class SynologyOtpRequiredException extends SynologyAuthException {
-  /// DSM 下发的临时 token（随 OTP 一起提交）
-  final String? token;
 
   SynologyOtpRequiredException(this.token)
       : super('需要两步验证（OTP）', errorCode: 403);
+  /// DSM 下发的临时 token（随 OTP 一起提交）
+  final String? token;
 }
 
 class SynologyAudioApi {
-  final Dio _dio;
-
-  /// 当前服务器地址（如 http://192.168.1.100:5000）
-  String? _serverUrl;
-
-  /// 当前会话 ID（登录后有效）
-  String? _sid;
-
-  /// 会话所属账号（登录后有效）
-  String? _account;
-
-  /// 设备 ID（OTP 两步验证时使用）
-  String? _deviceId;
 
   SynologyAudioApi({Dio? dio})
       : _dio = dio ??
@@ -98,6 +85,19 @@ class SynologyAudioApi {
       );
     }
   }
+  final Dio _dio;
+
+  /// 当前服务器地址（如 http://192.168.1.100:5000）
+  String? _serverUrl;
+
+  /// 当前会话 ID（登录后有效）
+  String? _sid;
+
+  /// 会话所属账号（登录后有效）
+  String? _account;
+
+  /// 设备 ID（OTP 两步验证时使用）
+  String? _deviceId;
 
   // ============================
   // 会话状态

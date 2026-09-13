@@ -13,13 +13,13 @@ import '../models/models.dart';
 ///
 /// 在跳转到播放页之前，各页面应设置此 Provider 的值
 class PlaybackListState {
-  final List<MediaItem> items;
-  final String? currentItemId;
 
   const PlaybackListState({
     this.items = const [],
     this.currentItemId,
   });
+  final List<MediaItem> items;
+  final String? currentItemId;
 
   PlaybackListState copyWith({
     List<MediaItem>? items,

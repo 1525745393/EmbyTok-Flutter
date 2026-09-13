@@ -50,21 +50,21 @@ const double kArtistSpacingXXXLarge = 16;
 /// 点搜索按钮进入歌手搜索模式：输入关键词 → 结果以
 /// 「头像 + 简介 + 出处」列表展示，点选后切换当前歌手并加载其歌曲。
 class ArtistDetailSheet extends ConsumerStatefulWidget {
-  final AudioArtist artist;
-  final List<AudioSong> initialSongs;
 
-  const ArtistDetailSheet({
+  const ArtistDetailSheet({super.key, 
     required this.artist,
     required this.initialSongs,
   });
+  final AudioArtist artist;
+  final List<AudioSong> initialSongs;
 
   @override
   ConsumerState<ArtistDetailSheet> createState() => ArtistDetailSheetState();
 }
 
 class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
-  late AudioArtist _artist = widget.artist;
-  late List<AudioSong> _songs = widget.initialSongs;
+  late final AudioArtist _artist = widget.artist;
+  late final List<AudioSong> _songs = widget.initialSongs;
 
   /// 是否处于歌手资料搜索模式
   bool _searching = false;
@@ -361,15 +361,15 @@ class ArtistDetailSheetState extends ConsumerState<ArtistDetailSheet> {
 /// 歌手资料来源选择器：展示当前歌手在各数据源的
 /// 头像/简介候选（含出处），点选采用并持久化。
 class ArtistSourcePicker extends ConsumerStatefulWidget {
+
+  const ArtistSourcePicker({super.key, 
+    required this.artistName,
+    required this.onAdopted,
+  });
   final String artistName;
 
   /// 采用某来源后回调（外层刷新头部展示）
   final VoidCallback onAdopted;
-
-  const ArtistSourcePicker({
-    required this.artistName,
-    required this.onAdopted,
-  });
 
   @override
   ConsumerState<ArtistSourcePicker> createState() => ArtistSourcePickerState();
@@ -569,19 +569,19 @@ class ArtistSourcePickerState extends ConsumerState<ArtistSourcePicker> {
 
 /// 各数据源拉取结果集合
 class ArtistSourceBundle {
+
+  const ArtistSourceBundle({this.lastfm, this.wiki, this.synoUrl});
   final LastFmArtistInfo? lastfm;
   final ArtistInfo? wiki;
   final String? synoUrl;
-
-  const ArtistSourceBundle({this.lastfm, this.wiki, this.synoUrl});
 }
 
 /// 分区标题
 class SourceSectionTitle extends StatelessWidget {
+
+  const SourceSectionTitle(this.title, this.scheme, {super.key});
   final String title;
   final ColorScheme scheme;
-
-  const SourceSectionTitle(this.title, this.scheme);
 
   @override
   Widget build(BuildContext context) {
@@ -601,10 +601,10 @@ class SourceSectionTitle extends StatelessWidget {
 
 /// 分区空提示
 class SourceEmptyHint extends StatelessWidget {
+
+  const SourceEmptyHint(this.text, this.scheme, {super.key});
   final String text;
   final ColorScheme scheme;
-
-  const SourceEmptyHint(this.text, this.scheme);
 
   @override
   Widget build(BuildContext context) {
@@ -620,17 +620,17 @@ class SourceEmptyHint extends StatelessWidget {
 
 /// 头像来源候选卡
 class AvatarSourceCard extends StatelessWidget {
-  final String imageUrl;
-  final ArtistInfoSource source;
-  final String hint;
-  final VoidCallback onTap;
 
-  const AvatarSourceCard({
+  const AvatarSourceCard({super.key, 
     required this.imageUrl,
     required this.source,
     required this.hint,
     required this.onTap,
   });
+  final String imageUrl;
+  final ArtistInfoSource source;
+  final String hint;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -677,15 +677,15 @@ class AvatarSourceCard extends StatelessWidget {
 
 /// 简介来源候选卡
 class BioSourceCard extends StatelessWidget {
-  final String bio;
-  final ArtistInfoSource source;
-  final VoidCallback onTap;
 
-  const BioSourceCard({
+  const BioSourceCard({super.key, 
     required this.bio,
     required this.source,
     required this.onTap,
   });
+  final String bio;
+  final ArtistInfoSource source;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {

@@ -27,14 +27,14 @@ import 'logger.dart';
 /// - 释放视频池中所有预加载会话（VideoPoolService.disposeAll）
 /// - 清空所有内存缓存（媒体列表、收藏、续播等分页数据）
 class MemoryPressureHandler with WidgetsBindingObserver {
-  final WidgetRef _ref;
-  bool _isHandling = false;
 
   MemoryPressureHandler(this._ref) {
     // Web 平台无 didHaveMemoryPressure 回调，跳过注册
     if (kIsWeb) return;
     WidgetsBinding.instance.addObserver(this);
   }
+  final WidgetRef _ref;
+  bool _isHandling = false;
 
   /// 释放资源：移除监听器
   void dispose() {

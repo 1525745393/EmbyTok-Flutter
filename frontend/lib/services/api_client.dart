@@ -15,6 +15,28 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
 class ApiClient {
+
+  ApiClient({String? baseUrl, bool? validateCertificate})
+      : _dio = Dio(BaseOptions(
+          baseUrl: baseUrl ?? '',
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          contentType: Headers.jsonContentType,
+        )) {
+    // 优先使用传入参数，否则使用全局配置
+    final shouldValidate =
+        validateCertificate ?? !_globalAllowSelfSignedCertificate;
+    _setupCertificateValidation(shouldValidate);
+    _setupInterceptors();
+  }
+
+  /// 测试友好的构造函数，允许注入自定义 Dio 实例
+  ApiClient.withDio(this._dio, {String? baseUrl}) {
+    if (baseUrl != null) {
+      _dio.options.baseUrl = baseUrl;
+    }
+    _setupInterceptors();
+  }
   final Dio _dio;
   String? _token;
 
@@ -38,28 +60,6 @@ class ApiClient {
 
   // GET 请求去重：相同 path + queryParameters 的并发请求复用同一个 Future
   final Map<String, Completer<Response<dynamic>>> _pendingGets = {};
-
-  ApiClient({String? baseUrl, bool? validateCertificate})
-      : _dio = Dio(BaseOptions(
-          baseUrl: baseUrl ?? '',
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
-          contentType: Headers.jsonContentType,
-        )) {
-    // 优先使用传入参数，否则使用全局配置
-    final shouldValidate =
-        validateCertificate ?? !_globalAllowSelfSignedCertificate;
-    _setupCertificateValidation(shouldValidate);
-    _setupInterceptors();
-  }
-
-  /// 测试友好的构造函数，允许注入自定义 Dio 实例
-  ApiClient.withDio(this._dio, {String? baseUrl}) {
-    if (baseUrl != null) {
-      _dio.options.baseUrl = baseUrl;
-    }
-    _setupInterceptors();
-  }
 
   /// 配置 SSL 证书校验
   ///

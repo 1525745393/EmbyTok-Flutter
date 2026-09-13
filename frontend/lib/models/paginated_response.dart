@@ -2,10 +2,6 @@
 // 通过 itemFromJson 回调将 dynamic 转为具体类型 T
 
 class PaginatedResponse<T> {
-  final List<T> items;
-  final int total;
-  final int offset;
-  final int limit;
 
   PaginatedResponse({
     required this.items,
@@ -26,6 +22,10 @@ class PaginatedResponse<T> {
       limit: json['limit'] as int? ?? 20,
     );
   }
+  final List<T> items;
+  final int total;
+  final int offset;
+  final int limit;
 
   Map<String, dynamic> toJson() => {
         'items': items,

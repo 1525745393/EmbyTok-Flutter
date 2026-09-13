@@ -14,6 +14,13 @@ import '../../utils/logger.dart';
 
 /// 歌手搜索结果项
 class ArtistSearchResult {
+
+  const ArtistSearchResult({
+    required this.name,
+    this.imageUrl,
+    required this.source,
+    this.extraInfo,
+  });
   /// 歌手名称
   final String name;
 
@@ -25,13 +32,6 @@ class ArtistSearchResult {
 
   /// 额外信息（如听众数、专辑数等）
   final String? extraInfo;
-
-  const ArtistSearchResult({
-    required this.name,
-    this.imageUrl,
-    required this.source,
-    this.extraInfo,
-  });
 }
 
 /// 同名歌手选择界面
@@ -49,6 +49,13 @@ class ArtistSearchResult {
 /// );
 /// ```
 class ArtistSearchPicker extends ConsumerStatefulWidget {
+
+  const ArtistSearchPicker({
+    super.key,
+    required this.searchQuery,
+    this.lastFmService,
+    required this.deezerService,
+  });
   /// 搜索关键词（通常是歌手名）
   final String searchQuery;
 
@@ -57,13 +64,6 @@ class ArtistSearchPicker extends ConsumerStatefulWidget {
 
   /// Deezer 服务
   final DeezerService deezerService;
-
-  const ArtistSearchPicker({
-    super.key,
-    required this.searchQuery,
-    this.lastFmService,
-    required this.deezerService,
-  });
 
   @override
   ConsumerState<ArtistSearchPicker> createState() => _ArtistSearchPickerState();
@@ -287,7 +287,7 @@ class _ArtistSearchPickerState extends ConsumerState<ArtistSearchPicker> {
         radius: 28,
         backgroundImage:
             result.imageUrl != null ? CachedNetworkImageProvider(result.imageUrl!) : null,
-        backgroundColor: scheme.surfaceVariant,
+        backgroundColor: scheme.surfaceContainerHighest,
         child: result.imageUrl != null
             ? null
             : Icon(Icons.person, size: 28, color: scheme.onSurfaceVariant),

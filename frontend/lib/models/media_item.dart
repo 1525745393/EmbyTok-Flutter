@@ -24,42 +24,6 @@ num? _parseNumDynamic(dynamic value) {
 }
 
 class MediaItem {
-  // 基本信息
-  final String id;
-  final String title;
-  final String type; // Movie/Series/Episode/MusicVideo/...
-  final String? seriesName; // 剧集名（集数项的归属剧集）
-  final String? seriesId; // 剧集 ID（用于 NextUp 查询）
-  final int? indexNumber; // 集序号（集数）
-  final int? parentIndexNumber; // 季序号
-  final int? productionYear; // 制作年份
-  final int? runtimeTicks; // 时长（Emby tick，1 tick = 100ns）
-  final double? durationSeconds; // 时长（秒），可选，若 runtimeTicks 存在则用其计算
-  final String? overview; // 简介
-  final double? communityRating; // 社区评分（1-10）
-  final double? rating; // 兼容字段，与 communityRating 同义
-  final int? year; // 兼容字段，与 productionYear 同义
-  // 类型/演员/工作室
-  final List<String>? genres;
-  final List<String>? genreNames;
-  final List<String>? studioNames;
-  final List<Person>? people;
-
-  // 图片
-  final Map<String, String>? imageTags; // Primary/Backdrop/Thumb/Logo/Art...
-  final List<String>? backdropImageTags; // 背景图列表
-  final String? thumbnailUrl; // 兼容字段
-
-  // 状态（收藏、播放进度等）
-  final UserData? userData;
-  final bool? isFavorite; // 兼容字段，与 userData.isFavorite 同义
-
-  // 播放
-  final List<MediaSource>? mediaSources;
-  final String? playbackUrl; // 兼容字段
-
-  // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
-  final Map<String, dynamic>? rawJson;
 
   const MediaItem({
     required this.id,
@@ -256,6 +220,42 @@ class MediaItem {
       rawJson: json,
     );
   }
+  // 基本信息
+  final String id;
+  final String title;
+  final String type; // Movie/Series/Episode/MusicVideo/...
+  final String? seriesName; // 剧集名（集数项的归属剧集）
+  final String? seriesId; // 剧集 ID（用于 NextUp 查询）
+  final int? indexNumber; // 集序号（集数）
+  final int? parentIndexNumber; // 季序号
+  final int? productionYear; // 制作年份
+  final int? runtimeTicks; // 时长（Emby tick，1 tick = 100ns）
+  final double? durationSeconds; // 时长（秒），可选，若 runtimeTicks 存在则用其计算
+  final String? overview; // 简介
+  final double? communityRating; // 社区评分（1-10）
+  final double? rating; // 兼容字段，与 communityRating 同义
+  final int? year; // 兼容字段，与 productionYear 同义
+  // 类型/演员/工作室
+  final List<String>? genres;
+  final List<String>? genreNames;
+  final List<String>? studioNames;
+  final List<Person>? people;
+
+  // 图片
+  final Map<String, String>? imageTags; // Primary/Backdrop/Thumb/Logo/Art...
+  final List<String>? backdropImageTags; // 背景图列表
+  final String? thumbnailUrl; // 兼容字段
+
+  // 状态（收藏、播放进度等）
+  final UserData? userData;
+  final bool? isFavorite; // 兼容字段，与 userData.isFavorite 同义
+
+  // 播放
+  final List<MediaSource>? mediaSources;
+  final String? playbackUrl; // 兼容字段
+
+  // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
+  final Map<String, dynamic>? rawJson;
 
   Map<String, dynamic> toJson() => {
         'id': id,

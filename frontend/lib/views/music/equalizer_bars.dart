@@ -9,10 +9,10 @@ import 'package:flutter/material.dart';
 
 /// 三根跳动柱子的动态均衡器动画
 class EqualizerBars extends StatefulWidget {
-  final Color color;
-  final double size;
 
   const EqualizerBars({super.key, required this.color, required this.size});
+  final Color color;
+  final double size;
 
   @override
   State<EqualizerBars> createState() => _EqualizerBarsState();

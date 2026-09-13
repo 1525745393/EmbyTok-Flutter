@@ -20,7 +20,6 @@ import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/models.dart';
-import '../models/subtitle_track.dart';
 import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
@@ -67,10 +66,10 @@ const double _kSpacingXLarge = 20;
 /// 避免 showGeneralDialog 的 ModalBarrier 干扰手势事件分发。
 /// 退出时通过 [onExit] 回调通知父组件恢复 UI 状态。
 class FullscreenVideoPage extends ConsumerStatefulWidget {
-  /// 退出全屏时的回调，由父组件负责恢复 UI 状态
-  final VoidCallback? onExit;
 
   const FullscreenVideoPage({super.key, this.onExit});
+  /// 退出全屏时的回调，由父组件负责恢复 UI 状态
+  final VoidCallback? onExit;
 
   @override
   ConsumerState<FullscreenVideoPage> createState() =>
@@ -92,15 +91,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     _toggleControls();
   }
 
-  @override
-  void onDoubleTapLeft() {
-    super.onDoubleTapLeft();
-  }
 
-  @override
-  void onDoubleTapRight() {
-    super.onDoubleTapRight();
-  }
 
   @override
   void onDoubleTapCenter() {
@@ -125,7 +116,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       _previewBrightnessNotifier.value = _dragStartBrightness;
       _showBrightnessUINotifier.value = true;
     }
-    var newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
+    final newBrightness = (_dragStartBrightness + delta).clamp(0.0, 1.0);
     _previewBrightnessNotifier.value = newBrightness;
     _setSystemBrightness(newBrightness);
   }
@@ -926,8 +917,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         ValueListenableBuilder<Duration>(
           valueListenable: previewPositionNotifier,
           builder: (context, previewPos, _) {
-            if (!isDragging || dragAxis != 'h' || controller == null)
+            if (!isDragging || dragAxis != 'h' || controller == null) {
               return const SizedBox.shrink();
+            }
             return Positioned(
               top: 48,
               left: 32,
@@ -946,7 +938,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           builder: (context, brightness, _) {
             if (!_showBrightnessUINotifier.value ||
                 isVolumeSide ||
-                dragAxis != 'v') return const SizedBox.shrink();
+                dragAxis != 'v') {
+              return const SizedBox.shrink();
+            }
             return _buildVerticalIndicator(
               icon: _brightnessIconFor(brightness),
               value: brightness,
@@ -958,8 +952,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         ValueListenableBuilder<double>(
           valueListenable: previewVolumeNotifier,
           builder: (context, volume, _) {
-            if (!showVolumeUINotifier.value || !isVolumeSide || dragAxis != 'v')
+            if (!showVolumeUINotifier.value || !isVolumeSide || dragAxis != 'v') {
               return const SizedBox.shrink();
+            }
             return _buildVerticalIndicator(
               icon: _volumeIconFor(volume),
               value: volume,
@@ -1476,9 +1471,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white24, width: 1),
             ),
-            child: Column(
+            child: const Column(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.lock_outline, color: Colors.white, size: 28),
                 SizedBox(height: _kSpacingSmall),
                 Text(
@@ -1617,15 +1612,15 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
 // ============================================================================
 
 class _SeekPreviewBar extends StatelessWidget {
-  final Duration current;
-  final Duration total;
-  final Duration offset;
 
   const _SeekPreviewBar({
     required this.current,
     required this.total,
     required this.offset,
   });
+  final Duration current;
+  final Duration total;
+  final Duration offset;
 
   String _format(Duration d) {
     if (d.inSeconds < 0) return '0:00';
@@ -1762,15 +1757,15 @@ class _FlyingHeartState extends State<_FlyingHeart>
 }
 
 class _SettingsListItem extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
 
   const _SettingsListItem({
     required this.label,
     required this.selected,
     required this.onTap,
   });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {

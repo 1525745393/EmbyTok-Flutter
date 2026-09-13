@@ -31,15 +31,15 @@ double responsiveSize(BuildContext context, double base,
 }
 
 // ===== 演员头像/视频封面按钮 =====
-class PosterAvatar extends ConsumerWidget {
-  final MediaItem item;
-  final VoidCallback? onTap; // 点击演员跳转到详情
+class PosterAvatar extends ConsumerWidget { // 点击演员跳转到详情
 
   const PosterAvatar({
     super.key,
     required this.item,
     this.onTap,
   });
+  final MediaItem item;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,8 +47,7 @@ class PosterAvatar extends ConsumerWidget {
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
 
     final people = item.people;
     final Person? firstActor = people != null && people.isNotEmpty
@@ -199,8 +198,7 @@ class AutoPlayButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isAutoPlayProvider.notifier).toggle();
@@ -236,21 +234,20 @@ class AutoPlayButton extends ConsumerWidget {
 
 // ===== 倍速调节按钮 =====
 class SpeedControlButton extends StatelessWidget {
-  final VideoPlayerController? controller;
-  final VoidCallback onTap;
 
   const SpeedControlButton({
     super.key,
     required this.controller,
     required this.onTap,
   });
+  final VideoPlayerController? controller;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final currentSpeed = controller?.value.playbackSpeed ?? 1.0;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -270,18 +267,17 @@ class SpeedControlButton extends StatelessWidget {
 
 // ===== 画质选择按钮 =====
 class QualityButton extends StatelessWidget {
-  final VoidCallback onTap;
 
   const QualityButton({
     super.key,
     required this.onTap,
   });
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -312,22 +308,21 @@ class QualityButton extends StatelessWidget {
 
 // ===== 字幕按钮 =====
 class SubtitleButton extends ConsumerWidget {
-  final bool hasSubtitles;
-  final VoidCallback? onTap;
 
   const SubtitleButton({
     super.key,
     required this.hasSubtitles,
     this.onTap,
   });
+  final bool hasSubtitles;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final scheme = Theme.of(context).colorScheme;
     final isEnabled = subtitleSelected != null;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: hasSubtitles ? onTap : null,
       child: Container(
@@ -349,10 +344,6 @@ class SubtitleButton extends ConsumerWidget {
 
 // ===== 唱片式静音按钮（播放时旋转，显示封面图，静音时红色边框）=====
 class DiscMuteButton extends ConsumerWidget {
-  final Animation<double> discRotation;
-  final VideoPlayerController? controller;
-  final String posterUrl;
-  final Map<String, String>? httpHeaders;
 
   const DiscMuteButton({
     super.key,
@@ -361,13 +352,16 @@ class DiscMuteButton extends ConsumerWidget {
     required this.posterUrl,
     this.httpHeaders,
   });
+  final Animation<double> discRotation;
+  final VideoPlayerController? controller;
+  final String posterUrl;
+  final Map<String, String>? httpHeaders;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isMuted = ref.watch(isMutedProvider);
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
@@ -417,21 +411,20 @@ class DiscMuteButton extends ConsumerWidget {
 
 // ===== 中央播放按钮（暂停时显示播放图标，播放时显示暂停图标）=====
 class CenterPlayButton extends StatelessWidget {
-  final VoidCallback onPlay;
-  // 是否正在播放：true 显示暂停图标，false 显示播放图标
-  final bool isPlaying;
 
   const CenterPlayButton({
     super.key,
     required this.onPlay,
     this.isPlaying = false,
   });
+  final VoidCallback onPlay;
+  // 是否正在播放：true 显示暂停图标，false 显示播放图标
+  final bool isPlaying;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return Positioned.fill(
       child: Center(
         child: GestureDetector(
@@ -457,15 +450,14 @@ class CenterPlayButton extends StatelessWidget {
 
 // ===== 倍速状态徽章（与 EmbyTok 原版一致）=====
 class SpeedBadge extends StatelessWidget {
-  final double speed;
 
   const SpeedBadge({super.key, required this.speed});
+  final double speed;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     return Positioned(
       top: rs(40),
       left: 0,
@@ -497,15 +489,14 @@ class SpeedBadge extends StatelessWidget {
 
 // ===== 顶部操作区：全屏切换按钮 =====
 class TopActions extends StatelessWidget {
-  final VoidCallback onToggleFullscreen;
 
   const TopActions({super.key, required this.onToggleFullscreen});
+  final VoidCallback onToggleFullscreen;
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final rs =
-        (double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
     final scheme = Theme.of(context).colorScheme;
     return Positioned(
       top: topPadding + 8,

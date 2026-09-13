@@ -11,12 +11,12 @@ import '../utils/image_cache_manager.dart';
 import '../utils/utils.dart';
 
 class PersonDetailView extends ConsumerStatefulWidget {
+
+  const PersonDetailView({super.key, required this.person, this.personType});
   final MediaItem person;
 
   /// 演员类型（Actor/Director/Writer），从导航来源传递，用于显示类型标签
   final String? personType;
-
-  const PersonDetailView({super.key, required this.person, this.personType});
 
   @override
   ConsumerState<PersonDetailView> createState() => _PersonDetailViewState();
@@ -428,10 +428,11 @@ class _PersonDetailViewState extends ConsumerState<PersonDetailView> {
             else
               ...groupOrder.map((typeCode) {
                 final items = groupedWorks[typeCode]!;
-                if (items.isEmpty)
+                if (items.isEmpty) {
                   return <Widget>[
                     const SliverToBoxAdapter(child: SizedBox.shrink())
                   ];
+                }
                 final isOpen = _groupOpen[typeCode] ?? true;
                 return <Widget>[
                   // 分组头
@@ -599,14 +600,14 @@ class _AvatarPlaceholder extends StatelessWidget {
 }
 
 class _WorkTile extends ConsumerWidget {
-  final MediaItem item;
-  final List<MediaItem> allItems;
-  final String? currentActorRole;
   const _WorkTile(
       {super.key,
       required this.item,
       required this.allItems,
       this.currentActorRole});
+  final MediaItem item;
+  final List<MediaItem> allItems;
+  final String? currentActorRole;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -725,15 +726,15 @@ class _ThumbPlaceholder extends StatelessWidget {
 
 /// 可折叠文本组件：超过 maxLines 时显示展开/收起按钮
 class _ExpandableText extends StatefulWidget {
-  final String text;
-  final int maxLines;
-  final TextStyle style;
 
   const _ExpandableText({
     required this.text,
     this.maxLines = 6,
     required this.style,
   });
+  final String text;
+  final int maxLines;
+  final TextStyle style;
 
   @override
   State<_ExpandableText> createState() => _ExpandableTextState();

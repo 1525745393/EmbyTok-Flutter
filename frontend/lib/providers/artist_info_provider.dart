@@ -31,20 +31,13 @@ enum ArtistInfoSource {
   synology('群晖 NAS'),
   wikipedia('Wikipedia'),
   none('');
+  const ArtistInfoSource(this.label);
 
   final String label;
-  const ArtistInfoSource(this.label);
 }
 
 /// 歌手聚合信息（含出处标注）
 class ArtistInfoResult {
-  /// 头像 URL（null = 无，UI 显示首字母兜底）
-  final String? imageUrl;
-  final ArtistInfoSource imageSource;
-
-  /// 简介（null = 无）
-  final String? bio;
-  final ArtistInfoSource bioSource;
 
   const ArtistInfoResult({
     this.imageUrl,
@@ -52,6 +45,13 @@ class ArtistInfoResult {
     this.bio,
     this.bioSource = ArtistInfoSource.none,
   });
+  /// 头像 URL（null = 无，UI 显示首字母兜底）
+  final String? imageUrl;
+  final ArtistInfoSource imageSource;
+
+  /// 简介（null = 无）
+  final String? bio;
+  final ArtistInfoSource bioSource;
 
   /// 序列化为 SharedPreferences JSON
   Map<String, dynamic> toJson() => {

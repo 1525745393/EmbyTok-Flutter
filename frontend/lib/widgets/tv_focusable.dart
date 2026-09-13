@@ -10,6 +10,19 @@ import 'package:flutter/services.dart';
 /// 包裹任意子组件，在获得焦点时显示粉色圆角边框 + 缩放 1.05 动画。
 /// 支持点击回调，兼容触屏和 D-pad 遥控器。
 class TvFocusable extends StatefulWidget {
+
+  const TvFocusable({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.borderRadius = 12,
+    this.borderWidth = 2,
+    this.borderColor,
+    this.focusScale = 1.05,
+    this.duration = const Duration(milliseconds: 150),
+    this.autofocus = false,
+    this.onFocusChange,
+  });
   /// 子组件
   final Widget child;
 
@@ -38,19 +51,6 @@ class TvFocusable extends StatefulWidget {
 
   /// 焦点变化回调
   final ValueChanged<bool>? onFocusChange;
-
-  const TvFocusable({
-    super.key,
-    required this.child,
-    this.onTap,
-    this.borderRadius = 12,
-    this.borderWidth = 2,
-    this.borderColor,
-    this.focusScale = 1.05,
-    this.duration = const Duration(milliseconds: 150),
-    this.autofocus = false,
-    this.onFocusChange,
-  });
 
   @override
   State<TvFocusable> createState() => _TvFocusableState();

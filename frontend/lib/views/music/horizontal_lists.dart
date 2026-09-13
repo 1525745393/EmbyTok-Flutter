@@ -64,9 +64,6 @@ const List<List<Color>> kPlaylistGradients = [
 
 /// 专辑横向列表
 class AlbumHorizontalList extends StatelessWidget {
-  final List<AudioAlbum> albums;
-  final ColorScheme scheme;
-  final void Function(AudioAlbum album) onAlbumTap;
 
   const AlbumHorizontalList({
     super.key,
@@ -74,6 +71,9 @@ class AlbumHorizontalList extends StatelessWidget {
     required this.scheme,
     required this.onAlbumTap,
   });
+  final List<AudioAlbum> albums;
+  final ColorScheme scheme;
+  final void Function(AudioAlbum album) onAlbumTap;
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +139,6 @@ class AlbumHorizontalList extends StatelessWidget {
 
 /// 歌手横向列表
 class ArtistHorizontalList extends StatelessWidget {
-  final List<AudioArtist> artists;
-  final ColorScheme scheme;
-  final void Function(AudioArtist artist) onArtistTap;
 
   const ArtistHorizontalList({
     super.key,
@@ -149,6 +146,9 @@ class ArtistHorizontalList extends StatelessWidget {
     required this.scheme,
     required this.onArtistTap,
   });
+  final List<AudioArtist> artists;
+  final ColorScheme scheme;
+  final void Function(AudioArtist artist) onArtistTap;
 
   @override
   Widget build(BuildContext context) {
@@ -213,9 +213,6 @@ class ArtistHorizontalList extends StatelessWidget {
 
 /// 歌单横向列表
 class PlaylistHorizontalList extends StatelessWidget {
-  final List<AudioPlaylist> playlists;
-  final ColorScheme scheme;
-  final void Function(AudioPlaylist playlist) onPlaylistTap;
 
   const PlaylistHorizontalList({
     super.key,
@@ -223,6 +220,9 @@ class PlaylistHorizontalList extends StatelessWidget {
     required this.scheme,
     required this.onPlaylistTap,
   });
+  final List<AudioPlaylist> playlists;
+  final ColorScheme scheme;
+  final void Function(AudioPlaylist playlist) onPlaylistTap;
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 /// 音频模型单元测试
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:embytok_flutter/models/audio_models.dart';
@@ -108,7 +109,7 @@ void main() {
     });
 
     test('durationText 格式化时长', () {
-      final song = AudioSong(
+      const song = AudioSong(
         id: '1',
         title: 'test',
         audio: const AudioSongAudio(duration: 269), // 4分29秒

@@ -20,13 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/providers.dart';
 
 class DraggableCleanActions extends ConsumerStatefulWidget {
-  final Size containerSize;
-  final double buttonWidth;
-  final Widget buttons;
-  final double bottomSafeArea; // 底部安全区（导航栏 + 手势条 + 边距）
-  final double rightSafeArea; // 右侧安全区（边距）
-  /// 自动隐藏延迟。传 [Duration.zero] 禁用自动隐藏（永久可见）。
-  final Duration autoHideAfter;
 
   const DraggableCleanActions({
     super.key,
@@ -37,6 +30,13 @@ class DraggableCleanActions extends ConsumerStatefulWidget {
     this.rightSafeArea = 16,
     this.autoHideAfter = const Duration(seconds: 4),
   });
+  final Size containerSize;
+  final double buttonWidth;
+  final Widget buttons;
+  final double bottomSafeArea; // 底部安全区（导航栏 + 手势条 + 边距）
+  final double rightSafeArea; // 右侧安全区（边距）
+  /// 自动隐藏延迟。传 [Duration.zero] 禁用自动隐藏（永久可见）。
+  final Duration autoHideAfter;
 
   @override
   DraggableCleanActionsState createState() => DraggableCleanActionsState();

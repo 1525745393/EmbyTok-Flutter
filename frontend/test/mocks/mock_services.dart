@@ -25,9 +25,9 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #username: username,
           #password: password,
         }),
-        returnValue: Future.value(User(id: '', name: '', accessToken: '')),
+        returnValue: Future.value(const User(id: '', name: '', accessToken: '')),
         returnValueForMissingStub:
-            Future.value(User(id: '', name: '', accessToken: '')),
+            Future.value(const User(id: '', name: '', accessToken: '')),
       ) as Future<User>;
 
   // ============================
@@ -106,9 +106,9 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #serverUrl: serverUrl,
           #token: token,
         }),
-        returnValue: Future.value(MediaItem(id: '', title: '', type: '')),
+        returnValue: Future.value(const MediaItem(id: '', title: '', type: '')),
         returnValueForMissingStub:
-            Future.value(MediaItem(id: '', title: '', type: '')),
+            Future.value(const MediaItem(id: '', title: '', type: '')),
       ) as Future<MediaItem>;
 
   // ============================
