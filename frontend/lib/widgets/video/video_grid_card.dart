@@ -31,52 +31,56 @@ class VideoGridCard extends ConsumerWidget {
     final progress = item.progressPercent;
     final duration = item.durationSeconds;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _buildCoverImage(imageUrl, scheme),
-                  if (duration != null)
-                    Positioned(
-                      right: 6,
-                      bottom: 6,
-                      child: _buildDurationBadge(duration, scheme),
-                    ),
-                  if (progress > 0)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 4,
-                      child: _buildProgressBar(progress, scheme),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                item.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildCoverImage(imageUrl, scheme),
+                    if (duration != null)
+                      Positioned(
+                        right: 6,
+                        bottom: 6,
+                        child: _buildDurationBadge(duration, scheme),
+                      ),
+                    if (progress > 0)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 4,
+                        child: _buildProgressBar(progress, scheme),
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  item.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

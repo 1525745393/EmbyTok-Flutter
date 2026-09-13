@@ -109,6 +109,9 @@ const String kStorageKeyActorsGridColumns = 'embytok_actors_grid_columns';
 // 推荐页：网格列数（2/3），P2-2 对齐演员页 SegmentedButton 切换
 const String kStorageKeyRecommendGridColumns =
     'embytok_recommend_grid_columns';
+// 推荐页：滚动位置记忆，下次进入时恢复
+const String kStorageKeyRecommendScrollOffset =
+    'embytok_recommend_scroll_offset';
 
 // 登录页：服务器历史 & 记住凭据
 const String kStorageKeyServerHistory = 'embytok_server_history';

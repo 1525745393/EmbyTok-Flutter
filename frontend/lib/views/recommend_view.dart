@@ -64,10 +64,24 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       });
     });
     // P2-2：恢复用户上次选择的网格列数（2/3）
+    // 同时恢复滚动位置
     SharedPreferences.getInstance().then((prefs) {
       final saved = prefs.getInt(kStorageKeyRecommendGridColumns);
       if (saved != null && (saved == 2 || saved == 3) && mounted) {
         setState(() => _gridColumns = saved);
+      }
+      // 恢复滚动位置
+      final savedOffset = prefs.getDouble(kStorageKeyRecommendScrollOffset);
+      if (savedOffset != null && savedOffset > 0 && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _scrollController.hasClients) {
+            _scrollController.animateTo(
+              savedOffset,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
       }
     });
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
@@ -114,6 +128,13 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
   @override
   void dispose() {
+    // 保存滚动位置
+    if (_scrollController.hasClients) {
+      final offset = _scrollController.offset;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setDouble(kStorageKeyRecommendScrollOffset, offset);
+      });
+    }
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
@@ -775,16 +796,33 @@ class _LoadMoreIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     if (isLoading) {
+      // 骨架屏加载更多
       return Container(
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '加载更多...',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -793,13 +831,30 @@ class _LoadMoreIndicator extends StatelessWidget {
       // 没有更多数据
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(
-            '没有更多了',
-            style: TextStyle(
-              fontSize: 12,
-              color: scheme.onSurfaceVariant,
-            ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Divider(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                  endIndent: 16,
+                ),
+              ),
+              Text(
+                '已经到底啦',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              Expanded(
+                child: Divider(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                  indent: 16,
+                ),
+              ),
+            ],
           ),
         ),
       );
