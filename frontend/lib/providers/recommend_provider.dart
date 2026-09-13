@@ -411,10 +411,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
       final seenIds = <String>{};
 
-      // PR #9x：首屏拉取 Emby 原生电影推荐分组横幅（"因为你看过 X"）
-      // 独立于主推荐流，失败/空时静默不显示横幅
-      final nativeGroups = await _loadNativeGroups(ctx);
-
       // PR #79：抽离核心加载逻辑，支持分页
       final newItems = await _loadPage(
         ctx: ctx,
@@ -449,7 +445,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         offset: finalTagged.length,
         error: null,
         isColdStart: isColdStart && finalTagged.length < _pageSize ~/ 2,
-        nativeGroups: nativeGroups,
       ));
       // PR #88：记录展示过的 itemId（用于反推荐疲劳）
       _recordRecentlyShownItems(
@@ -953,32 +948,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     } catch (e) {
       AppLogger.error('推荐：加载 Emby 原生精选失败', error: e);
       return false;
-    }
-  }
-
-  // 首屏拉取 Emby 原生电影推荐分组（"因为你看过 X"横幅）
-  // 与主推荐流解耦：老版本服务器不支持或无观看历史时返回空，横幅自然隐藏。
-  Future<List<NativeRecGroup>> _loadNativeGroups(_LoadContext ctx) async {
-    try {
-      final userId = ctx.auth.user?.id;
-      final serverUrl = ctx.auth.embyServerUrl;
-      final token = ctx.auth.token;
-      if (userId == null || userId.isEmpty || serverUrl == null || token == null) {
-        return const <NativeRecGroup>[];
-      }
-      // 单库时限定 ParentId，多库做跨库推荐
-      final libraryId = ctx.selectedIds.length == 1 ? ctx.selectedIds.first : null;
-      final groups = await ctx.repo.getMovieRecommendationGroups(
-        userId: userId,
-        libraryId: libraryId,
-        serverUrl: serverUrl,
-        token: token,
-      );
-      // 过滤掉空分组，限制最多展示 4 组避免首屏过长
-      return groups.where((g) => g.items.isNotEmpty).take(4).toList();
-    } catch (e) {
-      AppLogger.error('推荐：加载原生电影分组横幅失败', error: e);
-      return const <NativeRecGroup>[];
     }
   }
 
