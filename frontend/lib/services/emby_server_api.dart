@@ -405,23 +405,33 @@ class EmbyServerApi implements MediaServerApi {
       'StartIndex': '$offset',
       if (libraryId != null) 'ParentId': libraryId,
       'Recursive': 'true',
-      'SortBy': 'DateCreated,SortName',
-      'SortOrder': 'Descending',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': types.join(','),
       'ExcludeItemTypes': 'Playlist',
     };
 
+    // 使用 Emby 原生 /Items/Latest（服务端专门优化的"最新入库"端点），
+    // 而非自己拼 SortBy=DateCreated。该端点按入库时间倒序，无需 SortBy。
     final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        ? '/Users/$effectiveUserId/Items'
-        : '/Items';
+        ? '/Users/$effectiveUserId/Items/Latest'
+        : '/Items/Latest';
 
     final resp = await _apiClient.get<dynamic>(
       path,
       queryParameters: params,
     );
+    // /Items/Latest 直接返回 List，而非 {Items,TotalRecordCount} 分页结构
+    if (resp.data is List) {
+      final items = resp.data as List<dynamic>;
+      return PaginatedResponse(
+        items: items.whereType<Map<String, dynamic>>().map((e) => MediaItem.fromJson(e)).toList(),
+        total: items.length,
+        offset: offset,
+        limit: limit,
+      );
+    }
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
