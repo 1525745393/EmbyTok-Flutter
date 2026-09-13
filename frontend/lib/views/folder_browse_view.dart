@@ -10,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import '../models/audio_models.dart';
 import '../providers/synology_auth_provider.dart';
 import '../providers/synology_playback_provider.dart';
-import '../services/synology_audio_api.dart';
 
 class FolderBrowseView extends ConsumerStatefulWidget {
   /// 初始文件夹路径，null 表示根目录

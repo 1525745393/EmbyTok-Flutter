@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/audio_models.dart';
 import '../../providers/providers.dart';
-import '../../services/artist_info_service.dart';
 import '../../utils/image_cache_manager.dart';
 
 // ===== 封面组件相关常量 =====

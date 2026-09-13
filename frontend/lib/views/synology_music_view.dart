@@ -9,7 +9,6 @@
 // 交互参考主流音乐 App：列表 + 底部播放条 + 分类 Tab。
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -17,14 +16,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/audio_models.dart';
-import '../services/artist_info_service.dart';
-import '../services/lastfm_service.dart';
 import '../providers/providers.dart';
 import '../providers/recent_playbacks_provider.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import 'music/equalizer_bars.dart';
-import 'music/artist_detail_sheet.dart';
 import 'music/music_cover_widgets.dart';
 import 'music/mini_player_bar.dart';
 import 'music/home_widgets.dart';

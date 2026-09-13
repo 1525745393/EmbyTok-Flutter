@@ -18,7 +18,6 @@ import '../../providers/providers.dart';
 import '../../services/artist_info_service.dart';
 import '../../services/lastfm_service.dart';
 import '../../utils/image_cache_manager.dart';
-import '../../utils/logger.dart';
 import 'music_cover_widgets.dart';
 
 // ===== 歌手详情弹层常量 =====
