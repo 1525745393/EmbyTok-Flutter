@@ -47,6 +47,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
   Timer? _searchDebounce;
   // P2-2：网格列数（2/3），持久化到 SharedPreferences，对齐演员页
   int _gridColumns = 3;
+  // 待恢复的滚动位置：initState 从磁盘读取，等首批数据加载完成后再恢复
+  // （首帧是骨架屏，_scrollController 尚未附着，立即恢复会失效）
+  double? _pendingScrollOffset;
+  // 滚动位置只恢复一次，避免后续分页加载/刷新把列表强制拉回旧位置
+  bool _scrollRestored = false;
 
   @override
   void initState() {
@@ -64,24 +69,22 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       });
     });
     // P2-2：恢复用户上次选择的网格列数（2/3）
-    // 同时恢复滚动位置
+    // 滚动位置只读取、不在这里恢复：首帧是骨架屏（SkeletonGrid 不绑定
+    // _scrollController），此时 hasClients=false，恢复会失效；
+    // 改为等首批数据加载完成后在 ref.listen 中恢复（见 _tryRestoreScroll）
     SharedPreferences.getInstance().then((prefs) {
       final saved = prefs.getInt(kStorageKeyRecommendGridColumns);
       if (saved != null && (saved == 2 || saved == 3) && mounted) {
         setState(() => _gridColumns = saved);
       }
-      // 恢复滚动位置
-      final savedOffset = prefs.getDouble(kStorageKeyRecommendScrollOffset);
-      if (savedOffset != null && savedOffset > 0 && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _scrollController.hasClients) {
-            _scrollController.animateTo(
-              savedOffset,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          }
-        });
+      if (mounted) {
+        final savedOffset = prefs.getDouble(kStorageKeyRecommendScrollOffset);
+        if (savedOffset != null && savedOffset > 0) {
+          _pendingScrollOffset = savedOffset;
+          // 同会话返回时数据仍在内存、GridView 已渲染，可立即尝试恢复；
+          // 若仍是骨架屏（hasClients=false），会等数据加载监听再试
+          _tryRestoreScroll();
+        }
       }
     });
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
@@ -109,6 +112,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // 而非在 build 中调用 _maybeShowError，避免每次 rebuild 重复注册 postFrameCallback。
     // ref.listenManual 订阅在 widget dispose 时自动关闭，无需手动 close。
     ref.listenManual<RecommendState>(recommendProvider, (prev, next) {
+      // 首批数据从无到有时，尝试恢复上次的滚动位置
+      final wasEmpty = prev?.taggedItems.isEmpty ?? true;
+      if (!_scrollRestored && wasEmpty && next.taggedItems.isNotEmpty) {
+        _tryRestoreScroll();
+      }
       final error = next.error;
       if (error == null || error.isEmpty) return;
       // 等到下一帧再弹 SnackBar，避免 build 期间触发 setState
@@ -128,18 +136,56 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
   @override
   void dispose() {
-    // 保存滚动位置
+    // 保存滚动位置（offset 在同步阶段捕获，避免 controller dispose 后读取）
     if (_scrollController.hasClients) {
-      final offset = _scrollController.offset;
-      SharedPreferences.getInstance().then((prefs) {
-        prefs.setDouble(kStorageKeyRecommendScrollOffset, offset);
-      });
+      _saveScrollOffset(_scrollController.offset);
     }
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  // 持久化滚动位置（fire-and-forget，写入失败静默忽略）
+  Future<void> _saveScrollOffset(double offset) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(kStorageKeyRecommendScrollOffset, offset);
+    } catch (_) {
+      // 保存失败不影响退出流程
+    }
+  }
+
+  // 恢复上次滚动位置。在两种时机调用：
+  // 1) SharedPreferences 读到磁盘位置后（覆盖同会话返回、数据仍在内存）
+  // 2) 首批数据异步加载完成（ref.listen 检测到 taggedItems 从空→非空）
+  // 仅当目标位置不超过当前内容范围时恢复，避免被 clamp 到错误位置。
+  void _tryRestoreScroll() {
+    if (_scrollRestored) return;
+    final target = _pendingScrollOffset;
+    // 磁盘位置尚未读到：本次跳过且不标记完成，等 prefs 回调再次触发
+    if (target == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scrollRestored) return;
+      // GridView 尚未渲染（仍是骨架屏）：跳过，等数据加载监听再次触发
+      if (!_scrollController.hasClients) return;
+      final maxExtent = _scrollController.position.maxScrollExtent;
+      // 内容不足以到达目标位置（如重启后只加载了第一页）：放弃恢复，
+      // 停留在顶部，避免 animateTo 被 clamp 到当前列表底部造成错位
+      if (target > maxExtent + 1) {
+        _scrollRestored = true;
+        _pendingScrollOffset = null;
+        return;
+      }
+      _scrollRestored = true;
+      _pendingScrollOffset = null;
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   // PR #79：分页 - 距底 200px 时触发 loadMore
