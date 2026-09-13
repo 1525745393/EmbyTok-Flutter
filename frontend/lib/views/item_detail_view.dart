@@ -888,20 +888,6 @@ class _CastCard extends StatelessWidget {
   }
 }
 
-class _AvatarPlaceholder extends StatelessWidget {
-  final ColorScheme scheme;
-  const _AvatarPlaceholder({required this.scheme});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: scheme.surface,
-      child: Icon(Icons.person,
-          color: scheme.onSurface.withValues(alpha: 0.5), size: 32),
-    );
-  }
-}
-
 // 集数条目：缩略图 + SxEy + 标题 + 简介
 class _EpisodeTile extends StatelessWidget {
   final MediaItem episode;
@@ -1145,26 +1131,6 @@ class _SimilarCardSkeleton extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// 详情页播放页：包装 VideoPageItem
-class _DetailPlayPage extends StatelessWidget {
-  final MediaItem item;
-  const _DetailPlayPage({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(item.title, style: const TextStyle(fontSize: 16)),
-      ),
-      body: VideoPageItem(item: item),
     );
   }
 }

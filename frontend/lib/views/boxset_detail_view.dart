@@ -358,22 +358,3 @@ class _ThumbPlaceholder extends StatelessWidget {
     );
   }
 }
-
-class _PlayPage extends StatelessWidget {
-  final MediaItem item;
-  const _PlayPage({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(item.title, style: const TextStyle(fontSize: 16)),
-      ),
-      body: VideoPageItem(item: item),
-    );
-  }
-}

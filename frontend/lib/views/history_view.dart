@@ -301,22 +301,3 @@ class _HistoryTile extends ConsumerWidget {
             color: scheme.onSurface.withValues(alpha: 0.5)),
       );
 }
-
-class _HistoryPlayPage extends StatelessWidget {
-  final MediaItem item;
-  const _HistoryPlayPage({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(item.title, style: const TextStyle(fontSize: 16)),
-      ),
-      body: VideoPageItem(item: item),
-    );
-  }
-}

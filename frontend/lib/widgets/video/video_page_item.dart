@@ -259,13 +259,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     setState(() => _isInfoVisible = true);
   }
 
-  // 切换信息条显示（保留接口，当前默认始终可见）
-  void _toggleInfoBar() {
-    _infoHideTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _isInfoVisible = !_isInfoVisible);
-  }
-
   @override
   void didUpdateWidget(covariant VideoPageItem oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -758,18 +751,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _hideControls() {
     _controlsHideTimer?.cancel();
     if (mounted) setState(() => _controlsVisible = false);
-  }
-
-  // ===== 中央播放/暂停按钮显示/隐藏（仅非纯净模式） =====
-  /// 显示中央播放/暂停按钮并启动自动隐藏计时器
-  void _showCenterButton() {
-    _centerButtonHideTimer?.cancel();
-    if (!mounted) return;
-    setState(() => _centerButtonVisible = true);
-    _centerButtonHideTimer = Timer(
-      const Duration(seconds: _centerButtonAutoHideSeconds),
-      _hideCenterButton,
-    );
   }
 
   /// 隐藏中央播放/暂停按钮
