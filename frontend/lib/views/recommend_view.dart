@@ -619,6 +619,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     final tags = <_RecommendTagInfo>[
       _RecommendTagInfo(label: '全部', sourceKey: null, count: countFor(null)),
       _RecommendTagInfo(
+          label: RecommendSource.latest.label,
+          sourceKey: RecommendSource.latest.key,
+          count: countFor(RecommendSource.latest)),
+      _RecommendTagInfo(
           label: RecommendSource.nextUp.label,
           sourceKey: RecommendSource.nextUp.key,
           count: countFor(RecommendSource.nextUp)),
@@ -642,6 +646,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           label: RecommendSource.recommendations.label,
           sourceKey: RecommendSource.recommendations.key,
           count: countFor(RecommendSource.recommendations)),
+      _RecommendTagInfo(
+          label: RecommendSource.localRecommend.label,
+          sourceKey: RecommendSource.localRecommend.key,
+          count: countFor(RecommendSource.localRecommend)),
     ];
 
     // P2-1：隐藏 count==0 的源标签（如「相似 (0)」），避免展示无意义空标签

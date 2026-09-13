@@ -115,6 +115,17 @@ abstract class MediaServerApi {
     Set<String>? includeItemTypes,
   });
 
+  /// 最新影片：按入库时间倒序，取最新添加的影片（推荐页「最新影片」标签）
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    Set<String>? includeItemTypes,
+  });
+
   /// 个性化推荐
   ///
   /// 基于 Suggestions API，利用观看历史做智能推荐

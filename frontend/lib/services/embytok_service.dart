@@ -189,6 +189,26 @@ class EmbytokService {
     );
   }
 
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    Set<String>? includeItemTypes,
+  }) {
+    return _api.getLatestItems(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      includeItemTypes: includeItemTypes,
+    );
+  }
+
   // ============================
   // 个性化推荐：基于 Emby Suggestions API，利用观看历史做智能推荐
   // ============================

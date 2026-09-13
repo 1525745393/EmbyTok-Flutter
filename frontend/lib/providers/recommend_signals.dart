@@ -67,12 +67,14 @@ class UserBehaviorSignal {
   /// 注意：用 static final 而非 const，避免循环 import 时初始化顺序问题
   static const UserBehaviorSignal defaults = UserBehaviorSignal(
     sourceWeights: <RecommendSource, double>{
+      RecommendSource.latest: 1.0,
       RecommendSource.nextUp: 1.0,
       RecommendSource.resume: 1.0,
       RecommendSource.suggestions: 1.0,
       RecommendSource.nativeRecommendations: 1.0,
       RecommendSource.similar: 1.0,
       RecommendSource.recommendations: 1.0,
+      RecommendSource.localRecommend: 1.0,
     },
     blacklist: <String>{},
     highCompletionSeeds: <String>[],
@@ -350,6 +352,8 @@ class UserBehaviorSignalCalculator {
   /// - 'feed' 或其他 → null（不算 source）
   static RecommendSource? _sourceFromKey(String key) {
     switch (key) {
+      case 'latest':
+        return RecommendSource.latest;
       case 'nextUp':
         return RecommendSource.nextUp;
       case 'resume':
@@ -362,6 +366,8 @@ class UserBehaviorSignalCalculator {
         return RecommendSource.similar;
       case 'recommendations':
         return RecommendSource.recommendations;
+      case 'localRecommend':
+        return RecommendSource.localRecommend;
       default:
         return null;
     }

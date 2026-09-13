@@ -384,6 +384,47 @@ class EmbyServerApi implements MediaServerApi {
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
+  /// 最新影片：按入库时间 DateCreated 倒序，取最新添加的影片
+  ///
+  /// 对应推荐页「最新影片」标签。与高分排序不同，此处不过滤评分，
+  /// 也不强制排除已看（新入库即应展示）。
+  @override
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    String? serverUrl,
+    String? token,
+    Set<String>? includeItemTypes,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final types = includeItemTypes ?? const <String>{'Movie'};
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      if (libraryId != null) 'ParentId': libraryId,
+      'Recursive': 'true',
+      'SortBy': 'DateCreated,SortName',
+      'SortOrder': 'Descending',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+      'IncludeItemTypes': types.join(','),
+      'ExcludeItemTypes': 'Playlist',
+    };
+
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
   // ============================
   // 个性化推荐：基于 Emby Suggestions API，利用观看历史做智能推荐
   // ============================

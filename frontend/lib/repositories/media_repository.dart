@@ -288,6 +288,17 @@ abstract class MediaRepository {
     Set<String>? includeItemTypes,
   });
 
+  /// 最新影片：按入库时间倒序，推荐页「最新影片」标签
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    Set<String>? includeItemTypes,
+  });
+
   /// 获取建议列表（Emby 的 Suggestions 端点）
   ///
   /// 与推荐列表类似，短时间内稳定，适合中 TTL 缓存。

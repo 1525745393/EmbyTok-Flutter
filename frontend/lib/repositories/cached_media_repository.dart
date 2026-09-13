@@ -793,6 +793,28 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    Set<String>? includeItemTypes,
+  }) {
+    // 最新影片随入库实时变化，直接转发不缓存
+    return _inner.getLatestItems(
+      limit: limit,
+      offset: offset,
+      libraryId: libraryId,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+      includeItemTypes: includeItemTypes,
+    );
+  }
+
+  @override
   Future<List<MediaItem>> getSuggestions({
     int limit = 20,
     String? userId,

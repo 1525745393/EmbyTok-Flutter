@@ -131,17 +131,21 @@ class RecommendItem { // 数据源
 
 /// PR #80：5 个数据源枚举 + 中文标签
 enum RecommendSource {
+  latest, // 最新影片（Emby 最新入库）
   nextUp, // 追剧
-  resume, // 续看
+  resume, // 继续观看
   suggestions, // 为你推荐
   nativeRecommendations, // Emby 原生精选
   similar, // 相似
   recommendations, // 高分
+  localRecommend, // 移动客户端推荐（本地信号源）
 }
 
 extension RecommendSourceLabel on RecommendSource {
   String get key {
     switch (this) {
+      case RecommendSource.latest:
+        return 'latest';
       case RecommendSource.nextUp:
         return 'nextUp';
       case RecommendSource.resume:
@@ -154,16 +158,20 @@ extension RecommendSourceLabel on RecommendSource {
         return 'similar';
       case RecommendSource.recommendations:
         return 'recommendations';
+      case RecommendSource.localRecommend:
+        return 'localRecommend';
     }
   }
 
   // 中文标签（UI 显示用）
   String get label {
     switch (this) {
+      case RecommendSource.latest:
+        return '最新影片';
       case RecommendSource.nextUp:
         return '追剧';
       case RecommendSource.resume:
-        return '续看';
+        return '继续观看';
       case RecommendSource.suggestions:
         return '为你推荐';
       case RecommendSource.nativeRecommendations:
@@ -172,6 +180,8 @@ extension RecommendSourceLabel on RecommendSource {
         return '相似';
       case RecommendSource.recommendations:
         return '高分';
+      case RecommendSource.localRecommend:
+        return '移动客户端推荐';
     }
   }
 }
@@ -276,12 +286,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   static const int _pageSize = 30;
 
   // 数据源标签：用于日志 + round-robin 队列分组
+  static const String _sourceLatest = 'latest';
   static const String _sourceNextUp = 'nextUp';
   static const String _sourceResume = 'resume';
   static const String _sourceSuggestions = 'suggestions';
   static const String _sourceNative = 'nativeRecommendations';
   static const String _sourceRecommendations = 'recommendations';
   static const String _sourceSimilar = 'similar';
+  static const String _sourceLocal = 'localRecommend';
 
   // PR #78：相似推荐配置
   static const int _similarSeedCount = 3;
@@ -537,12 +549,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       );
     }
     final queues = <String, List<RecommendItem>>{
+      _sourceLatest: <RecommendItem>[],
       _sourceNextUp: <RecommendItem>[],
       _sourceResume: <RecommendItem>[],
       _sourceSuggestions: <RecommendItem>[],
       _sourceNative: <RecommendItem>[],
       _sourceRecommendations: <RecommendItem>[],
       _sourceSimilar: <RecommendItem>[],
+      _sourceLocal: <RecommendItem>[],
     };
 
     // Task 4：并发拉取各数据源，收集各源是否还有更多数据的标记
@@ -555,8 +569,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       userId: userId,
     );
     // 顺序对应 sourceHasMore 索引：
-    // [0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Native, [4]=Similar, [5]=Recommendations
+    // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
+    // [4]=Native, [5]=Similar, [6]=Recommendations, [7]=Local
     final sourceHasMore = await Future.wait<bool>([
+      _fetchLatestQueue(
+          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
       _fetchNextUpQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
       _fetchResumeQueue(
@@ -580,6 +597,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           token: token,
           userId: userId),
       _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
+      _fetchLocalRecommendQueue(
+          ctx: ctx, queues: queues, seenIds: seenIds),
     ]);
     await nextUpByRecentFuture;
 
@@ -589,6 +608,57 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       seenIds: seenIds,
       sourceHasMore: sourceHasMore,
     );
+  }
+
+  // 填充「最新影片」队列：按入库时间倒序
+  Future<bool> _fetchLatestQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+  }) async {
+    try {
+      final libraryId = ctx.selectedIds.length == 1 ? ctx.selectedIds.first : null;
+      final resp = await ctx.repo.getLatestItems(
+        limit: _pageSize,
+        libraryId: libraryId,
+        userId: ctx.auth.user?.id,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final q = queues[_sourceLatest];
+      for (final item in resp.items) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        if (_shouldSkipItem(
+          item,
+          signal: ctx.signal,
+          favoriteIds: ctx.favoriteIds,
+          antiFatigueEnabled: ctx.antiFatigueEnabled,
+          recentlyShownIds: ctx.recentlyShownIds,
+          userRatingEnabled: ctx.userRatingEnabled,
+          userRatingMin: ctx.userRatingMin,
+        )) {
+          continue;
+        }
+        q?.add(RecommendItem(item: item, source: RecommendSource.latest));
+      }
+      return resp.items.length >= _pageSize;
+    } catch (e) {
+      AppLogger.error('推荐：加载最新影片失败', error: e);
+      return false;
+    }
+  }
+
+  // 填充「移动客户端推荐」队列：本地信号源（基于本地观看历史/完播率）
+  // 目前先空队列（count=0 时标签自动隐藏），后续接本地推荐信号。
+  Future<bool> _fetchLocalRecommendQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required Set<String> seenIds,
+  }) async {
+    // 预留：后续基于本地完播率/收藏信号在已拉取 items 中二次打分重排。
+    // 当前返回 false 表示无更多，标签自动隐藏，不影响其余源。
+    return false;
   }
 
   // 填充 NextUp 追剧队列
@@ -1097,12 +1167,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final resumeCount = queues[_sourceResume]?.length ?? 0;
     final suggestionsCount = queues[_sourceSuggestions]?.length ?? 0;
     final sourceOrder = <RecommendSource>[
+      RecommendSource.latest,
       RecommendSource.nextUp,
       RecommendSource.resume,
       RecommendSource.suggestions,
       RecommendSource.nativeRecommendations,
       RecommendSource.similar,
       RecommendSource.recommendations,
+      RecommendSource.localRecommend,
     ];
     final tagged = <RecommendItem>[];
     final rng = Random();
@@ -1143,6 +1215,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     RecommendSource source,
   ) {
     switch (source) {
+      case RecommendSource.latest:
+        return queues[_sourceLatest] ?? const [];
       case RecommendSource.nextUp:
         return queues[_sourceNextUp] ?? const [];
       case RecommendSource.resume:
@@ -1155,6 +1229,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         return queues[_sourceSimilar] ?? const [];
       case RecommendSource.recommendations:
         return queues[_sourceRecommendations] ?? const [];
+      case RecommendSource.localRecommend:
+        return queues[_sourceLocal] ?? const [];
     }
   }
 

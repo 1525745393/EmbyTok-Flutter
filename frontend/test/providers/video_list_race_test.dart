@@ -458,6 +458,19 @@ class _MockMediaRepository implements MediaRepository {
       const <NativeRecGroup>[];
 
   @override
+  Future<PaginatedResponse<MediaItem>> getLatestItems({
+    int limit = 20,
+    int offset = 0,
+    String? libraryId,
+    String? userId,
+    required String serverUrl,
+    required String token,
+    Set<String>? includeItemTypes,
+  }) async =>
+      PaginatedResponse<MediaItem>(
+          items: const <MediaItem>[], total: 0, offset: 0, limit: limit);
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,
