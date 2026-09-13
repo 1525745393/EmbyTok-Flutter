@@ -1,3 +1,10 @@
+# [2.85.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.3...v2.85.0) (2026-09-13)
+
+
+### Features
+
+* 实现专辑更多跳转、收藏持久化、启动时NAS同步 ([cbd2a55](https://github.com/1525745393/EmbyTok-Flutter/commit/cbd2a559932e9f201f867bee518ffe40b6b3f12e))
+
 ## [2.84.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.2...v2.84.3) (2026-09-13)
 
 
