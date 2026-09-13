@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
@@ -87,12 +88,39 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   double _brightness = 0.5;
   double? _originalBrightness;
   final ScreenBrightness _screenBrightness = ScreenBrightness();
+  bool _showGestureHint = false;
 
   @override
   void initState() {
     super.initState();
     // 读取当前系统亮度
     _loadCurrentBrightness();
+    // 检查是否首次显示手势提示
+    _checkGestureHint();
+  }
+
+  Future<void> _checkGestureHint() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasShown = prefs.getBool('has_shown_gesture_hint') ?? false;
+      if (!hasShown && mounted) {
+        setState(() {
+          _showGestureHint = true;
+        });
+        // 5 秒后自动隐藏
+        Timer(const Duration(seconds: 5), () {
+          if (mounted) {
+            setState(() {
+              _showGestureHint = false;
+            });
+          }
+        });
+        // 标记为已显示
+        await prefs.setBool('has_shown_gesture_hint', true);
+      }
+    } catch (_) {
+      // 读取失败不影响主流程
+    }
   }
 
   Future<void> _loadCurrentBrightness() async {
@@ -178,6 +206,44 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             child: const SizedBox.expand(),
           ),
         ),
+        // 手势操作提示（首次使用时显示）
+        if (_showGestureHint)
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '手势操作提示',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '左侧滑动调亮度 · 右侧滑动调音量\n双击点赞 · 长按倍速播放',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         // 拖动进度条
         ValueListenableBuilder<Duration>(
           valueListenable: previewPositionNotifier,
