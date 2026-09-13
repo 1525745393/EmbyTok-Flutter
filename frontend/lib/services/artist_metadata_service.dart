@@ -161,6 +161,60 @@ class ArtistMetadataService {
     return metadata;
   }
 
+  /// 启动时从 NAS 同步元数据
+  ///
+  /// 列出 NAS 上所有歌手元数据文件，下载本地缺失的元数据。
+  /// 在后台异步执行，不阻塞 UI。
+  Future<void> syncFromNasOnStartup() async {
+    if (!nasSyncEnabled || _synologyApi == null) return;
+
+    try {
+      AppLogger.info('开始从 NAS 同步歌手元数据');
+
+      // 获取 NAS 上所有歌手元数据文件列表
+      final nasArtists = await _nasSyncService.listMetadataFiles(
+        api: _synologyApi!,
+      );
+
+      if (nasArtists.isEmpty) {
+        AppLogger.info('NAS 上无歌手元数据文件');
+        return;
+      }
+
+      AppLogger.info('NAS 上有 ${nasArtists.length} 个歌手元数据文件，开始同步');
+
+      // 批量下载本地缺失的元数据
+      var downloaded = 0;
+      for (final artistName in nasArtists) {
+        // 检查本地是否已有缓存
+        final localCached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
+        if (localCached != null && !localCached.isExpired()) {
+          continue; // 本地已有且未过期，跳过
+        }
+
+        // 从 NAS 下载
+        final nasMetadata = await _nasSyncService.downloadMetadata(
+          artistName,
+          api: _synologyApi!,
+        );
+
+        if (nasMetadata != null) {
+          // 保存到本地缓存
+          _saveToMemory(artistName, nasMetadata);
+          await _saveToPrefs(artistName, nasMetadata);
+          downloaded++;
+        }
+      }
+
+      AppLogger.info('从 NAS 同步歌手元数据完成', data: {
+        'total': nasArtists.length,
+        'downloaded': downloaded,
+      });
+    } catch (e) {
+      AppLogger.warn('从 NAS 同步歌手元数据失败', data: {'error': e.toString()});
+    }
+  }
+
   /// 多源降级获取歌手元数据
   ///
   /// 优先级：Last.fm 中文 → Last.fm 英文 → Deezer → Wikipedia 中文 → Wikipedia 英文

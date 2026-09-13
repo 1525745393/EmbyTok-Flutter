@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
@@ -111,6 +112,32 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   void initState() {
     super.initState();
     _artistName = widget.artist?.name ?? widget.artistName ?? '';
+    _loadFavoriteStatus();
+  }
+
+  /// 加载收藏状态
+  Future<void> _loadFavoriteStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorites = prefs.getStringList('favorite_artists') ?? [];
+    if (mounted) {
+      setState(() {
+        _isFavorite = favorites.contains(_artistName);
+      });
+    }
+  }
+
+  /// 保存收藏状态
+  Future<void> _saveFavoriteStatus(bool isFavorite) async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorites = prefs.getStringList('favorite_artists') ?? [];
+    if (isFavorite) {
+      if (!favorites.contains(_artistName)) {
+        favorites.add(_artistName);
+      }
+    } else {
+      favorites.remove(_artistName);
+    }
+    await prefs.setStringList('favorite_artists', favorites);
   }
 
   @override
@@ -547,10 +574,12 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           // 收藏（次要按钮）
           OutlinedButton.icon(
             onPressed: () {
-              setState(() => _isFavorite = !_isFavorite);
+              final newState = !_isFavorite;
+              setState(() => _isFavorite = newState);
+              _saveFavoriteStatus(newState);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(_isFavorite ? '已收藏歌手' : '已取消收藏'),
+                  content: Text(newState ? '已收藏歌手' : '已取消收藏'),
                   duration: const Duration(seconds: 1),
                 ),
               );
@@ -872,7 +901,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
               ),
               TextButton(
                 onPressed: () {
-                  // TODO: 跳转到专辑列表页
+                  _showAllAlbumsDialog(context, scheme, albumsAsync);
                 },
                 child: const Text('更多'),
               ),
@@ -1190,6 +1219,102 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       // 如果找不到索引，直接播放该歌曲
       ref.read(synologyPlaybackProvider.notifier).playQueue([song], 0);
     }
+  }
+
+  /// 显示所有专辑列表对话框
+  void _showAllAlbumsDialog(
+    BuildContext context,
+    ColorScheme scheme,
+    AsyncValue<List<AudioAlbum>> albumsAsync,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            // 标题栏
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_artistName}的专辑',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // 专辑列表
+            Expanded(
+              child: albumsAsync.when(
+                data: (albums) => albums.isEmpty
+                    ? const Center(child: Text('暂无专辑'))
+                    : ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: albums.length,
+                        itemBuilder: (context, index) {
+                          final album = albums[index];
+                          return ListTile(
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: album.coverUrl != null && album.coverUrl!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: album.coverUrl!,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: scheme.surfaceContainerHighest,
+                                      child: const Icon(Icons.album, size: 24),
+                                    ),
+                            ),
+                            title: Text(
+                              album.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: album.year != null
+                                ? Text('${album.year}')
+                                : null,
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('专辑详情开发中：${album.name}')),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => const Center(child: Text('加载失败')),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
 }
