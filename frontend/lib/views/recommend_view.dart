@@ -137,7 +137,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     }
   }
 
-  // 预加载下一页海报图片，提升滚动流畅度
+  // 预加载当前页末尾的海报图片，提升滚动流畅度
   void _preloadNextPageImages(RecommendState state) {
     if (!mounted) return;
     final auth = ref.read(authProvider);
@@ -145,12 +145,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     final token = auth.token;
     if (serverUrl == null || token == null) return;
 
-    // 预加载当前页最后 5 个 + 下一页前 5 个
+    // 预加载当前页末尾 10 个图片（下一页内容还未加载到 items 中）
     final items = state.taggedItems;
-    final preloadStart = items.length > 5 ? items.length - 5 : 0;
-    final preloadEnd = (items.length + 5).clamp(0, items.length);
+    final preloadStart = items.length > 10 ? items.length - 10 : 0;
 
-    for (var i = preloadStart; i < preloadEnd; i++) {
+    for (var i = preloadStart; i < items.length; i++) {
       final item = items[i].item;
       final imageUrl = item.primaryUrl(
         embyServerUrl: serverUrl,

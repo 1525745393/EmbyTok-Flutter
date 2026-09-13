@@ -85,7 +85,24 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   }
 
   double _brightness = 0.5;
+  double? _originalBrightness;
   final ScreenBrightness _screenBrightness = ScreenBrightness();
+
+  @override
+  void initState() {
+    super.initState();
+    // 读取当前系统亮度
+    _loadCurrentBrightness();
+  }
+
+  Future<void> _loadCurrentBrightness() async {
+    try {
+      _originalBrightness = await _screenBrightness.current;
+      _brightness = _originalBrightness ?? 0.5;
+    } catch (_) {
+      // 读取失败使用默认值
+    }
+  }
 
   void _adjustBrightness(double delta) async {
     try {
@@ -107,6 +124,14 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
 
   @override
   void dispose() {
+    // 恢复原始亮度
+    if (_originalBrightness != null) {
+      try {
+        _screenBrightness.setScreenBrightness(_originalBrightness!);
+      } catch (_) {
+        // 恢复失败不影响主流程
+      }
+    }
     disposeGestureTimers();
     super.dispose();
   }

@@ -162,6 +162,9 @@ class AutoRetryErrorCard extends StatefulWidget {
 class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
   late int _countdown;
   Timer? _timer;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
+  bool _autoRetryStopped = false;
 
   @override
   void initState() {
@@ -181,7 +184,15 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
           _countdown--;
         } else {
           timer.cancel();
-          widget.onRetry();
+          _retryCount++;
+          if (_retryCount < _maxRetries) {
+            // 还有重试次数，重新倒计时
+            _countdown = widget.retrySeconds;
+            _startTimer();
+          } else {
+            // 超过最大重试次数，停止自动重试
+            _autoRetryStopped = true;
+          }
         }
       });
     });
@@ -231,14 +242,16 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
               ),
             ],
             const SizedBox(height: 20),
-            Text(
-              '$_countdown 秒后自动重试...',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 13,
+            if (!_autoRetryStopped) ...[
+              Text(
+                '$_countdown 秒后自动重试（第 $_retryCount/$_maxRetries 次）...',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: scheme.primary,
@@ -252,7 +265,7 @@ class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
                 ),
               ),
               icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('立即重试'),
+              label: Text(_autoRetryStopped ? '重试' : '立即重试'),
               onPressed: () {
                 _timer?.cancel();
                 widget.onRetry();
