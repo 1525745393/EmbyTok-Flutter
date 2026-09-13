@@ -735,6 +735,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
       for (final item in items) {
         if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        // 追剧只展示还没看完的：收藏演员作品里若已看完则跳过，
+        // 避免老片占着"新作品"的位置。（最近剧集下一集由 NextUp 接口本身保证未看完）
+        if (item.isWatched) continue;
         if (_shouldSkipItem(
           item,
           signal: ctx.signal,
