@@ -1,3 +1,10 @@
+## [2.89.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.89.0...v2.89.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* 视频库增强修复 - 图片预加载逻辑 + 亮度恢复 + 重试次数限制 ([b633d87](https://github.com/1525745393/EmbyTok-Flutter/commit/b633d87a97bde91c487d67f5fe51f4df5beb8b83))
+
 # [2.89.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.88.1...v2.89.0) (2026-09-13)
 
 
