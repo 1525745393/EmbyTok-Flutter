@@ -1,3 +1,10 @@
+## [2.91.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.91.0...v2.91.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* 修复推荐页滚动位置恢复时序问题，数据加载后再恢复并校验范围 ([34dc938](https://github.com/1525745393/EmbyTok-Flutter/commit/34dc93830d55c21b9be53a6231941c91a52ef140))
+
 # [2.91.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.90.2...v2.91.0) (2026-09-13)
 
 
