@@ -191,6 +191,31 @@ class _MockMediaRepository extends Mock implements MediaRepository {
             items: const [], total: 0, offset: 0, limit: limit)),
       ) as Future<PaginatedResponse<MediaItem>>;
 
+  // ---- ItemsByPersonIds（收藏演员作品，默认空）----
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    List<String>? personIds,
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getItemsByPersonIds, [], {
+          #personIds: personIds,
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(PaginatedResponse<MediaItem>(
+            items: const [], total: 0, offset: 0, limit: limit)),
+        returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
+            items: const [], total: 0, offset: 0, limit: limit)),
+      ) as Future<PaginatedResponse<MediaItem>>;
+
   // ---- Recommendations ----
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({

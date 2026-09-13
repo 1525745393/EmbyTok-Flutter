@@ -702,6 +702,26 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    required List<String> personIds,
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    // 收藏演员会变化，直接转发不缓存
+    return _inner.getItemsByPersonIds(
+      personIds: personIds,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
+
+  @override
   Future<PaginatedResponse<MediaItem>> getBoxSetItems(
     String boxSetId, {
     int limit = 50,

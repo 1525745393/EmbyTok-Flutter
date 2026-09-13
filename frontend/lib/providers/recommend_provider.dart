@@ -598,7 +598,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           userId: userId),
       _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
       _fetchLocalRecommendQueue(
-          ctx: ctx, queues: queues, seenIds: seenIds),
+          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
     ]);
     await nextUpByRecentFuture;
 
@@ -649,16 +649,32 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     }
   }
 
-  // 填充「移动客户端推荐」队列：本地信号源（基于本地观看历史/完播率）
-  // 目前先空队列（count=0 时标签自动隐藏），后续接本地推荐信号。
+  // 填充「移动客户端推荐」队列：本地行为数据（收藏影片）
+  // 与服务器端 Suggestions 区分：这里直接呈现客户端本地收藏，
+  // 无收藏时返回空，标签自动隐藏。
   Future<bool> _fetchLocalRecommendQueue({
     required _LoadContext ctx,
     required Map<String, List<RecommendItem>> queues,
-    required Set<String> seenIds,
+    required String serverUrl,
+    required String token,
   }) async {
-    // 预留：后续基于本地完播率/收藏信号在已拉取 items 中二次打分重排。
-    // 当前返回 false 表示无更多，标签自动隐藏，不影响其余源。
-    return false;
+    try {
+      final resp = await ctx.repo.getFavoriteMovies(
+        limit: _pageSize,
+        serverUrl: serverUrl,
+        token: token,
+        userId: ctx.auth.user?.id,
+      );
+      final q = queues[_sourceLocal];
+      for (final item in resp.items) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        q?.add(RecommendItem(item: item, source: RecommendSource.localRecommend));
+      }
+      return resp.hasMore;
+    } catch (e) {
+      AppLogger.error('推荐：加载移动客户端推荐失败', error: e);
+      return false;
+    }
   }
 
   // 填充 NextUp 追剧队列
@@ -672,13 +688,45 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required String token,
   }) async {
     try {
-      final resp = await ctx.repo.getNextUp(
-        limit: _pageSize,
+      final nextUpQueue = queues[_sourceNextUp];
+      final userId = ctx.auth.user?.id;
+
+      // 优先：收藏演员的新作品（推荐页「追剧」=关注演员的最新片）
+      List<MediaItem> items = const [];
+      var hasMore = false;
+      final favPeople = await ctx.repo.getFavoritePeople(
+        limit: 20,
         serverUrl: serverUrl,
         token: token,
+        userId: userId,
       );
-      final nextUpQueue = queues[_sourceNextUp];
-      for (final item in resp.items) {
+      final personIds = favPeople.items
+          .map((p) => p.id)
+          .where((id) => id.isNotEmpty)
+          .take(10)
+          .toList();
+      if (personIds.isNotEmpty) {
+        final resp = await ctx.repo.getItemsByPersonIds(
+          personIds: personIds,
+          limit: _pageSize,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+        );
+        items = resp.items;
+        hasMore = resp.items.length >= _pageSize;
+      } else {
+        // 无收藏演员：回退 NextUp 剧集续播
+        final resp = await ctx.repo.getNextUp(
+          limit: _pageSize,
+          serverUrl: serverUrl,
+          token: token,
+        );
+        items = resp.items;
+        hasMore = resp.items.length >= _pageSize;
+      }
+
+      for (final item in items) {
         if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
         if (_shouldSkipItem(
           item,
@@ -694,9 +742,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         nextUpQueue
             ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
       }
-      return resp.items.length >= _pageSize;
+      return hasMore;
     } catch (e) {
-      AppLogger.error('推荐：加载 NextUp 失败', error: e);
+      AppLogger.error('推荐：加载追剧队列失败', error: e);
       return false;
     }
   }

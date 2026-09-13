@@ -870,6 +870,41 @@ class EmbyServerApi implements MediaServerApi {
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
   }
 
+  /// 按多个演员 ID 批量查作品（PersonIds=id1,id2,...）
+  ///
+  /// 用于推荐页「追剧」标签：拉收藏演员的新作品，按入库时间倒序。
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    required List<String> personIds,
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'PersonIds': personIds.join(','),
+      'SortBy': 'DateCreated,SortName',
+      'SortOrder': 'Descending',
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+      'ExcludeItemTypes': 'Playlist',
+    };
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
   // ============================
   // 获取合集（BoxSet）里的视频
   // ============================

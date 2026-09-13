@@ -277,6 +277,25 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    required List<String> personIds,
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) {
+    return _service.getItemsByPersonIds(
+      personIds: personIds,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
+
+  @override
   Future<PaginatedResponse<MediaItem>> getBoxSetItems(
     String boxSetId, {
     int limit = 50,

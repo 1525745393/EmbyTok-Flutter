@@ -238,6 +238,16 @@ abstract class MediaRepository {
     required String token,
   });
 
+  /// 按多个演员 ID 批量查作品（推荐页「追剧」=收藏演员新作品）
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    required List<String> personIds,
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  });
+
   /// 获取合集（BoxSet）里的视频
   Future<PaginatedResponse<MediaItem>> getBoxSetItems(
     String boxSetId, {

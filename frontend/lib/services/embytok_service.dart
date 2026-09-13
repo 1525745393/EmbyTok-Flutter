@@ -383,6 +383,24 @@ class EmbytokService {
     );
   }
 
+  Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
+    required List<String> personIds,
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) {
+    return _api.getItemsByPersonIds(
+      personIds: personIds,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
+  }
+
   Future<PaginatedResponse<MediaItem>> getBoxSetItems(
     String boxSetId, {
     int limit = 50,
