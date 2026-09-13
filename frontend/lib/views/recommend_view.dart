@@ -27,6 +27,7 @@ import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
+import '../widgets/skeleton_loading.dart';
 
 /// 推荐页面
 class RecommendView extends ConsumerStatefulWidget {
@@ -222,10 +223,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     final showColdStartBanner =
         state.isColdStart && state.taggedItems.isNotEmpty;
 
-    // 首次加载
+    // 首次加载：显示骨架屏
     if (state.isLoading && state.taggedItems.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return SkeletonGrid(
+        crossAxisCount: _gridColumns,
+        itemCount: 12,
       );
     }
 
