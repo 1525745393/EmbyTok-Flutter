@@ -5,6 +5,8 @@
 // 垂直滑动：屏幕右侧 1/2 区域上下滑动调节音量（仅在 enableVerticalVolumeDrag=true 时启用，
 //           避免和小屏 PageView 的垂直滑动切换视频冲突）
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:screen_brightness/screen_brightness.dart';
@@ -89,6 +91,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   double? _originalBrightness;
   final ScreenBrightness _screenBrightness = ScreenBrightness();
   bool _showGestureHint = false;
+  Timer? _gestureHintTimer;
 
   @override
   void initState() {
@@ -102,13 +105,14 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   Future<void> _checkGestureHint() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hasShown = prefs.getBool('has_shown_gesture_hint') ?? false;
+      const key = 'has_shown_gesture_hint';
+      final hasShown = prefs.getBool(key) ?? false;
       if (!hasShown && mounted) {
         setState(() {
           _showGestureHint = true;
         });
         // 5 秒后自动隐藏
-        Timer(const Duration(seconds: 5), () {
+        _gestureHintTimer = Timer(const Duration(seconds: 5), () {
           if (mounted) {
             setState(() {
               _showGestureHint = false;
@@ -116,7 +120,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
           }
         });
         // 标记为已显示
-        await prefs.setBool('has_shown_gesture_hint', true);
+        await prefs.setBool(key, true);
       }
     } catch (_) {
       // 读取失败不影响主流程
@@ -152,6 +156,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
 
   @override
   void dispose() {
+    // 取消手势提示 Timer
+    _gestureHintTimer?.cancel();
     // 恢复原始亮度
     if (_originalBrightness != null) {
       try {
