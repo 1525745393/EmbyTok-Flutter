@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../models/artist_metadata.dart';
 import '../../models/audio_models.dart';
@@ -597,12 +598,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
           // 分享（次要按钮）
           OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('分享功能开发中'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
+              Share.share('歌手：$_artistName\n\n来自 EmbyTok 音乐APP');
             },
             icon: const Icon(Icons.share),
             label: const Text('分享'),
@@ -939,7 +935,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   ) {
     return GestureDetector(
       onTap: () {
-        // TODO: 跳转到专辑详情页
+        _showAlbumDetailDialog(context, scheme, album);
       },
       child: Container(
         width: 120,
@@ -1300,9 +1296,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                                 : null,
                             onTap: () {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('专辑详情开发中：${album.name}')),
-                              );
+                              _showAlbumDetailDialog(context, scheme, album);
                             },
                           );
                         },
@@ -1315,6 +1309,162 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
         ),
       ),
     );
+  }
+
+  /// 显示专辑详情对话框
+  void _showAlbumDetailDialog(
+    BuildContext context,
+    ColorScheme scheme,
+    AudioAlbum album,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        minChildSize: 0.4,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            // 专辑头部信息
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // 专辑封面
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: album.coverUrl != null && album.coverUrl!.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: album.coverUrl!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 80,
+                            height: 80,
+                            color: scheme.surfaceContainerHighest,
+                            child: const Icon(Icons.album, size: 32),
+                          ),
+                  ),
+                  const SizedBox(width: 16),
+                  // 专辑信息
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          album.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          album.year != null ? '${album.year}' : '未知年份',
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 关闭按钮
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // 专辑歌曲列表
+            Expanded(
+              child: _buildAlbumSongsList(context, scheme, album, scrollController),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建专辑歌曲列表
+  Widget _buildAlbumSongsList(
+    BuildContext context,
+    ColorScheme scheme,
+    AudioAlbum album,
+    ScrollController scrollController,
+  ) {
+    final songsAsync = ref.watch(artistSongsProvider(_artistName));
+
+    return songsAsync.when(
+      data: (allSongs) {
+        // 筛选当前专辑的歌曲（通过 tag.album 字段匹配）
+        final albumSongs = allSongs
+            .where((song) => song.tag?.album == album.name)
+            .toList();
+
+        if (albumSongs.isEmpty) {
+          return const Center(child: Text('暂无歌曲'));
+        }
+
+        return ListView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: albumSongs.length,
+          itemBuilder: (context, index) {
+            final song = albumSongs[index];
+            return ListTile(
+              leading: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
+              title: Text(
+                song.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: song.tag?.album != null
+                  ? Text(song.tag!.album!)
+                  : null,
+              trailing: song.audio?.duration != null
+                  ? Text(
+                      _formatDuration(song.audio!.duration!),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.pop(context);
+                _playSong(context, song);
+              },
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, s) => const Center(child: Text('加载失败')),
+    );
+  }
+
+  /// 格式化时长
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
 }

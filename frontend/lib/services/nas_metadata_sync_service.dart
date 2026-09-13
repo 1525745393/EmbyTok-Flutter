@@ -259,6 +259,141 @@ class NasMetadataSyncService {
     _downloadCache.clear();
   }
 
+  /// 上传歌手收藏列表到 NAS
+  Future<bool> uploadFavorites(
+    List<String> favorites, {
+    required SynologyAudioApi api,
+  }) async {
+    try {
+      if (!api.isLoggedIn) return false;
+
+      const favoritesPath = '/appdata/EmbTok/favorites';
+      final url = '${api.serverUrl}/webapi/entry.cgi';
+
+      // 确保收藏目录存在
+      await _ensureFavoritesDirectoryExists(api);
+
+      final jsonStr = jsonEncode({'artists': favorites});
+      final jsonBytes = utf8.encode(jsonStr);
+
+      final formData = FormData.fromMap({
+        'api': 'SYNO.FileStation.Upload',
+        'method': 'upload',
+        'version': '2',
+        'path': favoritesPath,
+        'create_parents': 'true',
+        'overwrite': 'true',
+        '_sid': api.sid,
+        'file': MultipartFile.fromBytes(
+          jsonBytes,
+          filename: 'artists.json',
+          contentType: DioMediaType('application', 'json'),
+        ),
+      });
+
+      final response = await _dio.post<dynamic>(url, data: formData);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['success'] == true) {
+          AppLogger.debug('NAS 歌手收藏上传成功', data: {'count': favorites.length});
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      AppLogger.warn('NAS 歌手收藏上传失败', data: {'error': e.toString()});
+      return false;
+    }
+  }
+
+  /// 从 NAS 下载歌手收藏列表
+  Future<List<String>?> downloadFavorites({
+    required SynologyAudioApi api,
+  }) async {
+    try {
+      if (!api.isLoggedIn) return null;
+
+      const favoritesFilePath = '/appdata/EmbTok/favorites/artists.json';
+      final url = '${api.serverUrl}/webapi/entry.cgi';
+
+      final response = await _dio.get<dynamic>(
+        url,
+        queryParameters: {
+          'api': 'SYNO.FileStation.Download',
+          'method': 'download',
+          'version': '2',
+          'path': favoritesFilePath,
+          '_sid': api.sid,
+        },
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      if (response.statusCode != 200) return null;
+
+      final bytes = response.data as List<int>?;
+      if (bytes == null || bytes.isEmpty) return null;
+
+      final jsonStr = utf8.decode(bytes);
+      final Map<String, dynamic> data = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final List<dynamic> artists = data['artists'] as List<dynamic>? ?? [];
+
+      return artists.map((e) => e.toString()).toList();
+    } catch (e) {
+      AppLogger.warn('NAS 歌手收藏下载失败', data: {'error': e.toString()});
+      return null;
+    }
+  }
+
+  /// 确保收藏目录存在
+  Future<void> _ensureFavoritesDirectoryExists(SynologyAudioApi api) async {
+    try {
+      const favoritesPath = '/appdata/EmbTok/favorites';
+      final url = '${api.serverUrl}/webapi/entry.cgi';
+
+      final checkResponse = await _dio.get<dynamic>(
+        url,
+        queryParameters: {
+          'api': 'SYNO.FileStation.List',
+          'method': 'list',
+          'version': '2',
+          'folder_path': '/appdata/EmbTok',
+          '_sid': api.sid,
+        },
+      );
+
+      if (checkResponse.statusCode == 200) {
+        final data = checkResponse.data;
+        if (data is Map && data['success'] == true) {
+          final files = data['data']?['files'] as List<dynamic>?;
+          final exists = files?.any((f) =>
+                  f is Map && f['name'] == 'favorites' && f['isdir'] == true) ??
+              false;
+          if (exists) return;
+        }
+      }
+
+      // 创建目录
+      await _dio.get<dynamic>(
+        url,
+        queryParameters: {
+          'api': 'SYNO.FileStation.CreateFolder',
+          'method': 'create',
+          'version': '2',
+          'folder_path': '/appdata/EmbTok',
+          'name': 'favorites',
+          '_sid': api.sid,
+        },
+      );
+
+      AppLogger.debug('NAS 收藏目录创建成功', data: {'path': favoritesPath});
+    } catch (e) {
+      AppLogger.warn('NAS 收藏目录创建失败',
+          data: {'path': '/appdata/EmbTok/favorites', 'error': e.toString()});
+    }
+  }
+
   /// 释放资源
   void dispose() {
     _dio.close();

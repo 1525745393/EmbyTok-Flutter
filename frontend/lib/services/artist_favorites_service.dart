@@ -102,9 +102,26 @@ class ArtistFavoritesService {
   Future<void> _syncToNas() async {
     if (_nasSyncService == null) return;
     try {
-      // TODO: 实现 NAS 收藏同步
-      // 暂时只保存到本地
+      // 异步上传到 NAS（不阻塞 UI）
+      // 注意：这里需要 SynologyAudioApi 实例，暂时先记录日志
       AppLogger.info('歌手收藏已保存到本地', data: {'count': _favorites.length});
+    } catch (e) {
+      AppLogger.error('同步歌手收藏到 NAS 失败', error: e);
+    }
+  }
+
+  /// 同步收藏列表到 NAS（使用指定的 API 实例）
+  Future<void> syncToNas(SynologyAudioApi api) async {
+    final nasSync = _nasSyncService;
+    if (nasSync == null) return;
+    try {
+      final success = await nasSync.uploadFavorites(
+        _favorites.toList(),
+        api: api,
+      );
+      if (success) {
+        AppLogger.info('歌手收藏已同步到 NAS', data: {'count': _favorites.length});
+      }
     } catch (e) {
       AppLogger.error('同步歌手收藏到 NAS 失败', error: e);
     }
@@ -112,10 +129,19 @@ class ArtistFavoritesService {
 
   /// 从 NAS 下载收藏列表并合并
   Future<void> syncFromNas(SynologyAudioApi api) async {
-    if (_nasSyncService == null) return;
+    final nasSync = _nasSyncService;
+    if (nasSync == null) return;
     try {
-      // TODO: 实现从 NAS 下载收藏列表
-      AppLogger.info('从 NAS 同步歌手收藏', data: {'localCount': _favorites.length});
+      final nasFavorites = await nasSync.downloadFavorites(api: api);
+      if (nasFavorites != null) {
+        // 合并本地和 NAS 的收藏
+        _favorites.addAll(nasFavorites);
+        await _saveToLocal();
+        AppLogger.info('从 NAS 同步歌手收藏完成', data: {
+          'localCount': _favorites.length,
+          'nasCount': nasFavorites.length,
+        });
+      }
     } catch (e) {
       AppLogger.error('从 NAS 下载歌手收藏失败', error: e);
     }
