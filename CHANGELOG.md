@@ -1,3 +1,10 @@
+## [2.88.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.88.0...v2.88.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* 视频库增强修复 - 调整预加载池大小 + 移除无用动画 ([4e39c13](https://github.com/1525745393/EmbyTok-Flutter/commit/4e39c13a854addef8b8fe56581852228c792e3b2))
+
 # [2.88.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.87.0...v2.88.0) (2026-09-13)
 
 
