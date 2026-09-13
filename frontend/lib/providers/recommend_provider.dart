@@ -543,6 +543,20 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         allSourcesExhausted: true,
       );
     }
+    // 合并拉取观看历史：相似种子筛选与「最近剧集下一集」都需要，
+    // 原先两处各自 getWatchHistory（200/50）造成重复请求，此处只拉一次。
+    List<MediaItem> watchHistory = const [];
+    try {
+      watchHistory = await ctx.repo.getWatchHistory(
+        limit: 200,
+        userId: userId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+    } catch (e) {
+      AppLogger.error('推荐：加载观看历史失败', error: e);
+    }
+
     final queues = <String, List<RecommendItem>>{
       _sourceLatest: <RecommendItem>[],
       _sourceNextUp: <RecommendItem>[],
@@ -562,6 +576,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       serverUrl: serverUrl,
       token: token,
       userId: userId,
+      watchHistory: watchHistory,
     );
     // 顺序对应 sourceHasMore 索引：
     // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
@@ -590,7 +605,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           queues: queues,
           serverUrl: serverUrl,
           token: token,
-          userId: userId),
+          userId: userId,
+          watchHistory: watchHistory),
       _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
       _fetchLocalRecommendQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
@@ -786,15 +802,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required String serverUrl,
     required String token,
     String? userId,
+    required List<MediaItem> watchHistory,
   }) async {
     try {
       const int recentSeriesLimit = 3;
-      final history = await ctx.repo.getWatchHistory(
-        limit: 50,
-        userId: userId,
-        serverUrl: serverUrl,
-        token: token,
-      );
+      final history = watchHistory;
       final seenSeriesIds = <String>{};
       final recentSeriesIds = <String>[];
       for (final item in history) {
@@ -956,14 +968,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required String serverUrl,
     required String token,
     String? userId,
+    required List<MediaItem> watchHistory,
   }) async {
     try {
-      final history = await ctx.repo.getWatchHistory(
-        limit: 200,
-        userId: userId,
-        serverUrl: serverUrl,
-        token: token,
-      );
+      final history = watchHistory;
       final seedByItemId = <String, MediaItem>{};
 
       // 1. 收藏种子（PR #86）
