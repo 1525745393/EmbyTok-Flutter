@@ -177,6 +177,8 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
+    bool excludePlayed = false,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteMovies, [], {
@@ -186,6 +188,8 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #serverUrl: serverUrl,
           #token: token,
           #cancelToken: cancelToken,
+          #includeTypes: includeTypes,
+          #excludePlayed: excludePlayed,
         }),
         returnValue: Future.value(
             const FavoritesPageResult(items: <MediaItem>[], totalCount: 0)),

@@ -70,12 +70,14 @@ class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
   @override
   Future<MediaItem?> getPersonDetail(
     String? personId, {
+    String? personName,
     String? serverUrl,
     String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPersonDetail, [personId], {
+          #personName: personName,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,

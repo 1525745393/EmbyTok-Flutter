@@ -51,6 +51,8 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     String? token,
     String? userId,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
+    bool excludePlayed = false,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteMovies, [], {
@@ -60,6 +62,8 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           #token: token,
           #userId: userId,
           #cancelToken: cancelToken,
+          #includeTypes: includeTypes,
+          #excludePlayed: excludePlayed,
         }),
         returnValue: Future.value(const FavoritesPageResult(
           items: [],
@@ -199,12 +203,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
   @override
   Future<MediaItem?> getPersonDetail(
     String? personId, {
+    String? personName,
     String? serverUrl,
     String? token,
     String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getPersonDetail, [personId], {
+          #personName: personName,
           #serverUrl: serverUrl,
           #token: token,
           #userId: userId,

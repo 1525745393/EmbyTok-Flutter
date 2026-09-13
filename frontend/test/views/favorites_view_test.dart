@@ -98,6 +98,8 @@ class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
+    bool excludePlayed = false,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getFavoriteMovies, [], {
@@ -107,6 +109,8 @@ class _MockCachedMediaRepository extends Mock implements CachedMediaRepository {
           #serverUrl: serverUrl,
           #token: token,
           #cancelToken: cancelToken,
+          #includeTypes: includeTypes,
+          #excludePlayed: excludePlayed,
         }),
         returnValue: Future.value(
             const FavoritesPageResult(items: <MediaItem>[], totalCount: 0)),

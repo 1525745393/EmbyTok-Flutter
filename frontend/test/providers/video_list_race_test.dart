@@ -165,6 +165,8 @@ class _MockMediaRepository implements MediaRepository {
     required String token,
     String? userId,
     CancelToken? cancelToken,
+    List<String>? includeTypes,
+    bool excludePlayed = false,
   }) async {
     final req = _createPendingRequest('getFavoriteMovies', {
       'limit': limit,
@@ -333,6 +335,7 @@ class _MockMediaRepository implements MediaRepository {
   @override
   Future<MediaItem?> getPersonDetail(
     String personId, {
+    String? personName,
     required String serverUrl,
     required String token,
     String? userId,
@@ -357,6 +360,26 @@ class _MockMediaRepository implements MediaRepository {
       'personId': personId,
       'limit': limit,
       'offset': offset,
+      'serverUrl': serverUrl,
+      'token': token,
+    });
+    return await req.completer.future as PaginatedResponse<MediaItem>;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getBoxSetItems(
+    String boxSetId, {
+    int limit = 50,
+    int offset = 0,
+    bool excludePlayed = false,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final req = _createPendingRequest('getBoxSetItems', {
+      'boxSetId': boxSetId,
+      'limit': limit,
+      'offset': offset,
+      'excludePlayed': excludePlayed,
       'serverUrl': serverUrl,
       'token': token,
     });
