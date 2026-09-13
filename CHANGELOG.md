@@ -1,3 +1,10 @@
+## [2.84.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.0...v2.84.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* 更新mock类方法签名支持新增参数 ([efcc96e](https://github.com/1525745393/EmbyTok-Flutter/commit/efcc96e05cf6c8fef09a5e5d91ac1cbcdda7de74))
+
 # [2.84.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.83.10...v2.84.0) (2026-09-12)
 
 
