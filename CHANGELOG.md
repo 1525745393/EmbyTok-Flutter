@@ -1,3 +1,10 @@
+# [2.86.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.85.0...v2.86.0) (2026-09-13)
+
+
+### Features
+
+* 实现收藏NAS同步、分享功能、专辑详情对话框 ([06457b7](https://github.com/1525745393/EmbyTok-Flutter/commit/06457b7b513b45107cfd28c4bf25dfe9bc96bc44))
+
 # [2.85.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.3...v2.85.0) (2026-09-13)
 
 
