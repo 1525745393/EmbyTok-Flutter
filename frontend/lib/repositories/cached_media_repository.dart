@@ -812,6 +812,27 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<MediaItem>> getNativeRecommendations({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  }) {
+    // 复用 suggestions 缓存容器，以独立前缀 native: 区分
+    final key = 'native:$serverUrl:$token:${userId ?? ''}:${libraryId ?? ''}';
+    return _withCache(
+        _suggestionsCache,
+        key,
+        () => _inner.getNativeRecommendations(
+              userId: userId,
+              libraryId: libraryId,
+              serverUrl: serverUrl,
+              token: token,
+            ),
+        ttl: const Duration(minutes: 5));
+  }
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,

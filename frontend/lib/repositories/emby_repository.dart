@@ -363,6 +363,51 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<List<MediaItem>> getNativeRecommendations({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    // 两个原生端点独立容错：任一不支持/失败时不影响另一个，都失败则返回空由上层降级
+    Future<List<MediaItem>> movies() async {
+      try {
+        return await _service.getMovieRecommendations(
+          userId: userId,
+          libraryId: libraryId,
+          serverUrl: serverUrl,
+          token: token,
+        );
+      } catch (_) {
+        return const <MediaItem>[];
+      }
+    }
+
+    Future<List<MediaItem>> shows() async {
+      try {
+        return await _service.getRecommendedShows(
+          userId: userId,
+          libraryId: libraryId,
+          serverUrl: serverUrl,
+          token: token,
+        );
+      } catch (_) {
+        return const <MediaItem>[];
+      }
+    }
+
+    final results = await Future.wait([movies(), shows()]);
+    final merged = <MediaItem>[];
+    final seen = <String>{};
+    for (final list in results) {
+      for (final item in list) {
+        if (seen.add(item.id)) merged.add(item);
+      }
+    }
+    return merged;
+  }
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,

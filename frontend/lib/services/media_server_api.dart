@@ -125,6 +125,30 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// Emby 原生电影推荐（/Movies/Recommendations）
+  ///
+  /// 返回按"因为你看过 X"分组的电影，已在实现层展平去重。
+  /// 老版本 Emby / Jellyfin 可能不支持，调用方需容错降级。
+  Future<List<MediaItem>> getMovieRecommendations({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  });
+
+  /// Emby 原生剧集推荐（/Shows/Recommended）
+  ///
+  /// 老版本 Emby / Jellyfin 可能不支持，调用方需容错降级。
+  Future<List<MediaItem>> getRecommendedShows({
+    int limit = 30,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  });
+
   /// Next Up（下一步看什么）—— 剧集的下一集
   ///
   /// 可选 seriesId：传入则只返回指定剧集的下一集

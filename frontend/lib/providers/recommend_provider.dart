@@ -128,6 +128,7 @@ enum RecommendSource {
   nextUp, // 追剧
   resume, // 续看
   suggestions, // 为你推荐
+  nativeRecommendations, // Emby 原生精选
   similar, // 相似
   recommendations, // 高分
 }
@@ -141,6 +142,8 @@ extension RecommendSourceLabel on RecommendSource {
         return 'resume';
       case RecommendSource.suggestions:
         return 'suggestions';
+      case RecommendSource.nativeRecommendations:
+        return 'nativeRecommendations';
       case RecommendSource.similar:
         return 'similar';
       case RecommendSource.recommendations:
@@ -157,6 +160,8 @@ extension RecommendSourceLabel on RecommendSource {
         return '续看';
       case RecommendSource.suggestions:
         return '为你推荐';
+      case RecommendSource.nativeRecommendations:
+        return '精选';
       case RecommendSource.similar:
         return '相似';
       case RecommendSource.recommendations:
@@ -268,6 +273,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   static const String _sourceNextUp = 'nextUp';
   static const String _sourceResume = 'resume';
   static const String _sourceSuggestions = 'suggestions';
+  static const String _sourceNative = 'nativeRecommendations';
   static const String _sourceRecommendations = 'recommendations';
   static const String _sourceSimilar = 'similar';
 
@@ -523,6 +529,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       _sourceNextUp: <RecommendItem>[],
       _sourceResume: <RecommendItem>[],
       _sourceSuggestions: <RecommendItem>[],
+      _sourceNative: <RecommendItem>[],
       _sourceRecommendations: <RecommendItem>[],
       _sourceSimilar: <RecommendItem>[],
     };
@@ -537,13 +544,19 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       userId: userId,
     );
     // 顺序对应 sourceHasMore 索引：
-    // [0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Similar, [4]=Recommendations
+    // [0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Native, [4]=Similar, [5]=Recommendations
     final sourceHasMore = await Future.wait<bool>([
       _fetchNextUpQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
       _fetchResumeQueue(
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
       _fetchSuggestionsQueue(
+          ctx: ctx,
+          queues: queues,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId),
+      _fetchNativeRecommendationsQueue(
           ctx: ctx,
           queues: queues,
           serverUrl: serverUrl,
@@ -766,6 +779,50 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       return suggestions.length >= _pageSize;
     } catch (e) {
       AppLogger.error('推荐：加载个性化推荐失败', error: e);
+      return false;
+    }
+  }
+
+  // 填充 Emby 原生精选队列（/Movies/Recommendations + /Shows/Recommended）
+  // 该源基于观看历史生成、无分页概念，固定返回 hasMore=false；
+  // 老版本 Emby / Jellyfin 不支持端点时仓库层已吞掉异常返回空，这里再兜底一层。
+  // 仅当用户选定单个媒体库时用 ParentId 限定，多库时做跨库全局推荐。
+  Future<bool> _fetchNativeRecommendationsQueue({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    try {
+      final libraryId = ctx.selectedIds.length == 1 ? ctx.selectedIds.first : null;
+      final items = await ctx.repo.getNativeRecommendations(
+        userId: userId,
+        libraryId: libraryId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      final queue = queues[_sourceNative];
+      for (final item in items) {
+        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+        if (_shouldSkipItem(
+          item,
+          signal: ctx.signal,
+          favoriteIds: ctx.favoriteIds,
+          antiFatigueEnabled: ctx.antiFatigueEnabled,
+          recentlyShownIds: ctx.recentlyShownIds,
+          userRatingEnabled: ctx.userRatingEnabled,
+          userRatingMin: ctx.userRatingMin,
+        )) {
+          continue;
+        }
+        queue?.add(RecommendItem(
+            item: item, source: RecommendSource.nativeRecommendations));
+      }
+      // 原生精选无分页，不参与"还有更多"判定
+      return false;
+    } catch (e) {
+      AppLogger.error('推荐：加载 Emby 原生精选失败', error: e);
       return false;
     }
   }
@@ -1006,6 +1063,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       RecommendSource.nextUp,
       RecommendSource.resume,
       RecommendSource.suggestions,
+      RecommendSource.nativeRecommendations,
       RecommendSource.similar,
       RecommendSource.recommendations,
     ];
@@ -1031,7 +1089,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         }
       }
     }
-    // Task 4：所有 5 个数据源都返回空结果时，认为服务器端已无更多数据
+    // Task 4：所有数据源都返回空结果时，认为服务器端已无更多数据
     final allSourcesExhausted = !sourceHasMore.any((h) => h);
     return _PageLoadResult(
       tagged: tagged,
@@ -1054,6 +1112,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         return queues[_sourceResume] ?? const [];
       case RecommendSource.suggestions:
         return queues[_sourceSuggestions] ?? const [];
+      case RecommendSource.nativeRecommendations:
+        return queues[_sourceNative] ?? const [];
       case RecommendSource.similar:
         return queues[_sourceSimilar] ?? const [];
       case RecommendSource.recommendations:

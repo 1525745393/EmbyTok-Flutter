@@ -298,6 +298,18 @@ abstract class MediaRepository {
     required String token,
   });
 
+  /// 获取 Emby 原生推荐（/Movies/Recommendations + /Shows/Recommended）
+  ///
+  /// 内部并发拉取电影与剧集原生推荐并展平去重。
+  /// 老版本 Emby / Jellyfin 不支持对应端点时返回空列表，由调用方降级，不抛异常。
+  /// [libraryId] 仅在用户选定单个媒体库时传入以限定范围；多库时传 null（跨库推荐）。
+  Future<List<MediaItem>> getNativeRecommendations({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  });
+
   /// 获取观看历史
   ///
   /// 用户播放/标记已看后数据会变，使用短 TTL 缓存，并在 markAsPlayed 后失效。

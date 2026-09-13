@@ -440,6 +440,15 @@ class _MockMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<MediaItem>> getNativeRecommendations({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  }) async =>
+      const <MediaItem>[];
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,

@@ -422,6 +422,98 @@ class EmbyServerApi implements MediaServerApi {
   }
 
   // ============================
+  // Emby 原生电影推荐：/Movies/Recommendations
+  // 返回 RecommendationDto[] 分组（"因为你看过 X"），此处展平为 BaseItemDto 列表。
+  // 老版本 Emby / Jellyfin 可能没有该端点，调用方需容错降级。
+  // ============================
+  @override
+  Future<List<MediaItem>> getMovieRecommendations({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      return <MediaItem>[];
+    }
+    final params = <String, dynamic>{
+      'UserId': effectiveUserId,
+      'CategoryLimit': '$categoryLimit',
+      'ItemLimit': '$itemLimit',
+      'EnableImages': 'true',
+      'EnableUserData': 'true',
+      'ImageTypeLimit': '1',
+      'EnableImageTypes': 'Primary,Backdrop,Thumb',
+      if (libraryId != null) 'ParentId': libraryId,
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Movies/Recommendations',
+      queryParameters: params,
+    );
+    // 响应为 RecommendationDto[]：[{ Items: [...], RecommendationType, BaselineItemName }]
+    final data = resp.data;
+    if (data is! List) return <MediaItem>[];
+    final result = <MediaItem>[];
+    final seen = <String>{};
+    for (final group in data.whereType<Map<String, dynamic>>()) {
+      final items = (group['Items'] as List<dynamic>?) ?? const [];
+      for (final e in items.whereType<Map<String, dynamic>>()) {
+        final item = MediaItem.fromJson(e);
+        if (seen.add(item.id)) result.add(item);
+      }
+    }
+    return result;
+  }
+
+  // ============================
+  // Emby 原生剧集推荐：/Shows/Recommended
+  // 返回扁平 BaseItemDto[]。老版本服务器可能没有该端点，调用方需容错降级。
+  // ============================
+  @override
+  Future<List<MediaItem>> getRecommendedShows({
+    int limit = 30,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      return <MediaItem>[];
+    }
+    final params = <String, dynamic>{
+      'UserId': effectiveUserId,
+      'Limit': '$limit',
+      'Fields':
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,SeriesName,MediaSources,Path',
+      'IncludeItemTypes': 'Series,Episode',
+      if (libraryId != null) 'ParentId': libraryId,
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Shows/Recommended',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    final List<dynamic> items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map<String, dynamic>) {
+      items = (data['Items'] as List<dynamic>?) ?? const [];
+    } else {
+      return <MediaItem>[];
+    }
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => MediaItem.fromJson(e))
+        .toList();
+  }
+
+  // ============================
   // Next Up（下一步看什么）—— 剧集的下一集
   // 可选 seriesId：传入则只返回指定剧集的下一集
   // ============================

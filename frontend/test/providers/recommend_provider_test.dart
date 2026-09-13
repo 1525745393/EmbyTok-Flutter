@@ -126,6 +126,25 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValueForMissingStub: Future.value(<MediaItem>[]),
       ) as Future<List<MediaItem>>;
 
+  // ---- NativeRecommendations（Emby 原生精选，默认空，由具体用例 stub）----
+  @override
+  Future<List<MediaItem>> getNativeRecommendations({
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getNativeRecommendations, [], {
+          #userId: userId,
+          #libraryId: libraryId,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<MediaItem>[]),
+        returnValueForMissingStub: Future.value(<MediaItem>[]),
+      ) as Future<List<MediaItem>>;
+
   // ---- Recommendations ----
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({
@@ -1078,6 +1097,146 @@ void main() {
       // 总数为 3（dup-1 + nu-unique + sg-unique），不是 4
       expect(state.taggedItems.length, 3,
           reason: '去重后总 item 数应为 3');
+    });
+
+    test('Emby 原生精选源被合并并正确打标', () async {
+      // 原生精选返回 2 个 item；NextUp 给 1 个 filler 避免冷启动降级
+      final nextUpItems = [_item('nu-filler')];
+      final nativeItems = [_item('native-1'), _item('native-2')];
+
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page(nextUpItems));
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      when(repo.getNativeRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        userId: anyNamed('userId'),
+        libraryId: anyNamed('libraryId'),
+      )).thenAnswer((_) async => nativeItems);
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+      );
+
+      final state = await _waitForLoad(container);
+
+      // 原生精选 item 出现在结果中
+      expect(_hasItem(state, 'native-1'), true);
+      expect(_hasItem(state, 'native-2'), true);
+      // tagCounts 正确统计原生精选源
+      expect(state.tagCounts['nativeRecommendations'], 2);
+      // 原生 item 的来源标签正确
+      final nativeTagged = state.taggedItems
+          .where((r) => r.source == RecommendSource.nativeRecommendations)
+          .map((r) => r.item.id)
+          .toSet();
+      expect(nativeTagged, {'native-1', 'native-2'});
+    });
+
+    test('原生精选端点失败时静默降级，不影响其他源', () async {
+      final nextUpItems = [_item('nu-1')];
+
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page(nextUpItems));
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      // 原生精选抛错（模拟老版本 Emby / Jellyfin 无此端点）
+      when(repo.getNativeRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        userId: anyNamed('userId'),
+        libraryId: anyNamed('libraryId'),
+      )).thenThrow(Exception('404 Not Found'));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+      );
+
+      // 不应抛错，其他源（NextUp）仍正常出结果
+      final state = await _waitForLoad(container);
+      expect(_hasItem(state, 'nu-1'), true);
+      expect(state.tagCounts['nativeRecommendations'] ?? 0, 0);
     });
   });
 

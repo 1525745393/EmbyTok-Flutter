@@ -627,6 +627,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           sourceKey: RecommendSource.suggestions.key,
           count: countFor(RecommendSource.suggestions)),
       _RecommendTagInfo(
+          label: RecommendSource.nativeRecommendations.label,
+          sourceKey: RecommendSource.nativeRecommendations.key,
+          count: countFor(RecommendSource.nativeRecommendations)),
+      _RecommendTagInfo(
           label: RecommendSource.similar.label,
           sourceKey: RecommendSource.similar.key,
           count: countFor(RecommendSource.similar)),

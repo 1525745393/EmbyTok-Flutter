@@ -207,6 +207,46 @@ class EmbytokService {
   }
 
   // ============================
+  // Emby 原生电影推荐 /Movies/Recommendations（展平分组）
+  // ============================
+  Future<List<MediaItem>> getMovieRecommendations({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getMovieRecommendations(
+      categoryLimit: categoryLimit,
+      itemLimit: itemLimit,
+      userId: userId,
+      libraryId: libraryId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  // ============================
+  // Emby 原生剧集推荐 /Shows/Recommended
+  // ============================
+  Future<List<MediaItem>> getRecommendedShows({
+    int limit = 30,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getRecommendedShows(
+      limit: limit,
+      userId: userId,
+      libraryId: libraryId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  // ============================
   // Next Up（下一步看什么）—— 剧集的下一集
   // 可选 seriesId：传入则只返回指定剧集的下一集
   // ============================

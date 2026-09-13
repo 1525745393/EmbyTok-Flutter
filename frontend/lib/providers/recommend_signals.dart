@@ -70,6 +70,7 @@ class UserBehaviorSignal {
       RecommendSource.nextUp: 1.0,
       RecommendSource.resume: 1.0,
       RecommendSource.suggestions: 1.0,
+      RecommendSource.nativeRecommendations: 1.0,
       RecommendSource.similar: 1.0,
       RecommendSource.recommendations: 1.0,
     },
@@ -355,6 +356,8 @@ class UserBehaviorSignalCalculator {
         return RecommendSource.resume;
       case 'suggestions':
         return RecommendSource.suggestions;
+      case 'nativeRecommendations':
+        return RecommendSource.nativeRecommendations;
       case 'similar':
         return RecommendSource.similar;
       case 'recommendations':
