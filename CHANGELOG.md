@@ -1,3 +1,10 @@
+# [2.88.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.87.0...v2.88.0) (2026-09-13)
+
+
+### Features
+
+* 视频库增强 - 骨架屏加载 + 预加载优化 + 手势反馈 ([b068fcd](https://github.com/1525745393/EmbyTok-Flutter/commit/b068fcd6289c9b7e7854bcb9a4987b991f28785e))
+
 # [2.87.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.86.0...v2.87.0) (2026-09-13)
 
 
