@@ -1,3 +1,10 @@
+# [2.99.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.98.0...v2.99.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 平衡追剧队列数量比例 ([edf912f](https://github.com/1525745393/EmbyTok-Flutter/commit/edf912faf6dd9d76b741e7eb799759948da29959))
+
 # [2.98.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.2...v2.98.0) (2026-09-13)
 
 
