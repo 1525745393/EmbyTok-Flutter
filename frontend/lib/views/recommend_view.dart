@@ -132,6 +132,37 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       if (state.hasMore && !state.isLoadingMore && !state.isLoading) {
         ref.read(recommendProvider.notifier).loadMore();
       }
+      // 预加载下一页海报图片
+      _preloadNextPageImages(state);
+    }
+  }
+
+  // 预加载下一页海报图片，提升滚动流畅度
+  void _preloadNextPageImages(RecommendState state) {
+    if (!mounted) return;
+    final auth = ref.read(authProvider);
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    if (serverUrl == null || token == null) return;
+
+    // 预加载当前页最后 5 个 + 下一页前 5 个
+    final items = state.taggedItems;
+    final preloadStart = items.length > 5 ? items.length - 5 : 0;
+    final preloadEnd = (items.length + 5).clamp(0, items.length);
+
+    for (var i = preloadStart; i < preloadEnd; i++) {
+      final item = items[i].item;
+      final imageUrl = item.primaryUrl(
+        embyServerUrl: serverUrl,
+        apiKey: token,
+        maxWidth: 500,
+      );
+      if (imageUrl != null) {
+        precacheImage(
+          CachedNetworkImageProvider(imageUrl),
+          context,
+        );
+      }
     }
   }
 
@@ -469,12 +500,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
             LibrarySelector.show(context, scope: LibraryScope.recommend),
       );
     }
-    // 其他错误 → 重试
-    return ErrorStateCard(
+    // 其他错误 → 自动重试
+    return AutoRetryErrorCard(
       title: '加载推荐失败',
       subtitle: errorMsg,
-      actionLabel: '重试',
-      onAction: () => ref.read(recommendProvider.notifier).refresh(),
+      onRetry: () => ref.read(recommendProvider.notifier).refresh(),
     );
   }
 

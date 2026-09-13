@@ -1,6 +1,8 @@
 // 统一错误状态卡片：图标 + 标题 + 副标题 + 操作按钮
 // 用于网络错误、加载失败、服务器连接异常等场景
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 /// 错误状态卡片
@@ -128,6 +130,134 @@ class ErrorStateCard extends StatelessWidget {
                 onPressed: actionCallback,
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 自动重试错误状态卡片
+///
+/// 错误发生后自动倒计时重试，无需用户手动点击
+class AutoRetryErrorCard extends StatefulWidget {
+
+  const AutoRetryErrorCard({
+    super.key,
+    required this.onRetry,
+    this.title = '加载失败',
+    this.subtitle,
+    this.retrySeconds = 3,
+  });
+
+  final VoidCallback onRetry;
+  final String title;
+  final String? subtitle;
+  final int retrySeconds;
+
+  @override
+  State<AutoRetryErrorCard> createState() => _AutoRetryErrorCardState();
+}
+
+class _AutoRetryErrorCardState extends State<AutoRetryErrorCard> {
+  late int _countdown;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _countdown = widget.retrySeconds;
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_countdown > 1) {
+          _countdown--;
+        } else {
+          timer.cancel();
+          widget.onRetry();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: scheme.error,
+              size: 56,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.title,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (widget.subtitle != null && widget.subtitle!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.subtitle!,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 20),
+            Text(
+              '$_countdown 秒后自动重试...',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('立即重试'),
+              onPressed: () {
+                _timer?.cancel();
+                widget.onRetry();
+              },
+            ),
           ],
         ),
       ),

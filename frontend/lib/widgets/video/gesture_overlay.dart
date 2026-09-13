@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
@@ -75,7 +76,25 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   }
 
   @override
-  bool get handleLeftVerticalDrag => false;
+  bool get handleLeftVerticalDrag => true;
+
+  @override
+  void onLeftVerticalDragUpdate(double delta) {
+    // 左侧垂直拖动：调节亮度
+    _adjustBrightness(delta);
+  }
+
+  double _brightness = 0.5;
+  final ScreenBrightness _screenBrightness = ScreenBrightness();
+
+  void _adjustBrightness(double delta) async {
+    try {
+      _brightness = (_brightness + delta).clamp(0.1, 1.0);
+      await _screenBrightness.setScreenBrightness(_brightness);
+    } catch (_) {
+      // 亮度调节失败不影响主流程，静默处理
+    }
+  }
 
   @override
   MediaItem? get currentItem => widget.item;
