@@ -1,3 +1,10 @@
+# [2.96.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.95.0...v2.96.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 取消原生电影推荐分组横幅 ([bb3e01e](https://github.com/1525745393/EmbyTok-Flutter/commit/bb3e01e5df1f119a7c248d16cc95c974d81bfbb4))
+
 # [2.95.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.94.0...v2.95.0) (2026-09-13)
 
 
