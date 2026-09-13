@@ -100,7 +100,7 @@ class DeezerService {
     try {
       // 1. 搜索歌手
       final searchResult = await _searchArtist(key);
-      if (searchResult == null || searchResult.isEmpty) {
+      if (searchResult.isEmpty) {
         _artistCache[key] = null;
         return null;
       }
@@ -136,7 +136,7 @@ class DeezerService {
 
     try {
       final searchResult = await _searchArtist(key, limit: limit);
-      if (searchResult == null || searchResult.isEmpty) return [];
+      if (searchResult.isEmpty) return [];
 
       final results = <DeezerArtistInfo>[];
       for (final item in searchResult.take(limit)) {
@@ -145,11 +145,6 @@ class DeezerService {
 
         // 头像：Deezer API 直接返回 picture_xl/picture_big/picture_medium/picture_small 字段
         // 取最大尺寸的头像
-        final imageUrl = item['picture_xl'] as String?
-            ?? item['picture_big'] as String?
-            ?? item['picture_medium'] as String?
-            ?? item['picture_small'] as String?;
-
         results.add(DeezerArtistInfo(
           name: name,
           pictureXl: item['picture_xl'] as String?,

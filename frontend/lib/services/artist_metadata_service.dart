@@ -81,12 +81,6 @@ class ArtistMetadataService {
   /// SharedPreferences 存储 key 前缀
   static const String _prefsKeyPrefix = 'artist_metadata_';
 
-  /// 缓存有效期（30 天）
-  static const Duration _cacheValidity = Duration(days: 30);
-
-  /// 无简介标记有效期（7 天）
-  static const Duration _emptyCacheValidity = Duration(days: 7);
-
   /// 初始化（加载 SharedPreferences 实例）
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
