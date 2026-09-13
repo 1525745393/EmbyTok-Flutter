@@ -447,6 +447,56 @@ final recommendAntiFatigueDaysProvider =
   (ref) => RecommendAntiFatigueDaysNotifier(),
 );
 
+// 推荐 - 追剧：取最近几部剧的下一集（默认 5，范围 [1,10]）
+class RecommendNextUpSeriesCountNotifier extends StateNotifier<int> {
+  RecommendNextUpSeriesCountNotifier() : super(5) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendNextUpSeriesCount;
+  }
+
+  Future<void> setCount(int count) async {
+    final clamped = count.clamp(1, 10);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(recommendNextUpSeriesCount: clamped));
+  }
+}
+
+final recommendNextUpSeriesCountProvider =
+    StateNotifierProvider<RecommendNextUpSeriesCountNotifier, int>(
+  (ref) => RecommendNextUpSeriesCountNotifier(),
+);
+
+// 推荐 - 追剧：收藏演员新作品条数（默认 20，范围 [5,40]）
+class RecommendFavActorNewCountNotifier extends StateNotifier<int> {
+  RecommendFavActorNewCountNotifier() : super(20) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendFavActorNewCount;
+  }
+
+  Future<void> setCount(int count) async {
+    final clamped = count.clamp(5, 40);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(recommendFavActorNewCount: clamped));
+  }
+}
+
+final recommendFavActorNewCountProvider =
+    StateNotifierProvider<RecommendFavActorNewCountNotifier, int>(
+  (ref) => RecommendFavActorNewCountNotifier(),
+);
+
 // PR #88：最近展示过的 itemId 列表（用于反推荐疲劳）
 // - Set<String> 表示 itemId（对外接口不变）
 // - 内部维护 _shownAtMap: Map<String, int> 记录 itemId → shownAt 时间戳（秒）

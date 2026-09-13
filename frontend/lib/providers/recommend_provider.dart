@@ -223,6 +223,8 @@ class _LoadContext {
     required this.recentlyShownIds,
     required this.userRatingEnabled,
     required this.userRatingMin,
+    required this.nextUpSeriesCount,
+    required this.favActorNewCount,
   });
   final AuthState auth;
   final List<String> selectedIds;
@@ -238,6 +240,9 @@ class _LoadContext {
   final Set<String> recentlyShownIds;
   final bool userRatingEnabled;
   final double userRatingMin;
+  // 追剧队列数量平衡
+  final int nextUpSeriesCount;
+  final int favActorNewCount;
 
   // PR #73：过滤非视频类型 item
   bool isVideo(MediaItem item) => _allowedTypes.contains(item.type);
@@ -332,6 +337,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
     final userRatingMin = _ref.read(recommendUserRatingMinProvider);
     final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+    // 追剧队列数量平衡
+    final nextUpSeriesCount = _ref.read(recommendNextUpSeriesCountProvider);
+    final favActorNewCount = _ref.read(recommendFavActorNewCountProvider);
 
     // PR #83 优化：从 userBehaviorSignalProvider 读取缓存，避免每次重算
     final signal = _ref.read(userBehaviorSignalProvider);
@@ -361,6 +369,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       recentlyShownIds: recentlyShownIds,
       userRatingEnabled: userRatingEnabled,
       userRatingMin: userRatingMin,
+      nextUpSeriesCount: nextUpSeriesCount,
+      favActorNewCount: favActorNewCount,
     );
   }
 
@@ -717,15 +727,16 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           .take(10)
           .toList();
       if (personIds.isNotEmpty) {
+        final favLimit = ctx.favActorNewCount;
         final resp = await ctx.repo.getItemsByPersonIds(
           personIds: personIds,
-          limit: 20,
+          limit: favLimit,
           serverUrl: serverUrl,
           token: token,
           userId: userId,
         );
         items = resp.items;
-        hasMore = resp.items.length >= 20;
+        hasMore = resp.items.length >= favLimit;
       } else {
         // 无收藏演员：不回退 NextUp，留空队列，
         // 由 UI 在空态引导用户去收藏演员。
@@ -808,7 +819,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required List<MediaItem> watchHistory,
   }) async {
     try {
-      const int recentSeriesLimit = 5;
+      final recentSeriesLimit = ctx.nextUpSeriesCount;
       final history = watchHistory;
       final seenSeriesIds = <String>{};
       final recentSeriesIds = <String>[];

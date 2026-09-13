@@ -106,6 +106,8 @@ class SettingsView extends ConsumerWidget {
                   _buildRecommendAntiFatigueDaysTile(context, ref),
                   _buildRecommendUserRatingEnabledTile(context, ref),
                   _buildRecommendUserRatingMinTile(context, ref),
+                  _buildRecommendNextUpSeriesCountTile(context, ref),
+                  _buildRecommendFavActorNewCountTile(context, ref),
                 ],
               ),
             ],
@@ -762,6 +764,108 @@ class SettingsView extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+
+  // 追剧：取最近几部剧的下一集（默认 5，范围 1-10）
+  Widget _buildRecommendNextUpSeriesCountTile(
+      BuildContext context, WidgetRef ref) {
+    final count = ref.watch(recommendNextUpSeriesCountProvider);
+    return _TapTile(
+      icon: Icons.live_tv,
+      iconColor: Colors.teal,
+      title: '追剧·最近剧集数',
+      subtitle: '展示最近 $count 部剧的下一集',
+      onTap: () => _showCountSliderDialog(
+        context, ref,
+        title: '追剧·最近剧集数',
+        current: count,
+        min: 1, max: 10,
+        label: (v) => '$v 部',
+        description: '数量越多，你正在追的剧续播排得越靠前；太少会只剩演员新片。',
+        apply: (v) =>
+            ref.read(recommendNextUpSeriesCountProvider.notifier).setCount(v),
+      ),
+    );
+  }
+
+  // 追剧：收藏演员新作品条数（默认 20，范围 5-40）
+  Widget _buildRecommendFavActorNewCountTile(
+      BuildContext context, WidgetRef ref) {
+    final count = ref.watch(recommendFavActorNewCountProvider);
+    return _TapTile(
+      icon: Icons.person,
+      iconColor: Colors.indigo,
+      title: '追剧·演员新片数',
+      subtitle: '收藏演员新作品展示 $count 条',
+      onTap: () => _showCountSliderDialog(
+        context, ref,
+        title: '追剧·演员新片数',
+        current: count,
+        min: 5, max: 40,
+        label: (v) => '$v 条',
+        description: '控制收藏演员新作品在追剧标签里占多少条。',
+        apply: (v) =>
+            ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
+      ),
+    );
+  }
+
+  // 通用数量滑块对话框
+  void _showCountSliderDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required int current,
+    required int min,
+    required int max,
+    required String Function(int v) label,
+    required String description,
+    required Future<void> Function(int v) apply,
+  }) {
+    var value = current.toDouble();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (_, setLocalState) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(description,
+                    style: const TextStyle(fontSize: _kFontSizeBody)),
+              ),
+              Text(label(value.round()),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              Slider(
+                value: value,
+                min: min.toDouble(),
+                max: max.toDouble(),
+                divisions: max - min,
+                label: label(value.round()),
+                onChanged: (v) => setLocalState(() => value = v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await apply(value.round());
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

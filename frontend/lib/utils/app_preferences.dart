@@ -155,6 +155,8 @@ class AppPreferences {
     this.recommendAntiFatigueDays = 30,
     this.recommendUserRatingEnabled = true,
     this.recommendUserRatingMin = 4.0,
+    this.recommendNextUpSeriesCount = 5,
+    this.recommendFavActorNewCount = 20,
   });
   final DeviceMode forceDeviceMode;
   final FeedType feedType;
@@ -203,6 +205,11 @@ class AppPreferences {
   //   - 收藏项豁免（用户主动喜欢 > 用户评分低）
   final bool recommendUserRatingEnabled;
   final double recommendUserRatingMin;
+  // 推荐 - 追剧队列数量平衡
+  // - recommendNextUpSeriesCount: 取最近几部剧的下一集（默认 5，范围 [1,10]）
+  // - recommendFavActorNewCount: 收藏演员新作品条数（默认 20，范围 [5,40]）
+  final int recommendNextUpSeriesCount;
+  final int recommendFavActorNewCount;
 
   AppPreferences copyWith({
     DeviceMode? forceDeviceMode,
@@ -227,6 +234,8 @@ class AppPreferences {
     int? recommendAntiFatigueDays,
     bool? recommendUserRatingEnabled,
     double? recommendUserRatingMin,
+    int? recommendNextUpSeriesCount,
+    int? recommendFavActorNewCount,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -260,8 +269,11 @@ class AppPreferences {
           recommendAntiFatigueDays ?? this.recommendAntiFatigueDays,
       recommendUserRatingEnabled:
           recommendUserRatingEnabled ?? this.recommendUserRatingEnabled,
-      recommendUserRatingMin:
-          recommendUserRatingMin ?? this.recommendUserRatingMin,
+      recommendUserRatingMin: recommendUserRatingMin ?? this.recommendUserRatingMin,
+      recommendNextUpSeriesCount:
+          recommendNextUpSeriesCount ?? this.recommendNextUpSeriesCount,
+      recommendFavActorNewCount:
+          recommendFavActorNewCount ?? this.recommendFavActorNewCount,
     );
   }
 }
@@ -355,6 +367,11 @@ class AppPreferencesService {
         prefs.getBool(kStorageKeyRecommendUserRatingEnabled) ?? true;
     final recommendUserRatingMin =
         prefs.getDouble(kStorageKeyRecommendUserRatingMin) ?? 4.0;
+    // 追剧队列数量平衡
+    final recommendNextUpSeriesCount =
+        prefs.getInt(kStorageKeyRecommendNextUpSeriesCount) ?? 5;
+    final recommendFavActorNewCount =
+        prefs.getInt(kStorageKeyRecommendFavActorNewCount) ?? 20;
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -379,6 +396,8 @@ class AppPreferencesService {
       recommendAntiFatigueDays: recommendAntiFatigueDays,
       recommendUserRatingEnabled: recommendUserRatingEnabled,
       recommendUserRatingMin: recommendUserRatingMin,
+      recommendNextUpSeriesCount: recommendNextUpSeriesCount,
+      recommendFavActorNewCount: recommendFavActorNewCount,
     );
   }
 
@@ -435,6 +454,11 @@ class AppPreferencesService {
           preferences.recommendUserRatingEnabled),
       prefs.setDouble(kStorageKeyRecommendUserRatingMin,
           preferences.recommendUserRatingMin),
+      // 追剧队列数量平衡
+      prefs.setInt(kStorageKeyRecommendNextUpSeriesCount,
+          preferences.recommendNextUpSeriesCount),
+      prefs.setInt(kStorageKeyRecommendFavActorNewCount,
+          preferences.recommendFavActorNewCount),
     ]);
   }
 

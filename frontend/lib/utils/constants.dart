@@ -66,6 +66,11 @@ const String kStorageKeyRecommendAntiFatigueEnabled =
     'embytok_recommend_anti_fatigue_enabled';
 const String kStorageKeyRecommendAntiFatigueDays =
     'embytok_recommend_anti_fatigue_days';
+// 推荐 - 追剧队列数量平衡
+const String kStorageKeyRecommendNextUpSeriesCount =
+    'embytok_recommend_nextup_series_count';
+const String kStorageKeyRecommendFavActorNewCount =
+    'embytok_recommend_fav_actor_new_count';
 // 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
 const String kStorageKeyFavoriteIncludeTypes =
     'embytok_favorite_include_types';
