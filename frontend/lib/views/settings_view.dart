@@ -1033,6 +1033,7 @@ class SettingsView extends ConsumerWidget {
           .toSet()
           .toList();
 
+      if (!context.mounted) return; // 修复：异步后检查 context.mounted
       if (artistNames.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1063,6 +1064,7 @@ class SettingsView extends ConsumerWidget {
         }
       }
     } catch (e) {
+      if (!context.mounted) return; // 修复：异步后检查 context.mounted
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('获取歌手列表失败：${e.toString()}'),

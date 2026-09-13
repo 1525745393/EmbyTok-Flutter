@@ -66,7 +66,7 @@ class NasMetadataSyncService {
       final filePath = '$_metadataRootPath/${Uri.encodeComponent(key)}.json';
       final url = '${api.serverUrl}/webapi/entry.cgi';
 
-      final response = await _dio.get(
+      final response = await _dio.get<dynamic>(
         url,
         queryParameters: {
           'api': 'SYNO.FileStation.Download',
@@ -141,7 +141,7 @@ class NasMetadataSyncService {
         ),
       });
 
-      final response = await _dio.post(url, data: formData);
+      final response = await _dio.post<dynamic>(url, data: formData);
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -170,7 +170,7 @@ class NasMetadataSyncService {
       if (!api.isLoggedIn) return [];
 
       final url = '${api.serverUrl}/webapi/entry.cgi';
-      final response = await _dio.get(
+      final response = await _dio.get<dynamic>(
         url,
         queryParameters: {
           'api': 'SYNO.FileStation.List',
@@ -211,7 +211,7 @@ class NasMetadataSyncService {
       final url = '${api.serverUrl}/webapi/entry.cgi';
 
       // 先检查目录是否存在
-      final checkResponse = await _dio.get(
+      final checkResponse = await _dio.get<dynamic>(
         url,
         queryParameters: {
           'api': 'SYNO.FileStation.List',
@@ -235,7 +235,7 @@ class NasMetadataSyncService {
       final dirName = _metadataRootPath.substring(
           _metadataRootPath.lastIndexOf('/') + 1);
 
-      await _dio.get(
+      await _dio.get<dynamic>(
         url,
         queryParameters: {
           'api': 'SYNO.FileStation.CreateFolder',

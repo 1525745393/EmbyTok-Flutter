@@ -725,7 +725,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       ),
     );
 
-    if (selected != null && mounted) {
+    if (selected != null && context.mounted) {
       // 跳转到选中的歌手详情页
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -753,7 +753,7 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
       ),
     );
 
-    if (updated != null && mounted) {
+    if (updated != null && context.mounted) {
       // 刷新页面，显示更新后的元数据
       setState(() {
         // 触发 provider 重新加载

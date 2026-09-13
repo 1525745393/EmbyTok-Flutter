@@ -160,6 +160,7 @@ class ArtistMetadataService {
           .catchError((e) {
         AppLogger.warn('歌手元数据 L3 NAS 上传失败',
             data: {'artist': key, 'error': e.toString()});
+        return false; // 修复：catchError 必须返回值
       });
     }
 
