@@ -842,66 +842,65 @@ class _LoadMoreIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     if (isLoading) {
-      // 骨架屏加载更多
+      // 该组件是网格最后一格（9:16 竖长），内容顶部对齐与相邻海报齐平，
+      // 避免垂直居中后上下大片留白显得悬空
       return Container(
+        alignment: Alignment.topCenter,
+        padding: const EdgeInsets.only(top: 20),
         decoration: BoxDecoration(
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: scheme.primary,
-                ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: scheme.primary,
               ),
-              const SizedBox(width: 12),
-              Text(
-                '加载更多...',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onSurfaceVariant,
-                ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '加载更多...',
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
     if (!hasMore) {
-      // 没有更多数据
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Divider(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
-                  endIndent: 16,
-                ),
+      // 没有更多数据：分割线 + 文案，顶部对齐，不绘制卡片底色
+      return Padding(
+        padding: const EdgeInsets.only(top: 12, left: 4, right: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                endIndent: 12,
               ),
-              Text(
-                '已经到底啦',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onSurfaceVariant,
-                ),
+            ),
+            Text(
+              '已经到底啦',
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
               ),
-              Expanded(
-                child: Divider(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
-                  indent: 16,
-                ),
+            ),
+            Expanded(
+              child: Divider(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                indent: 12,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

@@ -36,34 +36,40 @@ class VideoGridCard extends ConsumerWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: Container(
+        // 用 Ink 绘制背景：InkWell 水波纹绘制在 Material 的 InkLayer，
+        // 若用 Container 其背景会画在水波纹之上、削弱点击反馈
+        child: Ink(
           decoration: BoxDecoration(
             color: scheme.surface.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(8),
           ),
-          clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _buildCoverImage(imageUrl, scheme),
-                    if (duration != null)
-                      Positioned(
-                        right: 6,
-                        bottom: 6,
-                        child: _buildDurationBadge(duration, scheme),
-                      ),
-                    if (progress > 0)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 4,
-                        child: _buildProgressBar(progress, scheme),
-                      ),
-                  ],
+                // 封面顶部圆角裁剪（Ink 不支持 clipBehavior，改用 ClipRRect）
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(8)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildCoverImage(imageUrl, scheme),
+                      if (duration != null)
+                        Positioned(
+                          right: 6,
+                          bottom: 6,
+                          child: _buildDurationBadge(duration, scheme),
+                        ),
+                      if (progress > 0)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 4,
+                          child: _buildProgressBar(progress, scheme),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               Padding(
