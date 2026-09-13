@@ -1,3 +1,10 @@
+## [2.84.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.1...v2.84.2) (2026-09-13)
+
+
+### Bug Fixes
+
+* 修复P1级别代码问题onError return mounted检查 Dio类型推断 ([e7c2949](https://github.com/1525745393/EmbyTok-Flutter/commit/e7c294976eb8b0dee5d6aaa832d02a68c7f9a0f8))
+
 ## [2.84.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.84.0...v2.84.1) (2026-09-13)
 
 
