@@ -1,3 +1,10 @@
+## [2.97.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.97.0...v2.97.1) (2026-09-13)
+
+
+### Performance Improvements
+
+* **recommend:** 合并重复的观看历史请求 ([c49d632](https://github.com/1525745393/EmbyTok-Flutter/commit/c49d63292d4f151cf8bb0106b5019d94bcd55e52))
+
 # [2.97.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.96.0...v2.97.0) (2026-09-13)
 
 
