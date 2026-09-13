@@ -1,3 +1,10 @@
+# [2.100.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.99.0...v2.100.0) (2026-09-13)
+
+
+### Features
+
+* **settings:** 追剧队列数量可在设置中调节 ([42ea0e3](https://github.com/1525745393/EmbyTok-Flutter/commit/42ea0e3ae804035ed1682e4e9e059ce781b97bdc))
+
 # [2.99.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.98.0...v2.99.0) (2026-09-13)
 
 
