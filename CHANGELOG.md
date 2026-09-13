@@ -1,3 +1,10 @@
+# [2.97.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.96.0...v2.97.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 追剧无收藏演员时不回退，改引导空态 ([7d3d28d](https://github.com/1525745393/EmbyTok-Flutter/commit/7d3d28da0c45cbb7f82dbc21d792cbe784e61d67))
+
 # [2.96.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.95.0...v2.96.0) (2026-09-13)
 
 
