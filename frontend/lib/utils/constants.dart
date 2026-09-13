@@ -146,7 +146,7 @@ const double kMinSwipeDistancePx = 24.0; // 触发消隐的最小滑动距离
 
 // 预加载参数
 const double kDefaultPreloadThreshold = 0.6;
-const int kMaxPreloadControllers = 1;
+const int kMaxPreloadControllers = 3; // 当前页 + 前后各 1 页
 const int kPreloadFirstChunkBytes = 1048576; // 1MB
 
 /// PlaybackCoordinator 初始 item 轮询间隔（ms）

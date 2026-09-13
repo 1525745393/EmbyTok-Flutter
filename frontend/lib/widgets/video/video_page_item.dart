@@ -1568,7 +1568,6 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
   // 接入全局预加载池：预加载相邻视频并清理较远的会话，
   // 避免独立播放页长列表滑动时控制器数量无限增长（与 feed 行为一致）
-  // 增强：预加载前后各 2 个视频，提升滑动流畅度
   void _preloadAround(int index) {
     final auth = ref.read(authProvider);
     final serverUrl = auth.embyServerUrl;
@@ -1583,15 +1582,11 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
       }
     }
 
-    // 预加载前后各 2 个视频
-    safeUnawaited(maybePreload(index - 2),
-        context: 'PlaybackShell.maybePreload.prev2');
+    // 预加载前后各 1 个视频
     safeUnawaited(maybePreload(index - 1),
         context: 'PlaybackShell.maybePreload.prev');
     safeUnawaited(maybePreload(index + 1),
         context: 'PlaybackShell.maybePreload.next');
-    safeUnawaited(maybePreload(index + 2),
-        context: 'PlaybackShell.maybePreload.next2');
 
     // 保留当前页 + 前后各 1 页的会话
     final keep = <String>[];
