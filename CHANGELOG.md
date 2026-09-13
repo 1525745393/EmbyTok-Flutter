@@ -1,3 +1,10 @@
+# [2.94.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.93.0...v2.94.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 重构推荐标签栏 ([dfcfa82](https://github.com/1525745393/EmbyTok-Flutter/commit/dfcfa820d7ae459fdb9ab708d9a22b74a3444556))
+
 # [2.93.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.92.0...v2.93.0) (2026-09-13)
 
 
