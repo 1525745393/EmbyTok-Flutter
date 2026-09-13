@@ -371,7 +371,7 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
                 // （两种空态均保持可滚动，避免下拉刷新失效）
                 ? (isSearching
                     ? _buildSearchEmpty(scheme)
-                    : _buildListEmpty(scheme))
+                    : _buildListEmpty(state, scheme))
                 : GridView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(8),
@@ -504,7 +504,50 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
   // P0-2 修复：非搜索态空列表（当前标签/分类下无内容）
   // 与搜索空态区分，避免误显示「搜索无结果」；可滚动保留下拉刷新
-  Widget _buildListEmpty(ColorScheme scheme) {
+  Widget _buildListEmpty(RecommendState state, ColorScheme scheme) {
+    // 追剧标签空态：引导用户去收藏演员（不再回退 NextUp）
+    if (state.selectedTag == RecommendSource.nextUp.key) {
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: constraints.maxHeight,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_search_outlined,
+                      size: 48, color: scheme.onSurfaceVariant),
+                  const SizedBox(height: 12),
+                  Text(
+                    '还没有关注任何演员',
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant, fontSize: 15),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      '去演员页关注喜欢的演员后，这里会展示他们的最新作品',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: scheme.onSurfaceVariant, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        ref.read(recommendProvider.notifier).refresh(),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('刷新'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -650,8 +693,11 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
     // P2-1：隐藏 count==0 的源标签（如「相似 (0)」），避免展示无意义空标签
     // 「全部」始终保留（sourceKey == null），保证用户总有回退入口
-    final visibleTags =
-        tags.where((t) => t.sourceKey == null || t.count > 0).toList();
+    // 「追剧」即使 0 也保留：无收藏演员时展示引导空态，提示用户去收藏演员
+    final visibleTags = tags.where((t) =>
+        t.sourceKey == null ||
+        t.count > 0 ||
+        t.sourceKey == RecommendSource.nextUp.key).toList();
 
     return Container(
       height: 44,

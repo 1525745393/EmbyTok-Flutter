@@ -711,14 +711,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         items = resp.items;
         hasMore = resp.items.length >= _pageSize;
       } else {
-        // 无收藏演员：回退 NextUp 剧集续播
-        final resp = await ctx.repo.getNextUp(
-          limit: _pageSize,
-          serverUrl: serverUrl,
-          token: token,
-        );
-        items = resp.items;
-        hasMore = resp.items.length >= _pageSize;
+        // 无收藏演员：不回退 NextUp，留空队列，
+        // 由 UI 在空态引导用户去收藏演员。
+        items = const [];
+        hasMore = false;
       }
 
       for (final item in items) {
