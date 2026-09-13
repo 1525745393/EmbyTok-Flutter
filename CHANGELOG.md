@@ -1,3 +1,15 @@
+# [2.90.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.89.1...v2.90.0) (2026-09-13)
+
+
+### Bug Fixes
+
+* 修复手势提示 Timer 未取消问题 ([dea8d4c](https://github.com/1525745393/EmbyTok-Flutter/commit/dea8d4c21d95a5322dabdb942a8924275c0e90a6))
+
+
+### Features
+
+* 添加手势操作提示功能 ([2507a9b](https://github.com/1525745393/EmbyTok-Flutter/commit/2507a9bec3a4ea0b5ad2ecff10252175847be198))
+
 ## [2.89.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.89.0...v2.89.1) (2026-09-13)
 
 
