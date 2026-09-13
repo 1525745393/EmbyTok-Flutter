@@ -1,3 +1,10 @@
+# [2.93.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.92.0...v2.93.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 还原 Emby 首页原生电影推荐分组横幅 ([23ea8f3](https://github.com/1525745393/EmbyTok-Flutter/commit/23ea8f36430c4ec1bd27a7a14a2f6e5f7ad9f036))
+
 # [2.92.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.91.1...v2.92.0) (2026-09-13)
 
 
