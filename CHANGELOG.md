@@ -1,3 +1,10 @@
+# [2.87.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.86.0...v2.87.0) (2026-09-13)
+
+
+### Features
+
+* 集成收藏NAS同步和启动时自动同步 ([c0bfb9e](https://github.com/1525745393/EmbyTok-Flutter/commit/c0bfb9ea65ba05a48226951dd58ae25673dbe6a4))
+
 # [2.86.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.85.0...v2.86.0) (2026-09-13)
 
 
