@@ -42,9 +42,6 @@ const double _kBottomControlBarHeight = 24;
 /// 右侧操作栏宽度
 const double _kRightActionWidth = 72;
 
-/// 右侧操作栏按钮间距
-const double _kRightActionSpacing = 16;
-
 /// 右侧操作栏顶部偏移（有 toolbar 时避开刘海 + 额外间距）
 const double _kRightActionTopWithToolbar = 48;
 
@@ -89,9 +86,6 @@ const double _kFontSizeBody = 13;
 const double _kFontSizeLarge = 18;
 
 // ===== 间距与内边距常量 =====
-
-/// 超小间距
-const double _kSpacingXSmall = 4;
 
 /// 小间距
 const double _kSpacingSmall = 6;

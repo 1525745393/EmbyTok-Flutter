@@ -47,9 +47,6 @@ const double _kFontSizeMedium = 14;
 /// 大字体（页面标题、歌手名）
 const double _kFontSizeLarge = 16;
 
-/// 超大字体（专辑名、歌手详情标题）
-const double _kFontSizeXLarge = 22;
-
 /// 超小间距
 const double _kSpacingXSmall = 2;
 
@@ -190,10 +187,6 @@ const List<List<Color>> _kPlaylistGradients = [
 
 /// 导航栏搜索框宽度
 const double _kSearchBarWidth = 48.0;
-
-/// 搜索框内边距
-const double _kSearchBarPaddingH = 12.0;
-const double _kSearchBarPaddingV = 10.0;
 
 /// 列表项水平内边距
 const double _kListItemHorizontalPadding = 16.0;

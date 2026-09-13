@@ -56,9 +56,6 @@ const double _kArtistNameFontSizeLandscape = 20.0;
 /// 头部顶部间距
 const double _kHeaderTopSpacing = 40.0;
 
-/// 头部元素间距
-const double _kHeaderElementSpacing = 16.0;
-
 /// 头部小间距
 const double _kHeaderSmallSpacing = 8.0;
 

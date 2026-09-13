@@ -286,9 +286,6 @@ const double _kMenuTitleFontSize = 16.0;
 /// 菜单内边距
 const double _kMenuPadding = 20.0;
 
-/// 菜单标题上下间距
-const double _kMenuTitleVerticalSpacing = 12.0;
-
 // ===== 菜单文本和 SnackBar 常量 =====
 
 /// 菜单项：取消收藏
@@ -356,12 +353,6 @@ const double _kPersonGridMainAxisSpacing = 6.0;
 
 /// 人物网格交叉轴间距
 const double _kPersonGridCrossAxisSpacing = 6.0;
-
-/// 卡片圆角
-const double _kCardBorderRadius = 12.0;
-
-/// 海报圆角
-const double _kPosterBorderRadius = 8.0;
 
 /// 影片网格预览数量
 const int _kMovieGridPreviewCount = 6;

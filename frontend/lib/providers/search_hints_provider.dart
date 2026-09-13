@@ -16,9 +16,6 @@ import '../utils/memory_cache.dart';
 import 'auth_provider.dart';
 import 'embytok_service_provider.dart';
 
-/// 搜索建议防抖时间
-const Duration _kSearchHintsDebounce = Duration(milliseconds: 300);
-
 /// 搜索建议缓存 TTL（短时间内重复搜索同一关键词时命中缓存）
 const Duration _kSearchHintsCacheTtl = Duration(seconds: 30);
 
