@@ -408,6 +408,26 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  }) async {
+    try {
+      return await _service.getMovieRecommendationGroups(
+        userId: userId,
+        libraryId: libraryId,
+        serverUrl: serverUrl,
+        token: token,
+      );
+    } catch (_) {
+      // 老版本 Emby / Jellyfin 无此端点：横幅静默不显示，不影响推荐流
+      return const <NativeRecGroup>[];
+    }
+  }
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,

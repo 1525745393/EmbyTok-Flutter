@@ -310,6 +310,16 @@ abstract class MediaRepository {
     required String token,
   });
 
+  /// 获取 Emby 原生电影推荐分组（保留"因为你看过 X"标题）
+  ///
+  /// 用于首页横幅；老版本服务器不支持时返回空列表，不抛异常。
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  });
+
   /// 获取观看历史
   ///
   /// 用户播放/标记已看后数据会变，使用短 TTL 缓存，并在 markAsPlayed 后失效。

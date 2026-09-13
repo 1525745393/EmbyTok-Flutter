@@ -145,6 +145,25 @@ class _MockMediaRepository extends Mock implements MediaRepository {
         returnValueForMissingStub: Future.value(<MediaItem>[]),
       ) as Future<List<MediaItem>>;
 
+  // ---- MovieRecommendationGroups（原生电影推荐分组横幅，默认空）----
+  @override
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getMovieRecommendationGroups, [], {
+          #userId: userId,
+          #libraryId: libraryId,
+          #serverUrl: serverUrl,
+          #token: token,
+        }),
+        returnValue: Future.value(<NativeRecGroup>[]),
+        returnValueForMissingStub: Future.value(<NativeRecGroup>[]),
+      ) as Future<List<NativeRecGroup>>;
+
   // ---- Recommendations ----
   @override
   Future<PaginatedResponse<MediaItem>> getRecommendations({

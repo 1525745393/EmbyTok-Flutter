@@ -14,3 +14,4 @@ export 'search_hint.dart';
 export 'app_error.dart';
 export 'server_type.dart';
 export 'audio_models.dart';
+export 'native_rec_group.dart';

@@ -228,6 +228,27 @@ class EmbytokService {
   }
 
   // ============================
+  // Emby 原生电影推荐分组（保留"因为你看过 X"标题）
+  // ============================
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getMovieRecommendationGroups(
+      categoryLimit: categoryLimit,
+      itemLimit: itemLimit,
+      userId: userId,
+      libraryId: libraryId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  // ============================
   // Emby 原生剧集推荐 /Shows/Recommended
   // ============================
   Future<List<MediaItem>> getRecommendedShows({

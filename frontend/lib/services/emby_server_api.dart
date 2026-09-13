@@ -470,6 +470,49 @@ class EmbyServerApi implements MediaServerApi {
   }
 
   // ============================
+  // Emby 原生电影推荐分组：/Movies/Recommendations（保留 BaselineItemName）
+  // 与 getMovieRecommendations 同源，但保留"因为你看过 X"分组结构，供首页横幅使用。
+  // 老版本 Emby / Jellyfin 可能没有该端点，调用方需容错降级。
+  // ============================
+  @override
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    if (effectiveUserId == null || effectiveUserId.isEmpty) {
+      return <NativeRecGroup>[];
+    }
+    final params = <String, dynamic>{
+      'UserId': effectiveUserId,
+      'CategoryLimit': '$categoryLimit',
+      'ItemLimit': '$itemLimit',
+      'EnableImages': 'true',
+      'EnableUserData': 'true',
+      'ImageTypeLimit': '1',
+      'EnableImageTypes': 'Primary,Backdrop,Thumb',
+      if (libraryId != null) 'ParentId': libraryId,
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Movies/Recommendations',
+      queryParameters: params,
+    );
+    final data = resp.data;
+    if (data is! List) return <NativeRecGroup>[];
+    final groups = <NativeRecGroup>[];
+    for (final g in data.whereType<Map<String, dynamic>>()) {
+      final group = NativeRecGroup.fromJson(g);
+      if (group.items.isNotEmpty) groups.add(group);
+    }
+    return groups;
+  }
+
+  // ============================
   // Emby 原生剧集推荐：/Shows/Recommended
   // 返回扁平 BaseItemDto[]。老版本服务器可能没有该端点，调用方需容错降级。
   // ============================

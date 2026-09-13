@@ -138,6 +138,19 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// Emby 原生电影推荐分组（/Movies/Recommendations，保留 BaselineItemName）
+  ///
+  /// 用于首页"因为你看过 X"横幅；返回带分组标题的推荐电影。
+  /// 老版本 Emby / Jellyfin 可能不支持，调用方需容错降级。
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    int categoryLimit = 6,
+    int itemLimit = 10,
+    String? userId,
+    String? libraryId,
+    String? serverUrl,
+    String? token,
+  });
+
   /// Emby 原生剧集推荐（/Shows/Recommended）
   ///
   /// 老版本 Emby / Jellyfin 可能不支持，调用方需容错降级。

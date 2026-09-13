@@ -833,6 +833,23 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<NativeRecGroup>> getMovieRecommendationGroups({
+    String? userId,
+    String? libraryId,
+    required String serverUrl,
+    required String token,
+  }) {
+    // 分组横幅首屏拉取一次、随 refresh 刷新；类型为 List<NativeRecGroup>，
+    // 不复用 List<MediaItem> 的 suggestions 缓存容器，直接转发。
+    return _inner.getMovieRecommendationGroups(
+      userId: userId,
+      libraryId: libraryId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
   Future<List<MediaItem>> getWatchHistory({
     int limit = 50,
     String? userId,

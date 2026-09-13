@@ -356,6 +356,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     final hasMoreSlot = state.hasMore && !isSearching;
 
     // 网格：P2-2 列数由 _gridColumns 驱动（2/3），默认 3 列
+    final showNativeBanner =
+        !isSearching && state.selectedTag == null && state.nativeGroups.isNotEmpty;
     return Column(
       children: [
         if (showColdStartBanner) _buildColdStartBanner(scheme),
@@ -363,6 +365,8 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
         _buildSearchBar(scheme),
         // PR #80：标签分类栏（P2-1：count==0 的源自动隐藏，「全部」始终展示）
         _buildTagBar(state, scheme),
+        // Emby 原生电影推荐分组横幅（"因为你看过 X"），仅在「全部」标签且非搜索时显示
+        if (showNativeBanner) _buildNativeGroupsBanner(state, scheme),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
@@ -678,6 +682,131 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
           );
         },
+      ),
+    );
+  }
+
+  // Emby 原生电影推荐分组横幅："因为你看过 {BaselineItemName}"
+  // 固定高度 200，内部垂直堆叠多组，每组一个标题 + 横向海报条。
+  Widget _buildNativeGroupsBanner(RecommendState state, ColorScheme scheme) {
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.only(top: 4),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        physics: const BouncingScrollPhysics(),
+        itemCount: state.nativeGroups.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (context, i) =>
+            _buildNativeGroupSection(state.nativeGroups[i], scheme),
+      ),
+    );
+  }
+
+  // 单个推荐分组：标题行 + 横向海报列表
+  Widget _buildNativeGroupSection(NativeRecGroup group, ColorScheme scheme) {
+    final title = group.baselineName.isEmpty
+        ? '猜你喜欢'
+        : '因为你看过「${group.baselineName}」';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 16, color: scheme.primary),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 150,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: group.items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) => _buildNativeSmallCard(
+              group.items[i],
+              group.items,
+              scheme,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 横幅内的小海报卡片（2:3 竖版）
+  Widget _buildNativeSmallCard(
+      MediaItem item, List<MediaItem> allItems, ColorScheme scheme) {
+    final auth = ref.read(authProvider);
+    final imageUrl = item.primaryUrl(
+      embyServerUrl: auth.embyServerUrl,
+      apiKey: auth.token,
+      maxWidth: 300,
+    );
+    return GestureDetector(
+      onTap: () => _playItem(
+        context,
+        item,
+        allItems,
+        RecommendSource.nativeRecommendations,
+      ),
+      child: SizedBox(
+        width: 96,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 96,
+                height: 140,
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        cacheManager: AppImageCacheManager.thumbnail,
+                        memCacheWidth: 240,
+                        placeholder: (context, url) => Container(
+                          color: scheme.surfaceContainerHighest,
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: scheme.surfaceContainerHighest,
+                          child: Icon(Icons.movie_outlined,
+                              color: scheme.onSurfaceVariant),
+                        ),
+                      )
+                    : Container(
+                        color: scheme.surfaceContainerHighest,
+                        child: Icon(Icons.movie_outlined,
+                            color: scheme.onSurfaceVariant),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
     );
   }
