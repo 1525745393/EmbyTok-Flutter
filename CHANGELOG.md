@@ -1,3 +1,10 @@
+# [2.89.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.88.1...v2.89.0) (2026-09-13)
+
+
+### Features
+
+* 视频库增强 - 图片预加载 + 错误自动重试 + 亮度手势 ([0657f7f](https://github.com/1525745393/EmbyTok-Flutter/commit/0657f7fbcfd4a8b7eb2477110e194864b6187126))
+
 ## [2.88.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.88.0...v2.88.1) (2026-09-13)
 
 
