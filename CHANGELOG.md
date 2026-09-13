@@ -1,3 +1,10 @@
+# [2.92.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.91.1...v2.92.0) (2026-09-13)
+
+
+### Features
+
+* **recommend:** 对接 Emby 原生推荐 API（/Movies/Recommendations + /Shows/Recommended） ([0563827](https://github.com/1525745393/EmbyTok-Flutter/commit/0563827f7bafbc04c1b393d5ce65d00ac74bba5a))
+
 ## [2.91.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.91.0...v2.91.1) (2026-09-13)
 
 
