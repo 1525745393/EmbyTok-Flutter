@@ -147,6 +147,39 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
               ],
             ),
           ),
+          // 睡眠定时器入口
+          Consumer(
+            builder: (context, ref, _) {
+              final st = ref.watch(synologyPlaybackProvider);
+              final active = st.sleepTimerActive;
+              final mins = st.sleepTimerRemainingSeconds ~/ 60;
+              return IconButton(
+                icon: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      active ? Icons.bedtime : Icons.bedtime_outlined,
+                      color: active ? Colors.amberAccent : Colors.white,
+                    ),
+                    if (active)
+                      Positioned(
+                        bottom: 0,
+                        child: Text(
+                          '${mins}m',
+                          style: const TextStyle(
+                            color: Colors.amberAccent,
+                            fontSize: 7,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                tooltip: active ? '睡眠定时器（剩余 $mins 分钟）' : '睡眠定时器',
+                onPressed: () => _showSleepTimerSheet(context),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
             tooltip: '停止播放',
@@ -157,6 +190,122 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
           ),
         ],
       ),
+    );
+  }
+
+  // ============================
+  // 睡眠定时器设置
+  // ============================
+
+  Future<void> _showSleepTimerSheet(BuildContext context) async {
+    final notifier = ref.read(synologyPlaybackProvider.notifier);
+    final current = ref.read(synologyPlaybackProvider);
+
+    int? selectedMinutes; // null = 关闭
+    var behavior = current.sleepTimerBehavior;
+    var fadeOut = current.sleepTimerFadeOut;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (_, setLocal) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20, bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(
+                    child: Text('睡眠定时器',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 16),
+                  if (current.sleepTimerActive)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        '当前剩余：${current.sleepTimerRemainingSeconds ~/ 60} 分钟 '
+                        '${current.sleepTimerRemainingSeconds % 60} 秒',
+                        style: const TextStyle(color: Colors.amber, fontSize: 13),
+                      ),
+                    ),
+                  // 快捷时长
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final m in const [0, 15, 30, 45, 60])
+                        ChoiceChip(
+                          label: Text(m == 0 ? '关闭' : '$m 分钟'),
+                          selected: selectedMinutes == m,
+                          onSelected: (_) => setLocal(() => selectedMinutes = m),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('到点行为',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  RadioListTile<SleepTimerBehavior>(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('立即停止播放'),
+                    value: SleepTimerBehavior.immediateStop,
+                    groupValue: behavior,
+                    onChanged: (v) =>
+                        setLocal(() => behavior = v ?? SleepTimerBehavior.immediateStop),
+                  ),
+                  RadioListTile<SleepTimerBehavior>(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('当前歌曲结束后停止'),
+                    value: SleepTimerBehavior.currentSongEnd,
+                    groupValue: behavior,
+                    onChanged: (v) =>
+                        setLocal(() => behavior = v ?? SleepTimerBehavior.currentSongEnd),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    title: const Text('停止前 30 秒渐进淡出'),
+                    value: fadeOut,
+                    onChanged: (v) => setLocal(() => fadeOut = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () async {
+                        if (selectedMinutes == null) {
+                          // 未选：若当前有定时则取消
+                          await notifier.cancelSleepTimer();
+                        } else if (selectedMinutes == 0) {
+                          await notifier.cancelSleepTimer();
+                        } else {
+                          await notifier.startSleepTimer(
+                            duration: Duration(minutes: selectedMinutes!),
+                            behavior: behavior,
+                            fadeOut: fadeOut,
+                          );
+                        }
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      },
+                      child: Text(selectedMinutes == null || selectedMinutes == 0
+                          ? '取消定时器'
+                          : '开始定时'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

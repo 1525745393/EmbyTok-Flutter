@@ -31,6 +31,20 @@ enum SynologyPlaybackMode {
   final String label;
 }
 
+/// 睡眠定时器到点后的停止行为
+enum SleepTimerBehavior {
+  /// 立即暂停（默认）
+  immediateStop,
+
+  /// 等当前歌曲自然播完再暂停（不打断当前歌曲）
+  currentSongEnd;
+
+  String get label => switch (this) {
+        SleepTimerBehavior.immediateStop => '立即停止',
+        SleepTimerBehavior.currentSongEnd => '当前歌曲结束后停止',
+      };
+}
+
 /// 音乐播放状态
 class SynologyPlaybackState {
 
@@ -47,6 +61,9 @@ class SynologyPlaybackState {
     this.mode = SynologyPlaybackMode.listLoop,
     this.lyrics,
     this.isLoadingLyrics = false,
+    this.sleepTimerEndsAtMs,
+    this.sleepTimerBehavior = SleepTimerBehavior.immediateStop,
+    this.sleepTimerFadeOut = true,
   });
   final AudioSong? currentSong;
   final List<AudioSong> queue;
@@ -65,6 +82,27 @@ class SynologyPlaybackState {
   /// 歌词加载中
   final bool isLoadingLyrics;
 
+  // ===== 睡眠定时器 =====
+  /// 定时到期时间（epoch 毫秒）；null 表示未开启
+  final int? sleepTimerEndsAtMs;
+
+  /// 到点停止行为
+  final SleepTimerBehavior sleepTimerBehavior;
+
+  /// 停止前是否 30 秒渐进淡出
+  final bool sleepTimerFadeOut;
+
+  /// 睡眠定时器是否启用
+  bool get sleepTimerActive => sleepTimerEndsAtMs != null;
+
+  /// 剩余秒数（未启用返回 0）
+  int get sleepTimerRemainingSeconds {
+    final ends = sleepTimerEndsAtMs;
+    if (ends == null) return 0;
+    final remainingMs = ends - DateTime.now().millisecondsSinceEpoch;
+    return remainingMs <= 0 ? 0 : (remainingMs / 1000).ceil();
+  }
+
   /// 是否已有曲目（用于 mini player 显隐）
   bool get hasSong => currentSong != null;
 
@@ -81,6 +119,10 @@ class SynologyPlaybackState {
     SynologyPlaybackMode? mode,
     String? lyrics,
     bool? isLoadingLyrics,
+    int? sleepTimerEndsAtMs,
+    SleepTimerBehavior? sleepTimerBehavior,
+    bool? sleepTimerFadeOut,
+    bool clearSleepTimer = false,
   }) {
     return SynologyPlaybackState(
       currentSong: currentSong ?? this.currentSong,
@@ -95,6 +137,11 @@ class SynologyPlaybackState {
       mode: mode ?? this.mode,
       lyrics: lyrics ?? this.lyrics,
       isLoadingLyrics: isLoadingLyrics ?? this.isLoadingLyrics,
+      sleepTimerEndsAtMs: clearSleepTimer
+          ? null
+          : (sleepTimerEndsAtMs ?? this.sleepTimerEndsAtMs),
+      sleepTimerBehavior: sleepTimerBehavior ?? this.sleepTimerBehavior,
+      sleepTimerFadeOut: sleepTimerFadeOut ?? this.sleepTimerFadeOut,
     );
   }
 }
@@ -116,6 +163,15 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
 
   /// 恢复播放时待 seek 的进度（restorePlayback 设置，_playSong 播放后清除）
   Duration? _pendingSeek;
+
+  // ===== 睡眠定时器内部状态 =====
+  /// currentSongEnd 模式到点后，等本次自然播完再暂停
+  bool _stopAfterThisSong = false;
+
+  /// 渐进淡出前记录的原始音量（取消/结束时恢复）
+  double _normalVolume = 1.0;
+
+  static const String _kSleepTimerKey = 'sleep_timer_v1';
 
   // ============================
   // 播放控制
@@ -223,6 +279,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     } catch (e) {
       AppLogger.warn('恢复播放状态失败', data: {'error': e.toString()});
     }
+    // 恢复未过期的睡眠定时器
+    await restoreSleepTimerIfNeeded();
   }
 
   /// 暂停 / 继续
@@ -326,6 +384,136 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       _ref.read(audioHandlerProvider).clearMusicSession();
     } catch (e) {
       AppLogger.warn('清除系统媒体控制失败', data: {'error': e.toString()});
+    }
+  }
+
+  // ============================
+  // 睡眠定时器
+  // ============================
+
+  /// 启动睡眠定时器
+  ///
+  /// [duration] 定时时长；[behavior] 到点停止行为；[fadeOut] 停止前 30 秒渐降音量。
+  Future<void> startSleepTimer({
+    required Duration duration,
+    required SleepTimerBehavior behavior,
+    bool fadeOut = true,
+  }) async {
+    _normalVolume = 1.0;
+    _stopAfterThisSong = false;
+    final endsAt = DateTime.now().add(duration).millisecondsSinceEpoch;
+    state = state.copyWith(
+      sleepTimerEndsAtMs: endsAt,
+      sleepTimerBehavior: behavior,
+      sleepTimerFadeOut: fadeOut,
+    );
+    await _persistSleepTimer();
+    AppLogger.info('睡眠定时器启动', data: {
+      'minutes': duration.inMinutes,
+      'behavior': behavior.name,
+      'fadeOut': fadeOut,
+    });
+  }
+
+  /// 取消睡眠定时器，音量恢复
+  Future<void> cancelSleepTimer() async {
+    _stopAfterThisSong = false;
+    // 恢复音量（若正在淡出）
+    if (_controller != null && _controller!.value.isInitialized) {
+      await _controller!.setVolume(_normalVolume);
+    }
+    state = state.copyWith(clearSleepTimer: true);
+    await _persistSleepTimer();
+    AppLogger.info('睡眠定时器取消');
+  }
+
+  /// 由 position timer 每 500ms 调用：更新剩余时间、执行淡出、到点停止
+  void _tickSleepTimer() {
+    final endsAt = state.sleepTimerEndsAtMs;
+    if (endsAt == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final remainingMs = endsAt - now;
+    final remainingSec = remainingMs / 1000.0;
+
+    // 1) 到点
+    if (remainingMs <= 0) {
+      _stopBySleepTimer();
+      return;
+    }
+
+    // 2) 最后 30 秒渐进淡出
+    if (state.sleepTimerFadeOut && remainingSec <= 30.0) {
+      final ratio = (remainingSec / 30.0).clamp(0.0, 1.0);
+      final controller = _controller;
+      if (controller != null && controller.value.isInitialized) {
+        controller.setVolume(ratio);
+      }
+    }
+  }
+
+  /// 到点执行停止
+  Future<void> _stopBySleepTimer() async {
+    final behavior = state.sleepTimerBehavior;
+    // 恢复音量，避免下次播放残留低音量
+    if (_controller != null && _controller!.value.isInitialized) {
+      await _controller!.setVolume(_normalVolume);
+    }
+    if (behavior == SleepTimerBehavior.currentSongEnd) {
+      // 标记：等本次自然播完再暂停（在 _startPositionTimer 的自然播完分支处理）
+      _stopAfterThisSong = true;
+      state = state.copyWith(clearSleepTimer: true);
+      await _persistSleepTimer();
+      AppLogger.info('睡眠定时器：等待当前歌曲结束后停止');
+      return;
+    }
+    // 立即停止
+    _stopAfterThisSong = false;
+    state = state.copyWith(clearSleepTimer: true);
+    await _persistSleepTimer();
+    await pause();
+    AppLogger.info('睡眠定时器：立即停止播放');
+  }
+
+  /// 持久化睡眠定时器到 SharedPreferences（重启恢复）
+  Future<void> _persistSleepTimer() async {
+    final prefs = await SharedPreferences.getInstance();
+    final endsAt = state.sleepTimerEndsAtMs;
+    if (endsAt == null) {
+      await prefs.remove(_kSleepTimerKey);
+      return;
+    }
+    await prefs.setString(_kSleepTimerKey, json.encode({
+      'endsAt': endsAt,
+      'behavior': state.sleepTimerBehavior.name,
+      'fadeOut': state.sleepTimerFadeOut,
+    }));
+  }
+
+  /// 启动时恢复未过期的睡眠定时器
+  Future<void> restoreSleepTimerIfNeeded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kSleepTimerKey);
+      if (raw == null) return;
+      final map = json.decode(raw) as Map<String, dynamic>;
+      final endsAt = map['endsAt'] as int?;
+      if (endsAt == null) return;
+      // 已过期则清理
+      if (endsAt <= DateTime.now().millisecondsSinceEpoch) {
+        await prefs.remove(_kSleepTimerKey);
+        return;
+      }
+      state = state.copyWith(
+        sleepTimerEndsAtMs: endsAt,
+        sleepTimerBehavior: SleepTimerBehavior.values.firstWhere(
+          (b) => b.name == map['behavior'],
+          orElse: () => SleepTimerBehavior.immediateStop,
+        ),
+        sleepTimerFadeOut: map['fadeOut'] as bool? ?? true,
+      );
+      AppLogger.info('恢复睡眠定时器', data: {'endsAt': endsAt});
+    } catch (_) {
+      // 恢复失败不影响播放
     }
   }
 
@@ -458,6 +646,13 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         position: pos,
         duration: dur,
       )) {
+        // 睡眠定时器「当前歌曲结束后停止」：自然播完时暂停而非切下一首
+        if (_stopAfterThisSong) {
+          _stopAfterThisSong = false;
+          pause(); // fire-and-forget：回调为同步 void，不阻塞 timer
+          AppLogger.info('睡眠定时器：当前歌曲已播完，停止播放');
+          return;
+        }
         next();
         return;
       }
@@ -468,6 +663,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       );
       // 定期同步进度到系统媒体控制（锁屏进度条）
       _syncMediaSession(isPlaying: playing, position: pos, duration: dur);
+      // 睡眠定时器倒计时 / 淡出 / 到点停止
+      _tickSleepTimer();
     });
   }
 
