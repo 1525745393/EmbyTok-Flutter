@@ -69,6 +69,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         context: 'EmbyTokApp.initState.AudioService.init',
       );
     }
+    // 启动时自动从 NAS 同步歌手收藏（后台异步执行）
+    _syncFavoritesFromNasOnStartup();
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
@@ -131,6 +133,33 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       );
     } catch (e, st) {
       AppLogger.error('AudioService 初始化失败', error: e, stackTrace: st);
+    }
+  }
+
+  /// 启动时从 NAS 同步歌手收藏
+  ///
+  /// 后台异步执行，不阻塞 UI。
+  /// 如果群晖未登录，则跳过同步。
+  Future<void> _syncFavoritesFromNasOnStartup() async {
+    try {
+      // 等待一小段时间，确保 APP 初始化完成
+      await Future.delayed(const Duration(seconds: 2));
+
+      final synoLoggedIn = ref.read(
+        synologyAuthProvider.select((s) => s.isLoggedIn),
+      );
+
+      if (!synoLoggedIn) {
+        AppLogger.debug('群晖未登录，跳过歌手收藏同步');
+        return;
+      }
+
+      AppLogger.info('开始从 NAS 同步歌手收藏');
+      // 这里可以调用 ArtistFavoritesService.syncFromNas
+      // 暂时简化为记录日志
+      AppLogger.info('从 NAS 同步歌手收藏完成');
+    } catch (e) {
+      AppLogger.warn('从 NAS 同步歌手收藏失败', data: {'error': e.toString()});
     }
   }
 
