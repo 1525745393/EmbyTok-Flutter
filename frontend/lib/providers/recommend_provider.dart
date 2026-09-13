@@ -719,13 +719,13 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       if (personIds.isNotEmpty) {
         final resp = await ctx.repo.getItemsByPersonIds(
           personIds: personIds,
-          limit: _pageSize,
+          limit: 20,
           serverUrl: serverUrl,
           token: token,
           userId: userId,
         );
         items = resp.items;
-        hasMore = resp.items.length >= _pageSize;
+        hasMore = resp.items.length >= 20;
       } else {
         // 无收藏演员：不回退 NextUp，留空队列，
         // 由 UI 在空态引导用户去收藏演员。
@@ -808,7 +808,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required List<MediaItem> watchHistory,
   }) async {
     try {
-      const int recentSeriesLimit = 3;
+      const int recentSeriesLimit = 5;
       final history = watchHistory;
       final seenSeriesIds = <String>{};
       final recentSeriesIds = <String>[];
