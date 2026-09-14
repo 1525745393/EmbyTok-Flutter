@@ -1,3 +1,10 @@
+# [2.106.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.105.1...v2.106.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 多账号切换（PRD [#30](https://github.com/1525745393/EmbyTok-Flutter/issues/30) V1.0） ([c4635bd](https://github.com/1525745393/EmbyTok-Flutter/commit/c4635bd9e12d252fb117614046c3750e7ca2eab9))
+
 ## [2.105.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.105.0...v2.105.1) (2026-09-14)
 
 
