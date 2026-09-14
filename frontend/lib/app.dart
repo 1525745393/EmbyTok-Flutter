@@ -30,6 +30,7 @@ import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
 import 'views/play_stats_view.dart';
+import 'views/data_backup_view.dart';
 import 'views/settings_view.dart';
 import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
@@ -302,6 +303,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/play-stats',
         builder: (context, state) => const PlayStatsView(),
+      ),
+      // 数据备份与恢复
+      GoRoute(
+        path: '/data-backup',
+        builder: (context, state) => const DataBackupView(),
       ),
       // 设置
       GoRoute(

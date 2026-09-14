@@ -94,6 +94,13 @@ class ProfileView extends ConsumerWidget {
             subtitle: '听歌时长、热门歌曲/艺术家/专辑',
             onTap: () => context.push('/play-stats'),
           ),
+          // 数据备份入口
+          _buildMenuTile(
+            icon: Icons.backup_table,
+            title: '备份与恢复',
+            subtitle: '收藏 JSON、歌单 M3U 导入导出',
+            onTap: () => context.push('/data-backup'),
+          ),
           const SizedBox(height: 16),
           // 退出登录
           if (auth.isLoggedIn)
