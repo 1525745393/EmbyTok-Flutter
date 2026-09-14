@@ -1,3 +1,10 @@
+## [2.105.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.105.0...v2.105.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **download:** 并发状态竞态与取消时空指针 ([baf7bd4](https://github.com/1525745393/EmbyTok-Flutter/commit/baf7bd47a25f423d13a8c707c92695a7089f6ae7))
+
 # [2.105.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.104.0...v2.105.0) (2026-09-14)
 
 
