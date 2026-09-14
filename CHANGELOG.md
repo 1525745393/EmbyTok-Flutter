@@ -1,3 +1,10 @@
+# [2.110.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.109.0...v2.110.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 歌词三级降级接入 LRCLIB 在线源（PRD [#22](https://github.com/1525745393/EmbyTok-Flutter/issues/22)） ([df3128d](https://github.com/1525745393/EmbyTok-Flutter/commit/df3128d6c12d204c396d156fb0d8875af997404c))
+
 # [2.109.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.108.0...v2.109.0) (2026-09-14)
 
 
