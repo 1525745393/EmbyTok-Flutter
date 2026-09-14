@@ -17,6 +17,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
+import 'play_events_provider.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
 import 'audio_handler_provider.dart';
@@ -199,6 +200,15 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
             subtitle: song.artistDisplay,
             coverUrl: _coverUrlOf(song),
             lastPlayTime: DateTime.now().millisecondsSinceEpoch,
+          ));
+      // 记录完整播放事件（供播放统计聚合）
+      _ref.read(playEventsProvider.notifier).add(PlayEvent(
+            songId: song.id,
+            title: song.title,
+            artist: song.artistDisplay,
+            album: song.tag?.album ?? '',
+            durationSeconds: song.audio?.duration ?? 0,
+            playedAtMs: DateTime.now().millisecondsSinceEpoch,
           ));
     } catch (_) {
     // 存储操作失败不影响主流程，静默处理

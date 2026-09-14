@@ -87,6 +87,13 @@ class ProfileView extends ConsumerWidget {
             subtitle: '离线下载、下载队列、已下载歌曲',
             onTap: () => context.push('/downloads'),
           ),
+          // 播放统计入口
+          _buildMenuTile(
+            icon: Icons.bar_chart,
+            title: '播放统计',
+            subtitle: '听歌时长、热门歌曲/艺术家/专辑',
+            onTap: () => context.push('/play-stats'),
+          ),
           const SizedBox(height: 16),
           // 退出登录
           if (auth.isLoggedIn)
