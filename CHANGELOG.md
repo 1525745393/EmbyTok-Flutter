@@ -1,3 +1,10 @@
+# [2.109.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.108.0...v2.109.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 歌曲长按「添加到歌单」可用 ([160e860](https://github.com/1525745393/EmbyTok-Flutter/commit/160e860df02bd203a29b1d34771bc16f43e3e6e7))
+
 # [2.108.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.107.1...v2.108.0) (2026-09-14)
 
 
