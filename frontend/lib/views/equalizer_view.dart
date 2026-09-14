@@ -84,8 +84,24 @@ class _EqualizerViewState extends ConsumerState<EqualizerView> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('频段调节（mB）',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('频段调节（mB）',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        TextButton.icon(
+                          onPressed: _enabled
+                              ? () async {
+                                  await equalizerService
+                                      .applyPreset(eqPresets['平直']!);
+                                  setState(() {});
+                                }
+                              : null,
+                          icon: const Icon(Icons.restore, size: 18),
+                          label: const Text('恢复默认'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     ...List.generate(equalizerService.bands, (i) {
                       final freq = equalizerService.freqs[i];
