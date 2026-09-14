@@ -1,3 +1,10 @@
+# [2.105.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.104.0...v2.105.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 数据备份与恢复（PRD [#29](https://github.com/1525745393/EmbyTok-Flutter/issues/29)） ([87265bd](https://github.com/1525745393/EmbyTok-Flutter/commit/87265bd34f2d83ff5c06999c363d0336fa8e112f))
+
 # [2.104.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.103.0...v2.104.0) (2026-09-14)
 
 
