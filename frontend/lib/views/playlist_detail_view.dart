@@ -70,27 +70,42 @@ class PlaylistDetailView extends ConsumerWidget {
           ? const Center(
               child: Text('歌单为空，去歌曲列表把歌曲加入歌单',
                   style: TextStyle(color: Colors.grey)))
-          : ListView.separated(
-              itemCount: pl.songs.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final AudioSong s = pl.songs[i];
-                return ListTile(
-                  title: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(s.artistDisplay,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.remove_circle_outline),
-                    tooltip: '移出歌单',
-                    onPressed: () => ref
-                        .read(playlistsProvider.notifier)
-                        .removeSong(pl.id, s.id),
+          : ReorderableListView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              onReorder: (int oldIndex, int newIndex) => ref
+                  .read(playlistsProvider.notifier)
+                  .reorderSongs(pl.id, oldIndex, newIndex),
+              children: [
+                for (int i = 0; i < pl.songs.length; i++)
+                  Column(
+                    key: ValueKey('${pl.id}_${pl.songs[i].id}_$i'),
+                    children: [
+                      ListTile(
+                        title: Text(pl.songs[i].title,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(pl.songs[i].artistDisplay,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              tooltip: '移出歌单',
+                              onPressed: () => ref
+                                  .read(playlistsProvider.notifier)
+                                  .removeSong(pl.id, pl.songs[i].id),
+                            ),
+                            const Icon(Icons.drag_handle, color: Colors.grey),
+                          ],
+                        ),
+                        onTap: () => ref
+                            .read(synologyPlaybackProvider.notifier)
+                            .playQueue(pl.songs, i),
+                      ),
+                      const Divider(height: 1),
+                    ],
                   ),
-                  onTap: () => ref
-                      .read(synologyPlaybackProvider.notifier)
-                      .playQueue(pl.songs, i),
-                );
-              },
+              ],
             ),
     );
   }

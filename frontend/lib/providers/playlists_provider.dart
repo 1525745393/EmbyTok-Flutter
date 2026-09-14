@@ -153,6 +153,23 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
             .toList();
         await _persist();
       });
+
+  /// 拖拽重排歌曲顺序
+  Future<void> reorderSongs(
+      String playlistId, int oldIndex, int newIndex) => _lock(() async {
+        state = state.map((p) {
+          if (p.id != playlistId) return p;
+          if (oldIndex < 0 || oldIndex >= p.songs.length) return p;
+          var to = newIndex;
+          if (to > oldIndex) to -= 1;
+          if (to < 0 || to >= p.songs.length) return p;
+          final songs = [...p.songs];
+          final item = songs.removeAt(oldIndex);
+          songs.insert(to, item);
+          return p.copyWith(songs: songs);
+        }).toList();
+        await _persist();
+      });
 }
 
 final playlistsProvider =
