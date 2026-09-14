@@ -309,7 +309,7 @@ class SynologyDownloadService {
       final slots = (maxConcurrency - activeCount).clamp(0, maxConcurrency);
       if (slots == 0) {
         // 没有空槽，等一秒再看
-        await Future.delayed(const Duration(seconds: 1));
+        await Future<void>.delayed(const Duration(seconds: 1));
         continue;
       }
       final toStart = pending.take(slots).toList();
@@ -319,7 +319,7 @@ class SynologyDownloadService {
         unawaited(_downloadOne(task: task, streamUrl: url, onProgress: onProgress));
       }
       // 等待一小段，让下载任务进入 downloading 状态后再补槽
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
     _queueRunning = false;
   }
@@ -348,7 +348,10 @@ class SynologyDownloadService {
         task.savedPath,
         cancelToken: cancelToken,
         onReceiveProgress: (got, total) async {
-          final t = (await loadTasks()).firstWhere((e) => e.songId == task.songId);
+          final tasks = await loadTasks();
+          final idx = tasks.indexWhere((e) => e.songId == task.songId);
+          if (idx < 0) return; // 任务已被取消，忽略本次进度回调
+          final t = tasks[idx];
           await _updateTask(t.copyWith(
             progress: total > 0 ? got / total : 0,
             downloadedBytes: got,
@@ -399,12 +402,19 @@ class SynologyDownloadService {
     }
   }
 
+  /// 任务写入串行链：所有 load-modify-save 排队执行，
+  /// 避免并发下载时两个任务互相覆盖彼此的进度状态。
+  Future<void> _updateChain = Future.value();
+
   Future<void> _updateTask(DownloadTask updated) async {
-    final tasks = await loadTasks();
-    final idx = tasks.indexWhere((t) => t.songId == updated.songId);
-    if (idx < 0) return;
-    tasks[idx] = updated;
-    await _saveTasks(tasks);
+    _updateChain = _updateChain.then((_) async {
+      final tasks = await loadTasks();
+      final idx = tasks.indexWhere((t) => t.songId == updated.songId);
+      if (idx < 0) return; // 任务已被取消/删除，丢弃这次更新
+      tasks[idx] = updated;
+      await _saveTasks(tasks);
+    });
+    return _updateChain;
   }
 
   /// 取消下载任务并删除已下载部分文件
