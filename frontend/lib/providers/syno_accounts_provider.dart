@@ -128,12 +128,23 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
 
   String _pwdKey(String accountId) => 'syno_pwd_$accountId';
 
-  /// 保存一个新账号（login 成功后调用）
+  /// 保存一个新账号（login 成功后调用）；同服务器+用户名已存在则直接返回旧账号
   Future<SynoAccount> addAccount({
     required String serverUrl,
     required String username,
     required String password,
   }) async {
+    final existing = state.accounts
+        .where((a) => a.serverUrl == serverUrl && a.username == username)
+        .toList();
+    if (existing.isNotEmpty) {
+      // 更新密码（可能改了密码），并切为当前
+      try {
+        await _secure.write(key: _pwdKey(existing.first.accountId), value: password);
+      } catch (_) {}
+      await setCurrent(existing.first.accountId);
+      return existing.first;
+    }
     final id = '${serverUrl.hashCode}_${username.hashCode}_${DateTime.now().millisecondsSinceEpoch}';
     final account = SynoAccount(
       accountId: id,
@@ -163,15 +174,15 @@ class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
     }
   }
 
-  /// 标记当前账号
-  void setCurrent(String accountId) {
+  /// 标记当前账号（异步：等持久化完成再返回，确保后续 reload 读到新账号）
+  Future<void> setCurrent(String accountId) async {
     final list = state.accounts
         .map((a) => a.accountId == accountId
             ? a.copyWith(lastUsedAtMs: DateTime.now().millisecondsSinceEpoch)
             : a)
         .toList();
     state = SynoAccountsState(accounts: list, currentAccountId: accountId);
-    _persist();
+    await _persist();
   }
 
   /// 设为默认

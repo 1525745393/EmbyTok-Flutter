@@ -147,7 +147,7 @@ class _AccountSheet extends ConsumerWidget {
             account: a.username,
             password: pwd,
           );
-      ref.read(synoAccountsProvider.notifier).setCurrent(a.accountId);
+      await ref.read(synoAccountsProvider.notifier).setCurrent(a.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
       // 按账号隔离：重载该账号的播放历史/统计数据
       await ref.read(recentPlaybacksProvider.notifier).reload();
@@ -236,7 +236,7 @@ class _AccountSheet extends ConsumerWidget {
             username: userCtl.text.trim(),
             password: pwdCtl.text,
           );
-      ref.read(synoAccountsProvider.notifier).setCurrent(account.accountId);
+      await ref.read(synoAccountsProvider.notifier).setCurrent(account.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
       await ref.read(recentPlaybacksProvider.notifier).reload();
       await ref.read(playEventsProvider.notifier).reload();

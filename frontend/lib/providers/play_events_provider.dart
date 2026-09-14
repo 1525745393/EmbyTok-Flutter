@@ -65,7 +65,15 @@ class PlayEventsNotifier extends StateNotifier<List<PlayEvent>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = await accountScopedKey(_kStorageKey);
-      final raw = prefs.getString(key);
+      var raw = prefs.getString(key);
+      // 迁移：老用户数据在无后缀旧 key，新 key 为空时回退读取并迁到新 key
+      if ((raw == null || raw.isEmpty) && prefs.containsKey(_kStorageKey)) {
+        raw = prefs.getString(_kStorageKey);
+        if (raw != null && raw.isNotEmpty) {
+          await prefs.setString(key, raw);
+          await prefs.remove(_kStorageKey);
+        }
+      }
       if (raw == null || raw.isEmpty) return;
       final list = jsonDecode(raw) as List<dynamic>;
       state = list
