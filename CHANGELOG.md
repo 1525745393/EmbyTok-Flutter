@@ -1,3 +1,10 @@
+# [2.112.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.111.1...v2.112.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 10 段硬件均衡器（PRD [#23](https://github.com/1525745393/EmbyTok-Flutter/issues/23)） ([58e5fc6](https://github.com/1525745393/EmbyTok-Flutter/commit/58e5fc6db1524f70da1ef2e7c06b9dd1705bf31d))
+
 ## [2.111.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.111.0...v2.111.1) (2026-09-14)
 
 
