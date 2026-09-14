@@ -1,3 +1,10 @@
+# [2.101.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.100.0...v2.101.0) (2026-09-13)
+
+
+### Features
+
+* **music:** 实现睡眠定时器（PRD [#24](https://github.com/1525745393/EmbyTok-Flutter/issues/24)） ([6f0f401](https://github.com/1525745393/EmbyTok-Flutter/commit/6f0f401b5a42a13a204dd278ec124880c227fd58))
+
 # [2.100.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.99.0...v2.100.0) (2026-09-13)
 
 
