@@ -10,6 +10,7 @@ import '../providers/recent_playbacks_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
 import '../providers/synology_playback_provider.dart';
+import 'account_switch_sheet.dart';
 
 class ProfileView extends ConsumerWidget {
   const ProfileView({super.key});
@@ -86,6 +87,13 @@ class ProfileView extends ConsumerWidget {
             title: '下载管理',
             subtitle: '离线下载、下载队列、已下载歌曲',
             onTap: () => context.push('/downloads'),
+          ),
+          // 切换账号入口
+          _buildMenuTile(
+            icon: Icons.switch_account,
+            title: '切换账号',
+            subtitle: '多账号快速切换、添加/删除账号',
+            onTap: () => showAccountSwitchSheet(context, ref),
           ),
           // 播放统计入口
           _buildMenuTile(
