@@ -1,3 +1,10 @@
+# [2.114.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.113.1...v2.114.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 歌词手动编辑（PRD [#22](https://github.com/1525745393/EmbyTok-Flutter/issues/22)） ([7c426b8](https://github.com/1525745393/EmbyTok-Flutter/commit/7c426b869a8f1d5f5b0fa6312ceb2722a35e3f9a))
+
 ## [2.113.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.113.0...v2.113.1) (2026-09-14)
 
 
