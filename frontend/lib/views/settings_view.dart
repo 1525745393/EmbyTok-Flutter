@@ -1513,6 +1513,32 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 关于 - 意见反馈
+  Widget _buildFeedbackTile(BuildContext context, WidgetRef ref) {
+    return _TapTile(
+      icon: Icons.feedback_outlined,
+      iconColor: Colors.orange,
+      title: '意见反馈',
+      subtitle: '通过邮件反馈问题或建议',
+      onTap: () async {
+        final uri = Uri(
+          scheme: 'mailto',
+          path: 'support@embytok.app',
+          queryParameters: {'subject': 'EmbyTok 意见反馈'},
+        );
+        try {
+          await launchUrl(uri);
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('未找到邮件应用')),
+            );
+          }
+        }
+      },
+    );
+  }
+
   // 关于 - 版本信息（动态读取，避免硬编码）
   Widget _buildVersionTile(BuildContext context, WidgetRef ref) {
     final versionAsync = ref.watch(appVersionProvider);
@@ -1917,6 +1943,12 @@ class SettingsView extends ConsumerWidget {
         section: '关于',
         keywords: '打赏 赞赏 捐款 赞助 donate 咖啡',
         onTap: (ctx) => _showDonateDialog(ctx),
+      ),
+      _SettingEntry(
+        title: '意见反馈',
+        section: '关于',
+        keywords: '意见反馈 反馈 邮件 建议 bug 报告',
+        onTap: (ctx) => _buildFeedbackTile(ctx, ref),
       ),
     ];
   }
