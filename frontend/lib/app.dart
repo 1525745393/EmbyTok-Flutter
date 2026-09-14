@@ -28,6 +28,7 @@ import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
+import 'views/downloads_view.dart';
 import 'views/settings_view.dart';
 import 'views/profile_view.dart';
 import 'views/folder_browse_view.dart';
@@ -290,6 +291,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/servers',
         builder: (context, state) => const ServersView(),
+      ),
+      // 下载管理
+      GoRoute(
+        path: '/downloads',
+        builder: (context, state) => const DownloadsView(),
       ),
       // 设置
       GoRoute(

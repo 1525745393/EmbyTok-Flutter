@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/audio_models.dart';
+import '../providers/download_provider.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/lrc_parser.dart';
@@ -177,6 +178,23 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                 ),
                 tooltip: active ? '睡眠定时器（剩余 $mins 分钟）' : '睡眠定时器',
                 onPressed: () => _showSleepTimerSheet(context),
+              );
+            },
+          ),
+          // 下载当前歌曲到本地（离线播放）
+          IconButton(
+            icon: const Icon(Icons.download_for_offline_outlined,
+                color: Colors.white),
+            tooltip: '下载到本地',
+            onPressed: () {
+              final s = ref.read(synologyPlaybackProvider).currentSong;
+              if (s == null) return;
+              ref.read(downloadProvider.notifier).enqueue(s);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('已加入下载队列，可在"我的-下载管理"查看'),
+                  duration: Duration(seconds: 2),
+                ),
               );
             },
           ),

@@ -8,6 +8,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../models/audio_models.dart';
+import '../services/synology_download_service.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
 import 'audio_handler_provider.dart';
@@ -571,20 +573,32 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     _controller = null;
 
     final api = _ref.read(synologyAuthProvider.notifier).api;
-    final streamUrl = api.getStreamUrl(song.id);
-    if (streamUrl == null) {
-      state = state.copyWith(isLoading: false, error: '未登录群晖或流地址不可用');
-      return;
-    }
 
     try {
       // 申请音频焦点（来电等场景自动暂停）
       await _ref.read(audioSessionHandlerProvider).requestFocus();
 
-      final controller = VideoPlayerController.networkUrl(
-        Uri.parse(streamUrl),
-        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
-      );
+      // 优先用本地已下载文件（离线播放）
+      final localPath =
+          await SynologyDownloadService.instance.localPathFor(song.id);
+      VideoPlayerController controller;
+      if (localPath != null) {
+        controller = VideoPlayerController.file(
+          File(localPath),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+        );
+      } else {
+        final streamUrl = api.getStreamUrl(song.id);
+        if (streamUrl == null) {
+          state = state.copyWith(
+              isLoading: false, error: '未登录群晖或流地址不可用');
+          return;
+        }
+        controller = VideoPlayerController.networkUrl(
+          Uri.parse(streamUrl),
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+        );
+      }
       _controller = controller;
       await controller.initialize();
       if (_disposed) {

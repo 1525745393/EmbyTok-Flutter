@@ -80,6 +80,13 @@ class ProfileView extends ConsumerWidget {
             subtitle: '添加、编辑、切换媒体服务器',
             onTap: () => context.go('/servers'),
           ),
+          // 下载管理入口
+          _buildMenuTile(
+            icon: Icons.download_for_offline,
+            title: '下载管理',
+            subtitle: '离线下载、下载队列、已下载歌曲',
+            onTap: () => context.push('/downloads'),
+          ),
           const SizedBox(height: 16),
           // 退出登录
           if (auth.isLoggedIn)
