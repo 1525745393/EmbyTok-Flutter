@@ -1,3 +1,10 @@
+# [2.104.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.103.0...v2.104.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 播放数据统计页（PRD [#28](https://github.com/1525745393/EmbyTok-Flutter/issues/28)） ([aff4ad5](https://github.com/1525745393/EmbyTok-Flutter/commit/aff4ad5a650a7e9118bb161eecda2dd640a0f507))
+
 # [2.103.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.102.0...v2.103.0) (2026-09-14)
 
 
