@@ -1,3 +1,10 @@
+## [2.107.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.107.0...v2.107.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **music:** 多账号数据隔离三处审查问题 ([25f0852](https://github.com/1525745393/EmbyTok-Flutter/commit/25f0852ca783313a190cbb7201ec776d05b92432))
+
 # [2.107.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.106.0...v2.107.0) (2026-09-14)
 
 
