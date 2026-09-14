@@ -1,3 +1,10 @@
+# [2.102.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.101.0...v2.102.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 离线下载管理（PRD [#19](https://github.com/1525745393/EmbyTok-Flutter/issues/19) 核心版） ([68e028b](https://github.com/1525745393/EmbyTok-Flutter/commit/68e028b005617f476e2b68f138156de8982ef5dc))
+
 # [2.101.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.100.0...v2.101.0) (2026-09-13)
 
 
