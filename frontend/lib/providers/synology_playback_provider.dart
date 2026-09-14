@@ -18,6 +18,7 @@ import 'package:video_player/video_player.dart';
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
 import '../services/lrclib_service.dart';
+import '../services/music_widget_updater.dart';
 import 'play_events_provider.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
@@ -192,6 +193,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       isLoading: true,
       coverUrl: _coverUrlOf(song),
     );
+    // 同步桌面 Widget 曲名
+    updateMusicWidget(song.title);
     // 写入最近播放记录（PRD 首页核心模块，客户端本地存储）
     try {
       _ref.read(recentPlaybacksProvider.notifier).add(RecentPlayback(
