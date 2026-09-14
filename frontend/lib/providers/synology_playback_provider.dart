@@ -17,6 +17,7 @@ import 'package:video_player/video_player.dart';
 
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
+import '../services/lrclib_service.dart';
 import 'play_events_provider.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
@@ -567,12 +568,22 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   }
 
   /// 异步加载当前歌曲歌词（切歌后旧结果丢弃）
-  Future<void> _loadLyrics(String songId) async {
+  /// 三级降级：NAS LRC → LRCLIB 在线源 → 无歌词
+  Future<void> _loadLyrics(AudioSong song) async {
     state = state.copyWith(isLoadingLyrics: true, lyrics: null);
     final api = _ref.read(synologyAuthProvider.notifier).api;
-    final lyrics = await api.getLyrics(songId);
+    var lyrics = await api.getLyrics(song.id);
+    // NAS 无歌词时回退 LRCLIB
+    if ((lyrics == null || lyrics.trim().isEmpty)) {
+      lyrics = await lrclibService.fetchLyrics(
+        artist: song.artistDisplay,
+        title: song.title,
+        album: song.albumDisplay,
+        durationSec: song.audio?.duration,
+      );
+    }
     // 仅当仍是同一首歌时写入，避免切歌竞态
-    if (!_disposed && state.currentSong?.id == songId) {
+    if (!_disposed && state.currentSong?.id == song.id) {
       state = state.copyWith(isLoadingLyrics: false, lyrics: lyrics);
     }
   }
@@ -637,7 +648,7 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
         duration: controller.value.duration,
       );
       // 异步加载歌词（不阻塞播放）
-      _loadLyrics(song.id);
+      _loadLyrics(song);
     } catch (e, st) {
       AppLogger.error('音乐播放失败',
           data: {'song': song.title}, error: e, stackTrace: st);
