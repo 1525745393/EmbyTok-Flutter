@@ -1,3 +1,10 @@
+## [2.113.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.113.0...v2.113.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **android:** 修复 Release 构建 ([6cd58d0](https://github.com/1525745393/EmbyTok-Flutter/commit/6cd58d0bc726867bcc9b2300271445e17fda61b4))
+
 # [2.113.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.112.0...v2.113.0) (2026-09-14)
 
 
