@@ -74,6 +74,21 @@ class SynoAccountsState {
 const _kListKey = 'syno_accounts_v1';
 const _kCurrentKey = 'syno_account_current_v1';
 
+/// 把一个全局存储 key 按"当前账号"分桶，实现账号数据隔离。
+/// 切换账号后，各业务读自己的数据时自动落到该账号的空间。
+/// 无登录账号时统一用 'default'。
+Future<String> accountScopedKey(String base) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final acct = prefs.getString(_kCurrentKey);
+    return acct == null || acct.isEmpty
+        ? '${base}__default'
+        : '${base}__$acct';
+  } catch (_) {
+    return '${base}__default';
+  }
+}
+
 class SynoAccountsNotifier extends StateNotifier<SynoAccountsState> {
   SynoAccountsNotifier(this._ref) : super(SynoAccountsState()) {
     _secure = _ref.read(secureStorageProvider);

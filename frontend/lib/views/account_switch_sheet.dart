@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/recent_playbacks_provider.dart';
+import '../providers/play_events_provider.dart';
 import '../providers/syno_accounts_provider.dart';
 import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
@@ -147,6 +149,9 @@ class _AccountSheet extends ConsumerWidget {
           );
       ref.read(synoAccountsProvider.notifier).setCurrent(a.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
+      // 按账号隔离：重载该账号的播放历史/统计数据
+      await ref.read(recentPlaybacksProvider.notifier).reload();
+      await ref.read(playEventsProvider.notifier).reload();
       if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -233,6 +238,8 @@ class _AccountSheet extends ConsumerWidget {
           );
       ref.read(synoAccountsProvider.notifier).setCurrent(account.accountId);
       await ref.read(synologyMusicProvider.notifier).loadHomeData(force: true);
+      await ref.read(recentPlaybacksProvider.notifier).reload();
+      await ref.read(playEventsProvider.notifier).reload();
       if (context.mounted) Navigator.pop(context);
     } catch (e) {
       if (context.mounted) {

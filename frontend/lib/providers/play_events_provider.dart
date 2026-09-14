@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'syno_accounts_provider.dart';
+
 const String _kStorageKey = 'play_events_v1';
 const int _kMaxRecords = 5000;
 
@@ -62,7 +64,8 @@ class PlayEventsNotifier extends StateNotifier<List<PlayEvent>> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_kStorageKey);
+      final key = await accountScopedKey(_kStorageKey);
+      final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return;
       final list = jsonDecode(raw) as List<dynamic>;
       state = list
@@ -73,11 +76,18 @@ class PlayEventsNotifier extends StateNotifier<List<PlayEvent>> {
     }
   }
 
+  /// 切换账号后重新加载该账号的播放事件
+  Future<void> reload() async {
+    state = const [];
+    await _load();
+  }
+
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final key = await accountScopedKey(_kStorageKey);
       await prefs.setString(
-        _kStorageKey,
+        key,
         jsonEncode(state.map((e) => e.toJson()).toList()),
       );
     } catch (_) {}

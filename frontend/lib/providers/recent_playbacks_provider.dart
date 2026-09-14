@@ -12,6 +12,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'syno_accounts_provider.dart';
+
 const String _kStorageKey = 'recent_playbacks_v1';
 const int _kMaxRecords = 8;
 
@@ -74,7 +76,8 @@ class RecentPlaybacksNotifier extends StateNotifier<List<RecentPlayback>> {
   Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_kStorageKey);
+      final key = await accountScopedKey(_kStorageKey);
+      final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return;
       final list = jsonDecode(raw) as List<dynamic>;
       state = list
@@ -86,10 +89,17 @@ class RecentPlaybacksNotifier extends StateNotifier<List<RecentPlayback>> {
     }
   }
 
+  /// 切换账号后重新加载该账号的历史
+  Future<void> reload() async {
+    state = const [];
+    await _load();
+  }
+
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_kStorageKey, jsonEncode(state));
+      final key = await accountScopedKey(_kStorageKey);
+      await prefs.setString(key, jsonEncode(state));
     } catch (_) {
     // 存储操作失败不影响主流程，静默处理
   }
