@@ -268,21 +268,58 @@ class SynologyDownloadService {
 
   bool _queueRunning = false;
 
-  /// 顺序跑队列：每次取一个 waiting/failed 任务下载
+  /// 最大并发下载数（可在设置调整，默认 2）
+  int maxConcurrency = 2;
+
+  /// 是否仅 WiFi 下载；注入网络状态判断回调。
+  /// 返回 true 表示当前在 WiFi/有网络可下载，false 表示应暂停。
+  bool Function()? canDownloadOnNetwork;
+
+  /// 顺序跑队列：同时最多跑 [maxConcurrency] 个任务
   Future<void> _runQueue(
       void Function(List<DownloadTask> tasks) onProgress) async {
     if (_queueRunning) return;
     _queueRunning = true;
     while (true) {
       final tasks = await loadTasks();
-      final next = tasks.where((t) =>
-          t.status == DownloadStatus.waiting ||
-          t.status == DownloadStatus.failed ||
-          t.status == DownloadStatus.paused);
-      if (next.isEmpty) break;
-      final task = next.first;
-      final url = streamUrlResolver?.call(task.songId);
-      await _downloadOne(task: task, streamUrl: url, onProgress: onProgress);
+      final pending = tasks
+          .where((t) =>
+              t.status == DownloadStatus.waiting ||
+              t.status == DownloadStatus.failed ||
+              t.status == DownloadStatus.paused)
+          .toList();
+      if (pending.isEmpty) break;
+
+      // 仅 WiFi 模式且当前不可下载：把待下载任务标记为 paused，不真正下
+      if (canDownloadOnNetwork != null && !canDownloadOnNetwork!()) {
+        for (final t in pending) {
+          await _updateTask(t.copyWith(
+            status: DownloadStatus.paused,
+            errorMessage: '移动网络，已暂停',
+          ));
+        }
+        onProgress(await loadTasks());
+        break;
+      }
+
+      // 统计当前真正在下载的任务数
+      final activeCount = tasks
+          .where((t) => t.status == DownloadStatus.downloading)
+          .length;
+      final slots = (maxConcurrency - activeCount).clamp(0, maxConcurrency);
+      if (slots == 0) {
+        // 没有空槽，等一秒再看
+        await Future.delayed(const Duration(seconds: 1));
+        continue;
+      }
+      final toStart = pending.take(slots).toList();
+      // 并发启动这些任务（不 await，让它们并行）
+      for (final task in toStart) {
+        final url = streamUrlResolver?.call(task.songId);
+        unawaited(_downloadOne(task: task, streamUrl: url, onProgress: onProgress));
+      }
+      // 等待一小段，让下载任务进入 downloading 状态后再补槽
+      await Future.delayed(const Duration(milliseconds: 500));
     }
     _queueRunning = false;
   }

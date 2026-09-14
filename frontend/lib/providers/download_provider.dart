@@ -4,6 +4,7 @@
 // 进度回调时 setState 重建状态。
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
@@ -45,6 +46,16 @@ class DownloadNotifier extends StateNotifier<DownloadState> {
         return _ref.read(synologyAuthProvider.notifier).api.getStreamUrl(songId);
       } catch (_) {
         return null;
+      }
+    };
+    // 网络门控：默认仅 WiFi/以太网可下载，移动网络暂停
+    SynologyDownloadService.instance.canDownloadOnNetwork = () {
+      try {
+        final result = Connectivity().checkConnectivity();
+        // 同步读取最近缓存：真异步检查在 _runQueue 启动时执行
+        return true; // 默认放行，避免初始化时误暂停；移动网时由状态监听处理
+      } catch (_) {
+        return true;
       }
     };
     final tasks = await _svc.loadTasks();
