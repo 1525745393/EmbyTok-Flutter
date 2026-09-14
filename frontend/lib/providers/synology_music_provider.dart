@@ -212,6 +212,31 @@ class SynologyMusicNotifier extends StateNotifier<SynologyMusicState> {
         error: null,
       );
     } catch (e, st) {
+      // 会话过期（105）：用保存的密码自动续期后重试一次
+      if (e is SynologySessionExpiredException) {
+        AppLogger.warn('群晖会话过期，尝试自动续期');
+        final renewed =
+            await _ref.read(synologyAuthProvider.notifier).renewSession();
+        if (renewed) {
+          try {
+            final results = await Future.wait([
+              _api.getAlbums(sort: 'time_add', direction: 'desc', limit: 10),
+              _api.getArtists(sort: 'song_count', direction: 'desc', limit: 15),
+              _api.getGenres(limit: 50),
+              _api.getPins(),
+            ], eagerError: false);
+            state = state.copyWith(
+              recentAlbums: results[0] as List<AudioAlbum>,
+              topArtists: results[1] as List<AudioArtist>,
+              genres: results[2] as List<AudioGenre>,
+              pins: results[3] as List<AudioPin>,
+              isHomeLoaded: true,
+              error: null,
+            );
+            return;
+          } catch (_) {}
+        }
+      }
       AppLogger.error('加载首页数据失败', error: e, stackTrace: st);
       // 单个接口失败不阻断，标记已加载避免重复请求
       state = state.copyWith(isHomeLoaded: true, error: e.toString());

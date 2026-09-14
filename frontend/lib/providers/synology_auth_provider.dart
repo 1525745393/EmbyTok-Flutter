@@ -14,6 +14,7 @@ import '../services/artist_info_service.dart';
 import '../services/synology_audio_api.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart' show secureStorageProvider;
+import 'syno_accounts_provider.dart';
 
 /// 群晖认证状态
 class SynologyAuthState {
@@ -210,6 +211,30 @@ class SynologyAuthNotifier extends StateNotifier<SynologyAuthState> {
     // 存储操作失败不影响主流程，静默处理
   }
     state = const SynologyAuthState();
+  }
+
+  /// 会话过期自动续期（PRD #30）：用当前账号保存的密码重新登录拿新 sid。
+  /// 成功返回 true；无保存密码或登录失败返回 false（调用方应引导手动登录）。
+  Future<bool> renewSession() async {
+    try {
+      final accounts = _ref.read(synoAccountsProvider);
+      final cur = accounts.current;
+      if (cur == null) return false;
+      final pwd = await _ref
+          .read(synoAccountsProvider.notifier)
+          .readPassword(cur.accountId);
+      if (pwd == null || pwd.isEmpty) return false;
+      await login(
+        serverUrl: cur.serverUrl,
+        account: cur.username,
+        password: pwd,
+      );
+      AppLogger.info('群晖会话已自动续期', data: {'account': cur.username});
+      return true;
+    } catch (e) {
+      AppLogger.warn('群晖会话自动续期失败', data: {'err': e.toString()});
+      return false;
+    }
   }
 }
 

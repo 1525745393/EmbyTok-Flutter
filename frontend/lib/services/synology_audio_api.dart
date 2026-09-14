@@ -59,7 +59,11 @@ class SynologyAuthException implements Exception {
   String toString() => message;
 }
 
-/// 两步验证（OTP）已开启：登录返回 403 + token，需要带 otp_code 重试
+/// 会话（sid）已过期/失效：群晖错误码 105。
+/// 上层捕获后可用保存的密码自动重新登录续期。
+class SynologySessionExpiredException extends SynologyAuthException {
+  SynologySessionExpiredException() : super('群晖会话已过期，请重新登录', errorCode: 105);
+}
 class SynologyOtpRequiredException extends SynologyAuthException {
 
   SynologyOtpRequiredException(this.token)
@@ -581,9 +585,14 @@ class SynologyAudioApi {
     }
     if (body['success'] != true) {
       final error = body['error'] as Map<String, dynamic>?;
+      final code = error?['code'] as int?;
+      // 105 = 会话失效（sid 过期），抛专用异常供上层自动重登续期
+      if (code == 105) {
+        throw SynologySessionExpiredException();
+      }
       throw SynologyAuthException(
-        '群晖 API 请求失败（${error?['code'] ?? '未知错误'}）',
-        errorCode: error?['code'] as int?,
+        '群晖 API 请求失败（${code ?? '未知错误'}）',
+        errorCode: code,
       );
     }
     return _asMap(body['data']);
