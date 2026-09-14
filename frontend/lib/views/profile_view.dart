@@ -102,6 +102,13 @@ class ProfileView extends ConsumerWidget {
             subtitle: '本地歌单管理、歌曲加入歌单',
             onTap: () => context.push('/playlists'),
           ),
+          // 均衡器入口
+          _buildMenuTile(
+            icon: Icons.equalizer,
+            title: '均衡器',
+            subtitle: '10 段音效、8 种预设（Android）',
+            onTap: () => context.push('/equalizer'),
+          ),
           // 播放统计入口
           _buildMenuTile(
             icon: Icons.bar_chart,

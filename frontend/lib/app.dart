@@ -31,6 +31,7 @@ import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
 import 'views/playlists_view.dart';
 import 'views/playlist_detail_view.dart';
+import 'views/equalizer_view.dart';
 import 'views/play_stats_view.dart';
 import 'views/data_backup_view.dart';
 import 'views/settings_view.dart';
@@ -320,6 +321,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/playlists/detail',
         builder: (context, state) =>
             PlaylistDetailView(playlistId: state.extra as String),
+      ),
+      // 均衡器
+      GoRoute(
+        path: '/equalizer',
+        builder: (context, state) => const EqualizerView(),
       ),
       // 设置
       GoRoute(
