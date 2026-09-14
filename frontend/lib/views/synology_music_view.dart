@@ -23,6 +23,7 @@ import '../utils/logger.dart';
 import 'music/equalizer_bars.dart';
 import 'music/music_cover_widgets.dart';
 import 'music/mini_player_bar.dart';
+import 'music/add_to_playlist_sheet.dart';
 import 'music/home_widgets.dart';
 import 'music/horizontal_lists.dart';
 
@@ -1240,9 +1241,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               title: const Text('添加到歌单'),
               onTap: () {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('功能开发中')),
-                );
+                showAddToPlaylistSheet(context, ref, song);
               },
             ),
             ListTile(
