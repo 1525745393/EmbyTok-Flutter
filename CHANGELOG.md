@@ -1,3 +1,10 @@
+# [2.116.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.115.0...v2.116.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 艺术家列表 A-Z 字母索引（PRD [#12](https://github.com/1525745393/EmbyTok-Flutter/issues/12)） ([85de785](https://github.com/1525745393/EmbyTok-Flutter/commit/85de78553066c54d98ab7a61f7712ed13f8aab05))
+
 # [2.115.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.114.0...v2.115.0) (2026-09-14)
 
 
