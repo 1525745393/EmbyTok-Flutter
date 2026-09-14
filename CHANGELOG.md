@@ -1,3 +1,10 @@
+## [2.111.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.111.0...v2.111.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **music:** 审查三处问题 ([614b27a](https://github.com/1525745393/EmbyTok-Flutter/commit/614b27ad9c5a71317a7f028da6b728186ae9d0ba))
+
 # [2.111.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.110.0...v2.111.0) (2026-09-14)
 
 
