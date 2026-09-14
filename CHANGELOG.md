@@ -1,3 +1,10 @@
+# [2.107.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.106.0...v2.107.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 多账号数据隔离（[#30](https://github.com/1525745393/EmbyTok-Flutter/issues/30) 补全） ([2bc59a2](https://github.com/1525745393/EmbyTok-Flutter/commit/2bc59a27afec2e54b810f6a04ed0410769c293da))
+
 # [2.106.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.105.1...v2.106.0) (2026-09-14)
 
 
