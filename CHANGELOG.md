@@ -1,3 +1,10 @@
+# [2.115.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.114.0...v2.115.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 歌单详情拖拽排序（PRD [#21](https://github.com/1525745393/EmbyTok-Flutter/issues/21)/[#9](https://github.com/1525745393/EmbyTok-Flutter/issues/9)） ([82aec36](https://github.com/1525745393/EmbyTok-Flutter/commit/82aec365c83a14d96b315c6471e4426165e80d35))
+
 # [2.114.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.113.1...v2.114.0) (2026-09-14)
 
 
