@@ -34,8 +34,8 @@ class MainActivity : FlutterActivity() {
                             }
                             result.success(mapOf(
                                 "bands" to (equalizer?.numberOfBands ?: 0),
-                                "min" to (equalizer?.bandLevelRange?.lower ?: 0),
-                                "max" to (equalizer?.bandLevelRange?.upper ?: 0),
+                                "min" to (equalizer?.bandLevelRange?.get(0)?.toInt() ?: 0),
+                                "max" to (equalizer?.bandLevelRange?.get(1)?.toInt() ?: 0),
                                 "freqs" to (0 until (equalizer?.numberOfBands ?: 0))
                                     .map { equalizer?.getCenterFreq(it.toShort()) ?: 0 }
                             ))
