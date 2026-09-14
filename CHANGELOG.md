@@ -1,3 +1,10 @@
+# [2.111.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.110.0...v2.111.0) (2026-09-14)
+
+
+### Features
+
+* **music:** sid 过期自动续期（PRD [#30](https://github.com/1525745393/EmbyTok-Flutter/issues/30)） ([3bb3bf2](https://github.com/1525745393/EmbyTok-Flutter/commit/3bb3bf2062ae1dcd149c3e50beec94f2a9585629))
+
 # [2.110.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.109.0...v2.110.0) (2026-09-14)
 
 
