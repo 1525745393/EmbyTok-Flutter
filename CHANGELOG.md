@@ -1,3 +1,10 @@
+# [2.108.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.107.1...v2.108.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 本地歌单管理 V1（PRD [#21](https://github.com/1525745393/EmbyTok-Flutter/issues/21)） ([be78024](https://github.com/1525745393/EmbyTok-Flutter/commit/be780240324501fc7434285acc8589ae15161587))
+
 ## [2.107.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.107.0...v2.107.1) (2026-09-14)
 
 
