@@ -320,6 +320,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   static bool _globalInitDone = false;
 
   late final TabController _tabController;
+  final ScrollController _artistScrollController = ScrollController();
   final _searchController = TextEditingController();
   final _homeScrollController = ScrollController();
   final _genreKey = GlobalKey(); // 音乐流派模块 GlobalKey，用于精确滚动
@@ -362,6 +363,7 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
+    _artistScrollController.dispose();
     super.dispose();
   }
 
@@ -1633,8 +1635,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     }
     final musicState = ref.watch(synologyMusicProvider);
     final showLoadingCell = paginated && musicState.hasMoreArtists;
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+    final grid = GridView.builder(
+      controller: _artistScrollController,
+      padding: const EdgeInsets.fromLTRB(12, 8, 32, 12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: _kArtistGridCrossAxisCount,
         childAspectRatio: _kArtistGridChildAspectRatio,
@@ -1678,6 +1681,58 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           ),
         );
       },
+    );
+
+    // 右侧 A-Z 字母索引
+    final letters = <String>{};
+    for (final a in artists) {
+      final ch = a.name.trim().isNotEmpty ? a.name.trim()[0].toUpperCase() : '#';
+      letters.add(RegExp(r'[A-Z]').hasMatch(ch) ? ch : '#');
+    }
+    final sortedLetters = letters.toList()..sort();
+    if (sortedLetters.length < 2) return grid;
+    return Stack(
+      children: [
+        grid,
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: sortedLetters.map((ch) {
+                return GestureDetector(
+                  onTap: () {
+                    final idx = artists.indexWhere((a) {
+                      final first = a.name.trim().isNotEmpty
+                          ? a.name.trim()[0].toUpperCase()
+                          : '#';
+                      final key = RegExp(r'[A-Z]').hasMatch(first) ? first : '#';
+                      return key == ch;
+                    });
+                    if (idx < 0 || !_artistScrollController.hasClients) return;
+                    const rowH = 96.0;
+                    final row = idx ~/ _kArtistGridCrossAxisCount;
+                    _artistScrollController.animateTo(
+                      (row * rowH).toDouble(),
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1.5, horizontal: 4),
+                    child: Text(ch,
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: scheme.onSurface.withValues(alpha: 0.7))),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
