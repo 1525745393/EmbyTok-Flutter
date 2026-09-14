@@ -20,6 +20,9 @@ class LrclibService {
   }
   late final Dio _dio;
 
+  /// 内存缓存：artist|title|album → 歌词（含 null，避免重复请求未收录）
+  final Map<String, String?> _cache = {};
+
   /// 查询歌词。命中返回 LRC 文本；未命中或失败返回 null。
   Future<String?> fetchLyrics({
     required String artist,
@@ -30,6 +33,8 @@ class LrclibService {
     final a = artist.trim();
     final t = title.trim();
     if (a.isEmpty || t.isEmpty) return null;
+    final key = '$a|$t|${album ?? ''}';
+    if (_cache.containsKey(key)) return _cache[key];
     try {
       final resp = await _dio.get<Map<String, dynamic>>(
         'https://lrclib.net/api/get',
@@ -41,14 +46,20 @@ class LrclibService {
         },
       );
       final data = resp.data;
-      if (data == null) return null;
-      final synced = data['syncedLyrics'] as String?;
-      if (synced != null && synced.trim().isNotEmpty) return synced;
-      final plain = data['plainLyrics'] as String?;
-      if (plain != null && plain.trim().isNotEmpty) return plain;
-      return null;
+      String? result;
+      if (data != null) {
+        final synced = data['syncedLyrics'] as String?;
+        if (synced != null && synced.trim().isNotEmpty) {
+          result = synced;
+        } else {
+          final plain = data['plainLyrics'] as String?;
+          if (plain != null && plain.trim().isNotEmpty) result = plain;
+        }
+      }
+      _cache[key] = result;
+      return result;
     } on DioException catch (e) {
-      // 404 = 未收录，静默
+      // 404 = 未收录，静默（不缓存，下次可重试）
       if (e.response?.statusCode == 404) return null;
       AppLogger.warn('LRCLIB 查询失败', data: {'err': e.message});
       return null;

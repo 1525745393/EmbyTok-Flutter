@@ -62,6 +62,14 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
 
   static const _kKey = 'syno_local_playlists_v1';
 
+  /// 写操作串行化，避免连续快速操作 read-modify-write 互相覆盖
+  Future _writeLock = Future.value();
+  Future<T> _lock<T>(Future<T> Function() body) {
+    final r = _writeLock.then((_) => body());
+    _writeLock = r.catchError((_) {});
+    return r;
+  }
+
   Future<String> get _scopedKey async => accountScopedKey(_kKey);
 
   Future<void> _load() async {
@@ -95,55 +103,56 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
   }
 
   /// 新建歌单，返回新建的歌单
-  Future<LocalPlaylist> create(String name) async {
-    final pl = LocalPlaylist(
-      id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
-      name: name.trim().isEmpty ? '未命名歌单' : name.trim(),
-      createdAtMs: DateTime.now().millisecondsSinceEpoch,
-      songs: const [],
-    );
-    state = [...state, pl];
-    await _persist();
-    return pl;
-  }
+  Future<LocalPlaylist> create(String name) => _lock(() async {
+        final pl = LocalPlaylist(
+          id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+          name: name.trim().isEmpty ? '未命名歌单' : name.trim(),
+          createdAtMs: DateTime.now().millisecondsSinceEpoch,
+          songs: const [],
+        );
+        state = [...state, pl];
+        await _persist();
+        return pl;
+      });
 
-  Future<void> rename(String id, String name) async {
-    state = state
-        .map((p) => p.id == id ? p.copyWith(name: name.trim()) : p)
-        .toList();
-    await _persist();
-  }
+  Future<void> rename(String id, String name) => _lock(() async {
+        state = state
+            .map((p) => p.id == id ? p.copyWith(name: name.trim()) : p)
+            .toList();
+        await _persist();
+      });
 
-  Future<void> remove(String id) async {
-    state = state.where((p) => p.id != id).toList();
-    await _persist();
-  }
+  Future<void> remove(String id) => _lock(() async {
+        state = state.where((p) => p.id != id).toList();
+        await _persist();
+      });
 
   /// 向歌单加歌（按 song.id 去重）
-  Future<void> addSong(String playlistId, AudioSong song) async {
-    state = state.map((p) {
-      if (p.id != playlistId) return p;
-      if (p.songs.any((s) => s.id == song.id)) return p;
-      return p.copyWith(songs: [...p.songs, song]);
-    }).toList();
-    await _persist();
-  }
+  Future<void> addSong(String playlistId, AudioSong song) => _lock(() async {
+        state = state.map((p) {
+          if (p.id != playlistId) return p;
+          if (p.songs.any((s) => s.id == song.id)) return p;
+          return p.copyWith(songs: [...p.songs, song]);
+        }).toList();
+        await _persist();
+      });
 
-  Future<void> removeSong(String playlistId, String songId) async {
-    state = state.map((p) {
-      if (p.id != playlistId) return p;
-      return p.copyWith(
-          songs: p.songs.where((s) => s.id != songId).toList());
-    }).toList();
-    await _persist();
-  }
+  Future<void> removeSong(String playlistId, String songId) =>
+      _lock(() async {
+        state = state.map((p) {
+          if (p.id != playlistId) return p;
+          return p.copyWith(
+              songs: p.songs.where((s) => s.id != songId).toList());
+        }).toList();
+        await _persist();
+      });
 
-  Future<void> clearSongs(String playlistId) async {
-    state = state
-        .map((p) => p.id == playlistId ? p.copyWith(songs: const []) : p)
-        .toList();
-    await _persist();
-  }
+  Future<void> clearSongs(String playlistId) => _lock(() async {
+        state = state
+            .map((p) => p.id == playlistId ? p.copyWith(songs: const []) : p)
+            .toList();
+        await _persist();
+      });
 }
 
 final playlistsProvider =
