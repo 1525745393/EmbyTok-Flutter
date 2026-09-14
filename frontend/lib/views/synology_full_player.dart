@@ -368,6 +368,13 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
                 fontSize: 14,
               ),
             ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => _openLyricsEditor(context),
+              icon: const Icon(Icons.edit, size: 18),
+              label: const Text('手动编辑歌词'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+            ),
           ],
         ),
       );
@@ -417,6 +424,44 @@ class _FullPlayerSheetState extends ConsumerState<_FullPlayerSheet> {
         );
       },
     );
+  }
+
+  /// 打开手动歌词编辑器（PRD #22）
+  Future<void> _openLyricsEditor(BuildContext context) async {
+    final playback = ref.read(synologyPlaybackProvider);
+    final ctrl = TextEditingController(text: playback.lyrics ?? '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('编辑歌词'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 12,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '粘贴 LRC 格式歌词，每行一条\n[mm:ss.xx]歌词文字',
+            border: OutlineInputBorder(),
+          ),
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (saved == true) {
+      await ref
+          .read(synologyPlaybackProvider.notifier)
+          .saveEditedLyrics(ctrl.text);
+      if (mounted) setState(() {});
+    }
   }
 
   // ============================

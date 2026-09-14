@@ -19,6 +19,7 @@ import '../models/audio_models.dart';
 import '../services/synology_download_service.dart';
 import '../services/lrclib_service.dart';
 import '../services/music_widget_updater.dart';
+import '../services/lyrics_edit_store.dart';
 import 'play_events_provider.dart';
 import '../utils/logger.dart';
 import 'audio_focus_provider.dart';
@@ -575,8 +576,11 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   Future<void> _loadLyrics(AudioSong song) async {
     state = state.copyWith(isLoadingLyrics: true, lyrics: null);
     final api = _ref.read(synologyAuthProvider.notifier).api;
-    var lyrics = await api.getLyrics(song.id);
-    // NAS 无歌词时回退 LRCLIB
+    // 1. 用户手动编辑的歌词优先级最高
+    var lyrics = await lyricsEditStore.read(song.id);
+    // 2. NAS LRC
+    lyrics ??= await api.getLyrics(song.id);
+    // 3. NAS 无歌词时回退 LRCLIB
     if ((lyrics == null || lyrics.trim().isEmpty)) {
       lyrics = await lrclibService.fetchLyrics(
         artist: song.artistDisplay,
@@ -589,6 +593,24 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     if (!_disposed && state.currentSong?.id == song.id) {
       state = state.copyWith(isLoadingLyrics: false, lyrics: lyrics);
     }
+  }
+
+  /// 用户保存手动编辑的歌词（PRD #22）
+  Future<void> saveEditedLyrics(String text) async {
+    final song = state.currentSong;
+    if (song == null) return;
+    await lyricsEditStore.save(song.id, text);
+    if (!_disposed && state.currentSong?.id == song.id) {
+      state = state.copyWith(lyrics: text.trim().isEmpty ? null : text);
+    }
+  }
+
+  /// 清除用户编辑的歌词，回退到 NAS/LRCLIB
+  Future<void> clearEditedLyrics() async {
+    final song = state.currentSong;
+    if (song == null) return;
+    await lyricsEditStore.clear(song.id);
+    await _loadLyrics(song);
   }
 
   Future<void> _playSong(AudioSong song) async {
