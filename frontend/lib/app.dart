@@ -29,6 +29,8 @@ import 'views/recommend_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
+import 'views/playlists_view.dart';
+import 'views/playlist_detail_view.dart';
 import 'views/play_stats_view.dart';
 import 'views/data_backup_view.dart';
 import 'views/settings_view.dart';
@@ -308,6 +310,16 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/data-backup',
         builder: (context, state) => const DataBackupView(),
+      ),
+      // 我的歌单
+      GoRoute(
+        path: '/playlists',
+        builder: (context, state) => const PlaylistsView(),
+      ),
+      GoRoute(
+        path: '/playlists/detail',
+        builder: (context, state) =>
+            PlaylistDetailView(playlistId: state.extra as String),
       ),
       // 设置
       GoRoute(

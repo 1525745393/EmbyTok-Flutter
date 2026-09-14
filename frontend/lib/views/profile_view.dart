@@ -95,6 +95,13 @@ class ProfileView extends ConsumerWidget {
             subtitle: '多账号快速切换、添加/删除账号',
             onTap: () => showAccountSwitchSheet(context, ref),
           ),
+          // 我的歌单入口
+          _buildMenuTile(
+            icon: Icons.queue_music,
+            title: '我的歌单',
+            subtitle: '本地歌单管理、歌曲加入歌单',
+            onTap: () => context.push('/playlists'),
+          ),
           // 播放统计入口
           _buildMenuTile(
             icon: Icons.bar_chart,
