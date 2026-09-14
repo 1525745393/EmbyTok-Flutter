@@ -1,3 +1,10 @@
+# [2.103.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.102.0...v2.103.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 下载管理 V1.1 — 批量删除/存储条/并发队列 ([1b7bf2a](https://github.com/1525745393/EmbyTok-Flutter/commit/1b7bf2a581fb5554271504cb899ac719d78ded40))
+
 # [2.102.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.101.0...v2.102.0) (2026-09-14)
 
 
