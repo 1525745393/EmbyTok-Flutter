@@ -1,3 +1,10 @@
+# [2.113.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.112.0...v2.113.0) (2026-09-14)
+
+
+### Features
+
+* **music:** 桌面音乐 Widget（PRD [#11](https://github.com/1525745393/EmbyTok-Flutter/issues/11)） ([6f2d972](https://github.com/1525745393/EmbyTok-Flutter/commit/6f2d97291d7056329181d8fde9970e058b936c9c))
+
 # [2.112.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.111.1...v2.112.0) (2026-09-14)
 
 
