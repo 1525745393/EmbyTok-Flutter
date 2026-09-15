@@ -177,6 +177,10 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   /// 渐进淡出前记录的原始音量（取消/结束时恢复）
   double _normalVolume = 1.0;
 
+  /// 连续播放失败计数：断网/服务端异常时熔断，避免顺序试完整队列
+  int _consecutiveFailures = 0;
+  static const int _kMaxConsecutiveFailures = 3;
+
   static const String _kSleepTimerKey = 'sleep_timer_v1';
 
   // ============================
@@ -332,7 +336,7 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   /// 下一首（按播放模式：列表循环 / 随机 / 单曲）
   Future<void> next() async {
     final queue = state.queue;
-    if (queue.isEmpty) return;
+    if (queue.isEmpty || state.currentIndex < 0) return;
     final mode = state.mode;
     switch (mode) {
       case SynologyPlaybackMode.singleLoop:
@@ -660,6 +664,7 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
       }
       // 开始轮询进度
       _startPositionTimer();
+      _consecutiveFailures = 0; // 播放成功，重置失败计数
       state = state.copyWith(
         isLoading: false,
         isPlaying: true,
@@ -677,8 +682,19 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     } catch (e, st) {
       AppLogger.error('音乐播放失败',
           data: {'song': song.title}, error: e, stackTrace: st);
-      // 播放失败自动切下一首（避免用户手动点）最多尝试队列末尾
+      _consecutiveFailures++;
+      // 连续失败熔断：断网/服务端异常时不再顺序试完整队列
       final idx = state.currentIndex;
+      if (_consecutiveFailures >= _kMaxConsecutiveFailures) {
+        AppLogger.warn('连续播放失败，停止自动切歌',
+            data: {'count': _consecutiveFailures});
+        state = state.copyWith(
+            isLoading: false,
+            isPlaying: false,
+            error: '连续播放失败，请检查网络或服务器后重试');
+        return;
+      }
+      // 播放失败自动切下一首（避免用户手动点）最多尝试队列末尾
       if (idx >= 0 && idx < state.queue.length - 1) {
         await playQueue(state.queue, idx + 1);
       } else {
