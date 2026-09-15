@@ -1,3 +1,10 @@
+# [2.121.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.120.0...v2.121.0) (2026-09-15)
+
+
+### Features
+
+* 播放页支持位置记忆，离开返回恢复到上次视频 ([f1dd720](https://github.com/1525745393/EmbyTok-Flutter/commit/f1dd720f7a8ac2931fc173178397724b97fa82d2))
+
 # [2.120.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.119.1...v2.120.0) (2026-09-15)
 
 
