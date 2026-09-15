@@ -26,6 +26,7 @@ import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
 import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
+import 'views/discover_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
@@ -278,6 +279,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: true,
           child: RecommendView(),
         ),
+      ),
+      // 发现：按用户设置的 Emby 标签展示内容
+      GoRoute(
+        path: '/discover',
+        builder: (context, state) => const DiscoverView(),
       ),
       // 群晖 Audio Station 音乐：独立路由
       GoRoute(

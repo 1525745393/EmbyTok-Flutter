@@ -21,6 +21,7 @@ export 'embytok_service_provider.dart';
 export 'item_detail_provider.dart';
 export 'recommend_provider.dart';
 export 'recommend_signals.dart';
+export 'discover_provider.dart';
 export '../services/video_pool_service.dart';
 // 音频焦点管理：来电/其他 App 播放时自动暂停与恢复
 export 'audio_focus_provider.dart';

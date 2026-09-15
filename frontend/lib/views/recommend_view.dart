@@ -87,6 +87,15 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
         }
       }
     });
+    // 首页顶栏「关注」入口：/recommend?tag=nextUp 自动选中追剧源
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final tag = GoRouterState.of(context).uri.queryParameters['tag'];
+      if (tag != null && tag.isNotEmpty) {
+        ref.read(recommendProvider.notifier).selectTag(tag);
+      }
+    });
+
     // PR #66：首次未配置推荐媒体库 → 强制弹 LibrarySelector 让用户选一次
     // 监听 libraryListProvider 加载完成（不打断首帧）
     // 修复：用 ensureLoaded() 等待 _load() 异步 I/O 完成，
@@ -662,10 +671,6 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
           sourceKey: RecommendSource.latest.key,
           count: countFor(RecommendSource.latest)),
       _RecommendTagInfo(
-          label: RecommendSource.nextUp.label,
-          sourceKey: RecommendSource.nextUp.key,
-          count: countFor(RecommendSource.nextUp)),
-      _RecommendTagInfo(
           label: RecommendSource.resume.label,
           sourceKey: RecommendSource.resume.key,
           count: countFor(RecommendSource.resume)),
@@ -693,11 +698,10 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
 
     // P2-1：隐藏 count==0 的源标签（如「相似 (0)」），避免展示无意义空标签
     // 「全部」始终保留（sourceKey == null），保证用户总有回退入口
-    // 「追剧」即使 0 也保留：无收藏演员时展示引导空态，提示用户去收藏演员
-    final visibleTags = tags.where((t) =>
-        t.sourceKey == null ||
-        t.count > 0 ||
-        t.sourceKey == RecommendSource.nextUp.key).toList();
+    // 注：「追剧」标签已移至首页顶栏（改名「关注」），不再在此展示
+    final visibleTags = tags
+        .where((t) => t.sourceKey == null || t.count > 0)
+        .toList();
 
     return Container(
       height: 44,

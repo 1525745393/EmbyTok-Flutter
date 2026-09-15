@@ -82,6 +82,7 @@ class SettingsView extends ConsumerWidget {
               _buildFeedLibraryTile(context, ref),
               _buildFeedExcludePlayedTile(context, ref),
               _buildRecommendLibraryTile(context, ref),
+              _buildDiscoverGenresTile(context, ref),
             ],
           ),
           // 推荐设置（PR #78：推荐规则优化）
@@ -374,6 +375,97 @@ class SettingsView extends ConsumerWidget {
       return libraries.map((l) => l.name).join('、');
     }
     return '${libraries.take(3).map((l) => l.name).join('、')} 等 ${libraries.length} 个';
+  }
+
+  // 媒体库 - 发现标签（首页顶栏「发现」数据源，PRD）
+  Widget _buildDiscoverGenresTile(BuildContext context, WidgetRef ref) {
+    final discover = ref.watch(discoverProvider);
+    final names = discover.genres
+        .where((g) => discover.selectedGenreIds.contains(g.id))
+        .map((g) => g.name)
+        .toList();
+    final subtitle = discover.selectedGenreIds.isEmpty
+        ? '选择 Emby 标签，首页「发现」展示对应影片'
+        : (names.isEmpty
+            ? '已选 ${discover.selectedGenreIds.length} 个标签'
+            : (names.length <= 3
+                ? names.join('、')
+                : '${names.take(3).join('、')} 等 ${names.length} 个'));
+    return _TapTile(
+      icon: Icons.explore_outlined,
+      iconColor: Colors.orange,
+      title: '发现标签',
+      subtitle: subtitle,
+      onTap: () => _showDiscoverGenresDialog(context, ref),
+    );
+  }
+
+  // 发现标签多选对话框：拉取服务器类型列表，勾选保存
+  Future<void> _showDiscoverGenresDialog(
+      BuildContext context, WidgetRef ref) async {
+    final scheme = Theme.of(context).colorScheme;
+    final notifier = ref.read(discoverProvider.notifier);
+    // 确保类型列表已加载
+    await notifier.refreshGenres();
+    final state = ref.read(discoverProvider);
+
+    if (state.genres.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('无法获取标签列表，请检查服务器连接')),
+      );
+      return;
+    }
+
+    // 本地副本供勾选（不直接改 provider，点确定才保存）
+    final selected = Set<String>.from(state.selectedGenreIds);
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: scheme.surface,
+        title: const Text('选择发现标签'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: StatefulBuilder(
+            builder: (dialogContext, setDialogState) => ListView.builder(
+              itemCount: state.genres.length,
+              itemBuilder: (context, i) {
+                final g = state.genres[i];
+                final checked = selected.contains(g.id);
+                return CheckboxListTile(
+                  value: checked,
+                  title: Text(g.name,
+                      style: TextStyle(color: scheme.onSurface)),
+                  dense: true,
+                  onChanged: (v) => setDialogState(() {
+                    if (v == true) {
+                      selected.add(g.id);
+                    } else {
+                      selected.remove(g.id);
+                    }
+                  }),
+                );
+              },
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              ref.read(discoverProvider.notifier).saveSelection(selected.toList());
+            },
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   // PR #78：推荐 - 评分阈值

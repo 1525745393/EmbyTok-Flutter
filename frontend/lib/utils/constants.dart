@@ -46,6 +46,8 @@ const String kStorageKeyDefaultPlaybackRate = 'embytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage =
     'embytok_default_subtitle_language';
 const String kStorageKeySubtitleSize = 'embytok_subtitle_size';
+// 发现页：用户选择的 Emby 标签（Genres）id 列表（JSON 数组，账号作用域）
+const String kStorageKeyDiscoverGenres = 'embytok_discover_genres';
 // PR #78：推荐规则偏好（评分阈值 / 时长过滤 / 排除已观看）
 const String kStorageKeyRecommendMinRating = 'embytok_recommend_min_rating';
 const String kStorageKeyRecommendExcludePlayed =
