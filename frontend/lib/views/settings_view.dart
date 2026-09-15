@@ -2295,7 +2295,7 @@ class SettingsView extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               try {
-                ref.read(cacheSizeProvider.notifier).clear();
+                await ref.read(cacheSizeProvider.notifier).clear();
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!context.mounted) return;

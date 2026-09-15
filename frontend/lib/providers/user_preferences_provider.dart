@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../utils/app_preferences.dart';
 
@@ -86,7 +87,16 @@ class CacheSizeNotifier extends StateNotifier<int> {
   CacheSizeNotifier() : super(0);
 
   void set(int bytes) => state = bytes;
-  void clear() => state = 0;
+
+  /// 真正清空磁盘上的图片/文件缓存，并把 UI 计数归零
+  Future<void> clear() async {
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (_) {
+      // 忽略单个缓存目录清理失败
+    }
+    state = 0;
+  }
 }
 
 /// 顶层缓存大小 Provider
