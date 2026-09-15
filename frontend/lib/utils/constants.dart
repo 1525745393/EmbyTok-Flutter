@@ -93,6 +93,9 @@ const String kStorageKeyLastGridScrollOffset =
 // 视频流当前视频索引（PageView 位置持久化）
 const String kStorageKeyLastFeedVideoIndex =
     'embytok_last_feed_video_index';
+// 视频流当前视频 id（F3：恢复时按 id 精确定位，避免换库/重排错位）
+const String kStorageKeyLastFeedVideoItemId =
+    'embytok_last_feed_video_item_id';
 const String kStorageKeySelectedLibraryId = 'embytok_selected_library_id';
 // 媒体库选择：推荐页独立（PR #66：视频流 / 推荐可分别设置）
 const String kStorageKeySelectedLibraryIdForRecommend =

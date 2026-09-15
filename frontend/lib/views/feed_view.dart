@@ -122,8 +122,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       context: 'FeedView.initState.checkCloudSyncOnStartup',
     );
 
-    // 恢复视频流上次位置：延迟到首帧后执行，等待视频列表加载
-    _restoreFeedVideoIndex();
+    // 恢复视频流上次位置：由 postFrame 副作用统一驱动（见 146 行附近），
+    // 与「首 item 播放初始化」协调执行，避免先播第一个视频再跳转的竞态（F1）。
+    // 不再在 initState 中独立调用，防止与 initialId 跳转/自动播放抢占。
 
     // 监听网格滚动位置，防抖保存
     _gridScrollController.addListener(_onGridScrollChanged);
@@ -143,24 +144,32 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     });
 
-    // 从 build 树移出的副作用：initialItemId 跳转 + 首 item 播放初始化
+    // 从 build 树移出的副作用：initialItemId 跳转 + 位置恢复 + 首 item 播放初始化
+    // F1 修复：三者协调执行，先等位置恢复完成，再决定是否初始化首个视频播放，
+    // 避免「先播 index 0 再跳到上次位置」的竞态与完播率统计污染。
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
-      // 1. 路由透传 initialId 跳转
+      // 1. 路由透传 initialId 跳转（深层链接优先）
       final initialId = widget.initialItemId;
       if (initialId != null && initialId.isNotEmpty && !_initialItemProcessed) {
         _initialItemProcessed = true;
         _viewModel.waitForInitialItem(initialId);
       }
 
-      // 2. 首 item 播放初始化：延迟确保 videoState 已加载
+      // 2. 恢复上次播放位置（内部等待列表加载；grid 模式/深层链接直接跳过）
       await Future<void>.delayed(Duration.zero);
-      if (!mounted) return;
-      if (_firstItemInitProcessed) return;
+      if (!mounted || _firstItemInitProcessed) return;
+      final restored = await _restoreFeedVideoIndex();
+      if (!mounted || _firstItemInitProcessed) return;
+
+      // 3. 首 item 播放初始化：仅当未恢复位置时才播放列表第一个视频
+      //    - 已恢复：jumpToPage 触发 onPageChanged → syncCurrentPlaying 完成播放
+      //    - grid 模式：不自动播放（避免后台激活播放器，F4）
+      if (ref.read(viewModeProvider) != ViewMode.feed) return;
       final videoState = ref.read(videoListProvider);
       final playbackState = ref.read(playbackStateProvider);
-      if (videoState.items.isNotEmpty && playbackState.id == null) {
+      if (!restored && videoState.items.isNotEmpty && playbackState.id == null) {
         _firstItemInitProcessed = true;
         final firstItem = videoState.items.first;
         ref
@@ -240,13 +249,28 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // 恢复视频流上次位置
-  Future<void> _restoreFeedVideoIndex() async {
+  //
+  // 返回 true 表示已恢复（或已请求跳转）；false 表示无需/无法恢复，
+  // 调用方据此决定是否回退到「播放列表第一个视频」。
+  //
+  // F2：带 initialId 深层链接进入时跳过（避免与 waitForInitialItem 抢跳）。
+  // F3：优先用保存的视频 id 精确定位，换库/重排后找不到则不恢复。
+  // F4：grid 模式下跳过（IndexedStack 中 PageView 仍在树，跳转会后台激活播放器）。
+  // F5：跳转复用 _jumpToPageWhenReady（hasClients 重试），不裸调 jumpToPage。
+  Future<bool> _restoreFeedVideoIndex() async {
+    // F4：非视频流模式不恢复
+    if (ref.read(viewModeProvider) != ViewMode.feed) return false;
+
+    // F2：深层链接直接进入指定视频，不恢复历史位置
+    final initialId = widget.initialItemId;
+    if (initialId != null && initialId.isNotEmpty) return false;
+
     // 等待视频列表加载完成后再恢复位置
     // 最多等待 10 秒，避免无限等待
     int attempts = 0;
     while (attempts < 20) {
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return false;
 
       final videoState = ref.read(videoListProvider);
       if (videoState.items.isNotEmpty && !videoState.isLoading) {
@@ -255,19 +279,34 @@ class _FeedViewState extends ConsumerState<FeedView>
       attempts++;
     }
 
-    if (!mounted) return;
+    if (!mounted) return false;
 
-    final lastIndex = await _viewModel.restoreFeedVideoIndex();
-    if (!mounted || lastIndex <= 0) return;
+    final pos = await _viewModel.restoreFeedVideoPosition();
+    if (!mounted) return false;
 
     final videoState = ref.read(videoListProvider);
-    if (videoState.items.isEmpty) return;
+    if (videoState.items.isEmpty) return false;
 
-    // 确保索引在有效范围内
-    final targetIndex = lastIndex.clamp(0, videoState.items.length - 1);
-    if (targetIndex != _currentIndex) {
-      _pageController.jumpToPage(targetIndex);
+    // F3：优先按保存的视频 id 精确定位；找不到（换库/列表重排）则不恢复，
+    // 避免按旧 index 跳到错误视频。旧数据无 itemId 时按 index 近似恢复。
+    int targetIndex = -1;
+    final savedItemId = pos.itemId;
+    if (savedItemId != null && savedItemId.isNotEmpty) {
+      final byId = videoState.items.indexWhere((i) => i.id == savedItemId);
+      if (byId >= 0) {
+        targetIndex = byId;
+      }
     }
+    if (targetIndex < 0 && pos.index > 0) {
+      targetIndex = pos.index.clamp(0, videoState.items.length - 1);
+    }
+    if (targetIndex <= 0) return false;
+
+    if (targetIndex != _currentIndex) {
+      // F5：等 PageController attach 后跳转（带重试）
+      _jumpToPageWhenReady(targetIndex);
+    }
+    return true;
   }
 
   // PageView 滚动状态变化回调：快速滑动时立即释放非当前页 controller

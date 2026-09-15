@@ -427,8 +427,8 @@ class FeedViewModel {
     _playbackCoordinator.syncCurrentPlaying(index: index, items: items);
     // 更新当前索引（供键盘快捷键等使用）
     _ref.read(feedCurrentIndexProvider.notifier).state = index;
-    // 保存当前索引到本地持久化
-    _saveFeedVideoIndex(index);
+    // 保存当前索引 + 视频 id 到本地持久化（F3：恢复时按 id 精确定位）
+    _saveFeedVideoIndex(index, items);
     // 判断是否需要加载更多
     if (hasMore && index >= items.length - 2 && !isLoading) {
       return true; // 通知 View 层触发 loadMore
@@ -436,23 +436,35 @@ class FeedViewModel {
     return false;
   }
 
-  /// 保存视频流当前索引到本地持久化
-  void _saveFeedVideoIndex(int index) async {
+  /// 保存视频流当前索引 + 当前视频 id 到本地持久化
+  ///
+  /// F3：仅存 index 在媒体库/列表变化后会错位恢复，同时记录当前视频 id，
+  /// 恢复时优先按 id 定位；找不到（换库/重排）则不恢复，避免跳到错误视频。
+  void _saveFeedVideoIndex(int index, List<MediaItem> items) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(kStorageKeyLastFeedVideoIndex, index);
+      if (index >= 0 && index < items.length) {
+        await prefs.setString(
+            kStorageKeyLastFeedVideoItemId, items[index].id);
+      }
     } catch (_) {
       // 操作失败不影响主流程
     }
   }
 
-  /// 从本地恢复视频流当前索引
-  Future<int> restoreFeedVideoIndex() async {
+  /// 从本地恢复视频流上次位置（索引 + 视频 id）
+  ///
+  /// F3：返回 [index] 与 [itemId]，调用方优先按 itemId 在列表中定位；
+  /// 旧版本数据无 itemId 时按 index 近似恢复。
+  Future<({int index, String? itemId})> restoreFeedVideoPosition() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt(kStorageKeyLastFeedVideoIndex) ?? 0;
+      final index = prefs.getInt(kStorageKeyLastFeedVideoIndex) ?? 0;
+      final itemId = prefs.getString(kStorageKeyLastFeedVideoItemId);
+      return (index: index, itemId: itemId);
     } catch (_) {
-      return 0;
+      return (index: 0, itemId: null);
     }
   }
 
