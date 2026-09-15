@@ -1496,7 +1496,7 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   /// 结构：{ source: { 列表首itemId: { "idx": 索引, "last": 上次视频id } } }
   /// 恢复条件：同一数据源 + 同一列表（首 item 一致）→ 恢复到上次滑到的视频；
   /// 进度续播由 VideoPageItem.startFromResumePosition 基于 Emby 服务端位置完成。
-  static const String _kPositionMemoryKey = 'embytok_playback_shell_position';
+  static const String _kPositionMemoryKey = kStorageKeyPlaybackShellPosition;
 
   @override
   void initState() {

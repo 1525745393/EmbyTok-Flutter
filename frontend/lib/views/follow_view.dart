@@ -5,6 +5,7 @@
 //
 // 数据源：recommendProvider（构造时自动全量加载），此处按
 // RecommendSource.nextUp.key 过滤展示，与推荐页 selectTag 逻辑共用同一份数据。
+// 「上次看到」标记：读取播放页位置记忆，标记上次观看的视频。
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -14,15 +15,24 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
-import '../widgets/empty_state_card.dart';
+import '../utils/playback_position_memory.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/skeleton_loading.dart';
 
-class FollowView extends ConsumerWidget {
+class FollowView extends ConsumerStatefulWidget {
   const FollowView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FollowView> createState() => _FollowViewState();
+}
+
+class _FollowViewState extends ConsumerState<FollowView> {
+  /// 本列表上次观看的视频 id（位置记忆标记）
+  String? _lastWatchedId;
+  bool _lastWatchedLoaded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(recommendProvider);
 
@@ -30,6 +40,11 @@ class FollowView extends ConsumerWidget {
     final nextUpItems = state.taggedItems
         .where((r) => r.source.key == RecommendSource.nextUp.key)
         .toList(growable: false);
+
+    // 列表加载后异步读取「上次看到」标记（仅一次）
+    if (nextUpItems.isNotEmpty) {
+      _scheduleLoadLastWatched(nextUpItems);
+    }
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -42,6 +57,21 @@ class FollowView extends ConsumerWidget {
         child: _buildBody(context, ref, state, nextUpItems, scheme),
       ),
     );
+  }
+
+  void _scheduleLoadLastWatched(List<RecommendItem> items) {
+    if (_lastWatchedLoaded || items.isEmpty) return;
+    _lastWatchedLoaded = true;
+    final firstId = items.first.item.id;
+    Future.microtask(() async {
+      final id = await PlaybackPositionMemory.lastWatchedItemId(
+        source: 'follow',
+        listSignature: firstId,
+      );
+      if (mounted && id != null && id != _lastWatchedId) {
+        setState(() => _lastWatchedId = id);
+      }
+    });
   }
 
   Widget _buildBody(
@@ -121,6 +151,7 @@ class FollowView extends ConsumerWidget {
         item: items[i].item,
         // 整列表进入播放页，支持抖音式上下滑刷视频
         items: items.map((r) => r.item).toList(growable: false),
+        isLastWatched: items[i].item.id == _lastWatchedId,
       ),
     );
   }
@@ -128,10 +159,15 @@ class FollowView extends ConsumerWidget {
 
 /// 关注页海报卡片
 class _FollowPosterCard extends ConsumerWidget {
-  const _FollowPosterCard({required this.item, required this.items});
+  const _FollowPosterCard({
+    required this.item,
+    required this.items,
+    this.isLastWatched = false,
+  });
 
   final MediaItem item;
   final List<MediaItem> items;
+  final bool isLastWatched; // 是否为上次观看到的视频
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,34 +192,67 @@ class _FollowPosterCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      cacheManager: AppImageCacheManager.thumbnail,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        color: scheme.surfaceContainerHighest,
-                        child: const Center(
-                          child: Icon(Icons.movie_outlined, size: 32),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          cacheManager: AppImageCacheManager.thumbnail,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: scheme.surfaceContainerHighest,
+                            child: const Center(
+                              child: Icon(Icons.movie_outlined, size: 32),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: scheme.surfaceContainerHighest,
+                            child: Center(
+                              child: Icon(Icons.broken_image_outlined,
+                                  size: 32, color: scheme.outline),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: scheme.surfaceContainerHighest,
+                          child: Center(
+                            child: Icon(Icons.movie_outlined,
+                                size: 32, color: scheme.outline),
+                          ),
+                        ),
+                ),
+                // 「上次看到」角标
+                if (isLastWatched)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: const BorderRadius.only(
+                          bottomRight: Radius.circular(8),
                         ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: scheme.surfaceContainerHighest,
-                        child: Center(
-                          child: Icon(Icons.broken_image_outlined,
-                              size: 32, color: scheme.outline),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: scheme.surfaceContainerHighest,
-                      child: Center(
-                        child: Icon(Icons.movie_outlined,
-                            size: 32, color: scheme.outline),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.history, size: 11, color: Colors.white),
+                          SizedBox(width: 3),
+                          Text(
+                            '上次看到',
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 10),
+                          ),
+                        ],
                       ),
                     ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 6),
