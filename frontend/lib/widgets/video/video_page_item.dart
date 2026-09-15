@@ -3,6 +3,7 @@
 //       reportPlaybackPosition / reportPlaybackStopped）
 
 import 'dart:async';
+import 'dart:convert';
 
 import '../../utils/safe_insets.dart';
 import '../../utils/safe_unawaited.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
@@ -1489,12 +1491,21 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   late List<MediaItem> _items;
   bool _isLoading = true;
 
+  /// 播放位置记忆（离开播放页再返回时恢复上次视频索引）
+  ///
+  /// 结构：{ source: { 列表首itemId: { "idx": 索引, "last": 上次视频id } } }
+  /// 恢复条件：同一数据源 + 同一列表（首 item 一致）→ 恢复到上次滑到的视频；
+  /// 进度续播由 VideoPageItem.startFromResumePosition 基于 Emby 服务端位置完成。
+  static const String _kPositionMemoryKey = 'embytok_playback_shell_position';
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
     _initItems();
     _preloadAround(_currentIndex);
+    // 异步读取位置记忆，匹配到同一列表时恢复到上次滑到的视频
+    _restoreFromMemory();
     // 进入播放页时立即隐藏系统栏，进入全屏沉浸式
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(
@@ -1511,11 +1522,70 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
   @override
   void dispose() {
+    // 离开前保存当前播放位置（不 await，异步写盘）
+    _savePosition();
     _pageController.dispose();
     // 离开播放页：返回 FeedView，需要保持沉浸式模式
     // 不恢复 edgeToEdge，因为目标页面（FeedView）也是沉浸式的
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     super.dispose();
+  }
+
+  /// 当前列表的稳定签名：首 item id（同一列表内进入/返回时保持不变）
+  String get _listSignature =>
+      _items.isNotEmpty ? _items.first.id : widget.item.id;
+
+  /// 从本地记忆恢复上次播放位置（仅当数据源与列表均匹配时）
+  Future<void> _restoreFromMemory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kPositionMemoryKey);
+      if (raw == null || raw.isEmpty) return;
+      final root = jsonDecode(raw);
+      if (root is! Map<String, dynamic>) return;
+      final bySource = root[widget.source];
+      if (bySource is! Map<String, dynamic>) return;
+      final entry = bySource[_listSignature];
+      if (entry is! Map<String, dynamic>) return;
+      final savedIdx = entry['idx'];
+      if (savedIdx is! int || savedIdx <= 0) return;
+      if (!mounted) return;
+      final target = savedIdx.clamp(0, _items.length - 1);
+      // 等 PageController attach 后跳转
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _currentIndex = target;
+        _pageController.jumpToPage(target);
+        AppLogger.debug('播放位置记忆：恢复到上次视频',
+            data: {'source': widget.source, 'index': target});
+      });
+    } catch (e) {
+      AppLogger.error('播放位置记忆恢复失败', error: e);
+    }
+  }
+
+  /// 保存当前播放位置（数据源 + 列表签名 + 索引 + 当前视频 id）
+  Future<void> _savePosition() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kPositionMemoryKey);
+      final root = (raw == null || raw.isEmpty)
+          ? <String, dynamic>{}
+          : (jsonDecode(raw) as Map<String, dynamic>? ?? {});
+      final bySource =
+          (root[widget.source] as Map<String, dynamic>?) ?? <String, dynamic>{};
+      final currentId = (_currentIndex >= 0 && _currentIndex < _items.length)
+          ? _items[_currentIndex].id
+          : widget.item.id;
+      bySource[_listSignature] = {
+        'idx': _currentIndex,
+        'last': currentId,
+      };
+      root[widget.source] = bySource;
+      await prefs.setString(_kPositionMemoryKey, jsonEncode(root));
+    } catch (e) {
+      AppLogger.error('播放位置记忆保存失败', error: e);
+    }
   }
 
   void _initItems() {
@@ -1561,6 +1631,8 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
     setState(() {
       _currentIndex = index;
     });
+    // 滑动后实时保存位置，离开时即使不触发 dispose 也有最新记录
+    _savePosition();
     _preloadAround(index);
   }
 
