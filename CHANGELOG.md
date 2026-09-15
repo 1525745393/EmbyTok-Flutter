@@ -1,3 +1,10 @@
+## [2.118.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.6...v2.118.7) (2026-09-15)
+
+
+### Bug Fixes
+
+* **download:** 下载失败时清理未完成残片，避免坏文件占空间 ([9dbea5b](https://github.com/1525745393/EmbyTok-Flutter/commit/9dbea5b98256b55827b8cea47da7be4ae08db6a2))
+
 ## [2.118.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.5...v2.118.6) (2026-09-15)
 
 
