@@ -1,3 +1,10 @@
+## [2.118.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.4...v2.118.5) (2026-09-15)
+
+
+### Bug Fixes
+
+* **video:** 播放位置上报精度提升到毫秒 ([ccc2f87](https://github.com/1525745393/EmbyTok-Flutter/commit/ccc2f878a5a0db68a421eb8ca7c8a00d03c90382))
+
 ## [2.118.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.3...v2.118.4) (2026-09-15)
 
 
