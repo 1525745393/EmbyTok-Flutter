@@ -1,3 +1,10 @@
+## [2.119.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.119.0...v2.119.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* 首页「关注」改为独立关注页，不再复用推荐页UI ([0b00c5a](https://github.com/1525745393/EmbyTok-Flutter/commit/0b00c5a0b6ef254f3c2fa5735ecdf09a84b14b21))
+
 # [2.119.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.8...v2.119.0) (2026-09-15)
 
 
