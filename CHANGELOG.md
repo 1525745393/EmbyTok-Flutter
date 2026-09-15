@@ -1,3 +1,10 @@
+## [2.118.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.3...v2.118.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* **player:** 播放边界与断网熔断 ([1649c6d](https://github.com/1525745393/EmbyTok-Flutter/commit/1649c6d24bdb56e0d146f8b47a742aa344cd9498))
+
 ## [2.118.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.2...v2.118.3) (2026-09-15)
 
 
