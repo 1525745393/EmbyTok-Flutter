@@ -1,3 +1,10 @@
+## [2.118.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.2...v2.118.3) (2026-09-15)
+
+
+### Performance Improvements
+
+* **settings:** 批量扫描歌手流式收集，避免大库 OOM ([384f922](https://github.com/1525745393/EmbyTok-Flutter/commit/384f92243bb307e7f4ae482117dbbe758f1e20b3))
+
 ## [2.118.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.1...v2.118.2) (2026-09-15)
 
 
