@@ -1,3 +1,10 @@
+## [2.117.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.117.0...v2.117.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **android:** 修复 APK 更新安装失败（缺 FileProvider） ([a22f9b3](https://github.com/1525745393/EmbyTok-Flutter/commit/a22f9b307cfcbf6350b825f9033a196db7b995bd))
+
 # [2.117.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.116.0...v2.117.0) (2026-09-14)
 
 
