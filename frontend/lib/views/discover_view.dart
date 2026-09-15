@@ -80,16 +80,18 @@ class DiscoverView extends ConsumerWidget {
         childAspectRatio: 2 / 3,
       ),
       itemCount: state.items.length,
-      itemBuilder: (context, i) => _PosterCard(item: state.items[i]),
+      itemBuilder: (context, i) =>
+          _PosterCard(item: state.items[i], items: state.items),
     );
   }
 }
 
 /// 海报卡片
 class _PosterCard extends ConsumerWidget {
-  const _PosterCard({required this.item});
+  const _PosterCard({required this.item, required this.items});
 
   final MediaItem item;
+  final List<MediaItem> items; // 当前发现列表（进入播放页后支持上下刷）
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -102,10 +104,16 @@ class _PosterCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         // 发现页数据与视频流列表不同源（按标签拉取），
-        // 不能依赖 /?initialId= 在视频流 items 中查找（会超时失败），
-        // 改为直接设置全局播放列表后进入播放页
-        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
-        context.push('/play/${item.id}', extra: item);
+        // 不能依赖 /?initialId= 在视频流 items 中查找（会超时失败）；
+        // 把整个发现列表传给播放页，进入后可像刷抖音一样上下滑动切换
+        ref
+            .read(playbackListProvider.notifier)
+            .setPlaybackList(items, item.id);
+        context.push('/play/${item.id}', extra: {
+          'item': item,
+          'items': items,
+          'source': 'discover',
+        });
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

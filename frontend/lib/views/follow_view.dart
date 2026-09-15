@@ -117,16 +117,21 @@ class FollowView extends ConsumerWidget {
         childAspectRatio: 2 / 3,
       ),
       itemCount: items.length,
-      itemBuilder: (context, i) => _FollowPosterCard(item: items[i].item),
+      itemBuilder: (context, i) => _FollowPosterCard(
+        item: items[i].item,
+        // 整列表进入播放页，支持抖音式上下滑刷视频
+        items: items.map((r) => r.item).toList(growable: false),
+      ),
     );
   }
 }
 
 /// 关注页海报卡片
 class _FollowPosterCard extends ConsumerWidget {
-  const _FollowPosterCard({required this.item});
+  const _FollowPosterCard({required this.item, required this.items});
 
   final MediaItem item;
+  final List<MediaItem> items;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -139,9 +144,13 @@ class _FollowPosterCard extends ConsumerWidget {
     return GestureDetector(
       onTap: () {
         // 追剧数据来自推荐系统（收藏演员新作品），与视频流 items 不同源，
-        // 不依赖 /?initialId= 查找，直接设置播放列表后进入播放页
-        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
-        context.push('/play/${item.id}', extra: item);
+        // 不依赖 /?initialId= 查找；整列表进入播放页，支持上下滑刷视频
+        ref.read(playbackListProvider.notifier).setPlaybackList(items, item.id);
+        context.push('/play/${item.id}', extra: {
+          'item': item,
+          'items': items,
+          'source': 'follow',
+        });
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
