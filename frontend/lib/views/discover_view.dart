@@ -100,7 +100,13 @@ class _PosterCard extends ConsumerWidget {
       apiKey: auth.token,
     );
     return GestureDetector(
-      onTap: () => context.go('/?initialId=${item.id}'),
+      onTap: () {
+        // 发现页数据与视频流列表不同源（按标签拉取），
+        // 不能依赖 /?initialId= 在视频流 items 中查找（会超时失败），
+        // 改为直接设置全局播放列表后进入播放页
+        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
+        context.push('/play/${item.id}', extra: item);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

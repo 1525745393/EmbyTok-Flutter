@@ -137,7 +137,12 @@ class _FollowPosterCard extends ConsumerWidget {
       apiKey: auth.token,
     );
     return GestureDetector(
-      onTap: () => context.go('/?initialId=${item.id}'),
+      onTap: () {
+        // 追剧数据来自推荐系统（收藏演员新作品），与视频流 items 不同源，
+        // 不依赖 /?initialId= 查找，直接设置播放列表后进入播放页
+        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
+        context.push('/play/${item.id}', extra: item);
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
