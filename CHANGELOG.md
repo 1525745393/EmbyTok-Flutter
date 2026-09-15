@@ -1,3 +1,10 @@
+## [2.118.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.1...v2.118.2) (2026-09-15)
+
+
+### Bug Fixes
+
+* **settings:** 清除缓存真正删除磁盘文件 ([6c0c290](https://github.com/1525745393/EmbyTok-Flutter/commit/6c0c290a98dee0a248127184477a184030c787cb))
+
 ## [2.118.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.0...v2.118.1) (2026-09-15)
 
 
