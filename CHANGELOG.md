@@ -1,3 +1,10 @@
+# [2.119.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.8...v2.119.0) (2026-09-15)
+
+
+### Features
+
+* 追剧标签移至首页改名关注 + 新增发现数据源（Emby标签） ([8f5afd3](https://github.com/1525745393/EmbyTok-Flutter/commit/8f5afd361f3d50946ab97c54cfeb2027b380c380))
+
 ## [2.118.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.7...v2.118.8) (2026-09-15)
 
 
