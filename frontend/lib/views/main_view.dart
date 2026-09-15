@@ -70,11 +70,10 @@ class _MainViewState extends ConsumerState<MainView> {
       final currentVer = plus > 0 ? cur.substring(0, plus) : cur;
       final result = await svc.checkForUpdate(currentVer);
       if (!mounted || !result.hasUpdate || result.latestRelease == null) return;
-      // 同一版本只提示一次
+      // 同一版本只提示一次（点「去更新」后才记录，点「稍后」下次仍提醒）
       final prefs = await SharedPreferences.getInstance();
       final shown = prefs.getString('update_shown_ver') ?? '';
       if (shown == result.latestRelease!.version) return;
-      await prefs.setString('update_shown_ver', result.latestRelease!.version);
       if (!mounted) return;
       final v = result.latestRelease!;
       showDialog<void>(
@@ -89,6 +88,7 @@ class _MainViewState extends ConsumerState<MainView> {
             ),
             FilledButton(
               onPressed: () {
+                prefs.setString('update_shown_ver', v.version);
                 Navigator.pop(ctx);
                 context.push('/settings');
               },
