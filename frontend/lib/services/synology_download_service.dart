@@ -385,6 +385,8 @@ class SynologyDownloadService {
         // 用户取消：保留 partial 文件由 cancel 处理
         AppLogger.info('下载取消', data: {'song': task.title});
       } else {
+        // 失败：删除未完成的残片，避免坏文件占用空间
+        await _safeDelete(task.savedPath);
         await _updateTask(task.copyWith(
           status: DownloadStatus.failed,
           errorMessage: e.message ?? '下载失败',
@@ -392,6 +394,7 @@ class SynologyDownloadService {
         AppLogger.warn('下载失败', data: {'song': task.title, 'error': e.message});
       }
     } catch (e) {
+      await _safeDelete(task.savedPath);
       await _updateTask(task.copyWith(
         status: DownloadStatus.failed,
         errorMessage: e.toString(),
@@ -400,6 +403,15 @@ class SynologyDownloadService {
       _cancelTokens.remove(task.songId);
       onProgress(await loadTasks());
     }
+  }
+
+  /// 安全删除指定路径文件（忽略不存在/删除失败）
+  Future<void> _safeDelete(String? path) async {
+    if (path == null) return;
+    try {
+      final f = File(path);
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
   }
 
   /// 任务写入串行链：所有 load-modify-save 排队执行，
