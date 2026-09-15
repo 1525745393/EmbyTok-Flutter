@@ -27,6 +27,7 @@ import 'views/login_view.dart';
 import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/discover_view.dart';
+import 'views/follow_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
@@ -279,6 +280,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: true,
           child: RecommendView(),
         ),
+      ),
+      // 关注：首页顶栏入口，展示收藏演员的最新作品（nextUp 数据源）
+      GoRoute(
+        path: '/follow',
+        builder: (context, state) => const FollowView(),
       ),
       // 发现：按用户设置的 Emby 标签展示内容
       GoRoute(

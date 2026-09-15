@@ -526,7 +526,7 @@ class _FeedViewState extends ConsumerState<FeedView>
           _buildTopBarButton(
             icon: Icons.favorite,
             label: '关注',
-            onTap: () => context.push('/recommend?tag=nextUp'),
+            onTap: () => context.push('/follow'),
           ),
           _buildTopBarButton(
             icon: Icons.explore_outlined,
