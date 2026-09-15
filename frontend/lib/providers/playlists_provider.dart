@@ -6,6 +6,7 @@
 // - 后续可对接 NAS AudioStation Playlist API 做服务端同步
 
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -105,7 +106,7 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
   /// 新建歌单，返回新建的歌单
   Future<LocalPlaylist> create(String name) => _lock(() async {
         final pl = LocalPlaylist(
-          id: 'pl_${DateTime.now().millisecondsSinceEpoch}',
+          id: 'pl_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(1 << 32).toRadixString(36)}',
           name: name.trim().isEmpty ? '未命名歌单' : name.trim(),
           createdAtMs: DateTime.now().millisecondsSinceEpoch,
           songs: const [],
