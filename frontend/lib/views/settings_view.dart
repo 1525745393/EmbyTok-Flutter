@@ -1118,22 +1118,21 @@ class SettingsView extends ConsumerWidget {
     // 获取音乐库中所有歌手
     try {
       final api = ref.read(synologyAuthProvider.notifier).api;
-      // 循环获取所有歌曲（每页 200 首）
-      final allSongs = <AudioSong>[];
+      // 分页遍历所有歌曲，只收集歌手名，不保留整首歌对象，避免大库 OOM
+      final artistSet = <String>{};
       int offset = 0;
       const int limit = 200;
       while (true) {
         final batch = await api.getSongs(offset: offset, limit: limit);
         if (batch.isEmpty) break;
-        allSongs.addAll(batch);
+        for (final s in batch) {
+          final name = s.artistDisplay ?? '';
+          if (name.isNotEmpty) artistSet.add(name);
+        }
         if (batch.length < limit) break;
         offset += limit;
       }
-      final artistNames = allSongs
-          .map((s) => s.artistDisplay ?? '')
-          .where((name) => name.isNotEmpty)
-          .toSet()
-          .toList();
+      final artistNames = artistSet.toList();
 
       if (!context.mounted) return; // 修复：异步后检查 context.mounted
       if (artistNames.isEmpty) {
