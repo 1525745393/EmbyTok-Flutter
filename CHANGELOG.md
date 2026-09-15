@@ -1,3 +1,10 @@
+# [2.122.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.121.1...v2.122.0) (2026-09-15)
+
+
+### Features
+
+* 关注页/发现页标记「上次看到」视频 ([62471ce](https://github.com/1525745393/EmbyTok-Flutter/commit/62471ceb16d07adf27d70502b8af6bc53fea5bdd))
+
 ## [2.121.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.121.0...v2.121.1) (2026-09-15)
 
 
