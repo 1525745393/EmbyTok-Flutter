@@ -1,3 +1,10 @@
+## [2.118.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.7...v2.118.8) (2026-09-15)
+
+
+### Bug Fixes
+
+* **playlist:** 新建歌单 id 加随机后缀避免同毫秒撞号 ([de779e1](https://github.com/1525745393/EmbyTok-Flutter/commit/de779e14ac74740fc63f811c5896c871716ddbbc))
+
 ## [2.118.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.6...v2.118.7) (2026-09-15)
 
 
