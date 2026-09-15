@@ -1,3 +1,10 @@
+## [2.121.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.121.0...v2.121.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* 首页视频流位置恢复机制五项修复 ([a98b92f](https://github.com/1525745393/EmbyTok-Flutter/commit/a98b92fcdbc92b40af6bdae7f51ed79fd6afd03e))
+
 # [2.121.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.120.0...v2.121.0) (2026-09-15)
 
 
