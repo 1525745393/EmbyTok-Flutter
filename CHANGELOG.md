@@ -1,3 +1,10 @@
+## [2.118.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.5...v2.118.6) (2026-09-15)
+
+
+### Bug Fixes
+
+* **search:** 修复快速输入时旧请求覆盖新结果的竞态 ([3d34f37](https://github.com/1525745393/EmbyTok-Flutter/commit/3d34f370bf48543fd10db6eff24f244b7a88ea5b))
+
 ## [2.118.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.4...v2.118.5) (2026-09-15)
 
 
