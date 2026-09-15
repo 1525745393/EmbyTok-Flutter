@@ -10,9 +10,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/synology_auth_provider.dart';
 import '../providers/synology_music_provider.dart';
+import '../providers/app_preferences_providers.dart';
+import '../services/update_check_service.dart';
 import 'profile_view.dart';
 import 'synology_music_view.dart';
 import 'music/mini_player_bar.dart';
@@ -51,6 +55,51 @@ class _MainViewState extends ConsumerState<MainView> {
       // 我的：个人中心
       const ProfileView(),
     ];
+    // 启动后静默检查更新（有新版本才提示，同一版本只弹一次）
+    WidgetsBinding.instance.addPostFrameCallback((_) => _autoCheckUpdate());
+  }
+
+  Future<void> _autoCheckUpdate() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
+    try {
+      final svc = ref.read(updateCheckServiceProvider);
+      final ver = ref.read(appVersionProvider);
+      final cur = ver.maybeWhen(data: (v) => v, orElse: () => '0.0.0');
+      final plus = cur.indexOf('+');
+      final currentVer = plus > 0 ? cur.substring(0, plus) : cur;
+      final result = await svc.checkForUpdate(currentVer);
+      if (!mounted || !result.hasUpdate || result.latestRelease == null) return;
+      // 同一版本只提示一次
+      final prefs = await SharedPreferences.getInstance();
+      final shown = prefs.getString('update_shown_ver') ?? '';
+      if (shown == result.latestRelease!.version) return;
+      await prefs.setString('update_shown_ver', result.latestRelease!.version);
+      if (!mounted) return;
+      final v = result.latestRelease!;
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('发现新版本 v${v.version}'),
+          content: const Text('有可用更新，前往设置检查更新并下载安装。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('稍后'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                context.push('/settings');
+              },
+              child: const Text('去更新'),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      // 静默检查失败不打扰用户
+    }
   }
 
   @override
