@@ -1,3 +1,10 @@
+# [2.118.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.117.1...v2.118.0) (2026-09-15)
+
+
+### Features
+
+* 启动后静默检查更新（同一版本只提示一次） ([bc1d170](https://github.com/1525745393/EmbyTok-Flutter/commit/bc1d170cbc11dc679efd93727364821ba1eb934d))
+
 ## [2.117.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.117.0...v2.117.1) (2026-09-15)
 
 
