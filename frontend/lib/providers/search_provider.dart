@@ -152,6 +152,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
   /// 防抖 Timer：连续输入时只保留最后一次
   Timer? _debounceTimer;
 
+  /// 搜索请求序号：防竞态，旧请求返回时不再覆盖最新结果
+  int _searchSeq = 0;
+
   /// 搜索结果缓存（按 query+category 缓存整个 SearchState）
   final MemoryCache<SearchState> _cache =
       MemoryCache<SearchState>(maxSize: _kSearchCacheMaxSize);
@@ -198,6 +201,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   /// 实际执行搜索
   Future<void> _doSearch(String query, SearchCategory searchCategory) async {
+    final seq = ++_searchSeq;
     // 先检查缓存
     final cacheKey =
         '$query:${searchCategory.name}:${_auth.embyServerUrl}:${_auth.token}';
@@ -236,13 +240,16 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     try {
       if (searchCategory == SearchCategory.persons) {
-        await _searchPersons(query, serverUrl, token);
+        await _searchPersons(seq, query, serverUrl, token);
       } else {
-        await _searchMedia(query, serverUrl, token, userId, searchCategory);
+        await _searchMedia(seq, query, serverUrl, token, userId, searchCategory);
       }
+      // 竞态保护：已有更新的搜索请求，丢弃本次结果
+      if (seq != _searchSeq) return;
       // 缓存搜索结果
       _cache.set(cacheKey, state, ttl: _kSearchCacheTtl);
     } catch (e) {
+      if (seq != _searchSeq) return;
       final message = e is String ? e : '搜索失败：$e';
       state = state.copyWith(
           isLoading: false, isLoadingPersons: false, error: message);
@@ -264,8 +271,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   // 搜索媒体项
-  Future<void> _searchMedia(String query, String serverUrl, String token,
-      String? userId, SearchCategory category) async {
+  Future<void> _searchMedia(int seq, String query, String serverUrl,
+      String token, String? userId, SearchCategory category) async {
     final includeTypes = _typesFromCategory(category);
     final resp = await _service.searchItems(
       query,
@@ -276,6 +283,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
       token: token,
       userId: userId,
     );
+    if (seq != _searchSeq) return; // 已有更新请求，丢弃
     final hasMore = resp.offset + resp.items.length < resp.total;
     state = SearchState(
       results: resp.items,
@@ -297,13 +305,14 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   // 搜索人物
   Future<void> _searchPersons(
-      String query, String serverUrl, String token) async {
+      int seq, String query, String serverUrl, String token) async {
     final items = await _service.searchPersons(
       query,
       limit: 20,
       serverUrl: serverUrl,
       token: token,
     );
+    if (seq != _searchSeq) return; // 已有更新请求，丢弃
     final persons =
         items.map((e) => SearchPerson.fromJson(e, serverUrl, token)).toList();
     state = SearchState(
