@@ -60,5 +60,15 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/music_widget_info"/>
         </receiver>
+        <!-- 安装 APK 所需 FileProvider（open_filex） -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
