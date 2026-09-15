@@ -1,3 +1,10 @@
+## [2.118.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.118.0...v2.118.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **update:** 「稍后」不再标记已读，该版本下次启动仍提醒 ([d82cef5](https://github.com/1525745393/EmbyTok-Flutter/commit/d82cef54cbdb86cc62982a1374b766b20b4f4dbf))
+
 # [2.118.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.117.1...v2.118.0) (2026-09-15)
 
 
