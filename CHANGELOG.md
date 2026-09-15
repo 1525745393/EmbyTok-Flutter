@@ -1,3 +1,11 @@
+# [2.117.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.116.0...v2.117.0) (2026-09-14)
+
+
+### Features
+
+* **music:** EQ 页加「恢复默认」一键清零（PRD [#23](https://github.com/1525745393/EmbyTok-Flutter/issues/23)） ([4cc2163](https://github.com/1525745393/EmbyTok-Flutter/commit/4cc2163627b62a1c2b4b940cb095834cc18ddfb0))
+* **music:** 设置-关于 加意见反馈入口（PRD [#25](https://github.com/1525745393/EmbyTok-Flutter/issues/25)） ([98a1797](https://github.com/1525745393/EmbyTok-Flutter/commit/98a179771436125082887b4e28a3efdae6e060e6))
+
 # [2.116.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.115.0...v2.116.0) (2026-09-14)
 
 
