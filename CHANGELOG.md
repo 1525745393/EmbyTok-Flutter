@@ -1,3 +1,15 @@
+# [2.120.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.119.1...v2.120.0) (2026-09-15)
+
+
+### Bug Fixes
+
+* 发现页/关注页点击海报直接进播放页 ([1cd55e4](https://github.com/1525745393/EmbyTok-Flutter/commit/1cd55e454d08385573d4f3e52d5258154ac2a020))
+
+
+### Features
+
+* 发现页/关注页支持抖音式竖滑刷视频 ([34d9d26](https://github.com/1525745393/EmbyTok-Flutter/commit/34d9d26e56c0dd3528946ecb316b113741496232))
+
 ## [2.119.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.119.0...v2.119.1) (2026-09-15)
 
 
