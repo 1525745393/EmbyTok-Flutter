@@ -1192,7 +1192,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     required UserBehaviorSignal signal,
     required Set<String> seenIds,
     // Task 4：各数据源是否还有更多数据
-    // 索引顺序：[0]=NextUp, [1]=Resume, [2]=Suggestions, [3]=Similar, [4]=Recommendations
+    // 索引顺序与 _loadPage 中 Future.wait 一致：
+    // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
+    // [4]=Native, [5]=Similar, [6]=Recommendations, [7]=Local
     required List<bool> sourceHasMore,
   }) {
     for (final list in queues.values) {
