@@ -1,3 +1,10 @@
+# [2.126.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.125.0...v2.126.0) (2026-09-16)
+
+
+### Features
+
+* **settings:** 音乐服务模式下隐藏视频相关分组 ([d3f6c7e](https://github.com/1525745393/EmbyTok-Flutter/commit/d3f6c7e2b0f375ab974f2d4d3bdad3ef83f673af))
+
 # [2.125.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.3...v2.125.0) (2026-09-16)
 
 
