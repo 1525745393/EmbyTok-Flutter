@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
+import '../last_watched_badge.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
@@ -15,9 +16,13 @@ class VideoGridCard extends ConsumerWidget {
     super.key,
     required this.item,
     this.onTap,
+    this.isLastWatched = false,
   });
   final MediaItem item;
   final VoidCallback? onTap;
+
+  /// 是否为上次观看到的视频（渲染醒目「上次看到」角标 + 进度百分比）
+  final bool isLastWatched;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +60,16 @@ class VideoGridCard extends ConsumerWidget {
                     fit: StackFit.expand,
                     children: [
                       _buildCoverImage(imageUrl, scheme),
+                      if (isLastWatched)
+                        Positioned(
+                          left: 6,
+                          top: 6,
+                          child: LastWatchedBadge(
+                            progressPercent: progress > 0
+                                ? (progress * 100).round()
+                                : null,
+                          ),
+                        ),
                       if (duration != null)
                         Positioned(
                           right: 6,

@@ -41,4 +41,17 @@ void main() {
     final gradient = decoration.gradient! as LinearGradient;
     expect(gradient.colors.first, const Color(0xFFFF3B30));
   });
+
+  testWidgets('传入进度百分比时显示「上次看到 N%」', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: LastWatchedBadge(progressPercent: 45),
+        ),
+      ),
+    );
+
+    expect(find.text('上次看到 45%'), findsOneWidget);
+    expect(find.text('上次看到'), findsNothing);
+  });
 }

@@ -275,12 +275,16 @@ class _PosterCard extends ConsumerWidget {
                           ),
                         ),
                 ),
-                // 「上次看到」角标（醒目样式，一眼定位）
+                // 「上次看到」角标（醒目样式 + 服务端进度百分比）
                 if (isLastWatched)
-                  const Positioned(
+                  Positioned(
                     left: 6,
                     top: 6,
-                    child: LastWatchedBadge(),
+                    child: LastWatchedBadge(
+                      progressPercent: item.progressPercent > 0
+                          ? (item.progressPercent * 100).round()
+                          : null,
+                    ),
                   ),
               ],
             ),

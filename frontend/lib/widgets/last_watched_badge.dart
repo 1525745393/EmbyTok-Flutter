@@ -1,16 +1,23 @@
-// 「上次看到」角标（关注页/发现页网格海报共用）
+// 「上次看到」角标（视频库网格 / 关注页 / 发现页海报共用）
 //
 // 用于标记播放页位置记忆命中的视频海报。
 // 视觉要求：在缩略图上足够醒目（红色渐变胶囊 + 投影 + 加粗白字），
 // 用户从播放页返回网格页时能一眼定位到刚看的视频。
+// 可传入服务端播放进度百分比（progressPercent），显示「上次看到 45%」。
 
 import 'package:flutter/material.dart';
 
 class LastWatchedBadge extends StatelessWidget {
-  const LastWatchedBadge({super.key});
+  const LastWatchedBadge({super.key, this.progressPercent});
+
+  /// 观看进度百分比（0-100）。为空时仅显示「上次看到」。
+  final int? progressPercent;
 
   @override
   Widget build(BuildContext context) {
+    final label = progressPercent != null
+        ? '上次看到 $progressPercent%'
+        : '上次看到';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -26,14 +33,14 @@ class LastWatchedBadge extends StatelessWidget {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.history, size: 12, color: Colors.white),
-          SizedBox(width: 3),
+          const Icon(Icons.history, size: 12, color: Colors.white),
+          const SizedBox(width: 3),
           Text(
-            '上次看到',
-            style: TextStyle(
+            label,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
               fontWeight: FontWeight.w700,
