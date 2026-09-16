@@ -1,3 +1,10 @@
+# [2.125.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.3...v2.125.0) (2026-09-16)
+
+
+### Features
+
+* **settings:** 视频库与音乐库设置分组区分 ([b26195e](https://github.com/1525745393/EmbyTok-Flutter/commit/b26195eb552872b1b642e8448e3ed4737152e1ea))
+
 ## [2.124.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.2...v2.124.3) (2026-09-16)
 
 
