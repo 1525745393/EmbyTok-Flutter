@@ -1,3 +1,10 @@
+## [2.128.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.1...v2.128.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* **grid:** 上次看到定位仅列表/观看位置变化时触发 ([7bf568d](https://github.com/1525745393/EmbyTok-Flutter/commit/7bf568db4f58a45724bf5bac1ff7afb91664bab9))
+
 ## [2.128.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.0...v2.128.1) (2026-09-16)
 
 
