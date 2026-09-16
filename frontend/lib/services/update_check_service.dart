@@ -3,9 +3,13 @@
 // 通过 GitHub Releases API 检查最新版本，对比当前版本号判断是否需要更新。
 // 版本号格式：x.y.z+buildNumber（如 1.133.0+11330）
 // 对比逻辑：仅比较 x.y.z 三段主版本号，忽略 buildNumber
+//
+// APK 完整性：若 Release 正文包含 SHA256 摘要（格式如 `SHA256: <64位hex>`，
+// 见 [ReleaseInfo.sha256Digest]），下载后强制校验，防止镜像源篡改安装包。
 
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
@@ -55,6 +59,19 @@ class ReleaseInfo { // 附件（APK 等）
     if (plusIndex > 0) v = v.substring(0, plusIndex);
     return v.trim();
   }
+
+  /// 从 Release 正文解析 APK 的 SHA256 摘要（小写 hex）
+  ///
+  /// 支持格式：`SHA256: <hash>`、`SHA-256 <hash>` 或正文中独立一行的
+  /// 64 位十六进制字符串。发布时在 release notes 里附带摘要即可启用
+  /// 下载完整性校验；未提供时返回 null（下载不校验）。
+  String? get sha256Digest {
+    final match = RegExp(
+      r'SHA[- ]?256[:：]?\s*([0-9a-fA-F]{64})',
+      caseSensitive: false,
+    ).firstMatch(body);
+    return match?.group(1)?.toLowerCase();
+  }
 }
 
 /// Release 附件（APK 等）
@@ -82,6 +99,9 @@ class ReleaseAsset {
 
   /// 是否为 APK 文件
   bool get isApk => name.toLowerCase().endsWith('.apk');
+
+  /// 是否为 SHA256 摘要附件
+  bool get isSha256 => name.toLowerCase().endsWith('.sha256');
 }
 
 /// 版本对比结果
@@ -259,12 +279,15 @@ class UpdateCheckService {
   /// - [asset] 要下载的 APK 附件
   /// - [version] 版本号（用于文件名，避免不同版本缓存冲突）
   /// - [onProgress] 下载进度回调（0.0 ~ 1.0）
+  /// - [expectedSha256] 期望的 SHA256 摘要（小写 hex）；提供时下载完成后
+  ///   强制校验，不匹配则删除文件并抛错——防止镜像源篡改安装包
   /// - 返回下载后的本地文件路径
   Future<String> downloadApk(
     ReleaseAsset asset, {
     required String version,
     required void Function(double progress) onProgress,
     CancelToken? cancelToken,
+    String? expectedSha256,
   }) async {
     // 使用应用支持目录，避免被系统自动清理
     final dir = await getApplicationSupportDirectory();
@@ -276,11 +299,12 @@ class UpdateCheckService {
     final fileName = '${version}_${asset.name}';
     final savePath = '${downloadsDir.path}/$fileName';
 
-    // 已下载过同名文件且大小匹配则直接返回
+    // 已下载过同名文件且大小匹配则复用（仍需通过完整性校验）
     final existingFile = File(savePath);
     if (await existingFile.exists() &&
         await existingFile.length() == asset.size) {
       onProgress(1.0);
+      await _verifyOrDelete(savePath, expectedSha256);
       return savePath;
     }
 
@@ -316,6 +340,8 @@ class UpdateCheckService {
           'source': isMirror ? '镜像 #$i' : '原始链接',
           'path': savePath,
         });
+        // 完整性校验（失败会删除文件并抛错，继续尝试下一源）
+        await _verifyOrDelete(savePath, expectedSha256);
         return savePath;
       } on DioException catch (e) {
         if (CancelToken.isCancel(e)) {
@@ -336,6 +362,32 @@ class UpdateCheckService {
     }
     AppLogger.error('所有下载源都失败了', error: lastError);
     throw Exception('下载失败，请检查网络连接后重试');
+  }
+
+  /// 计算本地文件 SHA256 摘要（小写 hex）
+  Future<String> _sha256Of(File file) async {
+    final digest = await sha256.bind(file.openRead()).first;
+    return digest.toString();
+  }
+
+  /// 校验下载文件完整性；失败时删除文件并抛错（调用方继续尝试下一源）
+  Future<void> _verifyOrDelete(String savePath, String? expectedSha256) async {
+    if (expectedSha256 == null) return;
+    final file = File(savePath);
+    final actual = await _sha256Of(file);
+    if (actual == expectedSha256) {
+      AppLogger.info('APK 完整性校验通过');
+      return;
+    }
+    // 校验失败：丢弃不安全的安装包
+    if (await file.exists()) {
+      await file.delete();
+    }
+    AppLogger.error('APK 完整性校验失败，已丢弃文件', data: {
+      'expected': expectedSha256,
+      'actual': actual,
+    });
+    throw Exception('下载文件校验失败（内容与官方不一致），已丢弃不安全的安装包');
   }
 }
 

@@ -2876,33 +2876,39 @@ class SettingsView extends ConsumerWidget {
   Future<void> _checkForUpdate(BuildContext context, WidgetRef ref) async {
     final scheme = Theme.of(context).colorScheme;
 
-    // 1. 读取当前版本号
-    final versionAsync = ref.read(appVersionProvider);
-    final currentVersion = versionAsync.maybeWhen(
-      data: (v) => v,
-      orElse: () => '0.0.0',
-    );
+    // 1. 等待版本信息加载完成：避免 appVersionProvider 未 resolve 时
+    //    用 '0.0.0' 参与比较，导致"已最新却提示有新版本"
+    String currentVersion;
+    try {
+      currentVersion = await ref.read(appVersionProvider.future);
+    } catch (_) {
+      currentVersion = '0.0.0';
+    }
+    if (!context.mounted) return;
     // 去掉 buildNumber，只保留 x.y.z
     var currentVer = currentVersion;
     final plusIdx = currentVer.indexOf('+');
     if (plusIdx > 0) currentVer = currentVer.substring(0, plusIdx);
 
-    // 2. 显示加载对话框
+    // 2. 显示加载对话框（PopScope 禁止返回键关闭，避免误关设置页）
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
-            ),
-            const SizedBox(width: 20),
-            Text('正在检查更新…',
-                style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge)),
-          ],
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              const SizedBox(width: 20),
+              Text('正在检查更新…',
+                  style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge)),
+            ],
+          ),
         ),
       ),
     );
@@ -2928,7 +2934,8 @@ class SettingsView extends ConsumerWidget {
           actionText: '关闭',
           onAction: null,
           secondaryActionText: '前往 GitHub',
-          onSecondaryAction: () => _launchUrl(updateService.releasePageUrl),
+          onSecondaryAction: () =>
+                  _launchUrl(updateService.releasePageUrl, context),
         );
       } else if (result.hasUpdate) {
         // 有新版本
@@ -2947,7 +2954,7 @@ class SettingsView extends ConsumerWidget {
             if (hasApk) {
               _startDownloadApk(context, ref, apkAssets.first, release);
             } else {
-              _launchUrl(release.htmlUrl);
+              _launchUrl(release.htmlUrl, context);
             }
           },
           secondaryActionText: '稍后再说',
@@ -2991,7 +2998,8 @@ class SettingsView extends ConsumerWidget {
         actionText: '关闭',
         onAction: null,
         secondaryActionText: '前往 GitHub',
-        onSecondaryAction: () => _launchUrl(updateService.releasePageUrl),
+        onSecondaryAction: () =>
+                  _launchUrl(updateService.releasePageUrl, context),
       );
     }
   }
@@ -3028,6 +3036,8 @@ class SettingsView extends ConsumerWidget {
                   '${(p * 100).toStringAsFixed(0)}%  ·  ${formatBytes(apkAsset.size)}';
             },
             cancelToken: cancelToken,
+            // Release 正文附带 SHA256 时强制校验，防止镜像源篡改
+            expectedSha256: release.sha256Digest,
           ).then((savePath) {
             if (ctx.mounted && isDialogActive) {
               isDialogActive = false;
@@ -3147,7 +3157,7 @@ class SettingsView extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _launchUrl(fallbackUrl);
+              _launchUrl(fallbackUrl, context);
             },
             child: const Text('浏览器下载'),
           ),
@@ -3311,13 +3321,18 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 打开外部 URL
-  Future<void> _launchUrl(String url) async {
+  // 打开外部 URL；失败时提示用户，避免"点击无反应"
+  Future<void> _launchUrl(String url, BuildContext context) async {
     final uri = Uri.parse(url);
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
       AppLogger.error('打开链接失败', error: e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('无法打开链接，请检查系统浏览器')),
+        );
+      }
     }
   }
 
@@ -3411,7 +3426,8 @@ class SettingsView extends ConsumerWidget {
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () =>
-                    _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                    _launchUrl(
+                        'https://github.com/1525745393/EmbyTok-Flutter', context),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -3503,7 +3519,7 @@ class SettingsView extends ConsumerWidget {
               const SizedBox(height: _kSpacingXXXLarge),
               // 应用介绍
               Text(
-                'EmbyTok 是一个为 Emby 和 Plex 媒体服务器设计的竖屏视频浏览客户端，提供类似 TikTok 的上下滑动体验，让你以更现代、便捷的方式浏览个人媒体库。',
+                'EmbyTok 是一款面向 Emby 媒体服务器与群晖 Audio Station 的媒体客户端，提供类似 TikTok 的上下滑动刷片体验，同时支持音乐库浏览与播放，让你以更现代、便捷的方式享受个人媒体库。',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontSize: _kFontSizeMedium,
@@ -3523,8 +3539,8 @@ class SettingsView extends ConsumerWidget {
               ),
               const SizedBox(height: _kSpacingLarge),
               const _AboutFeatureRow(
-                icon: Icons.tv,
-                text: '支持 Emby / Plex 媒体服务器',
+                icon: Icons.library_music_outlined,
+                text: '支持 Emby 视频与群晖 Audio Station 音乐',
               ),
               const SizedBox(height: _kSpacingXXXLarge),
               const Divider(height: 1),
@@ -3533,7 +3549,8 @@ class SettingsView extends ConsumerWidget {
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () =>
-                    _launchUrl('https://github.com/1525745393/EmbyTok-Flutter'),
+                    _launchUrl(
+                        'https://github.com/1525745393/EmbyTok-Flutter', context),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
