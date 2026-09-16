@@ -18,6 +18,7 @@ import '../utils/image_cache_manager.dart';
 import '../utils/playback_position_memory.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../widgets/resume_play_banner.dart';
 import '../widgets/skeleton_loading.dart';
 
 class DiscoverView extends ConsumerStatefulWidget {
@@ -99,21 +100,56 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 160,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 2 / 3,
-      ),
-      itemCount: state.items.length,
-      itemBuilder: (context, i) => _PosterCard(
-        item: state.items[i],
-        items: state.items,
-        isLastWatched: state.items[i].id == _lastWatchedId,
-      ),
+    // 网格 + 顶部「上次看到」续播横幅
+    final lastWatchedItem = _lastWatchedItemOf(state.items);
+    return Column(
+      children: [
+        if (lastWatchedItem != null)
+          ResumePlayBanner(
+            title: lastWatchedItem.title,
+            onTap: () =>
+                _playFrom(context, ref, lastWatchedItem, state.items),
+          ),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 160,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2 / 3,
+            ),
+            itemCount: state.items.length,
+            itemBuilder: (context, i) => _PosterCard(
+              item: state.items[i],
+              items: state.items,
+              isLastWatched: state.items[i].id == _lastWatchedId,
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  /// 从当前列表中找到上次观看的视频（横幅续播用）
+  MediaItem? _lastWatchedItemOf(List<MediaItem> items) {
+    final id = _lastWatchedId;
+    if (id == null) return null;
+    for (final item in items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
+  /// 横幅一键续播：与海报点击同路径（整列表进入播放页）
+  void _playFrom(BuildContext context, WidgetRef ref, MediaItem item,
+      List<MediaItem> items) {
+    ref.read(playbackListProvider.notifier).setPlaybackList(items, item.id);
+    context.push('/play/${item.id}', extra: {
+      'item': item,
+      'items': items,
+      'source': 'discover',
+    });
   }
 }
 

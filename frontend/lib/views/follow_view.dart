@@ -17,6 +17,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/playback_position_memory.dart';
 import '../widgets/error_state_card.dart';
+import '../widgets/resume_play_banner.dart';
 import '../widgets/skeleton_loading.dart';
 
 class FollowView extends ConsumerStatefulWidget {
@@ -136,24 +137,58 @@ class _FollowViewState extends ConsumerState<FollowView> {
       );
     }
 
-    // 网格展示追剧内容
-    return GridView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 160,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 2 / 3,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, i) => _FollowPosterCard(
-        item: items[i].item,
-        // 整列表进入播放页，支持抖音式上下滑刷视频
-        items: items.map((r) => r.item).toList(growable: false),
-        isLastWatched: items[i].item.id == _lastWatchedId,
-      ),
+    // 网格 + 顶部「上次看到」续播横幅
+    final lastWatchedItem = _lastWatchedItemOf(items);
+    return Column(
+      children: [
+        if (lastWatchedItem != null)
+          ResumePlayBanner(
+            title: lastWatchedItem.title,
+            onTap: () => _playFrom(context, ref, lastWatchedItem, items),
+          ),
+        Expanded(
+          child: GridView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 160,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 2 / 3,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, i) => _FollowPosterCard(
+              item: items[i].item,
+              // 整列表进入播放页，支持抖音式上下滑刷视频
+              items: items.map((r) => r.item).toList(growable: false),
+              isLastWatched: items[i].item.id == _lastWatchedId,
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  /// 从当前追剧列表中找到上次观看的视频（横幅续播用）
+  MediaItem? _lastWatchedItemOf(List<RecommendItem> items) {
+    final id = _lastWatchedId;
+    if (id == null) return null;
+    for (final r in items) {
+      if (r.item.id == id) return r.item;
+    }
+    return null;
+  }
+
+  /// 横幅一键续播：与海报点击同路径（整列表进入播放页）
+  void _playFrom(BuildContext context, WidgetRef ref, MediaItem item,
+      List<RecommendItem> items) {
+    final mediaItems = items.map((r) => r.item).toList(growable: false);
+    ref.read(playbackListProvider.notifier).setPlaybackList(mediaItems, item.id);
+    context.push('/play/${item.id}', extra: {
+      'item': item,
+      'items': mediaItems,
+      'source': 'follow',
+    });
   }
 }
 
