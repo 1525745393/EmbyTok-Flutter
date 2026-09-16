@@ -1,3 +1,10 @@
+## [2.128.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.0...v2.128.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* **video:** 播放闪退防护与播放成功率提升 ([d3c7421](https://github.com/1525745393/EmbyTok-Flutter/commit/d3c74217ac0a00bb3f0a9822d4e88ee652a7c15f))
+
 # [2.128.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.127.1...v2.128.0) (2026-09-16)
 
 
