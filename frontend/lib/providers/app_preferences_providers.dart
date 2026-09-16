@@ -75,8 +75,15 @@ class ViewModeNotifier extends StateNotifier<ViewMode> {
     _load();
   }
 
+  /// 持久化加载是否完成。启动早期 _load 未完成时 state 为默认 feed，
+  /// 依赖方（如首页视频流位置恢复）需先确认加载完成再按 mode 决策，
+  /// 否则 grid 用户重启后会误按 feed 恢复位置（offstage PageView 后台播放）。
+  bool _loaded = false;
+  bool get loaded => _loaded;
+
   Future<void> _load() async {
     final prefs = await const AppPreferencesService().load();
+    _loaded = true;
     state = prefs.viewMode;
   }
 

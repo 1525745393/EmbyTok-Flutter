@@ -443,14 +443,30 @@ class FeedViewModel {
   void _saveFeedVideoIndex(int index, List<MediaItem> items) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(kStorageKeyLastFeedVideoIndex, index);
-      if (index >= 0 && index < items.length) {
-        await prefs.setString(
-            kStorageKeyLastFeedVideoItemId, items[index].id);
-      }
+      await saveFeedVideoPosition(prefs, index, items);
     } catch (_) {
       // 操作失败不影响主流程
     }
+  }
+
+  /// 保存视频流位置到持久化（静态，便于单元测试）
+  ///
+  /// 越界保护：PageView 末尾有「加载更多」占位页（index == items.length），
+  /// 此时没有真实视频，仅保存合法范围内的 index+itemId，
+  /// 避免恢复时 index 越界错位。
+  static Future<void> saveFeedVideoPosition(
+      SharedPreferences prefs, int index, List<MediaItem> items) async {
+    if (index < 0 || index >= items.length) return;
+    await prefs.setInt(kStorageKeyLastFeedVideoIndex, index);
+    await prefs.setString(kStorageKeyLastFeedVideoItemId, items[index].id);
+  }
+
+  /// 读取视频流位置（静态，便于单元测试）
+  static ({int index, String? itemId}) readFeedVideoPosition(
+      SharedPreferences prefs) {
+    final index = prefs.getInt(kStorageKeyLastFeedVideoIndex) ?? 0;
+    final itemId = prefs.getString(kStorageKeyLastFeedVideoItemId);
+    return (index: index, itemId: itemId);
   }
 
   /// 从本地恢复视频流上次位置（索引 + 视频 id）
@@ -460,9 +476,7 @@ class FeedViewModel {
   Future<({int index, String? itemId})> restoreFeedVideoPosition() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final index = prefs.getInt(kStorageKeyLastFeedVideoIndex) ?? 0;
-      final itemId = prefs.getString(kStorageKeyLastFeedVideoItemId);
-      return (index: index, itemId: itemId);
+      return readFeedVideoPosition(prefs);
     } catch (_) {
       return (index: 0, itemId: null);
     }

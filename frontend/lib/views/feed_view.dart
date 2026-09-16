@@ -226,6 +226,23 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
   }
 
+  /// 异步版跳页：等待 PageController attach 后 jumpToPage，返回真实跳转结果。
+  /// 位置恢复等需要「确认跳转生效」的场景使用——跳转失败返回 false，
+  /// 调用方可回退到默认行为（如播放列表第一个视频），避免假成功导致黑屏。
+  Future<bool> _jumpToPageWhenReadyAsync(int targetIndex) async {
+    for (int i = 0; i < 30; i++) {
+      if (!mounted) return false;
+      if (_pageController.hasClients) {
+        _currentIndex = targetIndex;
+        _currentIndexNotifier.value = targetIndex;
+        _pageController.jumpToPage(targetIndex);
+        return true;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    return false;
+  }
+
   /// 协调器跳页回调：返回 true 表示已成功跳页
   bool _jumpToPageByIndex(int targetIndex) {
     if (!mounted || !_pageController.hasClients) return false;
@@ -258,7 +275,14 @@ class _FeedViewState extends ConsumerState<FeedView>
   // F4：grid 模式下跳过（IndexedStack 中 PageView 仍在树，跳转会后台激活播放器）。
   // F5：跳转复用 _jumpToPageWhenReady（hasClients 重试），不裸调 jumpToPage。
   Future<bool> _restoreFeedVideoIndex() async {
-    // F4：非视频流模式不恢复
+    // F4：非视频流模式不恢复。ViewModeNotifier._load 从 SharedPreferences
+    // 异步读取，启动早期 state 为默认 feed——grid 用户重启后若在此误判，
+    // 会在 offstage PageView 上恢复跳转，导致后台激活播放器。先等加载完成。
+    final vm = ref.read(viewModeProvider.notifier);
+    for (int i = 0; i < 20 && !vm.loaded; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return false;
+    }
     if (ref.read(viewModeProvider) != ViewMode.feed) return false;
 
     // F2：深层链接直接进入指定视频，不恢复历史位置
@@ -266,13 +290,15 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (initialId != null && initialId.isNotEmpty) return false;
 
     // 等待视频列表加载完成后再恢复位置
-    // 最多等待 10 秒，避免无限等待
+    // 最多等待 10 秒，避免无限等待；加载失败/空列表时提前退出，
+    // 避免每次启动空耗 10 秒再放弃
     int attempts = 0;
     while (attempts < 20) {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       if (!mounted) return false;
 
       final videoState = ref.read(videoListProvider);
+      if (videoState.error != null) return false;
       if (videoState.items.isNotEmpty && !videoState.isLoading) {
         break;
       }
@@ -287,24 +313,30 @@ class _FeedViewState extends ConsumerState<FeedView>
     final videoState = ref.read(videoListProvider);
     if (videoState.items.isEmpty) return false;
 
-    // F3：优先按保存的视频 id 精确定位；找不到（换库/列表重排）则不恢复，
-    // 避免按旧 index 跳到错误视频。旧数据无 itemId 时按 index 近似恢复。
+    // F3：优先按保存的视频 id 精确定位。
+    // - 保存了 itemId 但当前列表找不到（换库/列表重排/内容变化）→ 不恢复，
+    //   避免按旧 index 跳到错误视频；
+    // - 仅老数据（无 itemId）时按 index 近似恢复。
     int targetIndex = -1;
     final savedItemId = pos.itemId;
     if (savedItemId != null && savedItemId.isNotEmpty) {
       final byId = videoState.items.indexWhere((i) => i.id == savedItemId);
       if (byId >= 0) {
         targetIndex = byId;
+      } else {
+        // 保存了 id 但当前列表找不到：不按 index 回退（避免跳错视频）
+        return false;
       }
-    }
-    if (targetIndex < 0 && pos.index > 0) {
+    } else if (pos.index > 0) {
       targetIndex = pos.index.clamp(0, videoState.items.length - 1);
     }
     if (targetIndex <= 0) return false;
 
     if (targetIndex != _currentIndex) {
-      // F5：等 PageController attach 后跳转（带重试）
-      _jumpToPageWhenReady(targetIndex);
+      // F5：等 PageController attach 后跳转（带重试），并返回真实跳转结果；
+      // 跳转失败视为未恢复，由调用方回退到「播放列表第一个视频」，
+      // 避免「返回 true 但页面停在 index 0 且不播第一个」的黑屏态。
+      return await _jumpToPageWhenReadyAsync(targetIndex);
     }
     return true;
   }
