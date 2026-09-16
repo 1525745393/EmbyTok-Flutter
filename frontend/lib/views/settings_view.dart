@@ -20,6 +20,7 @@ import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
+import '../services/artist_metadata_service.dart' show BatchScanResult;
 import '../utils/app_preferences.dart'
     show AppPreferencesService, OrientationMode, FeedType;
 import '../utils/constants.dart';
@@ -71,11 +72,11 @@ class SettingsView extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(
             0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
-          // 媒体库设置（PR #66：视频流 / 推荐可分别设置）
+          // 视频库设置（PR #66：视频流 / 推荐可分别设置）
           _buildSection(
             context,
             ref,
-            '媒体库',
+            '视频库',
             Icons.video_library_outlined,
             Colors.deepPurple,
             [
@@ -160,8 +161,6 @@ class SettingsView extends ConsumerWidget {
             Colors.grey,
             [
               _buildCacheTile(context, ref),
-              _buildArtistMetadataCacheTile(context, ref),
-              _buildBatchScanTile(context, ref),
               _buildResetSettingsTile(context, ref),
               _buildExportLogsTile(context, ref),
               _buildClearLogsTile(context, ref),
@@ -178,7 +177,7 @@ class SettingsView extends ConsumerWidget {
               _buildWatchStatsTile(context, ref),
             ],
           ),
-          // 服务器设置：服务模式（视频/音乐）+ 各自数据源
+          // 服务器设置：服务模式（视频/音乐）+ 视频数据源
           _buildSection(
             context,
             ref,
@@ -191,11 +190,25 @@ class SettingsView extends ConsumerWidget {
               _buildServerGroupLabel(
                   context, ref, '视频数据源', Icons.movie_outlined),
               _buildServerInfoTile(context, ref),
+            ],
+          ),
+          // 音乐库设置：群晖 Audio Station 数据源 + 歌手元数据
+          _buildSection(
+            context,
+            ref,
+            '音乐库',
+            Icons.library_music_outlined,
+            const Color(0xFF2C8EF4),
+            [
               _buildServerGroupLabel(
                   context, ref, '音乐数据源', Icons.library_music_outlined),
               _buildSynologyMusicTile(context, ref),
               _buildLastFmTile(context, ref),
               _buildNasMetadataSyncTile(context, ref),
+              _buildServerGroupLabel(
+                  context, ref, '歌手元数据', Icons.person_outline),
+              _buildArtistMetadataCacheTile(context, ref),
+              _buildBatchScanTile(context, ref),
             ],
           ),
           // 关于
@@ -1218,7 +1231,7 @@ class SettingsView extends ConsumerWidget {
         final batch = await api.getSongs(offset: offset, limit: limit);
         if (batch.isEmpty) break;
         for (final s in batch) {
-          final name = s.artistDisplay ?? '';
+          final name = s.artistDisplay;
           if (name.isNotEmpty) artistSet.add(name);
         }
         if (batch.length < limit) break;
@@ -1239,7 +1252,7 @@ class SettingsView extends ConsumerWidget {
 
       // 显示批量扫描对话框
       if (context.mounted) {
-        final result = await showDialog(
+        final result = await showDialog<BatchScanResult>(
           context: context,
           barrierDismissible: false,
           builder: (context) => ArtistBatchScanDialog(
