@@ -1,3 +1,10 @@
+## [2.123.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.123.1...v2.123.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* 设置-关于区域五项审查问题修复 ([42bf40a](https://github.com/1525745393/EmbyTok-Flutter/commit/42bf40abaf47090cb2e5a7df19e003ee9812a6c6))
+
 ## [2.123.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.123.0...v2.123.1) (2026-09-16)
 
 
