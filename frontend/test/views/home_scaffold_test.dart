@@ -35,7 +35,9 @@ void main() {
   // 更新的完整链路（纯函数测试不覆盖此链路）。
   // ============================================================
   group('Tab 切换', () {
-    testWidgets('点击收藏 Tab 应切换到收藏页', (tester) async {
+    testWidgets(
+      '点击收藏 Tab 应切换到收藏页',
+      (tester) async {
       await tester.pumpWidget(_loggedInApp());
       await tester.pumpAndSettle();
 
@@ -60,6 +62,10 @@ void main() {
         container.read(pageNavigationProvider).isOverlayPage,
         isFalse,
       );
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
 
     testWidgets('点击演员 Tab 应切换到演员页', (tester) async {
@@ -81,6 +87,10 @@ void main() {
         container.read(pageNavigationProvider).isOverlayPage,
         isFalse,
       );
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
 
     testWidgets('点击设置 Tab 应切换到设置页', (tester) async {
@@ -102,6 +112,10 @@ void main() {
         container.read(pageNavigationProvider).isOverlayPage,
         isFalse,
       );
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
 
     testWidgets('从收藏 Tab 点击首页应切回 Feed', (tester) async {
@@ -131,6 +145,10 @@ void main() {
         container.read(pageNavigationProvider).isOverlayPage,
         isFalse,
       );
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
   });
 

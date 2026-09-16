@@ -90,7 +90,14 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
     // 首页顶栏「关注」入口：/recommend?tag=nextUp 自动选中追剧源
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final tag = GoRouterState.of(context).uri.queryParameters['tag'];
+      // 防御性读取：测试环境（无 GoRouter 路由栈）或非路由上下文
+      // 下 GoRouterState.of 会抛异常，此时忽略 tag 参数
+      String? tag;
+      try {
+        tag = GoRouterState.of(context).uri.queryParameters['tag'];
+      } catch (_) {
+        tag = null;
+      }
       if (tag != null && tag.isNotEmpty) {
         ref.read(recommendProvider.notifier).selectTag(tag);
       }

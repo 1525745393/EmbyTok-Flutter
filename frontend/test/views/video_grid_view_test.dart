@@ -64,7 +64,7 @@ void main() {
   }
 
   group('VideoGridView 空状态引导', () {
-    testWidgets('未配置媒体库时显示"选择媒体库"按钮', (tester) async {
+    testWidgets('未配置媒体库时显示引导文字', (tester) async {
       // videoState.items 为空（未配置媒体库或媒体库为空）
       await tester.pumpWidget(buildApp(
         videoState: const VideoListState(),
@@ -72,10 +72,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // 应显示引导文字 + OutlinedButton
-      expect(find.text('暂无视频，请选择媒体库'), findsOneWidget);
-      expect(find.byType(OutlinedButton), findsOneWidget);
-      expect(find.text('选择媒体库'), findsOneWidget);
+      // 应显示引导文字（空态已简化：仅文字提示，引导去设置中选择媒体库）
+      expect(find.text('暂无视频，请在设置中选择媒体库'), findsOneWidget);
       // 不应显示筛选无结果的提示
       expect(find.text('没有符合筛选条件的视频'), findsNothing);
     });
@@ -94,7 +92,7 @@ void main() {
       expect(find.byType(OutlinedButton), findsNothing);
       expect(find.text('选择媒体库'), findsNothing);
       // 不应显示未配置媒体库的引导文字
-      expect(find.text('暂无视频，请选择媒体库'), findsNothing);
+      expect(find.text('暂无视频，请在设置中选择媒体库'), findsNothing);
     });
   });
 }

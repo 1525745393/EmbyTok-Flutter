@@ -8,6 +8,8 @@
 //
 // API 兼容性说明：仅使用 Flutter 3.10+ 稳定 API，避免使用 3.22 后的新 token
 
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -70,8 +72,18 @@ ThemeData _buildBaseTheme(
       ? const Color(0xFF121212) // 暗色：近似 MD3 surfaceContainerHighest
       : const Color(0xFFE7E0EC); // 亮色：近似 MD3 surfaceContainerHighest
 
+  // Flutter 3.47 M3 默认 splash（InkSparkle）依赖内置 shader
+  // 'shaders/ink_sparkle.frag'，在 Linux headless 环境（含 flutter test
+  // 与 CI）无法解码该 shader（SDK 缺陷）。测试环境统一回退 InkRipple，
+  // 生产环境（Android 等有 GPU 平台）保留默认粒子涟漪。
+  final isFlutterTest = Platform.environment.containsKey('FLUTTER_TEST');
+  final splashFactory = isFlutterTest
+      ? InkRipple.splashFactory
+      : ThemeData(useMaterial3: true).splashFactory;
+
   return ThemeData(
     useMaterial3: true,
+    splashFactory: splashFactory,
     colorScheme: colorScheme,
     // 显式指定 scaffold 背景色（确保视频浏览页的背景与 colorScheme 对齐）
     scaffoldBackgroundColor: colorScheme.surface,

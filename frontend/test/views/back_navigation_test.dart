@@ -50,6 +50,10 @@ void main() {
 
       expect(find.text('退出应用？'), findsOneWidget);
       expect(find.text('确定要退出吗？'), findsOneWidget);
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
 
     testWidgets(
@@ -70,6 +74,10 @@ void main() {
         // 修复后：HomeScaffold 的 PopScope 拦截事件，正确显示弹窗
         expect(find.text('退出应用？'), findsOneWidget);
         expect(find.text('确定要退出吗？'), findsOneWidget);
+
+        // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(seconds: 2));
       },
     );
   });

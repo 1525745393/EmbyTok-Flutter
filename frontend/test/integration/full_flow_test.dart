@@ -15,6 +15,7 @@ import 'package:embytok_flutter/views/home_scaffold.dart';
 import 'package:embytok_flutter/views/login_view.dart';
 import 'package:embytok_flutter/views/settings_view.dart';
 import 'package:embytok_flutter/views/feed_view.dart';
+import 'package:embytok_flutter/utils/app_preferences.dart';
 import 'package:embytok_flutter/widgets/library_selector.dart';
 import 'package:embytok_flutter/widgets/poster_grid_view.dart';
 
@@ -82,7 +83,9 @@ void main() {
       mockSecureStorage = MockFlutterSecureStorage();
     });
 
-    testWidgets('1. 登录成功后进入首页', (WidgetTester tester) async {
+    testWidgets(
+      '1. 登录成功后进入首页',
+      (WidgetTester tester) async {
       const testUser = User(
         id: 'user-123',
         name: 'testuser',
@@ -172,6 +175,10 @@ void main() {
         username: 'testuser',
         password: 'password123',
       )).called(1);
+
+      // 清理后台 Timer：卸载 App + 推进虚拟时间（避免 !timersPending）
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(seconds: 2));
     });
 
     testWidgets('2. 首页能看到视频列表', (WidgetTester tester) async {
@@ -262,6 +269,9 @@ void main() {
       expect(find.byType(HomeScaffold), findsOneWidget);
       expect(find.byType(FeedView), findsOneWidget);
 
+      // 顶部工具栏为横向滚动布局，'网格' 按钮可能在屏幕外，先滚动到可见再点击
+      await tester.ensureVisible(find.text('网格'));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('网格'));
       await tester.pump(const Duration(seconds: 1));
 
@@ -359,6 +369,8 @@ void main() {
 
       expect(find.byType(HomeScaffold), findsOneWidget);
 
+      await tester.ensureVisible(find.text('网格'));
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('网格'));
       await tester.pump(const Duration(seconds: 1));
 

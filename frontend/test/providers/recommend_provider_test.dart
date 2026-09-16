@@ -191,12 +191,35 @@ class _MockMediaRepository extends Mock implements MediaRepository {
             items: const [], total: 0, offset: 0, limit: limit)),
       ) as Future<PaginatedResponse<MediaItem>>;
 
+  // ---- FavoritePeople（收藏演员，默认空，由具体用例 stub）----
+  @override
+  Future<FavoritesPageResult> getFavoritePeople({
+    int? limit,
+    int? offset,
+    String? serverUrl,
+    String? token,
+    String? userId,
+  }) =>
+      super.noSuchMethod(
+        Invocation.method(#getFavoritePeople, [], {
+          #limit: limit,
+          #offset: offset,
+          #serverUrl: serverUrl,
+          #token: token,
+          #userId: userId,
+        }),
+        returnValue: Future.value(
+            FavoritesPageResult(items: const [], totalCount: 0)),
+        returnValueForMissingStub: Future.value(
+            FavoritesPageResult(items: const [], totalCount: 0)),
+      ) as Future<FavoritesPageResult>;
+
   // ---- ItemsByPersonIds（收藏演员作品，默认空）----
   @override
   Future<PaginatedResponse<MediaItem>> getItemsByPersonIds({
     List<String>? personIds,
-    int limit = 30,
-    int offset = 0,
+    int? limit,
+    int? offset,
     String? serverUrl,
     String? token,
     String? userId,
@@ -211,9 +234,9 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           #userId: userId,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
-            items: const [], total: 0, offset: 0, limit: limit)),
+            items: const [], total: 0, offset: 0, limit: limit ?? 30)),
         returnValueForMissingStub: Future.value(PaginatedResponse<MediaItem>(
-            items: const [], total: 0, offset: 0, limit: limit)),
+            items: const [], total: 0, offset: 0, limit: limit ?? 30)),
       ) as Future<PaginatedResponse<MediaItem>>;
 
   // ---- Recommendations ----
@@ -298,6 +321,13 @@ class _MockMediaRepository extends Mock implements MediaRepository {
 
 /// 构造测试用 MediaItem
 /// 默认时长 10 分钟（6000000000 ticks），类型 Movie，确保通过 isVideo 和 isTooShort 检查
+/// 测试用收藏演员（追剧源 getFavoritePeople 返回，供 getItemsByPersonIds 使用）
+const MediaItem _testActorItem = MediaItem(
+  id: 'actor-1',
+  title: 'Test Actor',
+  type: 'Person',
+);
+
 MediaItem _item(
   String id, {
   String type = 'Movie',
@@ -463,11 +493,21 @@ void main() {
       final fillerItem = _item('filler-1');
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([fillerItem]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -513,6 +553,8 @@ void main() {
       );
 
       final state = await _waitForLoad(container);
+      // ignore: avoid_print
+      print('DEBUG-TAGGED: ' + state.taggedItems.map((r) => r.item.id).join(','));
 
       // 黑名单 item 被过滤
       expect(_hasItem(state, 'blacklisted-1'), false,
@@ -589,11 +631,21 @@ void main() {
       final fillerItem = _item('filler-3');
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([fillerItem]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1038,11 +1090,21 @@ void main() {
       final suggestionItems = [_item('sg-1'), _item('sg-2')];
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(nextUpItems));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),
@@ -1106,11 +1168,21 @@ void main() {
       final suggestionItems = [_item('dup-1'), _item('sg-unique')];
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(nextUpItems));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),
@@ -1249,11 +1321,21 @@ void main() {
       final nextUpItems = [_item('nu-1')];
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(nextUpItems));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),
@@ -1516,11 +1598,21 @@ void main() {
       final nextUpItems = [_item('nu-cold-1')];
 
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(nextUpItems));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),
@@ -1596,11 +1688,21 @@ void main() {
     /// 通用 setup：仅 Resume 返回指定数量，其余源返回空
     void setupResumeOnly(int resumeCount) {
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),
@@ -1643,11 +1745,21 @@ void main() {
     /// 通用 setup：仅 Suggestions 返回指定数量，其余源返回空
     void setupSuggestionsOnly(int suggestionsCount) {
       repo = _MockMediaRepository();
-      when(repo.getNextUp(
+      when(repo.getFavoritePeople(
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
-        seriesId: anyNamed('seriesId'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getResumeItems(
         serverUrl: anyNamed('serverUrl'),

@@ -142,22 +142,26 @@ jobs:
             echo "✅ 没有 info 级别的问题"
           fi
           
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "❌ flutter analyze 检测到 error 级别问题，CI 失败"
+            exit 1
+          fi
+          
           echo ""
-          echo "✅ 测试代码检查完成（如有问题需要后续修复，不影响发布）"
+          echo "✅ 测试代码检查完成"
         working-directory: frontend
 
       - name: 运行测试
         run: |
           echo "🧪 正在运行 Flutter 单元测试..."
-          echo "ℹ️  如果测试失败或无法编译，会显示警告但不影响发布"
           echo "::group::flutter test --coverage"
-          flutter test --coverage || echo "⚠️  测试运行存在问题（不影响发布构建）"
+          flutter test --coverage
           echo "::endgroup::"
           echo "✅ 测试步骤完成"
         working-directory: frontend
 
       - name: 上传测试覆盖率报告
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: flutter-coverage

@@ -42,7 +42,7 @@ void main() {
   });
 
   group('SearchHintsNotifier 防抖', () {
-    test('快速连续输入：只发起最后一次请求', () async {
+    test('连续输入：Provider 直接执行（防抖已移至 View 层 150ms）', () async {
       when(mockService.searchHints(
         any,
         limit: anyNamed('limit'),
@@ -50,31 +50,26 @@ void main() {
         token: anyNamed('token'),
       )).thenAnswer((_) async => <SearchHint>[]);
 
-      // 模拟快速连续输入
+      // 模拟连续输入：防抖职责在 View 层（搜索框 150ms），
+      // Provider.fetchHints 对每次输入直接发起请求
       final notifier = container.read(searchHintsStateProvider.notifier);
       notifier.fetchHints('a');
       notifier.fetchHints('ab');
       notifier.fetchHints('abc');
       notifier.fetchHints('abcd');
 
-      // 等待防抖时间过去（300ms + 余量）
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 等待异步请求完成
+      await Future<void>.delayed(const Duration(milliseconds: 300));
 
-      // 只应调用一次（最后一次 'abcd'）
-      verify(mockService.searchHints(
-        'abcd',
-        limit: anyNamed('limit'),
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      )).called(1);
-
-      // 中间的查询不应触发 API
-      verifyNever(mockService.searchHints(
-        'a',
-        limit: anyNamed('limit'),
-        serverUrl: anyNamed('serverUrl'),
-        token: anyNamed('token'),
-      ));
+      // 每次输入都发起请求（相同查询由缓存层去重，不同查询不合并）
+      for (final q in ['a', 'ab', 'abc', 'abcd']) {
+        verify(mockService.searchHints(
+          q,
+          limit: anyNamed('limit'),
+          serverUrl: anyNamed('serverUrl'),
+          token: anyNamed('token'),
+        )).called(1);
+      }
     });
 
     test('间隔超过防抖时间：每次都发起请求', () async {

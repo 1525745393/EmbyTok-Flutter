@@ -22,6 +22,7 @@ import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/cache_providers.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/repositories/cached_media_repository.dart';
+import 'package:embytok_flutter/theme/app_theme.dart';
 import 'package:embytok_flutter/views/favorites_view.dart';
 
 import '../mocks/mock_services.dart';
@@ -203,7 +204,12 @@ void main() {
           (ref) => _TestAuthNotifier(ref, testAuthState),
         ),
       ],
-      child: MaterialApp(home: child),
+      child: MaterialApp(
+        // 使用与生产一致的主题（含测试环境 splashFactory 回退），
+        // 避免默认 M3 InkSparkle 在 Linux headless 触发 shader 解码失败
+        theme: buildLightTheme(),
+        home: child,
+      ),
     );
   }
 

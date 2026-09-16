@@ -148,6 +148,7 @@ void main() {
       // stub 详情：返回 null（避免 CachedNetworkImage 渲染）
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -187,6 +188,7 @@ void main() {
       // stub 详情：返回 null（不阻塞）
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -236,6 +238,7 @@ void main() {
       // 真实环境中 Future 完成时失败的语义
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -285,6 +288,7 @@ void main() {
       );
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -321,6 +325,7 @@ void main() {
       // stub 详情：返回 null
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -387,6 +392,7 @@ void main() {
           ));
       when(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),
@@ -435,6 +441,7 @@ void main() {
       )).called(1);
       verify(mockCachedRepo.getPersonDetail(
         any,
+        personName: anyNamed('personName'),
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         userId: anyNamed('userId'),

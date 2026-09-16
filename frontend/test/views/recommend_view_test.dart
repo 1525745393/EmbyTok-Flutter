@@ -281,8 +281,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('加载推荐失败'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, '重试'), findsOneWidget,
-          reason: 'P1-1: 通用错误态必须提供「重试」CTA');
+      expect(find.widgetWithText(ElevatedButton, '立即重试'), findsOneWidget,
+          reason: 'P1-1: 通用错误态必须提供「立即重试」CTA');
     });
 
     testWidgets('非搜索态空列表 → 显示分类空态而非搜索空态', (tester) async {
@@ -311,7 +311,9 @@ void main() {
           reason: 'P0-2: 空态必须可滚动，保留下拉刷新能力');
 
       // 输入搜索词 → 切换为搜索空态
+      // 搜索框带 300ms 防抖（P0-2），需先推进防抖 Timer 再等帧
       await tester.enterText(find.byType(TextField), '不存在的关键词xyz');
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
       expect(find.textContaining('未找到匹配'), findsOneWidget,
           reason: 'P0-2: 搜索无结果应显示搜索空态');

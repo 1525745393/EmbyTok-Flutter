@@ -6,6 +6,9 @@
 /// - CacheSizeNotifier: 缓存大小
 library;
 
+import 'dart:io';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +21,19 @@ void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
+    // path_provider mock：CacheSizeNotifier.clear 内部会构造
+    // DefaultCacheManager（需要 getTemporaryDirectory），
+    // 缺少平台实现会抛 MissingPluginException 导致清空失败
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async {
+        if (call.method == 'getTemporaryDirectory') {
+          return Directory.systemTemp.path;
+        }
+        return null;
+      },
+    );
   });
 
   group('DefaultPlaybackRateNotifier', () {
@@ -113,10 +129,10 @@ void main() {
       expect(state, 1024 * 1024);
     });
 
-    test('clear 清空缓存大小', () {
+    test('clear 清空缓存大小', () async {
       final notifier = container.read(cacheSizeProvider.notifier);
       notifier.set(1024 * 1024);
-      notifier.clear();
+      await notifier.clear();
       final state = container.read(cacheSizeProvider);
       expect(state, 0);
     });

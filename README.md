@@ -52,10 +52,10 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 | **状态管理** | flutter_riverpod 2.x（全局 Provider + StateNotifier） |
 | **路由导航** | GoRouter（命名路由 + 深层链接 + 重定向） |
 | **网络请求** | Dio（封装为 `EmbytokService`） |
-| **视频播放** | video_player（全平台）+ video_player_control_panel |
+| **视频播放** | video_player（全平台）+ 自研播放控制面板 |
 | **屏幕亮度** | screen_brightness（手势调节系统亮度） |
 | **网络状态** | connectivity_plus（网络状态监听） |
-| **本地持久化** | shared_preferences + hive（搜索历史 / 观看历史 / 用户设置） |
+| **本地持久化** | shared_preferences（搜索历史 / 观看历史 / 用户设置） |
 | **图片缓存** | cached_network_image |
 | **国际化** | intl |
 | **后端服务** | Emby API / 群晖 Audio Station API / FastAPI（可选中间层） |
@@ -112,7 +112,6 @@ EmbyTok-Flutter 是一款跨平台的个人媒体库客户端，将海量电影 
 ### 🚀 规划中
 
 - 剧集/季 切换的多段式播放列表
-- Plex 多源支持
 - 离线缓存下载
 - 投屏 (Chromecast / DLNA)
 - 字幕 AI 翻译
@@ -130,47 +129,39 @@ EmbyTok-Flutter/
 ├── frontend/                         # Flutter 客户端
 │   ├── lib/
 │   │   ├── main.dart                # 应用入口（ProviderScope）
-│   │   ├── models/                  # 数据模型
-│   │   │   ├── media_item.dart
-│   │   │   ├── subtitle_track.dart
-│   │   │   ├── watch_history_item.dart
-│   │   │   └── user.dart
+│   │   ├── theme/                   # 主题（亮/暗/跟随系统 + 测试环境适配）
+│   │   ├── models/                  # 数据模型（含 ServerType：emby/plex/synology）
 │   │   ├── providers/               # 状态管理（Riverpod）
-│   │   │   ├── providers.dart          # 统一导出
-│   │   │   ├── auth_provider.dart
-│   │   │   ├── library_provider.dart
-│   │   │   ├── video_list_provider.dart
-│   │   │   ├── favorites_provider.dart
-│   │   │   ├── search_provider.dart
-│   │   │   ├── watch_history_provider.dart
-│   │   │   ├── theme_provider.dart
-│   │   │   ├── subtitle_settings_provider.dart
-│   │   │   ├── user_preferences_provider.dart
-│   │   │   └── video_playback_controller.dart
+│   │   │   ├── auth_provider.dart / library_provider.dart / favorites_provider.dart
+│   │   │   ├── recommend_provider.dart / discover_provider.dart / actors_provider.dart
+│   │   │   ├── cache_providers.dart / video_list_provider.dart / search_provider.dart
+│   │   │   └── watch_history_provider.dart / user_preferences_provider.dart / …
 │   │   ├── services/                # 后端 / API 封装
 │   │   │   └── embbytok_service.dart
+│   │   ├── repositories/            # 仓库层（Emby 实现 + 缓存包装）
+│   │   │   ├── emby_repository.dart / cached_media_repository.dart
 │   │   ├── views/                   # 页面视图
-│   │   │   ├── feed_view.dart         # 视频流
-│   │   │   ├── search_view.dart       # 搜索
-│   │   │   ├── favorites_view.dart    # 收藏
-│   │   │   ├── history_view.dart      # 观看历史
-│   │   │   ├── settings_view.dart     # 设置
-│   │   │   └── login_view.dart        # 登录
+│   │   │   ├── feed_view.dart         # 视频流（视频流/网格双模式）
+│   │   │   ├── recommend_view.dart    # 推荐（标签栏）
+│   │   │   ├── discover_view.dart / follow_view.dart
+│   │   │   ├── favorites_view.dart / history_view.dart
+│   │   │   ├── person_detail_view.dart / item_detail_view.dart
+│   │   │   ├── settings_view.dart / login_view.dart / servers_view.dart
+│   │   │   └── music/                # 音乐库（群晖 Audio Station）
 │   │   ├── widgets/                 # UI 组件
-│   │   │   ├── video_page_item.dart
-│   │   │   ├── video_player_widget.dart
-│   │   │   ├── gesture_overlay.dart
-│   │   │   ├── heart_animation.dart
-│   │   │   ├── subtitle_renderer.dart
-│   │   │   └── subtitle_controls.dart
+│   │   │   ├── video_page_item.dart / video_player_widget.dart
+│   │   │   ├── poster_grid_view.dart / library_selector.dart
+│   │   │   └── error_state_card.dart / …
 │   │   └── utils/                   # 工具与常量
-│   │       ├── constants.dart
-│   │       ├── formatters.dart
-│   │       └── utils.dart
+│   │       ├── constants.dart / formatters.dart / version.dart
+│   ├── test/                        # 单元/组件/集成测试（1071 个全部通过）
 │   ├── pubspec.yaml                 # 依赖清单
 │   └── README.md                    # 前端开发指南
 ├── backend/                          # FastAPI 中间层（可选）
-│   └── main.py
+│   ├── main.py / routers/ / core/ / models/ / clients/
+│   └── tests/
+├── .github/workflows/                # CI（测试/分析硬失败门禁 + 发布流水线）
+├── LICENSE                           # MIT
 ├── docker-compose.yml
 └── README.md                        # 本文档
 ```
@@ -235,7 +226,7 @@ EmbyTok-Flutter/
 - **Python**: >= 3.11（后端中间层）
 - **Docker**（可选，用于后端镜像构建 & 部署）
 - **iOS** (macOS 开发环境) / **Android** / **macOS** / **Windows** / **Linux** / **Web**
-- **Emby Server** 4.7+ 或 **Jellyfin** 10.8+（自托管）
+- **Emby Server** 4.7+（自托管，兼容 Plex 登录）
 
 ### 一行命令启动（推荐）
 
@@ -406,12 +397,10 @@ services:
 
 5. 提交 Pull Request，描述改动与截图
 
-> **已知失败（Flutter 3.47.2 单测环境 shader 兼容问题）**：
-> `flutter test` 全量约 800+ 用例中固定 4 个失败（`full_flow_test` 2 例、
-> `favorites_view_test` 撤销、`home_scaffold_test` 点收藏），根因是 SDK 自带
-> `shaders/ink_sparkle.frag`（Material 3 涟漪）在测试环境 manifest 解码失败
-> （`INVALID_ARGUMENT`），与业务代码无关。这是当前最新稳定版（3.47.2）的
-> SDK 缺陷，无可用稳定版修复，等待上游发布 3.48 后升级验证。
+> **测试状态**：`flutter test` 全量 1071 个用例全部通过。
+> 曾存在的 Flutter 3.47.2 Linux headless shader 解码失败（Material 3 InkSparkle
+> 涟漪 `shaders/ink_sparkle.frag`）已在 `lib/theme/app_theme.dart` 通过测试环境
+> 回退 InkRipple 修复（生产环境行为不变）。
 
 ### 代码风格约定
 
