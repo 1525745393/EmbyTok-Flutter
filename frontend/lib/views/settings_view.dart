@@ -1701,6 +1701,16 @@ class SettingsView extends ConsumerWidget {
 
   // 账户 - 用户信息
   Widget _buildProfileTile(BuildContext context, WidgetRef ref) {
+    // 音乐模式显示群晖账户，视频模式显示 Emby 账户
+    if (ref.read(serviceModeProvider) == AppServiceMode.music) {
+      final syno = ref.watch(synologyAuthProvider);
+      return _InfoTile(
+        icon: Icons.account_circle_outlined,
+        iconColor: Colors.blue,
+        title: syno.account ?? (syno.isLoggedIn ? '群晖账号' : '未登录'),
+        subtitle: syno.serverUrl ?? '未连接群晖 NAS',
+      );
+    }
     final auth = ref.watch(authProvider);
     final name = auth.user?.name ?? '未登录';
     return _InfoTile(
@@ -2893,7 +2903,12 @@ class SettingsView extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(authProvider.notifier).logout();
+              // 按服务模式退出对应服务：音乐模式退群晖，视频模式退 Emby
+              if (ref.read(serviceModeProvider) == AppServiceMode.music) {
+                ref.read(synologyAuthProvider.notifier).logout();
+              } else {
+                ref.read(authProvider.notifier).logout();
+              }
               Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(backgroundColor: scheme.error),
