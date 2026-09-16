@@ -1,3 +1,10 @@
+# [2.123.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.122.0...v2.123.0) (2026-09-16)
+
+
+### Features
+
+* 关注页/发现页「上次看到」一键续播横幅 ([ec0d313](https://github.com/1525745393/EmbyTok-Flutter/commit/ec0d313a2ee13422d2213e94dc48a2643748bfd8))
+
 # [2.122.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.121.1...v2.122.0) (2026-09-15)
 
 
