@@ -2965,13 +2965,13 @@ class SettingsView extends ConsumerWidget {
           onSecondaryAction: null,
         );
       } else {
-        // 已是最新版本
+        // 已是最新版本（fromCache 时标题区分，避免误读为实时结论）
         _showUpdateResultDialog(
           context,
-          icon: Icons.check_circle,
-          title: '已是最新版本',
-          message: '当前版本：$currentVer\n您使用的是最新版本。'
-              '${result.fromCache ? '\n\n（网络不可用，以上为上次检查结果）' : ''}',
+          icon: result.fromCache ? Icons.history : Icons.check_circle,
+          title: result.fromCache ? '上次检查：已是最新' : '已是最新版本',
+          message: '当前版本：$currentVer\n'
+              '${result.fromCache ? '（网络不可用，以上为上次检查结果）' : '您使用的是最新版本。'}',
           actionText: '关闭',
           onAction: null,
           secondaryActionText: null,

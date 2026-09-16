@@ -244,9 +244,13 @@ class UpdateCheckService {
           AppLogger.info('GitHub: 暂无 Release');
           return null;
         }
+        // 429：记录并尝试下一源（镜像服务器 IP 不同，可能未被限流）
         if (code == 429) {
-          AppLogger.warn('GitHub API 限流，请稍后再试');
-          throw UpdateRateLimitException();
+          AppLogger.warn('更新检查源被限流，尝试下一源', data: {
+            'source': isMirror ? '镜像 #$i' : '直连',
+          });
+          lastError = UpdateRateLimitException();
+          continue;
         }
         lastError = Exception('HTTP $code');
         AppLogger.warn('更新检查源返回异常，尝试下一源', data: {
@@ -254,13 +258,18 @@ class UpdateCheckService {
           'status': code,
         });
       } on DioException catch (e) {
-        // 429/404 为确定性结论，不继续尝试镜像
-        if (e.response?.statusCode == 429) {
-          throw UpdateRateLimitException();
-        }
+        // 404 为确定性结论（仓库无 Release），不继续尝试镜像
         if (e.response?.statusCode == 404) {
           AppLogger.info('GitHub: 暂无 Release');
           return null;
+        }
+        // 429：记录并继续尝试下一源，全部源都被限流才抛异常
+        if (e.response?.statusCode == 429) {
+          AppLogger.warn('更新检查源被限流，尝试下一源', data: {
+            'source': isMirror ? '镜像 #$i' : '直连',
+          });
+          lastError = UpdateRateLimitException();
+          continue;
         }
         lastError = e;
         AppLogger.warn('更新检查源网络失败，尝试下一源', data: {
@@ -273,6 +282,10 @@ class UpdateCheckService {
           'source': isMirror ? '镜像 #$i' : '直连',
         });
       }
+    }
+    // 全部源都被限流时抛出限流异常（区别于普通网络失败）
+    if (lastError is UpdateRateLimitException) {
+      throw UpdateRateLimitException();
     }
     AppLogger.error('所有更新检查源都失败', error: lastError);
     return null;
@@ -452,7 +465,8 @@ class UpdateCheckService {
           'source': isMirror ? '镜像 #$i' : '原始链接',
           'path': savePath,
         });
-        // 完整性校验（失败会删除文件并抛错，继续尝试下一源）
+        // 完整性校验：失败会删除文件并抛错终止下载。
+        // 安全起见不继续尝试其他镜像（内容与官方不一致即视为可疑）。
         await _verifyOrDelete(savePath, expectedSha256);
         return savePath;
       } on DioException catch (e) {
