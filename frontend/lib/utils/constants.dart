@@ -100,6 +100,8 @@ const String kStorageKeyLastFeedVideoItemId =
 // 关注页/发现页据此标记「上次看到」的视频
 const String kStorageKeyPlaybackShellPosition =
     'embytok_playback_shell_position';
+// 更新检查结果缓存（网络失败时回退显示上次检查结果）
+const String kStorageKeyUpdateCheckCache = 'embytok_update_check_cache';
 const String kStorageKeySelectedLibraryId = 'embytok_selected_library_id';
 // 媒体库选择：推荐页独立（PR #66：视频流 / 推荐可分别设置）
 const String kStorageKeySelectedLibraryIdForRecommend =

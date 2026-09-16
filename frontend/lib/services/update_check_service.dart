@@ -4,16 +4,24 @@
 // 版本号格式：x.y.z+buildNumber（如 1.133.0+11330）
 // 对比逻辑：仅比较 x.y.z 三段主版本号，忽略 buildNumber
 //
-// APK 完整性：若 Release 正文包含 SHA256 摘要（格式如 `SHA256: <64位hex>`，
-// 见 [ReleaseInfo.sha256Digest]），下载后强制校验，防止镜像源篡改安装包。
+// 中国网络适配：
+// - 检查更新 API：直连 api.github.com 失败/超时后，依次尝试通用代理
+//   镜像（见 [_apiMirrors]）；全部失败时回退到本地缓存的上次检查结果
+// - APK 下载：原始链接优先，失败后依次尝试国内加速镜像；下载请求
+//   单独使用长 receiveTimeout（避免大文件中间停顿被 10s 超时误杀）
+// - 完整性：若 Release 正文包含 SHA256 摘要（见 [ReleaseInfo.sha256Digest]），
+//   下载后强制校验，防止镜像源篡改安装包
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/constants.dart';
 import '../utils/logger.dart';
 
 /// GitHub Release 信息
@@ -72,6 +80,16 @@ class ReleaseInfo { // 附件（APK 等）
     ).firstMatch(body);
     return match?.group(1)?.toLowerCase();
   }
+
+  /// 序列化（用于本地缓存，网络失败时回退显示）
+  Map<String, dynamic> toJson() => {
+        'tag_name': tagName,
+        'name': name,
+        'body': body,
+        'html_url': htmlUrl,
+        'published_at': publishedAt.toIso8601String(),
+        'assets': assets.map((a) => a.toJson()).toList(),
+      };
 }
 
 /// Release 附件（APK 等）
@@ -102,6 +120,14 @@ class ReleaseAsset {
 
   /// 是否为 SHA256 摘要附件
   bool get isSha256 => name.toLowerCase().endsWith('.sha256');
+
+  /// 序列化（用于本地缓存）
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'browser_download_url': downloadUrl,
+        'size': size,
+        'content_type': contentType,
+      };
 }
 
 /// 版本对比结果
@@ -111,10 +137,14 @@ class UpdateCheckResult {
     required this.hasUpdate,
     required this.currentVersion,
     this.latestRelease,
+    this.fromCache = false,
   });
   final bool hasUpdate;
   final String currentVersion;
   final ReleaseInfo? latestRelease;
+
+  /// 本次结果是否来自本地缓存（网络全部失败时回退）
+  final bool fromCache;
 }
 
 /// API 限流异常（429）
@@ -142,59 +172,137 @@ class UpdateCheckService {
   static const String _repo = 'EmbyTok-Flutter';
   static const String _apiBase = 'https://api.github.com';
 
+  /// GitHub API 通用代理镜像（前缀 + 完整 URL 即可代理任意请求）
+  /// 顺序即优先级：直连失败后依次尝试
+  static const List<String> _apiMirrors = [
+    'https://gh-proxy.com/',
+    'https://ghfast.top/',
+    'https://ghproxy.net/',
+  ];
+
+  /// APK 下载镜像（原始链接失败后依次尝试，已移除停止服务的旧镜像）
+  static const List<String> _downloadMirrors = [
+    'https://ghfast.top/',
+    'https://gh-proxy.com/',
+    'https://ghproxy.net/',
+    'https://gh.ddlc.top/',
+  ];
+
   final Dio _dio;
 
   /// 获取最新 Release
   ///
-  /// 使用 /releases 而非 /releases/latest，以便获取预发布版本
-  /// 按 published_at 降序排列，取第一个
+  /// 使用 /releases 而非 /releases/latest，以便获取预发布版本；
+  /// 按 published_at 降序排列，取第一个。
+  /// 直连失败后自动尝试国内镜像；全部失败返回 null。
   Future<ReleaseInfo?> getLatestRelease() async {
-    try {
-      final resp = await _dio.get<dynamic>(
-        '$_apiBase/repos/$_owner/$_repo/releases',
-        queryParameters: {'per_page': 5},
-      );
-      if (resp.statusCode == 200 && resp.data is List<dynamic>) {
-        final releases = (resp.data as List<dynamic>)
-            .whereType<Map<String, dynamic>>()
-            .map(ReleaseInfo.fromJson)
-            .toList();
-        if (releases.isEmpty) return null;
-        // 按发布时间降序，取最新的
-        releases.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
-        return releases.first;
-      }
-      return null;
-    } on DioException catch (e) {
-      // 404 表示还没有 Release
-      if (e.response?.statusCode == 404) {
-        AppLogger.info('GitHub: 暂无 Release');
-        return null;
-      }
-      // 429 表示 API 限流
-      if (e.response?.statusCode == 429) {
-        AppLogger.warn('GitHub API 限流，请稍后再试');
-        throw UpdateRateLimitException();
-      }
-      AppLogger.error('检查更新失败（网络）', error: e);
-      return null;
-    } catch (e) {
-      AppLogger.error('检查更新失败', error: e);
-      return null;
+    final release = await _fetchLatestRelease();
+    if (release != null) {
+      // 网络成功时刷新本地缓存（弱网/被墙时回退用）
+      await _writeCachedRelease(release);
     }
+    return release;
+  }
+
+  /// 依次尝试直连与镜像源，返回最新 Release
+  Future<ReleaseInfo?> _fetchLatestRelease() async {
+    final paths = <String>[
+      // 直连 GitHub API
+      '$_apiBase/repos/$_owner/$_repo/releases?per_page=5',
+      // 镜像：前缀 + 完整 URL
+      for (final m in _apiMirrors)
+        '$m$_apiBase/repos/$_owner/$_repo/releases?per_page=5',
+    ];
+
+    Object? lastError;
+    for (int i = 0; i < paths.length; i++) {
+      final url = paths[i];
+      final isMirror = i > 0;
+      try {
+        final resp = await _dio.get<dynamic>(
+          url,
+          options: Options(
+            connectTimeout: const Duration(seconds: 8),
+            receiveTimeout: const Duration(seconds: 10),
+          ),
+        );
+        final code = resp.statusCode;
+        if (code == 200 && resp.data is List<dynamic>) {
+          final releases = (resp.data as List<dynamic>)
+              .whereType<Map<String, dynamic>>()
+              .map(ReleaseInfo.fromJson)
+              .toList();
+          if (releases.isEmpty) return null;
+          releases.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+          AppLogger.info('更新检查成功', data: {
+            'source': isMirror ? '镜像 #$i' : '直连',
+            'version': releases.first.version,
+          });
+          return releases.first;
+        }
+        if (code == 404) {
+          AppLogger.info('GitHub: 暂无 Release');
+          return null;
+        }
+        if (code == 429) {
+          AppLogger.warn('GitHub API 限流，请稍后再试');
+          throw UpdateRateLimitException();
+        }
+        lastError = Exception('HTTP $code');
+        AppLogger.warn('更新检查源返回异常，尝试下一源', data: {
+          'source': isMirror ? '镜像 #$i' : '直连',
+          'status': code,
+        });
+      } on DioException catch (e) {
+        // 429/404 为确定性结论，不继续尝试镜像
+        if (e.response?.statusCode == 429) {
+          throw UpdateRateLimitException();
+        }
+        if (e.response?.statusCode == 404) {
+          AppLogger.info('GitHub: 暂无 Release');
+          return null;
+        }
+        lastError = e;
+        AppLogger.warn('更新检查源网络失败，尝试下一源', data: {
+          'source': isMirror ? '镜像 #$i' : '直连',
+          'error': e.message,
+        });
+      } catch (e) {
+        lastError = e;
+        AppLogger.warn('更新检查源异常，尝试下一源', data: {
+          'source': isMirror ? '镜像 #$i' : '直连',
+        });
+      }
+    }
+    AppLogger.error('所有更新检查源都失败', error: lastError);
+    return null;
   }
 
   /// 检查是否有更新
   ///
   /// [currentVersion] 当前版本号（如 "1.133.0"）
-  /// 抛出 [UpdateRateLimitException] 当 API 限流时
+  /// 抛出 [UpdateRateLimitException] 当 API 限流时。
+  /// 网络全部失败时回退到本地缓存的上次检查结果（[UpdateCheckResult.fromCache]）。
   Future<UpdateCheckResult> checkForUpdate(String currentVersion) async {
-    final release = await getLatestRelease();
+    ReleaseInfo? release;
+    var fromCache = false;
+    try {
+      release = await getLatestRelease();
+    } on UpdateRateLimitException {
+      rethrow;
+    }
     if (release == null) {
-      return UpdateCheckResult(
-        hasUpdate: false,
-        currentVersion: currentVersion,
-      );
+      // 网络失败：回退本地缓存，避免"检查失败"的坏体验
+      final cached = await _readCachedRelease();
+      if (cached != null) {
+        release = cached;
+        fromCache = true;
+      } else {
+        return UpdateCheckResult(
+          hasUpdate: false,
+          currentVersion: currentVersion,
+        );
+      }
     }
 
     final latestVersion = release.version;
@@ -204,6 +312,7 @@ class UpdateCheckService {
       hasUpdate: hasUpdate,
       currentVersion: currentVersion,
       latestRelease: release,
+      fromCache: fromCache,
     );
   }
 
@@ -312,10 +421,7 @@ class UpdateCheckService {
     // 原始链接优先，失败后依次尝试镜像
     final downloadUrls = <String>[
       asset.downloadUrl, // 原始 GitHub 链接
-      'https://ghproxy.com/${asset.downloadUrl}',
-      'https://mirror.ghproxy.com/${asset.downloadUrl}',
-      'https://gh-proxy.com/${asset.downloadUrl}',
-      'https://github.moeyy.xyz/${asset.downloadUrl}',
+      for (final m in _downloadMirrors) '$m${asset.downloadUrl}',
     ];
 
     Object? lastError;
@@ -331,6 +437,12 @@ class UpdateCheckService {
           url,
           savePath,
           cancelToken: cancelToken,
+          // 下载覆盖长 receiveTimeout：APK 较大、镜像可能较慢，
+          // 避免两次数据包间隔超过默认 10s 被误判超时中断
+          options: Options(
+            connectTimeout: const Duration(seconds: 10),
+            receiveTimeout: const Duration(seconds: 120),
+          ),
           onReceiveProgress: (received, total) {
             if (total <= 0) return;
             onProgress(received / total);
@@ -368,6 +480,39 @@ class UpdateCheckService {
   Future<String> _sha256Of(File file) async {
     final digest = await sha256.bind(file.openRead()).first;
     return digest.toString();
+  }
+
+  // ---------------- 本地缓存（网络失败时回退显示上次检查结果） ----------------
+
+  Future<ReleaseInfo?> _readCachedRelease() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(kStorageKeyUpdateCheckCache);
+      if (raw == null || raw.isEmpty) return null;
+      final json = jsonDecode(raw);
+      if (json is! Map<String, dynamic>) return null;
+      final releaseJson = json['release'];
+      if (releaseJson is! Map<String, dynamic>) return null;
+      return ReleaseInfo.fromJson(releaseJson);
+    } catch (e) {
+      AppLogger.error('读取更新检查缓存失败', error: e);
+      return null;
+    }
+  }
+
+  Future<void> _writeCachedRelease(ReleaseInfo release) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        kStorageKeyUpdateCheckCache,
+        jsonEncode({
+          'checkedAt': DateTime.now().toIso8601String(),
+          'release': release.toJson(),
+        }),
+      );
+    } catch (e) {
+      AppLogger.error('写入更新检查缓存失败', error: e);
+    }
   }
 
   /// 校验下载文件完整性；失败时删除文件并抛错（调用方继续尝试下一源）

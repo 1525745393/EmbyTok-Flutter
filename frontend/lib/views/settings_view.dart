@@ -2943,12 +2943,16 @@ class SettingsView extends ConsumerWidget {
         // 查找 APK 下载链接
         final apkAssets = release.assets.where((a) => a.isApk).toList();
         final hasApk = apkAssets.isNotEmpty;
+        // 网络失败回退缓存时提示来源，避免用户误以为版本没变化
+        final cacheHint =
+            result.fromCache ? '\n\n（网络不可用，以上为上次检查结果）' : '';
         _showUpdateResultDialog(
           context,
           icon: Icons.system_update,
           title: '发现新版本',
           message: '当前版本：$currentVer\n最新版本：${release.version}\n\n'
-              '${release.body.isNotEmpty ? release.body : release.name}',
+              '${release.body.isNotEmpty ? release.body : release.name}'
+              '$cacheHint',
           actionText: hasApk ? '下载安装' : '前往下载',
           onAction: () {
             if (hasApk) {
@@ -2966,7 +2970,8 @@ class SettingsView extends ConsumerWidget {
           context,
           icon: Icons.check_circle,
           title: '已是最新版本',
-          message: '当前版本：$currentVer\n您使用的是最新版本。',
+          message: '当前版本：$currentVer\n您使用的是最新版本。'
+              '${result.fromCache ? '\n\n（网络不可用，以上为上次检查结果）' : ''}',
           actionText: '关闭',
           onAction: null,
           secondaryActionText: null,
