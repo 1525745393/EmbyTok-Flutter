@@ -1,3 +1,10 @@
+# [2.124.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.123.2...v2.124.0) (2026-09-16)
+
+
+### Features
+
+* 检查更新中国适配增强 ([b7902a5](https://github.com/1525745393/EmbyTok-Flutter/commit/b7902a5128433bd31050c2bff4475500d9620efe))
+
 ## [2.123.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.123.1...v2.123.2) (2026-09-16)
 
 
