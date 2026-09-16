@@ -1,3 +1,10 @@
+# [2.128.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.127.1...v2.128.0) (2026-09-16)
+
+
+### Features
+
+* **grid:** 视频库网格同步「上次看到」角标 + 进度百分比 ([29eb2cd](https://github.com/1525745393/EmbyTok-Flutter/commit/29eb2cd092e8fc52580e8bf831c560b234d9e353))
+
 ## [2.127.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.127.0...v2.127.1) (2026-09-16)
 
 
