@@ -1,3 +1,10 @@
+## [2.123.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.123.0...v2.123.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* 上次看到标记刷新与误标记修复 ([c0b1b3b](https://github.com/1525745393/EmbyTok-Flutter/commit/c0b1b3b6fad7ec6f5e803f0b09145ca1287f7444))
+
 # [2.123.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.122.0...v2.123.0) (2026-09-16)
 
 
