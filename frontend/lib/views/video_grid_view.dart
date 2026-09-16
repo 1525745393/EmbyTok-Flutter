@@ -25,6 +25,12 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   /// 本列表上次观看的视频 id（播放页位置记忆标记，feed 源）
   String? _lastWatchedId;
 
+  /// 已定位过的列表签名（防止浏览中 rebuild 反复拉回）
+  String? _lastScrolledSignature;
+
+  /// 已定位过的视频 id
+  String? _lastScrolledId;
+
   /// 网格滚动控制器（用于定位到上次观看的视频）
   final ScrollController _gridController = ScrollController();
 
@@ -88,18 +94,25 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
   void _scheduleLoadLastWatched(
       List<MediaItem> allItems, List<MediaItem> displayItems) {
     // 位置记忆签名 = 播放页列表首 item id（feed 视频流为全量列表）
-    final firstId = allItems.first.id;
+    final signature = allItems.first.id;
     Future.microtask(() async {
       final id = await PlaybackPositionMemory.lastWatchedItemId(
         source: 'feed',
-        listSignature: firstId,
+        listSignature: signature,
       );
       if (!mounted) return;
-      if (id != _lastWatchedId) {
+      final isNewSignature = signature != _lastScrolledSignature;
+      if (isNewSignature || id != _lastWatchedId) {
         setState(() => _lastWatchedId = id);
       }
-      // 定位到上次观看的视频（仅在显示列表中可见时）
-      if (id != null && displayItems.any((i) => i.id == id)) {
+      // 仅列表签名变化（首次进入/切换媒体库/刷新）或上次观看视频变化
+      // （从播放页返回）时滚动定位，避免浏览中任何 rebuild 反复把用户
+      // 拉回旧位置打断浏览。
+      if (id != null &&
+          (isNewSignature || id != _lastScrolledId) &&
+          displayItems.any((i) => i.id == id)) {
+        _lastScrolledSignature = signature;
+        _lastScrolledId = id;
         _scrollToLastWatched(displayItems, id);
       }
     });

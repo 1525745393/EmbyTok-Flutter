@@ -32,6 +32,12 @@ class _FollowViewState extends ConsumerState<FollowView> {
   /// 本列表上次观看的视频 id（位置记忆标记）
   String? _lastWatchedId;
 
+  /// 已定位过的列表签名（防止浏览中 rebuild 反复拉回）
+  String? _lastScrolledSignature;
+
+  /// 已定位过的视频 id
+  String? _lastScrolledId;
+
   /// 网格滚动控制器（用于定位到上次观看的视频）
   final ScrollController _gridController = ScrollController();
 
@@ -73,18 +79,23 @@ class _FollowViewState extends ConsumerState<FollowView> {
 
   void _scheduleLoadLastWatched(List<RecommendItem> items) {
     if (items.isEmpty) return;
-    final firstId = items.first.item.id;
+    final signature = items.first.item.id;
     Future.microtask(() async {
       final id = await PlaybackPositionMemory.lastWatchedItemId(
         source: 'follow',
-        listSignature: firstId,
+        listSignature: signature,
       );
       if (!mounted) return;
-      if (id != _lastWatchedId) {
+      final isNewSignature = signature != _lastScrolledSignature;
+      if (isNewSignature || id != _lastWatchedId) {
         setState(() => _lastWatchedId = id);
       }
-      // 定位到上次观看的视频（角标 + 滚动）
-      if (id != null) {
+      // 仅列表签名变化（首次进入/切换数据源/刷新）或上次观看视频变化
+      // （从播放页返回）时滚动定位，避免浏览中任何 rebuild 反复把用户
+      // 拉回旧位置打断浏览。
+      if (id != null && (isNewSignature || id != _lastScrolledId)) {
+        _lastScrolledSignature = signature;
+        _lastScrolledId = id;
         _scrollToLastWatched(items, id);
       }
     });
