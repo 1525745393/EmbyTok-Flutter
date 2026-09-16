@@ -1,3 +1,10 @@
+## [2.127.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.127.0...v2.127.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* **follow/discover:** 上次看到角标醒目化 + 返回网格定位到刚看视频 ([6847bc2](https://github.com/1525745393/EmbyTok-Flutter/commit/6847bc22712ccdb20dd1c196d534913ede6ad8f9))
+
 # [2.127.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.126.0...v2.127.0) (2026-09-16)
 
 
