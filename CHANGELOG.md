@@ -1,3 +1,10 @@
+# [2.127.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.126.0...v2.127.0) (2026-09-16)
+
+
+### Features
+
+* **settings:** 账户分组与退出登录按服务模式区分 ([507d191](https://github.com/1525745393/EmbyTok-Flutter/commit/507d191c7adcf363f729063d4fa31265a7d93121))
+
 # [2.126.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.125.0...v2.126.0) (2026-09-16)
 
 
