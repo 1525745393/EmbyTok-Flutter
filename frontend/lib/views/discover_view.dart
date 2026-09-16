@@ -18,6 +18,7 @@ import '../utils/image_cache_manager.dart';
 import '../utils/playback_position_memory.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
+import '../widgets/last_watched_badge.dart';
 import '../widgets/resume_play_banner.dart';
 import '../widgets/skeleton_loading.dart';
 
@@ -31,6 +32,15 @@ class DiscoverView extends ConsumerStatefulWidget {
 class _DiscoverViewState extends ConsumerState<DiscoverView> {
   /// 本列表上次观看的视频 id（位置记忆标记）
   String? _lastWatchedId;
+
+  /// 网格滚动控制器（用于定位到上次观看的视频）
+  final ScrollController _gridController = ScrollController();
+
+  @override
+  void dispose() {
+    _gridController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +76,49 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
         source: 'discover',
         listSignature: items.first.id,
       );
-      if (mounted && id != _lastWatchedId) {
+      if (!mounted) return;
+      if (id != _lastWatchedId) {
         setState(() => _lastWatchedId = id);
+      }
+      // 定位到上次观看的视频（角标 + 滚动）
+      if (id != null) {
+        _scrollToLastWatched(items, id);
+      }
+    });
+  }
+
+  /// 网格滚动定位：把上次观看的视频滚动到视口内（优先估算偏移粗定位，
+  /// 目标卡片构建后 ensureVisible 精确居中），便于用户一眼看到角标。
+  void _scrollToLastWatched(List<MediaItem> items, String id) {
+    final index = items.indexWhere((i) => i.id == id);
+    if (index < 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_gridController.hasClients) return;
+      final position = _gridController.position;
+      final viewportWidth = position.viewportDimension;
+      // 与 GridView 配置保持一致：padding 12、间距 12、maxCrossAxisExtent 160、比例 2/3
+      const padding = 12.0;
+      const spacing = 12.0;
+      const maxExtent = 160.0;
+      const aspectRatio = 2 / 3;
+      final contentWidth = viewportWidth - padding * 2;
+      final cols = ((contentWidth + spacing) / (maxExtent + spacing)).ceil();
+      final cellWidth = (contentWidth - spacing * (cols - 1)) / cols;
+      final cellHeight = cellWidth / aspectRatio;
+      final row = index ~/ cols;
+      final target = row * (cellHeight + spacing);
+
+      final viewport = position.viewportDimension;
+      final current = position.pixels;
+      final needsScroll =
+          target < current || target > current + viewport - cellHeight;
+      if (needsScroll) {
+        final maxExtentOffset = position.maxScrollExtent;
+        _gridController.animateTo(
+          target.clamp(0.0, maxExtentOffset),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -112,6 +163,7 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
           ),
         Expanded(
           child: GridView.builder(
+            controller: _gridController,
             padding: const EdgeInsets.all(12),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 160,
@@ -223,33 +275,12 @@ class _PosterCard extends ConsumerWidget {
                           ),
                         ),
                 ),
-                // 「上次看到」角标
+                // 「上次看到」角标（醒目样式，一眼定位）
                 if (isLastWatched)
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.65),
-                        borderRadius: const BorderRadius.only(
-                          bottomRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.history, size: 11, color: Colors.white),
-                          SizedBox(width: 3),
-                          Text(
-                            '上次看到',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 10),
-                          ),
-                        ],
-                      ),
-                    ),
+                  const Positioned(
+                    left: 6,
+                    top: 6,
+                    child: LastWatchedBadge(),
                   ),
               ],
             ),
