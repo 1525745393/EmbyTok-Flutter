@@ -1,3 +1,10 @@
+## [2.124.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.1...v2.124.2) (2026-09-16)
+
+
+### Bug Fixes
+
+* **test:** 修复 33 个测试失败 + CI 假绿 + 文档同步 ([4605ea4](https://github.com/1525745393/EmbyTok-Flutter/commit/4605ea4829d2ccb18c9b5fdeda33b73c8c81ca91))
+
 ## [2.124.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.0...v2.124.1) (2026-09-16)
 
 
