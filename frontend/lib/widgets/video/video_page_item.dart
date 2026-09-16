@@ -171,7 +171,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 中央播放/暂停按钮显示状态（仅非纯净模式，2秒后自动隐藏）
   bool _centerButtonVisible = false;
   Timer? _centerButtonHideTimer;
-  static const int _centerButtonAutoHideSeconds = 2;
 
   // 纯净模式下可拖动按钮组的引用，用于单击屏幕时显示按钮以便退出纯净模式
   final GlobalKey<DraggableCleanActionsState> _cleanActionsKey =
@@ -750,12 +749,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   void _hideControls() {
     _controlsHideTimer?.cancel();
     if (mounted) setState(() => _controlsVisible = false);
-  }
-
-  /// 隐藏中央播放/暂停按钮
-  void _hideCenterButton() {
-    _centerButtonHideTimer?.cancel();
-    if (mounted) setState(() => _centerButtonVisible = false);
   }
 
   // ===== 播放/暂停切换 =====
