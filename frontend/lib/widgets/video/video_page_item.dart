@@ -239,10 +239,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       // 注意：不暂停 _videoController，音频继续播放（后台听剧场景）
     } else if (!wasForeground && isForeground) {
       if (_wasPlayingBeforeBackground) {
-        if (_videoController != null &&
-            _videoController!.value.isInitialized &&
-            !_videoController!.value.isPlaying) {
-          _videoController!.play();
+        try {
+          if (_videoController != null &&
+              _videoController!.value.isInitialized &&
+              !_videoController!.value.isPlaying) {
+            _videoController!.play();
+          }
+        } catch (e) {
+          // controller 可能已被后台释放（非当前页），忽略并记录
+          AppLogger.warn('前台恢复播放失败，controller 可能已释放',
+              data: {'itemId': widget.item.id, 'error': e.toString()});
         }
         if (!_discRotationCtrl.isAnimating) {
           _discRotationCtrl.repeat();
@@ -752,24 +758,33 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   }
 
   // ===== 播放/暂停切换 =====
+  // 统一 try/catch：controller 可能已被 VideoPlayerWidget 释放（非当前页
+  // 背景延迟释放后用户立即点击），对已 dispose 的 controller 调用
+  // play/pause 会走平台通道抛 PlatformException，未捕获将导致闪退。
   void _togglePlay() {
-    if (_videoController == null) return;
-    if (_videoController!.value.isPlaying) {
-      _videoController!.pause();
-      ref.read(isPlayingProvider.notifier).state = false;
-      // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
-      if (!ref.read(isAutoPlayProvider)) {
-        _centerButtonHideTimer?.cancel();
-        if (mounted) setState(() => _centerButtonVisible = true);
+    final controller = _videoController;
+    if (controller == null) return;
+    try {
+      if (controller.value.isPlaying) {
+        controller.pause();
+        ref.read(isPlayingProvider.notifier).state = false;
+        // 暂停时显示▶播放图标，不自动隐藏（用户需要点击恢复播放）
+        if (!ref.read(isAutoPlayProvider)) {
+          _centerButtonHideTimer?.cancel();
+          if (mounted) setState(() => _centerButtonVisible = true);
+        }
+      } else {
+        controller.play();
+        ref.read(isPlayingProvider.notifier).state = true;
+        // 播放时立即隐藏中央按钮（不显示⏸）
+        if (!ref.read(isAutoPlayProvider)) {
+          _centerButtonHideTimer?.cancel();
+          if (mounted) setState(() => _centerButtonVisible = false);
+        }
       }
-    } else {
-      _videoController!.play();
-      ref.read(isPlayingProvider.notifier).state = true;
-      // 播放时立即隐藏中央按钮（不显示⏸）
-      if (!ref.read(isAutoPlayProvider)) {
-        _centerButtonHideTimer?.cancel();
-        if (mounted) setState(() => _centerButtonVisible = false);
-      }
+    } catch (e) {
+      AppLogger.warn('播放/暂停操作失败，controller 可能已释放',
+          data: {'itemId': widget.item.id, 'error': e.toString()});
     }
   }
 

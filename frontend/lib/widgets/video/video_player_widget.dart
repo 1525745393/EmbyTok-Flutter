@@ -417,7 +417,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (preloadedInitSucceeded) return;
     if (_isDisposed) return;
 
-    // ---- 路径 2：动态创建控制器（仅当前页创建，非当前页只显示缩略图）----
+    // ---- 路径 2：动态创建控制器（含 DirectPlay → DirectStream → HLS 降级链）----
     // OOM 防护：PageView 缓存的相邻页面若也创建控制器，每个 1080p 控制器
     // 解码缓冲区约 30-50MB，快速滑动时 3-5 个控制器同时存在可导致 OOM。
     // 非当前页跳过动态创建，仅在 isCurrentPage 变为 true 时由 didUpdateWidget 触发创建。
@@ -427,89 +427,113 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       return;
     }
 
-    final url = _playbackUrl;
-    if (url == null) {
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _hasError = true;
-          _errorMessage = AppError.notFound(message: '无法获取播放地址');
-        });
-      }
-      return;
-    }
+    // 降级链：DirectPlay → DirectStream → HLS（与 VideoPoolService.preload 一致）。
+    // 部分视频 DirectPlay 编码/封装 ExoPlayer 不兼容（HEVC 10bit、特殊音轨等），
+    // 直接失败会导致"播放异常"，降级到转码流可显著提升播放成功率。
+    final playSessionId =
+        'emb-dyn-${DateTime.now().microsecondsSinceEpoch}';
+    final urls = <int, String?>{
+      0: _playbackUrl,
+      1: widget.item.computeDirectStreamUrl(
+          widget.embyServerUrl, widget.token),
+      2: widget.item.computeHlsUrl(widget.embyServerUrl, widget.token,
+          playSessionId: playSessionId),
+    };
 
-    try {
+    for (int level = 0; level < 3; level++) {
+      final url = urls[level];
+      if (url == null || url.isEmpty) continue;
       final headers = widget.item.authHeaders(widget.token);
 
-      final c = VideoPlayerController.networkUrl(
-        Uri.parse(url),
-        httpHeaders: headers,
-      );
-      _controller = c;
+      VideoPlayerController? c;
+      try {
+        c = VideoPlayerController.networkUrl(
+          Uri.parse(url),
+          httpHeaders: headers,
+        );
+        _controller = c;
 
-      c.addListener(_onControllerChanged);
+        c.addListener(_onControllerChanged);
 
-      c.setLooping(widget.loop);
-      await c.initialize().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          throw TimeoutException('视频初始化超时');
-        },
-      );
-      if (isCancelled()) {
-        try {
-          c.dispose();
-        } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
-        return;
-      }
-      if (_isDisposed) {
-        try {
-          c.dispose();
-        } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
-        return;
-      }
-      if (mounted && !_isDisposed) {
-        // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
-        _applyInitialVolume(c);
-        _autoLoadDefaultSubtitle();
-        // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
-        await _seekToResumePosition();
+        c.setLooping(widget.loop);
+        await c.initialize().timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            throw TimeoutException('视频初始化超时');
+          },
+        );
         if (isCancelled()) {
           try {
             c.dispose();
           } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
+            // 资源释放失败不影响主流程，静默处理
+          }
           return;
         }
-        // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
-        _syncPlaybackState(c);
-        if (mounted && !_isDisposed) {
-          setState(() {
-            _initialized = true;
-            _hasError = false;
-          });
-          widget.onControllerReady?.call(c);
-          // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
-          // 立即调度释放计时器，防止 controller 永久驻留
-          _scheduleBackgroundReleaseIfNeeded();
+        if (_isDisposed) {
+          try {
+            c.dispose();
+          } catch (_) {
+            // 资源释放失败不影响主流程，静默处理
+          }
+          return;
         }
+        if (mounted && !_isDisposed) {
+          // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
+          _applyInitialVolume(c);
+          _autoLoadDefaultSubtitle();
+          // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
+          await _seekToResumePosition();
+          if (isCancelled()) {
+            try {
+              c.dispose();
+            } catch (_) {
+              // 资源释放失败不影响主流程，静默处理
+            }
+            return;
+          }
+          // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
+          _syncPlaybackState(c);
+          if (mounted && !_isDisposed) {
+            setState(() {
+              _initialized = true;
+              _hasError = false;
+            });
+            widget.onControllerReady?.call(c);
+            // 修复：init 完成时若已是非当前页（init 期间页面切走的竞态），
+            // 立即调度释放计时器，防止 controller 永久驻留
+            _scheduleBackgroundReleaseIfNeeded();
+          }
+        }
+        return; // 当前级别成功，降级链结束
+      } catch (e) {
+        AppLogger.debug('VideoPlayer dynamic init failed, 尝试降级',
+            data: {'level': level, 'error': e.toString()});
+        // 清理当前失败的 controller，继续下一级降级
+        if (c != null) {
+          try {
+            c.removeListener(_onControllerChanged);
+          } catch (_) {
+            // 资源释放失败不影响主流程，静默处理
+          }
+          try {
+            c.dispose();
+          } catch (_) {
+            // 资源释放失败不影响主流程，静默处理
+          }
+        }
+        _controller = null;
       }
-    } catch (e) {
-      AppLogger.debug('VideoPlayer initialization error',
-          data: {'error': e.toString()});
-      if (_isDisposed) return;
-      if (mounted && !_isDisposed) {
-        setState(() {
-          _initialized = false;
-          _hasError = true;
-          _errorMessage = AppError.playback(message: '视频加载失败');
-        });
-      }
+    }
+
+    // 三级全部失败：显示错误状态（不崩溃）
+    if (_isDisposed) return;
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _initialized = false;
+        _hasError = true;
+        _errorMessage = AppError.playback(message: '视频加载失败');
+      });
     }
   }
 

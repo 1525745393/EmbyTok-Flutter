@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../utils/logger.dart';
 import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
@@ -94,11 +95,20 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
   }
 
   // 切换播放/暂停
+  // try/catch：controller 可能已被 VideoPlayerWidget 释放（背景延迟释放），
+  // 对已 dispose 的 controller 调用 play/pause 会抛 PlatformException，
+  // 未捕获将导致整个 App 闪退。
   void _togglePlay() {
-    if (widget.controller.value.isPlaying) {
-      widget.controller.pause();
-    } else {
-      widget.controller.play();
+    try {
+      if (widget.controller.value.isPlaying) {
+        widget.controller.pause();
+      } else {
+        widget.controller.play();
+      }
+    } catch (e) {
+      AppLogger.warn('控制条播放/暂停失败，controller 可能已释放',
+          data: {'error': e.toString()});
+      return;
     }
     ref.read(isPlayingProvider.notifier).state =
         widget.controller.value.isPlaying;

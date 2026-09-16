@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,5 +43,25 @@ Future<void> main() async {
       ),
     );
   }
-  runApp(const ProviderScope(child: EmbyTokApp()));
+
+  // 全局异常兜底：release 模式下未捕获异常不再直接闪退。
+  // 视频播放链路（ExoPlayer 平台通道、解码器错误等）存在少量
+  // 未被 catch 的异步/平台异常路径，若无兜底会导致整个 App 闪退。
+  // 兜底策略：记录日志 + 跳过该帧（build 异常用灰屏替代），App 继续运行。
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger.error('Flutter 未捕获异常', error: details.exception);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AppLogger.error('Platform 未捕获异常', error: error, stackTrace: stack);
+    return true; // 已处理，不终止 App
+  };
+
+  runZonedGuarded(
+    () => runApp(const ProviderScope(child: EmbyTokApp())),
+    (error, stackTrace) {
+      AppLogger.error('Zone 未捕获异步异常',
+          error: error, stackTrace: stackTrace);
+    },
+  );
 }

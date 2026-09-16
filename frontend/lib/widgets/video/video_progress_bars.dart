@@ -5,6 +5,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../utils/logger.dart';
+
 /// TikTok 风格底部细线进度条
 /// 高度 2px，始终可见，颜色为 theme.primary，背景半透明 surface
 class ThinProgressBar extends StatefulWidget {
@@ -99,7 +101,13 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
 
     final progress = (localDx / totalWidth).clamp(0.0, 1.0);
     final targetMs = (progress * duration.inMilliseconds).toInt();
-    widget.controller.seekTo(Duration(milliseconds: targetMs));
+    try {
+      widget.controller.seekTo(Duration(milliseconds: targetMs));
+    } catch (e) {
+      // controller 可能已被释放（非当前页背景延迟释放），忽略避免闪退
+      AppLogger.warn('进度条 seek 失败，controller 可能已释放',
+          data: {'error': e.toString()});
+    }
   }
 
   @override
@@ -144,7 +152,13 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                 if (duration.inMilliseconds > 0) {
                   final targetMs =
                       (_dragProgress * duration.inMilliseconds).toInt();
-                  widget.controller.seekTo(Duration(milliseconds: targetMs));
+                  try {
+                    widget.controller.seekTo(Duration(milliseconds: targetMs));
+                  } catch (e) {
+                    // controller 可能已被释放，忽略避免闪退
+                    AppLogger.warn('拖动结束 seek 失败，controller 可能已释放',
+                        data: {'error': e.toString()});
+                  }
                 }
                 setState(() => _isDragging = false);
               },
