@@ -1,3 +1,10 @@
+## [2.124.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.2...v2.124.3) (2026-09-16)
+
+
+### Bug Fixes
+
+* **video feed:** 修复视频流位置恢复异常 ([7a42c32](https://github.com/1525745393/EmbyTok-Flutter/commit/7a42c329fc4d49f7052fbc8d3a0bdf90619eacf5))
+
 ## [2.124.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.124.1...v2.124.2) (2026-09-16)
 
 
