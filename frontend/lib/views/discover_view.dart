@@ -31,14 +31,15 @@ class DiscoverView extends ConsumerStatefulWidget {
 class _DiscoverViewState extends ConsumerState<DiscoverView> {
   /// 本列表上次观看的视频 id（位置记忆标记）
   String? _lastWatchedId;
-  bool _lastWatchedLoaded = false;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(discoverProvider);
 
-    // 列表加载后异步读取「上次看到」标记（仅一次）
+    // 异步读取「上次看到」标记：每次 build 都重读，从播放页返回
+    // （State 存活）时也能拿到最新记忆；读取结果与当前值相同则不
+    // setState，不会触发重建循环
     _scheduleLoadLastWatched(state.items);
 
     return Scaffold(
@@ -59,14 +60,13 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
   }
 
   void _scheduleLoadLastWatched(List<MediaItem> items) {
-    if (_lastWatchedLoaded || items.isEmpty) return;
-    _lastWatchedLoaded = true;
+    if (items.isEmpty) return;
     Future.microtask(() async {
       final id = await PlaybackPositionMemory.lastWatchedItemId(
         source: 'discover',
         listSignature: items.first.id,
       );
-      if (mounted && id != null && id != _lastWatchedId) {
+      if (mounted && id != _lastWatchedId) {
         setState(() => _lastWatchedId = id);
       }
     });

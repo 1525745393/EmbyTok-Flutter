@@ -1566,6 +1566,10 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
 
   /// 保存当前播放位置（数据源 + 列表签名 + 索引 + 当前视频 id）
   Future<void> _savePosition() async {
+    // 未滑动到其它视频（index 0）不写盘：与 _restoreFromMemory 的
+    // savedIdx <= 0 跳过语义保持一致，避免「仅进入播放页即退出」在
+    // 关注/发现页产生误导性的「上次看到」标记
+    if (_currentIndex <= 0) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kPositionMemoryKey);

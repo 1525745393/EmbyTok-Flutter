@@ -30,7 +30,6 @@ class FollowView extends ConsumerStatefulWidget {
 class _FollowViewState extends ConsumerState<FollowView> {
   /// 本列表上次观看的视频 id（位置记忆标记）
   String? _lastWatchedId;
-  bool _lastWatchedLoaded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +41,9 @@ class _FollowViewState extends ConsumerState<FollowView> {
         .where((r) => r.source.key == RecommendSource.nextUp.key)
         .toList(growable: false);
 
-    // 列表加载后异步读取「上次看到」标记（仅一次）
+    // 异步读取「上次看到」标记：每次 build 都重读，从播放页返回
+    // （State 存活）时也能拿到最新记忆；结果相同则不 setState，
+    // 不会触发重建循环
     if (nextUpItems.isNotEmpty) {
       _scheduleLoadLastWatched(nextUpItems);
     }
@@ -61,15 +62,14 @@ class _FollowViewState extends ConsumerState<FollowView> {
   }
 
   void _scheduleLoadLastWatched(List<RecommendItem> items) {
-    if (_lastWatchedLoaded || items.isEmpty) return;
-    _lastWatchedLoaded = true;
+    if (items.isEmpty) return;
     final firstId = items.first.item.id;
     Future.microtask(() async {
       final id = await PlaybackPositionMemory.lastWatchedItemId(
         source: 'follow',
         listSignature: firstId,
       );
-      if (mounted && id != null && id != _lastWatchedId) {
+      if (mounted && id != _lastWatchedId) {
         setState(() => _lastWatchedId = id);
       }
     });
