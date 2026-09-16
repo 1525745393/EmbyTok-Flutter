@@ -45,6 +45,9 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    // 音乐服务模式下隐藏视频相关分组（视频库/推荐/播放/字幕/统计/视频方向等）
+    final isMusicMode =
+        ref.watch(serviceModeProvider) == AppServiceMode.music;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -72,75 +75,79 @@ class SettingsView extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(
             0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
-          // 视频库设置（PR #66：视频流 / 推荐可分别设置）
-          _buildSection(
-            context,
-            ref,
-            '视频库',
-            Icons.video_library_outlined,
-            Colors.deepPurple,
-            [
-              _buildFeedLibraryTile(context, ref),
-              _buildFeedExcludePlayedTile(context, ref),
-              _buildRecommendLibraryTile(context, ref),
-              _buildDiscoverGenresTile(context, ref),
-            ],
-          ),
-          // 推荐设置（PR #78：推荐规则优化）
+          // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '视频库',
+              Icons.video_library_outlined,
+              Colors.deepPurple,
+              [
+                _buildFeedLibraryTile(context, ref),
+                _buildFeedExcludePlayedTile(context, ref),
+                _buildRecommendLibraryTile(context, ref),
+                _buildDiscoverGenresTile(context, ref),
+              ],
+            ),
+          // 推荐设置（PR #78：推荐规则优化；音乐模式隐藏）
           // 高级选项默认折叠，避免一次性展示 10 项造成视觉负担
-          _buildSection(
-            context,
-            ref,
-            '推荐',
-            Icons.recommend_outlined,
-            Colors.pink,
-            [
-              _buildRecommendMinRatingTile(context, ref),
-              _buildRecommendExcludePlayedTile(context, ref),
-              _buildRecommendMinRuntimeTile(context, ref),
-              _buildRecommendIncludeTypesTile(context, ref),
-              // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
-              _RecommendAdvancedTile(
-                advancedTilesBuilder: () => [
-                  _buildRecommendUseWatchHistoryTile(context, ref),
-                  _buildRecommendHalfLifeDaysTile(context, ref),
-                  _buildRecommendAntiFatigueEnabledTile(context, ref),
-                  _buildRecommendAntiFatigueDaysTile(context, ref),
-                  _buildRecommendUserRatingEnabledTile(context, ref),
-                  _buildRecommendUserRatingMinTile(context, ref),
-                  _buildRecommendNextUpSeriesCountTile(context, ref),
-                  _buildRecommendFavActorNewCountTile(context, ref),
-                ],
-              ),
-            ],
-          ),
-          // 播放设置
-          _buildSection(
-            context,
-            ref,
-            '播放',
-            Icons.play_circle_outline,
-            Colors.green,
-            [
-              _buildAutoPlayTile(context, ref),
-              _buildAutoResumeAfterInterruptionTile(context, ref),
-              _buildPlaybackRateTile(context, ref),
-              _buildGestureControlTile(context, ref),
-            ],
-          ),
-          // 字幕设置
-          _buildSection(
-            context,
-            ref,
-            '字幕',
-            Icons.closed_caption_outlined,
-            Colors.teal,
-            [
-              _buildSubtitleLanguageTile(context, ref),
-              _buildSubtitleSizeTile(context, ref),
-            ],
-          ),
-          // 外观设置
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '推荐',
+              Icons.recommend_outlined,
+              Colors.pink,
+              [
+                _buildRecommendMinRatingTile(context, ref),
+                _buildRecommendExcludePlayedTile(context, ref),
+                _buildRecommendMinRuntimeTile(context, ref),
+                _buildRecommendIncludeTypesTile(context, ref),
+                // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
+                _RecommendAdvancedTile(
+                  advancedTilesBuilder: () => [
+                    _buildRecommendUseWatchHistoryTile(context, ref),
+                    _buildRecommendHalfLifeDaysTile(context, ref),
+                    _buildRecommendAntiFatigueEnabledTile(context, ref),
+                    _buildRecommendAntiFatigueDaysTile(context, ref),
+                    _buildRecommendUserRatingEnabledTile(context, ref),
+                    _buildRecommendUserRatingMinTile(context, ref),
+                    _buildRecommendNextUpSeriesCountTile(context, ref),
+                    _buildRecommendFavActorNewCountTile(context, ref),
+                  ],
+                ),
+              ],
+            ),
+          // 播放设置（音乐模式隐藏：均为视频播放器设置）
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '播放',
+              Icons.play_circle_outline,
+              Colors.green,
+              [
+                _buildAutoPlayTile(context, ref),
+                _buildAutoResumeAfterInterruptionTile(context, ref),
+                _buildPlaybackRateTile(context, ref),
+                _buildGestureControlTile(context, ref),
+              ],
+            ),
+          // 字幕设置（音乐模式隐藏）
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '字幕',
+              Icons.closed_caption_outlined,
+              Colors.teal,
+              [
+                _buildSubtitleLanguageTile(context, ref),
+                _buildSubtitleSizeTile(context, ref),
+              ],
+            ),
+          // 外观设置（主题通用保留；视频方向仅视频模式）
           _buildSection(
             context,
             ref,
@@ -149,7 +156,7 @@ class SettingsView extends ConsumerWidget {
             Colors.indigo,
             [
               _buildThemeTile(context, ref),
-              _buildOrientationTile(context, ref),
+              if (!isMusicMode) _buildOrientationTile(context, ref),
             ],
           ),
           // 存储设置
@@ -166,18 +173,20 @@ class SettingsView extends ConsumerWidget {
               _buildClearLogsTile(context, ref),
             ],
           ),
-          // PR #81：观看统计
-          _buildSection(
-            context,
-            ref,
-            '统计',
-            Icons.analytics_outlined,
-            Colors.deepPurple,
-            [
-              _buildWatchStatsTile(context, ref),
-            ],
-          ),
+          // PR #81：观看统计（视频完播率，音乐模式隐藏）
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '统计',
+              Icons.analytics_outlined,
+              Colors.deepPurple,
+              [
+                _buildWatchStatsTile(context, ref),
+              ],
+            ),
           // 服务器设置：服务模式（视频/音乐）+ 视频数据源
+          // 音乐模式仅保留模式切换与服务器管理，隐藏视频数据源信息
           _buildSection(
             context,
             ref,
@@ -187,9 +196,11 @@ class SettingsView extends ConsumerWidget {
             [
               _buildServiceModeSelector(context, ref),
               _buildServerRegistryTile(context, ref),
-              _buildServerGroupLabel(
-                  context, ref, '视频数据源', Icons.movie_outlined),
-              _buildServerInfoTile(context, ref),
+              if (!isMusicMode) ...[
+                _buildServerGroupLabel(
+                    context, ref, '视频数据源', Icons.movie_outlined),
+                _buildServerInfoTile(context, ref),
+              ],
             ],
           ),
           // 音乐库设置：群晖 Audio Station 数据源 + 歌手元数据
@@ -1833,13 +1844,13 @@ class SettingsView extends ConsumerWidget {
       // 媒体库
       _SettingEntry(
         title: '视频流使用',
-        section: '媒体库',
+        section: '视频库',
         keywords: '视频流 媒体库 feed library',
         onTap: (ctx) => LibrarySelector.show(ctx, scope: LibraryScope.feed),
       ),
       _SettingEntry(
         title: '排除已观看',
-        section: '媒体库',
+        section: '视频库',
         keywords: '视频流 排除 已观看 played',
         onTap: (ctx) {
           final value = ref.read(feedExcludePlayedProvider);
@@ -1848,7 +1859,7 @@ class SettingsView extends ConsumerWidget {
       ),
       _SettingEntry(
         title: '推荐使用',
-        section: '媒体库',
+        section: '视频库',
         keywords: '推荐 媒体库 recommend library',
         onTap: (ctx) =>
             LibrarySelector.show(ctx, scope: LibraryScope.recommend),
@@ -2059,7 +2070,15 @@ class SettingsView extends ConsumerWidget {
 
   // 显示设置搜索对话框
   void _showSettingsSearch(BuildContext context, WidgetRef ref) {
-    final entries = _buildSearchIndex(context, ref);
+    final isMusicMode =
+        ref.read(serviceModeProvider) == AppServiceMode.music;
+    // 音乐模式：过滤视频相关设置项（视频库/推荐/播放/字幕/统计/视频方向）
+    const videoSections = {'视频库', '推荐', '播放', '字幕', '统计'};
+    final entries = _buildSearchIndex(context, ref)
+        .where((e) =>
+            !isMusicMode ||
+            (!videoSections.contains(e.section) && e.title != '视频方向'))
+        .toList();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
