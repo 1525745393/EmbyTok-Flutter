@@ -462,4 +462,47 @@ void main() {
       expect(container.read(recommendUserRatingMinProvider), 0.0);
     });
   });
+
+  group('FullscreenGestureBackExcludedNotifier', () {
+    late ProviderContainer container;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      container = ProviderContainer();
+      // 触发 _load() 并等待完成，避免 set 后被 _load 覆盖
+      container.read(fullscreenGestureBackExcludedProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('初始状态为 true（默认排除边缘返回手势）', () {
+      final state = container.read(fullscreenGestureBackExcludedProvider);
+      expect(state, isTrue);
+    });
+
+    test('set(false) 关闭后状态更新并持久化', () async {
+      final notifier =
+          container.read(fullscreenGestureBackExcludedProvider.notifier);
+      await notifier.set(false);
+      expect(container.read(fullscreenGestureBackExcludedProvider), isFalse);
+
+      // 新容器重读：验证持久化（下次启动沿用）
+      final reloaded = ProviderContainer();
+      reloaded.read(fullscreenGestureBackExcludedProvider.notifier);
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(reloaded.read(fullscreenGestureBackExcludedProvider), isFalse);
+      reloaded.dispose();
+    });
+
+    test('set(true) 重新开启', () async {
+      final notifier =
+          container.read(fullscreenGestureBackExcludedProvider.notifier);
+      await notifier.set(false);
+      await notifier.set(true);
+      expect(container.read(fullscreenGestureBackExcludedProvider), isTrue);
+    });
+  });
 }

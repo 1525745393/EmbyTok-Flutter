@@ -311,6 +311,13 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
       }
     });
 
+    // 全屏排除边缘返回手势开关变化时，对已打开的全屏页即时生效
+    ref.listen<bool>(fullscreenGestureBackExcludedProvider, (previous, next) {
+      if (next != previous && mounted) {
+        SystemGestureExclusion.setFullscreenExclusion(next);
+      }
+    });
+
     // 主动加载当前选中的字幕（避免 listen 因值未变而不触发）
     // 场景：从 feed 模式进入全屏，selectedSubtitleProvider 已有值
     // 如果为 null，自动匹配默认字幕轨道
@@ -461,7 +468,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             _startHideTimer();
           }
           // 旋转结束：屏幕尺寸已变，按新尺寸重设边缘手势排除区域
-          SystemGestureExclusion.setFullscreenExclusion(true);
+          SystemGestureExclusion.setFullscreenExclusion(
+            ref.read(fullscreenGestureBackExcludedProvider),
+          );
           setState(() {});
         }
       },
@@ -485,7 +494,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     );
     // 排除 Android 边缘返回手势，避免与水平拖动 seek 冲突
     //（旋转后由 didChangeMetrics 重新调用以按新尺寸重算）
-    SystemGestureExclusion.setFullscreenExclusion(true);
+    SystemGestureExclusion.setFullscreenExclusion(
+      ref.read(fullscreenGestureBackExcludedProvider),
+    );
   }
 
   @override

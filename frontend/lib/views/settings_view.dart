@@ -130,6 +130,7 @@ class SettingsView extends ConsumerWidget {
               [
                 _buildAutoPlayTile(context, ref),
                 _buildAutoResumeAfterInterruptionTile(context, ref),
+                _buildFullscreenGestureBackTile(context, ref),
                 _buildPlaybackRateTile(context, ref),
                 _buildGestureControlTile(context, ref),
               ],
@@ -1104,6 +1105,22 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
+  // 播放 - 全屏排除边缘返回手势（Android 手势导航）
+  Widget _buildFullscreenGestureBackTile(
+      BuildContext context, WidgetRef ref) {
+    final exclude = ref.watch(fullscreenGestureBackExcludedProvider);
+    return _SwitchTile(
+      icon: Icons.swipe_outlined,
+      iconColor: Colors.indigo,
+      title: '全屏禁用手势返回',
+      subtitle: '全屏时禁用系统边缘返回手势，避免拖进度误退全屏',
+      value: exclude,
+      onChanged: (value) {
+        ref.read(fullscreenGestureBackExcludedProvider.notifier).set(value);
+      },
+    );
+  }
+
   // 播放 - 默认倍速
   Widget _buildPlaybackRateTile(BuildContext context, WidgetRef ref) {
     final rate = ref.watch(defaultPlaybackRateProvider);
@@ -1974,6 +1991,15 @@ class SettingsView extends ConsumerWidget {
         onTap: (ctx) {
           final value = ref.read(autoResumeAfterInterruptionProvider);
           ref.read(autoResumeAfterInterruptionProvider.notifier).set(!value);
+        },
+      ),
+      _SettingEntry(
+        title: '全屏禁用手势返回',
+        section: '播放',
+        keywords: '播放 手势 全屏 返回 边缘 gesture back swipe',
+        onTap: (ctx) {
+          final value = ref.read(fullscreenGestureBackExcludedProvider);
+          ref.read(fullscreenGestureBackExcludedProvider.notifier).set(!value);
         },
       ),
       _SettingEntry(

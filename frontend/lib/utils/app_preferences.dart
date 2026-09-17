@@ -134,6 +134,7 @@ class AppPreferences {
     this.isMuted = true,
     this.isAutoPlay = false,
     this.autoResumeAfterInterruption = true,
+    this.fullscreenGestureBackExcluded = true,
     this.hiddenLibraryIds = const <String>{},
     this.defaultPlaybackRate = 1.0,
     this.defaultSubtitleLanguage = '',
@@ -167,6 +168,10 @@ class AppPreferences {
   // 焦点恢复自动续播（来电结束后是否自动恢复播放，默认 true）
   // 由 AudioSessionHandler 在中断结束时读取，决定是否调用 controller.play()
   final bool autoResumeAfterInterruption;
+  // 全屏播放时排除 Android 边缘返回手势（默认 true）
+  // true：排除左右边缘返回手势，避免水平拖动 seek 被系统返回抢占
+  // false：保留系统边缘返回手势（全屏可用边缘滑动退出）
+  final bool fullscreenGestureBackExcluded;
   final Set<String> hiddenLibraryIds;
   final double defaultPlaybackRate;
   final String defaultSubtitleLanguage;
@@ -219,6 +224,7 @@ class AppPreferences {
     bool? isMuted,
     bool? isAutoPlay,
     bool? autoResumeAfterInterruption,
+    bool? fullscreenGestureBackExcluded,
     Set<String>? hiddenLibraryIds,
     double? defaultPlaybackRate,
     String? defaultSubtitleLanguage,
@@ -246,6 +252,8 @@ class AppPreferences {
       isAutoPlay: isAutoPlay ?? this.isAutoPlay,
       autoResumeAfterInterruption:
           autoResumeAfterInterruption ?? this.autoResumeAfterInterruption,
+      fullscreenGestureBackExcluded:
+          fullscreenGestureBackExcluded ?? this.fullscreenGestureBackExcluded,
       hiddenLibraryIds: hiddenLibraryIds ?? this.hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate ?? this.defaultPlaybackRate,
       defaultSubtitleLanguage:
@@ -307,6 +315,9 @@ class AppPreferencesService {
     // 焦点恢复自动续播（默认 true）
     final autoResumeAfterInterruption =
         prefs.getBool(kStorageKeyAutoResumeAfterInterruption) ?? true;
+    // 全屏排除边缘返回手势（默认 true）
+    final fullscreenGestureBackExcluded =
+        prefs.getBool(kStorageKeyFullscreenGestureBackExcluded) ?? true;
 
     // 隐藏媒体库 ID 列表以 JSON 数组字符串存储
     final rawHiddenIds = prefs.getString(kStorageKeyHiddenLibraryIds);
@@ -381,6 +392,7 @@ class AppPreferencesService {
       isMuted: isMuted,
       isAutoPlay: isAutoPlay,
       autoResumeAfterInterruption: autoResumeAfterInterruption,
+      fullscreenGestureBackExcluded: fullscreenGestureBackExcluded,
       hiddenLibraryIds: hiddenLibraryIds,
       defaultPlaybackRate: defaultPlaybackRate,
       defaultSubtitleLanguage: defaultSubtitleLanguage,
@@ -417,6 +429,8 @@ class AppPreferencesService {
       prefs.setBool(kStorageKeyIsAutoPlay, preferences.isAutoPlay),
       prefs.setBool(kStorageKeyAutoResumeAfterInterruption,
           preferences.autoResumeAfterInterruption),
+      prefs.setBool(kStorageKeyFullscreenGestureBackExcluded,
+          preferences.fullscreenGestureBackExcluded),
       prefs.setString(kStorageKeyHiddenLibraryIds,
           json.encode(preferences.hiddenLibraryIds.toList(growable: false))),
       prefs.setDouble(
@@ -478,6 +492,7 @@ class AppPreferencesService {
       kStorageKeyIsMuted,
       kStorageKeyIsAutoPlay,
       kStorageKeyAutoResumeAfterInterruption,
+      kStorageKeyFullscreenGestureBackExcluded,
       kStorageKeyHiddenLibraryIds,
       kStorageKeyDefaultPlaybackRate,
       kStorageKeyDefaultSubtitleLanguage,

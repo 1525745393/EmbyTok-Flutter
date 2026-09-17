@@ -193,6 +193,38 @@ final autoResumeAfterInterruptionProvider =
   (ref) => AutoResumeAfterInterruptionNotifier(),
 );
 
+// ---------------- 全屏排除边缘返回手势 ----------------
+
+/// 全屏播放时排除 Android 边缘返回手势开关（默认 true）
+///
+/// true：全屏时排除左右边缘返回手势，避免水平拖动 seek 被系统返回抢占；
+/// false：保留系统边缘返回手势（全屏可用边缘滑动退出）。
+/// 由 [FullscreenVideoPage] 进入/退出全屏时读取，切换后对已打开的全屏页即时生效。
+class FullscreenGestureBackExcludedNotifier extends StateNotifier<bool> {
+  FullscreenGestureBackExcludedNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.fullscreenGestureBackExcluded;
+  }
+
+  Future<void> set(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService().save(
+      current.copyWith(fullscreenGestureBackExcluded: value),
+    );
+  }
+}
+
+/// 顶层全屏排除边缘返回手势 Provider
+final fullscreenGestureBackExcludedProvider =
+    StateNotifierProvider<FullscreenGestureBackExcludedNotifier, bool>(
+  (ref) => FullscreenGestureBackExcludedNotifier(),
+);
+
 // ---------------- 视频流排除已观看 ----------------
 
 /// 视频流排除已观看开关（默认 false）

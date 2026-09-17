@@ -385,12 +385,14 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
     if (!_isLongPressing) return;
     _isLongPressing = false;
     final c = videoController;
-    if (c == null || !c.value.isInitialized) return;
-    try {
-      c.setPlaybackSpeed(originalRate);
-    } catch (e) {
-      AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
+    if (c != null && c.value.isInitialized) {
+      try {
+        c.setPlaybackSpeed(originalRate);
+      } catch (e) {
+        AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
+      }
     }
+    // 无条件隐藏倍速徽标：controller 不可用时也不残留
     showSpeedBadgeNotifier.value = false;
   }
 

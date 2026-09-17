@@ -41,6 +41,9 @@ const String kStorageKeyAllowSelfSignedCertificate =
 // 焦点恢复自动续播（来电结束后是否自动恢复播放，默认 true）
 const String kStorageKeyAutoResumeAfterInterruption =
     'embytok_auto_resume_after_interruption';
+// 全屏播放时排除 Android 边缘返回手势（默认 true）
+const String kStorageKeyFullscreenGestureBackExcluded =
+    'embytok_fullscreen_gesture_back_excluded';
 const String kStorageKeyHiddenLibraryIds = 'embytok_hidden_library_ids';
 const String kStorageKeyDefaultPlaybackRate = 'embytok_default_playback_rate';
 const String kStorageKeyDefaultSubtitleLanguage =
