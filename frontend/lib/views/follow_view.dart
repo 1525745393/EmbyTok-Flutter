@@ -177,8 +177,11 @@ class _FollowViewState extends ConsumerState<FollowView> {
       );
     }
 
-    // 数据已加载但追剧源为空 → 引导关注演员 / 收藏剧集
+    // 数据已加载但当前视图为空：
+    // 1) 分段过滤导致当前段为空（全量仍有内容）→ 提示并提供「查看全部」恢复入口
+    // 2) 全量追剧源为空 → 引导关注演员 / 收藏剧集
     if (items.isEmpty) {
+      final hasFullContent = actorItems.isNotEmpty || seriesItems.isNotEmpty;
       return LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -188,11 +191,16 @@ class _FollowViewState extends ConsumerState<FollowView> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.person_search_outlined,
-                      size: 48, color: scheme.onSurfaceVariant),
+                  Icon(
+                    hasFullContent
+                        ? Icons.filter_alt_off_outlined
+                        : Icons.person_search_outlined,
+                    size: 48,
+                    color: scheme.onSurfaceVariant,
+                  ),
                   const SizedBox(height: 12),
                   Text(
-                    '关注后这里会展示最新内容',
+                    hasFullContent ? '当前分类暂无内容' : '关注后这里会展示最新内容',
                     style: TextStyle(
                         color: scheme.onSurfaceVariant, fontSize: 15),
                   ),
@@ -200,19 +208,28 @@ class _FollowViewState extends ConsumerState<FollowView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
-                      '收藏演员可看他们的最新作品；收藏剧集会跟踪未看新集',
+                      hasFullContent
+                          ? '切换分类后，其他分类的内容仍可浏览'
+                          : '收藏演员可看他们的最新作品；收藏剧集会跟踪未看新集',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: scheme.onSurfaceVariant, fontSize: 13),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        ref.read(recommendProvider.notifier).refresh(),
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('刷新'),
-                  ),
+                  if (hasFullContent)
+                    OutlinedButton.icon(
+                      onPressed: () => setState(() => _kindFilter = null),
+                      icon: const Icon(Icons.apps, size: 18),
+                      label: const Text('查看全部'),
+                    )
+                  else
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(recommendProvider.notifier).refresh(),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('刷新'),
+                    ),
                 ],
               ),
             ),

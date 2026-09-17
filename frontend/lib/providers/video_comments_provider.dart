@@ -44,6 +44,9 @@ class VideoCommentsNotifier
   static const String _prefsKey = 'video_local_comments_v1';
   bool _loaded = false;
 
+  /// 写串行化锁：add/remove 并发时按调用顺序落盘，避免后写覆盖先写
+  Future<void> _writeChain = Future.value();
+
   /// 从本地存储恢复（幂等，仅首次生效）
   Future<void> load() async {
     if (_loaded) return;
@@ -102,12 +105,19 @@ class VideoCommentsNotifier
     await _persist();
   }
 
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = state.map(
-      (k, v) => MapEntry(k, v.map((c) => c.toJson()).toList()),
-    );
-    await prefs.setString(_prefsKey, jsonEncode(map));
+  Future<void> _persist() {
+    // 排队写入：每次都在上一次写完成后执行，读最新 state（getter），
+    // 天然保证最终落盘值为最后一次操作后的完整状态
+    final next = _writeChain.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final map = state.map(
+        (k, v) => MapEntry(k, v.map((c) => c.toJson()).toList()),
+      );
+      await prefs.setString(_prefsKey, jsonEncode(map));
+    });
+    // 单个写入失败不破坏后续链
+    _writeChain = next.catchError((_) {});
+    return next;
   }
 }
 

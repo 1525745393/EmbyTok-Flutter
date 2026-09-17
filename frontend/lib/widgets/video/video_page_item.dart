@@ -1447,9 +1447,13 @@ class _RightActionButtons extends ConsumerWidget {
               ],
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
+          // 小屏防溢出：reverse:true 保持操作栏贴底，内容超出时从顶部滚动
+          // （新增分享/评论按钮后元素较多，低矮屏必须可滚动而非 RenderFlex 溢出）
+          child: SingleChildScrollView(
+            reverse: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // 顶部全屏按钮（竖屏/横屏视频均显示，统一入口避免底部居中按钮遮挡画面）
               PressableActionButton(
                 icon: Icons.fullscreen,
@@ -1515,7 +1519,8 @@ class _RightActionButtons extends ConsumerWidget {
                 posterUrl: posterUrl,
                 httpHeaders: posterHeaders,
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

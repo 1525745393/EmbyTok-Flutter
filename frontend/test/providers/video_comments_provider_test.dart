@@ -102,6 +102,42 @@ void main() {
       expect(restored['item-1']?.single.text, '持久化评论');
     });
 
+    test('并发 add/remove 串行落盘：最终状态完整（写串行化）', () async {
+      SharedPreferences.setMockInitialValues({});
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(videoCommentsProvider.notifier);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // 不 await 地并发发起：add A、add B、remove A
+      final f1 = notifier.addComment('item-1', 'A');
+      final f2 = notifier.addComment('item-1', 'B');
+      // 等前两个 add 的 state 变更生效后再移除 A（模拟用户并发操作）
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      // 新评论在前：A 在列表末尾，显式移除 A
+      final f3 = notifier.removeComment('item-1',
+          notifier.commentsFor('item-1').last.id);
+      await Future.wait([f1, f2, f3]);
+
+      // 内存状态：A 被移除、B 保留
+      final texts = notifier
+          .commentsFor('item-1')
+          .map((c) => c.text)
+          .toList();
+      expect(texts, ['B']);
+
+      // 重建容器：持久化结果与内存一致（未被后写覆盖丢数据）
+      container.dispose();
+      final container2 = ProviderContainer();
+      addTearDown(container2.dispose);
+      container2.read(videoCommentsProvider);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final restored = container2.read(videoCommentsProvider);
+      final restoredTexts =
+          (restored['item-1'] ?? const []).map((c) => c.text).toList();
+      expect(restoredTexts, ['B']);
+    });
+
     test('损坏的持久化数据兜底为空表', () async {
       SharedPreferences.setMockInitialValues(
           {'video_local_comments_v1': '[broken'});
