@@ -1,3 +1,10 @@
+## [2.136.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.0...v2.136.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **settings:** 媒体库 chip 快捷移除/撤销立即持久化 ([2d6d94a](https://github.com/1525745393/EmbyTok-Flutter/commit/2d6d94aaacb1e3e005a6cac5a417a623b2b3c17c))
+
 # [2.136.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.135.0...v2.136.0) (2026-09-17)
 
 
