@@ -1,3 +1,10 @@
+## [2.131.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.131.0...v2.131.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* **video:** 修复代码审查三项问题 ([4f0b248](https://github.com/1525745393/EmbyTok-Flutter/commit/4f0b248806d9c5f93821601c24dde46f68434509))
+
 # [2.131.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.130.0...v2.131.0) (2026-09-17)
 
 
