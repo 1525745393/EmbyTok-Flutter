@@ -151,7 +151,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   Future<void> _syncFavoritesFromNasOnStartup() async {
     try {
       // 等待一小段时间，确保 APP 初始化完成
-      await Future.delayed(const Duration(seconds: 2));
+      await Future<void>.delayed(const Duration(seconds: 2));
 
       final synoLoggedIn = ref.read(
         synologyAuthProvider.select((s) => s.isLoggedIn),
@@ -168,6 +168,17 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       AppLogger.info('从 NAS 同步歌手收藏完成');
     } catch (e) {
       AppLogger.warn('从 NAS 同步歌手收藏失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 独立页面返回处理：优先 pop 保留浏览历史（走 GoRouter API，
+  /// 与路由状态同步），无上级路由时回退到首页。
+  static void _popOrGoHome(BuildContext context, bool didPop) {
+    if (didPop) return;
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      GoRouter.of(context).go('/');
     }
   }
 
@@ -201,12 +212,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            // 尝试 pop 保留浏览历史，失败则回到首页
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              GoRouter.of(context).go('/');
-            }
+            // 尝试 pop 保留浏览历史（走 GoRouter API 与路由状态同步），失败则回到首页
+            _popOrGoHome(context, didPop);
           },
           child: const SearchView(),
         ),
@@ -218,11 +225,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              GoRouter.of(context).go('/');
-            }
+            _popOrGoHome(context, didPop);
           },
           child: const FavoritesView(),
         ),
@@ -248,11 +251,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              GoRouter.of(context).go('/');
-            }
+            _popOrGoHome(context, didPop);
           },
           child: const HistoryView(),
         ),
@@ -264,11 +263,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              GoRouter.of(context).go('/');
-            }
+            _popOrGoHome(context, didPop);
           },
           child: const ActorsView(),
         ),
@@ -346,11 +341,7 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) return;
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              GoRouter.of(context).go('/');
-            }
+            _popOrGoHome(context, didPop);
           },
           child: const SettingsView(),
         ),

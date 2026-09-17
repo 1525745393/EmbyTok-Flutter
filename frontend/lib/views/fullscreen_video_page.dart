@@ -24,6 +24,7 @@ import '../providers/providers.dart';
 import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../utils/safe_insets.dart';
+import '../utils/system_gesture_exclusion.dart';
 import '../widgets/video/subtitle_renderer.dart';
 import '../widgets/video/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
@@ -459,6 +460,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
           if (_controlsVisible && !_isScreenLocked && !_showSettingsPanel) {
             _startHideTimer();
           }
+          // 旋转结束：屏幕尺寸已变，按新尺寸重设边缘手势排除区域
+          SystemGestureExclusion.setFullscreenExclusion(true);
           setState(() {});
         }
       },
@@ -480,6 +483,9 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         systemNavigationBarDividerColor: Colors.transparent,
       ),
     );
+    // 排除 Android 边缘返回手势，避免与水平拖动 seek 冲突
+    //（旋转后由 didChangeMetrics 重新调用以按新尺寸重算）
+    SystemGestureExclusion.setFullscreenExclusion(true);
   }
 
   @override
@@ -675,6 +681,8 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     // 退出全屏：恢复为沉浸式模式（FeedView 也是沉浸式的）
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // 清除边缘手势排除，恢复系统边缘返回手势
+    SystemGestureExclusion.setFullscreenExclusion(false);
     ref.read(isFullscreenProvider.notifier).state = false;
 
     super.dispose();
