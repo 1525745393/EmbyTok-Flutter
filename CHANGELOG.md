@@ -1,3 +1,10 @@
+# [2.131.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.130.0...v2.131.0) (2026-09-17)
+
+
+### Features
+
+* **follow:** 关注流深化 —— 订阅源动态聚合（收藏剧集更新） ([0fd8cd2](https://github.com/1525745393/EmbyTok-Flutter/commit/0fd8cd2bfb630c6f2407bb26325e83b77ec032b9))
+
 # [2.130.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.129.0...v2.130.0) (2026-09-17)
 
 
