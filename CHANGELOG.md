@@ -1,3 +1,10 @@
+# [2.129.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.5...v2.129.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 全屏禁用手势返回开关 + 长按徽标清理对称性修复 ([6ced7a4](https://github.com/1525745393/EmbyTok-Flutter/commit/6ced7a41a4a8a541715f8e33e461e29b7d5f0434))
+
 ## [2.128.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.4...v2.128.5) (2026-09-17)
 
 
