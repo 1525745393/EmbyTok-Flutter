@@ -11,11 +11,13 @@ import '../../utils/safe_unawaited.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../providers/video_comments_provider.dart';
 import '../../services/embytok_service.dart';
 import '../../utils/logger.dart';
 import '../../utils/fullscreen_navigator.dart';
@@ -26,6 +28,7 @@ import 'video_player_widget.dart';
 
 // 拆分出的子组件
 import 'video_action_button.dart';
+import 'video_comments_sheet.dart';
 import 'video_control_buttons.dart';
 import 'video_progress_bars.dart';
 import 'video_sheet_utils.dart' as sheet_utils;
@@ -788,6 +791,28 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     }
   }
 
+  // ===== 分享 =====
+  Future<void> _shareItem() async {
+    final item = widget.item;
+    final url = item.playbackUrl;
+    final String text;
+    if (url != null && url.isNotEmpty) {
+      text = '${item.title}\n$url\n（来自 EmbyTok）';
+    } else {
+      text = '${item.title}\n（来自 EmbyTok）';
+    }
+    try {
+      await Share.share(text, subject: item.title);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('分享失败: $e'), duration: _kSnackBarDuration),
+        );
+      }
+    }
+  }
+
   // ===== 删除确认 =====
   Future<void> _showDeleteConfirmDialog() async {
     final confirmed =
@@ -1101,6 +1126,9 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
               sheet_utils.showVideoInfoSheet(context, widget.item);
             },
             onDeleteTap: _showDeleteConfirmDialog,
+            onShareTap: _shareItem,
+            onCommentTap: () =>
+                showVideoCommentsSheet(context, widget.item.id),
             onSpeedTap: () =>
                 sheet_utils.showSpeedControlPanel(context, _videoController),
             onSubtitleTap: () => sheet_utils.showSubtitleSelector(
@@ -1357,6 +1385,8 @@ class _RightActionButtons extends ConsumerWidget {
     required this.onToggleFullscreen,
     required this.onInfoTap,
     required this.onDeleteTap,
+    required this.onShareTap,
+    required this.onCommentTap,
     this.onSpeedTap,
     this.onSubtitleTap,
   });
@@ -1370,6 +1400,8 @@ class _RightActionButtons extends ConsumerWidget {
   final VoidCallback onToggleFullscreen;
   final VoidCallback onInfoTap;
   final VoidCallback onDeleteTap;
+  final VoidCallback onShareTap;
+  final VoidCallback onCommentTap;
   final VoidCallback? onSpeedTap;
   final VoidCallback? onSubtitleTap;
 
@@ -1381,6 +1413,10 @@ class _RightActionButtons extends ConsumerWidget {
     // 用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化触发重建
     final favorited = ref.watch(
       favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
+    );
+    // 本地评论数（select 精确监听当前 item，避免其他 item 评论变化触发重建）
+    final commentCount = ref.watch(
+      videoCommentsProvider.select((s) => s[item.id]?.length ?? 0),
     );
 
     return Positioned(
@@ -1432,6 +1468,21 @@ class _RightActionButtons extends ConsumerWidget {
                 color: favorited ? scheme.primary : scheme.onSurface,
                 onTap: () =>
                     ref.read(favoritesProvider.notifier).toggleFavorite(item),
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              PressableActionButton(
+                icon: Icons.share_outlined,
+                label: '分享',
+                color: scheme.onSurface,
+                onTap: onShareTap,
+              ),
+              SizedBox(height: rs(16, 1.5)),
+              PressableActionButton(
+                icon: Icons.chat_bubble_outline,
+                label: '评论',
+                color: scheme.onSurface,
+                badgeCount: commentCount,
+                onTap: onCommentTap,
               ),
               SizedBox(height: rs(16, 1.5)),
               PressableActionButton(

@@ -49,6 +49,7 @@ import '../utils/safe_unawaited.dart';
 import 'favorites_provider.dart';
 import 'library_provider.dart';
 import 'recommend_signals.dart';
+import 'disliked_items_provider.dart';
 
 /// 推荐状态
 class RecommendState {
@@ -219,6 +220,7 @@ class _LoadContext {
     required this.minRuntimeTicks,
     required this.signal,
     required this.favoriteIds,
+    required this.dislikedIds,
     required this.antiFatigueEnabled,
     required this.recentlyShownIds,
     required this.userRatingEnabled,
@@ -236,6 +238,7 @@ class _LoadContext {
   final int minRuntimeTicks;
   final UserBehaviorSignal signal;
   final Set<String> favoriteIds;
+  final Set<String> dislikedIds;
   final bool antiFatigueEnabled;
   final Set<String> recentlyShownIds;
   final bool userRatingEnabled;
@@ -337,6 +340,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
     final userRatingMin = _ref.read(recommendUserRatingMinProvider);
     final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
+    // 用户显式"不感兴趣"集合（本地持久化）
+    final dislikedIds = _ref.read(dislikedItemsProvider);
     // 追剧队列数量平衡
     final nextUpSeriesCount = _ref.read(recommendNextUpSeriesCountProvider);
     final favActorNewCount = _ref.read(recommendFavActorNewCountProvider);
@@ -365,6 +370,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       minRuntimeTicks: minRuntimeTicks,
       signal: signal,
       favoriteIds: favoriteIds,
+      dislikedIds: dislikedIds,
       antiFatigueEnabled: antiFatigueEnabled,
       recentlyShownIds: recentlyShownIds,
       userRatingEnabled: userRatingEnabled,
@@ -654,6 +660,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           item,
           signal: ctx.signal,
           favoriteIds: ctx.favoriteIds,
+          dislikedIds: ctx.dislikedIds,
           antiFatigueEnabled: ctx.antiFatigueEnabled,
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
@@ -753,6 +760,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           item,
           signal: ctx.signal,
           favoriteIds: ctx.favoriteIds,
+          dislikedIds: ctx.dislikedIds,
           antiFatigueEnabled: ctx.antiFatigueEnabled,
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
@@ -791,6 +799,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           item,
           signal: ctx.signal,
           favoriteIds: ctx.favoriteIds,
+          dislikedIds: ctx.dislikedIds,
           antiFatigueEnabled: ctx.antiFatigueEnabled,
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
@@ -869,6 +878,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             item,
             signal: ctx.signal,
             favoriteIds: ctx.favoriteIds,
+            dislikedIds: ctx.dislikedIds,
             antiFatigueEnabled: ctx.antiFatigueEnabled,
             recentlyShownIds: ctx.recentlyShownIds,
             userRatingEnabled: ctx.userRatingEnabled,
@@ -912,6 +922,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           item,
           signal: ctx.signal,
           favoriteIds: ctx.favoriteIds,
+          dislikedIds: ctx.dislikedIds,
           antiFatigueEnabled: ctx.antiFatigueEnabled,
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
@@ -955,6 +966,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           item,
           signal: ctx.signal,
           favoriteIds: ctx.favoriteIds,
+          dislikedIds: ctx.dislikedIds,
           antiFatigueEnabled: ctx.antiFatigueEnabled,
           recentlyShownIds: ctx.recentlyShownIds,
           userRatingEnabled: ctx.userRatingEnabled,
@@ -1056,6 +1068,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
             item,
             signal: ctx.signal,
             favoriteIds: ctx.favoriteIds,
+            dislikedIds: ctx.dislikedIds,
             antiFatigueEnabled: ctx.antiFatigueEnabled,
             recentlyShownIds: ctx.recentlyShownIds,
             userRatingEnabled: ctx.userRatingEnabled,
@@ -1110,6 +1123,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                     item,
                     signal: ctx.signal,
                     favoriteIds: ctx.favoriteIds,
+                    dislikedIds: ctx.dislikedIds,
                     antiFatigueEnabled: ctx.antiFatigueEnabled,
                     recentlyShownIds: ctx.recentlyShownIds,
                     userRatingEnabled: ctx.userRatingEnabled,
@@ -1165,6 +1179,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                     item,
                     signal: ctx.signal,
                     favoriteIds: ctx.favoriteIds,
+                    dislikedIds: ctx.dislikedIds,
                     antiFatigueEnabled: ctx.antiFatigueEnabled,
                     recentlyShownIds: ctx.recentlyShownIds,
                     userRatingEnabled: ctx.userRatingEnabled,
@@ -1303,6 +1318,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     MediaItem item, {
     required UserBehaviorSignal signal,
     required Set<String> favoriteIds,
+    required Set<String> dislikedIds,
     required bool antiFatigueEnabled,
     required Set<String> recentlyShownIds,
     required bool userRatingEnabled,
@@ -1310,6 +1326,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   }) {
     final isBlacklisted =
         signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
+    final isDisliked = dislikedIds.contains(item.id) &&
+        !favoriteIds.contains(item.id);
     final isRecentlyShown = antiFatigueEnabled &&
         recentlyShownIds.contains(item.id) &&
         !favoriteIds.contains(item.id);
@@ -1322,7 +1340,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       return ur < userRatingMin;
     }
 
-    return isBlacklisted || isRecentlyShown || isUserRatingLow();
+    return isBlacklisted ||
+        isDisliked ||
+        isRecentlyShown ||
+        isUserRatingLow();
   }
 
   /// 刷新（用户下拉刷新时调用）

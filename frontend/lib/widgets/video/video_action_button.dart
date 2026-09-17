@@ -13,11 +13,15 @@ class PressableActionButton extends StatefulWidget {
     required this.label,
     required this.color,
     this.onTap,
+    this.badgeCount,
   });
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback? onTap;
+
+  /// 可选角标数字（>0 时在图标右上角显示，如评论数）
+  final int? badgeCount;
 
   @override
   State<PressableActionButton> createState() => _PressableActionButtonState();
@@ -115,10 +119,43 @@ class _PressableActionButtonState extends State<PressableActionButton> {
                     )
                   : Border.all(color: Colors.transparent, width: 2),
             ),
-            child: Icon(
-              widget.icon,
-              color: widget.color,
-              size: rs(26),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  widget.icon,
+                  color: widget.color,
+                  size: rs(26),
+                ),
+                if (widget.badgeCount != null && widget.badgeCount! > 0)
+                  Positioned(
+                    right: -6,
+                    top: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 15),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.badgeCount! > 99
+                            ? '99+'
+                            : '${widget.badgeCount}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 9,
+                          height: 1.2,
+                          color: Theme.of(context).colorScheme.onError,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

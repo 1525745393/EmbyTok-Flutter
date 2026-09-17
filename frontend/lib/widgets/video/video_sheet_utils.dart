@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
+import '../../providers/disliked_items_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
 import '../person_avatar_image.dart';
@@ -252,6 +253,8 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                         color: scheme.onSurface,
                         fontSize: 22,
                         fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                _InfoActionRow(item: item),
                 const SizedBox(height: 8),
                 _VideoInfoSubtitle(
                   type: type,
@@ -531,6 +534,74 @@ class _PersonChipList extends ConsumerWidget {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ===== 信息面板操作行：不感兴趣 =====
+/// 用户显式负反馈入口（抖音"不感兴趣"的等价物）
+///
+/// - 标记后写入 dislikedItemsProvider（本地持久化），并立即从当前 feed 列表移除
+/// - 推荐过滤（_shouldSkipItem）在下次加载时生效，收藏项豁免
+/// - 已标记状态下可点击撤销，恢复推荐
+class _InfoActionRow extends ConsumerWidget {
+  const _InfoActionRow({required this.item});
+
+  final MediaItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final disliked = ref.watch(
+      dislikedItemsProvider.select((s) => s.contains(item.id)),
+    );
+
+    Future<void> onToggle() async {
+      final notifier = ref.read(dislikedItemsProvider.notifier);
+      final messenger = ScaffoldMessenger.of(context);
+      if (disliked) {
+        await notifier.removeDislike(item.id);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('已恢复推荐'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        await notifier.dislike(item.id);
+        // 立即从当前 feed 列表移除，避免用户反向滑回已标记的视频
+        ref.read(videoListProvider.notifier).removeItem(item.id);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('已减少此类推荐'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: onToggle,
+        icon: Icon(
+          disliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined,
+          size: 16,
+          color: disliked ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+        label: Text(
+          disliked ? '已不感兴趣（点击恢复）' : '不感兴趣',
+          style: TextStyle(
+            fontSize: 12,
+            color: disliked ? scheme.primary : scheme.onSurfaceVariant,
+          ),
+        ),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
     );
   }
 }

@@ -24,6 +24,7 @@ import 'package:embytok_flutter/models/models.dart';
 import 'package:embytok_flutter/providers/app_preferences_providers.dart';
 import 'package:embytok_flutter/providers/auth_provider.dart';
 import 'package:embytok_flutter/providers/cache_providers.dart';
+import 'package:embytok_flutter/providers/disliked_items_provider.dart';
 import 'package:embytok_flutter/providers/embytok_service_provider.dart';
 import 'package:embytok_flutter/providers/favorites_provider.dart';
 import 'package:embytok_flutter/providers/library_provider.dart';
@@ -389,6 +390,7 @@ ProviderContainer _createContainer({
   required _MockMediaRepository repo,
   UserBehaviorSignal? signal,
   Set<String> favoriteIds = const {},
+  Set<String> dislikedIds = const {},
   Set<String> recentlyShownIds = const {},
   bool antiFatigueEnabled = true,
   bool userRatingEnabled = true,
@@ -432,8 +434,19 @@ ProviderContainer _createContainer({
       favoritesProvider.overrideWith(
         (ref) => _FixedFavoritesNotifier(ref, favoriteIds),
       ),
+      // 固定"不感兴趣"集合（用户显式负反馈）
+      dislikedItemsProvider.overrideWith(
+        (ref) => _FixedDislikedNotifier(dislikedIds),
+      ),
     ],
   );
+}
+
+/// 固定"不感兴趣"集合的 DislikedItemsNotifier（跳过 SharedPreferences 恢复）
+class _FixedDislikedNotifier extends DislikedItemsNotifier {
+  _FixedDislikedNotifier(Set<String> ids) {
+    state = ids;
+  }
 }
 
 /// 等待 RecommendNotifier 初始 load() 完成
@@ -624,6 +637,144 @@ void main() {
       // 收藏豁免：黑名单 item 在收藏中时不被过滤
       expect(_hasItem(state, 'blacklisted-fav'), true,
           reason: '黑名单 item 在收藏中时应被豁免');
+    });
+
+    test('用户不感兴趣（disliked）的 item 被过滤', () async {
+      final testItem = _item('disliked-1');
+      final fillerItem = _item('filler-disliked');
+
+      repo = _MockMediaRepository();
+      when(repo.getFavoritePeople(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [_testActorItem], totalCount: 1));
+      when(repo.getItemsByPersonIds(
+        personIds: anyNamed('personIds'),
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => _page([fillerItem]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => [testItem]);
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+        // disliked-1 在"不感兴趣"集合中
+        dislikedIds: {'disliked-1'},
+      );
+
+      final state = await _waitForLoad(container);
+
+      // 不感兴趣 item 被过滤
+      expect(_hasItem(state, 'disliked-1'), false,
+          reason: '用户不感兴趣的 item 应被过滤');
+      // 填充 item 不受影响
+      expect(_hasItem(state, 'filler-disliked'), true,
+          reason: '非不感兴趣 item 不应被过滤');
+    });
+
+    test('不感兴趣 item 在收藏中时不被过滤（收藏豁免）', () async {
+      final testItem = _item('disliked-fav');
+      final fillerItem = _item('filler-disliked-2');
+
+      repo = _MockMediaRepository();
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([fillerItem]));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => [testItem]);
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+        // disliked-fav 在"不感兴趣"集合中，但同时已收藏 → 豁免
+        dislikedIds: {'disliked-fav'},
+        favoriteIds: {'disliked-fav'},
+      );
+
+      final state = await _waitForLoad(container);
+
+      // 收藏豁免：不感兴趣 item 在收藏中时不被过滤
+      expect(_hasItem(state, 'disliked-fav'), true,
+          reason: '不感兴趣 item 在收藏中时应被豁免');
     });
 
     test('recentlyShownIds 中的 item 被过滤（antiFatigueEnabled=true）', () async {
