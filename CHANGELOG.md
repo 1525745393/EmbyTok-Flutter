@@ -1,3 +1,10 @@
+# [2.134.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.133.0...v2.134.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 发现标签 chips 预览 + 媒体库 chip 快捷移除 ([e037b9a](https://github.com/1525745393/EmbyTok-Flutter/commit/e037b9aca18962a435361a784c7b54a89cfbc93e))
+
 # [2.133.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.132.0...v2.133.0) (2026-09-17)
 
 
