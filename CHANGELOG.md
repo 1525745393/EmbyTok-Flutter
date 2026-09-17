@@ -1,3 +1,10 @@
+# [2.133.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.132.0...v2.133.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 媒体库数据源选择可视化 —— chips 预览已选媒体库 ([836fd5d](https://github.com/1525745393/EmbyTok-Flutter/commit/836fd5df3ff0a34f5af05042626df06692ccd939))
+
 # [2.132.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.131.1...v2.132.0) (2026-09-17)
 
 
