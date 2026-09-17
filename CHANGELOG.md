@@ -1,3 +1,10 @@
+## [2.128.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.3...v2.128.4) (2026-09-17)
+
+
+### Bug Fixes
+
+* **gesture:** 系统边缘手势排除 + PopScope 反模式重构 ([4d4871b](https://github.com/1525745393/EmbyTok-Flutter/commit/4d4871ba3d25601cd97ba41810af28ff8b99a85d))
+
 ## [2.128.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.2...v2.128.3) (2026-09-17)
 
 
