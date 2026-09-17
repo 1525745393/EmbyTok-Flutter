@@ -102,12 +102,12 @@ class MainActivity : FlutterActivity() {
         val screenHeight = resources.displayMetrics.heightPixels
         val edge = (40 * density).toInt().coerceAtMost(screenWidth / 4)
         val rects = if (enabled && edge > 0) {
-            arrayOf(
+            listOf(
                 Rect(0, 0, edge, screenHeight),
                 Rect(screenWidth - edge, 0, edge, screenHeight)
             )
         } else {
-            emptyArray()
+            emptyList()
         }
         decorView.setSystemGestureExclusionRects(rects)
     }
