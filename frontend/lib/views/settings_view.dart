@@ -354,19 +354,18 @@ class SettingsView extends ConsumerWidget {
 
   // ==================== 设置项构建 ====================
 
-  // 媒体库 - 视频流使用（PR #66）
+  // 媒体库 - 视频流使用（PR #66）：chips 可视化预览已选数据源
   Widget _buildFeedLibraryTile(BuildContext context, WidgetRef ref) {
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
     final feedType = ref.watch(feedTypeProvider);
-    // 修复：收藏夹模式下显示"收藏夹模式"，否则显示媒体库名称
-    final subtitle = feedType == FeedType.favorites
-        ? '收藏夹模式'
-        : _libraryNamesSubtitle(selectedLibraries);
-    return _TapTile(
+    return _librarySelectionTile(
       icon: Icons.video_library_outlined,
       iconColor: Colors.deepPurple,
       title: _kTitleFeedLibrary,
-      subtitle: subtitle,
+      libraries: selectedLibraries,
+      // 收藏夹模式：视频流数据源为收藏夹（收藏的影片/剧集/合集/演员）
+      favoritesMode: feedType == FeedType.favorites,
+      favoritesLabel: '收藏夹',
       onTap: () => LibrarySelector.show(context, scope: LibraryScope.feed),
     );
   }
@@ -386,26 +385,18 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 媒体库 - 推荐使用（PR #66）
+  // 媒体库 - 推荐使用（PR #66）：chips 可视化预览已选数据源
   Widget _buildRecommendLibraryTile(BuildContext context, WidgetRef ref) {
     final recommendLibraries = ref.watch(recommendLibrariesProvider);
-    final subtitle = _libraryNamesSubtitle(recommendLibraries);
-    return _TapTile(
+    return _librarySelectionTile(
       icon: Icons.recommend_outlined,
       iconColor: Colors.pink,
       title: '推荐使用',
-      subtitle: subtitle,
-      onTap: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
+      libraries: recommendLibraries,
+      favoritesMode: false,
+      onTap: () =>
+          LibrarySelector.show(context, scope: LibraryScope.recommend),
     );
-  }
-
-  // 媒体库选择副标题：显示已选媒体库的名字（最多 3 个）
-  String _libraryNamesSubtitle(List<Library> libraries) {
-    if (libraries.isEmpty) return '未选择';
-    if (libraries.length <= 3) {
-      return libraries.map((l) => l.name).join('、');
-    }
-    return '${libraries.take(3).map((l) => l.name).join('、')} 等 ${libraries.length} 个';
   }
 
   // 媒体库 - 发现标签（首页顶栏「发现」数据源，PRD）
@@ -2152,6 +2143,118 @@ class SettingsView extends ConsumerWidget {
   // ==================== 组件定义 ====================
 
   // 点击型设置项
+  /// 数据源选择 tile：已选媒体库以 chips 可视化预览（全量展示，自动换行）
+  ///
+  /// 相比单一文本副标题，用户无需进入弹窗即可看清当前生效的媒体库集合；
+  /// 收藏夹模式（视频流）以高亮 chip 标识。点击进入 [LibrarySelector] 弹窗。
+  static Widget _librarySelectionTile({
+    required IconData icon,
+    Color? iconColor,
+    required String title,
+    required List<Library> libraries,
+    required bool favoritesMode,
+    String favoritesLabel = '收藏夹',
+    required VoidCallback onTap,
+  }) {
+    return Builder(builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      final chips = <Widget>[
+        if (favoritesMode)
+          _libraryChip(
+            label: favoritesLabel,
+            icon: Icons.star,
+            color: scheme.primary,
+            background: scheme.primaryContainer,
+          ),
+        if (!favoritesMode)
+          for (final lib in libraries)
+            _libraryChip(
+              label: lib.name,
+              icon: _libraryTypeIcon(lib.type),
+              color: scheme.onSurfaceVariant,
+              background: scheme.surfaceContainerHighest,
+            ),
+        if (!favoritesMode && libraries.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              '未选择',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: _kFontSizeBody,
+              ),
+            ),
+          ),
+      ];
+      return ListTile(
+        leading:
+            _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
+        title: Text(
+          title,
+          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: chips,
+          ),
+        ),
+        trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        onTap: onTap,
+      );
+    });
+  }
+
+  /// 媒体库类型图标（Emby Library.type）
+  static IconData _libraryTypeIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'movies':
+      case 'movie':
+        return Icons.movie_outlined;
+      case 'tvshows':
+      case 'tvshow':
+      case 'series':
+        return Icons.live_tv_outlined;
+      case 'music':
+        return Icons.music_note_outlined;
+      default:
+        return Icons.folder_outlined;
+    }
+  }
+
+  /// 数据源 chip 胶囊
+  static Widget _libraryChip({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color background,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   static Widget _TapTile({
     required IconData icon,
     Color? iconColor,
