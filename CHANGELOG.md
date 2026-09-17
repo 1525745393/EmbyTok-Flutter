@@ -1,3 +1,10 @@
+# [2.132.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.131.1...v2.132.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 规则筛选按页面分类 —— 推荐/关注/发现分区 ([342e80a](https://github.com/1525745393/EmbyTok-Flutter/commit/342e80aef54c46d13ee02924f5df441a466f5ac1))
+
 ## [2.131.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.131.0...v2.131.1) (2026-09-17)
 
 
