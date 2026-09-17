@@ -97,6 +97,7 @@ class SettingsView extends ConsumerWidget {
               Icons.rule_outlined,
               Colors.pink,
               [
+                _buildRuleScopeHint(context, ref),
                 _buildServerGroupLabel(
                     context, ref, '推荐页', Icons.recommend_outlined),
                 _buildRecommendLibraryTile(context, ref),
@@ -1521,6 +1522,23 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 服务器 - 数据源分组标签（视频 / 音乐）
+  /// 规则筛选分组顶部引导：说明分组结构与生效时机
+  Widget _buildRuleScopeHint(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+      child: Text(
+        '以下规则按 推荐 / 关注 / 发现 页面分类设置。'
+        '媒体库、标签等数据源修改后实时生效；评分、时长等规则在刷新页面后生效。',
+        style: TextStyle(
+          fontSize: 12,
+          height: 1.4,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   /// 规则筛选 - 关注页共享规则说明
   /// 评分/时长/类型等规则与推荐页共用同一开关（关注内容同样经过过滤），
   /// 避免用户误以为需要到推荐页单独配置。

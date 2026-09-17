@@ -282,9 +282,36 @@ class _LoadContext {
 class RecommendNotifier extends StateNotifier<RecommendState> {
   RecommendNotifier(this._ref) : super(const RecommendState()) {
     _init();
+    _subscribeLibraryChanges();
   }
 
   final Ref _ref;
+
+  // 媒体库变化监听：设置页 chip 增删推荐媒体库后自动刷新（400ms 去抖合并）
+  Timer? _libraryRefreshDebounce;
+
+  void _subscribeLibraryChanges() {
+    _ref.listen<List<String>>(
+      recommendLibraryIdsProvider,
+      (previous, next) {
+        final prevStr = previous?.join(',') ?? '';
+        final nextStr = next.join(',');
+        if (next.isEmpty || nextStr == prevStr) return;
+        // 合并连续变更（如 chip 快速增删），避免触发多次重复加载
+        _libraryRefreshDebounce?.cancel();
+        _libraryRefreshDebounce = Timer(
+          const Duration(milliseconds: 400),
+          () => safeUnawaited(refresh(), context: 'RecommendNotifier.libraryChange'),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _libraryRefreshDebounce?.cancel();
+    super.dispose();
+  }
 
   // 加载互斥锁：防止 load() 和 loadMore() 并发执行导致状态冲突
   bool _isLoading = false;
