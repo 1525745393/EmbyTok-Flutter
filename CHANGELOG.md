@@ -1,3 +1,10 @@
+# [2.136.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.135.0...v2.136.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 规则筛选子分区折叠卡片 ([3736d15](https://github.com/1525745393/EmbyTok-Flutter/commit/3736d1539a0fdf64abeb32407bb313eda75f5e04))
+
 # [2.135.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.134.0...v2.135.0) (2026-09-17)
 
 
