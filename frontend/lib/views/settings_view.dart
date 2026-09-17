@@ -98,32 +98,48 @@ class SettingsView extends ConsumerWidget {
               Colors.pink,
               [
                 _buildRuleScopeHint(context, ref),
-                _buildServerGroupLabel(
-                    context, ref, '推荐页', Icons.recommend_outlined),
-                _buildRecommendLibraryTile(context, ref),
-                _buildRecommendMinRatingTile(context, ref),
-                _buildRecommendExcludePlayedTile(context, ref),
-                _buildRecommendMinRuntimeTile(context, ref),
-                _buildRecommendIncludeTypesTile(context, ref),
-                // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
-                _RecommendAdvancedTile(
-                  advancedTilesBuilder: () => [
-                    _buildRecommendUseWatchHistoryTile(context, ref),
-                    _buildRecommendHalfLifeDaysTile(context, ref),
-                    _buildRecommendAntiFatigueEnabledTile(context, ref),
-                    _buildRecommendAntiFatigueDaysTile(context, ref),
-                    _buildRecommendUserRatingEnabledTile(context, ref),
-                    _buildRecommendUserRatingMinTile(context, ref),
+                // 推荐页（默认展开）
+                _RuleSection(
+                  icon: Icons.recommend_outlined,
+                  title: '推荐页',
+                  initiallyExpanded: true,
+                  childrenBuilder: () => [
+                    _buildRecommendLibraryTile(context, ref),
+                    _buildRecommendMinRatingTile(context, ref),
+                    _buildRecommendExcludePlayedTile(context, ref),
+                    _buildRecommendMinRuntimeTile(context, ref),
+                    _buildRecommendIncludeTypesTile(context, ref),
+                    // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
+                    _RecommendAdvancedTile(
+                      advancedTilesBuilder: () => [
+                        _buildRecommendUseWatchHistoryTile(context, ref),
+                        _buildRecommendHalfLifeDaysTile(context, ref),
+                        _buildRecommendAntiFatigueEnabledTile(context, ref),
+                        _buildRecommendAntiFatigueDaysTile(context, ref),
+                        _buildRecommendUserRatingEnabledTile(context, ref),
+                        _buildRecommendUserRatingMinTile(context, ref),
+                      ],
+                    ),
                   ],
                 ),
-                _buildServerGroupLabel(
-                    context, ref, '关注页', Icons.person_pin_outlined),
-                _buildRecommendNextUpSeriesCountTile(context, ref),
-                _buildRecommendFavActorNewCountTile(context, ref),
-                _buildSharedRuleHint(context, ref),
-                _buildServerGroupLabel(
-                    context, ref, '发现页', Icons.explore_outlined),
-                _buildDiscoverGenresTile(context, ref),
+                // 关注页
+                _RuleSection(
+                  icon: Icons.person_pin_outlined,
+                  title: '关注页',
+                  childrenBuilder: () => [
+                    _buildRecommendNextUpSeriesCountTile(context, ref),
+                    _buildRecommendFavActorNewCountTile(context, ref),
+                    _buildSharedRuleHint(context, ref),
+                  ],
+                ),
+                // 发现页
+                _RuleSection(
+                  icon: Icons.explore_outlined,
+                  title: '发现页',
+                  childrenBuilder: () => [
+                    _buildDiscoverGenresTile(context, ref),
+                  ],
+                ),
               ],
             ),
           // 播放设置（音乐模式隐藏：均为视频播放器设置）
@@ -1522,6 +1538,16 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 服务器 - 数据源分组标签（视频 / 音乐）
+  /// 规则筛选子分区折叠卡片：推荐/关注/发现 各页面设置分区
+  static Widget _ruleSectionDivider(ColorScheme scheme) {
+    return Divider(
+      height: 1,
+      indent: 20,
+      endIndent: 20,
+      color: scheme.outlineVariant.withValues(alpha: 0.4),
+    );
+  }
+
   /// 规则筛选分组顶部引导：说明分组结构与生效时机
   Widget _buildRuleScopeHint(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -4400,6 +4426,70 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
       result.add(tiles[i]);
     }
     return result;
+  }
+}
+
+/// 规则筛选子分区折叠卡片：标题栏 + 可折叠设置项
+///
+/// 折叠时不构建 children（避免折叠状态下触发不必要的 ref.watch），
+/// 展开时通过 childrenBuilder 每次构建，保证 ref.watch 实时生效。
+class _RuleSection extends StatefulWidget {
+  const _RuleSection({
+    required this.icon,
+    required this.title,
+    required this.childrenBuilder,
+    this.initiallyExpanded = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<Widget> Function() childrenBuilder;
+  final bool initiallyExpanded;
+
+  @override
+  State<_RuleSection> createState() => _RuleSectionState();
+}
+
+class _RuleSectionState extends State<_RuleSection> {
+  late bool _expanded = widget.initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 12, 6),
+            child: Row(
+              children: [
+                Icon(widget.icon, size: 16, color: scheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: _kFontSizeSmall,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded) ...widget.childrenBuilder(),
+        SettingsView._ruleSectionDivider(scheme),
+      ],
+    );
   }
 }
 
