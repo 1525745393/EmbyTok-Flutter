@@ -57,8 +57,9 @@ class _FixedSelectedLibraryNotifier extends SelectedLibraryNotifier {
 /// 固定收藏 ID 集合的 FavoritesNotifier
 /// authProvider 初始即已认证，不触发 loadFavorites，state 保持固定值
 class _FixedFavoritesNotifier extends FavoritesNotifier {
-  _FixedFavoritesNotifier(super.ref, Set<String> favIds){
-    state = FavoritesState(favoriteIds: favIds);
+  _FixedFavoritesNotifier(super.ref, Set<String> favIds,
+      {List<MediaItem> movies = const []}) {
+    state = FavoritesState(favoriteIds: favIds, movies: movies);
   }
 }
 
@@ -390,6 +391,7 @@ ProviderContainer _createContainer({
   required _MockMediaRepository repo,
   UserBehaviorSignal? signal,
   Set<String> favoriteIds = const {},
+  List<MediaItem> favoriteMovies = const [],
   Set<String> dislikedIds = const {},
   Set<String> recentlyShownIds = const {},
   bool antiFatigueEnabled = true,
@@ -430,9 +432,10 @@ ProviderContainer _createContainer({
       userBehaviorSignalProvider.overrideWithValue(
         signal ?? UserBehaviorSignal.defaults,
       ),
-      // 固定收藏状态（控制收藏豁免）
+      // 固定收藏状态（控制收藏豁免 / 收藏剧集订阅源）
       favoritesProvider.overrideWith(
-        (ref) => _FixedFavoritesNotifier(ref, favoriteIds),
+        (ref) => _FixedFavoritesNotifier(ref, favoriteIds,
+            movies: favoriteMovies),
       ),
       // 固定"不感兴趣"集合（用户显式负反馈）
       dislikedItemsProvider.overrideWith(
@@ -775,6 +778,170 @@ void main() {
       // 收藏豁免：不感兴趣 item 在收藏中时不被过滤
       expect(_hasItem(state, 'disliked-fav'), true,
           reason: '不感兴趣 item 在收藏中时应被豁免');
+    });
+
+    test('收藏剧集：Series 出现在关注流（seriesUpdate 标记 + 未看新集）', () async {
+      // 收藏列表含 Series
+      final favSeries = _item('fav-series-1', type: 'Series');
+      // Series 的未看新集（Episode）
+      final episode = _item('fav-series-ep-1',
+          type: 'Episode', seriesId: 'fav-series-1');
+
+      repo = _MockMediaRepository();
+      when(repo.getFavoritePeople(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [], totalCount: 0));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      // 收藏剧集 → 拉取未看新集
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([episode]));
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+        favoriteMovies: [favSeries],
+      );
+
+      final state = await _waitForLoad(container);
+      final nextUp = state.taggedItems
+          .where((r) => r.source.key == RecommendSource.nextUp.key)
+          .toList();
+
+      // 收藏剧集的未看新集进入关注流
+      expect(_hasItem(state, 'fav-series-ep-1'), true,
+          reason: '收藏剧集的未看新集应进入关注流');
+      // 且标记为剧集更新（seriesUpdate）
+      final tagged = nextUp
+          .where((r) => r.item.id == 'fav-series-ep-1')
+          .firstOrNull;
+      expect(tagged?.nextUpKind, NextUpKind.seriesUpdate,
+          reason: '收藏剧集更新应标记 seriesUpdate');
+      // 剧集本体（Series）不应进入关注流（非视频类型）
+      expect(_hasItem(state, 'fav-series-1'), false,
+          reason: 'Series 本身不应进入关注流');
+    });
+
+    test('无收藏剧集时不产生剧集更新项', () async {
+      // 收藏影片但无 Series
+      final favMovie = _item('fav-movie-1', type: 'Movie');
+
+      repo = _MockMediaRepository();
+      when(repo.getFavoritePeople(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async =>
+          FavoritesPageResult(items: const [], totalCount: 0));
+      when(repo.getSuggestions(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      when(repo.getResumeItems(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        cancelToken: anyNamed('cancelToken'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getRecommendations(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        offset: anyNamed('offset'),
+        libraryId: anyNamed('libraryId'),
+        userId: anyNamed('userId'),
+        minCommunityRating: anyNamed('minCommunityRating'),
+        excludePlayed: anyNamed('excludePlayed'),
+        includeItemTypes: anyNamed('includeItemTypes'),
+      )).thenAnswer((_) async => _page([]));
+      when(repo.getSimilarItems(
+        any,
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+      )).thenAnswer((_) async => []);
+      when(repo.getWatchHistory(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        userId: anyNamed('userId'),
+      )).thenAnswer((_) async => []);
+      // 不应调用 getNextUp（无收藏剧集）
+      when(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      )).thenAnswer((_) async => _page([]));
+
+      container = _createContainer(
+        repo: repo,
+        signal: UserBehaviorSignal.defaults,
+        favoriteMovies: [favMovie],
+      );
+
+      final state = await _waitForLoad(container);
+      final nextUp = state.taggedItems
+          .where((r) => r.source.key == RecommendSource.nextUp.key)
+          .toList();
+
+      expect(nextUp.where((r) => r.nextUpKind == NextUpKind.seriesUpdate),
+          isEmpty,
+          reason: '无收藏剧集时不应产生剧集更新项');
+      verifyNever(repo.getNextUp(
+        serverUrl: anyNamed('serverUrl'),
+        token: anyNamed('token'),
+        limit: anyNamed('limit'),
+        seriesId: anyNamed('seriesId'),
+      ));
     });
 
     test('recentlyShownIds 中的 item 被过滤（antiFatigueEnabled=true）', () async {

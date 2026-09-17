@@ -32,6 +32,9 @@ class _FollowViewState extends ConsumerState<FollowView> {
   /// 本列表上次观看的视频 id（位置记忆标记）
   String? _lastWatchedId;
 
+  /// 关注流分组过滤：null=全部 / actorWork=演员新作 / seriesUpdate=剧集更新
+  NextUpKind? _kindFilter;
+
   /// 已定位过的列表签名（防止浏览中 rebuild 反复拉回）
   String? _lastScrolledSignature;
 
@@ -52,10 +55,21 @@ class _FollowViewState extends ConsumerState<FollowView> {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(recommendProvider);
 
-    // 仅取追剧源（收藏演员的新作品）
-    final nextUpItems = state.taggedItems
+    // 仅取追剧源（关注内容：收藏演员新作品 + 剧集更新）
+    final allNextUpItems = state.taggedItems
         .where((r) => r.source.key == RecommendSource.nextUp.key)
         .toList(growable: false);
+    final actorItems = allNextUpItems
+        .where((r) => r.nextUpKind == NextUpKind.actorWork)
+        .toList(growable: false);
+    final seriesItems = allNextUpItems
+        .where((r) => r.nextUpKind == NextUpKind.seriesUpdate)
+        .toList(growable: false);
+    final nextUpItems = switch (_kindFilter) {
+      NextUpKind.actorWork => actorItems,
+      NextUpKind.seriesUpdate => seriesItems,
+      null => allNextUpItems,
+    };
 
     // 异步读取「上次看到」标记：每次 build 都重读，从播放页返回
     // （State 存活）时也能拿到最新记忆；结果相同则不 setState，
@@ -72,7 +86,15 @@ class _FollowViewState extends ConsumerState<FollowView> {
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
-        child: _buildBody(context, ref, state, nextUpItems, scheme),
+        child: _buildBody(
+          context,
+          ref,
+          state,
+          nextUpItems,
+          actorItems,
+          seriesItems,
+          scheme,
+        ),
       ),
     );
   }
@@ -138,7 +160,8 @@ class _FollowViewState extends ConsumerState<FollowView> {
 
   Widget _buildBody(
       BuildContext context, WidgetRef ref, RecommendState state,
-      List<RecommendItem> items, ColorScheme scheme) {
+      List<RecommendItem> items, List<RecommendItem> actorItems,
+      List<RecommendItem> seriesItems, ColorScheme scheme) {
     // 全局加载中且暂无数据 → 骨架屏
     if (state.isLoading && state.taggedItems.isEmpty) {
       return const SkeletonGrid();
@@ -154,7 +177,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
       );
     }
 
-    // 数据已加载但追剧源为空 → 引导关注演员
+    // 数据已加载但追剧源为空 → 引导关注演员 / 收藏剧集
     if (items.isEmpty) {
       return LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
@@ -169,7 +192,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
                       size: 48, color: scheme.onSurfaceVariant),
                   const SizedBox(height: 12),
                   Text(
-                    '还没有关注任何演员',
+                    '关注后这里会展示最新内容',
                     style: TextStyle(
                         color: scheme.onSurfaceVariant, fontSize: 15),
                   ),
@@ -177,7 +200,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
-                      '在演员详情页点「关注」后，这里会展示他们的最新作品',
+                      '收藏演员可看他们的最新作品；收藏剧集会跟踪未看新集',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: scheme.onSurfaceVariant, fontSize: 13),
@@ -198,7 +221,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
       );
     }
 
-    // 网格 + 顶部「上次看到」续播横幅
+    // 网格 + 顶部「上次看到」续播横幅 + 分组过滤栏
     final lastWatchedItem = _lastWatchedItemOf(items);
     return Column(
       children: [
@@ -207,6 +230,12 @@ class _FollowViewState extends ConsumerState<FollowView> {
             title: lastWatchedItem.title,
             onTap: () => _playFrom(context, ref, lastWatchedItem, items),
           ),
+        _buildFilterBar(
+          context,
+          actorCount: actorItems.length,
+          seriesCount: seriesItems.length,
+          scheme: scheme,
+        ),
         Expanded(
           child: GridView.builder(
             controller: _gridController,
@@ -221,6 +250,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
             itemCount: items.length,
             itemBuilder: (context, i) => _FollowPosterCard(
               item: items[i].item,
+              nextUpKind: items[i].nextUpKind,
               // 整列表进入播放页，支持抖音式上下滑刷视频
               items: items.map((r) => r.item).toList(growable: false),
               isLastWatched: items[i].item.id == _lastWatchedId,
@@ -228,6 +258,55 @@ class _FollowViewState extends ConsumerState<FollowView> {
           ),
         ),
       ],
+    );
+  }
+
+  /// 顶部分组过滤栏（全部 / 演员新作 / 剧集更新）
+  /// 仅当两类子源都有内容时才显示分段器；单选可再次点击取消回到「全部」。
+  Widget _buildFilterBar(
+    BuildContext context, {
+    required int actorCount,
+    required int seriesCount,
+    required ColorScheme scheme,
+  }) {
+    final total = actorCount + seriesCount;
+    if (actorCount == 0 || seriesCount == 0) {
+      // 只有单一来源：无需分段器
+      return const SizedBox.shrink();
+    }
+    final filters = <({NextUpKind? kind, String label, int count})>[
+      (kind: null, label: '全部', count: total),
+      (kind: NextUpKind.seriesUpdate, label: '剧集更新', count: seriesCount),
+      (kind: NextUpKind.actorWork, label: '演员新作', count: actorCount),
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          for (final f in filters)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text('${f.label} ${f.count}'),
+                labelStyle: TextStyle(
+                  fontSize: 12,
+                  color: _kindFilter == f.kind
+                      ? scheme.onSecondaryContainer
+                      : scheme.onSurfaceVariant,
+                ),
+                selected: _kindFilter == f.kind,
+                visualDensity: VisualDensity.compact,
+                onSelected: (_) {
+                  setState(() {
+                    // 点击已选中的段 = 取消过滤回「全部」
+                    _kindFilter = _kindFilter == f.kind ? null : f.kind;
+                  });
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -259,11 +338,13 @@ class _FollowPosterCard extends ConsumerWidget {
   const _FollowPosterCard({
     required this.item,
     required this.items,
+    this.nextUpKind,
     this.isLastWatched = false,
   });
 
   final MediaItem item;
   final List<MediaItem> items;
+  final NextUpKind? nextUpKind; // 来源标注（演员新作 / 剧集更新）
   final bool isLastWatched; // 是否为上次观看到的视频
 
   @override
@@ -330,6 +411,46 @@ class _FollowPosterCard extends ConsumerWidget {
                       progressPercent: item.progressPercent > 0
                           ? (item.progressPercent * 100).round()
                           : null,
+                    ),
+                  ),
+                // 来源标注角标（演员新作 / 剧集更新）
+                if (nextUpKind != null)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            nextUpKind == NextUpKind.seriesUpdate
+                                ? Icons.live_tv_outlined
+                                : Icons.person_outline,
+                            size: 10,
+                            color: scheme.onPrimary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            nextUpKind == NextUpKind.seriesUpdate
+                                ? '剧集'
+                                : '演员',
+                            style: TextStyle(
+                              fontSize: 9,
+                              height: 1.2,
+                              color: scheme.onPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],

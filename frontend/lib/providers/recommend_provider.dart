@@ -125,10 +125,20 @@ class RecommendState {
 /// PR #80：推荐项 = MediaItem + 数据源标签
 /// - 用于标签分类 UI：UI 可按 source 过滤显示
 class RecommendItem { // 数据源
-  const RecommendItem({required this.item, required this.source});
+  const RecommendItem({
+    required this.item,
+    required this.source,
+    this.nextUpKind,
+  });
   final MediaItem item;
   final RecommendSource source;
+
+  /// 追剧（nextUp）源的子类：演员新作 / 剧集更新（关注页分组与来源标注依据）
+  final NextUpKind? nextUpKind;
 }
+
+/// 追剧源的子类标记
+enum NextUpKind { actorWork, seriesUpdate }
 
 /// PR #80：5 个数据源枚举 + 中文标签
 enum RecommendSource {
@@ -594,6 +604,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       userId: userId,
       watchHistory: watchHistory,
     );
+    // 关注流深化：收藏剧集的更新（主动订阅），同样不参与 hasMore 判定
+    final nextUpByFavSeriesFuture = _fetchNextUpByFavoriteSeries(
+      ctx: ctx,
+      queues: queues,
+      serverUrl: serverUrl,
+      token: token,
+      userId: userId,
+    );
     // 顺序对应 sourceHasMore 索引：
     // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
     // [4]=Native, [5]=Similar, [6]=Recommendations, [7]=Local
@@ -628,6 +646,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
     ]);
     await nextUpByRecentFuture;
+    await nextUpByFavSeriesFuture;
 
     return _mergeRoundRobin(
       queues: queues,
@@ -768,8 +787,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         )) {
           continue;
         }
-        nextUpQueue
-            ?.add(RecommendItem(item: item, source: RecommendSource.nextUp));
+        nextUpQueue?.add(RecommendItem(
+              item: item,
+              source: RecommendSource.nextUp,
+              nextUpKind: NextUpKind.actorWork,
+            ));
       }
       return hasMore;
     } catch (e) {
@@ -886,8 +908,11 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
           )) {
             continue;
           }
-          allNextUp
-              .add(RecommendItem(item: item, source: RecommendSource.nextUp));
+          allNextUp.add(RecommendItem(
+              item: item,
+              source: RecommendSource.nextUp,
+              nextUpKind: NextUpKind.seriesUpdate,
+            ));
         }
       }
       if (allNextUp.isNotEmpty) {
@@ -896,6 +921,92 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       }
     } catch (e) {
       AppLogger.error('推荐：NextUp by series 流程失败', error: e);
+    }
+  }
+
+  // 关注流深化：收藏剧集的更新（主动订阅）
+  // 从收藏列表中筛出 Series（用户主动收藏的剧集），逐个拉取其未看新集，
+  // 并入 NextUp 队列（标记 seriesUpdate），与收藏演员作品共同构成"关注"内容。
+  Future<void> _fetchNextUpByFavoriteSeries({
+    required _LoadContext ctx,
+    required Map<String, List<RecommendItem>> queues,
+    required String serverUrl,
+    required String token,
+    String? userId,
+  }) async {
+    try {
+      // 收藏列表（getFavoriteMovies 默认包含 Series 类型）
+      final favorites = _ref.read(favoritesProvider);
+      final seriesIds = <String>[];
+      final seen = <String>{};
+      for (final m in favorites.movies) {
+        if (m.type != 'Series') continue;
+        final sid = m.id;
+        if (sid.isEmpty || seen.contains(sid)) continue;
+        seen.add(sid);
+        seriesIds.add(sid);
+        if (seriesIds.length >= ctx.favActorNewCount) break;
+      }
+      if (seriesIds.isEmpty) return;
+
+      // 并发限制：最多同时请求 _maxConcurrentRequests 个 series
+      final tasks = seriesIds
+          .map((sid) => () async {
+                try {
+                  final resp = await ctx.repo.getNextUp(
+                    limit: 3,
+                    seriesId: sid,
+                    serverUrl: serverUrl,
+                    token: token,
+                  );
+                  return resp.items;
+                } catch (e) {
+                  AppLogger.error('推荐：收藏 series $sid NextUp 失败',
+                      error: e);
+                  return <MediaItem>[];
+                }
+              })
+          .toList();
+      final nextUpLists = await _runWithConcurrencyLimit(tasks);
+
+      final allNextUp = <RecommendItem>[];
+      for (final list in nextUpLists) {
+        // 同 series 内按季 + 集号排序（老集在前，最新集在后）
+        final sorted = List<MediaItem>.from(list)
+          ..sort((a, b) {
+            final sa = a.parentIndexNumber ?? 0;
+            final sb = b.parentIndexNumber ?? 0;
+            if (sa != sb) return sa.compareTo(sb);
+            return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
+          });
+        for (final item in sorted) {
+          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
+          if (item.isWatched) continue;
+          if (_shouldSkipItem(
+            item,
+            signal: ctx.signal,
+            favoriteIds: ctx.favoriteIds,
+            dislikedIds: ctx.dislikedIds,
+            antiFatigueEnabled: ctx.antiFatigueEnabled,
+            recentlyShownIds: ctx.recentlyShownIds,
+            userRatingEnabled: ctx.userRatingEnabled,
+            userRatingMin: ctx.userRatingMin,
+          )) {
+            continue;
+          }
+          allNextUp.add(RecommendItem(
+            item: item,
+            source: RecommendSource.nextUp,
+            nextUpKind: NextUpKind.seriesUpdate,
+          ));
+        }
+      }
+      if (allNextUp.isNotEmpty) {
+        final nextUpQueue = queues[_sourceNextUp];
+        nextUpQueue?.insertAll(0, allNextUp);
+      }
+    } catch (e) {
+      AppLogger.error('推荐：收藏剧集更新流程失败', error: e);
     }
   }
 
