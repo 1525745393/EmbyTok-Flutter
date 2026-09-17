@@ -367,6 +367,24 @@ class SettingsView extends ConsumerWidget {
       favoritesMode: feedType == FeedType.favorites,
       favoritesLabel: '收藏夹',
       onTap: () => LibrarySelector.show(context, scope: LibraryScope.feed),
+      // 快捷移除单个媒体库 + SnackBar 撤销（防误操作）
+      onChipTap: (libraryId) {
+        final notifier = ref.read(selectedLibraryIdsProvider.notifier);
+        final removedName = selectedLibraries
+            .where((l) => l.id == libraryId)
+            .map((l) => l.name)
+            .firstOrNull;
+        notifier.toggleLibrary(libraryId);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(SnackBar(
+          content: Text('已移除${removedName ?? "媒体库"}'),
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () => notifier.toggleLibrary(libraryId),
+          ),
+        ));
+      },
     );
   }
 
@@ -396,6 +414,23 @@ class SettingsView extends ConsumerWidget {
       favoritesMode: false,
       onTap: () =>
           LibrarySelector.show(context, scope: LibraryScope.recommend),
+      onChipTap: (libraryId) {
+        final notifier = ref.read(recommendLibraryIdsProvider.notifier);
+        final removedName = recommendLibraries
+            .where((l) => l.id == libraryId)
+            .map((l) => l.name)
+            .firstOrNull;
+        notifier.toggleLibrary(libraryId);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(SnackBar(
+          content: Text('已移除${removedName ?? "媒体库"}'),
+          duration: const Duration(seconds: 3),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () => notifier.toggleLibrary(libraryId),
+          ),
+        ));
+      },
     );
   }
 
@@ -406,18 +441,50 @@ class SettingsView extends ConsumerWidget {
         .where((g) => discover.selectedGenreIds.contains(g.id))
         .map((g) => g.name)
         .toList();
-    final subtitle = discover.selectedGenreIds.isEmpty
-        ? '选择 Emby 标签，首页「发现」展示对应影片'
-        : (names.isEmpty
-            ? '已选 ${discover.selectedGenreIds.length} 个标签'
-            : (names.length <= 3
-                ? names.join('、')
-                : '${names.take(3).join('、')} 等 ${names.length} 个'));
-    return _TapTile(
-      icon: Icons.explore_outlined,
-      iconColor: Colors.orange,
-      title: '发现标签',
-      subtitle: subtitle,
+    final scheme = Theme.of(context).colorScheme;
+    final empty = discover.selectedGenreIds.isEmpty || names.isEmpty;
+    return ListTile(
+      leading: _IconContainer(
+          icon: Icons.explore_outlined, color: Colors.orange),
+      title: Text(
+        '发现标签',
+        style:
+            TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: empty
+            ? Text(
+                '选择 Emby 标签，首页「发现」展示对应影片',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant
+                      .withValues(alpha: _kTileSubtitleAlpha),
+                  fontSize: _kFontSizeBody,
+                ),
+              )
+            : Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (names.isEmpty)
+                    _libraryChip(
+                      label: '已选 ${discover.selectedGenreIds.length} 个标签',
+                      icon: Icons.sell_outlined,
+                      color: scheme.onSurfaceVariant,
+                      background: scheme.surfaceContainerHighest,
+                    )
+                  else
+                    for (final name in names)
+                      _libraryChip(
+                        label: name,
+                        icon: Icons.sell_outlined,
+                        color: scheme.onSurfaceVariant,
+                        background: scheme.surfaceContainerHighest,
+                      ),
+                ],
+              ),
+      ),
+      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
       onTap: () => _showDiscoverGenresDialog(context, ref),
     );
   }
@@ -2155,6 +2222,8 @@ class SettingsView extends ConsumerWidget {
     required bool favoritesMode,
     String favoritesLabel = '收藏夹',
     required VoidCallback onTap,
+    /// 媒体库 chip 点击回调（快捷移除单个数据源，如 null 则 chips 只读）
+    ValueChanged<String>? onChipTap,
   }) {
     return Builder(builder: (context) {
       final scheme = Theme.of(context).colorScheme;
@@ -2168,11 +2237,14 @@ class SettingsView extends ConsumerWidget {
           ),
         if (!favoritesMode)
           for (final lib in libraries)
-            _libraryChip(
-              label: lib.name,
-              icon: _libraryTypeIcon(lib.type),
-              color: scheme.onSurfaceVariant,
-              background: scheme.surfaceContainerHighest,
+            _tapChip(
+              onTap: onChipTap == null ? null : () => onChipTap(lib.id),
+              chip: _libraryChip(
+                label: lib.name,
+                icon: _libraryTypeIcon(lib.type),
+                color: scheme.onSurfaceVariant,
+                background: scheme.surfaceContainerHighest,
+              ),
             ),
         if (!favoritesMode && libraries.isEmpty)
           Padding(
@@ -2222,6 +2294,19 @@ class SettingsView extends ConsumerWidget {
       default:
         return Icons.folder_outlined;
     }
+  }
+
+  /// 可点击 chip 包装：提供点击反馈（用于媒体库快捷移除）
+  static Widget _tapChip({
+    required VoidCallback? onTap,
+    required Widget chip,
+  }) {
+    return onTap == null
+        ? chip
+        : GestureDetector(
+            onTap: onTap,
+            child: chip,
+          );
   }
 
   /// 数据源 chip 胶囊
