@@ -1,3 +1,10 @@
+# [2.135.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.134.0...v2.135.0) (2026-09-17)
+
+
+### Features
+
+* **settings:** 数据源修改实时生效 + 规则筛选引导说明 ([bc642b9](https://github.com/1525745393/EmbyTok-Flutter/commit/bc642b9148eb279e3ae3c332d873dc6fd0ea1e57))
+
 # [2.134.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.133.0...v2.134.0) (2026-09-17)
 
 
