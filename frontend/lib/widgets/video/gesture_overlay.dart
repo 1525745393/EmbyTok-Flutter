@@ -190,7 +190,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             onLongPressStart: widget.enableGestures ? onLongPressStart : null,
             onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
             onLongPressCancel: widget.enableGestures
-                ? () => onLongPressEnd(const LongPressEndDetails())
+                ? cancelLongPress
                 : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
             onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,

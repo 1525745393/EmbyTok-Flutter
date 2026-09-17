@@ -269,8 +269,24 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   }
 
   void onPanCancel() {
+    _cancelDrag();
+  }
+
+  /// 拖动被系统抢占/中断时的钩子（子类可清理自身 UI，如全屏亮度反馈）
+  void onDragCancelled() {}
+
+  /// 取消路径统一清理：系统手势抢占（Android 边缘返回手势、通知栏下拉、
+  /// 来电等）会触发 onPanCancel/onHorizontalDragCancel，此时必须像正常
+  /// endDrag 一样清理预览状态，否则进度预览条/音量 UI 会残留卡屏。
+  void _cancelDrag() {
     isDragging = false;
     dragAxis = null;
+    _dragHideTimer?.cancel();
+    previewPositionNotifier.value = Duration.zero;
+    dragStartPosition = Duration.zero;
+    _volumeHideTimer?.cancel();
+    showVolumeUINotifier.value = false;
+    onDragCancelled();
     if (mounted) setState(() {});
   }
 
@@ -309,9 +325,7 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
   }
 
   void onHorizontalDragCancel() {
-    isDragging = false;
-    dragAxis = null;
-    if (mounted) setState(() {});
+    _cancelDrag();
   }
 
   // ==================== 公共方法 ====================
@@ -376,6 +390,24 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
       c.setPlaybackSpeed(originalRate);
     } catch (e) {
       AppLogger.debug('长按倍速结束失败', data: {'error': e.toString()});
+    }
+    showSpeedBadgeNotifier.value = false;
+  }
+
+  /// 长按取消：恢复倍速并清理状态（供 onLongPressCancel 使用）
+  ///
+  /// 必须清空 _isLongPressing，否则取消后标志残留，
+  /// 后续 onLongPressEnd 的幂等保护会拦截正常恢复流程。
+  void cancelLongPress() {
+    if (!_isLongPressing) return;
+    _isLongPressing = false;
+    final c = videoController;
+    if (c != null && c.value.isInitialized) {
+      try {
+        c.setPlaybackSpeed(originalRate);
+      } catch (e) {
+        AppLogger.debug('长按倍速取消恢复失败', data: {'error': e.toString()});
+      }
     }
     showSpeedBadgeNotifier.value = false;
   }

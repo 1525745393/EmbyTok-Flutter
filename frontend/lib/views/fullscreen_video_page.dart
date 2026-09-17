@@ -143,10 +143,17 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     ref.read(playbackRateProvider.notifier).state = originalRate;
   }
 
-  /// 长按取消：仅恢复播放速率，不依赖 LongPressEndDetails 的 velocity/offset
-  /// 避免用空 LongPressEndDetails() 调用 onLongPressEnd 的 hack
+  /// 长按取消：恢复播放速率并清理状态
   void _onLongPressCancel() {
+    cancelLongPress();
     ref.read(playbackRateProvider.notifier).state = originalRate;
+  }
+
+  /// 拖动被系统手势抢占/中断：隐藏亮度反馈 UI（亮度值保持当前已调值）
+  @override
+  void onDragCancelled() {
+    _brightnessHideTimer?.cancel();
+    _showBrightnessUINotifier.value = false;
   }
 
   @override
