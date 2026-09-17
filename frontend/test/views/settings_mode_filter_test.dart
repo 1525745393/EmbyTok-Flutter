@@ -1,7 +1,7 @@
 /// 设置页服务模式分组过滤测试
 ///
 /// 验证「音乐服务模式下隐藏视频相关分组」：
-/// - 音乐模式：不显示 视频库/推荐/播放/字幕/统计 分组与「视频方向」项，
+/// - 音乐模式：不显示 视频库/规则筛选/播放/字幕/统计 分组与「视频方向」项，
 ///   保留 音乐库/服务器/存储/外观（主题）/关于
 /// - 视频模式（默认）：显示 视频库/统计/音乐库 等全部分组
 ///
@@ -55,9 +55,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final found = await collectVisibleSections(
-        tester, ['视频库', '推荐', '播放', '字幕', '统计', '音乐库']);
+        tester, ['视频库', '规则筛选', '播放', '字幕', '统计', '音乐库']);
 
-    for (final section in ['视频库', '推荐', '播放', '字幕', '统计', '音乐库']) {
+    for (final section in ['视频库', '规则筛选', '播放', '字幕', '统计', '音乐库']) {
       expect(found, contains(section), reason: '视频模式应显示「$section」');
     }
   });
@@ -69,12 +69,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final found = await collectVisibleSections(tester, [
-      '视频库', '推荐', '播放', '字幕', '统计', '视频方向',
+      '视频库', '规则筛选', '播放', '字幕', '统计', '视频方向',
       '音乐库', '服务器', '存储', '外观', '主题', '关于',
     ]);
 
     // 视频相关分组隐藏
-    for (final section in ['视频库', '推荐', '播放', '字幕', '统计', '视频方向']) {
+    for (final section in ['视频库', '规则筛选', '播放', '字幕', '统计', '视频方向']) {
       expect(found, isNot(contains(section)),
           reason: '音乐模式不应显示「$section」');
     }

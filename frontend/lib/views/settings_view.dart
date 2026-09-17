@@ -86,20 +86,20 @@ class SettingsView extends ConsumerWidget {
               [
                 _buildFeedLibraryTile(context, ref),
                 _buildFeedExcludePlayedTile(context, ref),
-                _buildRecommendLibraryTile(context, ref),
-                _buildDiscoverGenresTile(context, ref),
               ],
             ),
-          // 推荐设置（PR #78：推荐规则优化；音乐模式隐藏）
-          // 高级选项默认折叠，避免一次性展示 10 项造成视觉负担
+          // 规则筛选（PR：按 推荐/关注/发现 分区，让用户清楚每项规则作用于哪个页面）
           if (!isMusicMode)
             _buildSection(
               context,
               ref,
-              '推荐',
-              Icons.recommend_outlined,
+              '规则筛选',
+              Icons.rule_outlined,
               Colors.pink,
               [
+                _buildServerGroupLabel(
+                    context, ref, '推荐页', Icons.recommend_outlined),
+                _buildRecommendLibraryTile(context, ref),
                 _buildRecommendMinRatingTile(context, ref),
                 _buildRecommendExcludePlayedTile(context, ref),
                 _buildRecommendMinRuntimeTile(context, ref),
@@ -113,10 +113,16 @@ class SettingsView extends ConsumerWidget {
                     _buildRecommendAntiFatigueDaysTile(context, ref),
                     _buildRecommendUserRatingEnabledTile(context, ref),
                     _buildRecommendUserRatingMinTile(context, ref),
-                    _buildRecommendNextUpSeriesCountTile(context, ref),
-                    _buildRecommendFavActorNewCountTile(context, ref),
                   ],
                 ),
+                _buildServerGroupLabel(
+                    context, ref, '关注页', Icons.person_pin_outlined),
+                _buildRecommendNextUpSeriesCountTile(context, ref),
+                _buildRecommendFavActorNewCountTile(context, ref),
+                _buildSharedRuleHint(context, ref),
+                _buildServerGroupLabel(
+                    context, ref, '发现页', Icons.explore_outlined),
+                _buildDiscoverGenresTile(context, ref),
               ],
             ),
           // 播放设置（音乐模式隐藏：均为视频播放器设置）
@@ -1457,6 +1463,25 @@ class SettingsView extends ConsumerWidget {
   }
 
   // 服务器 - 数据源分组标签（视频 / 音乐）
+  /// 规则筛选 - 关注页共享规则说明
+  /// 评分/时长/类型等规则与推荐页共用同一开关（关注内容同样经过过滤），
+  /// 避免用户误以为需要到推荐页单独配置。
+  Widget _buildSharedRuleHint(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+      child: Text(
+        '评分阈值 / 最短时长 / 包含类型 / 排除已观看 等规则与推荐页共用同一开关，'
+        '一个设置同时作用于关注页。',
+        style: TextStyle(
+          fontSize: 12,
+          height: 1.4,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   Widget _buildServerGroupLabel(
     BuildContext context,
     WidgetRef ref,
