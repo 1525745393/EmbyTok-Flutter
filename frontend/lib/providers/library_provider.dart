@@ -131,7 +131,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
     }
   }
 
-  /// 切换单个媒体库的选中状态
+  /// 切换单个媒体库的选中状态（立即持久化，供设置页 chip 快捷移除/撤销）
   void toggleLibrary(String libraryId) {
     if (state.contains(libraryId)) {
       // 取消选中，但至少保留一个
@@ -141,6 +141,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
       // 添加选中
       state = <String>[...state, libraryId];
     }
+    _saveLibraries(state);
   }
 
   /// 手动设置为单个媒体库（用于 chips 单击快捷切换）

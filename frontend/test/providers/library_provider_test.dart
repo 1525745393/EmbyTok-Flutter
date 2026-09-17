@@ -55,6 +55,34 @@ void main() {
           <String>['libA', 'libB', 'libC']);
     });
 
+    test('toggleLibrary 移除/添加应立即持久化（chip 快捷移除防回滚）', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(selectedLibraryIdsProvider.notifier);
+      // 等 _loadSaved() 完成（无库列表时初始为空）
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), isEmpty);
+
+      // 快捷添加 libA（撤销场景：加回）
+      notifier.toggleLibrary('libA');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), <String>['libA']);
+      var prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(kStorageKeySelectedLibraryId), <String>['libA'],
+          reason: '添加后必须落盘，否则重启回滚');
+
+      // 快捷移除 libA（设置页 chip 点击路径）
+      notifier.toggleLibrary('libA');
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(selectedLibraryIdsProvider), isEmpty);
+      prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList(kStorageKeySelectedLibraryId), isNull,
+          reason: '清空选择 = 删除 key（防重启恢复空），等价于落盘空选择');
+    });
+
     test('监听器应等待 _loadSaved 完成后再 fallback（修复 race condition）',
         () async {
       // 模拟磁盘上只存了「libB」（不是第一个库）
@@ -92,12 +120,6 @@ void main() {
       // 隐藏 libB
       await container.read(hiddenLibraryIdsProvider.notifier).toggle('libB');
 
-      // 注入 libraryListProvider 数据
-      final libraries = <Library>[
-        _lib('libA'),
-        _lib('libB'),
-        _lib('libC'),
-      ];
       // 触发 libraryListProvider：直接覆写 internal state
       // 用 invalidate 触发 refresh
       container.invalidate(libraryListProvider);
