@@ -1,3 +1,10 @@
+## [2.128.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.4...v2.128.5) (2026-09-17)
+
+
+### Bug Fixes
+
+* **android:** setSystemGestureExclusionRects 参数类型修正为 List ([5abce67](https://github.com/1525745393/EmbyTok-Flutter/commit/5abce677eb3138c867ed476c14a878affec9617b))
+
 ## [2.128.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.3...v2.128.4) (2026-09-17)
 
 
