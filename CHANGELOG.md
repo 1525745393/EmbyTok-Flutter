@@ -1,3 +1,10 @@
+## [2.128.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.2...v2.128.3) (2026-09-17)
+
+
+### Bug Fixes
+
+* **video:** 手势导航中断清理与长按倍速状态修复 ([6da7465](https://github.com/1525745393/EmbyTok-Flutter/commit/6da7465f0babfb35ad0f26c9c61b85f7e76fda50))
+
 ## [2.128.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.1...v2.128.2) (2026-09-16)
 
 
