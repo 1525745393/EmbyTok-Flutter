@@ -1,3 +1,10 @@
+# [2.130.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.129.0...v2.130.0) (2026-09-17)
+
+
+### Features
+
+* **video:** 抖音化社交能力补齐 —— 分享/评论/不感兴趣 ([5ff7827](https://github.com/1525745393/EmbyTok-Flutter/commit/5ff7827e16f62b6f07e869da2359c29320f9de50))
+
 # [2.129.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.128.5...v2.129.0) (2026-09-17)
 
 
