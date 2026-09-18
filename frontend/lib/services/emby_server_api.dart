@@ -1044,7 +1044,7 @@ class EmbyServerApi implements MediaServerApi {
       'Recursive': 'true',
       'Genres': genre,
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items',

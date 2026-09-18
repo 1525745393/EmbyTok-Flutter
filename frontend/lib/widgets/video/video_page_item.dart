@@ -1600,8 +1600,13 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
       _items.isNotEmpty ? _items.first.id : widget.item.id;
 
   /// 从本地记忆恢复上次播放位置（仅当数据源与列表均匹配时）
+  ///
+  /// 点击目标优先：若本次点击的视频确实在列表中，直接播放点击的视频，
+  /// 不被旧记忆覆盖（否则点 A 却播上次的 N）。记忆恢复仅作为兜底，
+  /// 用于点击目标不在列表中的异常场景。
   Future<void> _restoreFromMemory() async {
     try {
+      if (_items.any((i) => i.id == widget.item.id)) return;
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kPositionMemoryKey);
       if (raw == null || raw.isEmpty) return;
@@ -1629,11 +1634,11 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   }
 
   /// 保存当前播放位置（数据源 + 列表签名 + 索引 + 当前视频 id）
+  ///
+  /// 点击进入即写盘（含 index 0）：用户点击了 A，返回网格时「上次看到」
+  /// 必须定位到 A（与实际播放一致）。旧实现 index 0 不写，会导致点击
+  /// 列表第一个视频后网格仍定位到旧记忆视频，两处不一致。
   Future<void> _savePosition() async {
-    // 未滑动到其它视频（index 0）不写盘：与 _restoreFromMemory 的
-    // savedIdx <= 0 跳过语义保持一致，避免「仅进入播放页即退出」在
-    // 关注/发现页产生误导性的「上次看到」标记
-    if (_currentIndex <= 0) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kPositionMemoryKey);
