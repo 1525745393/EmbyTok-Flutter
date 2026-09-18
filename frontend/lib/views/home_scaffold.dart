@@ -328,8 +328,9 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                               elevation: 0,
                               indicatorColor:
                                   scheme.primary.withValues(alpha: 0.15),
+                              // 底栏只显示图标，不显示中文标题（label 保留用于无障碍语义）
                               labelBehavior:
-                                  NavigationDestinationLabelBehavior.alwaysShow,
+                                  NavigationDestinationLabelBehavior.alwaysHide,
                               height: kBottomNavHeight,
                               onDestinationSelected: (index) {
                                 // 轻量触觉反馈，确认 Tab 切换操作（fire-and-forget，不阻塞 UI）
