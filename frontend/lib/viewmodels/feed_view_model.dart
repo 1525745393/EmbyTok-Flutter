@@ -70,6 +70,11 @@ class FeedViewModel {
   // 网格滚动保存防抖
   Timer? _gridScrollSaveTimer;
 
+  /// 网格滚动中心视频 id：grid → feed 切换时用于把视频流定位到
+  /// 与网格同一个视频（网格滚动不更新 playbackState，避免 offstage
+  /// PageView 激活播放器；切回 feed 时再据此跳转）
+  String? gridAnchorVideoId;
+
   // 修复：防止 LibrarySelector 重复弹出。
   // libraryListProvider 被 invalidate 后会重新加载并再次触发监听器，
   // 若不拦截会导致弹窗无限循环（invalidate → reload → listen → showDialog → invalidate…）。

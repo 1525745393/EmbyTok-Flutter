@@ -121,6 +121,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         _restoreSystemBars();
       } else if (prev == ViewMode.grid && next == ViewMode.feed) {
         _hideSystemBars();
+        // 网格 → 视频流：把视频流定位到网格滚动中心的同一个视频
+        _jumpToGridAnchorInFeed();
       }
     });
 
@@ -486,6 +488,8 @@ class _FeedViewState extends ConsumerState<FeedView>
       onRestored: (offset) {
         if (mounted && _gridScrollController.hasClients) {
           _gridScrollController.jumpTo(offset);
+          // 恢复滚动后同步一次 anchor，保证 grid → feed 切换定位一致
+          _updateGridAnchorVideo();
         }
       },
     );
@@ -505,6 +509,48 @@ class _FeedViewState extends ConsumerState<FeedView>
   void _onGridScrollChanged() {
     _viewModel.saveGridScrollOffset(() => _gridScrollController.offset);
     _maybeLoadMoreForGrid();
+    _updateGridAnchorVideo();
+  }
+
+  // 计算网格滚动中心对应的视频 id，供 grid → feed 切换时定位
+  void _updateGridAnchorVideo() {
+    final controller = _gridScrollController;
+    final videoState = ref.read(videoListProvider);
+    final items = videoState.gridItems;
+    if (!controller.hasClients || items.isEmpty) return;
+    final position = controller.position;
+
+    // 与 PosterGridView._scrollToGridIndex 保持同一套布局参数
+    final viewportWidth = MediaQuery.of(context).size.width;
+    const padding = 8.0;
+    const crossAxisSpacing = 8.0;
+    const mainAxisSpacing = 8.0;
+    const crossAxisCount = 3;
+    const childAspectRatio = 0.65;
+    final availableWidth =
+        viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
+    final itemWidth = availableWidth / crossAxisCount;
+    final itemHeight = itemWidth / childAspectRatio;
+    final rowHeight = itemHeight + mainAxisSpacing;
+
+    // 视口中心 → 行 → 中间列索引
+    final centerOffset = position.pixels + position.viewportDimension / 2;
+    final row = (centerOffset / rowHeight).floor().clamp(0, 1 << 30);
+    final index = (row * crossAxisCount + 1).clamp(0, items.length - 1);
+    _viewModel.gridAnchorVideoId = items[index].id;
+  }
+
+  // grid → feed 切换：若网格中心视频在视频流列表中，则跳转到该视频
+  void _jumpToGridAnchorInFeed() {
+    final anchorId = _viewModel.gridAnchorVideoId;
+    if (anchorId == null || anchorId.isEmpty) return;
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isEmpty) return;
+    final idx = videoState.items.indexWhere((i) => i.id == anchorId);
+    if (idx < 0 || idx == _currentIndex) return;
+    // 等 PageController attach 后跳页（带重试）；跳页触发 onPageChanged
+    // → syncCurrentPlaying → playbackState 更新 → 网格高亮/视频流播放对齐
+    _jumpToPageWhenReady(idx);
   }
 
   // 网格分页：滚动接近底部（剩余不足 3 屏）时自动加载更多
