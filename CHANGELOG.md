@@ -1,3 +1,10 @@
+# [2.137.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.9...v2.137.0) (2026-09-18)
+
+
+### Features
+
+* 关注视频流显示所有收藏演员视频，每演员数量与未观看过滤可自定义 ([a175284](https://github.com/1525745393/EmbyTok-Flutter/commit/a1752847cf6265250149025db322a548268ed767))
+
 ## [2.136.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.8...v2.136.9) (2026-09-18)
 
 
