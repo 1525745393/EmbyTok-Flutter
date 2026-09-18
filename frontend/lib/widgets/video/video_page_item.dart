@@ -1638,7 +1638,12 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   /// 点击进入即写盘（含 index 0）：用户点击了 A，返回网格时「上次看到」
   /// 必须定位到 A（与实际播放一致）。旧实现 index 0 不写，会导致点击
   /// 列表第一个视频后网格仍定位到旧记忆视频，两处不一致。
+  ///
+  /// 单视频列表（boxset 详情/收藏页等传 extra=item 不带 items 的入口）
+  /// 不写盘：无滑动语义，且签名=被看视频自身 id，与网格读取方使用的
+  /// 「列表首 item id」签名不匹配，写了也只是孤儿条目随观看量无限增长。
   Future<void> _savePosition() async {
+    if (_items.length <= 1) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_kPositionMemoryKey);
