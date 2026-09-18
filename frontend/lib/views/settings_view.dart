@@ -129,6 +129,8 @@ class SettingsView extends ConsumerWidget {
                   childrenBuilder: () => [
                     _buildRecommendNextUpSeriesCountTile(context, ref),
                     _buildRecommendFavActorNewCountTile(context, ref),
+                    _buildFollowActorVideoCountTile(context, ref),
+                    _buildFollowOnlyUnwatchedTile(context, ref),
                     _buildSharedRuleHint(context, ref),
                   ],
                 ),
@@ -1006,6 +1008,49 @@ class SettingsView extends ConsumerWidget {
         apply: (v) =>
             ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
       ),
+    );
+  }
+
+  // 关注页：每演员视频数（默认 3，范围 1-10）
+  Widget _buildFollowActorVideoCountTile(
+      BuildContext context, WidgetRef ref) {
+    final count = ref.watch(followActorVideoCountProvider);
+    return _TapTile(
+      icon: Icons.person_add_alt,
+      iconColor: Colors.indigo,
+      title: '关注·每演员视频数',
+      subtitle: '每个收藏演员展示 $count 条',
+      onTap: () => _showCountSliderDialog(
+        context, ref,
+        title: '关注·每演员视频数',
+        current: count,
+        min: 1, max: 10,
+        label: (v) => '$v 条',
+        description: '关注视频流按演员逐个拉取，每个收藏演员最多显示 N 条视频。',
+        apply: (v) =>
+            ref.read(followActorVideoCountProvider.notifier).setCount(v),
+      ),
+    );
+  }
+
+  // 关注页：只看未观看（默认开）
+  Widget _buildFollowOnlyUnwatchedTile(
+      BuildContext context, WidgetRef ref) {
+    final onlyUnwatched = ref.watch(followOnlyUnwatchedProvider);
+    final scheme = Theme.of(context).colorScheme;
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      title: const Text('关注·只看未观看'),
+      subtitle: Text(
+        onlyUnwatched ? '已看过的视频不会出现在关注视频流' : '已看过的视频也会显示',
+        style: TextStyle(
+          fontSize: _kFontSizeSmall,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+      value: onlyUnwatched,
+      onChanged: (v) =>
+          ref.read(followOnlyUnwatchedProvider.notifier).setOnlyUnwatched(v),
     );
   }
 

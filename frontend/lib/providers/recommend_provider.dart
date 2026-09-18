@@ -237,6 +237,8 @@ class _LoadContext {
     required this.userRatingMin,
     required this.nextUpSeriesCount,
     required this.favActorNewCount,
+    required this.followActorVideoCount,
+    required this.followOnlyUnwatched,
   });
   final AuthState auth;
   final List<String> selectedIds;
@@ -256,6 +258,10 @@ class _LoadContext {
   // 追剧队列数量平衡
   final int nextUpSeriesCount;
   final int favActorNewCount;
+  // 关注页：每演员视频数（收藏演员逐个拉取，每个演员最多 N 条）
+  final int followActorVideoCount;
+  // 关注页：只看未观看（开启后过滤已观看视频）
+  final bool followOnlyUnwatched;
 
   // PR #73：过滤非视频类型 item
   bool isVideo(MediaItem item) => _allowedTypes.contains(item.type);
@@ -382,6 +388,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
     // 追剧队列数量平衡
     final nextUpSeriesCount = _ref.read(recommendNextUpSeriesCountProvider);
     final favActorNewCount = _ref.read(recommendFavActorNewCountProvider);
+    // 关注页：每演员视频数 / 只看未观看
+    final followActorVideoCount = _ref.read(followActorVideoCountProvider);
+    final followOnlyUnwatched = _ref.read(followOnlyUnwatchedProvider);
 
     // PR #83 优化：从 userBehaviorSignalProvider 读取缓存，避免每次重算
     final signal = _ref.read(userBehaviorSignalProvider);
@@ -414,6 +423,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       userRatingMin: userRatingMin,
       nextUpSeriesCount: nextUpSeriesCount,
       favActorNewCount: favActorNewCount,
+      followActorVideoCount: followActorVideoCount,
+      followOnlyUnwatched: followOnlyUnwatched,
     );
   }
 
@@ -765,11 +776,14 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       final nextUpQueue = queues[_sourceNextUp];
       final userId = ctx.auth.user?.id;
 
-      // 优先：收藏演员的新作品（推荐页「追剧」=关注演员的最新片）
+      // 优先：收藏演员的作品（推荐页「追剧」=关注演员的最新片）
+      // 关注流按演员逐个拉取：覆盖所有收藏演员，每个演员最多
+      // followActorVideoCount 条（用户可自定义），已观看过滤由
+      // followOnlyUnwatched 开关控制（默认开启）。
       List<MediaItem> items = const [];
       var hasMore = false;
       final favPeople = await ctx.repo.getFavoritePeople(
-        limit: 20,
+        limit: 50,
         serverUrl: serverUrl,
         token: token,
         userId: userId,
@@ -777,19 +791,30 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
       final personIds = favPeople.items
           .map((p) => p.id)
           .where((id) => id.isNotEmpty)
-          .take(10)
           .toList();
       if (personIds.isNotEmpty) {
-        final favLimit = ctx.favActorNewCount;
-        final resp = await ctx.repo.getItemsByPersonIds(
-          personIds: personIds,
-          limit: favLimit,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-        );
-        items = resp.items;
-        hasMore = resp.items.length >= favLimit;
+        final perActor = ctx.followActorVideoCount;
+        final all = <MediaItem>[];
+        var anyActorReachedLimit = false;
+        // 并发分批拉取（复用推荐并发上限），避免一次性发起过多请求
+        for (var i = 0; i < personIds.length; i += _maxConcurrentRequests) {
+          final batch =
+              personIds.skip(i).take(_maxConcurrentRequests).toList();
+          final responses = await Future.wait(batch.map((pid) =>
+              ctx.repo.getItemsByPersonIds(
+                personIds: [pid],
+                limit: perActor,
+                serverUrl: serverUrl,
+                token: token,
+                userId: userId,
+              )));
+          for (final resp in responses) {
+            all.addAll(resp.items);
+            if (resp.items.length >= perActor) anyActorReachedLimit = true;
+          }
+        }
+        items = all;
+        hasMore = anyActorReachedLimit;
       } else {
         // 无收藏演员：不回退 NextUp，留空队列，
         // 由 UI 在空态引导用户去收藏演员。
@@ -799,9 +824,9 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
       for (final item in items) {
         if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        // 追剧只展示还没看完的：收藏演员作品里若已看完则跳过，
-        // 避免老片占着"新作品"的位置。（最近剧集下一集由 NextUp 接口本身保证未看完）
-        if (item.isWatched) continue;
+        // 关注流只展示未看完的（可由「只看未观看」开关关闭）：
+        // 已看完的跳过，避免老片占着"新作品"的位置。
+        if (ctx.followOnlyUnwatched && item.isWatched) continue;
         if (_shouldSkipItem(
           item,
           signal: ctx.signal,

@@ -76,6 +76,11 @@ const String kStorageKeyRecommendNextUpSeriesCount =
     'embytok_recommend_nextup_series_count';
 const String kStorageKeyRecommendFavActorNewCount =
     'embytok_recommend_fav_actor_new_count';
+// 关注页 - 每演员视频数 / 只看未观看
+const String kStorageKeyFollowActorVideoCount =
+    'embytok_follow_actor_video_count';
+const String kStorageKeyFollowOnlyUnwatched =
+    'embytok_follow_only_unwatched';
 // 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
 const String kStorageKeyFavoriteIncludeTypes =
     'embytok_favorite_include_types';

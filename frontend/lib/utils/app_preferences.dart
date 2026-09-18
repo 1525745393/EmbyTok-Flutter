@@ -158,6 +158,8 @@ class AppPreferences {
     this.recommendUserRatingMin = 4.0,
     this.recommendNextUpSeriesCount = 5,
     this.recommendFavActorNewCount = 20,
+    this.followActorVideoCount = 3,
+    this.followOnlyUnwatched = true,
   });
   final DeviceMode forceDeviceMode;
   final FeedType feedType;
@@ -215,6 +217,10 @@ class AppPreferences {
   // - recommendFavActorNewCount: 收藏演员新作品条数（默认 20，范围 [5,40]）
   final int recommendNextUpSeriesCount;
   final int recommendFavActorNewCount;
+  // 关注页：每演员视频数（默认 3，范围 [1,10]）
+  final int followActorVideoCount;
+  // 关注页：只看未观看（默认 true，开启后过滤已观看视频）
+  final bool followOnlyUnwatched;
 
   AppPreferences copyWith({
     DeviceMode? forceDeviceMode,
@@ -242,6 +248,8 @@ class AppPreferences {
     double? recommendUserRatingMin,
     int? recommendNextUpSeriesCount,
     int? recommendFavActorNewCount,
+    int? followActorVideoCount,
+    bool? followOnlyUnwatched,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -282,6 +290,9 @@ class AppPreferences {
           recommendNextUpSeriesCount ?? this.recommendNextUpSeriesCount,
       recommendFavActorNewCount:
           recommendFavActorNewCount ?? this.recommendFavActorNewCount,
+      followActorVideoCount:
+          followActorVideoCount ?? this.followActorVideoCount,
+      followOnlyUnwatched: followOnlyUnwatched ?? this.followOnlyUnwatched,
     );
   }
 }
@@ -383,6 +394,10 @@ class AppPreferencesService {
         prefs.getInt(kStorageKeyRecommendNextUpSeriesCount) ?? 5;
     final recommendFavActorNewCount =
         prefs.getInt(kStorageKeyRecommendFavActorNewCount) ?? 20;
+    final followActorVideoCount =
+        prefs.getInt(kStorageKeyFollowActorVideoCount) ?? 3;
+    final followOnlyUnwatched =
+        prefs.getBool(kStorageKeyFollowOnlyUnwatched) ?? true;
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -410,6 +425,8 @@ class AppPreferencesService {
       recommendUserRatingMin: recommendUserRatingMin,
       recommendNextUpSeriesCount: recommendNextUpSeriesCount,
       recommendFavActorNewCount: recommendFavActorNewCount,
+      followActorVideoCount: followActorVideoCount,
+      followOnlyUnwatched: followOnlyUnwatched,
     );
   }
 
@@ -473,6 +490,11 @@ class AppPreferencesService {
           preferences.recommendNextUpSeriesCount),
       prefs.setInt(kStorageKeyRecommendFavActorNewCount,
           preferences.recommendFavActorNewCount),
+      // 关注页：每演员视频数 / 只看未观看
+      prefs.setInt(kStorageKeyFollowActorVideoCount,
+          preferences.followActorVideoCount),
+      prefs.setBool(kStorageKeyFollowOnlyUnwatched,
+          preferences.followOnlyUnwatched),
     ]);
   }
 
@@ -508,6 +530,8 @@ class AppPreferencesService {
       kStorageKeyRecommendAntiFatigueDays,
       kStorageKeyRecommendUserRatingEnabled,
       kStorageKeyRecommendUserRatingMin,
+      kStorageKeyFollowActorVideoCount,
+      kStorageKeyFollowOnlyUnwatched,
     ];
     await Future.wait(
       keysToRemove.map((key) => prefs.remove(key)),

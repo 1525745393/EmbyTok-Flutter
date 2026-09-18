@@ -536,6 +536,55 @@ final recommendFavActorNewCountProvider =
   (ref) => RecommendFavActorNewCountNotifier(),
 );
 
+// 关注页 - 每演员视频数（默认 3，范围 [1,10]）
+class FollowActorVideoCountNotifier extends StateNotifier<int> {
+  FollowActorVideoCountNotifier() : super(3) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.followActorVideoCount;
+  }
+
+  Future<void> setCount(int count) async {
+    final clamped = count.clamp(1, 10);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(followActorVideoCount: clamped));
+  }
+}
+
+final followActorVideoCountProvider =
+    StateNotifierProvider<FollowActorVideoCountNotifier, int>(
+  (ref) => FollowActorVideoCountNotifier(),
+);
+
+// 关注页 - 只看未观看（默认 true）
+class FollowOnlyUnwatchedNotifier extends StateNotifier<bool> {
+  FollowOnlyUnwatchedNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.followOnlyUnwatched;
+  }
+
+  Future<void> setOnlyUnwatched(bool value) async {
+    state = value;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(followOnlyUnwatched: value));
+  }
+}
+
+final followOnlyUnwatchedProvider =
+    StateNotifierProvider<FollowOnlyUnwatchedNotifier, bool>(
+  (ref) => FollowOnlyUnwatchedNotifier(),
+);
+
 // PR #88：最近展示过的 itemId 列表（用于反推荐疲劳）
 // - Set<String> 表示 itemId（对外接口不变）
 // - 内部维护 _shownAtMap: Map<String, int> 记录 itemId → shownAt 时间戳（秒）
