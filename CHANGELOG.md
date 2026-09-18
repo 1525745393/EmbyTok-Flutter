@@ -1,3 +1,10 @@
+## [2.136.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.7...v2.136.8) (2026-09-18)
+
+
+### Bug Fixes
+
+* 单视频入口不再写入孤儿位置记忆条目 ([cde83af](https://github.com/1525745393/EmbyTok-Flutter/commit/cde83af5de8319e554baa356ac4c29fdab77a631))
+
 ## [2.136.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.6...v2.136.7) (2026-09-18)
 
 
