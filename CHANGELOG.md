@@ -1,3 +1,10 @@
+## [2.136.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.4...v2.136.5) (2026-09-18)
+
+
+### Bug Fixes
+
+* 网格模式重启后恢复上次滚动位置 ([f23df19](https://github.com/1525745393/EmbyTok-Flutter/commit/f23df199b092b3a60ed0c9930d8158da708370b6))
+
 ## [2.136.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.3...v2.136.4) (2026-09-18)
 
 
