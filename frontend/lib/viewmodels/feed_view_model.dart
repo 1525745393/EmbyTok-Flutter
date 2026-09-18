@@ -441,6 +441,16 @@ class FeedViewModel {
   /// F3：仅存 index 在媒体库/列表变化后会错位恢复，同时记录当前视频 id，
   /// 恢复时优先按 id 定位；找不到（换库/重排）则不恢复，避免跳到错误视频。
   void _saveFeedVideoIndex(int index, List<MediaItem> items) async {
+    await saveFeedVideoIndexNow(index, items);
+  }
+
+  /// 立即保存视频流位置（公开，供退后台/生命周期兜底调用）
+  ///
+  /// 修复：onPageChanged 的保存是 fire-and-forget，异常退出（杀后台/闪退）
+  /// 时最后几次翻页可能未落盘；在 App 进入后台时主动同步保存一次，
+  /// 保证下次启动恢复的是真实最后位置。
+  Future<void> saveFeedVideoIndexNow(
+      int index, List<MediaItem> items) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await saveFeedVideoPosition(prefs, index, items);

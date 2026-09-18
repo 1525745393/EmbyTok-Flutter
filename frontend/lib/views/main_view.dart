@@ -125,6 +125,8 @@ class _MainViewState extends ConsumerState<MainView> {
           // 底部导航栏
           NavigationBar(
             selectedIndex: _currentIndex,
+            // 底栏只显示图标，不显示中文标题（label 保留用于无障碍语义）
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
             onDestinationSelected: (index) {
               setState(() {
                 _currentIndex = index;

@@ -52,6 +52,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   int _currentIndex = 0;
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
 
+  AppLifecycleListener? _lifecycleListener;
+
   // 滚动位置持久化相关（仅网格视图，视频流不持久化）
   final ScrollController _gridScrollController = ScrollController();
 
@@ -122,6 +124,18 @@ class _FeedViewState extends ConsumerState<FeedView>
       context: 'FeedView.initState.checkCloudSyncOnStartup',
     );
 
+    // 生命周期兜底：退后台/异常退出前立即保存视频流位置，
+    // 避免 onPageChanged 的异步保存未落盘时被强杀导致位置丢失
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: (state) {
+        if (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.detached) {
+          _saveFeedPositionOnBackground();
+        }
+      },
+    );
+
     // 恢复视频流上次位置：由 postFrame 副作用统一驱动（见 146 行附近），
     // 与「首 item 播放初始化」协调执行，避免先播第一个视频再跳转的竞态（F1）。
     // 不再在 initState 中独立调用，防止与 initialId 跳转/自动播放抢占。
@@ -190,7 +204,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       // dispose 时 position 可能已被 Flutter 清理，忽略错误
     }
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _lifecycleListener?.dispose();
     _pageChangeDebounce?.cancel();
+    _gridLoadMoreDebounce?.cancel();
     _currentIndexNotifier.dispose();
     _pageController.dispose();
     _gridScrollController.removeListener(_onGridScrollChanged);
@@ -377,8 +393,48 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // ==================== 滚动位置持久化 ====================
 
+  /// 退后台兜底：立即保存当前视频流位置（不等待 onPageChanged 的异步写盘）
+  void _saveFeedPositionOnBackground() {
+    if (!mounted) return;
+    if (ref.read(viewModeProvider) != ViewMode.feed) return;
+    final videoState = ref.read(videoListProvider);
+    if (videoState.items.isEmpty) return;
+    final idx = _currentIndex;
+    if (idx < 0 || idx >= videoState.items.length) return;
+    safeUnawaited(
+      _viewModel.saveFeedVideoIndexNow(idx, videoState.items),
+      context: 'FeedView._saveFeedPositionOnBackground',
+    );
+  }
+
   void _onGridScrollChanged() {
     _viewModel.saveGridScrollOffset(() => _gridScrollController.offset);
+    _maybeLoadMoreForGrid();
+  }
+
+  // 网格分页：滚动接近底部（剩余不足 3 屏）时自动加载更多
+  // 修复：此前网格只保存滚动位置、从不触发 loadMore，多库模式网格永远只有
+  //       首屏数据（与视频流同源同量），海报墙无法滚到更多内容。
+  Timer? _gridLoadMoreDebounce;
+
+  void _maybeLoadMoreForGrid() {
+    final controller = _gridScrollController;
+    if (!controller.hasClients) return;
+    final position = controller.position;
+    final maxExtent = position.maxScrollExtent;
+    if (maxExtent <= 0) return;
+    final remaining = maxExtent - position.pixels;
+    if (remaining > position.viewportDimension * 3) return;
+
+    final videoState = ref.read(videoListProvider);
+    if (!videoState.hasMore || videoState.isLoading) return;
+
+    // 防抖：连续滚动只触发一次
+    _gridLoadMoreDebounce?.cancel();
+    _gridLoadMoreDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      ref.read(videoListProvider.notifier).loadMore();
+    });
   }
 
   // ==================== 键盘快捷键（委托给 ViewModel） ====================
