@@ -1,3 +1,10 @@
+## [2.136.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.3...v2.136.4) (2026-09-18)
+
+
+### Bug Fixes
+
+* 视频库首页底栏隐藏中文标题，仅显示图标 ([261dc5c](https://github.com/1525745393/EmbyTok-Flutter/commit/261dc5c1456b5834a0ece7f0e3e664c940953ecb))
+
 ## [2.136.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.2...v2.136.3) (2026-09-18)
 
 
