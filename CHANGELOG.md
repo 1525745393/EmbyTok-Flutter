@@ -1,3 +1,10 @@
+## [2.136.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.1...v2.136.2) (2026-09-18)
+
+
+### Bug Fixes
+
+* 视频库首页三处异常修复 ([2a5b1e3](https://github.com/1525745393/EmbyTok-Flutter/commit/2a5b1e3854177ef1a41fb4a0ef131a0850753b85))
+
 ## [2.136.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.0...v2.136.1) (2026-09-17)
 
 
