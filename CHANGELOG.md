@@ -1,3 +1,10 @@
+## [2.136.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.8...v2.136.9) (2026-09-18)
+
+
+### Bug Fixes
+
+* 视频流/网格同源切换定位（分页/搜索模式） ([01e9520](https://github.com/1525745393/EmbyTok-Flutter/commit/01e952079401aaff7f16f363f5dd9060285e4896))
+
 ## [2.136.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.7...v2.136.8) (2026-09-18)
 
 
