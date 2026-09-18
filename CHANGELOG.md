@@ -1,3 +1,10 @@
+## [2.136.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.6...v2.136.7) (2026-09-18)
+
+
+### Bug Fixes
+
+* 发现页播放链路三处异常 ([5fdfcaa](https://github.com/1525745393/EmbyTok-Flutter/commit/5fdfcaaab8619811a159df60d6bf0566e5570427))
+
 ## [2.136.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.5...v2.136.6) (2026-09-18)
 
 
