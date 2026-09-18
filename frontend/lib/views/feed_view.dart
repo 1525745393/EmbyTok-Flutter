@@ -541,12 +541,23 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // grid → feed 切换：若网格中心视频在视频流列表中，则跳转到该视频
+  //
+  // 同源设计：网格与视频流是同一数据源（网格仅是不同的展示形态），
+  // 网格分页/搜索后 gridItems 会与 feed items 暂时不同集合——此时先把
+  // items 同步为 gridItems（复用 setItemsFromGrid），保证切换后视频流
+  // 显示的就是网格里看到的那批视频，且定位到网格中心的同一个视频。
   void _jumpToGridAnchorInFeed() {
     final anchorId = _viewModel.gridAnchorVideoId;
     if (anchorId == null || anchorId.isEmpty) return;
-    final videoState = ref.read(videoListProvider);
+    var videoState = ref.read(videoListProvider);
     if (videoState.items.isEmpty) return;
-    final idx = videoState.items.indexWhere((i) => i.id == anchorId);
+    var idx = videoState.items.indexWhere((i) => i.id == anchorId);
+    if (idx < 0 && !identical(videoState.items, videoState.gridItems)) {
+      // 分页/搜索后 gridItems 独立：同步 items 为 gridItems 再定位
+      ref.read(videoListProvider.notifier).setItemsFromGrid();
+      videoState = ref.read(videoListProvider);
+      idx = videoState.items.indexWhere((i) => i.id == anchorId);
+    }
     if (idx < 0 || idx == _currentIndex) return;
     // 等 PageController attach 后跳页（带重试）；跳页触发 onPageChanged
     // → syncCurrentPlaying → playbackState 更新 → 网格高亮/视频流播放对齐
