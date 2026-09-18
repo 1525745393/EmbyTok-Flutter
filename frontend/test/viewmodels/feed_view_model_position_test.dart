@@ -89,6 +89,32 @@ void main() {
     });
   });
 
+  group('网格滚动位置持久化（saveGridScrollOffsetNow / readGridScrollOffset）', () {
+    test('保存后能读回', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      await FeedViewModel.saveGridScrollOffsetNow(prefs, 12345.0);
+
+      expect(await FeedViewModel.readGridScrollOffset(prefs), 12345.0);
+    });
+
+    test('无记录时返回 null', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      expect(await FeedViewModel.readGridScrollOffset(prefs), isNull);
+    });
+
+    test('写入 0 视为无效（恢复端 >0 才生效）', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      await FeedViewModel.saveGridScrollOffsetNow(prefs, 0.0);
+
+      expect(await FeedViewModel.readGridScrollOffset(prefs), isNull);
+    });
+  });
+
   group('readFeedVideoPosition', () {
     test('无记录时返回默认 (0, null)', () async {
       SharedPreferences.setMockInitialValues({});

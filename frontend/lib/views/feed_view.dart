@@ -18,6 +18,7 @@ import '../utils/safe_unawaited.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 
 import '../coordinators/playback_coordinator.dart';
@@ -181,6 +182,16 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (!mounted || _firstItemInitProcessed) return;
       final restored = await _restoreFeedVideoIndex();
       if (!mounted || _firstItemInitProcessed) return;
+
+      // 2.5 grid 模式：恢复网格滚动位置（不设置 playbackState，
+      //     避免在 offstage PageView 上激活播放器，F4）
+      if (ref.read(viewModeProvider) == ViewMode.grid) {
+        safeUnawaited(
+          _restoreGridPosition(),
+          context: 'FeedView._restoreGridPosition',
+        );
+        return;
+      }
 
       // 3. 首 item 播放初始化：仅当未恢复位置时才播放列表第一个视频
       //    - 已恢复：jumpToPage 触发 onPageChanged → syncCurrentPlaying 完成播放
@@ -401,12 +412,23 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   // ==================== 滚动位置持久化 ====================
 
-  /// 退后台兜底：立即保存当前视频流位置（不等待 onPageChanged 的异步写盘）
+  /// 退后台兜底：立即保存当前位置（不等待异步写盘）
+  ///
+  /// - feed 模式：保存视频流 index+itemId（受 _feedPositionReady 保护，
+  ///   恢复完成/主动翻页前不写，避免覆盖上次位置——P2 修复）
+  /// - grid 模式：保存网格滚动 offset（0 写入无害，恢复端 >0 才生效）
   void _saveFeedPositionOnBackground() {
     if (!mounted) return;
+    final viewMode = ref.read(viewModeProvider);
+    if (viewMode == ViewMode.grid) {
+      if (_gridScrollController.hasClients) {
+        safeUnawaited(_saveGridOffsetNow(), context: 'FeedView._saveGridOffsetNow');
+      }
+      return;
+    }
     // P2：恢复完成/主动翻页前不写盘，避免覆盖已持久化的上次位置
     if (!_feedPositionReady) return;
-    if (ref.read(viewModeProvider) != ViewMode.feed) return;
+    if (viewMode != ViewMode.feed) return;
     final videoState = ref.read(videoListProvider);
     if (videoState.items.isEmpty) return;
     final idx = _currentIndex;
@@ -415,6 +437,69 @@ class _FeedViewState extends ConsumerState<FeedView>
       _viewModel.saveFeedVideoIndexNow(idx, videoState.items),
       context: 'FeedView._saveFeedPositionOnBackground',
     );
+  }
+
+  /// 恢复网格滚动位置（仅 grid 模式启动时调用）
+  ///
+  /// 分两阶段：
+  /// 1. 等网格 attach 且首屏渲染完成（maxScrollExtent>0）
+  /// 2. 目标 offset 超出当前已加载高度时逐级 loadMore，
+  ///    直到 maxScrollExtent 达到目标或没有更多数据
+  /// 3. 最终按 clamp 后的 offset jumpTo
+  Future<void> _restoreGridPosition() async {
+    // 等待网格 attach + 首屏数据渲染
+    int attempts = 0;
+    while (attempts < 40) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+      if (_gridScrollController.hasClients &&
+          _gridScrollController.position.maxScrollExtent > 0) {
+        break;
+      }
+      attempts++;
+    }
+    if (!mounted || !_gridScrollController.hasClients) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final target = await FeedViewModel.readGridScrollOffset(prefs);
+    if (!mounted) return;
+    if (target == null) return;
+
+    // 目标超出已加载范围：逐级加载更多直到可滚动高度覆盖目标
+    var guard = 0;
+    while (mounted && _gridScrollController.hasClients) {
+      final maxExtent = _gridScrollController.position.maxScrollExtent;
+      if (maxExtent >= target) break;
+      final videoState = ref.read(videoListProvider);
+      if (!videoState.hasMore || videoState.isLoading) break;
+      await ref.read(videoListProvider.notifier).loadMore();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      guard++;
+      if (guard > 30) break; // 最多加载 30 轮，防异常死循环
+    }
+    if (!mounted || !_gridScrollController.hasClients) return;
+
+    await _viewModel.restoreGridScrollOffset(
+      getMaxScrollExtent: () =>
+          _gridScrollController.position.maxScrollExtent,
+      onRestored: (offset) {
+        if (mounted && _gridScrollController.hasClients) {
+          _gridScrollController.jumpTo(offset);
+        }
+      },
+    );
+  }
+
+  /// 立即把当前网格滚动 offset 写入持久化（退后台兜底）
+  Future<void> _saveGridOffsetNow() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await FeedViewModel.saveGridScrollOffsetNow(
+          prefs, _gridScrollController.offset);
+    } catch (_) {
+      // 操作失败不影响主流程
+    }
   }
 
   void _onGridScrollChanged() {

@@ -396,6 +396,30 @@ class FeedViewModel {
     });
   }
 
+  /// 立即保存网格滚动位置（无防抖，供退后台生命周期兜底调用；静态便于测试）
+  ///
+  /// 修复：滚动触发走 500ms 防抖 Timer，滚动后立即退后台/强杀时
+  /// Timer 未触发导致 offset 丢失；退后台时同步写一次保证落盘。
+  /// 写入 0 无害：恢复端仅在 >0 时生效。
+  static Future<void> saveGridScrollOffsetNow(
+      SharedPreferences prefs, double offset) async {
+    try {
+      await prefs.setDouble(kStorageKeyLastGridScrollOffset, offset);
+    } catch (_) {
+      // 操作失败不影响主流程，静默处理
+    }
+  }
+
+  /// 读取已保存的网格滚动位置（无记录或 <=0 返回 null；静态便于测试）
+  static Future<double?> readGridScrollOffset(SharedPreferences prefs) async {
+    try {
+      final v = prefs.getDouble(kStorageKeyLastGridScrollOffset);
+      return (v != null && v > 0) ? v : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 从 SharedPreferences 恢复网格滚动位置
   ///
   /// [onRestored] 回调通知 View 层执行实际的 jumpTo
