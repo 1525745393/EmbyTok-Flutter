@@ -1,3 +1,10 @@
+## [2.136.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.2...v2.136.3) (2026-09-18)
+
+
+### Bug Fixes
+
+* 生命周期兜底写盘增加位置就绪标记，防止恢复前覆盖上次位置 ([52eeeb5](https://github.com/1525745393/EmbyTok-Flutter/commit/52eeeb5a509ae5a425c87c25846c15f9344c5afc))
+
 ## [2.136.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.1...v2.136.2) (2026-09-18)
 
 
