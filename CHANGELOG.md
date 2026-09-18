@@ -1,3 +1,10 @@
+## [2.136.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.5...v2.136.6) (2026-09-18)
+
+
+### Bug Fixes
+
+* 视频流/网格双向定位同一视频 ([0ae7049](https://github.com/1525745393/EmbyTok-Flutter/commit/0ae70496d8b8330fed0f39ffb7fded96ed0bc9de))
+
 ## [2.136.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.4...v2.136.5) (2026-09-18)
 
 
