@@ -54,6 +54,11 @@ class _FeedViewState extends ConsumerState<FeedView>
 
   AppLifecycleListener? _lifecycleListener;
 
+  // 位置就绪标记：只有「恢复跳转完成」或「用户主动翻过页」后才允许
+  // 生命周期兜底写盘。防止启动恢复完成前退后台，用默认 index 0
+  // 覆盖已持久化的上次位置（P2 修复）。
+  bool _feedPositionReady = false;
+
   // 滚动位置持久化相关（仅网格视图，视频流不持久化）
   final ScrollController _gridScrollController = ScrollController();
 
@@ -352,8 +357,11 @@ class _FeedViewState extends ConsumerState<FeedView>
       // F5：等 PageController attach 后跳转（带重试），并返回真实跳转结果；
       // 跳转失败视为未恢复，由调用方回退到「播放列表第一个视频」，
       // 避免「返回 true 但页面停在 index 0 且不播第一个」的黑屏态。
-      return await _jumpToPageWhenReadyAsync(targetIndex);
+      final jumped = await _jumpToPageWhenReadyAsync(targetIndex);
+      if (jumped) _feedPositionReady = true;
+      return jumped;
     }
+    _feedPositionReady = true;
     return true;
   }
 
@@ -396,6 +404,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   /// 退后台兜底：立即保存当前视频流位置（不等待 onPageChanged 的异步写盘）
   void _saveFeedPositionOnBackground() {
     if (!mounted) return;
+    // P2：恢复完成/主动翻页前不写盘，避免覆盖已持久化的上次位置
+    if (!_feedPositionReady) return;
     if (ref.read(viewModeProvider) != ViewMode.feed) return;
     final videoState = ref.read(videoListProvider);
     if (videoState.items.isEmpty) return;
@@ -787,6 +797,7 @@ class _FeedViewState extends ConsumerState<FeedView>
       itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
       onPageChanged: (index) {
         _currentIndex = index;
+        _feedPositionReady = true;
         _currentIndexNotifier.value = index;
         // 关键修复：调用 setState 触发 PageView 重建，更新 isCurrentPage
         // 原问题：仅更新 _currentIndex 未触发重建，导致新页面 isCurrentPage 一直为 false
