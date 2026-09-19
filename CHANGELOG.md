@@ -1,3 +1,10 @@
+## [2.137.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.137.0...v2.137.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* 关注源标签「追剧」残留统一为「关注」 ([8d9e4bb](https://github.com/1525745393/EmbyTok-Flutter/commit/8d9e4bbc0228759102e6b35e620ef98db312b99e))
+
 # [2.137.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.136.9...v2.137.0) (2026-09-18)
 
 
