@@ -1022,6 +1022,8 @@ class EmbyServerApi implements MediaServerApi {
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
+      // 视频发现场景：只拉取视频类媒体类型，避免混入音乐/照片等流派
+      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Genres',
@@ -1037,6 +1039,7 @@ class EmbyServerApi implements MediaServerApi {
               name: (e['Name'] as String?) ?? '',
               type: 'Genre',
             ))
+        .where((l) => l.id.isNotEmpty && l.name.isNotEmpty)
         .toList();
   }
 
@@ -1057,6 +1060,8 @@ class EmbyServerApi implements MediaServerApi {
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Genres': genre,
+      // 视频发现场景：只返回视频类媒体，与 getBoxSetItems 对齐
+      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
     };
@@ -1111,6 +1116,8 @@ class EmbyServerApi implements MediaServerApi {
     final params = <String, dynamic>{
       'Limit': '$limit',
       'Recursive': 'true',
+      // 视频发现场景：只拉取视频类媒体上的标签，避免混入音乐/照片标签
+      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Tags',
@@ -1156,6 +1163,8 @@ class EmbyServerApi implements MediaServerApi {
       'StartIndex': '$offset',
       'Recursive': 'true',
       'Tags': tag,
+      // 视频发现场景：只返回视频类媒体，与 getBoxSetItems 对齐
+      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
     };
