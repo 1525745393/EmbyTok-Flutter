@@ -1,3 +1,10 @@
+## [2.138.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.138.0...v2.138.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* 推荐接口显式传 UserId，多用户服务器下更精确 ([f3e5f4a](https://github.com/1525745393/EmbyTok-Flutter/commit/f3e5f4a9089d27a2076a2429f82812493ed300d2))
+
 # [2.138.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.137.1...v2.138.0) (2026-09-19)
 
 
