@@ -1,3 +1,10 @@
+# [2.140.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.139.1...v2.140.0) (2026-09-19)
+
+
+### Features
+
+* 推荐标签映射每行添加帮助按钮，展示对应 Emby 数据源规则说明 ([4d99676](https://github.com/1525745393/EmbyTok-Flutter/commit/4d996763b8c2d068966a34ec098561f96894510c))
+
 ## [2.139.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.139.0...v2.139.1) (2026-09-19)
 
 
