@@ -109,6 +109,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit = 50,
     int? offset = 0,
     CancelToken? cancelToken,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getResumeItems, [], {
@@ -117,6 +118,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           #limit: limit,
           #offset: offset,
           #cancelToken: cancelToken,
+          #userId: userId,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: [],
@@ -156,12 +158,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit = 12,
     String? serverUrl,
     String? token,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSimilarItems, [itemId], {
           #limit: limit,
           #serverUrl: serverUrl,
           #token: token,
+          #userId: userId,
         }),
         returnValue: Future.value(<MediaItem>[]),
         returnValueForMissingStub: Future.value(<MediaItem>[]),
@@ -909,6 +913,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testResumeResult);
 
         final result = await cachedRepo.getResumeItems(
@@ -925,6 +930,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).called(1);
       });
 
@@ -934,6 +940,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testResumeResult);
 
         // 第一次
@@ -958,6 +965,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).called(1); // 只调用了一次
       });
 
@@ -967,6 +975,7 @@ void main() {
           token: testToken,
           limit: anyNamed('limit'),
           offset: 0,
+        userId: anyNamed('userId'),
         )).thenAnswer((invocation) async {
           final limit = invocation.namedArguments[#limit] as int;
           return PaginatedResponse<MediaItem>(
@@ -998,12 +1007,14 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).called(1);
         verify(mockRepo.getResumeItems(
           serverUrl: testServerUrl,
           token: testToken,
           limit: 100,
           offset: 0,
+        userId: anyNamed('userId'),
         )).called(1);
       });
 
@@ -1013,6 +1024,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testResumeResult);
 
         // 第一次
@@ -1042,6 +1054,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).called(2);
       });
     });
@@ -1063,6 +1076,7 @@ void main() {
           token: testToken,
           limit: 50,
           offset: 0,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => PaginatedResponse<MediaItem>(
           items: [], total: 0, offset: 0, limit: 50,
         ));
@@ -1082,7 +1096,7 @@ void main() {
 
         verify(mockRepo.getLibraryItems(any, serverUrl: testServerUrl, token: testToken)).called(2);
         verify(mockRepo.getFavoriteMovies(serverUrl: testServerUrl, token: testToken, userId: 'user-1')).called(2);
-        verify(mockRepo.getResumeItems(serverUrl: testServerUrl, token: testToken)).called(2);
+        verify(mockRepo.getResumeItems(serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(2);
       });
     });
 
@@ -1221,6 +1235,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testSimilarItems);
 
         final result = await cachedRepo.getSimilarItems(
@@ -1237,6 +1252,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).called(1);
       });
 
@@ -1246,6 +1262,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testSimilarItems);
 
         // 第一次
@@ -1271,6 +1288,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).called(1);
       });
 
@@ -1280,6 +1298,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).thenAnswer((invocation) async {
           final itemId = invocation.positionalArguments[0] as String;
           return <MediaItem>[MediaItem(id: 'sim-for-$itemId', title: '', type: '')];
@@ -1288,8 +1307,8 @@ void main() {
         await cachedRepo.getSimilarItems('item-a', limit: 12, serverUrl: testServerUrl, token: testToken);
         await cachedRepo.getSimilarItems('item-b', limit: 12, serverUrl: testServerUrl, token: testToken);
 
-        verify(mockRepo.getSimilarItems('item-a', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
-        verify(mockRepo.getSimilarItems('item-b', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getSimilarItems('item-a', limit: 12, serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(1);
+        verify(mockRepo.getSimilarItems('item-b', limit: 12, serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(1);
       });
 
       test('不同 limit：不命中缓存', () async {
@@ -1298,6 +1317,7 @@ void main() {
           limit: anyNamed('limit'),
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).thenAnswer((invocation) async {
           final limit = invocation.namedArguments[#limit] as int;
           return <MediaItem>[MediaItem(id: 'sim-limit-$limit', title: '', type: '')];
@@ -1306,8 +1326,8 @@ void main() {
         await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
         await cachedRepo.getSimilarItems('item-1', limit: 24, serverUrl: testServerUrl, token: testToken);
 
-        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken)).called(1);
-        verify(mockRepo.getSimilarItems('item-1', limit: 24, serverUrl: testServerUrl, token: testToken)).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 24, serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(1);
       });
 
       test('不同 token：不共享缓存（账号隔离）', () async {
@@ -1316,6 +1336,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: anyNamed('token'),
+        userId: anyNamed('userId'),
         )).thenAnswer((invocation) async {
           final token = invocation.namedArguments[#token] as String;
           return <MediaItem>[MediaItem(id: 'sim-$token', title: '', type: '')];
@@ -1324,8 +1345,8 @@ void main() {
         await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-a');
         await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-b');
 
-        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-a')).called(1);
-        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-b')).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-a', userId: anyNamed('userId'))).called(1);
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: 'token-b', userId: anyNamed('userId'))).called(1);
       });
 
       test('clearAll：清除相似推荐缓存后重新请求', () async {
@@ -1334,6 +1355,7 @@ void main() {
           limit: 12,
           serverUrl: testServerUrl,
           token: testToken,
+        userId: anyNamed('userId'),
         )).thenAnswer((_) async => testSimilarItems);
 
         // 第一次
@@ -1345,7 +1367,7 @@ void main() {
         // 第二次（应重新调用底层）
         await cachedRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken);
 
-        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken)).called(2);
+        verify(mockRepo.getSimilarItems('item-1', limit: 12, serverUrl: testServerUrl, token: testToken, userId: anyNamed('userId'))).called(2);
       });
     });
 

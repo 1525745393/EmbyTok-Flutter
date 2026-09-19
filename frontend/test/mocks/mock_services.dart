@@ -302,6 +302,7 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getResumeItems, [], {
@@ -310,6 +311,7 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #serverUrl: serverUrl,
           #token: token,
           #cancelToken: cancelToken,
+          #userId: userId,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
           items: [],

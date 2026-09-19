@@ -319,6 +319,7 @@ class EmbyServerApi implements MediaServerApi {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    String? userId,
   }) async {
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
@@ -330,8 +331,14 @@ class EmbyServerApi implements MediaServerApi {
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
     };
+    // 多用户服务器：显式带 userId（/Users/{id}/Items/Resume），
+    // 无 userId 时回退 /Items/Resume（依赖 token 上下文）
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        ? '/Users/$effectiveUserId/Items/Resume'
+        : '/Items/Resume';
     final resp = await _apiClient.get<dynamic>(
-      '/Items/Resume',
+      path,
       queryParameters: params,
       cancelToken: cancelToken,
     );
@@ -695,10 +702,14 @@ class EmbyServerApi implements MediaServerApi {
     int limit = 20,
     String? serverUrl,
     String? token,
+    String? userId,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
     };

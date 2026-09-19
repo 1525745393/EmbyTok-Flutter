@@ -149,6 +149,7 @@ class EmbytokService {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    String? userId,
   }) {
     return _api.getResumeItems(
       limit: limit,
@@ -156,6 +157,7 @@ class EmbytokService {
       serverUrl: serverUrl,
       token: token,
       cancelToken: cancelToken,
+      userId: userId,
     );
   }
 
@@ -334,12 +336,14 @@ class EmbytokService {
     int limit = 20,
     String? serverUrl,
     String? token,
+    String? userId,
   }) {
     return _api.getSimilarItems(
       itemId,
       limit: limit,
       serverUrl: serverUrl,
       token: token,
+      userId: userId,
     );
   }
 

@@ -96,6 +96,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit,
     int? offset,
     CancelToken? cancelToken,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getResumeItems, [], {
@@ -104,6 +105,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
           #limit: limit,
           #offset: offset,
           #cancelToken: cancelToken,
+          #userId: userId,
         }),
         returnValue: _emptyPage(),
         returnValueForMissingStub: _emptyPage(),
@@ -277,12 +279,14 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit,
     String? serverUrl,
     String? token,
+    String? userId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getSimilarItems, [itemId], {
           #limit: limit,
           #serverUrl: serverUrl,
           #token: token,
+          #userId: userId,
         }),
         returnValue: Future.value(<MediaItem>[]),
         returnValueForMissingStub: Future.value(<MediaItem>[]),
@@ -537,6 +541,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -554,6 +559,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -603,6 +609,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -620,6 +627,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -675,6 +683,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -692,6 +701,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -740,6 +750,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -757,6 +768,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -808,6 +820,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -825,6 +838,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -890,6 +904,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -907,6 +922,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -977,6 +993,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -994,6 +1011,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1040,6 +1058,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1057,6 +1076,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1103,6 +1123,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1120,6 +1141,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1166,6 +1188,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1183,6 +1206,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1227,6 +1251,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1244,6 +1269,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1290,6 +1316,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1307,6 +1334,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1353,6 +1381,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getRecommendations(
         serverUrl: anyNamed('serverUrl'),
@@ -1370,6 +1399,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1430,6 +1460,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(resumeItems));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1453,6 +1484,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1508,6 +1540,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1531,6 +1564,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1578,6 +1612,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1607,6 +1642,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1661,6 +1697,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1691,6 +1728,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1737,6 +1775,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1760,6 +1799,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1794,6 +1834,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1817,6 +1858,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1863,6 +1905,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1886,6 +1929,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -1938,6 +1982,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -1961,6 +2006,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -2028,6 +2074,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page(nItems(resumeCount)));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -2051,6 +2098,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -2085,6 +2133,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -2108,6 +2157,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),
@@ -2167,6 +2217,7 @@ void main() {
         limit: anyNamed('limit'),
         offset: anyNamed('offset'),
         cancelToken: anyNamed('cancelToken'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => _page([]));
       when(repo.getSuggestions(
         serverUrl: anyNamed('serverUrl'),
@@ -2190,6 +2241,7 @@ void main() {
         serverUrl: anyNamed('serverUrl'),
         token: anyNamed('token'),
         limit: anyNamed('limit'),
+      userId: anyNamed('userId'),
       )).thenAnswer((_) async => []);
       when(repo.getWatchHistory(
         serverUrl: anyNamed('serverUrl'),

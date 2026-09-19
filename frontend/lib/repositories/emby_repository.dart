@@ -138,6 +138,7 @@ class EmbyRepository implements MediaRepository {
     int limit = 50,
     int offset = 0,
     CancelToken? cancelToken,
+    String? userId,
   }) {
     return _service.getResumeItems(
       limit: limit,
@@ -145,6 +146,7 @@ class EmbyRepository implements MediaRepository {
       serverUrl: serverUrl,
       token: token,
       cancelToken: cancelToken,
+      userId: userId,
     );
   }
 
@@ -214,12 +216,14 @@ class EmbyRepository implements MediaRepository {
     int limit = 12,
     required String serverUrl,
     required String token,
+    String? userId,
   }) {
     return _service.getSimilarItems(
       itemId,
       limit: limit,
       serverUrl: serverUrl,
       token: token,
+      userId: userId,
     );
   }
 

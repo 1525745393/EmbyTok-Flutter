@@ -184,8 +184,9 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   /// 生成 getResumeItems 的缓存键
-  String _resumeKey(String serverUrl, String token, int limit, int offset) {
-    return 'resume:$serverUrl:$token:$limit:$offset';
+  String _resumeKey(String serverUrl, String token, int limit, int offset,
+      String? userId) {
+    return 'resume:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
   }
 
   /// 生成 getItemDetail 的缓存键
@@ -216,9 +217,9 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   /// 生成 getSimilarItems 的缓存键
-  String _similarItemsKey(
-      String itemId, int limit, String serverUrl, String token) {
-    return 'similar:$serverUrl:$token:$itemId:$limit';
+  String _similarItemsKey(String itemId, int limit, String serverUrl,
+      String token, String? userId) {
+    return 'similar:$serverUrl:$token:${userId ?? ''}:$itemId:$limit';
   }
 
   /// 生成 getPeople 的缓存键
@@ -518,8 +519,9 @@ class CachedMediaRepository implements MediaRepository {
     int limit = 50,
     int offset = 0,
     CancelToken? cancelToken,
+    String? userId,
   }) {
-    final key = _resumeKey(serverUrl, token, limit, offset);
+    final key = _resumeKey(serverUrl, token, limit, offset, userId);
     return _withCache(
         _resumeCache,
         key,
@@ -528,6 +530,7 @@ class CachedMediaRepository implements MediaRepository {
               token: token,
               limit: limit,
               offset: offset,
+              userId: userId,
               cancelToken: cancelToken,
             ));
   }
@@ -617,8 +620,9 @@ class CachedMediaRepository implements MediaRepository {
     int limit = 12,
     required String serverUrl,
     required String token,
+    String? userId,
   }) {
-    final key = _similarItemsKey(itemId, limit, serverUrl, token);
+    final key = _similarItemsKey(itemId, limit, serverUrl, token, userId);
     return _withCache(
         _similarItemsCache,
         key,
@@ -627,6 +631,7 @@ class CachedMediaRepository implements MediaRepository {
               limit: limit,
               serverUrl: serverUrl,
               token: token,
+              userId: userId,
             ));
   }
 

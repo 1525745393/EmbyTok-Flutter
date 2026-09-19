@@ -98,6 +98,7 @@ abstract class MediaServerApi {
     String? serverUrl,
     String? token,
     CancelToken? cancelToken,
+    String? userId,
   });
 
   /// 推荐列表
@@ -199,6 +200,7 @@ abstract class MediaServerApi {
     int limit = 20,
     String? serverUrl,
     String? token,
+    String? userId,
   });
 
   /// 预告片

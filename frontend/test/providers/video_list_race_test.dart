@@ -212,12 +212,14 @@ class _MockMediaRepository implements MediaRepository {
     int limit = 50,
     int offset = 0,
     CancelToken? cancelToken,
+    String? userId,
   }) async {
     final req = _createPendingRequest('getResumeItems', {
       'limit': limit,
       'offset': offset,
       'serverUrl': serverUrl,
       'token': token,
+      'userId': userId,
     });
 
     cancelToken?.whenCancel.then((_) {
@@ -303,11 +305,13 @@ class _MockMediaRepository implements MediaRepository {
     int limit = 12,
     required String serverUrl,
     required String token,
+    String? userId,
   }) async {
     final req = _createPendingRequest('getSimilarItems', {
       'itemId': itemId,
       'limit': limit,
       'serverUrl': serverUrl,
+      'userId': userId,
       'token': token,
     });
     return await req.completer.future as List<MediaItem>;

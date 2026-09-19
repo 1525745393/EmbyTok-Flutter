@@ -865,6 +865,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
         limit: _pageSize,
         serverUrl: serverUrl,
         token: token,
+        userId: ctx.auth.user?.id,
       );
       final resumeQueue = queues[_sourceResume];
       for (final item in resp.items) {
@@ -1211,6 +1212,7 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
                     limit: _similarPerSeed,
                     serverUrl: serverUrl,
                     token: token,
+                    userId: ctx.auth.user?.id,
                   );
                 } catch (e) {
                   AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);

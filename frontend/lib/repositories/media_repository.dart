@@ -151,6 +151,7 @@ abstract class MediaRepository {
     int limit = 50,
     int offset = 0,
     CancelToken? cancelToken,
+    String? userId,
   });
 
   /// 获取媒体库列表（用户可用的 Views）
@@ -201,6 +202,7 @@ abstract class MediaRepository {
     int limit = 12,
     required String serverUrl,
     required String token,
+    String? userId,
   });
 
   /// 获取人员（演员/导演）列表
