@@ -46,8 +46,7 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     // 音乐服务模式下隐藏视频相关分组（视频库/推荐/播放/字幕/统计/视频方向等）
-    final isMusicMode =
-        ref.watch(serviceModeProvider) == AppServiceMode.music;
+    final isMusicMode = ref.watch(serviceModeProvider) == AppServiceMode.music;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -312,7 +311,8 @@ class SettingsView extends ConsumerWidget {
       children: [
         // 分组标题：图标 + 文字，增加视觉层次
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, _kSectionTitleTopPadding, 20, _kSectionTitleVerticalPadding),
+          padding: const EdgeInsets.fromLTRB(
+              20, _kSectionTitleTopPadding, 20, _kSectionTitleVerticalPadding),
           child: Row(
             children: [
               Container(
@@ -320,9 +320,11 @@ class SettingsView extends ConsumerWidget {
                 height: _kSectionIconContainerSize,
                 decoration: BoxDecoration(
                   color: sectionColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(_kSectionIconContainerRadius),
+                  borderRadius:
+                      BorderRadius.circular(_kSectionIconContainerRadius),
                 ),
-                child: Icon(sectionIcon, color: sectionColor, size: _kSectionIconSize),
+                child: Icon(sectionIcon,
+                    color: sectionColor, size: _kSectionIconSize),
               ),
               const SizedBox(width: _kSectionIconTextSpacing),
               Text(
@@ -341,11 +343,13 @@ class SettingsView extends ConsumerWidget {
         // 修复：将背景色从 Container 移到 Material 上，避免 Container 的背景色
         // 遮挡 ListTile 的墨水效果（Flutter 警告：ListTile background invisible）
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: _kSectionCardHorizontalMargin),
+          margin: const EdgeInsets.symmetric(
+              horizontal: _kSectionCardHorizontalMargin),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(_kSectionCardRadius),
             border: Border.all(
-              color: scheme.onSurface.withValues(alpha: _kSectionCardBorderAlpha),
+              color:
+                  scheme.onSurface.withValues(alpha: _kSectionCardBorderAlpha),
               width: _kSectionCardBorderWidth,
             ),
           ),
@@ -406,6 +410,9 @@ class SettingsView extends ConsumerWidget {
           ),
         ));
       },
+
+      helpText:
+          '选择首页视频流的数据源媒体库。\n\n· 可多选，视频流会合并展示所选媒体库的内容\n· 切换为「收藏夹」模式后，视频流改为展示收藏的影片/剧集/合集/演员\n· 点击 chips 可快速移除单个媒体库（支持撤销）\n\n提示：排除已观看等规则在此基础上生效。',
     );
   }
 
@@ -421,6 +428,8 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(feedExcludePlayedProvider.notifier).setExclude(value);
       },
+      helpText:
+          '开启后，首页视频流不再显示已经看过（Emby 标记为已播放）的视频。\n\n关闭则已看过的视频也会出现在视频流中。\n\n注意：此开关只影响视频流与网格视图的过滤，不影响收藏、关注等其他页面。',
     );
   }
 
@@ -433,8 +442,7 @@ class SettingsView extends ConsumerWidget {
       title: '推荐使用',
       libraries: recommendLibraries,
       favoritesMode: false,
-      onTap: () =>
-          LibrarySelector.show(context, scope: LibraryScope.recommend),
+      onTap: () => LibrarySelector.show(context, scope: LibraryScope.recommend),
       onChipTap: (libraryId) {
         final notifier = ref.read(recommendLibraryIdsProvider.notifier);
         final removedName = recommendLibraries
@@ -452,6 +460,8 @@ class SettingsView extends ConsumerWidget {
           ),
         ));
       },
+      helpText:
+          '选择「推荐页」使用的媒体库范围。\n\n推荐算法（相似推荐、高分、为你推荐等）只会从这些媒体库中取内容，未选中的媒体库不会出现在推荐页。\n\n可多选，点击 chips 可快速移除单个媒体库。',
     );
   }
 
@@ -465,12 +475,11 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final empty = discover.selectedGenreIds.isEmpty || names.isEmpty;
     return ListTile(
-      leading: _IconContainer(
-          icon: Icons.explore_outlined, color: Colors.orange),
+      leading:
+          _IconContainer(icon: Icons.explore_outlined, color: Colors.orange),
       title: Text(
         '发现标签',
-        style:
-            TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+        style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 6),
@@ -505,7 +514,17 @@ class SettingsView extends ConsumerWidget {
                 ],
               ),
       ),
-      trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _helpButton(
+            helpText:
+                '「发现标签」决定首页顶栏「发现」数据源展示的内容。\n\n· 选择 Emby 中的标签（类型/流派），发现页只展示对应标签的影片\n· 不选择时发现页为空或展示全部\n\n常用于自定义「发现」入口的浏览内容，与推荐、关注相互独立。',
+            title: '发现标签',
+          ),
+          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        ],
+      ),
       onTap: () => _showDiscoverGenresDialog(context, ref),
     );
   }
@@ -546,8 +565,8 @@ class SettingsView extends ConsumerWidget {
                 final checked = selected.contains(g.id);
                 return CheckboxListTile(
                   value: checked,
-                  title: Text(g.name,
-                      style: TextStyle(color: scheme.onSurface)),
+                  title:
+                      Text(g.name, style: TextStyle(color: scheme.onSurface)),
                   dense: true,
                   onChanged: (v) => setDialogState(() {
                     if (v == true) {
@@ -569,7 +588,9 @@ class SettingsView extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              ref.read(discoverProvider.notifier).saveSelection(selected.toList());
+              ref
+                  .read(discoverProvider.notifier)
+                  .saveSelection(selected.toList());
             },
             child: const Text('确定'),
           ),
@@ -587,6 +608,8 @@ class SettingsView extends ConsumerWidget {
       title: '评分阈值',
       subtitle: rating == 0 ? '不过滤' : '≥ $rating',
       onTap: () => _showRecommendRatingDialog(context, ref, rating),
+      helpText:
+          '设置推荐内容的最低评分门槛。\n\n只有 Emby 社区评分（CommunityRating）≥ 该值的影片才会进入推荐页，用于过滤烂片。\n\n· 默认 6.0\n· 调高 → 推荐更精但内容更少\n· 调低 → 内容更多但质量参差\n\n注意：仅影响「高分」等评分相关数据源。',
     );
   }
 
@@ -602,6 +625,8 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(recommendExcludePlayedProvider.notifier).setExclude(value);
       },
+      helpText:
+          '开启后，推荐页不再展示你已经看过的视频。\n\n适合想发现新内容的场景；关闭则推荐中会混入已看过的内容。\n\n与「视频流排除已观看」互不影响，两者独立生效。',
     );
   }
 
@@ -614,6 +639,8 @@ class SettingsView extends ConsumerWidget {
       title: '最短时长',
       subtitle: sec == 0 ? '不过滤' : '$sec 秒以上',
       onTap: () => _showRecommendRuntimeDialog(context, ref, sec),
+      helpText:
+          '过滤推荐内容的最短时长（分钟）。\n\n短于该时长的内容（如短片、花絮）不会出现在推荐页。\n\n· 默认 0（不过滤）\n· 建议 30–60 分钟可过滤大部分短片',
     );
   }
 
@@ -652,7 +679,8 @@ class SettingsView extends ConsumerWidget {
                 ),
                 const Text(
                   '0 = 不过滤；越高越严格（小众片变少）',
-                  style: TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
+                  style:
+                      TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
                 ),
               ],
             ),
@@ -704,7 +732,8 @@ class SettingsView extends ConsumerWidget {
                 ),
                 const Text(
                   '过滤测试片 / 预告片（默认 30s）',
-                  style: TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
+                  style:
+                      TextStyle(fontSize: _kFontSizeSmall, color: Colors.grey),
                 ),
               ],
             ),
@@ -738,6 +767,8 @@ class SettingsView extends ConsumerWidget {
       title: '推荐类型',
       subtitle: _formatTypes(types),
       onTap: () => _showRecommendTypesDialog(context, ref, types),
+      helpText:
+          '选择推荐页包含的内容类型。\n\n可勾选：电影 / 剧集 / 单集 / 视频 / 音乐视频等。\n\n未勾选的类型不会出现在推荐结果中，用于控制推荐内容的体裁范围。',
     );
   }
 
@@ -804,6 +835,8 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(recommendUseWatchHistoryProvider.notifier).setUse(value);
       },
+      helpText:
+          '开启后，推荐算法会参考你的观看历史计算相似推荐与「为你推荐」。\n\n· 开启 → 推荐更贴合你的口味（需要服务器端有播放记录）\n· 关闭 → 推荐退化为冷启动策略（按评分/热度）\n\n关闭时「相似」标签可能没有数据。',
     );
   }
 
@@ -820,6 +853,8 @@ class SettingsView extends ConsumerWidget {
       subtitle:
           halfLifeDays == 0 ? '不衰减，所有记录等权重' : '$halfLifeDays 天前的记录权重衰减到 0.5',
       onTap: () => _showHalfLifeDaysDialog(context, ref, halfLifeDays),
+      helpText:
+          '时间衰减半衰期（天）。\n\n观看历史对推荐的影响随时间衰减：半衰期越短，越久远的观看记录权重越低，推荐越偏向近期口味。\n\n· 默认 30 天\n· 调小 → 只看近期偏好\n· 调大 → 长期偏好更稳定',
     );
   }
 
@@ -898,6 +933,9 @@ class SettingsView extends ConsumerWidget {
             .read(recommendAntiFatigueEnabledProvider.notifier)
             .setEnabled(value);
       },
+
+      helpText:
+          '反疲劳机制：避免同一演员/导演的内容在推荐中连续刷屏。\n\n开启后，推荐结果会限制同一创作者的视频出现密度，浏览体验更丰富。\n\n适合关注演员数量较少、内容高度集中的场景。',
     );
   }
 
@@ -911,6 +949,8 @@ class SettingsView extends ConsumerWidget {
       title: '不重推天数',
       subtitle: '$days 天内展示过的 item 不再推荐',
       onTap: () => _showAntiFatigueDaysDialog(context, ref, days),
+      helpText:
+          '反疲劳窗口（天）：在多少天内对同一创作者的内容去重/限流。\n\n窗口越大，同一创作者的内容被限制的时间越长。\n\n与「反疲劳开关」配合使用，仅在开启时生效。',
     );
   }
 
@@ -979,15 +1019,19 @@ class SettingsView extends ConsumerWidget {
       title: '关注·最近剧集数',
       subtitle: '展示最近 $count 部剧的下一集',
       onTap: () => _showCountSliderDialog(
-        context, ref,
+        context,
+        ref,
         title: '关注·最近剧集数',
         current: count,
-        min: 1, max: 10,
+        min: 1,
+        max: 10,
         label: (v) => '$v 部',
         description: '数量越多，你正在追的剧续播排得越靠前；太少会只剩演员新片。',
         apply: (v) =>
             ref.read(recommendNextUpSeriesCountProvider.notifier).setCount(v),
       ),
+      helpText:
+          '「关注」视频流中，每个已收藏剧集最多展示的「最近剧集」数量。\n\n用于控制关注页的剧集内容密度。\n\n· 默认 1\n· 调大 → 关注页出现更多连续剧集',
     );
   }
 
@@ -1001,21 +1045,24 @@ class SettingsView extends ConsumerWidget {
       title: '关注·演员新片数',
       subtitle: '收藏演员新作品展示 $count 条',
       onTap: () => _showCountSliderDialog(
-        context, ref,
+        context,
+        ref,
         title: '关注·演员新片数',
         current: count,
-        min: 5, max: 40,
+        min: 5,
+        max: 40,
         label: (v) => '$v 条',
         description: '控制收藏演员新作品在关注页里占多少条。',
         apply: (v) =>
             ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
       ),
+      helpText:
+          '「关注」视频流中，每位已收藏演员最多展示的新作品数量。\n\n· 默认 1\n· 调大 → 每位演员展示更多作品\n\n只影响关注页，不影响其他页面。',
     );
   }
 
   // 关注页：每演员视频数（默认 3，范围 1-10）
-  Widget _buildFollowActorVideoCountTile(
-      BuildContext context, WidgetRef ref) {
+  Widget _buildFollowActorVideoCountTile(BuildContext context, WidgetRef ref) {
     final count = ref.watch(followActorVideoCountProvider);
     return _TapTile(
       icon: Icons.person_add_alt,
@@ -1023,25 +1070,33 @@ class SettingsView extends ConsumerWidget {
       title: '关注·每演员视频数',
       subtitle: '每个收藏演员展示 $count 条',
       onTap: () => _showCountSliderDialog(
-        context, ref,
+        context,
+        ref,
         title: '关注·每演员视频数',
         current: count,
-        min: 1, max: 10,
+        min: 1,
+        max: 10,
         label: (v) => '$v 条',
         description: '关注视频流按演员逐个拉取，每个收藏演员最多显示 N 条视频。',
         apply: (v) =>
             ref.read(followActorVideoCountProvider.notifier).setCount(v),
       ),
+      helpText:
+          '「关注·每演员视频数」：关注视频流中每位演员最多展示的视频数量。\n\n· 范围 1–10，默认 3\n· 调小 → 关注流更紧凑、刷新更快\n· 调大 → 每位演员展示更多视频，加载更慢\n\n只在「关注」页面生效。',
     );
   }
 
   // 关注页：只看未观看（默认开）
-  Widget _buildFollowOnlyUnwatchedTile(
-      BuildContext context, WidgetRef ref) {
+  Widget _buildFollowOnlyUnwatchedTile(BuildContext context, WidgetRef ref) {
     final onlyUnwatched = ref.watch(followOnlyUnwatchedProvider);
     final scheme = Theme.of(context).colorScheme;
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      secondary: _helpButton(
+        helpText:
+            '开启后，「关注」视频流只显示你尚未观看过的视频。\n\n· 开启 → 已看过的视频不会出现在关注视频流，方便追新\n· 关闭 → 已看过的视频也会显示\n\n「已观看」依据 Emby 服务器记录的播放状态判断。',
+        title: '关注·只看未观看',
+      ),
       title: const Text('关注·只看未观看'),
       subtitle: Text(
         onlyUnwatched ? '已看过的视频不会出现在关注视频流' : '已看过的视频也会显示',
@@ -1132,6 +1187,9 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(recommendUserRatingEnabledProvider.notifier).setEnabled(value);
       },
+
+      helpText:
+          '开启后，推荐结果额外按你的个人评分（UserRating）加权。\n\n适合你给影片打过分的场景：高分内容更容易出现在推荐中。\n\n关闭则仅按社区评分/热度推荐。',
     );
   }
 
@@ -1144,6 +1202,8 @@ class SettingsView extends ConsumerWidget {
       title: '最低用户评分',
       subtitle: minRating == 0 ? '不过滤' : '≥ $minRating（0-10）',
       onTap: () => _showUserRatingMinDialog(context, ref, minRating),
+      helpText:
+          '设置个人评分参与推荐的阈值：只有你打分 ≥ 该值的内容才计入推荐加权。\n\n· 默认 0（所有打分都参与）\n· 调高 → 只信任你的高分评价\n\n仅在「个人评分参与推荐」开启时生效。',
     );
   }
 
@@ -1214,6 +1274,8 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(isAutoPlayProvider.notifier).setEnabled(value);
       },
+      helpText:
+          '开启后，视频播放完成会自动播放下一个推荐视频。\n\n· 开启 → 连续播放，适合刷视频场景\n· 关闭 → 播完停止，返回视频信息页\n\n在视频流的「自动连播」体验与手动浏览之间切换。',
     );
   }
 
@@ -1230,12 +1292,13 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(autoResumeAfterInterruptionProvider.notifier).set(value);
       },
+      helpText:
+          '开启后，播放因来电、通知、切后台等中断时，回到 App 会自动恢复到中断位置继续播放。\n\n关闭则中断后回到视频开头。\n\n与「播放位置记忆」配合使用，中断恢复更流畅。',
     );
   }
 
   // 播放 - 全屏排除边缘返回手势（Android 手势导航）
-  Widget _buildFullscreenGestureBackTile(
-      BuildContext context, WidgetRef ref) {
+  Widget _buildFullscreenGestureBackTile(BuildContext context, WidgetRef ref) {
     final exclude = ref.watch(fullscreenGestureBackExcludedProvider);
     return _SwitchTile(
       icon: Icons.swipe_outlined,
@@ -1246,6 +1309,8 @@ class SettingsView extends ConsumerWidget {
       onChanged: (value) {
         ref.read(fullscreenGestureBackExcludedProvider.notifier).set(value);
       },
+      helpText:
+          '全屏播放时，允许通过手势（如右滑/下滑）返回上一页。\n\n· 开启 → 手势返回更顺手\n· 关闭 → 只能用系统返回键退出全屏\n\n避免误触退出全屏时建议关闭。',
     );
   }
 
@@ -1258,6 +1323,7 @@ class SettingsView extends ConsumerWidget {
       title: _kTitlePlaybackRate,
       subtitle: '${rate.toStringAsFixed(1)}x',
       onTap: () => _showPlaybackRateDialog(context, ref, rate),
+      helpText: '设置视频默认播放倍速。\n\n支持 0.5x–2.0x。播放器播放时会使用该倍速，播放中也可临时调整。',
     );
   }
 
@@ -1269,6 +1335,8 @@ class SettingsView extends ConsumerWidget {
       title: _kTitleGestureControl,
       subtitle: _kSubtitleGestureControl,
       onTap: () => _showGestureControlDialog(context),
+      helpText:
+          '设置视频播放页的手势控制方式。\n\n支持：单击暂停/播放、双击快进快退、左右滑动调节进度、上下滑动调节亮度/音量等。\n\n可在此开关或调整各项手势灵敏度。',
     );
   }
 
@@ -1281,6 +1349,8 @@ class SettingsView extends ConsumerWidget {
       title: '默认字幕语言',
       subtitle: lang.isEmpty ? '关闭' : _getLanguageName(lang),
       onTap: () => _showSubtitleDialog(context, ref, lang),
+      helpText:
+          '选择默认字幕语言。\n\n当视频含多语言字幕时，优先加载该语言字幕。\n\n· 跟随系统 → 使用设备语言\n· 指定语言 → 始终加载指定字幕\n\n如果服务器没有该语言字幕则回退到默认字幕。',
     );
   }
 
@@ -1293,6 +1363,7 @@ class SettingsView extends ConsumerWidget {
       title: '字幕大小',
       subtitle: _subtitleSizeLabel(size),
       onTap: () => _showSubtitleSizeDialog(context, ref, size),
+      helpText: '调节字幕显示大小。\n\n· 偏小 → 画面更干净\n· 偏大 → 字幕更清晰\n\n实时预览，无需重启。',
     );
   }
 
@@ -1305,6 +1376,8 @@ class SettingsView extends ConsumerWidget {
       title: _kTitleTheme,
       subtitle: _themeLabel(themeMode),
       onTap: () => _showThemeDialog(context, ref, themeMode),
+      helpText:
+          '选择 App 主题：跟随系统 / 浅色 / 深色。\n\n· 跟随系统 → 随设备深色模式自动切换\n· 深色 → 夜间观看更舒适\n\n设置后立即生效。',
     );
   }
 
@@ -1317,6 +1390,8 @@ class SettingsView extends ConsumerWidget {
       title: '视频方向',
       subtitle: orientationMode.zhLabel,
       onTap: () => _showOrientationDialog(context, ref, orientationMode),
+      helpText:
+          '设置视频播放时的屏幕方向。\n\n· 跟随系统 → 横竖屏自由旋转\n· 横屏 → 播放强制横屏（适合大屏观影）\n· 竖屏 → 保持竖屏浏览',
     );
   }
 
@@ -1329,6 +1404,8 @@ class SettingsView extends ConsumerWidget {
       title: '清除缓存',
       subtitle: formatBytes(cacheSize),
       onTap: () => _showClearCacheDialog(context, ref),
+      helpText:
+          '管理图片/视频封面缓存。\n\n· 查看当前缓存占用\n· 一键清理缓存释放存储空间\n\n封面缓存用于加速列表加载；清理后需重新下载，但不会丢失任何数据。',
     );
   }
 
@@ -1345,6 +1422,8 @@ class SettingsView extends ConsumerWidget {
           title: '歌手元数据缓存',
           subtitle: '简介/头像缓存 ${formatBytes(size)}，点击清除',
           onTap: () => _showClearArtistMetadataDialog(context, ref),
+          helpText:
+              '管理艺术家/歌手元数据缓存（头像、简介等）。\n\n· 查看缓存条目数\n· 清理缓存后，歌手详情将从数据源重新拉取\n\n适用于音乐服务模式。',
         );
       },
     );
@@ -1359,6 +1438,8 @@ class SettingsView extends ConsumerWidget {
       title: _kTitleBatchScan,
       subtitle: '扫描音乐库中所有歌手，批量获取缺失的头像和简介',
       onTap: () => _startBatchScan(context, ref),
+      helpText:
+          '批量扫描设置：控制启动/刷新时是否全量扫描服务器内容。\n\n· 开启 → 启动后自动拉取最新媒体库（耗流量、加载慢）\n· 关闭 → 只加载本地缓存（加载快、内容可能滞后）\n\n建议在内容更新频繁时开启，日常使用可关闭。',
     );
   }
 
@@ -1479,6 +1560,8 @@ class SettingsView extends ConsumerWidget {
       title: '重置设置',
       subtitle: '恢复所有偏好为默认值（不影响登录/历史/收藏）',
       onTap: () => _showResetSettingsDialog(context, ref),
+      helpText:
+          '将所有设置恢复为默认值。\n\n不影响：登录的服务器、观看历史、收藏数据。\n\n仅重置本页可见的偏好项，操作不可撤销，建议先确认当前配置。',
     );
   }
 
@@ -1492,6 +1575,8 @@ class SettingsView extends ConsumerWidget {
       title: '导出日志',
       subtitle: '导出最近 500 条 WARN/ERROR 日志用于排查',
       onTap: () => _exportLogs(context),
+      helpText:
+          '将最近 500 条 WARN/ERROR 日志导出为文本文件，并复制文件路径到剪贴板。\n\n用于排查崩溃、加载失败等异常，提交反馈时可附带该日志。',
     );
   }
 
@@ -1504,6 +1589,7 @@ class SettingsView extends ConsumerWidget {
       title: '清除日志',
       subtitle: '删除本地保存的日志文件',
       onTap: () => _showClearLogsDialog(context),
+      helpText: '删除本地保存的日志文件（内存缓冲区 + 磁盘文件）。\n\n清除后无法恢复；排查问题时建议先导出再清除。',
     );
   }
 
@@ -1521,6 +1607,7 @@ class SettingsView extends ConsumerWidget {
           ? '暂无数据'
           : '总 ${stats.totalCount} 次 · 平均完播率 $avg%',
       onTap: () => _showWatchStatsDialog(context, ref),
+      helpText: '查看本机观看统计：总播放次数、平均完播率。\n\n点击可查看详情并支持清空统计。\n\n数据仅保存在本机，不会上传。',
     );
   }
 
@@ -1536,6 +1623,8 @@ class SettingsView extends ConsumerWidget {
           ? '配置 Emby / 群晖等多台服务器并快速切换'
           : '${servers.length} 台服务器 · 当前：${active?.name ?? '未激活'}',
       onTap: () => context.push('/servers'),
+      helpText:
+          '管理已配置的服务器（Emby / Jellyfin / 群晖 Audio Station 等）。\n\n· 查看已添加的服务器列表与状态\n· 添加、编辑、删除服务器\n· 快速切换当前使用的服务器\n\n切换服务器后，媒体库/登录状态跟随切换。',
     );
   }
 
@@ -1569,7 +1658,8 @@ class SettingsView extends ConsumerWidget {
             },
             style: const ButtonStyle(
               visualDensity: VisualDensity.compact,
-              textStyle: const WidgetStatePropertyAll(TextStyle(fontSize: _kFontSizeBody)),
+              textStyle: const WidgetStatePropertyAll(
+                  TextStyle(fontSize: _kFontSizeBody)),
             ),
           ),
           const SizedBox(height: _kSpacingMedium),
@@ -1577,7 +1667,8 @@ class SettingsView extends ConsumerWidget {
             mode == AppServiceMode.music
                 ? '首页将显示音乐库界面（群晖 Audio Station）'
                 : '首页将显示视频流界面（Emby / Plex）',
-            style: TextStyle(fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -1665,6 +1756,8 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blue,
       title: '当前服务器',
       subtitle: auth.backendUrl ?? '未连接',
+      helpText:
+          '当前正在使用的服务器地址。\n\n如需切换或添加服务器，请使用上方「服务器管理」入口。\n\n服务器切换后，媒体库、推荐与收藏内容都会跟随当前服务器变化。',
     );
   }
 
@@ -1679,6 +1772,8 @@ class SettingsView extends ConsumerWidget {
           ? (synoAuth.account ?? '已登录')
           : '连接群晖 NAS Audio Station',
       onTap: () => context.push('/music'),
+      helpText:
+          '配置群晖 Audio Station 音乐服务。\n\n· 填写服务器地址、账号密码\n· 用于音乐服务模式下的音乐库浏览与播放\n\n需要群晖开启 Audio Station 并授予当前用户访问权限。',
     );
   }
 
@@ -1690,10 +1785,12 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.graphic_eq,
       iconColor: const Color(0xFFD51007),
       title: 'Last.fm 补充',
-      subtitle: configured
-          ? '已配置：歌手头像/简介优先用 Last.fm'
-          : '配置 API Key，补充歌手图与简介（免费）',
-      onTap: () => _showLastFmKeyDialog(context, ref, keyAsync.valueOrNull ?? ''),
+      subtitle:
+          configured ? '已配置：歌手头像/简介优先用 Last.fm' : '配置 API Key，补充歌手图与简介（免费）',
+      onTap: () =>
+          _showLastFmKeyDialog(context, ref, keyAsync.valueOrNull ?? ''),
+      helpText:
+          '配置 Last.fm 服务（可选）。\n\n用于获取歌手头像、简介等补充信息，丰富歌手详情页。\n\n· 需要注册 Last.fm API Key\n· 未配置时歌手详情仅显示服务器已有信息',
     );
   }
 
@@ -1723,6 +1820,8 @@ class SettingsView extends ConsumerWidget {
           ),
         );
       },
+      helpText:
+          '开启后，自动同步 NAS（群晖）音乐库的元数据（歌手、专辑、曲目信息）。\n\n· 开启 → 音乐库信息保持最新（同步耗时）\n· 关闭 → 仅使用本地缓存（更快但可能滞后）\n\n首次配置后建议开启一次完成全量同步。',
     );
   }
 
@@ -1805,6 +1904,8 @@ class SettingsView extends ConsumerWidget {
       title: '检查更新',
       subtitle: '检查是否有新版本',
       onTap: () => _checkForUpdate(context, ref),
+      helpText:
+          '检查是否有新版本。\n\n· 自动检测 GitHub Releases 最新版本\n· 发现新版本可一键下载安装包\n\n国内网络下载失败时，可稍后重试或使用代理。',
     );
   }
 
@@ -1816,6 +1917,7 @@ class SettingsView extends ConsumerWidget {
       title: '打赏支持',
       subtitle: '请作者喝杯咖啡',
       onTap: () => _showDonateDialog(context),
+      helpText: '支持开发者：查看捐赠方式。\n\n捐赠是自愿行为，不影响任何功能使用。',
     );
   }
 
@@ -1842,6 +1944,7 @@ class SettingsView extends ConsumerWidget {
           }
         }
       },
+      helpText: '提交使用反馈或问题报告。\n\n建议附上：设备型号、App 版本、操作步骤、是否可复现，以及导出日志内容，便于快速定位。',
     );
   }
 
@@ -1858,6 +1961,8 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blueGrey,
       title: '版本',
       subtitle: subtitle,
+      helpText:
+          '当前 App 版本与构建号。\n\n版本格式：主版本.次版本.修订号+构建号\n· 修订号 +1 → 小修复\n· 次版本 +1 → 新功能\n\n如发现新版本无法下载，可到「检查更新」重试。',
     );
   }
 
@@ -1869,9 +1974,7 @@ class SettingsView extends ConsumerWidget {
       icon: Icons.analytics_outlined,
       iconColor: Colors.purple,
       title: '性能监控面板',
-      subtitle: enabled
-          ? '已开启：悬浮显示内存/FPS/重建次数/API 请求'
-          : '已关闭：开发调试用，不影响发布版本',
+      subtitle: enabled ? '已开启：悬浮显示内存/FPS/重建次数/API 请求' : '已关闭：开发调试用，不影响发布版本',
       value: enabled,
       onChanged: (value) {
         if (value) {
@@ -1887,6 +1990,7 @@ class SettingsView extends ConsumerWidget {
           ),
         );
       },
+      helpText: '开启后显示实时性能监控（帧率、内存占用等）。\n\n· 调试用，日常可关闭\n· 开启会略微增加系统开销',
     );
   }
 
@@ -1923,9 +2027,8 @@ class SettingsView extends ConsumerWidget {
           icon: Icons.security_outlined,
           iconColor: Colors.orange,
           title: '允许自签名证书',
-          subtitle: allow
-              ? '已允许：可连接自签名证书的内网服务器（存在安全风险）'
-              : '已禁用：严格校验 SSL 证书（推荐）',
+          subtitle:
+              allow ? '已允许：可连接自签名证书的内网服务器（存在安全风险）' : '已禁用：严格校验 SSL 证书（推荐）',
           value: allow,
           onChanged: (value) {
             if (value) {
@@ -1936,6 +2039,8 @@ class SettingsView extends ConsumerWidget {
               _setAllowSelfSignedCertificate(context, false);
             }
           },
+          helpText:
+              '开启后允许连接使用自签名证书的服务器（如内网 NAS、自建 Emby）。\n\n· 开启 → 信任自签名证书，避免 TLS 校验失败\n· 关闭 → 只信任受信任 CA 签发的证书\n\n仅在你信任该服务器时开启，否则存在中间人攻击风险。',
         );
       },
     );
@@ -1964,9 +2069,7 @@ class SettingsView extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(allow
-              ? '已允许自签名证书，重启 App 后生效'
-              : '已禁用自签名证书，重启 App 后生效'),
+          content: Text(allow ? '已允许自签名证书，重启 App 后生效' : '已禁用自签名证书，重启 App 后生效'),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -2280,8 +2383,7 @@ class SettingsView extends ConsumerWidget {
 
   // 显示设置搜索对话框
   void _showSettingsSearch(BuildContext context, WidgetRef ref) {
-    final isMusicMode =
-        ref.read(serviceModeProvider) == AppServiceMode.music;
+    final isMusicMode = ref.read(serviceModeProvider) == AppServiceMode.music;
     // 音乐模式：过滤视频相关设置项（视频库/推荐/播放/字幕/统计/视频方向）
     const videoSections = {'视频库', '推荐', '播放', '字幕', '统计'};
     final entries = _buildSearchIndex(context, ref)
@@ -2313,8 +2415,12 @@ class SettingsView extends ConsumerWidget {
     required bool favoritesMode,
     String favoritesLabel = '收藏夹',
     required VoidCallback onTap,
+
     /// 媒体库 chip 点击回调（快捷移除单个数据源，如 null 则 chips 只读）
     ValueChanged<String>? onChipTap,
+
+    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
+    String? helpText,
   }) {
     return Builder(builder: (context) {
       final scheme = Theme.of(context).colorScheme;
@@ -2350,8 +2456,7 @@ class SettingsView extends ConsumerWidget {
           ),
       ];
       return ListTile(
-        leading:
-            _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
+        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
         title: Text(
           title,
           style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
@@ -2364,7 +2469,13 @@ class SettingsView extends ConsumerWidget {
             children: chips,
           ),
         ),
-        trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _helpButton(helpText: helpText, title: title),
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          ],
+        ),
         onTap: onTap,
       );
     });
@@ -2437,6 +2548,9 @@ class SettingsView extends ConsumerWidget {
     required String title,
     String? subtitle,
     required VoidCallback onTap,
+
+    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
+    String? helpText,
   }) {
     return Builder(builder: (context) {
       final scheme = Theme.of(context).colorScheme;
@@ -2450,12 +2564,19 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: _kTileSubtitleAlpha),
+                  color: scheme.onSurfaceVariant
+                      .withValues(alpha: _kTileSubtitleAlpha),
                   fontSize: _kFontSizeBody,
                 ),
               )
             : null,
-        trailing: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _helpButton(helpText: helpText, title: title),
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          ],
+        ),
         onTap: onTap,
       );
     });
@@ -2469,6 +2590,9 @@ class SettingsView extends ConsumerWidget {
     String? subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+
+    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
+    String? helpText,
   }) {
     return Builder(builder: (context) {
       final scheme = Theme.of(context).colorScheme;
@@ -2482,15 +2606,22 @@ class SettingsView extends ConsumerWidget {
             ? Text(
                 subtitle,
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: _kTileSubtitleAlpha),
+                  color: scheme.onSurfaceVariant
+                      .withValues(alpha: _kTileSubtitleAlpha),
                   fontSize: _kFontSizeBody,
                 ),
               )
             : null,
-        trailing: Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: scheme.primary,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _helpButton(helpText: helpText, title: title),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: scheme.primary,
+            ),
+          ],
         ),
       );
     });
@@ -2502,6 +2633,9 @@ class SettingsView extends ConsumerWidget {
     Color? iconColor,
     required String title,
     String? subtitle,
+
+    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
+    String? helpText,
   }) {
     return Builder(builder: (context) {
       final scheme = Theme.of(context).colorScheme;
@@ -2520,8 +2654,88 @@ class SettingsView extends ConsumerWidget {
                 ),
               )
             : null,
+        trailing: _helpButton(helpText: helpText, title: title),
       );
     });
+  }
+
+  /// 帮助按钮：helpText 非空时显示（?）图标，点击弹出详细帮助
+  static Widget _helpButton({
+    required String? helpText,
+    required String title,
+  }) {
+    if (helpText == null || helpText.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Builder(builder: (context) {
+      final scheme = Theme.of(context).colorScheme;
+      return IconButton(
+        icon:
+            Icon(Icons.help_outline, size: 19, color: scheme.onSurfaceVariant),
+        tooltip: '帮助',
+        visualDensity: VisualDensity.compact,
+        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+        padding: EdgeInsets.zero,
+        onPressed: () => _showHelp(context, title, helpText),
+      );
+    });
+  }
+
+  /// 弹出设置项帮助（底部弹层：标题 + 详细说明）
+  static void _showHelp(BuildContext context, String title, String helpText) {
+    final scheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: scheme.surfaceContainerHigh,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.help_outline, size: 22, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          color: scheme.onSurface,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close,
+                          size: 20, color: scheme.onSurfaceVariant),
+                      tooltip: '关闭',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SelectableText(
+                  helpText,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 14,
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // 图标容器
@@ -2911,7 +3125,8 @@ class SettingsView extends ConsumerWidget {
             const Spacer(),
             Text(
               '共 ${logContent.length} 字符',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
+              style: TextStyle(
+                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
             ),
           ],
         ),
@@ -2926,8 +3141,9 @@ class SettingsView extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     '... 省略前 ${lines.length - 20} 行',
-                    style:
-                        TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: _kFontSizeSmall),
                   ),
                 ),
               Container(
@@ -3203,7 +3419,8 @@ class SettingsView extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody)),
+              style: TextStyle(
+                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody)),
           Text(value,
               style: TextStyle(
                 color: scheme.onSurface,
@@ -3283,7 +3500,8 @@ class SettingsView extends ConsumerWidget {
               ),
               const SizedBox(width: 20),
               Text('正在检查更新…',
-                  style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge)),
+                  style: TextStyle(
+                      color: scheme.onSurface, fontSize: _kFontSizeLarge)),
             ],
           ),
         ),
@@ -3312,7 +3530,7 @@ class SettingsView extends ConsumerWidget {
           onAction: null,
           secondaryActionText: '前往 GitHub',
           onSecondaryAction: () =>
-                  _launchUrl(updateService.releasePageUrl, context),
+              _launchUrl(updateService.releasePageUrl, context),
         );
       } else if (result.hasUpdate) {
         // 有新版本
@@ -3321,8 +3539,7 @@ class SettingsView extends ConsumerWidget {
         final apkAssets = release.assets.where((a) => a.isApk).toList();
         final hasApk = apkAssets.isNotEmpty;
         // 网络失败回退缓存时提示来源，避免用户误以为版本没变化
-        final cacheHint =
-            result.fromCache ? '\n\n（网络不可用，以上为上次检查结果）' : '';
+        final cacheHint = result.fromCache ? '\n\n（网络不可用，以上为上次检查结果）' : '';
         _showUpdateResultDialog(
           context,
           icon: Icons.system_update,
@@ -3381,7 +3598,7 @@ class SettingsView extends ConsumerWidget {
         onAction: null,
         secondaryActionText: '前往 GitHub',
         onSecondaryAction: () =>
-                  _launchUrl(updateService.releasePageUrl, context),
+            _launchUrl(updateService.releasePageUrl, context),
       );
     }
   }
@@ -3807,9 +4024,8 @@ class SettingsView extends ConsumerWidget {
               // 外部打赏链接（如爱发电等）
               InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () =>
-                    _launchUrl(
-                        'https://github.com/1525745393/EmbyTok-Flutter', context),
+                onTap: () => _launchUrl(
+                    'https://github.com/1525745393/EmbyTok-Flutter', context),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -3930,9 +4146,8 @@ class SettingsView extends ConsumerWidget {
               // GitHub 仓库入口：点击跳转到项目仓库
               InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () =>
-                    _launchUrl(
-                        'https://github.com/1525745393/EmbyTok-Flutter', context),
+                onTap: () => _launchUrl(
+                    'https://github.com/1525745393/EmbyTok-Flutter', context),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -4061,7 +4276,6 @@ class SettingsView extends ConsumerWidget {
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
 class _DonatePlaceholder extends StatelessWidget {
-
   const _DonatePlaceholder({
     required this.icon,
     required this.label,
@@ -4146,7 +4360,6 @@ class _AboutFeatureRow extends StatelessWidget {
 /// 异步收集所有依赖的许可证条目，渲染为中文界面的可展开列表，
 /// 支持按包名搜索过滤。
 class _LicensePage extends StatefulWidget {
-
   const _LicensePage({
     required this.applicationName,
     required this.applicationVersion,
@@ -4246,7 +4459,8 @@ class _LicensePageState extends State<_LicensePage> {
                   border: InputBorder.none,
                   hintStyle: TextStyle(color: scheme.onSurfaceVariant),
                 ),
-                style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeXLarge),
+                style: TextStyle(
+                    color: scheme.onSurface, fontSize: _kFontSizeXLarge),
                 onChanged: (v) => setState(() => _searchQuery = v),
               )
             : const Text('开源许可证'),
@@ -4286,7 +4500,8 @@ class _LicensePageState extends State<_LicensePage> {
             const SizedBox(height: _kSpacingXLarge),
             Text(
               '正在加载许可证...',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
+              style: TextStyle(
+                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
             ),
           ],
         ),
@@ -4309,7 +4524,8 @@ class _LicensePageState extends State<_LicensePage> {
       return Center(
         child: Text(
           _searchQuery.isEmpty ? '暂无许可证信息' : '没有匹配「$_searchQuery」的包',
-          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
+          style: TextStyle(
+              color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
         ),
       );
     }
@@ -4383,7 +4599,8 @@ class _LicensePageState extends State<_LicensePage> {
       ),
       subtitle: Text(
         '点击查看许可证全文',
-        style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeTiny),
+        style:
+            TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeTiny),
       ),
       children: [
         SelectableText(
@@ -4414,8 +4631,8 @@ class _LicenseEntryView {
 /// 基础推荐设置始终显示；高级选项（完播率门控、时间衰减、反疲劳、用户评分）
 /// 默认折叠，点击"高级选项"后展开。展开状态为局部 state，页面重建后重置为折叠。
 class _RecommendAdvancedTile extends StatefulWidget {
-
   const _RecommendAdvancedTile({required this.advancedTilesBuilder});
+
   /// 高级选项 tile 构建器：每次 build 时调用，确保 ref.watch 生效
   final List<Widget> Function() advancedTilesBuilder;
 
@@ -4438,7 +4655,8 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
           ),
           title: Text(
             '高级选项',
-            style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+            style:
+                TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
           ),
           subtitle: Text(
             '完播率门控、时间衰减、反疲劳、用户评分',
@@ -4511,8 +4729,8 @@ class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
     return key;
   }
 
-  Future<void> _pickSource(BuildContext context, WidgetRef ref,
-      String tagLabel, String currentKey) async {
+  Future<void> _pickSource(BuildContext context, WidgetRef ref, String tagLabel,
+      String currentKey) async {
     final selected = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
@@ -4568,7 +4786,8 @@ class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
           ),
           title: Text(
             '推荐标签数据源',
-            style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+            style:
+                TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
           ),
           subtitle: Text(
             '每个标签可绑定不同数据源',
@@ -4577,9 +4796,19 @@ class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
               fontSize: _kFontSizeBody,
             ),
           ),
-          trailing: Icon(
-            _expanded ? Icons.expand_less : Icons.expand_more,
-            color: scheme.onSurfaceVariant,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SettingsView._helpButton(
+                helpText:
+                    '自定义推荐页顶部标签栏每个标签对应的数据源。\n\n· 默认：最新影片→最新入库、继续观看→未看完、为你推荐→服务器建议、精选→原生精选、相似→相似推荐、高分→高分视频、移动客户端推荐→本地收藏\n· 点击标签行可更换其数据源\n· 更换后，标签栏计数与点击过滤都按新数据源计算\n· 两个标签绑定同一数据源时，内容相同且会同时高亮\n\n可一键恢复默认映射。',
+                title: '推荐标签数据源',
+              ),
+              Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                color: scheme.onSurfaceVariant,
+              ),
+            ],
           ),
           onTap: () => setState(() => _expanded = !_expanded),
         ),
@@ -4600,7 +4829,8 @@ class _RecommendTagMappingListTile extends ConsumerWidget {
   const _RecommendTagMappingListTile({required this.pickSource});
 
   final Future<void> Function(
-      BuildContext context, WidgetRef ref, String label, String current) pickSource;
+          BuildContext context, WidgetRef ref, String label, String current)
+      pickSource;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -4626,14 +4856,14 @@ class _RecommendTagMappingListTile extends ConsumerWidget {
             ),
             trailing: Icon(Icons.chevron_right,
                 color: scheme.onSurfaceVariant, size: 20),
-            onTap: () => pickSource(
-                context, ref, entries[i].key, entries[i].value),
+            onTap: () =>
+                pickSource(context, ref, entries[i].key, entries[i].value),
           ),
         ],
         // 恢复默认映射
         ListTile(
-          leading: Icon(Icons.restart_alt,
-              color: scheme.onSurfaceVariant, size: 20),
+          leading:
+              Icon(Icons.restart_alt, color: scheme.onSurfaceVariant, size: 20),
           title: Text(
             '恢复默认映射',
             style: TextStyle(
@@ -4723,7 +4953,6 @@ class _RuleSectionState extends State<_RuleSection> {
 
 /// 单个可搜索的设置入口
 class _SettingEntry {
-
   const _SettingEntry({
     required this.title,
     required this.section,
@@ -4746,7 +4975,6 @@ class _SettingEntry {
 
 /// 设置搜索底部表单：实时过滤设置项，点击后执行对应操作并关闭
 class _SettingsSearchSheet extends StatefulWidget {
-
   const _SettingsSearchSheet({required this.entries});
   final List<_SettingEntry> entries;
 
