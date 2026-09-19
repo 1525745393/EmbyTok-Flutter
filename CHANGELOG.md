@@ -1,3 +1,10 @@
+## [2.142.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.0...v2.142.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **discover:** 发现三源内容与列表查询限定视频媒体类型，getGenres 过滤空条目 ([fc7a66a](https://github.com/1525745393/EmbyTok-Flutter/commit/fc7a66a5371862ff5d14c1e13cc5a16c9c72399e))
+
 # [2.142.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.141.1...v2.142.0) (2026-09-19)
 
 
