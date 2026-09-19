@@ -135,13 +135,14 @@ class SettingsView extends ConsumerWidget {
                     _buildSharedRuleHint(context, ref),
                   ],
                 ),
-                // 发现页（默认展开，用户可分别设置类型/合集对接 Emby 标签）
+                // 发现页（默认展开，用户可分别设置类型/标签/合集对接 Emby 元数据）
                 _RuleSection(
                   icon: Icons.explore_outlined,
                   title: '发现页',
                   initiallyExpanded: true,
                   childrenBuilder: () => [
                     _buildDiscoverGenresTile(context, ref),
+                    _buildDiscoverTagsTile(context, ref),
                     _buildDiscoverCollectionsTile(context, ref),
                   ],
                 ),
@@ -521,7 +522,7 @@ class SettingsView extends ConsumerWidget {
         children: [
           _helpButton(
             helpText:
-                '「发现·类型」决定首页顶栏「发现」数据源中的类型来源。\n\n· 从 Emby 服务器拉取全部类型（流派），多选后发现页按所选类型逐个拉取影片合并展示\n· 可与「发现·合集」同时生效，两种来源的影片合并去重\n· 不选择任何类型与合集时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
+                '「发现·类型」决定首页顶栏「发现」数据源中的类型来源。\n\n· 从 Emby 服务器拉取全部类型（流派），多选后发现页按所选类型逐个拉取影片合并展示\n· 可与「发现·标签」「发现·合集」同时生效，三种来源的影片合并去重\n· 不选择任何来源时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
             title: '发现·类型',
           ),
           Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
@@ -536,6 +537,79 @@ class SettingsView extends ConsumerWidget {
         selectedOf: (s) => s.selectedGenreIds,
         refresh: () => ref.read(discoverProvider.notifier).refreshGenres(),
         onSave: (ids) => ref.read(discoverProvider.notifier).saveSelection(ids),
+      ),
+    );
+  }
+
+  /// 发现·标签设置项：多选 Emby 标签（Tags），首页「发现」合并展示标签下影片
+  Widget _buildDiscoverTagsTile(BuildContext context, WidgetRef ref) {
+    final discover = ref.watch(discoverProvider);
+    final names = discover.tags
+        .where((t) => discover.selectedTagIds.contains(t.id))
+        .map((t) => t.name)
+        .toList();
+    final scheme = Theme.of(context).colorScheme;
+    final empty = discover.selectedTagIds.isEmpty || names.isEmpty;
+    return ListTile(
+      leading:
+          _IconContainer(icon: Icons.label_outline, color: Colors.lightBlue),
+      title: Text(
+        '发现·标签',
+        style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: empty
+            ? Text(
+                '选择 Emby 标签（Tags），首页「发现」展示标签下影片',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant
+                      .withValues(alpha: _kTileSubtitleAlpha),
+                  fontSize: _kFontSizeBody,
+                ),
+              )
+            : Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (names.isEmpty)
+                    _libraryChip(
+                      label: '已选 ${discover.selectedTagIds.length} 个标签',
+                      icon: Icons.label_outline,
+                      color: scheme.onSurfaceVariant,
+                      background: scheme.surfaceContainerHighest,
+                    )
+                  else
+                    for (final name in names)
+                      _libraryChip(
+                        label: name,
+                        icon: Icons.label_outline,
+                        color: scheme.onSurfaceVariant,
+                        background: scheme.surfaceContainerHighest,
+                      ),
+                ],
+              ),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _helpButton(
+            helpText:
+                '「发现·标签」决定首页顶栏「发现」数据源中的标签来源。\n\n· 从 Emby 服务器拉取全部标签（Tags），多选后发现页按所选标签逐个拉取影片合并展示\n· 标签与类型（Genres）不同：类型是流派分类，标签是自定义标记（如 4K、国配、导演剪辑）\n· 可与「发现·类型」「发现·合集」同时生效，三种来源的影片合并去重\n· 不选择任何来源时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
+            title: '发现·标签',
+          ),
+          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        ],
+      ),
+      onTap: () => _showDiscoverSourceDialog(
+        context,
+        ref,
+        title: '选择发现标签',
+        emptyMessage: '无法获取标签列表，请检查服务器连接',
+        itemsOf: (s) => s.tags,
+        selectedOf: (s) => s.selectedTagIds,
+        refresh: () => ref.read(discoverProvider.notifier).refreshTags(),
+        onSave: (ids) => ref.read(discoverProvider.notifier).saveTags(ids),
       ),
     );
   }
@@ -594,7 +668,7 @@ class SettingsView extends ConsumerWidget {
         children: [
           _helpButton(
             helpText:
-                '「发现·合集」决定首页顶栏「发现」数据源中的合集来源。\n\n· 从 Emby 服务器拉取全部合集（BoxSet，如系列电影、导演合辑），多选后发现页按所选合集逐个拉取合集内影片合并展示\n· 可与「发现·类型」同时生效，两种来源的影片合并去重\n· 服务器没有合集（BoxSet）时列表为空\n\n合集内容来自服务器整理的系列/合辑，与推荐、关注相互独立。',
+                '「发现·合集」决定首页顶栏「发现」数据源中的合集来源。\n\n· 从 Emby 服务器拉取全部合集（BoxSet，如系列电影、导演合辑），多选后发现页按所选合集逐个拉取合集内影片合并展示\n· 可与「发现·类型」「发现·标签」同时生效，三种来源的影片合并去重\n· 服务器没有合集（BoxSet）时列表为空\n\n合集内容来自服务器整理的系列/合辑，与推荐、关注相互独立。',
             title: '发现·合集',
           ),
           Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),

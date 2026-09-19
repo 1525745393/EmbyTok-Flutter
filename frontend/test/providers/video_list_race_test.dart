@@ -35,10 +35,12 @@ class _MockMediaRepository implements MediaRepository {
   int get pendingRequestCount => _pendingRequests.length;
 
   /// 获取所有 pending 的请求
-  List<_PendingRequest> get pendingRequests => List.unmodifiable(_pendingRequests);
+  List<_PendingRequest> get pendingRequests =>
+      List.unmodifiable(_pendingRequests);
 
   /// 创建一个新的 pending 请求，返回 Completer 用于手动完成
-  _PendingRequest _createPendingRequest(String type, Map<String, dynamic> params) {
+  _PendingRequest _createPendingRequest(
+      String type, Map<String, dynamic> params) {
     final request = _PendingRequest(type, params, Completer<dynamic>());
     _pendingRequests.add(request);
     return request;
@@ -111,7 +113,8 @@ class _MockMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) => null;
+  }) =>
+      null;
 
   // 以下 peek* 方法为空实现：测试不依赖缓存读取路径，统一返回 null
   @override
@@ -121,7 +124,8 @@ class _MockMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) => null;
+  }) =>
+      null;
 
   @override
   FavoritesPageResult? peekFavoriteBoxSets({
@@ -130,7 +134,8 @@ class _MockMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) => null;
+  }) =>
+      null;
 
   @override
   FavoritesPageResult? peekFavoritePeople({
@@ -139,7 +144,8 @@ class _MockMediaRepository implements MediaRepository {
     required String serverUrl,
     required String token,
     String? userId,
-  }) => null;
+  }) =>
+      null;
 
   @override
   Future<MediaItem> getItemDetail(
@@ -529,6 +535,37 @@ class _MockMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<Library>> getTags({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final req = _createPendingRequest('getTags', {
+      'serverUrl': serverUrl,
+      'token': token,
+    });
+    return await req.completer.future as List<Library>;
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final req = _createPendingRequest('getItemsByTag', {
+      'tag': tag,
+      'limit': limit,
+      'offset': offset,
+      'serverUrl': serverUrl,
+      'token': token,
+    });
+    return await req.completer.future as PaginatedResponse<MediaItem>;
+  }
+
+  @override
   Future<List<Library>> getCollections({
     int limit = 100,
     required String serverUrl,
@@ -593,7 +630,6 @@ class _MockMediaRepository implements MediaRepository {
 
 /// 待处理请求封装
 class _PendingRequest {
-
   _PendingRequest(this.type, this.params, this.completer);
   final String type;
   final Map<String, dynamic> params;
@@ -629,7 +665,7 @@ PaginatedResponse<MediaItem> _paginatedResponse(
 /// 继承 AuthNotifier 以满足 authProvider 的类型约束，
 /// 调用 super(ref) 后再用预设状态覆盖 state，避免触发 _loadFromStorage 的副作用影响断言。
 class _TestAuthNotifier extends AuthNotifier {
-  _TestAuthNotifier(super.ref, AuthState initialState){
+  _TestAuthNotifier(super.ref, AuthState initialState) {
     state = initialState;
   }
 }
@@ -638,7 +674,7 @@ class _TestAuthNotifier extends AuthNotifier {
 ///
 /// 继承 SelectedLibraryNotifier 以满足 selectedLibraryIdsProvider 的类型约束。
 class _TestSelectedLibraryIdsNotifier extends SelectedLibraryNotifier {
-  _TestSelectedLibraryIdsNotifier(super.ref, List<String> initialState){
+  _TestSelectedLibraryIdsNotifier(super.ref, List<String> initialState) {
     state = initialState;
   }
 
@@ -685,7 +721,8 @@ void main() {
 
     AuthState testAuthState() => const AuthState(
           isAuthenticated: true,
-          user: const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
+          user:
+              const User(id: 'user-1', name: 'test', accessToken: 'test-token'),
           embyServerUrl: 'http://emby.example.com',
           token: 'test-token',
         );
@@ -763,8 +800,10 @@ void main() {
 
         expect(mockRepo.pendingRequestCount, greaterThanOrEqualTo(2));
 
-        final firstPageItems = List.generate(5, (i) => _testItem('first-${i + 1}'));
-        final secondPageItems = List.generate(5, (i) => _testItem('second-${i + 1}'));
+        final firstPageItems =
+            List.generate(5, (i) => _testItem('first-${i + 1}'));
+        final secondPageItems =
+            List.generate(5, (i) => _testItem('second-${i + 1}'));
 
         final secondReqIndex = mockRepo.pendingRequestCount - 1;
         mockRepo.completeRequest(
@@ -803,7 +842,8 @@ void main() {
         expect(mockRepo.pendingRequestCount, greaterThanOrEqualTo(3));
 
         final page3Items = List.generate(3, (i) => _testItem('third-${i + 1}'));
-        final page2Items = List.generate(3, (i) => _testItem('second-${i + 1}'));
+        final page2Items =
+            List.generate(3, (i) => _testItem('second-${i + 1}'));
         final page1Items = List.generate(3, (i) => _testItem('first-${i + 1}'));
 
         for (int i = mockRepo.pendingRequestCount - 1; i >= 0; i--) {
@@ -819,7 +859,8 @@ void main() {
 
         final state = container.read(videoListProvider);
         expect(state.items.length, 3);
-        expect(state.items.every((item) => item.id.startsWith('third-')), isTrue);
+        expect(
+            state.items.every((item) => item.id.startsWith('third-')), isTrue);
         expect(state.isLoading, false);
       });
 
@@ -956,7 +997,8 @@ void main() {
         await loadMore2;
 
         state = container.read(videoListProvider);
-        expect(state.items.map((e) => e.id).toList(), ['a', 'b', 'c', 'd', 'e', 'f']);
+        expect(state.items.map((e) => e.id).toList(),
+            ['a', 'b', 'c', 'd', 'e', 'f']);
       });
 
       test('所有页加载完后不再请求（hasMore=false 时 loadMore 直接返回）', () async {
@@ -1133,7 +1175,8 @@ void main() {
 
         expect(mockRepo.pendingRequestCount, greaterThanOrEqualTo(3));
 
-        final refreshItems = List.generate(5, (i) => _testItem('refreshed-${i + 1}'));
+        final refreshItems =
+            List.generate(5, (i) => _testItem('refreshed-${i + 1}'));
         final lastReqIndex = mockRepo.pendingRequestCount - 1;
 
         // 完成顺序：先 loadMore，后 refresh。
@@ -1161,7 +1204,8 @@ void main() {
 
         state = container.read(videoListProvider);
         expect(state.items.length, 5);
-        expect(state.items.every((item) => item.id.startsWith('refreshed-')), isTrue);
+        expect(state.items.every((item) => item.id.startsWith('refreshed-')),
+            isTrue);
         expect(state.isLoading, false);
       });
 
@@ -1308,8 +1352,7 @@ void main() {
         expect(container.read(videoListProvider).isLoading, false);
       });
 
-      test('连续 refresh 时 isLoading 不会乱跳（始终为 true 直到最后完成）',
-          () async {
+      test('连续 refresh 时 isLoading 不会乱跳（始终为 true 直到最后完成）', () async {
         container = createContainer();
 
         final notifier = container.read(videoListProvider.notifier);

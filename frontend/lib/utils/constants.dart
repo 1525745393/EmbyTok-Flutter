@@ -52,6 +52,7 @@ const String kStorageKeySubtitleSize = 'embytok_subtitle_size';
 // 发现页：用户选择的 Emby 标签（Genres）id 列表（JSON 数组，账号作用域）
 const String kStorageKeyDiscoverGenres = 'embytok_discover_genres';
 const String kStorageKeyDiscoverCollections = 'embytok_discover_collections';
+const String kStorageKeyDiscoverTags = 'embytok_discover_tags';
 // PR #78：推荐规则偏好（评分阈值 / 时长过滤 / 排除已观看）
 const String kStorageKeyRecommendMinRating = 'embytok_recommend_min_rating';
 const String kStorageKeyRecommendExcludePlayed =
@@ -83,11 +84,9 @@ const String kStorageKeyFollowActorVideoCount =
 // 推荐标签数据源映射（label → source key，JSON Map 序列化）
 const String kStorageKeyRecommendTagSourceMapping =
     'embytok_recommend_tag_source_mapping';
-const String kStorageKeyFollowOnlyUnwatched =
-    'embytok_follow_only_unwatched';
+const String kStorageKeyFollowOnlyUnwatched = 'embytok_follow_only_unwatched';
 // 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
-const String kStorageKeyFavoriteIncludeTypes =
-    'embytok_favorite_include_types';
+const String kStorageKeyFavoriteIncludeTypes = 'embytok_favorite_include_types';
 const String kStorageKeyRecentlyShownItemIds =
     'embytok_recently_shown_item_ids';
 // PR #89：推荐 - 用户评分加权（Emby UserData.Rating 0-10）
@@ -103,11 +102,9 @@ const String kStorageKeyLastPageIndex = 'embytok_last_page_index';
 const String kStorageKeyLastGridScrollOffset =
     'embytok_last_grid_scroll_offset';
 // 视频流当前视频索引（PageView 位置持久化）
-const String kStorageKeyLastFeedVideoIndex =
-    'embytok_last_feed_video_index';
+const String kStorageKeyLastFeedVideoIndex = 'embytok_last_feed_video_index';
 // 视频流当前视频 id（F3：恢复时按 id 精确定位，避免换库/重排错位）
-const String kStorageKeyLastFeedVideoItemId =
-    'embytok_last_feed_video_item_id';
+const String kStorageKeyLastFeedVideoItemId = 'embytok_last_feed_video_item_id';
 // 播放页（PlaybackShell）位置记忆：{source: {列表首itemId: {idx, last}}}
 // 关注页/发现页据此标记「上次看到」的视频
 const String kStorageKeyPlaybackShellPosition =
@@ -135,8 +132,7 @@ const String kActorsSortFavoritedAt = 'favoritedAt';
 const String kStorageKeyActorsSortMode = 'embytok_actors_sort_mode';
 const String kStorageKeyActorsGridColumns = 'embytok_actors_grid_columns';
 // 推荐页：网格列数（2/3），P2-2 对齐演员页 SegmentedButton 切换
-const String kStorageKeyRecommendGridColumns =
-    'embytok_recommend_grid_columns';
+const String kStorageKeyRecommendGridColumns = 'embytok_recommend_grid_columns';
 // 推荐页：滚动位置记忆，下次进入时恢复
 const String kStorageKeyRecommendScrollOffset =
     'embytok_recommend_scroll_offset';

@@ -473,6 +473,34 @@ class EmbytokService {
     );
   }
 
+  Future<List<Library>> getTags({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getTags(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getItemsByTag(
+      tag,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
   // ============================
   // 某类型下的影片
   // ============================

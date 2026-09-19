@@ -379,6 +379,22 @@ abstract class MediaRepository {
     required String token,
   });
 
+  /// 获取服务器标签（Tags）列表（发现数据源）
+  Future<List<Library>> getTags({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取指定标签下的影片列表（发现数据源）
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  });
+
   /// 获取指定类型下的影片列表
   ///
   /// 类型下的影片列表变化不频繁，使用中 TTL 缓存。

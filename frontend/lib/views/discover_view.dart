@@ -1,8 +1,8 @@
 // 发现页（PRD：视频库首页顶栏「发现」）
 //
-// 按用户设置的 Emby 合集（BoxSet）与类型（Genres）展示发现内容。
+// 按用户设置的 Emby 合集（BoxSet）、类型（Genres）与标签（Tags）展示发现内容。
 // - 顶部：AppBar + 「编辑发现」按钮（跳设置选择）
-// - 主体：网格展示已选类型与合集下的影片（合并去重）
+// - 主体：网格展示已选类型/标签/合集下的影片（合并去重）
 // - 未配置任何来源：引导空态，点击去设置
 // - 点击影片 → 进入播放页（整列表传入，可上下滑刷视频）
 // - 「上次看到」标记：读取播放页位置记忆，标记上次观看的视频
@@ -150,7 +150,7 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
       return EmptyStateCard(
         icon: Icons.explore_outlined,
         title: '还没有选择发现来源',
-        subtitle: '在设置中选择 Emby 合集或类型后，这里会展示对应的影片。',
+        subtitle: '在设置中选择 Emby 类型、标签或合集后，这里会展示对应的影片。',
         actionLabel: '去设置',
         onAction: () => context.push('/settings'),
       );
@@ -159,7 +159,7 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
       return const EmptyStateCard(
         icon: Icons.movie_outlined,
         title: '所选来源下暂无内容',
-        subtitle: '试试更换合集/类型，或检查服务器媒体库。',
+        subtitle: '试试更换类型/标签/合集，或检查服务器媒体库。',
       );
     }
 

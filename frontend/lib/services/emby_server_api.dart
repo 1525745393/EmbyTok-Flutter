@@ -1099,6 +1099,74 @@ class EmbyServerApi implements MediaServerApi {
   }
 
   // ============================
+  // 标签列表（Tags）
+  // ============================
+  @override
+  Future<List<Library>> getTags({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Tags',
+      queryParameters: params,
+    );
+    // Emby /Tags 返回 QueryResult<String>：Items 为字符串数组；
+    // 兼容部分服务器返回对象数组的情况。
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .map((e) {
+          if (e is String) {
+            return Library(id: e, name: e, type: 'Tag');
+          }
+          if (e is Map<String, dynamic>) {
+            return Library(
+              id: (e['Id'] as String?) ?? (e['Name'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: 'Tag',
+            );
+          }
+          return Library(id: '$e', name: '$e', type: 'Tag');
+        })
+        .where((l) => l.id.isNotEmpty)
+        .toList();
+  }
+
+  // ============================
+  // 某标签下的影片
+  // ============================
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'StartIndex': '$offset',
+      'Recursive': 'true',
+      'Tags': tag,
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // ============================
   // 工作室列表
   // ============================
   @override

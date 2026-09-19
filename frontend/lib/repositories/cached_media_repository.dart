@@ -51,6 +51,8 @@ class CachedMediaRepository implements MediaRepository {
         _childrenCache = MemoryCache<List<MediaItem>>(maxSize: 100),
         _genresCache = MemoryCache<List<Library>>(maxSize: 10),
         _collectionsCache = MemoryCache<List<Library>>(maxSize: 10),
+        _tagsCache = MemoryCache<List<Library>>(maxSize: 10),
+        _tagItemsCache = MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 20),
         _genreItemsCache =
             MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
         _studiosCache = MemoryCache<List<Library>>(maxSize: 10),
@@ -83,6 +85,8 @@ class CachedMediaRepository implements MediaRepository {
   // 类型/工作室缓存
   final MemoryCache<List<Library>> _genresCache;
   final MemoryCache<List<Library>> _collectionsCache;
+  final MemoryCache<List<Library>> _tagsCache;
+  final MemoryCache<PaginatedResponse<MediaItem>> _tagItemsCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _genreItemsCache;
   final MemoryCache<List<Library>> _studiosCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _studioItemsCache;
@@ -127,6 +131,8 @@ class CachedMediaRepository implements MediaRepository {
     _childrenCache.resetStats();
     _genresCache.resetStats();
     _collectionsCache.resetStats();
+    _tagsCache.resetStats();
+    _tagItemsCache.resetStats();
     _genreItemsCache.resetStats();
     _studiosCache.resetStats();
     _studioItemsCache.resetStats();
@@ -154,6 +160,8 @@ class CachedMediaRepository implements MediaRepository {
         selector(_childrenCache) +
         selector(_genresCache) +
         selector(_collectionsCache) +
+        selector(_tagsCache) +
+        selector(_tagItemsCache) +
         selector(_genreItemsCache) +
         selector(_studiosCache) +
         selector(_studioItemsCache);
@@ -317,6 +325,17 @@ class CachedMediaRepository implements MediaRepository {
   /// 生成 getCollections 的缓存键
   String _collectionsKey(int limit, String serverUrl, String token) {
     return 'collections:$serverUrl:$token:$limit';
+  }
+
+  /// 生成 getTags 的缓存键
+  String _tagsKey(int limit, String serverUrl, String token) {
+    return 'tags:$serverUrl:$token:$limit';
+  }
+
+  /// 生成 getItemsByTag 的缓存键
+  String _tagItemsKey(
+      String tag, int limit, int offset, String serverUrl, String token) {
+    return 'tag_items:$serverUrl:$token:$tag:$limit:$offset';
   }
 
   /// 生成 getItemsByGenre 的缓存键
@@ -982,6 +1001,45 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<Library>> getTags({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    final key = _tagsKey(limit, serverUrl, token);
+    return _withCache(
+        _tagsCache,
+        key,
+        () => _inner.getTags(
+              limit: limit,
+              serverUrl: serverUrl,
+              token: token,
+            ),
+        ttl: const Duration(minutes: 30));
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    final key = _tagItemsKey(tag, limit, offset, serverUrl, token);
+    return _withCache(
+        _tagItemsCache,
+        key,
+        () => _inner.getItemsByTag(
+              tag,
+              limit: limit,
+              offset: offset,
+              serverUrl: serverUrl,
+              token: token,
+            ));
+  }
+
+  @override
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
     int limit = 30,
@@ -1151,6 +1209,16 @@ class CachedMediaRepository implements MediaRepository {
     _genreItemsCache.deleteWherePrefix('genre_items:$serverUrl:');
   }
 
+  /// 失效标签（Tags）列表缓存
+  void invalidateTags({required String serverUrl}) {
+    _tagsCache.deleteWherePrefix('tags:$serverUrl:');
+  }
+
+  /// 失效某标签下的影片缓存
+  void invalidateTagItems({required String serverUrl}) {
+    _tagItemsCache.deleteWherePrefix('tag_items:$serverUrl:');
+  }
+
   /// 失效工作室（Studio）列表缓存
   void invalidateStudios({required String serverUrl}) {
     _studiosCache.deleteWherePrefix('studios:$serverUrl:');
@@ -1182,6 +1250,8 @@ class CachedMediaRepository implements MediaRepository {
     _suggestionsCache.clear();
     _watchHistoryCache.clear();
     _childrenCache.clear();
+    _collectionsCache.clear();
+    _tagsCache.clear();
     _genresCache.clear();
     _genreItemsCache.clear();
     _studiosCache.clear();

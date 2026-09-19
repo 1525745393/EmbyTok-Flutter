@@ -529,6 +529,36 @@ class EmbyRepository implements MediaRepository {
   }
 
   @override
+  Future<List<Library>> getTags({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getTags(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getItemsByTag(
+      tag,
+      limit: limit,
+      offset: offset,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
     int limit = 30,

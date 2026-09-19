@@ -302,6 +302,22 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 获取服务器标签（Tags）列表（发现数据源）
+  Future<List<Library>> getTags({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  });
+
+  /// 获取指定标签下的影片列表（发现数据源）
+  Future<PaginatedResponse<MediaItem>> getItemsByTag(
+    String tag, {
+    int limit = 30,
+    int offset = 0,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 某类型下的影片
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
