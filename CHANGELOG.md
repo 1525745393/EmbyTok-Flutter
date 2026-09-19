@@ -1,3 +1,10 @@
+## [2.141.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.141.0...v2.141.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* 设置页「发现页」分区默认展开，恢复发现类型/合集设置入口可见性 ([c5aa194](https://github.com/1525745393/EmbyTok-Flutter/commit/c5aa1949c6157e3d4a5fa730f01526845550c5af))
+
 # [2.141.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.140.0...v2.141.0) (2026-09-19)
 
 
