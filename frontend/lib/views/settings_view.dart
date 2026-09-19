@@ -4735,6 +4735,27 @@ class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
     return key;
   }
 
+  // 各数据源对应的 Emby 规则说明（帮助按钮展示）
+  static const Map<String, String> _sourceHelpTexts = {
+    'latest':
+        '「最新影片」数据源规则（Emby /Items/Latest）：\n\n· 按服务器「最新入库」排序拉取所选媒体库最近入库的视频\n· 单选媒体库时只在该库内取；多选时合并展示\n· 参与通用过滤：最短时长、排除已看、反疲劳、用户评分\n\n无新入库内容时标签自动隐藏。',
+    'resume':
+        '「继续观看」数据源规则（Emby Resume 接口）：\n\n· 拉取服务器记录的「未看完」视频\n· 依赖播放位置上报：看过但未看完才会出现在这里\n· 参与通用过滤（最短时长、反疲劳等）\n\n没有未看完的视频时标签自动隐藏。',
+    'suggestions':
+        '「为你推荐」数据源规则（Emby /Users/{id}/Suggestions）：\n\n· 调用 Emby 服务器的个性化建议接口\n· 内容由服务器基于观看历史生成\n· 老版本 Emby / Jellyfin 不支持该接口时返回空\n\n无建议数据时标签自动隐藏。',
+    'nativeRecommendations':
+        '「精选」数据源规则（Emby /Movies/Recommendations + /Shows/Recommended）：\n\n· 由 Emby 服务器基于观看历史生成，无分页\n· 单选媒体库时限定该库；多选时跨库全局推荐\n· 老版本 Emby / Jellyfin 不支持端点时返回空\n\n依赖服务器端推荐数据，无数据时标签自动隐藏。',
+    'similar':
+        '「相似」数据源规则（Emby /Items/{id}/Similar）：\n\n· 种子选取顺序：收藏影片 → 高完播影片 → 最近高分项\n· 取 Top 种子后并发请求 Similar 接口合并结果\n· 受「使用观看历史」开关影响：关闭时无种子来源\n\n需要观看历史支撑，冷启动用户可能为空。',
+    'recommendations':
+        '「高分」数据源规则（Emby 高分推荐接口）：\n\n· 从所选媒体库拉取高评分视频（CommunityRating ≥ 评分阈值）\n· 多媒体库并发拉取后合并去重\n· 受设置影响：评分阈值、排除已看、推荐类型、最短时长\n\n评分数据不足时内容会减少。',
+    'localRecommend':
+        '「移动客户端推荐」数据源规则（本地信号源，非 Emby 接口）：\n\n· 直接拉取你在 Emby 中「收藏的影片」\n· 不依赖服务器推荐能力，任何 Emby 版本都可用\n· 无收藏时标签自动隐藏\n\n内容与「收藏」页一致。',
+  };
+
+  static String sourceHelpText(String key) =>
+      _sourceHelpTexts[key] ?? '该数据源暂无规则说明。';
+
   Future<void> _pickSource(BuildContext context, WidgetRef ref, String tagLabel,
       String currentKey) async {
     final selected = await showModalBottomSheet<String>(
@@ -4860,8 +4881,18 @@ class _RecommendTagMappingListTile extends ConsumerWidget {
               style: TextStyle(
                   color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
             ),
-            trailing: Icon(Icons.chevron_right,
-                color: scheme.onSurfaceVariant, size: 20),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SettingsView._helpButton(
+                  helpText: _RecommendTagMappingTileState.sourceHelpText(
+                      entries[i].value),
+                  title: entries[i].key,
+                ),
+                Icon(Icons.chevron_right,
+                    color: scheme.onSurfaceVariant, size: 20),
+              ],
+            ),
             onTap: () =>
                 pickSource(context, ref, entries[i].key, entries[i].value),
           ),
