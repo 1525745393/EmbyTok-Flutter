@@ -1,3 +1,10 @@
+# [2.139.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.138.1...v2.139.0) (2026-09-19)
+
+
+### Features
+
+* 设置页每个设置项添加帮助按钮，点击弹出详细说明 ([edafd3f](https://github.com/1525745393/EmbyTok-Flutter/commit/edafd3f4d297a026a6f70144ae78ea4ecf7d3027))
+
 ## [2.138.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.138.0...v2.138.1) (2026-09-19)
 
 
