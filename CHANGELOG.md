@@ -1,3 +1,10 @@
+## [2.139.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.139.0...v2.139.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* 修正设置页帮助文案默认值错误（评分4.0/半衰期14天/剧集5/演员20/时长秒/用户评分4.0）并补齐关于与账号帮助 ([33fbfdc](https://github.com/1525745393/EmbyTok-Flutter/commit/33fbfdc5d091b50031c0569851944dd42b7da062))
+
 # [2.139.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.138.1...v2.139.0) (2026-09-19)
 
 
