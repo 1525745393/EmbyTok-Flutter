@@ -160,6 +160,15 @@ class AppPreferences {
     this.recommendFavActorNewCount = 20,
     this.followActorVideoCount = 3,
     this.followOnlyUnwatched = true,
+    this.recommendTagSourceMapping = const {
+      '最新影片': 'latest',
+      '继续观看': 'resume',
+      '为你推荐': 'suggestions',
+      '精选': 'nativeRecommendations',
+      '相似': 'similar',
+      '高分': 'recommendations',
+      '移动客户端推荐': 'localRecommend',
+    },
   });
   final DeviceMode forceDeviceMode;
   final FeedType feedType;
@@ -219,6 +228,8 @@ class AppPreferences {
   final int recommendFavActorNewCount;
   // 关注页：每演员视频数（默认 3，范围 [1,10]）
   final int followActorVideoCount;
+  // 推荐标签数据源映射（label → source key，默认一对一；用户可自定义）
+  final Map<String, String> recommendTagSourceMapping;
   // 关注页：只看未观看（默认 true，开启后过滤已观看视频）
   final bool followOnlyUnwatched;
 
@@ -250,6 +261,7 @@ class AppPreferences {
     int? recommendFavActorNewCount,
     int? followActorVideoCount,
     bool? followOnlyUnwatched,
+    Map<String, String>? recommendTagSourceMapping,
   }) {
     return AppPreferences(
       forceDeviceMode: forceDeviceMode ?? this.forceDeviceMode,
@@ -293,6 +305,8 @@ class AppPreferences {
       followActorVideoCount:
           followActorVideoCount ?? this.followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched ?? this.followOnlyUnwatched,
+      recommendTagSourceMapping:
+          recommendTagSourceMapping ?? this.recommendTagSourceMapping,
     );
   }
 }
@@ -398,6 +412,34 @@ class AppPreferencesService {
         prefs.getInt(kStorageKeyFollowActorVideoCount) ?? 3;
     final followOnlyUnwatched =
         prefs.getBool(kStorageKeyFollowOnlyUnwatched) ?? true;
+    final recommendTagSourceMappingRaw =
+        prefs.getString(kStorageKeyRecommendTagSourceMapping);
+    final recommendTagSourceMapping = <String, String>{
+      '最新影片': 'latest',
+      '继续观看': 'resume',
+      '为你推荐': 'suggestions',
+      '精选': 'nativeRecommendations',
+      '相似': 'similar',
+      '高分': 'recommendations',
+      '移动客户端推荐': 'localRecommend',
+    };
+    if (recommendTagSourceMappingRaw != null &&
+        recommendTagSourceMappingRaw.isNotEmpty) {
+      try {
+        final decoded = json.decode(recommendTagSourceMappingRaw);
+        if (decoded is Map) {
+          final merged = <String, String>{
+            ...recommendTagSourceMapping,
+            ...decoded.map((k, v) => MapEntry(k.toString(), v.toString())),
+          };
+          recommendTagSourceMapping
+            ..clear()
+            ..addAll(merged);
+        }
+      } catch (_) {
+        // 解析失败回退默认映射
+      }
+    }
 
     return AppPreferences(
       forceDeviceMode: forceDeviceMode,
@@ -427,6 +469,7 @@ class AppPreferencesService {
       recommendFavActorNewCount: recommendFavActorNewCount,
       followActorVideoCount: followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched,
+      recommendTagSourceMapping: recommendTagSourceMapping,
     );
   }
 
@@ -495,6 +538,9 @@ class AppPreferencesService {
           preferences.followActorVideoCount),
       prefs.setBool(kStorageKeyFollowOnlyUnwatched,
           preferences.followOnlyUnwatched),
+      // 推荐标签数据源映射
+      prefs.setString(kStorageKeyRecommendTagSourceMapping,
+          json.encode(preferences.recommendTagSourceMapping)),
     ]);
   }
 
@@ -532,6 +578,7 @@ class AppPreferencesService {
       kStorageKeyRecommendUserRatingMin,
       kStorageKeyFollowActorVideoCount,
       kStorageKeyFollowOnlyUnwatched,
+      kStorageKeyRecommendTagSourceMapping,
     ];
     await Future.wait(
       keysToRemove.map((key) => prefs.remove(key)),

@@ -585,6 +585,58 @@ final followOnlyUnwatchedProvider =
   (ref) => FollowOnlyUnwatchedNotifier(),
 );
 
+// 推荐标签数据源映射（label → source key，默认一对一，用户可自定义）
+class RecommendTagSourceMappingNotifier
+    extends StateNotifier<Map<String, String>> {
+  RecommendTagSourceMappingNotifier()
+      : super(const {
+          '最新影片': 'latest',
+          '继续观看': 'resume',
+          '为你推荐': 'suggestions',
+          '精选': 'nativeRecommendations',
+          '相似': 'similar',
+          '高分': 'recommendations',
+          '移动客户端推荐': 'localRecommend',
+        }) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.recommendTagSourceMapping;
+  }
+
+  Future<void> setMapping(String label, String sourceKey) async {
+    final updated = Map<String, String>.from(state)..[label] = sourceKey;
+    state = updated;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(recommendTagSourceMapping: updated));
+  }
+
+  Future<void> resetMapping() async {
+    const defaults = <String, String>{
+      '最新影片': 'latest',
+      '继续观看': 'resume',
+      '为你推荐': 'suggestions',
+      '精选': 'nativeRecommendations',
+      '相似': 'similar',
+      '高分': 'recommendations',
+      '移动客户端推荐': 'localRecommend',
+    };
+    state = defaults;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(recommendTagSourceMapping: defaults));
+  }
+}
+
+final recommendTagSourceMappingProvider =
+    StateNotifierProvider<RecommendTagSourceMappingNotifier,
+        Map<String, String>>(
+  (ref) => RecommendTagSourceMappingNotifier(),
+);
+
 // PR #88：最近展示过的 itemId 列表（用于反推荐疲劳）
 // - Set<String> 表示 itemId（对外接口不变）
 // - 内部维护 _shownAtMap: Map<String, int> 记录 itemId → shownAt 时间戳（秒）

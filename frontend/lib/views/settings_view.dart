@@ -120,6 +120,8 @@ class SettingsView extends ConsumerWidget {
                         _buildRecommendUserRatingMinTile(context, ref),
                       ],
                     ),
+                    // 推荐标签数据源映射（用户可自定义每个标签绑定的数据源）
+                    const _RecommendTagMappingTile(),
                   ],
                 ),
                 // 关注页
@@ -4471,6 +4473,185 @@ class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
       result.add(tiles[i]);
     }
     return result;
+  }
+}
+
+// ==================== 推荐标签数据源映射组件 ====================
+
+/// 推荐标签数据源映射折叠 tile
+///
+/// 推荐页标签栏的每个标签（最新影片/续看/为你推荐/精选/相似/高分/移动客户端推荐）
+/// 默认一对一绑定对应数据源，用户可自定义每个标签绑定的数据源。
+class _RecommendTagMappingTile extends StatefulWidget {
+  const _RecommendTagMappingTile();
+
+  @override
+  State<_RecommendTagMappingTile> createState() =>
+      _RecommendTagMappingTileState();
+}
+
+class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
+  bool _expanded = false;
+
+  // 可选择的 7 个数据源（关注源 nextUp 不参与标签绑定）
+  static const List<RecommendSource> _selectableSources = [
+    RecommendSource.latest,
+    RecommendSource.resume,
+    RecommendSource.suggestions,
+    RecommendSource.nativeRecommendations,
+    RecommendSource.similar,
+    RecommendSource.recommendations,
+    RecommendSource.localRecommend,
+  ];
+
+  static String _sourceLabel(String key) {
+    for (final source in _selectableSources) {
+      if (source.key == key) return source.label;
+    }
+    return key;
+  }
+
+  Future<void> _pickSource(BuildContext context, WidgetRef ref,
+      String tagLabel, String currentKey) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(
+                '「$tagLabel」标签数据源',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            for (final source in _selectableSources)
+              ListTile(
+                leading: Icon(
+                  source.key == currentKey
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: source.key == currentKey
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                title: Text(source.label),
+                onTap: () => Navigator.pop(context, source.key),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && selected != currentKey && context.mounted) {
+      await ref
+          .read(recommendTagSourceMappingProvider.notifier)
+          .setMapping(tagLabel, selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        ListTile(
+          leading: SettingsView._IconContainer(
+            icon: Icons.sell_outlined,
+            color: Colors.indigo,
+          ),
+          title: Text(
+            '推荐标签数据源',
+            style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+          ),
+          subtitle: Text(
+            '每个标签可绑定不同数据源',
+            style: TextStyle(
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+              fontSize: _kFontSizeBody,
+            ),
+          ),
+          trailing: Icon(
+            _expanded ? Icons.expand_less : Icons.expand_more,
+            color: scheme.onSurfaceVariant,
+          ),
+          onTap: () => setState(() => _expanded = !_expanded),
+        ),
+        if (_expanded) ...[
+          const Divider(height: 1, indent: 56),
+          _RecommendTagMappingListTile(
+            pickSource: (context, ref, label, current) =>
+                _pickSource(context, ref, label, current),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// 标签映射列表（单独 ConsumerWidget：仅展开时构建，ref.watch 实时生效）
+class _RecommendTagMappingListTile extends ConsumerWidget {
+  const _RecommendTagMappingListTile({required this.pickSource});
+
+  final Future<void> Function(
+      BuildContext context, WidgetRef ref, String label, String current) pickSource;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final mapping = ref.watch(recommendTagSourceMappingProvider);
+    final entries = mapping.entries.toList(growable: false);
+    return Column(
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0) const Divider(height: 1, indent: 56),
+          ListTile(
+            leading: Icon(Icons.label_outline,
+                color: scheme.onSurfaceVariant, size: 20),
+            title: Text(
+              entries[i].key,
+              style: TextStyle(
+                  color: scheme.onSurface, fontSize: _kFontSizeMedium),
+            ),
+            subtitle: Text(
+              '数据源：${_RecommendTagMappingTileState._sourceLabel(entries[i].value)}',
+              style: TextStyle(
+                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
+            ),
+            trailing: Icon(Icons.chevron_right,
+                color: scheme.onSurfaceVariant, size: 20),
+            onTap: () => pickSource(
+                context, ref, entries[i].key, entries[i].value),
+          ),
+        ],
+        // 恢复默认映射
+        ListTile(
+          leading: Icon(Icons.restart_alt,
+              color: scheme.onSurfaceVariant, size: 20),
+          title: Text(
+            '恢复默认映射',
+            style: TextStyle(
+                color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
+          ),
+          onTap: () async {
+            await ref
+                .read(recommendTagSourceMappingProvider.notifier)
+                .resetMapping();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已恢复默认标签数据源映射')),
+              );
+            }
+          },
+        ),
+      ],
+    );
   }
 }
 

@@ -671,44 +671,24 @@ class _RecommendViewState extends ConsumerState<RecommendView> {
       return state.tagCounts[s.key] ?? 0;
     }
 
+    // 标签 ↔ 数据源映射（用户可自定义）：标签栏始终显示全部标签，
+    // 每个标签的计数按映射后的数据源统计。
+    final sourceMapping = ref.watch(recommendTagSourceMappingProvider);
+
     final tags = <_RecommendTagInfo>[
       _RecommendTagInfo(label: '全部', sourceKey: null, count: countFor(null)),
-      _RecommendTagInfo(
-          label: RecommendSource.latest.label,
-          sourceKey: RecommendSource.latest.key,
-          count: countFor(RecommendSource.latest)),
-      _RecommendTagInfo(
-          label: RecommendSource.resume.label,
-          sourceKey: RecommendSource.resume.key,
-          count: countFor(RecommendSource.resume)),
-      _RecommendTagInfo(
-          label: RecommendSource.suggestions.label,
-          sourceKey: RecommendSource.suggestions.key,
-          count: countFor(RecommendSource.suggestions)),
-      _RecommendTagInfo(
-          label: RecommendSource.nativeRecommendations.label,
-          sourceKey: RecommendSource.nativeRecommendations.key,
-          count: countFor(RecommendSource.nativeRecommendations)),
-      _RecommendTagInfo(
-          label: RecommendSource.similar.label,
-          sourceKey: RecommendSource.similar.key,
-          count: countFor(RecommendSource.similar)),
-      _RecommendTagInfo(
-          label: RecommendSource.recommendations.label,
-          sourceKey: RecommendSource.recommendations.key,
-          count: countFor(RecommendSource.recommendations)),
-      _RecommendTagInfo(
-          label: RecommendSource.localRecommend.label,
-          sourceKey: RecommendSource.localRecommend.key,
-          count: countFor(RecommendSource.localRecommend)),
+      for (final entry in sourceMapping.entries)
+        _RecommendTagInfo(
+          label: entry.key,
+          sourceKey: entry.value,
+          count: state.tagCounts[entry.value] ?? 0,
+        ),
     ];
 
-    // P2-1：隐藏 count==0 的源标签（如「相似 (0)」），避免展示无意义空标签
+    // 所有标签始终显示（count==0 也显示 (0)），让用户知道每个标签的存在；
     // 「全部」始终保留（sourceKey == null），保证用户总有回退入口
     // 注：「追剧」标签已移至首页顶栏（改名「关注」），不再在此展示
-    final visibleTags = tags
-        .where((t) => t.sourceKey == null || t.count > 0)
-        .toList();
+    final visibleTags = tags;
 
     return Container(
       height: 44,

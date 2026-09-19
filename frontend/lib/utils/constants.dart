@@ -79,6 +79,9 @@ const String kStorageKeyRecommendFavActorNewCount =
 // 关注页 - 每演员视频数 / 只看未观看
 const String kStorageKeyFollowActorVideoCount =
     'embytok_follow_actor_video_count';
+// 推荐标签数据源映射（label → source key，JSON Map 序列化）
+const String kStorageKeyRecommendTagSourceMapping =
+    'embytok_recommend_tag_source_mapping';
 const String kStorageKeyFollowOnlyUnwatched =
     'embytok_follow_only_unwatched';
 // 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
