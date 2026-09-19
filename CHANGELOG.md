@@ -1,3 +1,10 @@
+# [2.138.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.137.1...v2.138.0) (2026-09-19)
+
+
+### Features
+
+* 推荐标签栏始终显示，标签数据源用户可自定义 ([fb21df8](https://github.com/1525745393/EmbyTok-Flutter/commit/fb21df8af7a168c2ca6ce14dbda307771ff326da))
+
 ## [2.137.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.137.0...v2.137.1) (2026-09-19)
 
 
