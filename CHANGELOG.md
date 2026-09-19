@@ -1,3 +1,10 @@
+# [2.142.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.141.1...v2.142.0) (2026-09-19)
+
+
+### Features
+
+* 发现数据源新增 Emby 标签（Tags）设置，与类型/合集三源可分别多选 ([f8f8d73](https://github.com/1525745393/EmbyTok-Flutter/commit/f8f8d7320d669248e515f890b94743e135b9e268))
+
 ## [2.141.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.141.0...v2.141.1) (2026-09-19)
 
 
