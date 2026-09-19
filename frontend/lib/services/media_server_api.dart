@@ -295,6 +295,13 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 获取服务器合集（BoxSet）列表（发现数据源）
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 某类型下的影片
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {

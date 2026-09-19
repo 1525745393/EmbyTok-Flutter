@@ -461,6 +461,18 @@ class EmbytokService {
     );
   }
 
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getCollections(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
   // ============================
   // 某类型下的影片
   // ============================

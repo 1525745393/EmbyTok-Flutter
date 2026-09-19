@@ -23,7 +23,6 @@ import 'dart:async';
 /// 使用装饰器模式包装 [MediaRepository]，为只读操作添加内存缓存。
 /// 不同账号（token 不同）的数据自动隔离，不会互相污染。
 class CachedMediaRepository implements MediaRepository {
-
   CachedMediaRepository(
     this._inner, {
     Duration ttl = const Duration(minutes: 5),
@@ -51,6 +50,7 @@ class CachedMediaRepository implements MediaRepository {
         _watchHistoryCache = MemoryCache<List<MediaItem>>(maxSize: 20),
         _childrenCache = MemoryCache<List<MediaItem>>(maxSize: 100),
         _genresCache = MemoryCache<List<Library>>(maxSize: 10),
+        _collectionsCache = MemoryCache<List<Library>>(maxSize: 10),
         _genreItemsCache =
             MemoryCache<PaginatedResponse<MediaItem>>(maxSize: 50),
         _studiosCache = MemoryCache<List<Library>>(maxSize: 10),
@@ -82,6 +82,7 @@ class CachedMediaRepository implements MediaRepository {
   final MemoryCache<List<MediaItem>> _childrenCache;
   // 类型/工作室缓存
   final MemoryCache<List<Library>> _genresCache;
+  final MemoryCache<List<Library>> _collectionsCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _genreItemsCache;
   final MemoryCache<List<Library>> _studiosCache;
   final MemoryCache<PaginatedResponse<MediaItem>> _studioItemsCache;
@@ -125,6 +126,7 @@ class CachedMediaRepository implements MediaRepository {
     _watchHistoryCache.resetStats();
     _childrenCache.resetStats();
     _genresCache.resetStats();
+    _collectionsCache.resetStats();
     _genreItemsCache.resetStats();
     _studiosCache.resetStats();
     _studioItemsCache.resetStats();
@@ -151,6 +153,7 @@ class CachedMediaRepository implements MediaRepository {
         selector(_watchHistoryCache) +
         selector(_childrenCache) +
         selector(_genresCache) +
+        selector(_collectionsCache) +
         selector(_genreItemsCache) +
         selector(_studiosCache) +
         selector(_studioItemsCache);
@@ -184,8 +187,8 @@ class CachedMediaRepository implements MediaRepository {
   }
 
   /// 生成 getResumeItems 的缓存键
-  String _resumeKey(String serverUrl, String token, int limit, int offset,
-      String? userId) {
+  String _resumeKey(
+      String serverUrl, String token, int limit, int offset, String? userId) {
     return 'resume:$serverUrl:$token:${userId ?? ''}:$limit:$offset';
   }
 
@@ -309,6 +312,11 @@ class CachedMediaRepository implements MediaRepository {
   /// 生成 getGenres 的缓存键
   String _genresKey(int limit, String serverUrl, String token) {
     return 'genres:$serverUrl:$token:$limit';
+  }
+
+  /// 生成 getCollections 的缓存键
+  String _collectionsKey(int limit, String serverUrl, String token) {
+    return 'collections:$serverUrl:$token:$limit';
   }
 
   /// 生成 getItemsByGenre 的缓存键
@@ -948,6 +956,24 @@ class CachedMediaRepository implements MediaRepository {
         _genresCache,
         key,
         () => _inner.getGenres(
+              limit: limit,
+              serverUrl: serverUrl,
+              token: token,
+            ),
+        ttl: const Duration(minutes: 30));
+  }
+
+  @override
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    final key = _collectionsKey(limit, serverUrl, token);
+    return _withCache(
+        _collectionsCache,
+        key,
+        () => _inner.getCollections(
               limit: limit,
               serverUrl: serverUrl,
               token: token,

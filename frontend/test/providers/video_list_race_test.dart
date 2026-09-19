@@ -529,6 +529,19 @@ class _MockMediaRepository implements MediaRepository {
   }
 
   @override
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) async {
+    final req = _createPendingRequest('getCollections', {
+      'serverUrl': serverUrl,
+      'token': token,
+    });
+    return await req.completer.future as List<Library>;
+  }
+
+  @override
   Future<PaginatedResponse<MediaItem>> getItemsByGenre(
     String genre, {
     int limit = 30,

@@ -17,7 +17,6 @@ import 'media_repository.dart';
 /// 上层业务（VideoListNotifier 等）只依赖 MediaRepository 接口，
 /// 未来切换数据源时只需替换实现类。
 class EmbyRepository implements MediaRepository {
-
   EmbyRepository({EmbytokService? service})
       : _service = service ?? EmbytokService();
   final EmbytokService _service;
@@ -510,6 +509,19 @@ class EmbyRepository implements MediaRepository {
     required String token,
   }) {
     return _service.getGenres(
+      limit: limit,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  @override
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  }) {
+    return _service.getCollections(
       limit: limit,
       serverUrl: serverUrl,
       token: token,

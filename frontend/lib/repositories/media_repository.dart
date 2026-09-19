@@ -18,7 +18,6 @@ import '../models/models.dart';
 
 /// 分页参数：用于传递分页请求的通用参数
 class MediaQueryParams {
-
   const MediaQueryParams({
     required this.libraryId,
     this.limit = 50,
@@ -368,6 +367,13 @@ abstract class MediaRepository {
   ///
   /// 类型列表极少变化，适合长 TTL 缓存。
   Future<List<Library>> getGenres({
+    int limit = 100,
+    required String serverUrl,
+    required String token,
+  });
+
+  /// 获取服务器合集（BoxSet）列表（发现数据源）
+  Future<List<Library>> getCollections({
     int limit = 100,
     required String serverUrl,
     required String token,

@@ -433,7 +433,10 @@ class EmbyServerApi implements MediaServerApi {
     if (resp.data is List) {
       final items = resp.data as List<dynamic>;
       return PaginatedResponse(
-        items: items.whereType<Map<String, dynamic>>().map((e) => MediaItem.fromJson(e)).toList(),
+        items: items
+            .whereType<Map<String, dynamic>>()
+            .map((e) => MediaItem.fromJson(e))
+            .toList(),
         total: items.length,
         offset: offset,
         limit: limit,
@@ -1062,6 +1065,37 @@ class EmbyServerApi implements MediaServerApi {
       queryParameters: params,
     );
     return _parsePaginatedResponse(resp.data, offset: offset, limit: limit);
+  }
+
+  // 获取合集（BoxSet）列表（发现数据源）
+  Future<List<Library>> getCollections({
+    int limit = 100,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final params = <String, dynamic>{
+      'Limit': '$limit',
+      'Recursive': 'true',
+      'IncludeItemTypes': 'BoxSet',
+      'Fields': 'Name,PrimaryImageHash',
+    };
+    final resp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: params,
+    );
+    final items = resp.data is List
+        ? resp.data as List<dynamic>
+        : (resp.data['Items'] as List<dynamic>?) ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map((e) => Library(
+              id: (e['Id'] as String?) ?? '',
+              name: (e['Name'] as String?) ?? '',
+              type: 'BoxSet',
+              itemCount: e['ChildCount'] as int?,
+            ))
+        .toList();
   }
 
   // ============================

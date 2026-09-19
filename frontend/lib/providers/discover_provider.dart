@@ -1,11 +1,13 @@
 // 发现数据源 Provider（PRD：视频库首页顶栏「发现」）
 //
-// 对接 Emby 标签（Genres）：用户可在设置中自行选择感兴趣的标签，
-// 发现页按所选标签逐个拉取影片并合并去重展示。
+// 对接 Emby 合集（BoxSet Collections）+ 类型（Genres）：用户可在设置中
+// 分别选择感兴趣的合集与类型，发现页按所选条目逐个拉取影片并合并去重展示。
 //
-// - 数据源：Emby /Genres（类型列表）+ /Items?Genres=<名>（类型下影片）
-// - 存储：SharedPreferences，按当前账号分桶（accountScopedKey）
-// - 未配置标签时：返回空列表，页面展示引导用户去设置
+// - 数据源：
+//   · 合集：/Items?IncludeItemTypes=BoxSet（合集列表）+ /Items?ParentId=<合集id>（合集内视频）
+//   · 类型：/Genres（类型列表）+ /Items?Genres=<名>（类型下影片）
+// - 存储：SharedPreferences，按当前账号分桶（accountScopedKey），类型与合集分开保存
+// - 未配置任何条目时：返回空列表，页面展示引导用户去设置
 
 import 'dart:convert';
 
@@ -24,6 +26,8 @@ class DiscoverState {
   const DiscoverState({
     this.genres = const [],
     this.selectedGenreIds = const [],
+    this.collections = const [],
+    this.selectedCollectionIds = const [],
     this.items = const [],
     this.isLoading = false,
     this.error,
@@ -31,13 +35,21 @@ class DiscoverState {
 
   final List<Library> genres; // 服务器全量类型（供设置多选）
   final List<String> selectedGenreIds; // 用户已选类型 id
+  final List<Library> collections; // 服务器全量合集（供设置多选）
+  final List<String> selectedCollectionIds; // 用户已选合集 id
   final List<MediaItem> items; // 合并后的发现内容
   final bool isLoading;
   final String? error;
 
+  /// 是否已配置任何发现来源（类型或合集）
+  bool get hasSelection =>
+      selectedGenreIds.isNotEmpty || selectedCollectionIds.isNotEmpty;
+
   DiscoverState copyWith({
     List<Library>? genres,
     List<String>? selectedGenreIds,
+    List<Library>? collections,
+    List<String>? selectedCollectionIds,
     List<MediaItem>? items,
     bool? isLoading,
     String? error,
@@ -46,6 +58,9 @@ class DiscoverState {
     return DiscoverState(
       genres: genres ?? this.genres,
       selectedGenreIds: selectedGenreIds ?? this.selectedGenreIds,
+      collections: collections ?? this.collections,
+      selectedCollectionIds:
+          selectedCollectionIds ?? this.selectedCollectionIds,
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
@@ -60,18 +75,19 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
   }
   final Ref _ref;
 
-  static const String _kStorageKey = kStorageKeyDiscoverGenres;
-  static const int _kPerGenreLimit = 30;
+  static const String _kStorageGenresKey = kStorageKeyDiscoverGenres;
+  static const String _kStorageCollectionsKey = kStorageKeyDiscoverCollections;
+  static const int _kPerSourceLimit = 30;
 
   AuthState get _auth => _ref.read(authProvider);
 
   Future<void> _init() async {
-    // 读取用户已选标签
+    // 读取用户已选类型与合集
     await _loadSelection();
-    // 拉取服务器类型列表（供设置页展示 + 名称解析）
-    await refreshGenres();
-    // 自动加载已选标签内容
-    if (state.selectedGenreIds.isNotEmpty) {
+    // 拉取服务器类型列表 + 合集列表（供设置页展示 + 名称解析）
+    await Future.wait([refreshGenres(), refreshCollections()]);
+    // 自动加载已选条目内容
+    if (state.hasSelection) {
       await load();
     }
   }
@@ -79,17 +95,28 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
   Future<void> _loadSelection() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = await accountScopedKey(_kStorageKey);
-      final raw = prefs.getString(key);
-      if (raw == null || raw.isEmpty) return;
-      final decoded = jsonDecode(raw);
-      if (decoded is List<dynamic>) {
-        state = state.copyWith(
-          selectedGenreIds: decoded.whereType<String>().toList(),
-        );
+      final genreKey = await accountScopedKey(_kStorageGenresKey);
+      final rawGenres = prefs.getString(genreKey);
+      if (rawGenres != null && rawGenres.isNotEmpty) {
+        final decoded = jsonDecode(rawGenres);
+        if (decoded is List<dynamic>) {
+          state = state.copyWith(
+            selectedGenreIds: decoded.whereType<String>().toList(),
+          );
+        }
+      }
+      final collectionKey = await accountScopedKey(_kStorageCollectionsKey);
+      final rawCollections = prefs.getString(collectionKey);
+      if (rawCollections != null && rawCollections.isNotEmpty) {
+        final decoded = jsonDecode(rawCollections);
+        if (decoded is List<dynamic>) {
+          state = state.copyWith(
+            selectedCollectionIds: decoded.whereType<String>().toList(),
+          );
+        }
       }
     } catch (e) {
-      AppLogger.error('读取发现标签配置失败', error: e);
+      AppLogger.error('读取发现配置失败', error: e);
     }
   }
 
@@ -113,20 +140,53 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
     }
   }
 
-  /// 保存用户选择的标签（id 列表）并加载内容
+  /// 拉取服务器合集列表
+  Future<void> refreshCollections() async {
+    final auth = _auth;
+    final serverUrl = auth.embyServerUrl;
+    final token = auth.token;
+    if (!auth.isAuthenticated || serverUrl == null || token == null) {
+      return;
+    }
+    try {
+      final repo = _ref.read(cachedMediaRepositoryProvider);
+      final collections = await repo.getCollections(
+        serverUrl: serverUrl,
+        token: token,
+      );
+      state = state.copyWith(collections: collections);
+    } catch (e) {
+      AppLogger.error('发现：加载合集列表失败', error: e);
+    }
+  }
+
+  /// 保存用户选择的类型（id 列表）并加载内容
   Future<void> saveSelection(List<String> genreIds) async {
     state = state.copyWith(selectedGenreIds: genreIds);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = await accountScopedKey(_kStorageKey);
+      final key = await accountScopedKey(_kStorageGenresKey);
       await prefs.setString(key, jsonEncode(genreIds));
     } catch (e) {
-      AppLogger.error('保存发现标签配置失败', error: e);
+      AppLogger.error('保存发现类型配置失败', error: e);
     }
     await load();
   }
 
-  /// 按已选标签拉取影片，合并去重
+  /// 保存用户选择的合集（id 列表）并加载内容
+  Future<void> saveCollections(List<String> collectionIds) async {
+    state = state.copyWith(selectedCollectionIds: collectionIds);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = await accountScopedKey(_kStorageCollectionsKey);
+      await prefs.setString(key, jsonEncode(collectionIds));
+    } catch (e) {
+      AppLogger.error('保存发现合集配置失败', error: e);
+    }
+    await load();
+  }
+
+  /// 按已选类型 + 合集拉取影片，合并去重
   Future<void> load() async {
     final auth = _auth;
     final serverUrl = auth.embyServerUrl;
@@ -135,8 +195,7 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
       state = state.copyWith(isLoading: false, error: '尚未登录');
       return;
     }
-    final selectedIds = state.selectedGenreIds;
-    if (selectedIds.isEmpty) {
+    if (!state.hasSelection) {
       state = state.copyWith(isLoading: false, items: const []);
       return;
     }
@@ -149,12 +208,13 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
     try {
       final repo = _ref.read(cachedMediaRepositoryProvider);
       final merged = <String, MediaItem>{};
-      for (final id in selectedIds) {
+      // 类型内容
+      for (final id in state.selectedGenreIds) {
         final name = idToName[id] ?? id;
         try {
           final page = await repo.getItemsByGenre(
             name,
-            limit: _kPerGenreLimit,
+            limit: _kPerSourceLimit,
             offset: 0,
             serverUrl: serverUrl,
             token: token,
@@ -163,13 +223,30 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
             merged[item.id] = item;
           }
         } catch (e) {
-          AppLogger.error('发现：拉取类型内容失败',
-              data: {'genre': name}, error: e);
+          AppLogger.error('发现：拉取类型内容失败', data: {'genre': name}, error: e);
+        }
+      }
+      // 合集内容
+      for (final id in state.selectedCollectionIds) {
+        try {
+          final page = await repo.getBoxSetItems(
+            id,
+            limit: _kPerSourceLimit,
+            offset: 0,
+            serverUrl: serverUrl,
+            token: token,
+          );
+          for (final item in page.items) {
+            merged[item.id] = item;
+          }
+        } catch (e) {
+          AppLogger.error('发现：拉取合集内容失败', data: {'collectionId': id}, error: e);
         }
       }
       final items = merged.values.toList();
       // 按生产年份倒序，新片在前
-      items.sort((a, b) => (b.productionYear ?? 0).compareTo(a.productionYear ?? 0));
+      items.sort(
+          (a, b) => (b.productionYear ?? 0).compareTo(a.productionYear ?? 0));
       state = state.copyWith(items: items, isLoading: false, error: null);
     } catch (e) {
       AppLogger.error('发现：加载失败', error: e);
@@ -185,6 +262,5 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
   }
 }
 
-final discoverProvider =
-    StateNotifierProvider<DiscoverNotifier, DiscoverState>(
-        (ref) => DiscoverNotifier(ref));
+final discoverProvider = StateNotifierProvider<DiscoverNotifier, DiscoverState>(
+    (ref) => DiscoverNotifier(ref));

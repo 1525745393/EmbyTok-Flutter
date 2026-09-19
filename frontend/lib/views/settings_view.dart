@@ -141,6 +141,7 @@ class SettingsView extends ConsumerWidget {
                   title: '发现页',
                   childrenBuilder: () => [
                     _buildDiscoverGenresTile(context, ref),
+                    _buildDiscoverCollectionsTile(context, ref),
                   ],
                 ),
               ],
@@ -478,14 +479,14 @@ class SettingsView extends ConsumerWidget {
       leading:
           _IconContainer(icon: Icons.explore_outlined, color: Colors.orange),
       title: Text(
-        '发现标签',
+        '发现·类型',
         style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 6),
         child: empty
             ? Text(
-                '选择 Emby 标签，首页「发现」展示对应影片',
+                '选择 Emby 类型（标签），首页「发现」展示对应影片',
                 style: TextStyle(
                   color: scheme.onSurfaceVariant
                       .withValues(alpha: _kTileSubtitleAlpha),
@@ -498,7 +499,7 @@ class SettingsView extends ConsumerWidget {
                 children: [
                   if (names.isEmpty)
                     _libraryChip(
-                      label: '已选 ${discover.selectedGenreIds.length} 个标签',
+                      label: '已选 ${discover.selectedGenreIds.length} 个类型',
                       icon: Icons.sell_outlined,
                       color: scheme.onSurfaceVariant,
                       background: scheme.surfaceContainerHighest,
@@ -519,49 +520,141 @@ class SettingsView extends ConsumerWidget {
         children: [
           _helpButton(
             helpText:
-                '「发现标签」决定首页顶栏「发现」数据源展示的内容。\n\n· 选择 Emby 中的标签（类型/流派），发现页只展示对应标签的影片\n· 不选择时发现页为空或展示全部\n\n常用于自定义「发现」入口的浏览内容，与推荐、关注相互独立。',
-            title: '发现标签',
+                '「发现·类型」决定首页顶栏「发现」数据源中的类型来源。\n\n· 从 Emby 服务器拉取全部类型（流派），多选后发现页按所选类型逐个拉取影片合并展示\n· 可与「发现·合集」同时生效，两种来源的影片合并去重\n· 不选择任何类型与合集时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
+            title: '发现·类型',
           ),
           Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
         ],
       ),
-      onTap: () => _showDiscoverGenresDialog(context, ref),
+      onTap: () => _showDiscoverSourceDialog(
+        context,
+        ref,
+        title: '选择发现类型',
+        emptyMessage: '无法获取类型列表，请检查服务器连接',
+        itemsOf: (s) => s.genres,
+        selectedOf: (s) => s.selectedGenreIds,
+        refresh: () => ref.read(discoverProvider.notifier).refreshGenres(),
+        onSave: (ids) => ref.read(discoverProvider.notifier).saveSelection(ids),
+      ),
     );
   }
 
-  // 发现标签多选对话框：拉取服务器类型列表，勾选保存
-  Future<void> _showDiscoverGenresDialog(
-      BuildContext context, WidgetRef ref) async {
+  /// 发现·合集设置项：多选 Emby 合集（BoxSet），首页「发现」合并展示合集内影片
+  Widget _buildDiscoverCollectionsTile(BuildContext context, WidgetRef ref) {
+    final discover = ref.watch(discoverProvider);
+    final names = discover.collections
+        .where((c) => discover.selectedCollectionIds.contains(c.id))
+        .map((c) => c.name)
+        .toList();
     final scheme = Theme.of(context).colorScheme;
-    final notifier = ref.read(discoverProvider.notifier);
-    // 确保类型列表已加载
-    await notifier.refreshGenres();
-    final state = ref.read(discoverProvider);
+    final empty = discover.selectedCollectionIds.isEmpty || names.isEmpty;
+    return ListTile(
+      leading: _IconContainer(
+          icon: Icons.collections_bookmark_outlined, color: Colors.deepOrange),
+      title: Text(
+        '发现·合集',
+        style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
+      ),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: empty
+            ? Text(
+                '选择 Emby 合集，首页「发现」展示合集内影片',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant
+                      .withValues(alpha: _kTileSubtitleAlpha),
+                  fontSize: _kFontSizeBody,
+                ),
+              )
+            : Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (names.isEmpty)
+                    _libraryChip(
+                      label: '已选 ${discover.selectedCollectionIds.length} 个合集',
+                      icon: Icons.collections_bookmark_outlined,
+                      color: scheme.onSurfaceVariant,
+                      background: scheme.surfaceContainerHighest,
+                    )
+                  else
+                    for (final name in names)
+                      _libraryChip(
+                        label: name,
+                        icon: Icons.collections_bookmark_outlined,
+                        color: scheme.onSurfaceVariant,
+                        background: scheme.surfaceContainerHighest,
+                      ),
+                ],
+              ),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _helpButton(
+            helpText:
+                '「发现·合集」决定首页顶栏「发现」数据源中的合集来源。\n\n· 从 Emby 服务器拉取全部合集（BoxSet，如系列电影、导演合辑），多选后发现页按所选合集逐个拉取合集内影片合并展示\n· 可与「发现·类型」同时生效，两种来源的影片合并去重\n· 服务器没有合集（BoxSet）时列表为空\n\n合集内容来自服务器整理的系列/合辑，与推荐、关注相互独立。',
+            title: '发现·合集',
+          ),
+          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        ],
+      ),
+      onTap: () => _showDiscoverSourceDialog(
+        context,
+        ref,
+        title: '选择发现合集',
+        emptyMessage: '无法获取合集列表（服务器可能没有合集），请检查服务器连接',
+        itemsOf: (s) => s.collections,
+        selectedOf: (s) => s.selectedCollectionIds,
+        refresh: () => ref.read(discoverProvider.notifier).refreshCollections(),
+        onSave: (ids) =>
+            ref.read(discoverProvider.notifier).saveCollections(ids),
+      ),
+    );
+  }
 
-    if (state.genres.isEmpty) {
+  // 发现来源多选对话框：拉取服务器条目列表（类型/合集），勾选保存
+  Future<void> _showDiscoverSourceDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required String emptyMessage,
+    required List<Library> Function(DiscoverState) itemsOf,
+    required List<String> Function(DiscoverState) selectedOf,
+    required Future<void> Function() refresh,
+    required Future<void> Function(List<String>) onSave,
+  }) async {
+    final scheme = Theme.of(context).colorScheme;
+    // 确保条目列表已加载（refresh 后重新读取，避免使用旧快照）
+    await refresh();
+    if (!context.mounted) return;
+    final state = ref.read(discoverProvider);
+    final effectiveItems = itemsOf(state);
+
+    if (effectiveItems.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('无法获取标签列表，请检查服务器连接')),
+        SnackBar(content: Text(emptyMessage)),
       );
       return;
     }
 
     // 本地副本供勾选（不直接改 provider，点确定才保存）
-    final selected = Set<String>.from(state.selectedGenreIds);
+    final selected = Set<String>.from(selectedOf(state));
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: scheme.surface,
-        title: const Text('选择发现标签'),
+        title: Text(title),
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
           child: StatefulBuilder(
             builder: (dialogContext, setDialogState) => ListView.builder(
-              itemCount: state.genres.length,
+              itemCount: effectiveItems.length,
               itemBuilder: (context, i) {
-                final g = state.genres[i];
+                final g = effectiveItems[i];
                 final checked = selected.contains(g.id);
                 return CheckboxListTile(
                   value: checked,
@@ -588,9 +681,7 @@ class SettingsView extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              ref
-                  .read(discoverProvider.notifier)
-                  .saveSelection(selected.toList());
+              onSave(selected.toList());
             },
             child: const Text('确定'),
           ),
@@ -599,7 +690,7 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // PR #78：推荐 - 评分阈值
+// PR #78：推荐 - 评分阈值
   Widget _buildRecommendMinRatingTile(BuildContext context, WidgetRef ref) {
     final rating = ref.watch(recommendMinRatingProvider);
     return _TapTile(
