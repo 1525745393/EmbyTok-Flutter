@@ -1,3 +1,10 @@
+# [2.141.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.140.0...v2.141.0) (2026-09-19)
+
+
+### Features
+
+* 发现数据源新增 Emby 合集（BoxSet）支持，与类型可分别多选设置 ([6c6be5b](https://github.com/1525745393/EmbyTok-Flutter/commit/6c6be5b0056a7083ab867387b5090f5668b01e80))
+
 # [2.140.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.139.1...v2.140.0) (2026-09-19)
 
 
