@@ -967,18 +967,18 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 追剧：取最近几部剧的下一集（默认 5，范围 1-10）
+  // 关注：取最近几部剧的下一集（默认 5，范围 1-10）
   Widget _buildRecommendNextUpSeriesCountTile(
       BuildContext context, WidgetRef ref) {
     final count = ref.watch(recommendNextUpSeriesCountProvider);
     return _TapTile(
       icon: Icons.live_tv,
       iconColor: Colors.teal,
-      title: '追剧·最近剧集数',
+      title: '关注·最近剧集数',
       subtitle: '展示最近 $count 部剧的下一集',
       onTap: () => _showCountSliderDialog(
         context, ref,
-        title: '追剧·最近剧集数',
+        title: '关注·最近剧集数',
         current: count,
         min: 1, max: 10,
         label: (v) => '$v 部',
@@ -989,22 +989,22 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  // 追剧：收藏演员新作品条数（默认 20，范围 5-40）
+  // 关注：收藏演员新作品条数（默认 20，范围 5-40）
   Widget _buildRecommendFavActorNewCountTile(
       BuildContext context, WidgetRef ref) {
     final count = ref.watch(recommendFavActorNewCountProvider);
     return _TapTile(
       icon: Icons.person,
       iconColor: Colors.indigo,
-      title: '追剧·演员新片数',
+      title: '关注·演员新片数',
       subtitle: '收藏演员新作品展示 $count 条',
       onTap: () => _showCountSliderDialog(
         context, ref,
-        title: '追剧·演员新片数',
+        title: '关注·演员新片数',
         current: count,
         min: 5, max: 40,
         label: (v) => '$v 条',
-        description: '控制收藏演员新作品在追剧标签里占多少条。',
+        description: '控制收藏演员新作品在关注页里占多少条。',
         apply: (v) =>
             ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
       ),
