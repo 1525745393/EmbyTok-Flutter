@@ -609,7 +609,7 @@ class SettingsView extends ConsumerWidget {
       subtitle: rating == 0 ? '不过滤' : '≥ $rating',
       onTap: () => _showRecommendRatingDialog(context, ref, rating),
       helpText:
-          '设置推荐内容的最低评分门槛。\n\n只有 Emby 社区评分（CommunityRating）≥ 该值的影片才会进入推荐页，用于过滤烂片。\n\n· 默认 6.0\n· 调高 → 推荐更精但内容更少\n· 调低 → 内容更多但质量参差\n\n注意：仅影响「高分」等评分相关数据源。',
+          '设置推荐内容的最低评分门槛。\n\n只有 Emby 社区评分（CommunityRating）≥ 该值的影片才会进入推荐页，用于过滤烂片。\n\n· 默认 4.0\n· 调高 → 推荐更精但内容更少\n· 调低 → 内容更多但质量参差\n\n注意：仅影响「高分」等评分相关数据源。',
     );
   }
 
@@ -640,7 +640,7 @@ class SettingsView extends ConsumerWidget {
       subtitle: sec == 0 ? '不过滤' : '$sec 秒以上',
       onTap: () => _showRecommendRuntimeDialog(context, ref, sec),
       helpText:
-          '过滤推荐内容的最短时长（分钟）。\n\n短于该时长的内容（如短片、花絮）不会出现在推荐页。\n\n· 默认 0（不过滤）\n· 建议 30–60 分钟可过滤大部分短片',
+          '过滤推荐内容的最短时长（秒）。\n\n短于该时长的内容（如短片、花絮）不会出现在推荐页。\n\n· 默认 30 秒；设为 0 则不过滤\n· 调大可过滤短片、预告片',
     );
   }
 
@@ -854,7 +854,7 @@ class SettingsView extends ConsumerWidget {
           halfLifeDays == 0 ? '不衰减，所有记录等权重' : '$halfLifeDays 天前的记录权重衰减到 0.5',
       onTap: () => _showHalfLifeDaysDialog(context, ref, halfLifeDays),
       helpText:
-          '时间衰减半衰期（天）。\n\n观看历史对推荐的影响随时间衰减：半衰期越短，越久远的观看记录权重越低，推荐越偏向近期口味。\n\n· 默认 30 天\n· 调小 → 只看近期偏好\n· 调大 → 长期偏好更稳定',
+          '时间衰减半衰期（天）。\n\n观看历史对推荐的影响随时间衰减：半衰期越短，越久远的观看记录权重越低，推荐越偏向近期口味。\n\n· 默认 14 天\n· 调小 → 只看近期偏好\n· 调大 → 长期偏好更稳定',
     );
   }
 
@@ -1031,7 +1031,7 @@ class SettingsView extends ConsumerWidget {
             ref.read(recommendNextUpSeriesCountProvider.notifier).setCount(v),
       ),
       helpText:
-          '「关注」视频流中，每个已收藏剧集最多展示的「最近剧集」数量。\n\n用于控制关注页的剧集内容密度。\n\n· 默认 1\n· 调大 → 关注页出现更多连续剧集',
+          '「关注」视频流中，每个已收藏剧集最多展示的「最近剧集」数量。\n\n用于控制关注页的剧集内容密度。\n\n· 默认 5\n· 调大 → 关注页出现更多连续剧集',
     );
   }
 
@@ -1057,7 +1057,7 @@ class SettingsView extends ConsumerWidget {
             ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
       ),
       helpText:
-          '「关注」视频流中，每位已收藏演员最多展示的新作品数量。\n\n· 默认 1\n· 调大 → 每位演员展示更多作品\n\n只影响关注页，不影响其他页面。',
+          '「关注」视频流中，每位已收藏演员最多展示的新作品数量。\n\n· 默认 20（范围 5–40）\n· 调大 → 每位演员展示更多作品\n\n只影响关注页，不影响其他页面。',
     );
   }
 
@@ -1203,7 +1203,7 @@ class SettingsView extends ConsumerWidget {
       subtitle: minRating == 0 ? '不过滤' : '≥ $minRating（0-10）',
       onTap: () => _showUserRatingMinDialog(context, ref, minRating),
       helpText:
-          '设置个人评分参与推荐的阈值：只有你打分 ≥ 该值的内容才计入推荐加权。\n\n· 默认 0（所有打分都参与）\n· 调高 → 只信任你的高分评价\n\n仅在「个人评分参与推荐」开启时生效。',
+          '设置个人评分参与推荐的阈值：只有你打分 ≥ 该值的内容才计入推荐加权。\n\n· 默认 4.0\n· 调高 → 只信任你的高分评价\n· 调低 → 更多打分参与推荐\n\n仅在「个人评分参与推荐」开启时生效。',
     );
   }
 
@@ -1893,6 +1893,8 @@ class SettingsView extends ConsumerWidget {
       title: '关于 EmbyTok',
       subtitle: '了解更多关于应用的信息',
       onTap: () => _showAboutDialog(context, ref),
+      helpText:
+          '关于页包含：\n\n· 应用简介与当前版本\n· 开源许可证列表\n· 项目 GitHub 仓库与联系方式\n\n如需反馈问题或查看源码，可在此找到入口。',
     );
   }
 
@@ -2004,6 +2006,8 @@ class SettingsView extends ConsumerWidget {
         iconColor: Colors.blue,
         title: syno.account ?? (syno.isLoggedIn ? '群晖账号' : '未登录'),
         subtitle: syno.serverUrl ?? '未连接群晖 NAS',
+        helpText:
+            '当前登录的账号信息（音乐模式）。\n\n· 显示群晖 Audio Station 账号与 NAS 地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
       );
     }
     final auth = ref.watch(authProvider);
@@ -2013,6 +2017,8 @@ class SettingsView extends ConsumerWidget {
       iconColor: Colors.blue,
       title: name,
       subtitle: auth.backendUrl ?? '未连接服务器',
+      helpText:
+          '当前登录的账号信息（视频模式）。\n\n· 显示 Emby 账号名与服务器地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
     );
   }
 
