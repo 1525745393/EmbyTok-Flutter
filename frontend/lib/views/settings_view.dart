@@ -135,10 +135,11 @@ class SettingsView extends ConsumerWidget {
                     _buildSharedRuleHint(context, ref),
                   ],
                 ),
-                // 发现页
+                // 发现页（默认展开，用户可分别设置类型/合集对接 Emby 标签）
                 _RuleSection(
                   icon: Icons.explore_outlined,
                   title: '发现页',
+                  initiallyExpanded: true,
                   childrenBuilder: () => [
                     _buildDiscoverGenresTile(context, ref),
                     _buildDiscoverCollectionsTile(context, ref),
