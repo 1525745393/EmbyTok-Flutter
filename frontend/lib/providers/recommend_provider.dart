@@ -133,17 +133,17 @@ class RecommendItem { // 数据源
   final MediaItem item;
   final RecommendSource source;
 
-  /// 追剧（nextUp）源的子类：演员新作 / 剧集更新（关注页分组与来源标注依据）
+  /// 关注（nextUp）源的子类：演员新作 / 剧集更新（关注页分组与来源标注依据）
   final NextUpKind? nextUpKind;
 }
 
-/// 追剧源的子类标记
+/// 关注源的子类标记
 enum NextUpKind { actorWork, seriesUpdate }
 
 /// PR #80：5 个数据源枚举 + 中文标签
 enum RecommendSource {
   latest, // 最新影片（Emby 最新入库）
-  nextUp, // 追剧
+  nextUp, // 关注
   resume, // 继续观看
   suggestions, // 为你推荐
   nativeRecommendations, // Emby 原生精选
@@ -180,7 +180,7 @@ extension RecommendSourceLabel on RecommendSource {
       case RecommendSource.latest:
         return '最新影片';
       case RecommendSource.nextUp:
-        return '追剧';
+        return '关注';
       case RecommendSource.resume:
         return '继续观看';
       case RecommendSource.suggestions:
