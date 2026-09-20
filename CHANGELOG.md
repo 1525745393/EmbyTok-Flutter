@@ -1,3 +1,10 @@
+# [2.144.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.143.0...v2.144.0) (2026-09-20)
+
+
+### Features
+
+* **feed:** 首帧进入 feed 也临时显示位置计数 3 秒 ([1bc0b9b](https://github.com/1525745393/EmbyTok-Flutter/commit/1bc0b9b2231c3e9985e54ff01fd2cedac98534da))
+
 # [2.143.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.5...v2.143.0) (2026-09-20)
 
 
