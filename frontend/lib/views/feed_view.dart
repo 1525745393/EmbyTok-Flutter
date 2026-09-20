@@ -214,6 +214,8 @@ class _FeedViewState extends ConsumerState<FeedView>
         ref
             .read(playbackStateProvider.notifier)
             .setPlaying(firstItem.id, firstItem);
+        // 首帧进入 feed 也临时显示位置计数 3 秒（非纯净模式）
+        _showPositionBadgeTemporarily();
       }
     });
   }
