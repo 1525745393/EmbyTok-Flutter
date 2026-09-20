@@ -1,3 +1,10 @@
+## [2.142.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.4...v2.142.5) (2026-09-20)
+
+
+### Bug Fixes
+
+* **feed:** 位置计数指示器跟随顶部工具栏自动隐藏 ([4f1d51a](https://github.com/1525745393/EmbyTok-Flutter/commit/4f1d51a0b6350718d2cb6a2d201998e329401021))
+
 ## [2.142.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.3...v2.142.4) (2026-09-20)
 
 
