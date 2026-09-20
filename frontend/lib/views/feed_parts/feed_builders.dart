@@ -195,6 +195,8 @@ extension _FeedBuilders on _FeedViewState {
         _currentIndex = index;
         _feedPositionReady = true;
         _currentIndexNotifier.value = index;
+        // 切视频后临时显示位置计数 3 秒自动隐藏（非纯净模式）
+        _showPositionBadgeTemporarily();
         // 关键修复：调用 setState 触发 PageView 重建，更新 isCurrentPage
         // 原问题：仅更新 _currentIndex 未触发重建，导致新页面 isCurrentPage 一直为 false
         // controller 不会被 play，视频画面不显示

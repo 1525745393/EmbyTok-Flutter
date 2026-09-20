@@ -54,6 +54,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   int _currentIndex = 0;
   final ValueNotifier<int> _currentIndexNotifier = ValueNotifier<int>(0);
 
+  // 位置计数指示器临时显示：切视频后显示 3 秒自动隐藏（仅非纯净模式）
+  Timer? _positionBadgeTimer;
+  final ValueNotifier<bool> _positionBadgeVisible = ValueNotifier<bool>(false);
+
   AppLifecycleListener? _lifecycleListener;
 
   // 位置就绪标记：只有「恢复跳转完成」或「用户主动翻过页」后才允许
@@ -214,6 +218,18 @@ class _FeedViewState extends ConsumerState<FeedView>
     });
   }
 
+  /// 切视频后临时显示位置计数 3 秒，随后自动隐藏（仅非纯净模式）。
+  /// 纯净模式（沉浸式播放）不显示位置计数，避免遮挡画面。
+  void _showPositionBadgeTemporarily() {
+    if (!mounted) return;
+    if (ref.read(isAutoPlayProvider)) return;
+    _positionBadgeVisible.value = true;
+    _positionBadgeTimer?.cancel();
+    _positionBadgeTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) _positionBadgeVisible.value = false;
+    });
+  }
+
   @override
   void dispose() {
     try {
@@ -224,6 +240,8 @@ class _FeedViewState extends ConsumerState<FeedView>
     } catch (_) {
       // dispose 时 position 可能已被 Flutter 清理，忽略错误
     }
+    _positionBadgeTimer?.cancel();
+    _positionBadgeVisible.dispose();
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _lifecycleListener?.dispose();
     _pageChangeDebounce?.cancel();
@@ -368,43 +386,49 @@ class _FeedViewState extends ConsumerState<FeedView>
             ),
 
           // 当前位置指示：放在顶部工具栏下沿右侧，避免与底部导航栏重叠。
-          // 原 bottom:16 会直接渲染在「设置」图标上方（截图中 47/50 压在图标上的根因）。
           // 跟随顶部工具栏一起自动隐藏：单击屏幕切换控制条时同步显隐，
           // 避免位置计数常驻遮挡视频画面。
+          // 非纯净模式下切视频后临时显示 3 秒自动隐藏（见 _showPositionBadgeTemporarily）。
           if (viewMode == ViewMode.feed && videoState.items.isNotEmpty)
             Positioned(
               right: 12,
               top: SafeInsets.topOf(context) + kAppToolbarHeight + 8,
-              child: IgnorePointer(
-                ignoring: !toolbarVisible,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: kToolbarAnimMs),
-                  curve: Curves.easeOut,
-                  opacity: toolbarVisible ? 1.0 : 0.0,
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _currentIndexNotifier,
-                    builder: (context, idx, _) {
-                      final total = videoState.items.length;
-                      final pos = (idx + 1).clamp(1, total);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: scheme.surface.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          '$pos / $total',
-                          style: TextStyle(
-                            color: scheme.onSurface.withValues(alpha: 0.9),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _positionBadgeVisible,
+                builder: (context, badgeVisible, _) {
+                  final show = toolbarVisible || badgeVisible;
+                  return IgnorePointer(
+                    ignoring: !show,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: kToolbarAnimMs),
+                      curve: Curves.easeOut,
+                      opacity: show ? 1.0 : 0.0,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _currentIndexNotifier,
+                        builder: (context, idx, _) {
+                          final total = videoState.items.length;
+                          final pos = (idx + 1).clamp(1, total);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: scheme.surface.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              '$pos / $total',
+                              style: TextStyle(
+                                color: scheme.onSurface.withValues(alpha: 0.9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
