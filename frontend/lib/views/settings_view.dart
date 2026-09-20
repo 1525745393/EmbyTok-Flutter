@@ -37,6 +37,7 @@ part 'settings/settings_builders.dart';
 part 'settings/settings_dialogs.dart';
 part 'settings/settings_dialogs_ext.dart';
 part 'settings/settings_dialogs_update.dart';
+part 'settings/settings_dialogs_update_extra.dart';
 
 // 设置页面常量定义（分离到单独文件）
 part 'settings/settings_constants.dart';
