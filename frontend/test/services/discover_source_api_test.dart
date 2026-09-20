@@ -53,7 +53,7 @@ void main() {
               {'Id': '', 'Name': '无ID'},
               {'Name': '无名'},
             ],
-            'TotalRecordCount': 4,
+            'TotalRecordCount': 2,
           };
         });
       });
@@ -181,6 +181,37 @@ void main() {
       expect(captured, ['BoxSet']);
       expect(collections.single.name, '漫威系列');
       expect(collections.single.itemCount, 30);
+    });
+
+    test('getTags：超过单页上限时分页拉取全量并去重', () async {
+      final pages = [
+        {
+          'Items': ['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag8', 'tag9', 'tag10'],
+          'TotalRecordCount': 12,
+        },
+        {
+          'Items': ['tag11', 'tag12'],
+          'TotalRecordCount': 12,
+        },
+      ];
+      var pageIndex = 0;
+      dioAdapter.onGet('/Tags', (server) {
+        server.replyCallback(200, (options) {
+          expect(options.queryParameters['IncludeItemTypes'],
+              'Movie,Series,Episode,Video,MusicVideo');
+          return pages[pageIndex++];
+        });
+      });
+
+      final tags = await api.getTags(
+        serverUrl: 'http://emby.test',
+        token: 'token-1',
+      );
+
+      // 两页 12 个标签全部返回且无重复
+      expect(tags.length, 12);
+      expect(tags.map((t) => t.name).toSet().length, 12);
+      expect(pageIndex, 2);
     });
   });
 }

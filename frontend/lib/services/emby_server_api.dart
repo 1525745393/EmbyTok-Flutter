@@ -13,6 +13,9 @@ import 'api_client.dart';
 import 'media_server_api.dart';
 
 class EmbyServerApi implements MediaServerApi {
+  // 发现数据源列表分页拉取的防御上限
+  static const int _kDiscoverListMax = 5000;
+
   EmbyServerApi() : _apiClient = ApiClient();
 
   EmbyServerApi.withClient(this._apiClient);
@@ -1019,28 +1022,46 @@ class EmbyServerApi implements MediaServerApi {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Recursive': 'true',
-      // 视频发现场景：只拉取视频类媒体类型，避免混入音乐/照片等流派
-      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Genres',
-      queryParameters: params,
-    );
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map((e) => Library(
-              id: (e['Id'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: 'Genre',
-            ))
-        .where((l) => l.id.isNotEmpty && l.name.isNotEmpty)
-        .toList();
+    final all = <Library>[];
+    final seen = <String>{};
+    // 类型可能超过单页上限，分页拉取全量
+    var startIndex = 0;
+    while (all.length < _kDiscoverListMax) {
+      final params = <String, dynamic>{
+        'Limit': '$limit',
+        'StartIndex': '$startIndex',
+        'Recursive': 'true',
+        // 视频发现场景：只拉取视频类媒体类型，避免混入音乐/照片等流派
+        'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
+      };
+      final resp = await _apiClient.get<dynamic>(
+        '/Genres',
+        queryParameters: params,
+      );
+      final items = resp.data is List
+          ? resp.data as List<dynamic>
+          : (resp.data['Items'] as List<dynamic>?) ?? [];
+      final total = resp.data is Map
+          ? (resp.data['TotalRecordCount'] as num?)?.toInt()
+          : null;
+      var pageCount = 0;
+      for (final e in items.whereType<Map<String, dynamic>>()) {
+        final lib = Library(
+          id: (e['Id'] as String?) ?? '',
+          name: (e['Name'] as String?) ?? '',
+          type: 'Genre',
+        );
+        if (lib.id.isEmpty || lib.name.isEmpty) continue;
+        if (seen.add(lib.id)) {
+          all.add(lib);
+          pageCount++;
+        }
+      }
+      if (pageCount == 0) break; // 空页或服务端忽略 StartIndex 返回重复页
+      if (total != null && startIndex + pageCount >= total) break;
+      startIndex += pageCount;
+    }
+    return all;
   }
 
   // ============================
@@ -1113,37 +1134,55 @@ class EmbyServerApi implements MediaServerApi {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'Recursive': 'true',
-      // 视频发现场景：只拉取视频类媒体上的标签，避免混入音乐/照片标签
-      'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
-    };
-    final resp = await _apiClient.get<dynamic>(
-      '/Tags',
-      queryParameters: params,
-    );
-    // Emby /Tags 返回 QueryResult<String>：Items 为字符串数组；
-    // 兼容部分服务器返回对象数组的情况。
-    final items = resp.data is List
-        ? resp.data as List<dynamic>
-        : (resp.data['Items'] as List<dynamic>?) ?? [];
-    return items
-        .map((e) {
-          if (e is String) {
-            return Library(id: e, name: e, type: 'Tag');
-          }
-          if (e is Map<String, dynamic>) {
-            return Library(
-              id: (e['Id'] as String?) ?? (e['Name'] as String?) ?? '',
-              name: (e['Name'] as String?) ?? '',
-              type: 'Tag',
-            );
-          }
-          return Library(id: '$e', name: '$e', type: 'Tag');
-        })
-        .where((l) => l.id.isNotEmpty)
-        .toList();
+    final all = <Library>[];
+    final seen = <String>{};
+    // 标签可能超过单页上限，分页拉取全量
+    var startIndex = 0;
+    while (all.length < _kDiscoverListMax) {
+      final params = <String, dynamic>{
+        'Limit': '$limit',
+        'StartIndex': '$startIndex',
+        'Recursive': 'true',
+        // 视频发现场景：只拉取视频类媒体上的标签，避免混入音乐/照片标签
+        'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
+      };
+      final resp = await _apiClient.get<dynamic>(
+        '/Tags',
+        queryParameters: params,
+      );
+      // Emby /Tags 返回 QueryResult<String>：Items 为字符串数组；
+      // 兼容部分服务器返回对象数组的情况。
+      final items = resp.data is List
+          ? resp.data as List<dynamic>
+          : (resp.data['Items'] as List<dynamic>?) ?? [];
+      final total = resp.data is Map
+          ? (resp.data['TotalRecordCount'] as num?)?.toInt()
+          : null;
+      var pageCount = 0;
+      for (final e in items) {
+        final Library lib;
+        if (e is String) {
+          lib = Library(id: e, name: e, type: 'Tag');
+        } else if (e is Map<String, dynamic>) {
+          lib = Library(
+            id: (e['Id'] as String?) ?? (e['Name'] as String?) ?? '',
+            name: (e['Name'] as String?) ?? '',
+            type: 'Tag',
+          );
+        } else {
+          lib = Library(id: '$e', name: '$e', type: 'Tag');
+        }
+        if (lib.id.isEmpty || lib.name.isEmpty) continue;
+        if (seen.add(lib.id)) {
+          all.add(lib);
+          pageCount++;
+        }
+      }
+      if (pageCount == 0) break; // 空页或服务端忽略 StartIndex 返回重复页
+      if (total != null && startIndex + pageCount >= total) break;
+      startIndex += pageCount;
+    }
+    return all;
   }
 
   // ============================
