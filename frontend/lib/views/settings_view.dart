@@ -34,6 +34,7 @@ import 'settings/settings_components.dart';
 part 'settings/settings_recommend_rules.dart';
 part 'settings/settings_recommend_rules_ext.dart';
 part 'settings/settings_builders.dart';
+part 'settings/settings_builders_extra.dart';
 part 'settings/settings_dialogs.dart';
 part 'settings/settings_dialogs_ext.dart';
 part 'settings/settings_dialogs_update.dart';
