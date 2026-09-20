@@ -1,3 +1,10 @@
+# [2.143.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.5...v2.143.0) (2026-09-20)
+
+
+### Features
+
+* **feed:** 位置计数指示器切视频后显示3秒自动隐藏 ([a40c77a](https://github.com/1525745393/EmbyTok-Flutter/commit/a40c77a906c2b0b53e70395d44f074441faa899a))
+
 ## [2.142.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.4...v2.142.5) (2026-09-20)
 
 
