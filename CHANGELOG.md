@@ -1,3 +1,10 @@
+## [2.144.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.0...v2.144.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **feed:** 位置计数只跟随badgeVisible不跟随toolbarVisible ([6db86fc](https://github.com/1525745393/EmbyTok-Flutter/commit/6db86fc6e907b184e6fa4d736b24d942c41f06a1))
+
 # [2.144.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.143.0...v2.144.0) (2026-09-20)
 
 
