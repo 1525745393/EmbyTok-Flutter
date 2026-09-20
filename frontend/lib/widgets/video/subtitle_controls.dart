@@ -8,7 +8,6 @@ import '../../providers/subtitle_settings_provider.dart';
 import '../../utils/constants.dart';
 
 class SubtitleControls extends ConsumerWidget {
-
   const SubtitleControls({
     super.key,
     required this.tracks,

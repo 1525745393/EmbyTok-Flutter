@@ -1,7 +1,6 @@
 // 字幕渲染器：在视频画面上叠加字幕文本
 // 支持 SRT/VTT/ASS 多种格式，可配置描边、阴影、背景透明度、时间偏移
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +9,6 @@ import '../../providers/subtitle_settings_provider.dart';
 
 // 字幕渲染器：接收当前播放时间和字幕数据
 class SubtitleRenderer extends ConsumerWidget {
-
   const SubtitleRenderer({
     super.key,
     required this.position,

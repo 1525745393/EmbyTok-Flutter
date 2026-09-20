@@ -13,7 +13,6 @@ import 'subtitle_selector.dart';
 
 // 视频控制条：半透明黑色背景，底部悬浮
 class VideoControls extends ConsumerStatefulWidget {
-
   const VideoControls({
     super.key,
     required this.controller,

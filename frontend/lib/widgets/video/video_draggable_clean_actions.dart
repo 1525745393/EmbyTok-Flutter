@@ -20,7 +20,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/providers.dart';
 
 class DraggableCleanActions extends ConsumerStatefulWidget {
-
   const DraggableCleanActions({
     super.key,
     required this.containerSize,

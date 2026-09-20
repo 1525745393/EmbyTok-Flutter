@@ -14,7 +14,6 @@ typedef SubtitleSelectedCallback = void Function(SubtitleTrack? track);
 
 /// 字幕选择器底部弹出菜单
 class SubtitleSelector extends ConsumerWidget {
-
   const SubtitleSelector({
     super.key,
     required this.tracks,
@@ -22,6 +21,7 @@ class SubtitleSelector extends ConsumerWidget {
     this.onSelected,
     this.onClose,
   });
+
   /// 可用的字幕轨道列表
   final List<SubtitleTrack> tracks;
 

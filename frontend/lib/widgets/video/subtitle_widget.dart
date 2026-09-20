@@ -11,13 +11,13 @@ import 'subtitle_renderer.dart';
 /// 字幕显示组件
 /// 接收字幕 cues 数据和当前播放位置，自动显示对应时间的字幕
 class SubtitleWidget extends ConsumerWidget {
-
   const SubtitleWidget({
     super.key,
     required this.position,
     required this.cues,
     this.enabled = true,
   });
+
   /// 当前播放位置
   final Duration position;
 
@@ -40,7 +40,6 @@ class SubtitleWidget extends ConsumerWidget {
 
 /// 字幕样式配置
 class SubtitleStyle {
-
   const SubtitleStyle({
     this.fontSize = 18.0,
     required this.textColor,

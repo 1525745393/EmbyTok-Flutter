@@ -31,7 +31,8 @@ double responsiveSize(BuildContext context, double base,
 }
 
 // ===== 演员头像/视频封面按钮 =====
-class PosterAvatar extends ConsumerWidget { // 点击演员跳转到详情
+class PosterAvatar extends ConsumerWidget {
+  // 点击演员跳转到详情
 
   const PosterAvatar({
     super.key,
@@ -47,7 +48,8 @@ class PosterAvatar extends ConsumerWidget { // 点击演员跳转到详情
     final embyServerUrl = authState.embyServerUrl;
     final token = authState.token;
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
 
     final people = item.people;
     final Person? firstActor = people != null && people.isNotEmpty
@@ -198,7 +200,8 @@ class AutoPlayButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAutoPlay = ref.watch(isAutoPlayProvider);
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isAutoPlayProvider.notifier).toggle();
@@ -234,7 +237,6 @@ class AutoPlayButton extends ConsumerWidget {
 
 // ===== 倍速调节按钮 =====
 class SpeedControlButton extends StatelessWidget {
-
   const SpeedControlButton({
     super.key,
     required this.controller,
@@ -247,7 +249,8 @@ class SpeedControlButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final currentSpeed = controller?.value.playbackSpeed ?? 1.0;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -267,7 +270,6 @@ class SpeedControlButton extends StatelessWidget {
 
 // ===== 画质选择按钮 =====
 class QualityButton extends StatelessWidget {
-
   const QualityButton({
     super.key,
     required this.onTap,
@@ -277,7 +279,8 @@ class QualityButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -308,7 +311,6 @@ class QualityButton extends StatelessWidget {
 
 // ===== 字幕按钮 =====
 class SubtitleButton extends ConsumerWidget {
-
   const SubtitleButton({
     super.key,
     required this.hasSubtitles,
@@ -322,7 +324,8 @@ class SubtitleButton extends ConsumerWidget {
     final subtitleSelected = ref.watch(selectedSubtitleProvider);
     final scheme = Theme.of(context).colorScheme;
     final isEnabled = subtitleSelected != null;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return GestureDetector(
       onTap: hasSubtitles ? onTap : null,
       child: Container(
@@ -344,7 +347,6 @@ class SubtitleButton extends ConsumerWidget {
 
 // ===== 唱片式静音按钮（播放时旋转，显示封面图，静音时红色边框）=====
 class DiscMuteButton extends ConsumerWidget {
-
   const DiscMuteButton({
     super.key,
     required this.discRotation,
@@ -361,7 +363,8 @@ class DiscMuteButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isMuted = ref.watch(isMutedProvider);
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return GestureDetector(
       onTap: () {
         ref.read(isMutedProvider.notifier).toggle();
@@ -411,7 +414,6 @@ class DiscMuteButton extends ConsumerWidget {
 
 // ===== 中央播放按钮（暂停时显示播放图标，播放时显示暂停图标）=====
 class CenterPlayButton extends StatelessWidget {
-
   const CenterPlayButton({
     super.key,
     required this.onPlay,
@@ -424,7 +426,8 @@ class CenterPlayButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return Positioned.fill(
       child: Center(
         child: GestureDetector(
@@ -450,14 +453,14 @@ class CenterPlayButton extends StatelessWidget {
 
 // ===== 倍速状态徽章（与 EmbyTok 原版一致）=====
 class SpeedBadge extends StatelessWidget {
-
   const SpeedBadge({super.key, required this.speed});
   final double speed;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     return Positioned(
       top: rs(40),
       left: 0,
@@ -489,14 +492,14 @@ class SpeedBadge extends StatelessWidget {
 
 // ===== 顶部操作区：全屏切换按钮 =====
 class TopActions extends StatelessWidget {
-
   const TopActions({super.key, required this.onToggleFullscreen});
   final VoidCallback onToggleFullscreen;
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    double rs(double base, [double max = 1.7]) => responsiveSize(context, base, max);
+    double rs(double base, [double max = 1.7]) =>
+        responsiveSize(context, base, max);
     final scheme = Theme.of(context).colorScheme;
     return Positioned(
       top: topPadding + 8,

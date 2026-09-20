@@ -306,7 +306,6 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
 
 // ===== 信息面板副标题行 =====
 class _VideoInfoSubtitle extends StatelessWidget {
-
   const _VideoInfoSubtitle({
     required this.type,
     required this.year,
@@ -384,7 +383,6 @@ class _VideoInfoSubtitle extends StatelessWidget {
 
 // ===== 信息面板基本信息行 =====
 class _VideoInfoRowItems extends StatelessWidget {
-
   const _VideoInfoRowItems({
     required this.duration,
     required this.rating,
@@ -422,7 +420,6 @@ class _VideoInfoRowItems extends StatelessWidget {
 
 // ===== 信息面板中的小卡片 =====
 class _VideoInfoChip extends StatelessWidget {
-
   const _VideoInfoChip({
     required this.label,
     required this.value,

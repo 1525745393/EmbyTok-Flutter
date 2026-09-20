@@ -16,7 +16,6 @@ typedef FullscreenCallback = void Function(bool isFullscreen);
 
 // 顶部工具栏组件
 class TopToolBar extends ConsumerWidget {
-
   const TopToolBar({
     super.key,
     this.onMenuPressed,

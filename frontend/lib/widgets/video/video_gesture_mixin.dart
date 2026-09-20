@@ -256,8 +256,8 @@ mixin VideoGestureMixin<T extends StatefulWidget> on State<T> {
         try {
           onSetVolume(newVolume);
         } catch (_) {
-      // 操作失败不影响主流程，静默处理
-    }
+          // 操作失败不影响主流程，静默处理
+        }
       } else {
         onLeftVerticalDragUpdate(delta);
       }

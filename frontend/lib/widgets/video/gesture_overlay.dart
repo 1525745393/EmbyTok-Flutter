@@ -21,7 +21,6 @@ import 'video_gesture_mixin.dart';
 
 // 手势交互层：统一处理视频画面上的手势事件
 class GestureOverlay extends ConsumerStatefulWidget {
-
   const GestureOverlay({
     super.key,
     required this.child,
@@ -65,8 +64,6 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   void onSingleTap() {
     widget.onSingleTap?.call();
   }
-
-
 
   @override
   void onDoubleTapCenter() {
@@ -189,9 +186,7 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             onTap: handleTap,
             onLongPressStart: widget.enableGestures ? onLongPressStart : null,
             onLongPressEnd: widget.enableGestures ? onLongPressEnd : null,
-            onLongPressCancel: widget.enableGestures
-                ? cancelLongPress
-                : null,
+            onLongPressCancel: widget.enableGestures ? cancelLongPress : null,
             // Pan 模式：同时支持水平/垂直（全屏无 PageView 冲突）
             onPanStart: (widget.enableGestures && usePan) ? onPanStart : null,
             onPanUpdate: (widget.enableGestures && usePan) ? onPanUpdate : null,
@@ -220,7 +215,8 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(20),
@@ -441,7 +437,6 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
 
 // ---- 内部子组件：拖动进度预览条 ----
 class _SeekPreviewBar extends StatelessWidget {
-
   const _SeekPreviewBar({
     required this.current,
     required this.total,

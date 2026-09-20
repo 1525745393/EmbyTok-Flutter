@@ -18,7 +18,6 @@ import 'subtitle_renderer.dart';
 // 设计：preloadedController 用于快速切换场景，避免每次重新初始化
 // 仅使用 Direct Play 模式
 class VideoPlayerWidget extends ConsumerStatefulWidget {
-
   const VideoPlayerWidget({
     super.key,
     required this.item,
@@ -357,16 +356,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           try {
             c.dispose();
           } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
+            // 资源释放失败不影响主流程，静默处理
+          }
           return;
         }
         if (_isDisposed) {
           try {
             c.dispose();
           } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
+            // 资源释放失败不影响主流程，静默处理
+          }
           return;
         }
         c.setLooping(widget.loop);
@@ -382,8 +381,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             try {
               c.dispose();
             } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
+              // 资源释放失败不影响主流程，静默处理
+            }
             return;
           }
           // 根据是否当前页决定播放/暂停（非当前页静音暂停，避免并发播放）
@@ -422,20 +421,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // 解码缓冲区约 30-50MB，快速滑动时 3-5 个控制器同时存在可导致 OOM。
     // 非当前页跳过动态创建，仅在 isCurrentPage 变为 true 时由 didUpdateWidget 触发创建。
     if (!widget.isCurrentPage) {
-      AppLogger.debug('非当前页跳过动态创建控制器，仅显示缩略图',
-          data: {'itemId': widget.item.id});
+      AppLogger.debug('非当前页跳过动态创建控制器，仅显示缩略图', data: {'itemId': widget.item.id});
       return;
     }
 
     // 降级链：DirectPlay → DirectStream → HLS（与 VideoPoolService.preload 一致）。
     // 部分视频 DirectPlay 编码/封装 ExoPlayer 不兼容（HEVC 10bit、特殊音轨等），
     // 直接失败会导致"播放异常"，降级到转码流可显著提升播放成功率。
-    final playSessionId =
-        'emb-dyn-${DateTime.now().microsecondsSinceEpoch}';
+    final playSessionId = 'emb-dyn-${DateTime.now().microsecondsSinceEpoch}';
     final urls = <int, String?>{
       0: _playbackUrl,
-      1: widget.item.computeDirectStreamUrl(
-          widget.embyServerUrl, widget.token),
+      1: widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token),
       2: widget.item.computeHlsUrl(widget.embyServerUrl, widget.token,
           playSessionId: playSessionId),
     };
@@ -888,8 +884,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         try {
           c.play();
         } catch (_) {
-        // 资源释放失败不影响主流程，静默处理
-      }
+          // 资源释放失败不影响主流程，静默处理
+        }
       }
     } else {
       try {

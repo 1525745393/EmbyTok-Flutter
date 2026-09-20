@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 // 双击触发的点赞心形动画（单次播放）
 class HeartAnimation extends StatefulWidget {
-
   const HeartAnimation({
     super.key,
     required this.visible,

@@ -3,6 +3,7 @@
 //       reportPlaybackPosition / reportPlaybackStopped）
 
 import 'dart:async';
+
 import 'dart:convert';
 
 import '../../utils/safe_insets.dart';
@@ -33,6 +34,9 @@ import 'video_control_buttons.dart';
 import 'video_progress_bars.dart';
 import 'video_sheet_utils.dart' as sheet_utils;
 import 'video_draggable_clean_actions.dart';
+part 'video_page_item_widgets.dart';
+part 'video_page_item_shell.dart';
+part 'video_page_item_reporting.dart';
 
 /// 单个视频页：TikTok 卡片样式
 // ===== UI 布局常量（避免魔法数字，提升可维护性）=====
@@ -105,7 +109,6 @@ const double _kTagPaddingHorizontal = 10;
 const double _kTagPaddingVertical = 4;
 
 class VideoPageItem extends ConsumerStatefulWidget {
-
   const VideoPageItem({
     super.key,
     required this.item,
@@ -421,7 +424,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
         try {
           await controller.seekTo(Duration(milliseconds: posMs));
         } catch (e) {
-          AppLogger.warn('跳转播放位置失败', data: {'error': e.toString(), 'position': posMs});
+          AppLogger.warn('跳转播放位置失败',
+              data: {'error': e.toString(), 'position': posMs});
         }
       }
     }
@@ -565,18 +569,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   String _newPlaySessionId() =>
       'emb-flutter-${DateTime.now().microsecondsSinceEpoch}';
 
-  void _ensureCapabilitiesReported() {
-    if (_capabilitiesReported) return;
-    _capabilitiesReported = true;
-    _safeReport(
-      () => _service.reportCapabilities(
-        serverUrl: _authServerUrl(),
-        token: _authToken(),
-      ),
-      'reportCapabilities',
-    );
-  }
-
   void _reportPlaybackStart() {
     if (_hasStartedReported) return;
     _hasStartedReported = true;
@@ -643,7 +635,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _hasStoppedReported = true;
     final controller = _videoController;
     final position = controller?.value.position;
-    final positionTicks = position != null ? position.inMilliseconds * 10000 : 0;
+    final positionTicks =
+        position != null ? position.inMilliseconds * 10000 : 0;
     _safeReport(
       () => _service.reportPlaybackStopped(
         itemId: widget.item.id,
@@ -806,8 +799,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('分享失败: $e'), duration: _kSnackBarDuration),
+          SnackBar(content: Text('分享失败: $e'), duration: _kSnackBarDuration),
         );
       }
     }
@@ -848,9 +840,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('删除失败: $e'),
-                duration: _kAnimationNormal),
+            SnackBar(content: Text('删除失败: $e'), duration: _kAnimationNormal),
           );
         }
       }
@@ -973,7 +963,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
                     try {
                       old.removeListener(_onVideoChanged);
                     } catch (e) {
-                      AppLogger.warn('移除视频控制器监听器失败', data: {'error': e.toString()});
+                      AppLogger.warn('移除视频控制器监听器失败',
+                          data: {'error': e.toString()});
                     }
                     // 同步清除 currentVideoControllerProvider（如果持有相同引用）
                     // 否则 FullscreenNavigator.open 会拿到已 dispose 的 controller，
@@ -1127,8 +1118,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
             },
             onDeleteTap: _showDeleteConfirmDialog,
             onShareTap: _shareItem,
-            onCommentTap: () =>
-                showVideoCommentsSheet(context, widget.item.id),
+            onCommentTap: () => showVideoCommentsSheet(context, widget.item.id),
             onSpeedTap: () =>
                 sheet_utils.showSpeedControlPanel(context, _videoController),
             onSubtitleTap: () => sheet_utils.showSubtitleSelector(
@@ -1192,346 +1182,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 ///
 /// 将 [CenterPlayButton] 的显示逻辑拆分到独立 [ConsumerWidget]，
 /// 这样 isPlayingProvider 状态变化时只重建本组件，不会触发 [VideoPageItem] 重建。
-class _CenterPlayButtonWrapper extends ConsumerWidget {
-
-  const _CenterPlayButtonWrapper({
-    required this.controller,
-    required this.onPlay,
-    required this.visible,
-    required this.isAutoPlay,
-  });
-  final VideoPlayerController? controller;
-  final VoidCallback onPlay;
-  // 由父组件控制显示状态（非纯净模式下的自动隐藏）
-  final bool visible;
-  final bool isAutoPlay;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 纯净模式不显示中央按钮（由 VideoControls 控制条操作）
-    if (isAutoPlay) return const SizedBox.shrink();
-    // 非纯净模式：由 visible 状态控制显示
-    if (!visible) return const SizedBox.shrink();
-    if (controller == null || !controller!.value.isInitialized) {
-      return const SizedBox.shrink();
-    }
-    final isPlaying = ref.watch(isPlayingProvider);
-    return CenterPlayButton(onPlay: onPlay, isPlaying: isPlaying);
-  }
-}
-
-/// 底部信息条：标题/简介/类型标签/进度条（非纯净模式）
-///
-/// 从 [VideoPageItem] 提取为独立 Widget，减少父组件 build 复杂度。
-/// 内部大部分子组件不随父组件状态变化而重建，提升 PageView 滑动性能。
-class _BottomInfoBar extends StatelessWidget {
-
-  const _BottomInfoBar({
-    required this.item,
-    required this.controller,
-    required this.isVisible,
-    required this.toolbarVisible,
-    required this.bottomPadding,
-    required this.onToggleFullscreen,
-    required this.formatDuration,
-  });
-  final MediaItem item;
-  final VideoPlayerController? controller;
-  final bool isVisible;
-  final bool toolbarVisible;
-  final double bottomPadding;
-  final VoidCallback onToggleFullscreen;
-  final String Function(Duration) formatDuration;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double maxScale = 1.7]) =>
-        responsiveSize(context, base, maxScale);
-
-    final hasController = controller != null && controller!.value.isInitialized;
-
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      // RepaintBoundary 放在 Positioned 内部，避免定位失效
-      // 控制层与视频渲染层隔离，减少不必要的重绘
-      child: RepaintBoundary(
-        child: AnimatedOpacity(
-          opacity: isVisible ? 1.0 : 0.0,
-          duration: Duration(milliseconds: isVisible ? 300 : 500),
-          curve: Curves.easeOut,
-          child: Container(
-            padding: EdgeInsets.fromLTRB(
-              _kHorizontalPadding,
-              _kBottomInfoGradientHeight,
-              rs(_kRightActionWidth, 2.0) + _kHorizontalPadding,
-              // 全面屏适配：底部叠加导航栏高度，避免进度条 / 时间文字
-              // 与 HomeScaffold 底部导航栏发生视觉重叠。
-              toolbarVisible
-                  ? bottomPadding + _kBottomControlBarHeight + _kBottomInfoGradientHeight + kBottomNavHeight
-                  : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [
-                  scheme.surface.withValues(alpha: 0.8),
-                  scheme.surface.withValues(alpha: 0.5),
-                  Colors.transparent,
-                ],
-                stops: const [0.0, 0.45, 1.0],
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 类型标签
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: _kTagPaddingHorizontal, vertical: _kTagPaddingVertical),
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.type,
-                    style: TextStyle(
-                      color: scheme.onPrimary,
-                      fontSize: _kFontSizeSmall,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                // 标题 + 评分
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.year != null
-                            ? '${item.title} (${item.year})'
-                            : item.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: _kFontSizeLarge,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: _kSpacingLarge),
-                    if (item.displayRating != null && item.displayRating! > 0)
-                      Text(
-                        '★ ${item.displayRating!.toStringAsFixed(1)}',
-                        style: TextStyle(
-                          color: scheme.primary,
-                          fontSize: _kFontSizeMedium,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: _kSpacingSmall),
-                // 简介
-                if (item.overview != null && item.overview!.isNotEmpty)
-                  Text(
-                    item.overview!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: _kFontSizeMedium,
-                    ),
-                  ),
-                // 进度条
-                if (hasController)
-                  Padding(
-                    padding: const EdgeInsets.only(top: _kSpacingLarge),
-                    child: SeekableProgressBar(
-                      controller: controller!,
-                      formatDuration: formatDuration,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 右侧操作按钮组（非纯净模式）
-///
-/// 从 [VideoPageItem] 提取为独立 ConsumerWidget，
-/// 收藏状态等局部变化只重建本组件，不触发父组件重建。
-class _RightActionButtons extends ConsumerWidget {
-
-  const _RightActionButtons({
-    required this.item,
-    required this.controller,
-    required this.discRotation,
-    required this.posterUrl,
-    required this.posterHeaders,
-    required this.toolbarVisible,
-    required this.bottomPadding,
-    required this.onToggleFullscreen,
-    required this.onInfoTap,
-    required this.onDeleteTap,
-    required this.onShareTap,
-    required this.onCommentTap,
-    this.onSpeedTap,
-    this.onSubtitleTap,
-  });
-  final MediaItem item;
-  final VideoPlayerController? controller;
-  final Animation<double> discRotation;
-  final String posterUrl;
-  final Map<String, String>? posterHeaders;
-  final bool toolbarVisible;
-  final double bottomPadding;
-  final VoidCallback onToggleFullscreen;
-  final VoidCallback onInfoTap;
-  final VoidCallback onDeleteTap;
-  final VoidCallback onShareTap;
-  final VoidCallback onCommentTap;
-  final VoidCallback? onSpeedTap;
-  final VoidCallback? onSubtitleTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    double rs(double base, [double maxScale = 1.7]) =>
-        responsiveSize(context, base, maxScale);
-    // 用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化触发重建
-    final favorited = ref.watch(
-      favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
-    );
-    // 本地评论数（select 精确监听当前 item，避免其他 item 评论变化触发重建）
-    final commentCount = ref.watch(
-      videoCommentsProvider.select((s) => s[item.id]?.length ?? 0),
-    );
-
-    return Positioned(
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: rs(_kRightActionWidth, 2.0),
-      child: RepaintBoundary(
-        child: Container(
-          padding: EdgeInsets.fromLTRB(
-            0,
-            // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
-            toolbarVisible ? SafeInsets.topOf(context) + _kRightActionTopWithToolbar : _kRightActionTopNoToolbar,
-            _kRightActionRightPadding,
-            // 全面屏适配：底部叠加导航栏高度 kBottomNavHeight，避免最下方 2 个按钮
-            // （字幕按钮 / DiscMute 唱片+头像）被 HomeScaffold 的底部导航栏吃掉一半。
-            toolbarVisible
-                ? bottomPadding + _kBottomControlBarHeight + _kBottomInfoGradientHeight + kBottomNavHeight
-                : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerRight,
-              end: Alignment.centerLeft,
-              colors: [
-                scheme.surface.withValues(alpha: 0.36),
-                Colors.transparent
-              ],
-            ),
-          ),
-          // 小屏防溢出：reverse:true 保持操作栏贴底，内容超出时从顶部滚动
-          // （新增分享/评论按钮后元素较多，低矮屏必须可滚动而非 RenderFlex 溢出）
-          child: SingleChildScrollView(
-            reverse: true,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-              // 顶部全屏按钮（竖屏/横屏视频均显示，统一入口避免底部居中按钮遮挡画面）
-              PressableActionButton(
-                icon: Icons.fullscreen,
-                label: '全屏',
-                color: scheme.onSurface,
-                onTap: onToggleFullscreen,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              const AutoPlayButton(),
-              SizedBox(height: rs(16, 1.5)),
-              PosterAvatar(item: item),
-              SizedBox(height: rs(16, 1.5)),
-              PressableActionButton(
-                icon: favorited ? Icons.favorite : Icons.favorite_border,
-                label: '点赞',
-                color: favorited ? scheme.primary : scheme.onSurface,
-                onTap: () =>
-                    ref.read(favoritesProvider.notifier).toggleFavorite(item),
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              PressableActionButton(
-                icon: Icons.share_outlined,
-                label: '分享',
-                color: scheme.onSurface,
-                onTap: onShareTap,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              PressableActionButton(
-                icon: Icons.chat_bubble_outline,
-                label: '评论',
-                color: scheme.onSurface,
-                badgeCount: commentCount,
-                onTap: onCommentTap,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              PressableActionButton(
-                icon: Icons.info_outline,
-                label: '信息',
-                color: scheme.onSurface,
-                onTap: onInfoTap,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              PressableActionButton(
-                icon: Icons.delete_outline,
-                label: '删除',
-                color: scheme.error,
-                onTap: onDeleteTap,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              SpeedControlButton(
-                controller: controller,
-                onTap: onSpeedTap ?? () {},
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              SubtitleButton(
-                hasSubtitles: item.subtitleTracks.isNotEmpty,
-                onTap: onSubtitleTap,
-              ),
-              SizedBox(height: rs(16, 1.5)),
-              DiscMuteButton(
-                discRotation: discRotation,
-                controller: controller,
-                posterUrl: posterUrl,
-                httpHeaders: posterHeaders,
-              ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 播放页面外壳：支持滑动切换视频列表
-///
-/// 使用 PageView 展示视频列表，支持上下滑动切换视频
-class PlaybackShell extends ConsumerStatefulWidget { // 数据源标识，用于观看统计，默认 'feed'
+class PlaybackShell extends ConsumerStatefulWidget {
+  // 数据源标识，用于观看统计，默认 'feed'
 
   const PlaybackShell({
     super.key,
@@ -1547,292 +1199,4 @@ class PlaybackShell extends ConsumerStatefulWidget { // 数据源标识，用于
 
   @override
   ConsumerState<PlaybackShell> createState() => _PlaybackShellState();
-}
-
-class _PlaybackShellState extends ConsumerState<PlaybackShell> {
-  late PageController _pageController;
-  int _currentIndex = 0;
-  late List<MediaItem> _items;
-  bool _isLoading = true;
-
-  /// 播放位置记忆（离开播放页再返回时恢复上次视频索引）
-  ///
-  /// 结构：{ source: { 列表首itemId: { "idx": 索引, "last": 上次视频id } } }
-  /// 恢复条件：同一数据源 + 同一列表（首 item 一致）→ 恢复到上次滑到的视频；
-  /// 进度续播由 VideoPageItem.startFromResumePosition 基于 Emby 服务端位置完成。
-  static const String _kPositionMemoryKey = kStorageKeyPlaybackShellPosition;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: 0, viewportFraction: 1.0);
-    _initItems();
-    _preloadAround(_currentIndex);
-    // 异步读取位置记忆，匹配到同一列表时恢复到上次滑到的视频
-    _restoreFromMemory();
-    // 进入播放页时立即隐藏系统栏，进入全屏沉浸式
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: Colors.transparent,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    // 离开前保存当前播放位置（不 await，异步写盘）
-    _savePosition();
-    _pageController.dispose();
-    // 离开播放页：返回 FeedView，需要保持沉浸式模式
-    // 不恢复 edgeToEdge，因为目标页面（FeedView）也是沉浸式的
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    super.dispose();
-  }
-
-  /// 当前列表的稳定签名：首 item id（同一列表内进入/返回时保持不变）
-  String get _listSignature =>
-      _items.isNotEmpty ? _items.first.id : widget.item.id;
-
-  /// 从本地记忆恢复上次播放位置（仅当数据源与列表均匹配时）
-  ///
-  /// 点击目标优先：若本次点击的视频确实在列表中，直接播放点击的视频，
-  /// 不被旧记忆覆盖（否则点 A 却播上次的 N）。记忆恢复仅作为兜底，
-  /// 用于点击目标不在列表中的异常场景。
-  Future<void> _restoreFromMemory() async {
-    try {
-      if (_items.any((i) => i.id == widget.item.id)) return;
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_kPositionMemoryKey);
-      if (raw == null || raw.isEmpty) return;
-      final root = jsonDecode(raw);
-      if (root is! Map<String, dynamic>) return;
-      final bySource = root[widget.source];
-      if (bySource is! Map<String, dynamic>) return;
-      final entry = bySource[_listSignature];
-      if (entry is! Map<String, dynamic>) return;
-      final savedIdx = entry['idx'];
-      if (savedIdx is! int || savedIdx <= 0) return;
-      if (!mounted) return;
-      final target = savedIdx.clamp(0, _items.length - 1);
-      // 等 PageController attach 后跳转
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_pageController.hasClients) return;
-        _currentIndex = target;
-        _pageController.jumpToPage(target);
-        AppLogger.debug('播放位置记忆：恢复到上次视频',
-            data: {'source': widget.source, 'index': target});
-      });
-    } catch (e) {
-      AppLogger.error('播放位置记忆恢复失败', error: e);
-    }
-  }
-
-  /// 保存当前播放位置（数据源 + 列表签名 + 索引 + 当前视频 id）
-  ///
-  /// 点击进入即写盘（含 index 0）：用户点击了 A，返回网格时「上次看到」
-  /// 必须定位到 A（与实际播放一致）。旧实现 index 0 不写，会导致点击
-  /// 列表第一个视频后网格仍定位到旧记忆视频，两处不一致。
-  ///
-  /// 单视频列表（boxset 详情/收藏页等传 extra=item 不带 items 的入口）
-  /// 不写盘：无滑动语义，且签名=被看视频自身 id，与网格读取方使用的
-  /// 「列表首 item id」签名不匹配，写了也只是孤儿条目随观看量无限增长。
-  Future<void> _savePosition() async {
-    if (_items.length <= 1) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_kPositionMemoryKey);
-      final root = (raw == null || raw.isEmpty)
-          ? <String, dynamic>{}
-          : (jsonDecode(raw) as Map<String, dynamic>? ?? {});
-      final bySource =
-          (root[widget.source] as Map<String, dynamic>?) ?? <String, dynamic>{};
-      final currentId = (_currentIndex >= 0 && _currentIndex < _items.length)
-          ? _items[_currentIndex].id
-          : widget.item.id;
-      bySource[_listSignature] = {
-        'idx': _currentIndex,
-        'last': currentId,
-      };
-      root[widget.source] = bySource;
-      await prefs.setString(_kPositionMemoryKey, jsonEncode(root));
-    } catch (e) {
-      AppLogger.error('播放位置记忆保存失败', error: e);
-    }
-  }
-
-  void _initItems() {
-    // 优先使用传入的列表，否则从 playbackListProvider 获取
-    if (widget.items.isNotEmpty) {
-      _items = widget.items;
-      final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
-      _currentIndex = initialIndex >= 0 ? initialIndex : 0;
-      _isLoading = false;
-      // 如果初始索引不是 0，滚动到对应位置
-      if (initialIndex > 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _pageController.hasClients) {
-            _pageController.jumpToPage(initialIndex);
-          }
-        });
-      }
-    } else {
-      // 从 playbackListProvider 获取播放列表
-      final playbackState = ref.read(playbackListProvider);
-      if (playbackState.items.isNotEmpty) {
-        _items = playbackState.items;
-        final initialIndex = _items.indexWhere((i) => i.id == widget.item.id);
-        _currentIndex = initialIndex >= 0 ? initialIndex : 0;
-        _isLoading = false;
-        if (initialIndex > 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _pageController.hasClients) {
-              _pageController.jumpToPage(initialIndex);
-            }
-          });
-        }
-      } else {
-        // 如果列表为空，只播放当前视频
-        _items = [widget.item];
-        _currentIndex = 0;
-        _isLoading = false;
-      }
-    }
-  }
-
-  void _onPageChanged(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-    // 滑动后实时保存位置，离开时即使不触发 dispose 也有最新记录
-    _savePosition();
-    _preloadAround(index);
-  }
-
-  // 接入全局预加载池：预加载相邻视频并清理较远的会话，
-  // 避免独立播放页长列表滑动时控制器数量无限增长（与 feed 行为一致）
-  void _preloadAround(int index) {
-    final auth = ref.read(authProvider);
-    final serverUrl = auth.embyServerUrl;
-    final token = auth.token;
-    if (serverUrl == null || token == null) return;
-    final pool = ref.read(videoPoolProvider);
-    Future<void> maybePreload(int i) async {
-      if (i < 0 || i >= _items.length) return;
-      final it = _items[i];
-      if (!pool.hasSession(it.id)) {
-        await pool.preload(item: it, serverUrl: serverUrl, token: token);
-      }
-    }
-
-    // 预加载前后各 1 个视频
-    safeUnawaited(maybePreload(index - 1),
-        context: 'PlaybackShell.maybePreload.prev');
-    safeUnawaited(maybePreload(index + 1),
-        context: 'PlaybackShell.maybePreload.next');
-
-    // 保留当前页 + 前后各 1 页的会话
-    final keep = <String>[];
-    if (index - 1 >= 0) keep.add(_items[index - 1].id);
-    keep.add(_items[index].id);
-    if (index + 1 < _items.length) keep.add(_items[index + 1].id);
-    pool.evictExcept(keep);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: scheme.surface,
-        extendBody: true,
-        extendBodyBehindAppBar: true,
-        body: Center(
-          child: CircularProgressIndicator(color: scheme.primary),
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      extendBody: true,
-      extendBodyBehindAppBar: true,
-      body: Stack(
-        children: [
-          // PageView 支持滑动切换视频
-          PageView.builder(
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            itemCount: _items.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (context, index) {
-              final item = _items[index];
-              // 复用全局预加载池中的会话（如存在且仍有效），否则回退动态创建
-              final rawSession = ref.read(videoPoolProvider).take(item.id);
-              final preloadedSession =
-                  (rawSession != null && rawSession.isInitialized)
-                      ? rawSession
-                      : null;
-              return VideoPageItem(
-                key: ValueKey(item.id),
-                item: item,
-                isCurrentPage: index == _currentIndex,
-                preloadedSession: preloadedSession,
-                source: widget.source,
-                onVideoEnded: index < _items.length - 1
-                    ? () {
-                        // 自动播放下一个
-                        _pageController.nextPage(
-                          duration: _kAnimationFast,
-                          curve: Curves.easeOut,
-                        );
-                      }
-                    : null,
-                startFromResumePosition: item.hasProgress,
-              );
-            },
-          ),
-          // 返回按钮
-          Positioned(
-            // 顶部按钮需避开刘海（沉浸式下 padding 归零，用 SafeInsets 取物理高度）
-            top: SafeInsets.topOf(context) + 8,
-            left: 8,
-            child: IconButton(
-              icon: Icon(Icons.arrow_back, color: scheme.onSurface),
-              onPressed: widget.onBack,
-            ),
-          ),
-          // 当前位置指示器
-          if (_items.length > 1)
-            Positioned(
-              // 同样需避开顶部刘海
-              top: SafeInsets.topOf(context) + 8,
-              right: 16,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: _kSpacingLarge, vertical: _kSpacingSmall),
-                decoration: BoxDecoration(
-                  color: scheme.surface.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  '${_currentIndex + 1}/${_items.length}',
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: _kFontSizeBody,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }

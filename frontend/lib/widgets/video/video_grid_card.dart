@@ -11,7 +11,6 @@ import '../last_watched_badge.dart';
 
 // 网格卡片组件
 class VideoGridCard extends ConsumerWidget {
-
   const VideoGridCard({
     super.key,
     required this.item,
@@ -65,9 +64,8 @@ class VideoGridCard extends ConsumerWidget {
                           left: 6,
                           top: 6,
                           child: LastWatchedBadge(
-                            progressPercent: progress > 0
-                                ? (progress * 100).round()
-                                : null,
+                            progressPercent:
+                                progress > 0 ? (progress * 100).round() : null,
                           ),
                         ),
                       if (duration != null)
