@@ -50,10 +50,11 @@ import 'favorites_provider.dart';
 import 'library_provider.dart';
 import 'recommend_signals.dart';
 import 'disliked_items_provider.dart';
+part 'recommend/recommend_control.dart';
+part 'recommend/recommend_queues.dart';
 
 /// 推荐状态
 class RecommendState {
-
   const RecommendState({
     this.taggedItems = const [],
     this.selectedTag,
@@ -124,7 +125,8 @@ class RecommendState {
 
 /// PR #80：推荐项 = MediaItem + 数据源标签
 /// - 用于标签分类 UI：UI 可按 source 过滤显示
-class RecommendItem { // 数据源
+class RecommendItem {
+  // 数据源
   const RecommendItem({
     required this.item,
     required this.source,
@@ -218,7 +220,6 @@ class _PageLoadResult {
 /// 加载上下文：封装 load() / loadMore() 共用的配置和计算结果
 /// 减少两个方法之间的代码重复
 class _LoadContext {
-
   const _LoadContext({
     required this.auth,
     required this.selectedIds,
@@ -296,23 +297,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // 媒体库变化监听：设置页 chip 增删推荐媒体库后自动刷新（400ms 去抖合并）
   Timer? _libraryRefreshDebounce;
 
-  void _subscribeLibraryChanges() {
-    _ref.listen<List<String>>(
-      recommendLibraryIdsProvider,
-      (previous, next) {
-        final prevStr = previous?.join(',') ?? '';
-        final nextStr = next.join(',');
-        if (next.isEmpty || nextStr == prevStr) return;
-        // 合并连续变更（如 chip 快速增删），避免触发多次重复加载
-        _libraryRefreshDebounce?.cancel();
-        _libraryRefreshDebounce = Timer(
-          const Duration(milliseconds: 400),
-          () => safeUnawaited(refresh(), context: 'RecommendNotifier.libraryChange'),
-        );
-      },
-    );
-  }
-
   @override
   void dispose() {
     _libraryRefreshDebounce?.cancel();
@@ -329,9 +313,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // 初始化：直接拉取 Emby 最新推荐数据
   // 缓存仅用于本会话内的 MemoryCache 加速（CachedMediaRepository），
   // 不做跨会话磁盘缓存，确保数据始终以 Emby 为准
-  Future<void> _init() async {
-    safeUnawaited(load(), context: 'RecommendNotifier._init');
-  }
 
   // 推荐每次加载数量（PR #78：20 → 30，提升推荐质量）
   static const int _pageSize = 30;
@@ -354,92 +335,8 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // 构建加载上下文（load() 和 loadMore() 共用）
   // 鉴权失败或未选择媒体库时返回 null
   // PR #83 优化：从 userBehaviorSignalProvider 读取缓存的 signal
-  _LoadContext? _buildLoadContext() {
-    final auth = _ref.read(authProvider);
-    final selectedIds = _ref.read(recommendLibraryIdsProvider);
-
-    if (!auth.isAuthenticated ||
-        auth.embyServerUrl == null ||
-        auth.token == null) {
-      return null;
-    }
-    if (selectedIds.isEmpty) {
-      return null;
-    }
-
-    final repo = _ref.read(cachedMediaRepositoryProvider);
-
-    // PR #78：读取推荐规则偏好
-    final minRating = _ref.read(recommendMinRatingProvider);
-    final excludePlayed = _ref.read(recommendExcludePlayedProvider);
-    final minRuntimeSec = _ref.read(recommendMinRuntimeSecProvider);
-    final includeTypes = _ref.read(recommendIncludeTypesProvider);
-    final minRuntimeTicks = minRuntimeSec * 10000000;
-
-    // PR #88：取最近展示记录
-    final antiFatigueEnabled = _ref.read(recommendAntiFatigueEnabledProvider);
-    final recentlyShownIds = _ref.read(recentlyShownItemIdsProvider);
-    // PR #89：用户评分加权
-    final userRatingEnabled = _ref.read(recommendUserRatingEnabledProvider);
-    final userRatingMin = _ref.read(recommendUserRatingMinProvider);
-    final favoriteIds = _ref.read(favoritesProvider).favoriteIds;
-    // 用户显式"不感兴趣"集合（本地持久化）
-    final dislikedIds = _ref.read(dislikedItemsProvider);
-    // 追剧队列数量平衡
-    final nextUpSeriesCount = _ref.read(recommendNextUpSeriesCountProvider);
-    final favActorNewCount = _ref.read(recommendFavActorNewCountProvider);
-    // 关注页：每演员视频数 / 只看未观看
-    final followActorVideoCount = _ref.read(followActorVideoCountProvider);
-    final followOnlyUnwatched = _ref.read(followOnlyUnwatchedProvider);
-
-    // PR #83 优化：从 userBehaviorSignalProvider 读取缓存，避免每次重算
-    final signal = _ref.read(userBehaviorSignalProvider);
-
-    if (signal.strength != SignalStrength.weak) {
-      AppLogger.debug('推荐：用户行为信号', data: {
-        'strength': signal.strength.name,
-        'weights': signal.sourceWeights
-            .map((k, v) => MapEntry(k.key, v.toStringAsFixed(2))),
-        'blacklistSize': signal.blacklist.length,
-        'seedsCount': signal.highCompletionSeeds.length,
-      });
-    }
-
-    return _LoadContext(
-      auth: auth,
-      selectedIds: selectedIds,
-      repo: repo,
-      minRating: minRating,
-      excludePlayed: excludePlayed,
-      includeTypes: includeTypes,
-      minRuntimeSec: minRuntimeSec,
-      minRuntimeTicks: minRuntimeTicks,
-      signal: signal,
-      favoriteIds: favoriteIds,
-      dislikedIds: dislikedIds,
-      antiFatigueEnabled: antiFatigueEnabled,
-      recentlyShownIds: recentlyShownIds,
-      userRatingEnabled: userRatingEnabled,
-      userRatingMin: userRatingMin,
-      nextUpSeriesCount: nextUpSeriesCount,
-      favActorNewCount: favActorNewCount,
-      followActorVideoCount: followActorVideoCount,
-      followOnlyUnwatched: followOnlyUnwatched,
-    );
-  }
 
   // 记录反推荐疲劳的展示记录
-  void _recordRecentlyShownItems(
-    Iterable<String> itemIds,
-    bool antiFatigueEnabled,
-  ) {
-    if (antiFatigueEnabled && itemIds.isNotEmpty) {
-      safeUnawaited(
-        _ref.read(recentlyShownItemIdsProvider.notifier).addAll(itemIds),
-        context: 'RecommendNotifier._recordRecentlyShownItems',
-      );
-    }
-  }
 
   // 服务端单次上限（避免一次拉太多）
   Future<void> load() async {
@@ -591,925 +488,59 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   // PR #89：userRatingEnabled + userRatingMin 传入 - 用户评分 < 阈值跳过
   // 返回 _PageLoadResult，包含 taggedList（带 source 标签的 RecommendItem）
   // + 各数据源原始项数（供 load() 冷启动检测）
-  Future<_PageLoadResult> _loadPage({
-    required _LoadContext ctx,
-    required Set<String> seenIds,
-  }) async {
-    final serverUrl = ctx.auth.embyServerUrl;
-    final token = ctx.auth.token;
-    final userId = ctx.auth.user?.id;
-    if (serverUrl == null || token == null) {
-      return const _PageLoadResult(
-        tagged: [],
-        nextUpCount: 0,
-        resumeCount: 0,
-        suggestionsCount: 0,
-        allSourcesExhausted: true,
-      );
-    }
-    // 合并拉取观看历史：相似种子筛选与「最近剧集下一集」都需要，
-    // 原先两处各自 getWatchHistory（200/50）造成重复请求，此处只拉一次。
-    List<MediaItem> watchHistory = const [];
-    try {
-      watchHistory = await ctx.repo.getWatchHistory(
-        limit: 200,
-        userId: userId,
-        serverUrl: serverUrl,
-        token: token,
-      );
-    } catch (e) {
-      AppLogger.error('推荐：加载观看历史失败', error: e);
-    }
-
-    final queues = <String, List<RecommendItem>>{
-      _sourceLatest: <RecommendItem>[],
-      _sourceNextUp: <RecommendItem>[],
-      _sourceResume: <RecommendItem>[],
-      _sourceSuggestions: <RecommendItem>[],
-      _sourceNative: <RecommendItem>[],
-      _sourceRecommendations: <RecommendItem>[],
-      _sourceSimilar: <RecommendItem>[],
-      _sourceLocal: <RecommendItem>[],
-    };
-
-    // Task 4：并发拉取各数据源，收集各源是否还有更多数据的标记
-    // _fetchNextUpByRecentSeries 也填充 NextUp 队列，但不参与 hasMore 判定
-    final nextUpByRecentFuture = _fetchNextUpByRecentSeries(
-      ctx: ctx,
-      queues: queues,
-      serverUrl: serverUrl,
-      token: token,
-      userId: userId,
-      watchHistory: watchHistory,
-    );
-    // 关注流深化：收藏剧集的更新（主动订阅），同样不参与 hasMore 判定
-    final nextUpByFavSeriesFuture = _fetchNextUpByFavoriteSeries(
-      ctx: ctx,
-      queues: queues,
-      serverUrl: serverUrl,
-      token: token,
-      userId: userId,
-    );
-    // 顺序对应 sourceHasMore 索引：
-    // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
-    // [4]=Native, [5]=Similar, [6]=Recommendations, [7]=Local
-    final sourceHasMore = await Future.wait<bool>([
-      _fetchLatestQueue(
-          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchNextUpQueue(
-          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchResumeQueue(
-          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-      _fetchSuggestionsQueue(
-          ctx: ctx,
-          queues: queues,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId),
-      _fetchNativeRecommendationsQueue(
-          ctx: ctx,
-          queues: queues,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId),
-      _fetchSimilarQueue(
-          ctx: ctx,
-          queues: queues,
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-          watchHistory: watchHistory),
-      _fetchRecommendationsQueue(ctx: ctx, queues: queues, seenIds: seenIds),
-      _fetchLocalRecommendQueue(
-          ctx: ctx, queues: queues, serverUrl: serverUrl, token: token),
-    ]);
-    await nextUpByRecentFuture;
-    await nextUpByFavSeriesFuture;
-
-    return _mergeRoundRobin(
-      queues: queues,
-      signal: ctx.signal,
-      seenIds: seenIds,
-      sourceHasMore: sourceHasMore,
-    );
-  }
 
   // 填充「最新影片」队列：按入库时间倒序
-  Future<bool> _fetchLatestQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-  }) async {
-    try {
-      final libraryId = ctx.selectedIds.length == 1 ? ctx.selectedIds.first : null;
-      final resp = await ctx.repo.getLatestItems(
-        limit: _pageSize,
-        libraryId: libraryId,
-        userId: ctx.auth.user?.id,
-        serverUrl: serverUrl,
-        token: token,
-      );
-      final q = queues[_sourceLatest];
-      for (final item in resp.items) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        if (_shouldSkipItem(
-          item,
-          signal: ctx.signal,
-          favoriteIds: ctx.favoriteIds,
-          dislikedIds: ctx.dislikedIds,
-          antiFatigueEnabled: ctx.antiFatigueEnabled,
-          recentlyShownIds: ctx.recentlyShownIds,
-          userRatingEnabled: ctx.userRatingEnabled,
-          userRatingMin: ctx.userRatingMin,
-        )) {
-          continue;
-        }
-        q?.add(RecommendItem(item: item, source: RecommendSource.latest));
-      }
-      return resp.items.length >= _pageSize;
-    } catch (e) {
-      AppLogger.error('推荐：加载最新影片失败', error: e);
-      return false;
-    }
-  }
 
   // 填充「移动客户端推荐」队列：本地行为数据（收藏影片）
   // 与服务器端 Suggestions 区分：这里直接呈现客户端本地收藏，
   // 无收藏时返回空，标签自动隐藏。
-  Future<bool> _fetchLocalRecommendQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-  }) async {
-    try {
-      final resp = await ctx.repo.getFavoriteMovies(
-        limit: _pageSize,
-        serverUrl: serverUrl,
-        token: token,
-        userId: ctx.auth.user?.id,
-      );
-      final q = queues[_sourceLocal];
-      for (final item in resp.items) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        q?.add(RecommendItem(item: item, source: RecommendSource.localRecommend));
-      }
-      return resp.hasMore;
-    } catch (e) {
-      AppLogger.error('推荐：加载移动客户端推荐失败', error: e);
-      return false;
-    }
-  }
 
   // 填充 NextUp 追剧队列
   // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
   // 旧实现 items.isNotEmpty 会误判：恰好装满一页 (size=30) 时，服务器已无更多但被认为还有。
   // 保守策略：只要 items 未达 limit 就认为已耗尽；后续若有 PaginatedResponse.totalRecordCount 可替换为精确判断。
-  Future<bool> _fetchNextUpQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-  }) async {
-    try {
-      final nextUpQueue = queues[_sourceNextUp];
-      final userId = ctx.auth.user?.id;
-
-      // 优先：收藏演员的作品（推荐页「追剧」=关注演员的最新片）
-      // 关注流按演员逐个拉取：覆盖所有收藏演员，每个演员最多
-      // followActorVideoCount 条（用户可自定义），已观看过滤由
-      // followOnlyUnwatched 开关控制（默认开启）。
-      List<MediaItem> items = const [];
-      var hasMore = false;
-      final favPeople = await ctx.repo.getFavoritePeople(
-        limit: 50,
-        serverUrl: serverUrl,
-        token: token,
-        userId: userId,
-      );
-      final personIds = favPeople.items
-          .map((p) => p.id)
-          .where((id) => id.isNotEmpty)
-          .toList();
-      if (personIds.isNotEmpty) {
-        final perActor = ctx.followActorVideoCount;
-        final all = <MediaItem>[];
-        var anyActorReachedLimit = false;
-        // 并发分批拉取（复用推荐并发上限），避免一次性发起过多请求
-        for (var i = 0; i < personIds.length; i += _maxConcurrentRequests) {
-          final batch =
-              personIds.skip(i).take(_maxConcurrentRequests).toList();
-          final responses = await Future.wait(batch.map((pid) =>
-              ctx.repo.getItemsByPersonIds(
-                personIds: [pid],
-                limit: perActor,
-                serverUrl: serverUrl,
-                token: token,
-                userId: userId,
-              )));
-          for (final resp in responses) {
-            all.addAll(resp.items);
-            if (resp.items.length >= perActor) anyActorReachedLimit = true;
-          }
-        }
-        items = all;
-        hasMore = anyActorReachedLimit;
-      } else {
-        // 无收藏演员：不回退 NextUp，留空队列，
-        // 由 UI 在空态引导用户去收藏演员。
-        items = const [];
-        hasMore = false;
-      }
-
-      for (final item in items) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        // 关注流只展示未看完的（可由「只看未观看」开关关闭）：
-        // 已看完的跳过，避免老片占着"新作品"的位置。
-        if (ctx.followOnlyUnwatched && item.isWatched) continue;
-        if (_shouldSkipItem(
-          item,
-          signal: ctx.signal,
-          favoriteIds: ctx.favoriteIds,
-          dislikedIds: ctx.dislikedIds,
-          antiFatigueEnabled: ctx.antiFatigueEnabled,
-          recentlyShownIds: ctx.recentlyShownIds,
-          userRatingEnabled: ctx.userRatingEnabled,
-          userRatingMin: ctx.userRatingMin,
-        )) {
-          continue;
-        }
-        nextUpQueue?.add(RecommendItem(
-              item: item,
-              source: RecommendSource.nextUp,
-              nextUpKind: NextUpKind.actorWork,
-            ));
-      }
-      return hasMore;
-    } catch (e) {
-      AppLogger.error('推荐：加载追剧队列失败', error: e);
-      return false;
-    }
-  }
 
   // 填充 Resume 续看队列
   // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
-  Future<bool> _fetchResumeQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-  }) async {
-    try {
-      final resp = await ctx.repo.getResumeItems(
-        limit: _pageSize,
-        serverUrl: serverUrl,
-        token: token,
-        userId: ctx.auth.user?.id,
-      );
-      final resumeQueue = queues[_sourceResume];
-      for (final item in resp.items) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        if (_shouldSkipItem(
-          item,
-          signal: ctx.signal,
-          favoriteIds: ctx.favoriteIds,
-          dislikedIds: ctx.dislikedIds,
-          antiFatigueEnabled: ctx.antiFatigueEnabled,
-          recentlyShownIds: ctx.recentlyShownIds,
-          userRatingEnabled: ctx.userRatingEnabled,
-          userRatingMin: ctx.userRatingMin,
-        )) {
-          continue;
-        }
-        resumeQueue
-            ?.add(RecommendItem(item: item, source: RecommendSource.resume));
-      }
-      return resp.items.length >= _pageSize;
-    } catch (e) {
-      AppLogger.error('推荐：加载 Resume 失败', error: e);
-      return false;
-    }
-  }
 
   // PR #87：从最近看过的 series 拉下一集，插入到 NextUp 队列前面
   // 修复 P0-3：收集所有下一集后一次性插入队首，保证最近观看优先
-  Future<void> _fetchNextUpByRecentSeries({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-    String? userId,
-    required List<MediaItem> watchHistory,
-  }) async {
-    try {
-      final recentSeriesLimit = ctx.nextUpSeriesCount;
-      final history = watchHistory;
-      final seenSeriesIds = <String>{};
-      final recentSeriesIds = <String>[];
-      for (final item in history) {
-        final sid = item.seriesId;
-        if (sid == null || sid.isEmpty) continue;
-        if (seenSeriesIds.contains(sid)) continue;
-        seenSeriesIds.add(sid);
-        recentSeriesIds.add(sid);
-        if (recentSeriesIds.length >= recentSeriesLimit) break;
-      }
-      if (recentSeriesIds.isEmpty) return;
-
-      // 并发限制：最多同时请求 _maxConcurrentRequests 个 series
-      final tasks = recentSeriesIds
-          .map((sid) => () async {
-                try {
-                  final resp = await ctx.repo.getNextUp(
-                    limit: 3,
-                    seriesId: sid,
-                    serverUrl: serverUrl,
-                    token: token,
-                  );
-                  return resp.items;
-                } catch (e) {
-                  AppLogger.error('推荐：加载 series $sid NextUp 失败', error: e);
-                  return <MediaItem>[];
-                }
-              })
-          .toList();
-      final nextUpLists = await _runWithConcurrencyLimit(tasks);
-
-      // P0-3 修复：一次性收集所有下一集后插入队首
-      // 遍历顺序 = recentSeriesIds 顺序（最近观看优先），同 series 内按 season+index 排序
-      final allNextUp = <RecommendItem>[];
-      for (final list in nextUpLists) {
-        final sorted = List<MediaItem>.from(list)
-          ..sort((a, b) {
-            final sa = a.parentIndexNumber ?? 0;
-            final sb = b.parentIndexNumber ?? 0;
-            if (sa != sb) return sa.compareTo(sb);
-            return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
-          });
-        for (final item in sorted) {
-          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-          if (_shouldSkipItem(
-            item,
-            signal: ctx.signal,
-            favoriteIds: ctx.favoriteIds,
-            dislikedIds: ctx.dislikedIds,
-            antiFatigueEnabled: ctx.antiFatigueEnabled,
-            recentlyShownIds: ctx.recentlyShownIds,
-            userRatingEnabled: ctx.userRatingEnabled,
-            userRatingMin: ctx.userRatingMin,
-          )) {
-            continue;
-          }
-          allNextUp.add(RecommendItem(
-              item: item,
-              source: RecommendSource.nextUp,
-              nextUpKind: NextUpKind.seriesUpdate,
-            ));
-        }
-      }
-      if (allNextUp.isNotEmpty) {
-        final nextUpQueue = queues[_sourceNextUp];
-        nextUpQueue?.insertAll(0, allNextUp);
-      }
-    } catch (e) {
-      AppLogger.error('推荐：NextUp by series 流程失败', error: e);
-    }
-  }
 
   // 关注流深化：收藏剧集的更新（主动订阅）
   // 从收藏列表中筛出 Series（用户主动收藏的剧集），逐个拉取其未看新集，
   // 并入 NextUp 队列（标记 seriesUpdate），与收藏演员作品共同构成"关注"内容。
-  Future<void> _fetchNextUpByFavoriteSeries({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-    String? userId,
-  }) async {
-    try {
-      // 收藏列表（getFavoriteMovies 默认包含 Series 类型）
-      final favorites = _ref.read(favoritesProvider);
-      final seriesIds = <String>[];
-      final seen = <String>{};
-      for (final m in favorites.movies) {
-        if (m.type != 'Series') continue;
-        final sid = m.id;
-        if (sid.isEmpty || seen.contains(sid)) continue;
-        seen.add(sid);
-        seriesIds.add(sid);
-        if (seriesIds.length >= ctx.favActorNewCount) break;
-      }
-      if (seriesIds.isEmpty) return;
-
-      // 并发限制：最多同时请求 _maxConcurrentRequests 个 series
-      final tasks = seriesIds
-          .map((sid) => () async {
-                try {
-                  final resp = await ctx.repo.getNextUp(
-                    limit: 3,
-                    seriesId: sid,
-                    serverUrl: serverUrl,
-                    token: token,
-                  );
-                  return resp.items;
-                } catch (e) {
-                  AppLogger.error('推荐：收藏 series $sid NextUp 失败',
-                      error: e);
-                  return <MediaItem>[];
-                }
-              })
-          .toList();
-      final nextUpLists = await _runWithConcurrencyLimit(tasks);
-
-      final allNextUp = <RecommendItem>[];
-      for (final list in nextUpLists) {
-        // 同 series 内按季 + 集号排序（老集在前，最新集在后）
-        final sorted = List<MediaItem>.from(list)
-          ..sort((a, b) {
-            final sa = a.parentIndexNumber ?? 0;
-            final sb = b.parentIndexNumber ?? 0;
-            if (sa != sb) return sa.compareTo(sb);
-            return (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0);
-          });
-        for (final item in sorted) {
-          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-          if (item.isWatched) continue;
-          if (_shouldSkipItem(
-            item,
-            signal: ctx.signal,
-            favoriteIds: ctx.favoriteIds,
-            dislikedIds: ctx.dislikedIds,
-            antiFatigueEnabled: ctx.antiFatigueEnabled,
-            recentlyShownIds: ctx.recentlyShownIds,
-            userRatingEnabled: ctx.userRatingEnabled,
-            userRatingMin: ctx.userRatingMin,
-          )) {
-            continue;
-          }
-          allNextUp.add(RecommendItem(
-            item: item,
-            source: RecommendSource.nextUp,
-            nextUpKind: NextUpKind.seriesUpdate,
-          ));
-        }
-      }
-      if (allNextUp.isNotEmpty) {
-        final nextUpQueue = queues[_sourceNextUp];
-        nextUpQueue?.insertAll(0, allNextUp);
-      }
-    } catch (e) {
-      AppLogger.error('推荐：收藏剧集更新流程失败', error: e);
-    }
-  }
 
   // 填充个性化推荐队列
   // P1-3：返回该数据源是否还有更多数据（items.length >= _pageSize 视为可能还有）
-  Future<bool> _fetchSuggestionsQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-    String? userId,
-  }) async {
-    try {
-      final suggestions = await ctx.repo.getSuggestions(
-        limit: _pageSize,
-        serverUrl: serverUrl,
-        token: token,
-        userId: userId,
-      );
-      final suggestionsQueue = queues[_sourceSuggestions];
-      for (final item in suggestions) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        if (_shouldSkipItem(
-          item,
-          signal: ctx.signal,
-          favoriteIds: ctx.favoriteIds,
-          dislikedIds: ctx.dislikedIds,
-          antiFatigueEnabled: ctx.antiFatigueEnabled,
-          recentlyShownIds: ctx.recentlyShownIds,
-          userRatingEnabled: ctx.userRatingEnabled,
-          userRatingMin: ctx.userRatingMin,
-        )) {
-          continue;
-        }
-        suggestionsQueue?.add(
-            RecommendItem(item: item, source: RecommendSource.suggestions));
-      }
-      return suggestions.length >= _pageSize;
-    } catch (e) {
-      AppLogger.error('推荐：加载个性化推荐失败', error: e);
-      return false;
-    }
-  }
 
   // 填充 Emby 原生精选队列（/Movies/Recommendations + /Shows/Recommended）
   // 该源基于观看历史生成、无分页概念，固定返回 hasMore=false；
   // 老版本 Emby / Jellyfin 不支持端点时仓库层已吞掉异常返回空，这里再兜底一层。
   // 仅当用户选定单个媒体库时用 ParentId 限定，多库时做跨库全局推荐。
-  Future<bool> _fetchNativeRecommendationsQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-    String? userId,
-  }) async {
-    try {
-      final libraryId = ctx.selectedIds.length == 1 ? ctx.selectedIds.first : null;
-      final items = await ctx.repo.getNativeRecommendations(
-        userId: userId,
-        libraryId: libraryId,
-        serverUrl: serverUrl,
-        token: token,
-      );
-      final queue = queues[_sourceNative];
-      for (final item in items) {
-        if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-        if (_shouldSkipItem(
-          item,
-          signal: ctx.signal,
-          favoriteIds: ctx.favoriteIds,
-          dislikedIds: ctx.dislikedIds,
-          antiFatigueEnabled: ctx.antiFatigueEnabled,
-          recentlyShownIds: ctx.recentlyShownIds,
-          userRatingEnabled: ctx.userRatingEnabled,
-          userRatingMin: ctx.userRatingMin,
-        )) {
-          continue;
-        }
-        queue?.add(RecommendItem(
-            item: item, source: RecommendSource.nativeRecommendations));
-      }
-      // 原生精选无分页，不参与"还有更多"判定
-      return false;
-    } catch (e) {
-      AppLogger.error('推荐：加载 Emby 原生精选失败', error: e);
-      return false;
-    }
-  }
 
   // PR #83：用 signal 高完播种子替换"最近高分项"做相似推荐种子
   // PR #86：收藏项优先作为相似种子
   // Task 4：返回该数据源是否还有更多数据（任一种子返回相似项 > 0）
-  Future<bool> _fetchSimilarQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required String serverUrl,
-    required String token,
-    String? userId,
-    required List<MediaItem> watchHistory,
-  }) async {
-    try {
-      final history = watchHistory;
-      final seedByItemId = <String, MediaItem>{};
-
-      // 1. 收藏种子（PR #86）
-      if (ctx.signal.favoriteSeeds.isNotEmpty) {
-        final favoriteSet = ctx.signal.favoriteSeeds.toSet();
-        for (final item in history) {
-          if (favoriteSet.contains(item.id)) {
-            seedByItemId[item.id] = item;
-          }
-        }
-      }
-
-      // 2. 完播种子（PR #83）
-      if (ctx.signal.highCompletionSeeds.isNotEmpty) {
-        final completionSet = ctx.signal.highCompletionSeeds.toSet();
-        for (final item in history) {
-          if (seedByItemId.containsKey(item.id)) continue;
-          if (completionSet.contains(item.id)) {
-            seedByItemId[item.id] = item;
-          }
-        }
-      }
-
-      // 3. 降级：最近高分项
-      if (seedByItemId.isEmpty) {
-        for (final item in history) {
-          if ((item.communityRating ?? 0) >= _similarSeedMinRating) {
-            seedByItemId.putIfAbsent(item.id, () => item);
-          }
-        }
-      }
-
-      final highRated = seedByItemId.values
-          .where((i) => (i.communityRating ?? 0) >= _similarSeedMinRating)
-          .toList()
-        ..sort((a, b) =>
-            (b.communityRating ?? 0).compareTo(a.communityRating ?? 0));
-      final topSeeds = highRated.take(_similarSeedCount).toList();
-      if (topSeeds.isEmpty) {
-        return false;
-      }
-      // 并发限制：最多同时请求 _maxConcurrentRequests 个种子
-      final tasks = topSeeds
-          .map((seed) => () async {
-                try {
-                  return await ctx.repo.getSimilarItems(
-                    seed.id,
-                    limit: _similarPerSeed,
-                    serverUrl: serverUrl,
-                    token: token,
-                    userId: ctx.auth.user?.id,
-                  );
-                } catch (e) {
-                  AppLogger.error('推荐：加载 ${seed.id} Similar 失败', error: e);
-                  return <MediaItem>[];
-                }
-              })
-          .toList();
-      final similarLists = await _runWithConcurrencyLimit(tasks);
-      // P1-3：任一种子返回项数 >= _similarPerSeed 视为可能还有更多
-      // （旧实现 list.isNotEmpty 会误判：恰好装满时服务器已无更多但被认为还有）
-      var hasMore = false;
-      for (final list in similarLists) {
-        if (list.length >= _similarPerSeed) hasMore = true;
-        final similarQueue = queues[_sourceSimilar];
-        for (final item in list) {
-          if (!ctx.isVideo(item) || ctx.isTooShort(item)) continue;
-          if (_shouldSkipItem(
-            item,
-            signal: ctx.signal,
-            favoriteIds: ctx.favoriteIds,
-            dislikedIds: ctx.dislikedIds,
-            antiFatigueEnabled: ctx.antiFatigueEnabled,
-            recentlyShownIds: ctx.recentlyShownIds,
-            userRatingEnabled: ctx.userRatingEnabled,
-            userRatingMin: ctx.userRatingMin,
-          )) {
-            continue;
-          }
-          similarQueue
-              ?.add(RecommendItem(item: item, source: RecommendSource.similar));
-        }
-      }
-      return hasMore;
-    } catch (e) {
-      AppLogger.error('推荐：Similar 流程失败', error: e);
-      return false;
-    }
-  }
 
   // 填充多库高分推荐队列
   // P1-3：返回该数据源是否还有更多数据（任一库返回项数 >= _pageSize 视为可能还有）
-  Future<bool> _fetchRecommendationsQueue({
-    required _LoadContext ctx,
-    required Map<String, List<RecommendItem>> queues,
-    required Set<String> seenIds,
-  }) async {
-    final serverUrl = ctx.auth.embyServerUrl;
-    final token = ctx.auth.token;
-    final userId = ctx.auth.user?.id;
-    if (serverUrl == null || token == null) return false;
-    // Dart 单线程模型，闭包并发执行时共享变量安全
-    var hasMore = false;
-    // 并发限制：最多同时请求 _maxConcurrentRequests 个库
-    final tasks = ctx.selectedIds
-        .map((libId) => () async {
-              try {
-                final resp = await ctx.repo.getRecommendations(
-                  libraryId: libId,
-                  limit: _pageSize,
-                  offset: 0,
-                  serverUrl: serverUrl,
-                  token: token,
-                  userId: userId,
-                  minCommunityRating: ctx.minRating,
-                  excludePlayed: ctx.excludePlayed,
-                  includeItemTypes: ctx.includeTypes,
-                );
-                // P1-3：items 未达 limit 视为该库已耗尽
-                if (resp.items.length >= _pageSize) hasMore = true;
-                for (final item in resp.items) {
-                  if (ctx.isTooShort(item)) continue;
-                  if (_shouldSkipItem(
-                    item,
-                    signal: ctx.signal,
-                    favoriteIds: ctx.favoriteIds,
-                    dislikedIds: ctx.dislikedIds,
-                    antiFatigueEnabled: ctx.antiFatigueEnabled,
-                    recentlyShownIds: ctx.recentlyShownIds,
-                    userRatingEnabled: ctx.userRatingEnabled,
-                    userRatingMin: ctx.userRatingMin,
-                  )) {
-                    continue;
-                  }
-                  if (seenIds.add(item.id)) {
-                    queues[_sourceRecommendations]?.add(RecommendItem(
-                        item: item, source: RecommendSource.recommendations));
-                  }
-                }
-              } catch (e) {
-                AppLogger.error('推荐：加载库 $libId 推荐列表失败', error: e);
-              }
-            })
-        .toList();
-    await _runWithConcurrencyLimit(tasks);
-    return hasMore;
-  }
 
   // PR #79：抽离 - 冷启动降级：拉一轮更低阈值的评分推荐
   // PR #80：返回带 source 标签的 RecommendItem 列表
   // PR #83+#88+#89：完整过滤（黑名单 + 反疲劳 + 用户评分低）
-  Future<List<RecommendItem>> _loadRecommendations({
-    required _LoadContext ctx,
-    required double minCommunityRating,
-    required Set<String> seenIds,
-  }) async {
-    final serverUrl = ctx.auth.embyServerUrl;
-    final token = ctx.auth.token;
-    final userId = ctx.auth.user?.id;
-    if (serverUrl == null || token == null) return [];
-    final results = <RecommendItem>[];
-    // 并发限制：最多同时请求 _maxConcurrentRequests 个库
-    final tasks = ctx.selectedIds
-        .map((libId) => () async {
-              try {
-                final resp = await ctx.repo.getRecommendations(
-                  libraryId: libId,
-                  limit: _pageSize,
-                  offset: 0,
-                  serverUrl: serverUrl,
-                  token: token,
-                  userId: userId,
-                  minCommunityRating: minCommunityRating,
-                  excludePlayed: ctx.excludePlayed,
-                  includeItemTypes: ctx.includeTypes,
-                );
-                for (final item in resp.items) {
-                  if (ctx.isTooShort(item)) continue;
-                  if (_shouldSkipItem(
-                    item,
-                    signal: ctx.signal,
-                    favoriteIds: ctx.favoriteIds,
-                    dislikedIds: ctx.dislikedIds,
-                    antiFatigueEnabled: ctx.antiFatigueEnabled,
-                    recentlyShownIds: ctx.recentlyShownIds,
-                    userRatingEnabled: ctx.userRatingEnabled,
-                    userRatingMin: ctx.userRatingMin,
-                  )) {
-                    continue;
-                  }
-                  if (seenIds.add(item.id)) {
-                    results.add(RecommendItem(
-                        item: item, source: RecommendSource.recommendations));
-                  }
-                }
-              } catch (e) {
-                AppLogger.error('推荐：冷启动降级加载失败', error: e);
-              }
-            })
-        .toList();
-    await _runWithConcurrencyLimit(tasks);
-    return results;
-  }
 
   // round-robin 合并各队列，按 source 权重分配配额
-  _PageLoadResult _mergeRoundRobin({
-    required Map<String, List<RecommendItem>> queues,
-    required UserBehaviorSignal signal,
-    required Set<String> seenIds,
-    // Task 4：各数据源是否还有更多数据
-    // 索引顺序与 _loadPage 中 Future.wait 一致：
-    // [0]=Latest, [1]=NextUp, [2]=Resume, [3]=Suggestions,
-    // [4]=Native, [5]=Similar, [6]=Recommendations, [7]=Local
-    required List<bool> sourceHasMore,
-  }) {
-    for (final list in queues.values) {
-      list.shuffle();
-    }
-    final nextUpCount = queues[_sourceNextUp]?.length ?? 0;
-    final resumeCount = queues[_sourceResume]?.length ?? 0;
-    final suggestionsCount = queues[_sourceSuggestions]?.length ?? 0;
-    final sourceOrder = <RecommendSource>[
-      RecommendSource.latest,
-      RecommendSource.nextUp,
-      RecommendSource.resume,
-      RecommendSource.suggestions,
-      RecommendSource.nativeRecommendations,
-      RecommendSource.similar,
-      RecommendSource.recommendations,
-      RecommendSource.localRecommend,
-    ];
-    final tagged = <RecommendItem>[];
-    final rng = Random();
-    while (sourceOrder.any((s) => _queueOf(queues, s).isNotEmpty)) {
-      for (final source in sourceOrder) {
-        final q = _queueOf(queues, source);
-        if (q.isEmpty) continue;
-        final w = signal.weightFor(source);
-        int take;
-        if (w < 0.7) {
-          if (!rng.nextBool()) continue;
-          take = 1;
-        } else {
-          take = w.round().clamp(1, 3);
-        }
-        for (int i = 0; i < take && q.isNotEmpty; i++) {
-          final r = q.removeAt(0);
-          if (seenIds.add(r.item.id)) {
-            tagged.add(r);
-          }
-        }
-      }
-    }
-    // Task 4：所有数据源都返回空结果时，认为服务器端已无更多数据
-    final allSourcesExhausted = !sourceHasMore.any((h) => h);
-    return _PageLoadResult(
-      tagged: tagged,
-      nextUpCount: nextUpCount,
-      resumeCount: resumeCount,
-      suggestionsCount: suggestionsCount,
-      allSourcesExhausted: allSourcesExhausted,
-    );
-  }
 
   // PR #83：从 queues Map 按 RecommendSource 查队列
-  List<RecommendItem> _queueOf(
-    Map<String, List<RecommendItem>> queues,
-    RecommendSource source,
-  ) {
-    switch (source) {
-      case RecommendSource.latest:
-        return queues[_sourceLatest] ?? const [];
-      case RecommendSource.nextUp:
-        return queues[_sourceNextUp] ?? const [];
-      case RecommendSource.resume:
-        return queues[_sourceResume] ?? const [];
-      case RecommendSource.suggestions:
-        return queues[_sourceSuggestions] ?? const [];
-      case RecommendSource.nativeRecommendations:
-        return queues[_sourceNative] ?? const [];
-      case RecommendSource.similar:
-        return queues[_sourceSimilar] ?? const [];
-      case RecommendSource.recommendations:
-        return queues[_sourceRecommendations] ?? const [];
-      case RecommendSource.localRecommend:
-        return queues[_sourceLocal] ?? const [];
-    }
-  }
 
   // 并发限制工具：限制同时执行的异步任务数
   // 实现思路：滑动窗口，每完成一个就补上一个，保持最多 maxConcurrent 个在跑
-  static Future<List<T>> _runWithConcurrencyLimit<T>(
-    List<Future<T> Function()> tasks, {
-    int maxConcurrent = _maxConcurrentRequests,
-  }) async {
-    if (tasks.isEmpty) return const [];
-    final results = List<T?>.filled(tasks.length, null);
-    int nextIndex = 0;
-
-    Future<void> worker() async {
-      while (true) {
-        final i = nextIndex++;
-        if (i >= tasks.length) return;
-        results[i] = await tasks[i]();
-      }
-    }
-
-    final workerCount = maxConcurrent.clamp(1, tasks.length);
-    await Future.wait(List.generate(workerCount, (_) => worker()));
-    return results.cast<T>();
-  }
 
   // PR #83+#88+#89：统一的 item 过滤逻辑
   // - 黑名单（收藏豁免）
   // - 反推荐疲劳（收藏豁免）
   // - 用户评分低（收藏豁免）
   // 所有数据源共用此逻辑，确保过滤一致性
-  bool _shouldSkipItem(
-    MediaItem item, {
-    required UserBehaviorSignal signal,
-    required Set<String> favoriteIds,
-    required Set<String> dislikedIds,
-    required bool antiFatigueEnabled,
-    required Set<String> recentlyShownIds,
-    required bool userRatingEnabled,
-    required double userRatingMin,
-  }) {
-    final isBlacklisted =
-        signal.blacklist.contains(item.id) && !favoriteIds.contains(item.id);
-    final isDisliked = dislikedIds.contains(item.id) &&
-        !favoriteIds.contains(item.id);
-    final isRecentlyShown = antiFatigueEnabled &&
-        recentlyShownIds.contains(item.id) &&
-        !favoriteIds.contains(item.id);
-    bool isUserRatingLow() {
-      if (!userRatingEnabled) return false;
-      if (userRatingMin <= 0) return false;
-      if (favoriteIds.contains(item.id)) return false;
-      final ur = item.userRating;
-      if (ur == null) return false;
-      return ur < userRatingMin;
-    }
-
-    return isBlacklisted ||
-        isDisliked ||
-        isRecentlyShown ||
-        isUserRatingLow();
-  }
 
   /// 刷新（用户下拉刷新时调用）
   Future<void> refresh() async {
@@ -1524,25 +555,6 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
   ///
   /// 在 taggedItems 或 selectedTag 变化时调用，避免每次 widget rebuild
   /// 都重复执行 O(n) 的 where + map + length 操作。
-  RecommendState _withDerived(RecommendState s) {
-    final tag = s.selectedTag;
-    final displayItems = tag == null
-        ? s.taggedItems
-        : s.taggedItems
-            .where((r) => r.source.key == tag)
-            .toList(growable: false);
-
-    final tagCounts = <String, int>{};
-    for (final item in s.taggedItems) {
-      final key = item.source.key;
-      tagCounts[key] = (tagCounts[key] ?? 0) + 1;
-    }
-
-    return s.copyWith(
-      displayItems: displayItems,
-      tagCounts: tagCounts,
-    );
-  }
 
   /// PR #80：选择标签（切换数据源分类）
   /// - tag=null 表示「全部」
