@@ -57,22 +57,6 @@ class _RightActionButtons extends ConsumerWidget {
       width: rs(_kRightActionWidth, 2.0),
       child: RepaintBoundary(
         child: Container(
-          padding: EdgeInsets.fromLTRB(
-            0,
-            // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
-            toolbarVisible
-                ? SafeInsets.topOf(context) + _kRightActionTopWithToolbar
-                : _kRightActionTopNoToolbar,
-            _kRightActionRightPadding,
-            // 全面屏适配：底部叠加导航栏高度 kBottomNavHeight，避免最下方 2 个按钮
-            // （字幕按钮 / DiscMute 唱片+头像）被 HomeScaffold 的底部导航栏吃掉一半。
-            toolbarVisible
-                ? bottomPadding +
-                    _kBottomControlBarHeight +
-                    _kBottomInfoGradientHeight +
-                    kBottomNavHeight
-                : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
-          ),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.centerRight,
@@ -83,80 +67,114 @@ class _RightActionButtons extends ConsumerWidget {
               ],
             ),
           ),
-          // 小屏防溢出：reverse:true 保持操作栏贴底，内容超出时从顶部滚动
-          // （新增分享/评论按钮后元素较多，低矮屏必须可滚动而非 RenderFlex 溢出）
-          child: SingleChildScrollView(
-            reverse: true,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 顶部全屏按钮（竖屏/横屏视频均显示，统一入口避免底部居中按钮遮挡画面）
-                PressableActionButton(
+          // 全屏按钮固定顶部（不随列表滚动）：避免 11 个按钮总高超出视口时，
+          // reverse:true 的滚动把顶部全屏按钮滚出视口导致被遮挡 / 无法点击。
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  // 右侧操作栏顶部需避开刘海：沉浸式下 padding 归零，用 SafeInsets 取真实物理高度
+                  toolbarVisible
+                      ? SafeInsets.topOf(context) + _kRightActionTopWithToolbar
+                      : _kRightActionTopNoToolbar,
+                  _kRightActionRightPadding,
+                  rs(16, 1.5),
+                ),
+                child: PressableActionButton(
                   icon: Icons.fullscreen,
                   label: '全屏',
                   color: scheme.onSurface,
                   onTap: onToggleFullscreen,
                 ),
-                SizedBox(height: rs(16, 1.5)),
-                const AutoPlayButton(),
-                SizedBox(height: rs(16, 1.5)),
-                PosterAvatar(item: item),
-                SizedBox(height: rs(16, 1.5)),
-                PressableActionButton(
-                  icon: favorited ? Icons.favorite : Icons.favorite_border,
-                  label: '点赞',
-                  color: favorited ? scheme.primary : scheme.onSurface,
-                  onTap: () =>
-                      ref.read(favoritesProvider.notifier).toggleFavorite(item),
+              ),
+              // 小屏防溢出：reverse:true 保持其余按钮贴底，内容超出时从顶部滚动
+              // （新增分享/评论按钮后元素较多，低矮屏必须可滚动而非 RenderFlex 溢出）
+              Expanded(
+                child: SingleChildScrollView(
+                  reverse: true,
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    0,
+                    _kRightActionRightPadding,
+                    // 全面屏适配：底部叠加导航栏高度 kBottomNavHeight，避免最下方 2 个按钮
+                    // （字幕按钮 / DiscMute 唱片+头像）被 HomeScaffold 的底部导航栏吃掉一半。
+                    toolbarVisible
+                        ? bottomPadding +
+                            _kBottomControlBarHeight +
+                            _kBottomInfoGradientHeight +
+                            kBottomNavHeight
+                        : bottomPadding +
+                            _kBottomControlBarHeight +
+                            kBottomNavHeight,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AutoPlayButton(),
+                      SizedBox(height: rs(16, 1.5)),
+                      PosterAvatar(item: item),
+                      SizedBox(height: rs(16, 1.5)),
+                      PressableActionButton(
+                        icon:
+                            favorited ? Icons.favorite : Icons.favorite_border,
+                        label: '点赞',
+                        color: favorited ? scheme.primary : scheme.onSurface,
+                        onTap: () => ref
+                            .read(favoritesProvider.notifier)
+                            .toggleFavorite(item),
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      PressableActionButton(
+                        icon: Icons.share_outlined,
+                        label: '分享',
+                        color: scheme.onSurface,
+                        onTap: onShareTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      PressableActionButton(
+                        icon: Icons.chat_bubble_outline,
+                        label: '评论',
+                        color: scheme.onSurface,
+                        badgeCount: commentCount,
+                        onTap: onCommentTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      PressableActionButton(
+                        icon: Icons.info_outline,
+                        label: '信息',
+                        color: scheme.onSurface,
+                        onTap: onInfoTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      PressableActionButton(
+                        icon: Icons.delete_outline,
+                        label: '删除',
+                        color: scheme.error,
+                        onTap: onDeleteTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      SpeedControlButton(
+                        controller: controller,
+                        onTap: onSpeedTap ?? () {},
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      SubtitleButton(
+                        hasSubtitles: item.subtitleTracks.isNotEmpty,
+                        onTap: onSubtitleTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
+                      DiscMuteButton(
+                        discRotation: discRotation,
+                        controller: controller,
+                        posterUrl: posterUrl,
+                        httpHeaders: posterHeaders,
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: rs(16, 1.5)),
-                PressableActionButton(
-                  icon: Icons.share_outlined,
-                  label: '分享',
-                  color: scheme.onSurface,
-                  onTap: onShareTap,
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                PressableActionButton(
-                  icon: Icons.chat_bubble_outline,
-                  label: '评论',
-                  color: scheme.onSurface,
-                  badgeCount: commentCount,
-                  onTap: onCommentTap,
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                PressableActionButton(
-                  icon: Icons.info_outline,
-                  label: '信息',
-                  color: scheme.onSurface,
-                  onTap: onInfoTap,
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                PressableActionButton(
-                  icon: Icons.delete_outline,
-                  label: '删除',
-                  color: scheme.error,
-                  onTap: onDeleteTap,
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                SpeedControlButton(
-                  controller: controller,
-                  onTap: onSpeedTap ?? () {},
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                SubtitleButton(
-                  hasSubtitles: item.subtitleTracks.isNotEmpty,
-                  onTap: onSubtitleTap,
-                ),
-                SizedBox(height: rs(16, 1.5)),
-                DiscMuteButton(
-                  discRotation: discRotation,
-                  controller: controller,
-                  posterUrl: posterUrl,
-                  httpHeaders: posterHeaders,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
