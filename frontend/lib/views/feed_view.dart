@@ -33,9 +33,10 @@ import '../widgets/error_state_card.dart';
 import '../widgets/library_selector.dart';
 import '../widgets/poster_grid_view.dart';
 import '../widgets/video/video_page_item.dart';
+part 'feed_parts/feed_actions.dart';
+part 'feed_parts/feed_builders.dart';
 
 class FeedView extends ConsumerStatefulWidget {
-
   const FeedView({super.key, this.initialItemId});
   // 路由透传的初始播放视频 ID：来自 GoRouter `/?initialId=`
   // - 网格点击 → 跳转前 context.go('/?initialId=$id')
@@ -201,7 +202,9 @@ class _FeedViewState extends ConsumerState<FeedView>
       if (ref.read(viewModeProvider) != ViewMode.feed) return;
       final videoState = ref.read(videoListProvider);
       final playbackState = ref.read(playbackStateProvider);
-      if (!restored && videoState.items.isNotEmpty && playbackState.id == null) {
+      if (!restored &&
+          videoState.items.isNotEmpty &&
+          playbackState.id == null) {
         _firstItemInitProcessed = true;
         final firstItem = videoState.items.first;
         ref
@@ -244,60 +247,14 @@ class _FeedViewState extends ConsumerState<FeedView>
   // ==================== 跳页辅助（UI 层职责，依赖 PageController.hasClients） ====================
 
   /// 帧轮询：等到 PageController 已 attach 后执行 jumpToPage
-  void _jumpToPageWhenReady(int targetIndex, {int retryCount = 0}) {
-    if (!mounted) return;
-    if (retryCount > 30) return;
-
-    if (_pageController.hasClients) {
-      _currentIndex = targetIndex;
-      _currentIndexNotifier.value = targetIndex;
-      _pageController.jumpToPage(targetIndex);
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _jumpToPageWhenReady(targetIndex, retryCount: retryCount + 1);
-    });
-  }
 
   /// 异步版跳页：等待 PageController attach 后 jumpToPage，返回真实跳转结果。
   /// 位置恢复等需要「确认跳转生效」的场景使用——跳转失败返回 false，
   /// 调用方可回退到默认行为（如播放列表第一个视频），避免假成功导致黑屏。
-  Future<bool> _jumpToPageWhenReadyAsync(int targetIndex) async {
-    for (int i = 0; i < 30; i++) {
-      if (!mounted) return false;
-      if (_pageController.hasClients) {
-        _currentIndex = targetIndex;
-        _currentIndexNotifier.value = targetIndex;
-        _pageController.jumpToPage(targetIndex);
-        return true;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    }
-    return false;
-  }
 
   /// 协调器跳页回调：返回 true 表示已成功跳页
-  bool _jumpToPageByIndex(int targetIndex) {
-    if (!mounted || !_pageController.hasClients) return false;
-    _currentIndex = targetIndex;
-    _currentIndexNotifier.value = targetIndex;
-    _pageController.jumpToPage(targetIndex);
-    return true;
-  }
 
   /// 带动画跳页（键盘快捷键、浏览模式切换等场景使用）
-  void _animateToPage(int targetIndex) {
-    if (!mounted || !_pageController.hasClients) return;
-    if (targetIndex < 0) return;
-    final items = ref.read(videoListProvider).items;
-    if (targetIndex >= items.length) return;
-    _pageController.animateToPage(
-      targetIndex,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
-  }
 
   // 恢复视频流上次位置
   //
@@ -308,109 +265,16 @@ class _FeedViewState extends ConsumerState<FeedView>
   // F3：优先用保存的视频 id 精确定位，换库/重排后找不到则不恢复。
   // F4：grid 模式下跳过（IndexedStack 中 PageView 仍在树，跳转会后台激活播放器）。
   // F5：跳转复用 _jumpToPageWhenReady（hasClients 重试），不裸调 jumpToPage。
-  Future<bool> _restoreFeedVideoIndex() async {
-    // F4：非视频流模式不恢复。ViewModeNotifier._load 从 SharedPreferences
-    // 异步读取，启动早期 state 为默认 feed——grid 用户重启后若在此误判，
-    // 会在 offstage PageView 上恢复跳转，导致后台激活播放器。先等加载完成。
-    final vm = ref.read(viewModeProvider.notifier);
-    for (int i = 0; i < 20 && !vm.loaded; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      if (!mounted) return false;
-    }
-    if (ref.read(viewModeProvider) != ViewMode.feed) return false;
-
-    // F2：深层链接直接进入指定视频，不恢复历史位置
-    final initialId = widget.initialItemId;
-    if (initialId != null && initialId.isNotEmpty) return false;
-
-    // 等待视频列表加载完成后再恢复位置
-    // 最多等待 10 秒，避免无限等待；加载失败/空列表时提前退出，
-    // 避免每次启动空耗 10 秒再放弃
-    int attempts = 0;
-    while (attempts < 20) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return false;
-
-      final videoState = ref.read(videoListProvider);
-      if (videoState.error != null) return false;
-      if (videoState.items.isNotEmpty && !videoState.isLoading) {
-        break;
-      }
-      attempts++;
-    }
-
-    if (!mounted) return false;
-
-    final pos = await _viewModel.restoreFeedVideoPosition();
-    if (!mounted) return false;
-
-    final videoState = ref.read(videoListProvider);
-    if (videoState.items.isEmpty) return false;
-
-    // F3：优先按保存的视频 id 精确定位。
-    // - 保存了 itemId 但当前列表找不到（换库/列表重排/内容变化）→ 不恢复，
-    //   避免按旧 index 跳到错误视频；
-    // - 仅老数据（无 itemId）时按 index 近似恢复。
-    int targetIndex = -1;
-    final savedItemId = pos.itemId;
-    if (savedItemId != null && savedItemId.isNotEmpty) {
-      final byId = videoState.items.indexWhere((i) => i.id == savedItemId);
-      if (byId >= 0) {
-        targetIndex = byId;
-      } else {
-        // 保存了 id 但当前列表找不到：不按 index 回退（避免跳错视频）
-        return false;
-      }
-    } else if (pos.index > 0) {
-      targetIndex = pos.index.clamp(0, videoState.items.length - 1);
-    }
-    if (targetIndex <= 0) return false;
-
-    if (targetIndex != _currentIndex) {
-      // F5：等 PageController attach 后跳转（带重试），并返回真实跳转结果；
-      // 跳转失败视为未恢复，由调用方回退到「播放列表第一个视频」，
-      // 避免「返回 true 但页面停在 index 0 且不播第一个」的黑屏态。
-      final jumped = await _jumpToPageWhenReadyAsync(targetIndex);
-      if (jumped) _feedPositionReady = true;
-      return jumped;
-    }
-    _feedPositionReady = true;
-    return true;
-  }
 
   // PageView 滚动状态变化回调：快速滑动时立即释放非当前页 controller
-  void _onScrollingChanged() {
-    try {
-      final isScrolling = _pageController.position.isScrollingNotifier.value;
-      ref.read(isPageScrollingProvider.notifier).state = isScrolling;
-    } catch (_) {
-      // dispose 后访问 position 可能抛错，忽略
-    }
-  }
 
   // ==================== 沉浸式系统栏控制（纯 UI 行为） ====================
 
   /// 隐藏系统栏，进入全屏沉浸式模式
   /// - 使用 immersiveSticky：用户从边缘滑入时临时显示，几秒后自动隐藏
   /// - 配合 Scaffold.extendBody 确保视频内容延伸到系统栏区域
-  void _hideSystemBars() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: Colors.transparent,
-      ),
-    );
-  }
 
   /// 恢复系统栏显示（切换到网格模式或离开页面时）
-  void _restoreSystemBars() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  }
 
   // ==================== 滚动位置持久化 ====================
 
@@ -419,27 +283,6 @@ class _FeedViewState extends ConsumerState<FeedView>
   /// - feed 模式：保存视频流 index+itemId（受 _feedPositionReady 保护，
   ///   恢复完成/主动翻页前不写，避免覆盖上次位置——P2 修复）
   /// - grid 模式：保存网格滚动 offset（0 写入无害，恢复端 >0 才生效）
-  void _saveFeedPositionOnBackground() {
-    if (!mounted) return;
-    final viewMode = ref.read(viewModeProvider);
-    if (viewMode == ViewMode.grid) {
-      if (_gridScrollController.hasClients) {
-        safeUnawaited(_saveGridOffsetNow(), context: 'FeedView._saveGridOffsetNow');
-      }
-      return;
-    }
-    // P2：恢复完成/主动翻页前不写盘，避免覆盖已持久化的上次位置
-    if (!_feedPositionReady) return;
-    if (viewMode != ViewMode.feed) return;
-    final videoState = ref.read(videoListProvider);
-    if (videoState.items.isEmpty) return;
-    final idx = _currentIndex;
-    if (idx < 0 || idx >= videoState.items.length) return;
-    safeUnawaited(
-      _viewModel.saveFeedVideoIndexNow(idx, videoState.items),
-      context: 'FeedView._saveFeedPositionOnBackground',
-    );
-  }
 
   /// 恢复网格滚动位置（仅 grid 模式启动时调用）
   ///
@@ -448,97 +291,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   /// 2. 目标 offset 超出当前已加载高度时逐级 loadMore，
   ///    直到 maxScrollExtent 达到目标或没有更多数据
   /// 3. 最终按 clamp 后的 offset jumpTo
-  Future<void> _restoreGridPosition() async {
-    // 等待网格 attach + 首屏数据渲染
-    int attempts = 0;
-    while (attempts < 40) {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
-      if (!mounted) return;
-      if (_gridScrollController.hasClients &&
-          _gridScrollController.position.maxScrollExtent > 0) {
-        break;
-      }
-      attempts++;
-    }
-    if (!mounted || !_gridScrollController.hasClients) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    final target = await FeedViewModel.readGridScrollOffset(prefs);
-    if (!mounted) return;
-    if (target == null) return;
-
-    // 目标超出已加载范围：逐级加载更多直到可滚动高度覆盖目标
-    var guard = 0;
-    while (mounted && _gridScrollController.hasClients) {
-      final maxExtent = _gridScrollController.position.maxScrollExtent;
-      if (maxExtent >= target) break;
-      final videoState = ref.read(videoListProvider);
-      if (!videoState.hasMore || videoState.isLoading) break;
-      await ref.read(videoListProvider.notifier).loadMore();
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      guard++;
-      if (guard > 30) break; // 最多加载 30 轮，防异常死循环
-    }
-    if (!mounted || !_gridScrollController.hasClients) return;
-
-    await _viewModel.restoreGridScrollOffset(
-      getMaxScrollExtent: () =>
-          _gridScrollController.position.maxScrollExtent,
-      onRestored: (offset) {
-        if (mounted && _gridScrollController.hasClients) {
-          _gridScrollController.jumpTo(offset);
-          // 恢复滚动后同步一次 anchor，保证 grid → feed 切换定位一致
-          _updateGridAnchorVideo();
-        }
-      },
-    );
-  }
 
   /// 立即把当前网格滚动 offset 写入持久化（退后台兜底）
-  Future<void> _saveGridOffsetNow() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await FeedViewModel.saveGridScrollOffsetNow(
-          prefs, _gridScrollController.offset);
-    } catch (_) {
-      // 操作失败不影响主流程
-    }
-  }
-
-  void _onGridScrollChanged() {
-    _viewModel.saveGridScrollOffset(() => _gridScrollController.offset);
-    _maybeLoadMoreForGrid();
-    _updateGridAnchorVideo();
-  }
 
   // 计算网格滚动中心对应的视频 id，供 grid → feed 切换时定位
-  void _updateGridAnchorVideo() {
-    final controller = _gridScrollController;
-    final videoState = ref.read(videoListProvider);
-    final items = videoState.gridItems;
-    if (!controller.hasClients || items.isEmpty) return;
-    final position = controller.position;
-
-    // 与 PosterGridView._scrollToGridIndex 保持同一套布局参数
-    final viewportWidth = MediaQuery.of(context).size.width;
-    const padding = 8.0;
-    const crossAxisSpacing = 8.0;
-    const mainAxisSpacing = 8.0;
-    const crossAxisCount = 3;
-    const childAspectRatio = 0.65;
-    final availableWidth =
-        viewportWidth - padding * 2 - (crossAxisCount - 1) * crossAxisSpacing;
-    final itemWidth = availableWidth / crossAxisCount;
-    final itemHeight = itemWidth / childAspectRatio;
-    final rowHeight = itemHeight + mainAxisSpacing;
-
-    // 视口中心 → 行 → 中间列索引
-    final centerOffset = position.pixels + position.viewportDimension / 2;
-    final row = (centerOffset / rowHeight).floor().clamp(0, 1 << 30);
-    final index = (row * crossAxisCount + 1).clamp(0, items.length - 1);
-    _viewModel.gridAnchorVideoId = items[index].id;
-  }
 
   // grid → feed 切换：若网格中心视频在视频流列表中，则跳转到该视频
   //
@@ -546,96 +302,17 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 网格分页/搜索后 gridItems 会与 feed items 暂时不同集合——此时先把
   // items 同步为 gridItems（复用 setItemsFromGrid），保证切换后视频流
   // 显示的就是网格里看到的那批视频，且定位到网格中心的同一个视频。
-  void _jumpToGridAnchorInFeed() {
-    final anchorId = _viewModel.gridAnchorVideoId;
-    if (anchorId == null || anchorId.isEmpty) return;
-    var videoState = ref.read(videoListProvider);
-    if (videoState.items.isEmpty) return;
-    var idx = videoState.items.indexWhere((i) => i.id == anchorId);
-    if (idx < 0 && !identical(videoState.items, videoState.gridItems)) {
-      // 分页/搜索后 gridItems 独立：同步 items 为 gridItems 再定位
-      ref.read(videoListProvider.notifier).setItemsFromGrid();
-      videoState = ref.read(videoListProvider);
-      idx = videoState.items.indexWhere((i) => i.id == anchorId);
-    }
-    if (idx < 0 || idx == _currentIndex) return;
-    // 等 PageController attach 后跳页（带重试）；跳页触发 onPageChanged
-    // → syncCurrentPlaying → playbackState 更新 → 网格高亮/视频流播放对齐
-    _jumpToPageWhenReady(idx);
-  }
 
   // 网格分页：滚动接近底部（剩余不足 3 屏）时自动加载更多
   // 修复：此前网格只保存滚动位置、从不触发 loadMore，多库模式网格永远只有
   //       首屏数据（与视频流同源同量），海报墙无法滚到更多内容。
   Timer? _gridLoadMoreDebounce;
 
-  void _maybeLoadMoreForGrid() {
-    final controller = _gridScrollController;
-    if (!controller.hasClients) return;
-    final position = controller.position;
-    final maxExtent = position.maxScrollExtent;
-    if (maxExtent <= 0) return;
-    final remaining = maxExtent - position.pixels;
-    if (remaining > position.viewportDimension * 3) return;
-
-    final videoState = ref.read(videoListProvider);
-    if (!videoState.hasMore || videoState.isLoading) return;
-
-    // 防抖：连续滚动只触发一次
-    _gridLoadMoreDebounce?.cancel();
-    _gridLoadMoreDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      ref.read(videoListProvider.notifier).loadMore();
-    });
-  }
-
   // ==================== 键盘快捷键（委托给 ViewModel） ====================
-
-  bool _handleKeyEvent(KeyEvent event) => _viewModel.handleKeyEvent(event);
 
   // ==================== SnackBar（UI 层职责） ====================
 
-  void _showSnackBar(String message,
-      {String? actionLabel, void Function()? onAction}) {
-    if (!mounted) return;
-    final scheme = Theme.of(context).colorScheme;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: actionLabel != null
-            ? const Duration(seconds: 6)
-            : const Duration(seconds: 1),
-        backgroundColor:
-            actionLabel != null ? null : scheme.surface.withValues(alpha: 0.9),
-        action: actionLabel != null && onAction != null
-            ? SnackBarAction(label: actionLabel, onPressed: onAction)
-            : null,
-      ),
-    );
-  }
-
   // ==================== 全屏页（UI 层职责，依赖 Navigator） ====================
-
-  Future<void> _openFullscreenPage() async {
-    final success = await FullscreenNavigator.open(
-      ref: ref,
-      context: context,
-      onExit: () {
-        if (mounted) {
-          ref.read(toolbarVisibilityProvider.notifier).show();
-        }
-      },
-    );
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('视频正在准备中，请稍后'),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -747,278 +424,12 @@ class _FeedViewState extends ConsumerState<FeedView>
   }
 
   // 顶部栏：视频流模式使用
-  Widget _buildTopBar(ViewMode viewMode) {
-    final scheme = Theme.of(context).colorScheme;
-    // 全面屏适配：沉浸式下 SafeArea.top = 0，必须用 SafeInsets 取物理刘海高度。
-    // 在刘海高度之上再加 8px 缓冲，保证按钮文字不与刘海下沿重叠。
-    final topInset = SafeInsets.topOf(context);
-    return Container(
-      padding: EdgeInsets.fromLTRB(0, topInset + 8, 0, 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            scheme.surface.withValues(alpha: 0.92),
-            scheme.surface.withValues(alpha: 0.62),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      // SafeArea 保留：当不是沉浸式（如切到网格模式）时，提供一层兜底。
-      // 外层 EdgeInsets 已提供物理刘海，内层 SafeArea 在非沉浸式下若
-      // MediaQuery.padding.top > 0 会再加一点，双重保险不产生重复顶留白
-      // （因为 topInset = max(padding.top, viewPadding.top)，在非沉浸式下
-      // 两者接近相等，不会出现"加了 2 倍"的问题，安全）。
-      child: SafeArea(
-        bottom: false,
-        top: false,
-        child: _buildFeedTopBar(scheme, viewMode),
-      ),
-    );
-  }
 
   // 视频流模式顶部栏
-  Widget _buildFeedTopBar(ColorScheme scheme, ViewMode viewMode) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildTopBarButton(
-            icon: Icons.search,
-            label: '搜索',
-            onTap: () => ref.read(pageNavigationNotifierProvider).goToSearch(),
-          ),
-          _buildTopBarButton(
-            icon: Icons.history,
-            label: '历史',
-            onTap: () => ref.read(pageNavigationNotifierProvider).goToHistory(),
-          ),
-          _buildTopBarButton(
-            icon: Icons.auto_awesome,
-            label: '推荐',
-            onTap: () => context.push('/recommend'),
-          ),
-          _buildTopBarButton(
-            icon: Icons.favorite,
-            label: '关注',
-            onTap: () => context.push('/follow'),
-          ),
-          _buildTopBarButton(
-            icon: Icons.explore_outlined,
-            label: '发现',
-            onTap: () => context.push('/discover'),
-          ),
-          _buildTopBarButton(
-            icon: Icons.play_circle_outline,
-            label: '视频流',
-            onTap: () {
-              if (viewMode != ViewMode.feed) {
-                ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
-              }
-            },
-          ),
-          _buildTopBarButton(
-            icon: viewMode == ViewMode.feed
-                ? Icons.grid_view
-                : Icons.phone_android,
-            label: viewMode == ViewMode.feed ? '网格' : '视频流',
-            onTap: () {
-              ref.read(viewModeProvider.notifier).setMode(
-                    viewMode == ViewMode.feed ? ViewMode.grid : ViewMode.feed,
-                  );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
   // 顶部栏统一按钮
-  Widget _buildTopBarButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = scheme.onSurface.withValues(alpha: 0.85);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(color: color, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   // 构建网格视图
-  Widget _buildGridPageView(VideoListState videoState) {
-    return PosterGridView(scrollController: _gridScrollController);
-  }
 
   // 构建视频流 PageView
-  Widget _buildVideoPageView(VideoListState videoState) {
-    final error = videoState.error;
-    final errorMsg = error?.message;
-    if (videoState.items.isEmpty && videoState.isLoading) {
-      final scheme = Theme.of(context).colorScheme;
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: scheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              '正在加载视频...',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (videoState.items.isEmpty && errorMsg != null) {
-      return ErrorStateCard(
-        title: errorMsg,
-        actionLabel: '重试',
-        onAction: () {
-          ref.read(videoListProvider.notifier).refresh();
-        },
-      );
-    }
-    // 追加失败时用 SnackBar 提示，不清除已有数据
-    if (videoState.items.isNotEmpty && errorMsg != null) {
-      final msg = errorMsg;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              action: SnackBarAction(
-                label: '重试',
-                onPressed: () {
-                  ref.read(videoListProvider.notifier).loadMore();
-                },
-              ),
-            ),
-          );
-          ref.read(videoListProvider.notifier).clearError();
-        }
-      });
-    }
-    if (videoState.items.isEmpty) {
-      return EmptyStateCard.noVideos();
-    }
-
-    final auth = ref.read(authProvider);
-    final embyServerUrl = auth.embyServerUrl;
-    final token = auth.token;
-
-    return PageView.builder(
-      controller: _pageController,
-      scrollDirection: Axis.vertical,
-      itemCount: videoState.items.length + (videoState.hasMore ? 1 : 0),
-      onPageChanged: (index) {
-        _currentIndex = index;
-        _feedPositionReady = true;
-        _currentIndexNotifier.value = index;
-        // 关键修复：调用 setState 触发 PageView 重建，更新 isCurrentPage
-        // 原问题：仅更新 _currentIndex 未触发重建，导致新页面 isCurrentPage 一直为 false
-        // controller 不会被 play，视频画面不显示
-        setState(() {});
-        // 委托 ViewModel 处理业务逻辑
-        final needLoadMore = _viewModel.onPageChanged(
-          index,
-          videoState.items,
-          videoState.hasMore,
-          videoState.isLoading,
-        );
-        if (needLoadMore) {
-          ref.read(videoListProvider.notifier).loadMore();
-        }
-        // 防抖：页面静止后执行预加载和清理
-        _pageChangeDebounce?.cancel();
-        _pageChangeDebounce = Timer(const Duration(milliseconds: 200), () {
-          _viewModel.onPageChangeSettled(index, videoState.items);
-        });
-      },
-      itemBuilder: (context, index) {
-        if (index >= videoState.items.length) {
-          final scheme = Theme.of(context).colorScheme;
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: scheme.primary),
-                const SizedBox(height: 12),
-                Text(
-                  '加载更多视频...',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        final item = videoState.items[index];
-        // 从协调器取出预加载的会话
-        final rawSession = _playbackCoordinator.takePreloadedSession(item.id);
-        final preloadedSession =
-            (rawSession != null && rawSession.isInitialized)
-                ? rawSession
-                : null;
-        // 首次构建：当前视频由 VideoPlayerWidget 直接初始化，只预加载下一条
-        if (index == 0 &&
-            preloadedSession == null &&
-            ref.read(videoPoolProvider).size == 0) {
-          if (1 < videoState.items.length &&
-              embyServerUrl != null &&
-              token != null) {
-            final nextItem = videoState.items[1];
-            final pool = ref.read(videoPoolProvider);
-            safeUnawaited(
-              pool.preload(
-                  item: nextItem, serverUrl: embyServerUrl, token: token),
-              context: 'FeedView._buildFeedItem.preloadNext',
-            );
-          }
-        }
-        return RepaintBoundary(
-          // 设置 ValueKey(item.id)：items 列表变化时让 PageView 按 id 复用 widget，
-          // 避免出现「画面还在播旧视频，元信息是新视频」的鬼影过渡态。
-          // 对齐 PlaybackShell（video_page_item.dart 第 1205 行）的实现。
-          child: VideoPageItem(
-            key: ValueKey(item.id),
-            item: item,
-            isCurrentPage: index == _currentIndex,
-            preloadedSession: preloadedSession,
-            onVideoEnded: _viewModel.onVideoEnded,
-            startFromResumePosition: item.hasProgress,
-            source: videoState.feedType == FeedType.resume ? 'resume' : 'feed',
-          ),
-        );
-      },
-    );
-  }
 }
