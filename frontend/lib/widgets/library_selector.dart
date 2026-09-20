@@ -6,6 +6,7 @@ import '../providers/providers.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'loading_state_card.dart';
 import 'tv_focusable.dart';
+part 'library_selector_dialogs.dart';
 
 /// 媒体库选择器作用域（PR #66）
 ///
@@ -137,7 +138,9 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     final visibleLibraries = ref.watch(visibleLibraryListProvider);
 
     // 如果还没有初始化本地选中状态，默认选中第一个库（仅非收藏夹模式）
-    if (!_localIsFavorites && _localSelectedIds.isEmpty && visibleLibraries.isNotEmpty) {
+    if (!_localIsFavorites &&
+        _localSelectedIds.isEmpty &&
+        visibleLibraries.isNotEmpty) {
       _localSelectedIds.add(visibleLibraries.first.id);
     }
 
@@ -441,7 +444,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   // 多选模式：切换该库的选中状态，不关闭弹窗
                   setState(() {
                     // 互斥：点击媒体库时取消收藏夹选中
-                    if (!_localIsFavorites && _localSelectedIds.contains(lib.id)) {
+                    if (!_localIsFavorites &&
+                        _localSelectedIds.contains(lib.id)) {
                       _localSelectedIds.remove(lib.id);
                       // 确保至少保留一个
                       if (_localSelectedIds.isEmpty) {
@@ -681,117 +685,3 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
 }
 
 // 收藏类型筛选弹窗（带数量显示）
-class _FavoriteTypeFilterDialog extends ConsumerStatefulWidget {
-  const _FavoriteTypeFilterDialog({required this.scheme});
-
-  final ColorScheme scheme;
-
-  @override
-  ConsumerState<_FavoriteTypeFilterDialog> createState() =>
-      _FavoriteTypeFilterDialogState();
-}
-
-class _FavoriteTypeFilterDialogState
-    extends ConsumerState<_FavoriteTypeFilterDialog> {
-  Map<String, int> _counts = {};
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCounts();
-  }
-
-  Future<void> _loadCounts() async {
-    try {
-      final authState = ref.read(authProvider);
-      if (authState.embyServerUrl == null || authState.token == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      final service = ref.read(embytokServiceProvider);
-      final userId = authState.user?.id;
-      final counts = await service.getFavoriteCounts(
-        serverUrl: authState.embyServerUrl,
-        token: authState.token,
-        userId: userId,
-      );
-      if (mounted) {
-        setState(() {
-          _counts = counts;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedTypes = ref.watch(favoriteIncludeTypesProvider);
-    const availableTypes = [
-      {'code': 'Movie', 'name': '影片', 'icon': Icons.movie},
-      {'code': 'Series', 'name': '剧集', 'icon': Icons.tv},
-      {'code': 'BoxSet', 'name': '合集', 'icon': Icons.collections},
-      {'code': 'Person', 'name': '人物', 'icon': Icons.person},
-    ];
-
-    return AlertDialog(
-      title: const Text('收藏类型筛选'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: availableTypes.map((type) {
-          final code = type['code'] as String;
-          final name = type['name'] as String;
-          final icon = type['icon'] as IconData;
-          final isSelected = selectedTypes.contains(code);
-          final count = _counts[code];
-          return CheckboxListTile(
-            value: isSelected,
-            onChanged: (_) {
-              ref.read(favoriteIncludeTypesProvider.notifier).toggle(code);
-            },
-            title: Row(
-              children: [
-                Icon(icon, size: 20, color: widget.scheme.primary),
-                const SizedBox(width: 12),
-                Text(name),
-                const Spacer(),
-                if (_loading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else if (count != null)
-                  Text(
-                    '$count 个',
-                    style: TextStyle(
-                      color: widget.scheme.onSurface.withValues(alpha: 0.5),
-                      fontSize: 12,
-                    ),
-                  ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-            ref.read(videoListProvider.notifier).refresh();
-          },
-          child: const Text('确认'),
-        ),
-      ],
-    );
-  }
-}
