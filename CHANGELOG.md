@@ -1,3 +1,10 @@
+## [2.142.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.2...v2.142.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ui:** 独立路由页面 body 补齐底部安全区，避免内容被手势导航条遮挡 ([6fdc416](https://github.com/1525745393/EmbyTok-Flutter/commit/6fdc41693e24efd58baa9e4acc0050a9e310a691))
+
 ## [2.142.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.1...v2.142.2) (2026-09-20)
 
 
