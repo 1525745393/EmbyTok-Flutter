@@ -28,6 +28,7 @@ import 'artist_search_picker.dart';
 import 'mini_player_bar.dart';
 part 'artist_parts/artist_builders.dart';
 part 'artist_parts/artist_actions.dart';
+part 'artist_parts/artist_builders_extra.dart';
 
 // ===== 歌手详情页常量 =====
 
