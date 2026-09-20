@@ -24,6 +24,7 @@ import 'cache_providers.dart';
 import 'library_provider.dart';
 import 'video_list_state.dart';
 import 'video_playback_controller.dart';
+part 'video_list_parts/video_list_refresh.dart';
 
 /// 网格视图搜索关键词 Provider
 final gridSearchQueryProvider = StateProvider<String>((ref) {
@@ -31,7 +32,6 @@ final gridSearchQueryProvider = StateProvider<String>((ref) {
 });
 
 class VideoListNotifier extends StateNotifier<VideoListState> {
-
   VideoListNotifier(this._ref, {MediaRepository? repo})
       : _repo = repo ?? _ref.read(cachedMediaRepositoryProvider),
         super(const VideoListState()) {
@@ -134,61 +134,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   // 设计原则：feed 的 items 永远不依赖 gridSearchQueryProvider
   // - 搜索只影响网格的 gridItems
   // - 切回 feed 时不重置 feed 数据
-  Future<void> _refreshGridOnly(String searchTerm) async {
-    final selectedIds = _ref.read(selectedLibraryIdsProvider);
-    final auth = _auth;
-    final serverUrl = auth.embyServerUrl;
-    final token = auth.token;
-    final userId = auth.user?.id;
-
-    if (!auth.isAuthenticated || serverUrl == null || token == null) {
-      return;
-    }
-
-    state = state.copyWith(
-      gridItems: const <MediaItem>[],
-      gridStartIndex: 0,
-      isLoading: true,
-      error: null,
-    );
-
-    try {
-      final merged = <MediaItem>[];
-      int totalAvailable = 0;
-      for (final libId in selectedIds) {
-        try {
-          final resp = await _repo.getLibraryItems(
-            MediaQueryParams(
-              libraryId: libId,
-              limit: kGridPageSize,
-              offset: 0,
-              sortBy: state.sortBy,
-              sortOrder: state.sortOrder,
-              searchTerm: searchTerm.isEmpty ? null : searchTerm,
-              excludePlayed: _ref.read(feedExcludePlayedProvider),
-            ),
-            serverUrl: serverUrl,
-            token: token,
-            userId: userId,
-          );
-          merged.addAll(resp.items);
-          totalAvailable += resp.total;
-        } catch (e) {
-          AppLogger.error('刷新网格库 $libId 失败，跳过', error: e);
-        }
-      }
-      state = state.copyWith(
-        gridItems: merged,
-        totalCount: totalAvailable,
-        isLoading: false,
-      );
-    } catch (e) {
-      AppLogger.error('刷新网格失败', error: e);
-      state = state.copyWith(
-          isLoading: false,
-          error: AppError.wrap(e, stackTrace: StackTrace.current));
-    }
-  }
 
   /// 多库并行加载 + 合并去重（内部辅助方法）
   ///
@@ -198,135 +143,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   ///
   /// [onEachResult] 可选回调：每个库加载完成后调用（无论成功失败），
   /// 用于更新 _libraryLoadedCounts 等副作用，不参与合并逻辑。
-  Future<_ParallelLoadResult> _parallelLoadLibraries(
-    List<String> libIds,
-    Future<PaginatedResponse<MediaItem>> Function(String libId) loader, {
-    void Function(_LibLoadResult result)? onEachResult,
-  }) async {
-    final results = await Future.wait<_LibLoadResult>(
-      libIds.map((libId) async {
-        try {
-          final resp = await loader(libId);
-          return _LibLoadResult.success(libId, resp.items, resp.total);
-        } catch (e) {
-          AppLogger.error('加载库 $libId 失败', error: e);
-          return _LibLoadResult.failure(libId, e);
-        }
-      }),
-      eagerError: false,
-    );
-
-    final seenIds = <String, MediaItem>{};
-    int total = 0;
-    int failedCount = 0;
-
-    for (final result in results) {
-      onEachResult?.call(result);
-      if (result.isSuccess) {
-        for (final item in result.items!) {
-          if (!seenIds.containsKey(item.id)) {
-            seenIds[item.id] = item;
-          }
-        }
-        total += result.total!;
-      } else {
-        failedCount++;
-      }
-    }
-
-    return _ParallelLoadResult(
-      items: seenIds.values.toList(),
-      total: total,
-      allFailed: failedCount == libIds.length,
-      perLibraryResults: results,
-    );
-  }
 
   /// SWR 模式加载最新视频（FeedType.latest 多库混合）
   ///
   /// 先从缓存读取并立即展示（加速首屏），然后发起网络请求获取最新数据。
   /// 始终以网络返回的最新数据为准，缓存仅做加速。
-  _SWRLatestResult _loadLatestSWR({
-    required List<String> libIds,
-    required String serverUrl,
-    required String token,
-    required String? userId,
-    required int limit,
-    required String sortBy,
-    required String sortOrder,
-    required bool excludePlayed,
-    String? searchTerm,
-    CancelToken? cancelToken,
-  }) {
-    final seenIds = <String, MediaItem>{};
-    int totalItems = 0;
-    bool hasCache = false;
-
-    // 第一步：同步读取所有库的缓存，合并去重
-    for (final libId in libIds) {
-      final cachedResult = _repo.peekLibraryItems(
-        MediaQueryParams(
-          libraryId: libId,
-          limit: limit,
-          offset: 0,
-          sortBy: sortBy,
-          sortOrder: sortOrder,
-          searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
-          excludePlayed: excludePlayed,
-        ),
-        serverUrl: serverUrl,
-        token: token,
-      );
-      if (cachedResult != null) {
-        hasCache = true;
-        for (final item in cachedResult.items) {
-          if (!seenIds.containsKey(item.id)) {
-            seenIds[item.id] = item;
-          }
-        }
-        totalItems += cachedResult.total;
-        _libraryLoadedCounts[libId] = cachedResult.items.length;
-      }
-    }
-
-    // 第二步：并行加载所有媒体库，合并去重
-    // 使用 Future.wait 并行执行，总耗时 = 最慢的单个库，而非各库之和
-    final freshFuture = () async {
-      final result = await _parallelLoadLibraries(
-        libIds,
-        (libId) => _repo.getLibraryItems(
-          MediaQueryParams(
-            libraryId: libId,
-            limit: limit,
-            offset: 0,
-            sortBy: sortBy,
-            sortOrder: sortOrder,
-            searchTerm: searchTerm?.isEmpty == true ? null : searchTerm,
-            excludePlayed: excludePlayed,
-          ),
-          serverUrl: serverUrl,
-          token: token,
-          userId: userId,
-          cancelToken: cancelToken,
-        ),
-        onEachResult: (r) {
-          // refresh 从 offset=0 开始，计数直接等于本次返回数量
-          _libraryLoadedCounts[r.libId] = r.isSuccess ? r.items!.length : 0;
-        },
-      );
-      return _SWRLatestFreshResult(
-        items: result.items,
-        total: result.total,
-        allFailed: result.allFailed,
-      );
-    }();
-
-    return _SWRLatestResult(
-      cachedItems: hasCache ? seenIds.values.toList() : null,
-      cachedTotal: totalItems,
-      freshFuture: freshFuture,
-    );
-  }
 
   // 根据当前 feedType 刷新视频列表
   // latest: 走 getLibraryItems 分页（支持多库混合）
@@ -500,7 +321,9 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
           final seenIds = <String>{};
 
           // 1. 处理影片和剧集：直接显示收藏的影片/剧集
-          final directTypes = includeTypes.where((t) => t == 'Movie' || t == 'Episode').toList();
+          final directTypes = includeTypes
+              .where((t) => t == 'Movie' || t == 'Episode')
+              .toList();
           if (directTypes.isNotEmpty) {
             final directResult = await _repo.getFavoriteMovies(
               serverUrl: serverUrl,
@@ -531,7 +354,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             );
             if (_refreshGeneration != gen) return;
             // 获取每个合集里的视频
-            for (final boxSet in boxSetsResult.items.take(10)) { // 限制最多10个合集
+            for (final boxSet in boxSetsResult.items.take(10)) {
+              // 限制最多10个合集
               try {
                 final boxSetItems = await _repo.getBoxSetItems(
                   boxSet.id,
@@ -565,7 +389,8 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
             );
             if (_refreshGeneration != gen) return;
             // 获取每个演员出演的视频
-            for (final person in peopleResult.items.take(10)) { // 限制最多10个演员
+            for (final person in peopleResult.items.take(10)) {
+              // 限制最多10个演员
               try {
                 final personItems = await _repo.getPersonItems(
                   person.id,
@@ -1084,7 +909,6 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
 
 /// SWR 模式首屏加载结果（FeedType.latest 多库混合场景）
 class _SWRLatestResult {
-
   const _SWRLatestResult({
     required this.cachedItems,
     required this.cachedTotal,
@@ -1099,7 +923,6 @@ class _SWRLatestResult {
 
 /// SWR 网络请求结果
 class _SWRLatestFreshResult {
-
   const _SWRLatestFreshResult({
     required this.items,
     required this.total,
@@ -1115,7 +938,6 @@ class _SWRLatestFreshResult {
 /// 用于并行加载时的单库状态包装，便于统一合并。
 /// 成功时 [items] 和 [total] 非空，失败时 [error] 非空。
 class _LibLoadResult {
-
   const _LibLoadResult.success(this.libId, this.items, this.total)
       : error = null;
 
@@ -1135,7 +957,6 @@ class _LibLoadResult {
 /// [items] 和 [total] 是跨库去重后的合并结果；
 /// [perLibraryResults] 保留每个库的原始结果，供调用方做计数等副作用。
 class _ParallelLoadResult {
-
   const _ParallelLoadResult({
     required this.items,
     required this.total,
