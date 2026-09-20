@@ -26,6 +26,9 @@ import 'music/mini_player_bar.dart';
 import 'music/add_to_playlist_sheet.dart';
 import 'music/home_widgets.dart';
 import 'music/horizontal_lists.dart';
+part 'synology_music/home_tab.dart';
+part 'synology_music/list_builders.dart';
+part 'synology_music/sheets.dart';
 
 // ===== 音乐库 UI 常量（避免魔法数字，提升可维护性）=====
 
@@ -411,8 +414,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: () async {
-                        final tab = SynologyMusicTab.values[_tabController.index];
-                        final notifier = ref.read(synologyMusicProvider.notifier);
+                        final tab =
+                            SynologyMusicTab.values[_tabController.index];
+                        final notifier =
+                            ref.read(synologyMusicProvider.notifier);
                         await notifier.loadTab(tab, force: true);
                         // 首页下拉时同时刷新首页专用数据（最近添加/热门艺术家/流派）
                         if (tab == SynologyMusicTab.home) {
@@ -481,7 +486,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                   const Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.library_music, color: onGradient, size: 22),
+                        const Icon(Icons.library_music,
+                            color: onGradient, size: 22),
                         SizedBox(width: _kSpacingMedium),
                         const Text(
                           '群晖音乐',
@@ -524,12 +530,14 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
           const SizedBox(height: _kSpacingXXXLarge),
           Text(
             '尚未连接群晖 Audio Station',
-            style: TextStyle(fontSize: _kFontSizeLarge, color: scheme.onSurface),
+            style:
+                TextStyle(fontSize: _kFontSizeLarge, color: scheme.onSurface),
           ),
           const SizedBox(height: _kSpacingLarge),
           Text(
             '登录后可浏览和播放 NAS 上的音乐',
-            style: TextStyle(fontSize: _kFontSizeBody, color: scheme.onSurfaceVariant),
+            style: TextStyle(
+                fontSize: _kFontSizeBody, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: _kSpacingXXXXLarge),
           ElevatedButton.icon(
@@ -568,7 +576,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
               style: TextStyle(fontSize: _kFontSizeMedium, color: textColor),
               decoration: InputDecoration(
                 hintText: '搜索歌曲 / 专辑 / 歌手',
-                hintStyle: TextStyle(fontSize: _kFontSizeMedium, color: hintColor),
+                hintStyle:
+                    TextStyle(fontSize: _kFontSizeMedium, color: hintColor),
                 prefixIcon: Icon(Icons.search, size: 20, color: hintColor),
                 suffixIcon: state.isSearching
                     ? IconButton(
@@ -576,7 +585,9 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                         tooltip: '清空',
                         onPressed: () {
                           _searchController.clear();
-                          ref.read(synologyMusicProvider.notifier).clearSearch();
+                          ref
+                              .read(synologyMusicProvider.notifier)
+                              .clearSearch();
                         },
                       )
                     : null,
@@ -595,7 +606,8 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(22),
-                  borderSide: BorderSide(color: onGradient.withValues(alpha: 0.8)),
+                  borderSide:
+                      BorderSide(color: onGradient.withValues(alpha: 0.8)),
                 ),
               ),
             ),
@@ -623,7 +635,11 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
             color: isOnline ? Colors.greenAccent : Colors.grey,
             shape: BoxShape.circle,
             boxShadow: isOnline
-                ? [BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.5), blurRadius: 4)]
+                ? [
+                    BoxShadow(
+                        color: Colors.greenAccent.withValues(alpha: 0.5),
+                        blurRadius: 4)
+                  ]
                 : null,
           ),
         ),
@@ -655,9 +671,10 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
         indicatorWeight: 3,
         labelColor: onGradient,
         unselectedLabelColor: onGradient.withValues(alpha: 0.65),
-        labelStyle: const TextStyle(fontSize: _kFontSizeMedium, fontWeight: FontWeight.w700),
-        unselectedLabelStyle:
-            const TextStyle(fontSize: _kFontSizeMedium, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+            fontSize: _kFontSizeMedium, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(
+            fontSize: _kFontSizeMedium, fontWeight: FontWeight.w500),
         tabs: [
           for (final tab in SynologyMusicTab.values) Tab(text: tab.label),
         ],
@@ -729,213 +746,15 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // 首页 Tab（QQ音乐/酷狗风格：快捷入口 + 横向滚动推荐）
   // ============================
 
-  Widget _buildHomeTab(SynologyMusicState state, ColorScheme scheme) {
-    // 最近播放记录（客户端本地存储，PRD 首屏核心模块）
-    final recentPlaybacks = ref.watch(recentPlaybacksProvider);
-
-    // 精选专辑：从全量专辑中随机抽样，与最近添加去重（name+artist 组合，避免同名不同艺术家被错误去重）
-    // 首次计算后缓存，避免每次 build 重新 shuffle 导致内容频繁跳变
-    // 注意：仅当 state.albums 非空时才缓存，避免异步数据未加载时缓存空列表导致模块永远不显示
-    // 优化：当专辑数量变化时（如分页加载更多），清除缓存重新抽样
-    if (_cachedFeaturedAlbums != null && _cachedAlbumsLength != state.albums.length) {
-      _cachedFeaturedAlbums = null;
-      _cachedAlbumsLength = null;
-    }
-    final featured = _cachedFeaturedAlbums ?? (state.albums.isNotEmpty
-        ? _cachedFeaturedAlbums = () {
-            _cachedAlbumsLength = state.albums.length;
-            final recentKeys = state.recentAlbums
-                .map((e) => '${e.name}||${e.displayArtist ?? e.albumArtist}')
-                .toSet();
-            final candidates = state.albums
-                .where((a) => !recentKeys
-                    .contains('${a.name}||${a.displayArtist ?? a.albumArtist}'))
-                .toList()
-              ..shuffle();
-            return candidates.take(_kFeaturedAlbumsCount).toList();
-          }()
-        : const <AudioAlbum>[]);
-
-    return RefreshIndicator(
-      onRefresh: () => ref.read(synologyMusicProvider.notifier).loadTab(
-          SynologyMusicTab.values[_tabController.index],
-          force: true),
-      child: ListView(
-        controller: _homeScrollController,
-        padding: const EdgeInsets.only(top: _kSectionTitleTopPadding, bottom: _kSectionTitleBottomPadding),
-        children: [
-        // 快捷入口
-        _buildQuickEntries(scheme),
-        const SizedBox(height: _kSpacingXXXXLarge),
-        // 最近播放（无记录时整个模块隐藏，PRD 要求）
-        if (recentPlaybacks.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionRecentPlaybacks, SynologyMusicTab.songs, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          _buildRecentPlaybacksList(recentPlaybacks, scheme),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 最近添加（time_add 倒序，NAS 原生接口）
-        if (state.recentAlbums.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionRecentAlbums, SynologyMusicTab.albums, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          AlbumHorizontalList(albums: state.recentAlbums, scheme: scheme, onAlbumTap: _showAlbumSongs),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 我的锁定（My Pins / 用户收藏，SYNO.AudioStation.Pin）
-        if (state.pins.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionPins, null, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          _buildPinsList(state.pins, scheme),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 我的歌单
-        if (state.playlists.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionPlaylists, SynologyMusicTab.playlists, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          PlaylistHorizontalList(playlists: state.playlists.take(_kHomePlaylistsCount).toList(), scheme: scheme, onPlaylistTap: _showPlaylistSongs),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 精选专辑（客户端随机抽样，与最近添加去重）
-        if (featured.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionFeaturedAlbums, SynologyMusicTab.albums, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          AlbumHorizontalList(albums: featured, scheme: scheme, onAlbumTap: _showAlbumSongs),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 热门艺术家（song_count 倒序）
-        if (state.topArtists.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionTopArtists, SynologyMusicTab.artists, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          ArtistHorizontalList(artists: state.topArtists, scheme: scheme, onArtistTap: _showArtistSongs),
-          const SizedBox(height: _kSpacingXXXXLarge),
-        ],
-        // 音乐流派（2列网格色块卡片，PRD 页面最底部模块）
-        if (state.genres.isNotEmpty) ...[
-          _buildHomeSectionHeader(_kHomeSectionGenres, null, scheme),
-          const SizedBox(height: _kSpacingXLarge),
-          _buildGenreGrid(state.genres, scheme),
-        ],
-        // 全空占位（检查所有模块，包括我的锁定）
-        if (state.recentAlbums.isEmpty &&
-            state.topArtists.isEmpty &&
-            state.genres.isEmpty &&
-            state.playlists.isEmpty &&
-            state.albums.isEmpty &&
-            state.songs.isEmpty &&
-            state.pins.isEmpty &&
-            recentPlaybacks.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: _kTopSpacing),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Icons.library_music_outlined,
-                      size: _kEmptyIconSize, color: scheme.onSurfaceVariant),
-                  const SizedBox(height: _kEmptyIconTextSpacing),
-                  Text(_kHomeEmptyText,
-                      style: TextStyle(color: scheme.onSurfaceVariant)),
-                  const SizedBox(height: _kSpacingLarge),
-                  FilledButton.icon(
-                    onPressed: state.isLoading
-                        ? null
-                        : () => ref.read(synologyMusicProvider.notifier).loadTab(
-                            SynologyMusicTab.values[_tabController.index],
-                            force: true),
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('刷新音乐库'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickEntries(ColorScheme scheme) {
-    final entries = [
-      QuickEntry(
-        icon: Icons.music_note, label: '歌曲',
-        color: _kQuickEntryColorSongs,
-        onTap: () => _switchTab(SynologyMusicTab.songs),
-      ),
-      QuickEntry(
-        icon: Icons.album, label: '专辑',
-        color: _kQuickEntryColorAlbums,
-        onTap: () => _switchTab(SynologyMusicTab.albums),
-      ),
-      QuickEntry(
-        icon: Icons.person, label: '歌手',
-        color: _kQuickEntryColorArtists,
-        onTap: () => _switchTab(SynologyMusicTab.artists),
-      ),
-      QuickEntry(
-        icon: Icons.playlist_play, label: '歌单',
-        color: _kQuickEntryColorPlaylists,
-        onTap: () => _switchTab(SynologyMusicTab.playlists),
-      ),
-      QuickEntry(
-        icon: Icons.category, label: '流派',
-        color: _kQuickEntryColorGenres,
-        onTap: _scrollToGenres,
-      ),
-      QuickEntry(
-        icon: Icons.folder, label: '文件夹',
-        color: _kQuickEntryColorFolders,
-        onTap: () => context.go('/folder'),
-      ),
-      QuickEntry(
-        icon: Icons.shuffle, label: 'Random100',
-        color: _kQuickEntryColorRandom,
-        onTap: _shufflePlay,
-      ),
-      QuickEntry(
-        icon: Icons.settings, label: '设置',
-        color: _kQuickEntryColorSettings,
-        onTap: () => context.go('/settings'),
-      ),
-    ];
-    return SizedBox(
-      height: _kQuickEntriesHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
-        itemCount: entries.length,
-        separatorBuilder: (_, __) => const SizedBox(width: _kListItemSpacing),
-        itemBuilder: (context, index) =>
-            QuickEntryButton(entry: entries[index]),
-      ),
-    );
-  }
-
   /// 滚动到音乐流派区域（首页底部）
   ///
   /// 使用 GlobalKey + Scrollable.ensureVisible 精确滚动，
   /// 避免直接滚动到 maxScrollExtent 导致位置不准确。
-  void _scrollToGenres() {
-    final context = _genreKey.currentContext;
-    if (context != null) {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-        alignment: 0.1, // 滚动到距顶部 10% 的位置
-      );
-    } else if (_homeScrollController.hasClients) {
-      // 兜底：如果 GlobalKey 未就绪，滚动到页面底部
-      _homeScrollController.animateTo(
-        _homeScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  }
-
   Widget _buildHomeSectionHeader(
       String title, SynologyMusicTab? targetTab, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
+      padding:
+          const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
       child: Row(
         children: [
           Text(title,
@@ -962,433 +781,24 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     );
   }
 
-
   /// 最近播放横向卡片列表（PRD 首屏核心模块，客户端本地存储）
   ///
   /// 卡片：封面（正方形圆角）+ 标题（1行截断）+ 副标题（1行截断）
   /// + 右下角悬浮播放按钮。点击卡片播放该歌曲，长按弹出移除菜单。
-  Widget _buildRecentPlaybacksList(
-      List<RecentPlayback> records, ColorScheme scheme) {
-    // 动态计算卡片宽度：根据屏幕宽度自适应
-    // 小屏手机(<360dp): 100, 中屏(360-414dp): 110, 大屏/平板(>414dp): 120
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth < _kRecentCardSmallThreshold ? _kRecentCardWidthSmall
-        : screenWidth <= _kRecentCardMediumThreshold ? _kRecentCardWidthMedium
-        : _kRecentCardWidthLarge;
-    // 列表高度 = 封面(正方形) + 间距 + 标题(1行) + 副标题(1行) + 边距
-    final listHeight = cardWidth + 6 + 16 + 14 + 8; // 约 cardWidth + 44
-
-    return SizedBox(
-      height: listHeight,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
-        itemCount: records.length,
-        separatorBuilder: (_, __) => const SizedBox(width: _kCardSpacing),
-        itemBuilder: (context, index) {
-          final record = records[index];
-          return Dismissible(
-            key: ValueKey('${record.mediaType}_${record.mediaId}'),
-            direction: DismissDirection.endToStart,
-            background: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(_kCardBorderRadius),
-              ),
-              alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 20),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            onDismissed: (direction) {
-              ref
-                  .read(recentPlaybacksProvider.notifier)
-                  .remove(record.mediaId, record.mediaType);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('已移除「${record.title}」')),
-              );
-            },
-            child: GestureDetector(
-              onTap: () => _playRecentPlayback(record),
-              onLongPress: () => _showRecentPlaybackMenu(record, scheme),
-              child: SizedBox(
-                width: cardWidth,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(_kCardBorderRadius),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: record.coverUrl != null
-                                ? CachedNetworkImage(
-                                    imageUrl: record.coverUrl!,
-                                    fit: BoxFit.cover,
-                                    cacheManager: AppImageCacheManager.thumbnail,
-                                    errorWidget: (_, __, ___) =>
-                                        _albumCoverFallback(scheme),
-                                  )
-                                : _albumCoverFallback(scheme),
-                          ),
-                        ),
-                      // 右下角悬浮播放按钮
-                      Positioned(
-                        right: _kPlayButtonMargin,
-                        bottom: _kPlayButtonMargin,
-                        child: GestureDetector(
-                          onTap: () => _playRecentPlayback(record),
-                          child: Container(
-                            width: _kPlayButtonSize,
-                            height: _kPlayButtonSize,
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.9),
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.play_arrow,
-                                color: Colors.white, size: _kPlayButtonIconSize),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: _kSpacingMedium),
-                  Text(record.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: _kFontSizeBody,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface)),
-                  Text(record.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-                ],
-              ),
-            ),
-          ),
-          );
-        },
-      ),
-    );
-  }
-
   /// 播放最近播放记录中的歌曲
-  void _playRecentPlayback(RecentPlayback record) {
-    if (record.mediaType != RecentPlaybackType.song) return;
-    // 从当前歌曲列表中找到匹配的歌曲并播放
-    final songs = ref.read(synologyMusicProvider).songs;
-    final match = songs.where((s) => s.id == record.mediaId).toList();
-    if (match.isNotEmpty) {
-      ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('该歌曲已不在当前列表中')),
-      );
-    }
-  }
-
   /// 我的锁定（My Pins）横向卡片列表
   ///
   /// Pin 接口返回简化歌曲信息（id/title/artist/album），无封面 URL，
   /// 卡片用渐变色占位封面 + 标题 + 歌手展示。
-  Widget _buildPinsList(List<AudioPin> pins, ColorScheme scheme) {
-    final gradients = [
-      [const Color(0xFFFF6B6B), const Color(0xFFEE5A6F)],
-      [const Color(0xFF4ECDC4), const Color(0xFF44A08D)],
-      [const Color(0xFF667EEA), const Color(0xFF764BA2)],
-      [const Color(0xFFF093FB), const Color(0xFFF5576C)],
-      [const Color(0xFF43E97B), const Color(0xFF38F9D7)],
-      [const Color(0xFFFFA751), const Color(0xFFFF6B6B)],
-    ];
-    return SizedBox(
-      height: 150,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
-        itemCount: pins.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final pin = pins[index];
-          final gradient = gradients[index % gradients.length];
-          return GestureDetector(
-            onTap: () => _playPin(pin),
-            child: SizedBox(
-              width: 110,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
-                      ),
-                      child: const Icon(Icons.favorite, color: Colors.white, size: 32),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                Text(pin.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: _kFontSizeBody, fontWeight: FontWeight.w600, color: scheme.onSurface)),
-                Text(pin.artist ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-              ]),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   /// 播放锁定的歌曲（从全量歌曲列表按 ID 匹配完整歌曲）
-  void _playPin(AudioPin pin) {
-    final songs = ref.read(synologyMusicProvider).songs;
-    final match = songs.where((s) => s.id == pin.id).toList();
-    if (match.isNotEmpty) {
-      ref.read(synologyPlaybackProvider.notifier).playQueue(match, 0);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('「${pin.title}」已不在当前歌曲列表中')),
-      );
-    }
-  }
-
   /// 最近播放长按菜单：播放 / 移除该记录
-  void _showRecentPlaybackMenu(RecentPlayback record, ColorScheme scheme) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: const Text('播放'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _playRecentPlayback(record);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('移除该记录'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ref
-                    .read(recentPlaybacksProvider.notifier)
-                    .remove(record.mediaId, record.mediaType);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// 歌曲列表长按操作菜单
-  void _showSongOptions(BuildContext context, ColorScheme scheme, AudioSong song) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 歌曲信息头部
-            ListTile(
-              leading: SongCover(songId: song.id, size: 48),
-              title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(
-                song.artistDisplay,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: const Text('播放'),
-              onTap: () {
-                Navigator.pop(ctx);
-                final songs = ref.read(synologyMusicProvider).songs;
-                final index = songs.indexWhere((s) => s.id == song.id);
-                if (index >= 0) {
-                  ref.read(synologyPlaybackProvider.notifier).playQueue(songs, index);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.playlist_play),
-              title: const Text('下一首播放'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已添加到播放队列下一首')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.playlist_add),
-              title: const Text('添加到歌单'),
-              onTap: () {
-                Navigator.pop(ctx);
-                showAddToPlaylistSheet(context, ref, song);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.favorite_border),
-              title: const Text('收藏'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已收藏')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// 音乐流派 2 列网格色块卡片（PRD 页面最底部模块）
   ///
   /// 每个卡片：渐变色块 + 流派名称 + 歌曲数量。点击随机播放该流派全部歌曲。
-  Widget _buildGenreGrid(List<AudioGenre> genres, ColorScheme scheme) {
-    return Padding(
-      key: _genreKey,
-      padding: const EdgeInsets.symmetric(horizontal: _kListItemHorizontalPadding),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 2.2,
-        ),
-        itemCount: genres.length,
-        itemBuilder: (context, index) {
-          final genre = genres[index];
-          final gradient = _kGenreGradients[index % _kGenreGradients.length];
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _playGenreShuffle(genre),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: gradient,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            genre.name.isEmpty ? '未分类' : genre.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: _kFontSizeMedium,
-                                fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        const Icon(Icons.play_circle_outline,
-                            color: Colors.white, size: 20),
-                      ],
-                    ),
-                    const SizedBox(height: _kSpacingXSmall),
-                    Text(
-                      '${genre.songCount} 首',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   /// 随机播放指定流派的全部歌曲（shuffle 模式）
   /// 随机播放指定流派的全部歌曲（shuffle 模式，PRD 要求）
-  Future<void> _playGenreShuffle(AudioGenre genre) async {
-    final name = genre.name.isEmpty ? '未分类' : genre.name;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('正在加载「$name」流派...')),
-    );
-    try {
-      final api = ref.read(synologyAuthProvider.notifier).api;
-      final songs = await api.getSongs(genre: genre.name, limit: 500);
-      if (songs.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('「$name」流派暂无歌曲')),
-          );
-        }
-        return;
-      }
-      final shuffled = [...songs]..shuffle();
-      ref.read(synologyPlaybackProvider.notifier).playQueue(shuffled, 0);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载「$name」失败：$e')),
-        );
-      }
-    }
-  }
-
-  Widget _albumCoverFallback(ColorScheme scheme) {
-    return Container(
-      color: scheme.surfaceContainerHighest,
-      child: Icon(Icons.album, color: scheme.onSurfaceVariant, size: 32),
-    );
-  }
-
   /// 通用加载指示器（歌曲/专辑/歌手列表触底加载时使用）
-  Widget _buildLoadingIndicator(ColorScheme scheme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Center(
-        child: SizedBox(
-          width: _kLoadingIndicatorSize,
-          height: _kLoadingIndicatorSize,
-          child: CircularProgressIndicator(
-            strokeWidth: _kLoadingIndicatorStrokeWidth,
-            color: scheme.primary,
-          ),
-        ),
-      ),
-    );
-  }
-
   void _switchTab(SynologyMusicTab tab) {
     _tabController.animateTo(tab.index);
   }
@@ -1409,724 +819,33 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
     ref.read(synologyPlaybackProvider.notifier).playQueue(random100, 0);
   }
 
-  Widget _buildError(String error, ColorScheme scheme) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: scheme.error),
-          const SizedBox(height: _kSpacingXXLarge),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              error,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
-            ),
-          ),
-          const SizedBox(height: _kSpacingXXXLarge),
-          OutlinedButton.icon(
-            onPressed: () => ref.read(synologyMusicProvider.notifier).loadTab(
-                SynologyMusicTab.values[_tabController.index],
-                force: true),
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('重试'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ============================
   // 歌曲列表
   // ============================
-
-  Widget _buildSongList(List<AudioSong> songs, ColorScheme scheme) {
-    if (songs.isEmpty) {
-      return _buildEmpty('暂无歌曲', scheme);
-    }
-    final playback = ref.watch(synologyPlaybackProvider);
-    final musicState = ref.watch(synologyMusicProvider);
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: songs.length + (musicState.hasMoreSongs ? 1 : 0),
-      itemBuilder: (context, index) {
-        // 触底加载更多
-        if (index >= songs.length) {
-          if (!musicState.isLoadingMoreSongs) {
-            // 延迟到下一帧触发，避免 build 中副作用
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                ref.read(synologyMusicProvider.notifier).loadMoreSongs();
-              }
-            });
-          }
-          return _buildLoadingIndicator(scheme);
-        }
-        final song = songs[index];
-        final isCurrent = playback.currentSong?.id == song.id;
-        return Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: _kSongListHorizontalPadding,
-              vertical: _kSongListVerticalPadding),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(_kSongListBorderRadius),
-            onTap: () {
-              ref
-                  .read(synologyPlaybackProvider.notifier)
-                  .playQueue(songs, index);
-            },
-            onLongPress: () => _showSongOptions(context, scheme, song),
-            child: Row(
-              children: [
-                SongCover(songId: song.id, size: _kSongCoverSize),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          if (isCurrent && playback.isPlaying)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: EqualizerBars(
-                                color: scheme.primary,
-                                size: 12,
-                              ),
-                            ),
-                          Flexible(
-                            child: Text(
-                              song.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: _kFontSizeMedium,
-                                fontWeight: isCurrent
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isCurrent
-                                    ? scheme.primary
-                                    : scheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        [
-                          if (song.artistDisplay.isNotEmpty) song.artistDisplay,
-                          if (song.albumDisplay.isNotEmpty) song.albumDisplay,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  song.durationText,
-                  style:
-                      TextStyle(fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   // ============================
   // 专辑网格
   // ============================
 
-  Widget _buildAlbumGrid(List<AudioAlbum> albums, ColorScheme scheme,
-      {bool paginated = true}) {
-    if (albums.isEmpty) {
-      return _buildEmpty('暂无专辑', scheme);
-    }
-    final musicState = ref.watch(synologyMusicProvider);
-    final showLoadingCell = paginated && musicState.hasMoreAlbums;
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _kAlbumGridCrossAxisCount,
-        childAspectRatio: _kAlbumGridChildAspectRatio,
-        mainAxisSpacing: _kAlbumGridMainAxisSpacing,
-        crossAxisSpacing: _kAlbumGridCrossAxisSpacing,
-      ),
-      itemCount: albums.length + (showLoadingCell ? 1 : 0),
-      itemBuilder: (context, index) {
-        // 触底加载更多
-        if (index >= albums.length) {
-          if (!musicState.isLoadingMoreAlbums && paginated) {
-            // 延迟到下一帧触发，避免 build 中副作用
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                ref.read(synologyMusicProvider.notifier).loadMoreAlbums();
-              }
-            });
-          }
-          return _buildLoadingIndicator(scheme);
-        }
-        final album = albums[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
-          onTap: () => _showAlbumSongs(album),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 大封面卡片（QQ音乐/酷狗专辑风格）
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(_kAlbumGridBorderRadius),
-                    child: AlbumCover(album: album),
-                  ),
-                ),
-              ),
-              const SizedBox(height: _kSpacingLarge),
-              Text(
-                album.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: _kFontSizeBody,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface),
-              ),
-              const SizedBox(height: _kSpacingXSmall),
-              Text(
-                album.artistDisplay.isEmpty ? '未知歌手' : album.artistDisplay,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // ============================
   // 歌手列表
   // ============================
-
-  Widget _buildArtistList(List<AudioArtist> artists, ColorScheme scheme,
-      {bool paginated = true}) {
-    if (artists.isEmpty) {
-      return _buildEmpty('暂无歌手', scheme);
-    }
-    final musicState = ref.watch(synologyMusicProvider);
-    final showLoadingCell = paginated && musicState.hasMoreArtists;
-    final grid = GridView.builder(
-      controller: _artistScrollController,
-      padding: const EdgeInsets.fromLTRB(12, 8, 32, 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _kArtistGridCrossAxisCount,
-        childAspectRatio: _kArtistGridChildAspectRatio,
-        mainAxisSpacing: _kArtistGridMainAxisSpacing,
-        crossAxisSpacing: _kArtistGridCrossAxisSpacing,
-      ),
-      itemCount: artists.length + (showLoadingCell ? 1 : 0),
-      itemBuilder: (context, index) {
-        // 触底加载更多
-        if (index >= artists.length) {
-          if (!musicState.isLoadingMoreArtists && paginated) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                ref.read(synologyMusicProvider.notifier).loadMoreArtists();
-              }
-            });
-          }
-          return _buildLoadingIndicator(scheme);
-        }
-        final artist = artists[index];
-        // 圆形头像网格（QQ音乐/酷狗歌手风格）：优先显示 NAS 歌手图，
-        // 无图时回退为首字母渐变头像
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _showArtistSongs(artist),
-          child: Column(
-            children: [
-              ArtistAvatar(artistName: artist.name, size: 72),
-              const SizedBox(height: _kSpacingLarge),
-              Text(
-                artist.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: _kFontSizeBody,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    // 右侧 A-Z 字母索引
-    final letters = <String>{};
-    for (final a in artists) {
-      final ch = a.name.trim().isNotEmpty ? a.name.trim()[0].toUpperCase() : '#';
-      letters.add(RegExp(r'[A-Z]').hasMatch(ch) ? ch : '#');
-    }
-    final sortedLetters = letters.toList()..sort();
-    if (sortedLetters.length < 2) return grid;
-    return Stack(
-      children: [
-        grid,
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: sortedLetters.map((ch) {
-                return GestureDetector(
-                  onTap: () {
-                    final idx = artists.indexWhere((a) {
-                      final first = a.name.trim().isNotEmpty
-                          ? a.name.trim()[0].toUpperCase()
-                          : '#';
-                      final key = RegExp(r'[A-Z]').hasMatch(first) ? first : '#';
-                      return key == ch;
-                    });
-                    if (idx < 0 || !_artistScrollController.hasClients) return;
-                    const rowH = 96.0;
-                    final row = idx ~/ _kArtistGridCrossAxisCount;
-                    _artistScrollController.animateTo(
-                      (row * rowH).toDouble(),
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 1.5, horizontal: 4),
-                    child: Text(ch,
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.onSurface.withValues(alpha: 0.7))),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   // ============================
   // 歌单列表
   // ============================
 
-  Widget _buildPlaylistList(List<AudioPlaylist> playlists, ColorScheme scheme) {
-    if (playlists.isEmpty) {
-      return _buildEmpty('暂无歌单', scheme);
-    }
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: _kPlaylistGridCrossAxisCount,
-        childAspectRatio: _kPlaylistGridChildAspectRatio,
-        mainAxisSpacing: _kPlaylistGridMainAxisSpacing,
-        crossAxisSpacing: _kPlaylistGridCrossAxisSpacing,
-      ),
-      itemCount: playlists.length,
-      itemBuilder: (context, index) {
-        final playlist = playlists[index];
-        // 歌单封面渐变取色（QQ音乐/酷狗歌单卡风格）
-        final colors = _kPlaylistGradients[index % _kPlaylistGradients.length];
-        return InkWell(
-          borderRadius: BorderRadius.circular(_kPlaylistGridBorderRadius),
-          onTap: () => _showPlaylistSongs(playlist),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(_kPlaylistGridBorderRadius),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: colors,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colors.last.withValues(alpha: 0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Icon(
-                          Icons.queue_music,
-                          color: Colors.white.withValues(alpha: 0.9),
-                          size: _kPlaylistCoverIconSize,
-                        ),
-                      ),
-                      // 右上角类型角标
-                      Positioned(
-                        top: 8,
-                        right: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            playlist.type == 'smart' ? '智能' : '普通',
-                            style: const TextStyle(
-                              fontSize: _kFontSizeTiny,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: _kSpacingLarge),
-              Text(
-                playlist.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: _kFontSizeBody,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // ============================
   // 搜索结果
   // ============================
-
-  Widget _buildSearchResult(SynologyMusicState state, ColorScheme scheme) {
-    if (state.isLoading && state.searchResult == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    final result = state.searchResult;
-    if (result == null ||
-        (result.songs.isEmpty &&
-            result.albums.isEmpty &&
-            result.artists.isEmpty)) {
-      return _buildEmpty('未找到「${state.searchKeyword}」相关内容', scheme);
-    }
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      children: [
-        if (result.songs.isNotEmpty) ...[
-          _buildSectionHeader('歌曲 (${result.songs.length})', scheme),
-          _buildSongList(result.songs, scheme),
-        ],
-        if (result.albums.isNotEmpty) ...[
-          _buildSectionHeader('专辑 (${result.albums.length})', scheme),
-          _buildAlbumGrid(result.albums, scheme, paginated: false),
-        ],
-        if (result.artists.isNotEmpty) ...[
-          _buildSectionHeader('歌手 (${result.artists.length})', scheme),
-          // 搜索结果：头像 + 简介 + 出处 列表（供用户选择）
-          _buildArtistSearchList(result.artists, scheme),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, ColorScheme scheme) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: _kFontSizeBody,
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
 
   /// 歌手搜索结果列表：头像 + 名字 + 简介摘要 + 数据出处标签
   ///
   /// 数据来源标注（Last.fm / 群晖 NAS / Wikipedia），方便用户判断可信度；
   /// 点击进入该歌手歌曲列表。
-  Widget _buildArtistSearchList(List<AudioArtist> artists, ColorScheme scheme) {
-    return Column(
-      children: [
-        for (final artist in artists)
-          ArtistSearchTile(
-            artist: artist,
-            // 顶部全局搜索只查群晖本地库
-            hitSource: ArtistInfoSource.synology,
-            onTap: () => _showArtistSongs(artist),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildEmpty(String text, ColorScheme scheme) {
-    // 使用可滚动容器保证下拉刷新可用
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: SizedBox(
-          height: constraints.maxHeight,
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.music_off_outlined,
-                    size: 48, color: scheme.onSurfaceVariant),
-                const SizedBox(height: _kSpacingXXLarge),
-                Text(
-                  text,
-                  style:
-                      TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // ============================
   // 弹层：专辑 / 歌手 / 歌单 歌曲
   // ============================
-
-  Future<void> _showAlbumSongs(AudioAlbum album) async {
-    try {
-      final songs =
-          await ref.read(synologyMusicProvider.notifier).loadAlbumSongs(album);
-      if (!mounted) return;
-      await _showSongsSheet(
-        title: album.name,
-        subtitle: album.artistDisplay,
-        songs: songs,
-        emptyText: '专辑内暂无歌曲',
-        cover: _albumCoverUrl(album),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppLogger.warn('加载专辑歌曲失败', data: {'album': album.name, 'error': e.toString()});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载专辑歌曲失败：${e.toString().length > 50 ? '${e.toString().substring(0, 50)}...' : e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _showArtistSongs(AudioArtist artist) async {
-    // 跳转到独立的歌手详情页（V1.0 歌手简介功能）
-    // 歌手详情页包含：可折叠头部、操作按钮、简介模块、专辑列表、歌曲列表
-    context.push('/music/artist/${Uri.encodeComponent(artist.name)}');
-  }
-
-  Future<void> _showPlaylistSongs(AudioPlaylist playlist) async {
-    try {
-      final songs = await ref
-          .read(synologyMusicProvider.notifier)
-          .loadPlaylistSongs(playlist.id);
-      if (!mounted) return;
-      await _showSongsSheet(
-        title: playlist.name,
-        songs: songs,
-        emptyText: '歌单内暂无歌曲',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      AppLogger.warn('加载歌单歌曲失败', data: {'playlist': playlist.name, 'error': e.toString()});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载歌单歌曲失败：${e.toString().length > 50 ? '${e.toString().substring(0, 50)}...' : e.toString()}')),
-      );
-    }
-  }
-
-  Future<void> _showSongsSheet({
-    required String title,
-    String? subtitle,
-    required List<AudioSong> songs,
-    required String emptyText,
-    String? cover,
-  }) async {
-    final scheme = Theme.of(context).colorScheme;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: scheme.surface,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-              child: Row(
-                children: [
-                  if (cover != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: CachedNetworkImage(
-                          imageUrl: cover,
-                          fit: BoxFit.cover,
-                          cacheManager: AppImageCacheManager.thumbnail,
-                          errorWidget: (_, __, ___) => Container(
-                            color: scheme.surfaceContainerHighest,
-                            child: Icon(Icons.album,
-                                color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: _kFontSizeLarge,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        if (subtitle != null && subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            // 歌手简介允许多行展示（最多 3 行）
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: _kFontSizeSmall,
-                                height: 1.4,
-                                color: scheme.onSurfaceVariant),
-                          ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.play_circle_fill, size: 32),
-                    color: scheme.primary,
-                    tooltip: '播放全部',
-                    onPressed: songs.isEmpty
-                        ? null
-                        : () {
-                            ref
-                                .read(synologyPlaybackProvider.notifier)
-                                .playQueue(songs, 0);
-                            Navigator.pop(ctx);
-                          },
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: songs.isEmpty
-                  ? Center(
-                      child: Text(
-                        emptyText,
-                        style: TextStyle(
-                            color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: scrollController,
-                      itemCount: songs.length,
-                      itemBuilder: (context, index) {
-                        final song = songs[index];
-                        final isCurrent = ref
-                                .watch(synologyPlaybackProvider)
-                                .currentSong
-                                ?.id ==
-                            song.id;
-                        return ListTile(
-                          dense: true,
-                          leading: SongCover(songId: song.id, size: 40),
-                          title: Text(
-                            song.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: _kFontSizeMedium,
-                              fontWeight:
-                                  isCurrent ? FontWeight.w700 : FontWeight.w500,
-                              color:
-                                  isCurrent ? scheme.primary : scheme.onSurface,
-                            ),
-                          ),
-                          subtitle: song.artistDisplay.isNotEmpty
-                              ? Text(
-                                  song.artistDisplay,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: _kFontSizeSmall,
-                                      color: scheme.onSurfaceVariant),
-                                )
-                              : null,
-                          trailing: Text(
-                            song.durationText,
-                            style: TextStyle(
-                                fontSize: _kFontSizeSmall, color: scheme.onSurfaceVariant),
-                          ),
-                          onTap: () {
-                            ref
-                                .read(synologyPlaybackProvider.notifier)
-                                .playQueue(songs, index);
-                            Navigator.pop(ctx);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   String? _albumCoverUrl(AudioAlbum album) {
     return ref.read(synologyAuthProvider.notifier).api.getAlbumCoverUrl(
@@ -2138,33 +857,4 @@ class _SynologyMusicViewState extends ConsumerState<SynologyMusicView>
   // ============================
   // 退出登录
   // ============================
-
-  Future<void> _confirmLogout(ColorScheme scheme) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: scheme.surface,
-        title: const Text('退出群晖账号'),
-        content: const Text('确定要退出群晖 Audio Station 吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: scheme.error),
-            child: const Text('退出'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && mounted) {
-      // 停止播放并退出
-      await ref.read(synologyPlaybackProvider.notifier).stop();
-      await ref.read(synologyAuthProvider.notifier).logout();
-      ref.read(synologyMusicProvider.notifier).clearSearch();
-    }
-  }
 }
-
