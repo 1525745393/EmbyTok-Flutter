@@ -15,6 +15,7 @@ import 'media_server_api.dart';
 part 'emby_api_discovery.dart';
 part 'emby_api_favorites.dart';
 part 'emby_api_playback.dart';
+part 'emby_api_discovery_extra.dart';
 
 /// 基类：持有 API client、默认配置与内部工具方法（供 mixin 使用）
 abstract class EmbyServerApiBase {
@@ -110,7 +111,11 @@ abstract class EmbyServerApiBase {
 /// 方法实现拆分为三个 mixin（discovery/favorites/playback），
 /// mixin 成员满足接口实现，逻辑与类体分离。
 class EmbyServerApi extends EmbyServerApiBase
-    with _EmbyDiscoveryApi, _EmbyFavoritesApi, _EmbyPlaybackApi
+    with
+        _EmbyDiscoveryApi,
+        _EmbyDiscoveryApi2,
+        _EmbyFavoritesApi,
+        _EmbyPlaybackApi
     implements MediaServerApi {
   EmbyServerApi() : super();
 
