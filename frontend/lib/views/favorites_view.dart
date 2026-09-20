@@ -27,6 +27,7 @@ import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 part 'favorites_widgets.dart';
 part 'favorites_widgets_cards.dart';
+part 'favorites_widgets_more.dart';
 part 'favorites_actions.dart';
 part 'favorites_parts/favorites_view_build.dart';
 
