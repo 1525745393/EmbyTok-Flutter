@@ -25,7 +25,6 @@ import '../providers/synology_playback_provider.dart';
 import '../utils/logger.dart';
 
 class EmbytokAudioHandler extends BaseAudioHandler with SeekHandler {
-
   EmbytokAudioHandler(this._ref);
   final Ref _ref;
 

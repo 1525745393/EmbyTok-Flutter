@@ -15,7 +15,6 @@ import '../utils/constants.dart';
 import '../utils/formatters.dart';
 
 class ApiClient {
-
   ApiClient({String? baseUrl, bool? validateCertificate})
       : _dio = Dio(BaseOptions(
           baseUrl: baseUrl ?? '',

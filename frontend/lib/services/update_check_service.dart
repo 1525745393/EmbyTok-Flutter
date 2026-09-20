@@ -25,7 +25,8 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 
 /// GitHub Release 信息
-class ReleaseInfo { // 附件（APK 等）
+class ReleaseInfo {
+  // 附件（APK 等）
 
   const ReleaseInfo({
     required this.tagName,
@@ -94,7 +95,6 @@ class ReleaseInfo { // 附件（APK 等）
 
 /// Release 附件（APK 等）
 class ReleaseAsset {
-
   const ReleaseAsset({
     required this.name,
     required this.downloadUrl,
@@ -132,7 +132,6 @@ class ReleaseAsset {
 
 /// 版本对比结果
 class UpdateCheckResult {
-
   const UpdateCheckResult({
     required this.hasUpdate,
     required this.currentVersion,
@@ -158,7 +157,6 @@ class UpdateRateLimitException implements Exception {
 /// 通过 GitHub API 检查仓库最新 Release，与当前版本对比。
 /// GitHub 仓库：1525745393/EmbyTok-Flutter
 class UpdateCheckService {
-
   UpdateCheckService({Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
@@ -373,7 +371,8 @@ class UpdateCheckService {
   int _comparePreRelease(String a, String b) {
     final aParts = a.split('.');
     final bParts = b.split('.');
-    final maxLen = aParts.length > bParts.length ? aParts.length : bParts.length;
+    final maxLen =
+        aParts.length > bParts.length ? aParts.length : bParts.length;
     for (var i = 0; i < maxLen; i++) {
       final aNum = int.tryParse(i < aParts.length ? aParts[i] : '0') ?? 0;
       final bNum = int.tryParse(i < bParts.length ? bParts[i] : '0') ?? 0;
@@ -388,7 +387,8 @@ class UpdateCheckService {
   List<int> _parseVersion(String version) {
     // 去掉预发布标签（-beta, -rc.1 等）
     final dashIndex = version.indexOf('-');
-    final mainVersion = dashIndex > 0 ? version.substring(0, dashIndex) : version;
+    final mainVersion =
+        dashIndex > 0 ? version.substring(0, dashIndex) : version;
 
     return mainVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
   }

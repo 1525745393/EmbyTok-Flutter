@@ -17,7 +17,6 @@ import '../utils/logger.dart';
 
 /// Deezer 歌手信息
 class DeezerArtistInfo {
-
   const DeezerArtistInfo({
     required this.name,
     this.pictureSmall,
@@ -41,6 +40,7 @@ class DeezerArtistInfo {
       description: json['description'] as String?,
     );
   }
+
   /// 歌手名称
   final String name;
 
@@ -183,9 +183,7 @@ class DeezerService {
     final data = json['data'] as List<dynamic>?;
     if (data == null || data.isEmpty) return [];
 
-    return data
-        .map((e) => e as Map<String, dynamic>)
-        .toList(growable: false);
+    return data.map((e) => e as Map<String, dynamic>).toList(growable: false);
   }
 
   /// 获取歌手详情

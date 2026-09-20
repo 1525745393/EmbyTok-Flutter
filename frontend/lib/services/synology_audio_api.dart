@@ -31,7 +31,6 @@ import '../utils/logger.dart';
 
 /// 群晖 API 返回的数据包裹层
 class SynologyResponse<T> {
-
   const SynologyResponse({
     required this.success,
     this.data,
@@ -64,16 +63,16 @@ class SynologyAuthException implements Exception {
 class SynologySessionExpiredException extends SynologyAuthException {
   SynologySessionExpiredException() : super('群晖会话已过期，请重新登录', errorCode: 105);
 }
-class SynologyOtpRequiredException extends SynologyAuthException {
 
+class SynologyOtpRequiredException extends SynologyAuthException {
   SynologyOtpRequiredException(this.token)
       : super('需要两步验证（OTP）', errorCode: 403);
+
   /// DSM 下发的临时 token（随 OTP 一起提交）
   final String? token;
 }
 
 class SynologyAudioApi {
-
   SynologyAudioApi({Dio? dio})
       : _dio = dio ??
             Dio(BaseOptions(
@@ -280,18 +279,16 @@ class SynologyAudioApi {
       if (sort != null && sort.isNotEmpty) 'direction': direction,
     });
     final albums = _asList(data?['albums']);
-    return albums
-        .map((e) {
-          final album = AudioAlbum.fromJson(_asMap(e));
-          // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
-          return album.copyWith(
-            coverUrl: getAlbumCoverUrl(
-              albumName: album.name,
-              albumArtistName: album.displayArtist ?? album.albumArtist,
-            ),
-          );
-        })
-        .toList(growable: false);
+    return albums.map((e) {
+      final album = AudioAlbum.fromJson(_asMap(e));
+      // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
+      return album.copyWith(
+        coverUrl: getAlbumCoverUrl(
+          albumName: album.name,
+          albumArtistName: album.displayArtist ?? album.albumArtist,
+        ),
+      );
+    }).toList(growable: false);
   }
 
   /// 获取歌手列表
@@ -315,15 +312,13 @@ class SynologyAudioApi {
       if (sort != null && sort.isNotEmpty) 'direction': direction,
     });
     final artists = _asList(data?['artists']);
-    return artists
-        .map((e) {
-          final artist = AudioArtist.fromJson(_asMap(e));
-          // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
-          return artist.copyWith(
-            coverUrl: getArtistCoverUrl(artist.name),
-          );
-        })
-        .toList(growable: false);
+    return artists.map((e) {
+      final artist = AudioArtist.fromJson(_asMap(e));
+      // P2-2：预计算封面 URL，避免 UI 层 itemBuilder 中重复计算
+      return artist.copyWith(
+        coverUrl: getArtistCoverUrl(artist.name),
+      );
+    }).toList(growable: false);
   }
 
   /// 获取歌单列表
@@ -659,8 +654,8 @@ class SynologyAudioApi {
         final decoded = jsonDecode(v);
         if (decoded is List) return decoded;
       } catch (_) {
-      // 操作失败不影响主流程，静默处理
-    }
+        // 操作失败不影响主流程，静默处理
+      }
     }
     return const [];
   }

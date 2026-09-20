@@ -44,12 +44,12 @@ class EqualizerService {
       final enabled = prefs.getBool(_kEnabled) ?? true;
       final raw = prefs.getString(_kLevels);
       if (raw != null) {
-        final list = (jsonDecode(raw) as List)
-            .map((e) => (e as num).toInt())
-            .toList();
+        final list =
+            (jsonDecode(raw) as List).map((e) => (e as num).toInt()).toList();
         if (list.length == _bands) _levels = list;
       }
-      _levels = List.generate(_bands, (i) => i < _levels.length ? _levels[i] : 0);
+      _levels =
+          List.generate(_bands, (i) => i < _levels.length ? _levels[i] : 0);
       await _ch.invokeMethod('setEnabled', {'on': enabled});
       // 恢复各频段
       for (var i = 0; i < _bands; i++) {

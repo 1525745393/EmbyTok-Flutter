@@ -8,7 +8,8 @@ import 'package:home_widget/home_widget.dart';
 /// 把当前播放曲名推到桌面 Widget
 Future<void> updateMusicWidget(String title) async {
   try {
-    await HomeWidget.saveWidgetData<String>('title', title.isEmpty ? '未在播放' : title);
+    await HomeWidget.saveWidgetData<String>(
+        'title', title.isEmpty ? '未在播放' : title);
     await HomeWidget.updateWidget(
       name: 'MusicWidgetProvider',
       androidName: 'MusicWidgetProvider',

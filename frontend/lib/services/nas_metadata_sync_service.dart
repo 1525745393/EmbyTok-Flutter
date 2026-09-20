@@ -57,8 +57,7 @@ class NasMetadataSyncService {
 
     try {
       if (!api.isLoggedIn) {
-        AppLogger.warn('NAS 元数据下载失败：未登录群晖',
-            data: {'artist': key});
+        AppLogger.warn('NAS 元数据下载失败：未登录群晖', data: {'artist': key});
         return null;
       }
 
@@ -111,8 +110,7 @@ class NasMetadataSyncService {
   }) async {
     try {
       if (!api.isLoggedIn) {
-        AppLogger.warn('NAS 元数据上传失败：未登录群晖',
-            data: {'artist': metadata.name});
+        AppLogger.warn('NAS 元数据上传失败：未登录群晖', data: {'artist': metadata.name});
         return false;
       }
 
@@ -145,8 +143,7 @@ class NasMetadataSyncService {
       if (response.statusCode == 200) {
         final data = response.data;
         if (data is Map && data['success'] == true) {
-          AppLogger.debug('NAS 元数据上传成功',
-              data: {'artist': metadata.name});
+          AppLogger.debug('NAS 元数据上传成功', data: {'artist': metadata.name});
           return true;
         }
       }
@@ -190,16 +187,13 @@ class NasMetadataSyncService {
 
       return files
           .where((f) =>
-              f is Map &&
-              f['name']?.toString().endsWith('.json') == true)
+              f is Map && f['name']?.toString().endsWith('.json') == true)
           .map((f) {
-            final name = f['name'] as String;
-            return Uri.decodeComponent(name.replaceAll('.json', ''));
-          })
-          .toList();
+        final name = f['name'] as String;
+        return Uri.decodeComponent(name.replaceAll('.json', ''));
+      }).toList();
     } catch (e) {
-      AppLogger.warn('NAS 元数据列表获取失败',
-          data: {'error': e.toString()});
+      AppLogger.warn('NAS 元数据列表获取失败', data: {'error': e.toString()});
       return [];
     }
   }
@@ -229,10 +223,10 @@ class NasMetadataSyncService {
       }
 
       // 创建目录（递归创建父目录）
-      final parentPath = _metadataRootPath.substring(
-          0, _metadataRootPath.lastIndexOf('/'));
-      final dirName = _metadataRootPath.substring(
-          _metadataRootPath.lastIndexOf('/') + 1);
+      final parentPath =
+          _metadataRootPath.substring(0, _metadataRootPath.lastIndexOf('/'));
+      final dirName =
+          _metadataRootPath.substring(_metadataRootPath.lastIndexOf('/') + 1);
 
       await _dio.get<dynamic>(
         url,
@@ -246,8 +240,7 @@ class NasMetadataSyncService {
         },
       );
 
-      AppLogger.debug('NAS 元数据目录创建成功',
-          data: {'path': _metadataRootPath});
+      AppLogger.debug('NAS 元数据目录创建成功', data: {'path': _metadataRootPath});
     } catch (e) {
       AppLogger.warn('NAS 元数据目录创建失败',
           data: {'path': _metadataRootPath, 'error': e.toString()});
@@ -336,7 +329,8 @@ class NasMetadataSyncService {
       if (bytes == null || bytes.isEmpty) return null;
 
       final jsonStr = utf8.decode(bytes);
-      final Map<String, dynamic> data = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final Map<String, dynamic> data =
+          jsonDecode(jsonStr) as Map<String, dynamic>;
       final List<dynamic> artists = data['artists'] as List<dynamic>? ?? [];
 
       return artists.map((e) => e.toString()).toList();

@@ -121,8 +121,7 @@ class DataBackupService {
   // ============================
   /// 在 NAS 音乐库中按 title+artist 匹配。
   /// 返回匹配到的歌曲（与输入顺序一致，未匹配为 null）。
-  List<AudioSong?> matchSongs(
-      List<M3uEntry> entries, List<AudioSong> library) {
+  List<AudioSong?> matchSongs(List<M3uEntry> entries, List<AudioSong> library) {
     AudioSong? exact(String title, String artist) {
       for (final s in library) {
         final st = s.title.toLowerCase().trim();

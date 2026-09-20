@@ -187,7 +187,8 @@ class ArtistMetadataService {
       var downloaded = 0;
       for (final artistName in nasArtists) {
         // 检查本地是否已有缓存
-        final localCached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
+        final localCached =
+            _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
         if (localCached != null && !localCached.isExpired()) {
           continue; // 本地已有且未过期，跳过
         }
@@ -274,10 +275,14 @@ class ArtistMetadataService {
     // 3. Wikipedia（兜底源，无需 API Key）
     for (final wikiLang in [lang, 'en']) {
       try {
-        final wikiResult = await _fetchFromWikipedia(artistName, lang: wikiLang);
+        final wikiResult =
+            await _fetchFromWikipedia(artistName, lang: wikiLang);
         if (wikiResult != null && wikiResult.hasBio) {
-          AppLogger.debug('Wikipedia 获取歌手元数据成功',
-              data: {'artist': artistName, 'source': 'wikipedia', 'lang': wikiLang});
+          AppLogger.debug('Wikipedia 获取歌手元数据成功', data: {
+            'artist': artistName,
+            'source': 'wikipedia',
+            'lang': wikiLang
+          });
           // 如果 Deezer 有头像但 Wikipedia 有简介，合并两者
           if (deezerResult != null && deezerResult.hasImage) {
             AppLogger.debug('合并 Deezer 头像和 Wikipedia 简介',
@@ -291,8 +296,11 @@ class ArtistMetadataService {
           return wikiResult;
         }
       } catch (e) {
-        AppLogger.warn('Wikipedia 获取歌手元数据失败',
-            data: {'artist': artistName, 'lang': wikiLang, 'error': e.toString()});
+        AppLogger.warn('Wikipedia 获取歌手元数据失败', data: {
+          'artist': artistName,
+          'lang': wikiLang,
+          'error': e.toString()
+        });
       }
     }
 
@@ -489,8 +497,7 @@ class ArtistMetadataService {
       }
       AppLogger.info('已清除所有歌手元数据缓存', data: {'count': keys.length});
     } catch (e) {
-      AppLogger.warn('清除所有歌手元数据缓存失败',
-          data: {'error': e.toString()});
+      AppLogger.warn('清除所有歌手元数据缓存失败', data: {'error': e.toString()});
     }
   }
 
@@ -555,8 +562,11 @@ class ArtistMetadataService {
     _saveToMemory(key, updated);
     await _saveToPrefs(key, updated);
 
-    AppLogger.info('歌手元数据已手动修正',
-        data: {'artist': key, 'hasImage': updated.hasImage, 'hasBio': updated.hasBio});
+    AppLogger.info('歌手元数据已手动修正', data: {
+      'artist': key,
+      'hasImage': updated.hasImage,
+      'hasBio': updated.hasBio
+    });
 
     return updated;
   }
@@ -608,8 +618,11 @@ class ArtistMetadataService {
         .toSet()
         .toList();
 
-    AppLogger.info('开始批量扫描歌手元数据',
-        data: {'total': total, 'unique': uniqueNames.length, 'skipExisting': skipExisting});
+    AppLogger.info('开始批量扫描歌手元数据', data: {
+      'total': total,
+      'unique': uniqueNames.length,
+      'skipExisting': skipExisting
+    });
 
     // 使用线程安全的索引分配（Dart 单线程，但保持代码清晰）
     var nextIndex = 0;
@@ -628,7 +641,8 @@ class ArtistMetadataService {
         try {
           // 检查是否已有完整元数据（头像 + 简介）
           if (skipExisting) {
-            final cached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
+            final cached =
+                _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
             if (cached != null && cached.hasImage && cached.hasBio) {
               skipped++;
               onProgress?.call(currentIndex + 1, total, artistName);
@@ -638,8 +652,10 @@ class ArtistMetadataService {
 
           // 获取元数据
           // 优化：只有完全没有数据的歌手才强制刷新，已有部分数据的歌手使用缓存逻辑
-          final cached = _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
-          final hasPartialData = cached != null && (cached.hasImage || cached.hasBio);
+          final cached =
+              _getFromMemory(artistName) ?? await _loadFromPrefs(artistName);
+          final hasPartialData =
+              cached != null && (cached.hasImage || cached.hasBio);
           final metadata = await getArtistMetadata(
             artistName,
             forceRefresh: !hasPartialData,
@@ -673,8 +689,12 @@ class ArtistMetadataService {
       failedArtists: failedArtists,
     );
 
-    AppLogger.info('批量扫描歌手元数据完成',
-        data: {'total': total, 'success': success, 'failed': failed, 'skipped': skipped});
+    AppLogger.info('批量扫描歌手元数据完成', data: {
+      'total': total,
+      'success': success,
+      'failed': failed,
+      'skipped': skipped
+    });
 
     return result;
   }
@@ -699,7 +719,6 @@ class ArtistMetadataService {
 
 /// 批量扫描结果统计
 class BatchScanResult {
-
   const BatchScanResult({
     required this.total,
     required this.unique,
@@ -717,8 +736,7 @@ class BatchScanResult {
 
   double get successRate => unique == 0 ? 0 : success / unique;
 
-  String get summary =>
-      '共 $unique 个歌手，成功 $success，失败 $failed，跳过 $skipped';
+  String get summary => '共 $unique 个歌手，成功 $success，失败 $failed，跳过 $skipped';
 }
 
 /// 简易 HTTP 客户端（避免引入新依赖，使用 dart:io HttpClient）

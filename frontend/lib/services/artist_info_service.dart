@@ -17,7 +17,6 @@ import '../utils/logger.dart';
 
 /// 歌手简介查询结果
 class ArtistInfo {
-
   const ArtistInfo({required this.bio, this.thumbnailUrl});
   final String bio;
   final String? thumbnailUrl;
@@ -66,11 +65,11 @@ class ArtistInfoService {
     final encoded = Uri.encodeComponent(artistName);
     final url = Uri.parse(
         'https://$lang.wikipedia.org/api/rest_v1/page/summary/$encoded');
-    final resp = await _client
-        .get(url, headers: const {'User-Agent': 'EmbyTok-Flutter/1.0'})
-        .timeout(_timeout);
+    final resp = await _client.get(url,
+        headers: const {'User-Agent': 'EmbyTok-Flutter/1.0'}).timeout(_timeout);
     if (resp.statusCode != 200) return null;
-    final json = jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
+    final json =
+        jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
     // 重定向到别的条目（如消歧义页）时无 extract
     final extract = json['extract'] as String?;
     if (extract == null || extract.trim().isEmpty) return null;

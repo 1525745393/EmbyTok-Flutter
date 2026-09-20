@@ -79,8 +79,8 @@ class DownloadTask {
         downloadedBytes: j['downloadedBytes'] as int? ?? 0,
         totalBytes: j['totalBytes'] as int? ?? 0,
         savedPath: j['savedPath'] as String?,
-        addedAt: DateTime.fromMillisecondsSinceEpoch(
-            j['addedAtMs'] as int? ?? 0),
+        addedAt:
+            DateTime.fromMillisecondsSinceEpoch(j['addedAtMs'] as int? ?? 0),
         errorMessage: j['errorMessage'] as String?,
       );
 
@@ -140,8 +140,7 @@ class DownloadedSong {
         title: j['title'] as String? ?? '',
         artist: j['artist'] as String? ?? '',
         fileSize: j['fileSize'] as int? ?? 0,
-        downloadedAt:
-            DateTime.fromMillisecondsSinceEpoch(j['ts'] as int? ?? 0),
+        downloadedAt: DateTime.fromMillisecondsSinceEpoch(j['ts'] as int? ?? 0),
       );
 }
 
@@ -204,8 +203,8 @@ class SynologyDownloadService {
       final raw = prefs.getString(_kDownloadedKey);
       if (raw == null) return {};
       final m = json.decode(raw) as Map<String, dynamic>;
-      return m.map((k, v) => MapEntry(
-          k, DownloadedSong.fromJson(k, v as Map<String, dynamic>)));
+      return m.map((k, v) =>
+          MapEntry(k, DownloadedSong.fromJson(k, v as Map<String, dynamic>)));
     } catch (_) {
       return {};
     }
@@ -303,9 +302,8 @@ class SynologyDownloadService {
       }
 
       // 统计当前真正在下载的任务数
-      final activeCount = tasks
-          .where((t) => t.status == DownloadStatus.downloading)
-          .length;
+      final activeCount =
+          tasks.where((t) => t.status == DownloadStatus.downloading).length;
       final slots = (maxConcurrency - activeCount).clamp(0, maxConcurrency);
       if (slots == 0) {
         // 没有空槽，等一秒再看
@@ -316,7 +314,8 @@ class SynologyDownloadService {
       // 并发启动这些任务（不 await，让它们并行）
       for (final task in toStart) {
         final url = streamUrlResolver?.call(task.songId);
-        unawaited(_downloadOne(task: task, streamUrl: url, onProgress: onProgress));
+        unawaited(
+            _downloadOne(task: task, streamUrl: url, onProgress: onProgress));
       }
       // 等待一小段，让下载任务进入 downloading 状态后再补槽
       await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -450,8 +449,8 @@ class SynologyDownloadService {
   }
 
   /// 重试失败的任务（重新排队）
-  Future<void> retry(String songId,
-      void Function(List<DownloadTask> tasks) onProgress) async {
+  Future<void> retry(
+      String songId, void Function(List<DownloadTask> tasks) onProgress) async {
     final tasks = await loadTasks();
     final idx = tasks.indexWhere((t) => t.songId == songId);
     if (idx < 0) return;

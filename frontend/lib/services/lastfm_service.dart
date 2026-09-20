@@ -20,7 +20,6 @@ import '../utils/logger.dart';
 /// [bio] 可空：Last.fm 很多歌手有头像但无简介，此时仍返回头像，
 /// 简介由调用方回退 Wikipedia 等兜底来源。
 class LastFmArtistInfo {
-
   const LastFmArtistInfo({
     this.bio,
     this.imageUrl,
@@ -35,7 +34,6 @@ class LastFmArtistInfo {
 
 /// Last.fm 相似歌手
 class LastFmSimilarArtist {
-
   const LastFmSimilarArtist({
     required this.name,
     this.imageUrl,

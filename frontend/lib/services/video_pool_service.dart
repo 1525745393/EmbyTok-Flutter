@@ -20,7 +20,6 @@ import '../utils/logger.dart';
 
 /// 单个播放会话：绑定 VideoPlayerController + PlaySessionId
 class PlaybackSession {
-
   PlaybackSession({
     required this.itemId,
     required this.controller,
@@ -169,8 +168,8 @@ class VideoPoolService {
             try {
               controller.dispose();
             } catch (_) {
-      // 操作失败不影响主流程，静默处理
-    }
+              // 操作失败不影响主流程，静默处理
+            }
             return null;
           }
           created = PlaybackSession(
@@ -187,8 +186,8 @@ class VideoPoolService {
           try {
             controller?.dispose();
           } catch (_) {
-      // 操作失败不影响主流程，静默处理
-    }
+            // 操作失败不影响主流程，静默处理
+          }
         }
       }
     } finally {
