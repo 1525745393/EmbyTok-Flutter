@@ -26,12 +26,14 @@ import 'audio_focus_provider.dart';
 import 'audio_handler_provider.dart';
 import 'recent_playbacks_provider.dart';
 import 'synology_auth_provider.dart';
+part 'synology_parts/synology_playback_internal.dart';
 
 /// 播放模式
 enum SynologyPlaybackMode {
   listLoop('列表循环'),
   singleLoop('单曲循环'),
   shuffle('随机播放');
+
   const SynologyPlaybackMode(this.label);
 
   final String label;
@@ -53,7 +55,6 @@ enum SleepTimerBehavior {
 
 /// 音乐播放状态
 class SynologyPlaybackState {
-
   const SynologyPlaybackState({
     this.currentSong,
     this.queue = const [],
@@ -153,7 +154,6 @@ class SynologyPlaybackState {
 }
 
 class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
-
   SynologyPlaybackNotifier(this._ref) : super(const SynologyPlaybackState()) {
     // 中断回调：焦点丢失暂停 / 恢复续播
     final handler = _ref.read(audioSessionHandlerProvider);
@@ -220,8 +220,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
             playedAtMs: DateTime.now().millisecondsSinceEpoch,
           ));
     } catch (_) {
-    // 存储操作失败不影响主流程，静默处理
-  }
+      // 存储操作失败不影响主流程，静默处理
+    }
     await _playSong(song);
     // 切歌时仅持久化队列和索引，不持久化进度（新歌曲 position 为 0）
     _persistPlayback(persistPosition: false);
@@ -240,20 +240,6 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   /// - 切歌（playQueue）时传 false：新歌曲刚开始播放，position 为 0，
   ///   持久化无意义且可能覆盖暂停时保存的正确进度。
   /// - 暂停时传 true（默认）：保存当前实际播放进度。
-  Future<void> _persistPlayback({bool persistPosition = true}) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final data = {
-        'queue': state.queue.map((s) => s.toJson()).toList(),
-        'currentIndex': state.currentIndex,
-        'position': persistPosition ? state.position.inSeconds : 0,
-        'mode': state.mode.name,
-      };
-      await prefs.setString(_persistKey, jsonEncode(data));
-    } catch (e) {
-      AppLogger.warn('持久化播放状态失败', data: {'error': e.toString()});
-    }
-  }
 
   /// 从 SharedPreferences 恢复播放队列和进度（不自动播放）
   ///
@@ -375,15 +361,6 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     AppLogger.info('切换播放模式', data: {'mode': nextMode.label});
   }
 
-  int _randomIndex(int length) {
-    if (length <= 1) return 0;
-    // 避免与当前索引重复
-    final current = state.currentIndex;
-    var idx = _random.nextInt(length);
-    if (idx == current) idx = (idx + 1) % length;
-    return idx;
-  }
-
   /// 跳转到指定位置
   Future<void> seekTo(Duration position) async {
     if (_controller != null && _controller!.value.isInitialized) {
@@ -449,66 +426,10 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   }
 
   /// 由 position timer 每 500ms 调用：更新剩余时间、执行淡出、到点停止
-  void _tickSleepTimer() {
-    final endsAt = state.sleepTimerEndsAtMs;
-    if (endsAt == null) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final remainingMs = endsAt - now;
-    final remainingSec = remainingMs / 1000.0;
-
-    // 1) 到点
-    if (remainingMs <= 0) {
-      _stopBySleepTimer();
-      return;
-    }
-
-    // 2) 最后 30 秒渐进淡出
-    if (state.sleepTimerFadeOut && remainingSec <= 30.0) {
-      final ratio = (remainingSec / 30.0).clamp(0.0, 1.0);
-      final controller = _controller;
-      if (controller != null && controller.value.isInitialized) {
-        controller.setVolume(ratio);
-      }
-    }
-  }
 
   /// 到点执行停止
-  Future<void> _stopBySleepTimer() async {
-    final behavior = state.sleepTimerBehavior;
-    // 恢复音量，避免下次播放残留低音量
-    if (_controller != null && _controller!.value.isInitialized) {
-      await _controller!.setVolume(_normalVolume);
-    }
-    if (behavior == SleepTimerBehavior.currentSongEnd) {
-      // 标记：等本次自然播完再暂停（在 _startPositionTimer 的自然播完分支处理）
-      _stopAfterThisSong = true;
-      state = state.copyWith(clearSleepTimer: true);
-      await _persistSleepTimer();
-      AppLogger.info('睡眠定时器：等待当前歌曲结束后停止');
-      return;
-    }
-    // 立即停止
-    _stopAfterThisSong = false;
-    state = state.copyWith(clearSleepTimer: true);
-    await _persistSleepTimer();
-    await pause();
-    AppLogger.info('睡眠定时器：立即停止播放');
-  }
 
   /// 持久化睡眠定时器到 SharedPreferences（重启恢复）
-  Future<void> _persistSleepTimer() async {
-    final prefs = await SharedPreferences.getInstance();
-    final endsAt = state.sleepTimerEndsAtMs;
-    if (endsAt == null) {
-      await prefs.remove(_kSleepTimerKey);
-      return;
-    }
-    await prefs.setString(_kSleepTimerKey, json.encode({
-      'endsAt': endsAt,
-      'behavior': state.sleepTimerBehavior.name,
-      'fadeOut': state.sleepTimerFadeOut,
-    }));
-  }
 
   /// 启动时恢复未过期的睡眠定时器
   Future<void> restoreSleepTimerIfNeeded() async {
@@ -547,57 +468,9 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   // ============================
 
   /// 同步歌曲信息与播放状态到系统媒体控制（通知栏/锁屏）
-  void _syncMediaSession({
-    required bool isPlaying,
-    Duration? position,
-    Duration? duration,
-  }) {
-    final song = state.currentSong;
-    if (song == null) return;
-    try {
-      final handler = _ref.read(audioHandlerProvider);
-      if (isPlaying || position != null) {
-        handler.syncMusicMediaItem(
-          title: song.title,
-          artist: song.artistDisplay.isEmpty ? '群晖音乐' : song.artistDisplay,
-          artUri: state.coverUrl,
-          duration: duration,
-        );
-      }
-      handler.syncMusicPlaybackState(
-        isPlaying: isPlaying,
-        position: position,
-        duration: duration,
-      );
-    } catch (e) {
-      // 媒体会话同步失败不影响音乐播放，仅记录
-      AppLogger.warn('同步系统媒体控制失败', data: {'error': e.toString()});
-    }
-  }
 
   /// 异步加载当前歌曲歌词（切歌后旧结果丢弃）
   /// 三级降级：NAS LRC → LRCLIB 在线源 → 无歌词
-  Future<void> _loadLyrics(AudioSong song) async {
-    state = state.copyWith(isLoadingLyrics: true, lyrics: null);
-    final api = _ref.read(synologyAuthProvider.notifier).api;
-    // 1. 用户手动编辑的歌词优先级最高
-    var lyrics = await lyricsEditStore.read(song.id);
-    // 2. NAS LRC
-    lyrics ??= await api.getLyrics(song.id);
-    // 3. NAS 无歌词时回退 LRCLIB
-    if ((lyrics == null || lyrics.trim().isEmpty)) {
-      lyrics = await lrclibService.fetchLyrics(
-        artist: song.artistDisplay,
-        title: song.title,
-        album: song.albumDisplay,
-        durationSec: song.audio?.duration,
-      );
-    }
-    // 仅当仍是同一首歌时写入，避免切歌竞态
-    if (!_disposed && state.currentSong?.id == song.id) {
-      state = state.copyWith(isLoadingLyrics: false, lyrics: lyrics);
-    }
-  }
 
   /// 用户保存手动编辑的歌词（PRD #22）
   Future<void> saveEditedLyrics(String text) async {
@@ -615,133 +488,6 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
     if (song == null) return;
     await lyricsEditStore.clear(song.id);
     await _loadLyrics(song);
-  }
-
-  Future<void> _playSong(AudioSong song) async {
-    // 释放旧播放器
-    await _controller?.dispose();
-    _controller = null;
-
-    final api = _ref.read(synologyAuthProvider.notifier).api;
-
-    try {
-      // 申请音频焦点（来电等场景自动暂停）
-      await _ref.read(audioSessionHandlerProvider).requestFocus();
-
-      // 优先用本地已下载文件（离线播放）
-      final localPath =
-          await SynologyDownloadService.instance.localPathFor(song.id);
-      VideoPlayerController controller;
-      if (localPath != null) {
-        controller = VideoPlayerController.file(
-          File(localPath),
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
-        );
-      } else {
-        final streamUrl = api.getStreamUrl(song.id);
-        if (streamUrl == null) {
-          state = state.copyWith(
-              isLoading: false, error: '未登录群晖或流地址不可用');
-          return;
-        }
-        controller = VideoPlayerController.networkUrl(
-          Uri.parse(streamUrl),
-          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
-        );
-      }
-      _controller = controller;
-      await controller.initialize();
-      if (_disposed) {
-        await controller.dispose();
-        return;
-      }
-      await controller.play();
-      // 恢复播放进度：如果有 pendingSeek，跳转到该位置后清除
-      final pending = _pendingSeek;
-      if (pending != null && pending.inSeconds > 0) {
-        await controller.seekTo(pending);
-        _pendingSeek = null;
-      }
-      // 开始轮询进度
-      _startPositionTimer();
-      _consecutiveFailures = 0; // 播放成功，重置失败计数
-      state = state.copyWith(
-        isLoading: false,
-        isPlaying: true,
-        duration: controller.value.duration,
-        error: null,
-      );
-      // 同步系统媒体控制（通知栏/锁屏显示歌曲与播放状态）
-      _syncMediaSession(
-        isPlaying: true,
-        position: controller.value.position,
-        duration: controller.value.duration,
-      );
-      // 异步加载歌词（不阻塞播放）
-      _loadLyrics(song);
-    } catch (e, st) {
-      AppLogger.error('音乐播放失败',
-          data: {'song': song.title}, error: e, stackTrace: st);
-      _consecutiveFailures++;
-      // 连续失败熔断：断网/服务端异常时不再顺序试完整队列
-      final idx = state.currentIndex;
-      if (_consecutiveFailures >= _kMaxConsecutiveFailures) {
-        AppLogger.warn('连续播放失败，停止自动切歌',
-            data: {'count': _consecutiveFailures});
-        state = state.copyWith(
-            isLoading: false,
-            isPlaying: false,
-            error: '连续播放失败，请检查网络或服务器后重试');
-        return;
-      }
-      // 播放失败自动切下一首（避免用户手动点）最多尝试队列末尾
-      if (idx >= 0 && idx < state.queue.length - 1) {
-        await playQueue(state.queue, idx + 1);
-      } else {
-        state = state.copyWith(
-            isLoading: false, isPlaying: false, error: '播放失败：$e');
-      }
-    }
-  }
-
-  void _startPositionTimer() {
-    _positionTimer?.cancel();
-    _positionTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      final controller = _controller;
-      if (controller == null || !controller.value.isInitialized) return;
-      final pos = controller.value.position;
-      final dur = controller.value.duration;
-      final playing = controller.value.isPlaying;
-
-      // 播放完毕自动下一首（video_player 在结尾 isPlaying 变 false）。
-      // 注意区分「自然播完」与「用户暂停在末尾」：只有仍在播放状态时
-      // 才算自然播完（用户暂停后 state.isPlaying 已为 false）。
-      if (isNaturalFinish(
-        controllerPlaying: playing,
-        statePlaying: state.isPlaying,
-        position: pos,
-        duration: dur,
-      )) {
-        // 睡眠定时器「当前歌曲结束后停止」：自然播完时暂停而非切下一首
-        if (_stopAfterThisSong) {
-          _stopAfterThisSong = false;
-          pause(); // fire-and-forget：回调为同步 void，不阻塞 timer
-          AppLogger.info('睡眠定时器：当前歌曲已播完，停止播放');
-          return;
-        }
-        next();
-        return;
-      }
-      state = state.copyWith(
-        position: pos,
-        duration: dur,
-        isPlaying: playing,
-      );
-      // 定期同步进度到系统媒体控制（锁屏进度条）
-      _syncMediaSession(isPlaying: playing, position: pos, duration: dur);
-      // 睡眠定时器倒计时 / 淡出 / 到点停止
-      _tickSleepTimer();
-    });
   }
 
   /// 是否自然播放完毕（供播放器定时器判定；独立纯函数便于单测）
@@ -764,14 +510,8 @@ class SynologyPlaybackNotifier extends StateNotifier<SynologyPlaybackState> {
   }
 
   /// 焦点丢失（来电等）：暂停
-  Future<void> _handleFocusLost() async {
-    await pause();
-  }
 
   /// 焦点恢复：续播（尊重用户设置由视频系统统一处理，这里直接续播音乐）
-  Future<void> _handleFocusGained() async {
-    await resume();
-  }
 
   String? _coverUrlOf(AudioSong song) {
     return _ref
