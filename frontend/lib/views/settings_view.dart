@@ -30,12 +30,17 @@ import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
 import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
+import 'settings/settings_components.dart';
 
 // 设置页面常量定义（分离到单独文件）
 part 'settings/settings_constants.dart';
 
 // 设置页面辅助组件（分离到单独文件）
 part 'settings/settings_widgets.dart';
+part 'settings/settings_search_sheet.dart';
+part 'settings/settings_rule_section.dart';
+part 'settings/settings_recommend_advanced.dart';
+part 'settings/settings_about.dart';
 
 // ==================== 主页面 ====================
 
@@ -386,7 +391,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildFeedLibraryTile(BuildContext context, WidgetRef ref) {
     final selectedLibraries = ref.watch(selectedLibrariesProvider);
     final feedType = ref.watch(feedTypeProvider);
-    return _librarySelectionTile(
+    return settingsLibrarySelectionTile(
       icon: Icons.video_library_outlined,
       iconColor: Colors.deepPurple,
       title: _kTitleFeedLibrary,
@@ -422,7 +427,7 @@ class SettingsView extends ConsumerWidget {
   // 媒体库 - 视频流排除已观看
   Widget _buildFeedExcludePlayedTile(BuildContext context, WidgetRef ref) {
     final exclude = ref.watch(feedExcludePlayedProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.visibility_off_outlined,
       iconColor: Colors.teal,
       title: _kTitleExcludePlayed,
@@ -439,7 +444,7 @@ class SettingsView extends ConsumerWidget {
   // 媒体库 - 推荐使用（PR #66）：chips 可视化预览已选数据源
   Widget _buildRecommendLibraryTile(BuildContext context, WidgetRef ref) {
     final recommendLibraries = ref.watch(recommendLibrariesProvider);
-    return _librarySelectionTile(
+    return settingsLibrarySelectionTile(
       icon: Icons.recommend_outlined,
       iconColor: Colors.pink,
       title: '推荐使用',
@@ -478,8 +483,8 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final empty = discover.selectedGenreIds.isEmpty || names.isEmpty;
     return ListTile(
-      leading:
-          _IconContainer(icon: Icons.explore_outlined, color: Colors.orange),
+      leading: settingsIconContainer(
+          icon: Icons.explore_outlined, color: Colors.orange),
       title: Text(
         '发现·类型',
         style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
@@ -500,7 +505,7 @@ class SettingsView extends ConsumerWidget {
                 runSpacing: 6,
                 children: [
                   if (names.isEmpty)
-                    _libraryChip(
+                    settingsLibraryChip(
                       label: '已选 ${discover.selectedGenreIds.length} 个类型',
                       icon: Icons.sell_outlined,
                       color: scheme.onSurfaceVariant,
@@ -508,7 +513,7 @@ class SettingsView extends ConsumerWidget {
                     )
                   else
                     for (final name in names)
-                      _libraryChip(
+                      settingsLibraryChip(
                         label: name,
                         icon: Icons.sell_outlined,
                         color: scheme.onSurfaceVariant,
@@ -520,7 +525,7 @@ class SettingsView extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _helpButton(
+          settingsHelpButton(
             helpText:
                 '「发现·类型」决定首页顶栏「发现」数据源中的类型来源。\n\n· 从 Emby 服务器拉取全部类型（流派），多选后发现页按所选类型逐个拉取影片合并展示\n· 可与「发现·标签」「发现·合集」同时生效，三种来源的影片合并去重\n· 不选择任何来源时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
             title: '发现·类型',
@@ -551,8 +556,8 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final empty = discover.selectedTagIds.isEmpty || names.isEmpty;
     return ListTile(
-      leading:
-          _IconContainer(icon: Icons.label_outline, color: Colors.lightBlue),
+      leading: settingsIconContainer(
+          icon: Icons.label_outline, color: Colors.lightBlue),
       title: Text(
         '发现·标签',
         style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
@@ -573,7 +578,7 @@ class SettingsView extends ConsumerWidget {
                 runSpacing: 6,
                 children: [
                   if (names.isEmpty)
-                    _libraryChip(
+                    settingsLibraryChip(
                       label: '已选 ${discover.selectedTagIds.length} 个标签',
                       icon: Icons.label_outline,
                       color: scheme.onSurfaceVariant,
@@ -581,7 +586,7 @@ class SettingsView extends ConsumerWidget {
                     )
                   else
                     for (final name in names)
-                      _libraryChip(
+                      settingsLibraryChip(
                         label: name,
                         icon: Icons.label_outline,
                         color: scheme.onSurfaceVariant,
@@ -593,7 +598,7 @@ class SettingsView extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _helpButton(
+          settingsHelpButton(
             helpText:
                 '「发现·标签」决定首页顶栏「发现」数据源中的标签来源。\n\n· 从 Emby 服务器拉取全部标签（Tags），多选后发现页按所选标签逐个拉取影片合并展示\n· 标签与类型（Genres）不同：类型是流派分类，标签是自定义标记（如 4K、国配、导演剪辑）\n· 可与「发现·类型」「发现·合集」同时生效，三种来源的影片合并去重\n· 不选择任何来源时，发现页为空并引导去设置\n\n与推荐、关注相互独立。',
             title: '发现·标签',
@@ -624,7 +629,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final empty = discover.selectedCollectionIds.isEmpty || names.isEmpty;
     return ListTile(
-      leading: _IconContainer(
+      leading: settingsIconContainer(
           icon: Icons.collections_bookmark_outlined, color: Colors.deepOrange),
       title: Text(
         '发现·合集',
@@ -646,7 +651,7 @@ class SettingsView extends ConsumerWidget {
                 runSpacing: 6,
                 children: [
                   if (names.isEmpty)
-                    _libraryChip(
+                    settingsLibraryChip(
                       label: '已选 ${discover.selectedCollectionIds.length} 个合集',
                       icon: Icons.collections_bookmark_outlined,
                       color: scheme.onSurfaceVariant,
@@ -654,7 +659,7 @@ class SettingsView extends ConsumerWidget {
                     )
                   else
                     for (final name in names)
-                      _libraryChip(
+                      settingsLibraryChip(
                         label: name,
                         icon: Icons.collections_bookmark_outlined,
                         color: scheme.onSurfaceVariant,
@@ -666,7 +671,7 @@ class SettingsView extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _helpButton(
+          settingsHelpButton(
             helpText:
                 '「发现·合集」决定首页顶栏「发现」数据源中的合集来源。\n\n· 从 Emby 服务器拉取全部合集（BoxSet，如系列电影、导演合辑），多选后发现页按所选合集逐个拉取合集内影片合并展示\n· 可与「发现·类型」「发现·标签」同时生效，三种来源的影片合并去重\n· 服务器没有合集（BoxSet）时列表为空\n\n合集内容来自服务器整理的系列/合辑，与推荐、关注相互独立。',
             title: '发现·合集',
@@ -768,7 +773,7 @@ class SettingsView extends ConsumerWidget {
 // PR #78：推荐 - 评分阈值
   Widget _buildRecommendMinRatingTile(BuildContext context, WidgetRef ref) {
     final rating = ref.watch(recommendMinRatingProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.star_outline,
       iconColor: Colors.amber,
       title: '评分阈值',
@@ -782,7 +787,7 @@ class SettingsView extends ConsumerWidget {
   // PR #78：推荐 - 排除已观看
   Widget _buildRecommendExcludePlayedTile(BuildContext context, WidgetRef ref) {
     final exclude = ref.watch(recommendExcludePlayedProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.visibility_off_outlined,
       iconColor: Colors.brown,
       title: '排除已观看',
@@ -799,7 +804,7 @@ class SettingsView extends ConsumerWidget {
   // PR #78：推荐 - 最短时长
   Widget _buildRecommendMinRuntimeTile(BuildContext context, WidgetRef ref) {
     final sec = ref.watch(recommendMinRuntimeSecProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.timer_outlined,
       iconColor: Colors.deepOrange,
       title: '最短时长',
@@ -927,7 +932,7 @@ class SettingsView extends ConsumerWidget {
 
   Widget _buildRecommendIncludeTypesTile(BuildContext context, WidgetRef ref) {
     final types = ref.watch(recommendIncludeTypesProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.category_outlined,
       iconColor: Colors.indigo,
       title: '推荐类型',
@@ -991,7 +996,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendUseWatchHistoryTile(
       BuildContext context, WidgetRef ref) {
     final useWatchHistory = ref.watch(recommendUseWatchHistoryProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.history_toggle_off_outlined,
       iconColor: Colors.deepPurple,
       title: '使用观看历史优化推荐',
@@ -1012,7 +1017,7 @@ class SettingsView extends ConsumerWidget {
   // - 范围 0-90 天
   Widget _buildRecommendHalfLifeDaysTile(BuildContext context, WidgetRef ref) {
     final halfLifeDays = ref.watch(recommendHalfLifeDaysProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.timelapse_outlined,
       iconColor: Colors.brown,
       title: '记忆半衰期（天）',
@@ -1085,7 +1090,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendAntiFatigueEnabledTile(
       BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(recommendAntiFatigueEnabledProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.repeat_on_outlined,
       iconColor: Colors.indigo,
       title: '避免重复推荐',
@@ -1109,7 +1114,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendAntiFatigueDaysTile(
       BuildContext context, WidgetRef ref) {
     final days = ref.watch(recommendAntiFatigueDaysProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.history_toggle_off,
       iconColor: Colors.deepOrange,
       title: '不重推天数',
@@ -1179,7 +1184,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendNextUpSeriesCountTile(
       BuildContext context, WidgetRef ref) {
     final count = ref.watch(recommendNextUpSeriesCountProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.live_tv,
       iconColor: Colors.teal,
       title: '关注·最近剧集数',
@@ -1205,7 +1210,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendFavActorNewCountTile(
       BuildContext context, WidgetRef ref) {
     final count = ref.watch(recommendFavActorNewCountProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.person,
       iconColor: Colors.indigo,
       title: '关注·演员新片数',
@@ -1230,7 +1235,7 @@ class SettingsView extends ConsumerWidget {
   // 关注页：每演员视频数（默认 3，范围 1-10）
   Widget _buildFollowActorVideoCountTile(BuildContext context, WidgetRef ref) {
     final count = ref.watch(followActorVideoCountProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.person_add_alt,
       iconColor: Colors.indigo,
       title: '关注·每演员视频数',
@@ -1258,7 +1263,7 @@ class SettingsView extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      secondary: _helpButton(
+      secondary: settingsHelpButton(
         helpText:
             '开启后，「关注」视频流只显示你尚未观看过的视频。\n\n· 开启 → 已看过的视频不会出现在关注视频流，方便追新\n· 关闭 → 已看过的视频也会显示\n\n「已观看」依据 Emby 服务器记录的播放状态判断。',
         title: '关注·只看未观看',
@@ -1341,7 +1346,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildRecommendUserRatingEnabledTile(
       BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(recommendUserRatingEnabledProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.star_rate_outlined,
       iconColor: Colors.purple,
       title: '用户评分加权',
@@ -1362,7 +1367,7 @@ class SettingsView extends ConsumerWidget {
   // PR #89：用户评分最低阈值（0-10，默认 4.0）
   Widget _buildRecommendUserRatingMinTile(BuildContext context, WidgetRef ref) {
     final minRating = ref.watch(recommendUserRatingMinProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.star_half,
       iconColor: Colors.deepPurple,
       title: '最低用户评分',
@@ -1431,7 +1436,7 @@ class SettingsView extends ConsumerWidget {
   // 播放 - 自动播放
   Widget _buildAutoPlayTile(BuildContext context, WidgetRef ref) {
     final isAutoPlay = ref.watch(isAutoPlayProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.play_circle_outline,
       iconColor: Colors.green,
       title: _kTitleAutoPlay,
@@ -1449,7 +1454,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildAutoResumeAfterInterruptionTile(
       BuildContext context, WidgetRef ref) {
     final autoResume = ref.watch(autoResumeAfterInterruptionProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.phone_in_talk_outlined,
       iconColor: Colors.green,
       title: '焦点恢复自动续播',
@@ -1466,7 +1471,7 @@ class SettingsView extends ConsumerWidget {
   // 播放 - 全屏排除边缘返回手势（Android 手势导航）
   Widget _buildFullscreenGestureBackTile(BuildContext context, WidgetRef ref) {
     final exclude = ref.watch(fullscreenGestureBackExcludedProvider);
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.swipe_outlined,
       iconColor: Colors.indigo,
       title: '全屏禁用手势返回',
@@ -1483,7 +1488,7 @@ class SettingsView extends ConsumerWidget {
   // 播放 - 默认倍速
   Widget _buildPlaybackRateTile(BuildContext context, WidgetRef ref) {
     final rate = ref.watch(defaultPlaybackRateProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.speed_outlined,
       iconColor: Colors.orange,
       title: _kTitlePlaybackRate,
@@ -1495,7 +1500,7 @@ class SettingsView extends ConsumerWidget {
 
   // 播放 - 手势控制
   Widget _buildGestureControlTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.touch_app_outlined,
       iconColor: Colors.purple,
       title: _kTitleGestureControl,
@@ -1509,7 +1514,7 @@ class SettingsView extends ConsumerWidget {
   // 字幕 - 默认语言
   Widget _buildSubtitleLanguageTile(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(defaultSubtitleLanguageProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.closed_caption_outlined,
       iconColor: Colors.teal,
       title: '默认字幕语言',
@@ -1523,7 +1528,7 @@ class SettingsView extends ConsumerWidget {
   // 字幕 - 字幕大小
   Widget _buildSubtitleSizeTile(BuildContext context, WidgetRef ref) {
     final size = ref.watch(subtitleSizeProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.format_size_outlined,
       iconColor: Colors.teal,
       title: '字幕大小',
@@ -1536,7 +1541,7 @@ class SettingsView extends ConsumerWidget {
   // 外观 - 主题
   Widget _buildThemeTile(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.dark_mode_outlined,
       iconColor: Colors.indigo,
       title: _kTitleTheme,
@@ -1550,7 +1555,7 @@ class SettingsView extends ConsumerWidget {
   // 外观 - 方向过滤
   Widget _buildOrientationTile(BuildContext context, WidgetRef ref) {
     final orientationMode = ref.watch(orientationModeProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.screen_rotation_outlined,
       iconColor: Colors.indigo,
       title: '视频方向',
@@ -1564,7 +1569,7 @@ class SettingsView extends ConsumerWidget {
   // 存储 - 清除缓存
   Widget _buildCacheTile(BuildContext context, WidgetRef ref) {
     final cacheSize = ref.watch(cacheSizeProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.cleaning_services_outlined,
       iconColor: Colors.grey,
       title: '清除缓存',
@@ -1582,7 +1587,7 @@ class SettingsView extends ConsumerWidget {
       future: ref.read(artistMetadataServiceProvider).getCacheSize(),
       builder: (context, snapshot) {
         final size = snapshot.data ?? 0;
-        return _TapTile(
+        return settingsTapTile(
           icon: Icons.person_outline,
           iconColor: Colors.purple,
           title: '歌手元数据缓存',
@@ -1598,7 +1603,7 @@ class SettingsView extends ConsumerWidget {
   // 存储 - 批量补全歌手元数据（V1.2）
   // 扫描音乐库中所有歌手，批量获取缺失的头像和简介
   Widget _buildBatchScanTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.auto_fix_high,
       iconColor: Colors.teal,
       title: _kTitleBatchScan,
@@ -1720,7 +1725,7 @@ class SettingsView extends ConsumerWidget {
   // 存储 - 重置所有偏好设置到默认值
   // 仅清除"设置类"偏好，不影响登录信息、观看历史、收藏等用户数据
   Widget _buildResetSettingsTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.restore,
       iconColor: Colors.deepOrange,
       title: '重置设置',
@@ -1735,7 +1740,7 @@ class SettingsView extends ConsumerWidget {
   // 将内存中的 WARN/ERROR 日志导出到文件，并复制路径到剪贴板
   // 使用 Clipboard 替代 share_plus，避免引入额外依赖
   Widget _buildExportLogsTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.file_download_outlined,
       iconColor: Colors.blueGrey,
       title: '导出日志',
@@ -1749,7 +1754,7 @@ class SettingsView extends ConsumerWidget {
   // 存储 - 清除已持久化的日志文件（P2 新增）
   // 清除内存缓冲区和磁盘上的日志文件
   Widget _buildClearLogsTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.delete_outline,
       iconColor: Colors.red,
       title: '清除日志',
@@ -1765,7 +1770,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildWatchStatsTile(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(watchStatsProvider);
     final avg = (stats.avgCompletion * 100).toStringAsFixed(0);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.analytics_outlined,
       iconColor: Colors.deepPurple,
       title: '观看统计',
@@ -1781,7 +1786,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildServerRegistryTile(BuildContext context, WidgetRef ref) {
     final servers = ref.watch(serverRegistryProvider);
     final active = ref.watch(activeServerProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.dns_outlined,
       iconColor: Colors.blueGrey,
       title: '服务器管理',
@@ -1843,15 +1848,6 @@ class SettingsView extends ConsumerWidget {
 
   // 服务器 - 数据源分组标签（视频 / 音乐）
   /// 规则筛选子分区折叠卡片：推荐/关注/发现 各页面设置分区
-  static Widget _ruleSectionDivider(ColorScheme scheme) {
-    return Divider(
-      height: 1,
-      indent: 20,
-      endIndent: 20,
-      color: scheme.outlineVariant.withValues(alpha: 0.4),
-    );
-  }
-
   /// 规则筛选分组顶部引导：说明分组结构与生效时机
   Widget _buildRuleScopeHint(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -1917,7 +1913,7 @@ class SettingsView extends ConsumerWidget {
   // 服务器 - 服务器信息
   Widget _buildServerInfoTile(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    return _InfoTile(
+    return settingsInfoTile(
       icon: Icons.cloud_outlined,
       iconColor: Colors.blue,
       title: '当前服务器',
@@ -1930,7 +1926,7 @@ class SettingsView extends ConsumerWidget {
   // 服务器 - 群晖 Audio Station 音乐
   Widget _buildSynologyMusicTile(BuildContext context, WidgetRef ref) {
     final synoAuth = ref.watch(synologyAuthProvider);
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.library_music_outlined,
       iconColor: const Color(0xFF2C8EF4),
       title: '群晖音乐',
@@ -1947,7 +1943,7 @@ class SettingsView extends ConsumerWidget {
   Widget _buildLastFmTile(BuildContext context, WidgetRef ref) {
     final keyAsync = ref.watch(lastfmApiKeyAsyncProvider);
     final configured = (keyAsync.valueOrNull ?? '').isNotEmpty;
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.graphic_eq,
       iconColor: const Color(0xFFD51007),
       title: 'Last.fm 补充',
@@ -1968,7 +1964,7 @@ class SettingsView extends ConsumerWidget {
     final service = ref.read(artistMetadataServiceProvider);
     final isLoggedIn = ref.read(synologyAuthProvider).isLoggedIn;
 
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.cloud_sync_outlined,
       iconColor: Colors.teal,
       title: 'NAS 元数据同步',
@@ -2053,7 +2049,7 @@ class SettingsView extends ConsumerWidget {
 
   // 关于 - 应用信息
   Widget _buildAboutTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.info_outline,
       iconColor: Colors.blueGrey,
       title: '关于 EmbyTok',
@@ -2066,7 +2062,7 @@ class SettingsView extends ConsumerWidget {
 
   // 关于 - 检查更新
   Widget _buildCheckUpdateTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.system_update_outlined,
       iconColor: Colors.green,
       title: '检查更新',
@@ -2079,7 +2075,7 @@ class SettingsView extends ConsumerWidget {
 
   // 关于 - 打赏支持
   Widget _buildDonateTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.volunteer_activism_outlined,
       iconColor: Colors.red,
       title: '打赏支持',
@@ -2091,7 +2087,7 @@ class SettingsView extends ConsumerWidget {
 
   // 关于 - 意见反馈
   Widget _buildFeedbackTile(BuildContext context, WidgetRef ref) {
-    return _TapTile(
+    return settingsTapTile(
       icon: Icons.feedback_outlined,
       iconColor: Colors.orange,
       title: '意见反馈',
@@ -2124,7 +2120,7 @@ class SettingsView extends ConsumerWidget {
       loading: () => '加载中…',
       error: (_, __) => '未知',
     );
-    return _InfoTile(
+    return settingsInfoTile(
       icon: Icons.new_releases_outlined,
       iconColor: Colors.blueGrey,
       title: '版本',
@@ -2138,7 +2134,7 @@ class SettingsView extends ConsumerWidget {
   // 开启后显示悬浮面板，监控内存使用、帧率、Widget 重建次数、API 请求统计
   Widget _buildPerformanceMonitorTile(BuildContext context, WidgetRef ref) {
     final enabled = PerformanceMonitor.instance.enabled;
-    return _SwitchTile(
+    return settingsSwitchTile(
       icon: Icons.analytics_outlined,
       iconColor: Colors.purple,
       title: '性能监控面板',
@@ -2167,7 +2163,7 @@ class SettingsView extends ConsumerWidget {
     // 音乐模式显示群晖账户，视频模式显示 Emby 账户
     if (ref.read(serviceModeProvider) == AppServiceMode.music) {
       final syno = ref.watch(synologyAuthProvider);
-      return _InfoTile(
+      return settingsInfoTile(
         icon: Icons.account_circle_outlined,
         iconColor: Colors.blue,
         title: syno.account ?? (syno.isLoggedIn ? '群晖账号' : '未登录'),
@@ -2178,7 +2174,7 @@ class SettingsView extends ConsumerWidget {
     }
     final auth = ref.watch(authProvider);
     final name = auth.user?.name ?? '未登录';
-    return _InfoTile(
+    return settingsInfoTile(
       icon: Icons.account_circle_outlined,
       iconColor: Colors.blue,
       title: name,
@@ -2195,7 +2191,7 @@ class SettingsView extends ConsumerWidget {
       future: _loadAllowSelfSignedCertificate(),
       builder: (context, snapshot) {
         final allow = snapshot.data ?? false;
-        return _SwitchTile(
+        return settingsSwitchTile(
           icon: Icons.security_outlined,
           iconColor: Colors.orange,
           title: '允许自签名证书',
@@ -2579,350 +2575,14 @@ class SettingsView extends ConsumerWidget {
   ///
   /// 相比单一文本副标题，用户无需进入弹窗即可看清当前生效的媒体库集合；
   /// 收藏夹模式（视频流）以高亮 chip 标识。点击进入 [LibrarySelector] 弹窗。
-  static Widget _librarySelectionTile({
-    required IconData icon,
-    Color? iconColor,
-    required String title,
-    required List<Library> libraries,
-    required bool favoritesMode,
-    String favoritesLabel = '收藏夹',
-    required VoidCallback onTap,
-
-    /// 媒体库 chip 点击回调（快捷移除单个数据源，如 null 则 chips 只读）
-    ValueChanged<String>? onChipTap,
-
-    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
-    String? helpText,
-  }) {
-    return Builder(builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      final chips = <Widget>[
-        if (favoritesMode)
-          _libraryChip(
-            label: favoritesLabel,
-            icon: Icons.star,
-            color: scheme.primary,
-            background: scheme.primaryContainer,
-          ),
-        if (!favoritesMode)
-          for (final lib in libraries)
-            _tapChip(
-              onTap: onChipTap == null ? null : () => onChipTap(lib.id),
-              chip: _libraryChip(
-                label: lib.name,
-                icon: _libraryTypeIcon(lib.type),
-                color: scheme.onSurfaceVariant,
-                background: scheme.surfaceContainerHighest,
-              ),
-            ),
-        if (!favoritesMode && libraries.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              '未选择',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: _kFontSizeBody,
-              ),
-            ),
-          ),
-      ];
-      return ListTile(
-        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
-        title: Text(
-          title,
-          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: chips,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _helpButton(helpText: helpText, title: title),
-            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
-          ],
-        ),
-        onTap: onTap,
-      );
-    });
-  }
-
   /// 媒体库类型图标（Emby Library.type）
-  static IconData _libraryTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'movies':
-      case 'movie':
-        return Icons.movie_outlined;
-      case 'tvshows':
-      case 'tvshow':
-      case 'series':
-        return Icons.live_tv_outlined;
-      case 'music':
-        return Icons.music_note_outlined;
-      default:
-        return Icons.folder_outlined;
-    }
-  }
-
   /// 可点击 chip 包装：提供点击反馈（用于媒体库快捷移除）
-  static Widget _tapChip({
-    required VoidCallback? onTap,
-    required Widget chip,
-  }) {
-    return onTap == null
-        ? chip
-        : GestureDetector(
-            onTap: onTap,
-            child: chip,
-          );
-  }
-
   /// 数据源 chip 胶囊
-  static Widget _libraryChip({
-    required String label,
-    required IconData icon,
-    required Color color,
-    required Color background,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _TapTile({
-    required IconData icon,
-    Color? iconColor,
-    required String title,
-    String? subtitle,
-    required VoidCallback onTap,
-
-    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
-    String? helpText,
-  }) {
-    return Builder(builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      return ListTile(
-        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
-        title: Text(
-          title,
-          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-        ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant
-                      .withValues(alpha: _kTileSubtitleAlpha),
-                  fontSize: _kFontSizeBody,
-                ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _helpButton(helpText: helpText, title: title),
-            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
-          ],
-        ),
-        onTap: onTap,
-      );
-    });
-  }
-
   // 开关型设置项
-  static Widget _SwitchTile({
-    required IconData icon,
-    Color? iconColor,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-
-    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
-    String? helpText,
-  }) {
-    return Builder(builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      return ListTile(
-        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
-        title: Text(
-          title,
-          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-        ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant
-                      .withValues(alpha: _kTileSubtitleAlpha),
-                  fontSize: _kFontSizeBody,
-                ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _helpButton(helpText: helpText, title: title),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: scheme.primary,
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
   // 信息型设置项（不可点击）
-  static Widget _InfoTile({
-    required IconData icon,
-    Color? iconColor,
-    required String title,
-    String? subtitle,
-
-    /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
-    String? helpText,
-  }) {
-    return Builder(builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      return ListTile(
-        leading: _IconContainer(icon: icon, color: iconColor ?? scheme.primary),
-        title: Text(
-          title,
-          style: TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-        ),
-        subtitle: subtitle != null
-            ? Text(
-                subtitle,
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontSize: _kFontSizeBody,
-                ),
-              )
-            : null,
-        trailing: _helpButton(helpText: helpText, title: title),
-      );
-    });
-  }
-
   /// 帮助按钮：helpText 非空时显示（?）图标，点击弹出详细帮助
-  static Widget _helpButton({
-    required String? helpText,
-    required String title,
-  }) {
-    if (helpText == null || helpText.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Builder(builder: (context) {
-      final scheme = Theme.of(context).colorScheme;
-      return IconButton(
-        icon:
-            Icon(Icons.help_outline, size: 19, color: scheme.onSurfaceVariant),
-        tooltip: '帮助',
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-        padding: EdgeInsets.zero,
-        onPressed: () => _showHelp(context, title, helpText),
-      );
-    });
-  }
-
   /// 弹出设置项帮助（底部弹层：标题 + 详细说明）
-  static void _showHelp(BuildContext context, String title, String helpText) {
-    final scheme = Theme.of(context).colorScheme;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: scheme.surfaceContainerHigh,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.help_outline, size: 22, color: scheme.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close,
-                          size: 20, color: scheme.onSurfaceVariant),
-                      tooltip: '关闭',
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SelectableText(
-                  helpText,
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 14,
-                    height: 1.6,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // 图标容器
-  static Widget _IconContainer({required IconData icon, required Color color}) {
-    return Container(
-      width: _kTileIconContainerSize,
-      height: _kTileIconContainerSize,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: _kTileIconContainerBgAlpha),
-        borderRadius: BorderRadius.circular(_kTileIconContainerRadius),
-      ),
-      child: Icon(icon, color: color, size: _kTileIconSize),
-    );
-  }
-
   // ==================== 对话框 ====================
 
   void _showThemeDialog(BuildContext context, WidgetRef ref, String current) {
@@ -4447,839 +4107,3 @@ class SettingsView extends ConsumerWidget {
 }
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
-class _DonatePlaceholder extends StatelessWidget {
-  const _DonatePlaceholder({
-    required this.icon,
-    required this.label,
-    required this.hint,
-    required this.color,
-  });
-  final IconData icon;
-  final String label;
-  final String hint;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      height: 200,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: _kSpacingMedium),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: _kFontSizeMedium,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: _kSpacingXSmall),
-          Text(
-            hint,
-            style: TextStyle(
-              color: color.withValues(alpha: 0.6),
-              fontSize: _kFontSizeTiny,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// 关于页的功能亮点行
-class _AboutFeatureRow extends StatelessWidget {
-  const _AboutFeatureRow({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: scheme.primary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: _kFontSizeBody,
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ==================== 自定义中文许可证页面 ====================
-
-/// 自定义中文许可证页面
-///
-/// 替代 Flutter 框架内置的英文 [showLicensePage]，使用 [LicenseRegistry]
-/// 异步收集所有依赖的许可证条目，渲染为中文界面的可展开列表，
-/// 支持按包名搜索过滤。
-class _LicensePage extends StatefulWidget {
-  const _LicensePage({
-    required this.applicationName,
-    required this.applicationVersion,
-    required this.primaryColor,
-  });
-  final String applicationName;
-  final String applicationVersion;
-  final Color primaryColor;
-
-  @override
-  State<_LicensePage> createState() => _LicensePageState();
-}
-
-class _LicensePageState extends State<_LicensePage> {
-  // 收集到的所有许可证条目
-  List<_LicenseEntryView> _entries = const [];
-  bool _isLoading = true;
-  String? _error;
-  // 搜索状态
-  bool _isSearching = false;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLicenses();
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // 收集 LicenseRegistry.licenses 流并聚合为列表
-  Future<void> _loadLicenses() async {
-    try {
-      final entries = <_LicenseEntryView>[];
-      // LicenseRegistry.licenses 是单订阅流，await for 一次性消费
-      await for (final entry in LicenseRegistry.licenses) {
-        final packages = entry.packages.toList();
-        final body = entry.paragraphs.map((p) => p.text).join('\n');
-        if (packages.isEmpty) {
-          // 无包名的条目归入"未命名包"
-          entries.add(_LicenseEntryView(
-            packageName: '(未命名包)',
-            body: body,
-          ));
-        } else {
-          // 一个 LicenseEntry 可能覆盖多个包，分别建立条目以便搜索
-          for (final pkg in packages) {
-            entries.add(_LicenseEntryView(packageName: pkg, body: body));
-          }
-        }
-      }
-      // 按包名排序，便于查找
-      entries.sort((a, b) =>
-          a.packageName.toLowerCase().compareTo(b.packageName.toLowerCase()));
-      if (!mounted) return;
-      setState(() {
-        _entries = entries;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = '加载许可证失败：$e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  // 按搜索关键词过滤包名
-  List<_LicenseEntryView> get _filtered {
-    if (_searchQuery.isEmpty) return _entries;
-    final q = _searchQuery.toLowerCase();
-    return _entries
-        .where((e) => e.packageName.toLowerCase().contains(q))
-        .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: '搜索包名...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: scheme.onSurfaceVariant),
-                ),
-                style: TextStyle(
-                    color: scheme.onSurface, fontSize: _kFontSizeXLarge),
-                onChanged: (v) => setState(() => _searchQuery = v),
-              )
-            : const Text('开源许可证'),
-        actions: [
-          if (_isSearching)
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: '取消搜索',
-              onPressed: () {
-                setState(() {
-                  _isSearching = false;
-                  _searchQuery = '';
-                  _searchController.clear();
-                });
-              },
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.search),
-              tooltip: '搜索包名',
-              onPressed: () => setState(() => _isSearching = true),
-            ),
-        ],
-      ),
-      body: _buildBody(scheme),
-    );
-  }
-
-  // 主体内容：加载中 / 错误 / 空态 / 列表 四种状态
-  Widget _buildBody(ColorScheme scheme) {
-    if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: widget.primaryColor),
-            const SizedBox(height: _kSpacingXLarge),
-            Text(
-              '正在加载许可证...',
-              style: TextStyle(
-                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeBody),
-            ),
-          ],
-        ),
-      );
-    }
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _error!,
-            style: TextStyle(color: scheme.error, fontSize: _kFontSizeMedium),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-    final list = _filtered;
-    if (list.isEmpty) {
-      return Center(
-        child: Text(
-          _searchQuery.isEmpty ? '暂无许可证信息' : '没有匹配「$_searchQuery」的包',
-          style: TextStyle(
-              color: scheme.onSurfaceVariant, fontSize: _kFontSizeMedium),
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: list.length + 1, // +1 为顶部说明卡片
-      itemBuilder: (context, index) {
-        if (index == 0) return _buildHeaderCard(scheme, list.length);
-        final entry = list[index - 1];
-        return _buildLicenseTile(scheme, entry);
-      },
-    );
-  }
-
-  // 顶部说明卡片：致谢与应用信息
-  Widget _buildHeaderCard(ColorScheme scheme, int count) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: widget.primaryColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: widget.primaryColor.withValues(alpha: 0.2),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.favorite, size: 16, color: widget.primaryColor),
-              const SizedBox(width: 6),
-              Text(
-                '${widget.applicationName} · 版本 ${widget.applicationVersion}',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: _kFontSizeBody,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: _kSpacingMedium),
-          Text(
-            '本应用使用了 $count 个开源软件包，谨向以下项目的作者致以诚挚谢意。',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: _kFontSizeSmall,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 单个许可证条目：点击展开查看全文
-  Widget _buildLicenseTile(ColorScheme scheme, _LicenseEntryView entry) {
-    return ExpansionTile(
-      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      title: Text(
-        entry.packageName,
-        style: TextStyle(
-          color: scheme.onSurface,
-          fontSize: _kFontSizeMedium,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        '点击查看许可证全文',
-        style:
-            TextStyle(color: scheme.onSurfaceVariant, fontSize: _kFontSizeTiny),
-      ),
-      children: [
-        SelectableText(
-          entry.body.isEmpty ? '（无许可证文本）' : entry.body,
-          style: TextStyle(
-            color: scheme.onSurfaceVariant,
-            fontSize: _kFontSizeSmall,
-            height: 1.5,
-            fontFamily: 'monospace',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 许可证条目视图模型
-class _LicenseEntryView {
-  const _LicenseEntryView({required this.packageName, required this.body});
-  final String packageName;
-  final String body;
-}
-
-// ==================== 推荐高级选项折叠组件 ====================
-
-/// 推荐高级选项折叠 tile
-///
-/// 基础推荐设置始终显示；高级选项（完播率门控、时间衰减、反疲劳、用户评分）
-/// 默认折叠，点击"高级选项"后展开。展开状态为局部 state，页面重建后重置为折叠。
-class _RecommendAdvancedTile extends StatefulWidget {
-  const _RecommendAdvancedTile({required this.advancedTilesBuilder});
-
-  /// 高级选项 tile 构建器：每次 build 时调用，确保 ref.watch 生效
-  final List<Widget> Function() advancedTilesBuilder;
-
-  @override
-  State<_RecommendAdvancedTile> createState() => _RecommendAdvancedTileState();
-}
-
-class _RecommendAdvancedTileState extends State<_RecommendAdvancedTile> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        ListTile(
-          leading: SettingsView._IconContainer(
-            icon: Icons.tune,
-            color: Colors.pink,
-          ),
-          title: Text(
-            '高级选项',
-            style:
-                TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-          ),
-          subtitle: Text(
-            '完播率门控、时间衰减、反疲劳、用户评分',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-              fontSize: _kFontSizeBody,
-            ),
-          ),
-          trailing: Icon(
-            _expanded ? Icons.expand_less : Icons.expand_more,
-            color: scheme.onSurfaceVariant,
-          ),
-          onTap: () => setState(() => _expanded = !_expanded),
-        ),
-        // 仅在展开时构建高级 tiles，避免折叠状态下触发不必要的 ref.watch
-        if (_expanded) ...[
-          const Divider(height: 1, indent: 56),
-          ..._buildAdvancedTilesWithDividers(),
-        ],
-      ],
-    );
-  }
-
-  // 构建高级选项 tiles，每项之间插入分隔线（最后一项后无分隔线）
-  List<Widget> _buildAdvancedTilesWithDividers() {
-    final tiles = widget.advancedTilesBuilder();
-    final result = <Widget>[];
-    for (var i = 0; i < tiles.length; i++) {
-      if (i > 0) {
-        result.add(const Divider(height: 1, indent: 56));
-      }
-      result.add(tiles[i]);
-    }
-    return result;
-  }
-}
-
-// ==================== 推荐标签数据源映射组件 ====================
-
-/// 推荐标签数据源映射折叠 tile
-///
-/// 推荐页标签栏的每个标签（最新影片/续看/为你推荐/精选/相似/高分/移动客户端推荐）
-/// 默认一对一绑定对应数据源，用户可自定义每个标签绑定的数据源。
-class _RecommendTagMappingTile extends StatefulWidget {
-  const _RecommendTagMappingTile();
-
-  @override
-  State<_RecommendTagMappingTile> createState() =>
-      _RecommendTagMappingTileState();
-}
-
-class _RecommendTagMappingTileState extends State<_RecommendTagMappingTile> {
-  bool _expanded = false;
-
-  // 可选择的 7 个数据源（关注源 nextUp 不参与标签绑定）
-  static const List<RecommendSource> _selectableSources = [
-    RecommendSource.latest,
-    RecommendSource.resume,
-    RecommendSource.suggestions,
-    RecommendSource.nativeRecommendations,
-    RecommendSource.similar,
-    RecommendSource.recommendations,
-    RecommendSource.localRecommend,
-  ];
-
-  static String _sourceLabel(String key) {
-    for (final source in _selectableSources) {
-      if (source.key == key) return source.label;
-    }
-    return key;
-  }
-
-  // 各数据源对应的 Emby 规则说明（帮助按钮展示）
-  static const Map<String, String> _sourceHelpTexts = {
-    'latest':
-        '「最新影片」数据源规则（Emby /Items/Latest）：\n\n· 按服务器「最新入库」排序拉取所选媒体库最近入库的视频\n· 单选媒体库时只在该库内取；多选时合并展示\n· 参与通用过滤：最短时长、排除已看、反疲劳、用户评分\n\n无新入库内容时标签自动隐藏。',
-    'resume':
-        '「继续观看」数据源规则（Emby Resume 接口）：\n\n· 拉取服务器记录的「未看完」视频\n· 依赖播放位置上报：看过但未看完才会出现在这里\n· 参与通用过滤（最短时长、反疲劳等）\n\n没有未看完的视频时标签自动隐藏。',
-    'suggestions':
-        '「为你推荐」数据源规则（Emby /Users/{id}/Suggestions）：\n\n· 调用 Emby 服务器的个性化建议接口\n· 内容由服务器基于观看历史生成\n· 老版本 Emby / Jellyfin 不支持该接口时返回空\n\n无建议数据时标签自动隐藏。',
-    'nativeRecommendations':
-        '「精选」数据源规则（Emby /Movies/Recommendations + /Shows/Recommended）：\n\n· 由 Emby 服务器基于观看历史生成，无分页\n· 单选媒体库时限定该库；多选时跨库全局推荐\n· 老版本 Emby / Jellyfin 不支持端点时返回空\n\n依赖服务器端推荐数据，无数据时标签自动隐藏。',
-    'similar':
-        '「相似」数据源规则（Emby /Items/{id}/Similar）：\n\n· 种子选取顺序：收藏影片 → 高完播影片 → 最近高分项\n· 取 Top 种子后并发请求 Similar 接口合并结果\n· 受「使用观看历史」开关影响：关闭时无种子来源\n\n需要观看历史支撑，冷启动用户可能为空。',
-    'recommendations':
-        '「高分」数据源规则（Emby 高分推荐接口）：\n\n· 从所选媒体库拉取高评分视频（CommunityRating ≥ 评分阈值）\n· 多媒体库并发拉取后合并去重\n· 受设置影响：评分阈值、排除已看、推荐类型、最短时长\n\n评分数据不足时内容会减少。',
-    'localRecommend':
-        '「移动客户端推荐」数据源规则（本地信号源，非 Emby 接口）：\n\n· 直接拉取你在 Emby 中「收藏的影片」\n· 不依赖服务器推荐能力，任何 Emby 版本都可用\n· 无收藏时标签自动隐藏\n\n内容与「收藏」页一致。',
-  };
-
-  static String sourceHelpText(String key) =>
-      _sourceHelpTexts[key] ?? '该数据源暂无规则说明。';
-
-  Future<void> _pickSource(BuildContext context, WidgetRef ref, String tagLabel,
-      String currentKey) async {
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(
-                '「$tagLabel」标签数据源',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            for (final source in _selectableSources)
-              ListTile(
-                leading: Icon(
-                  source.key == currentKey
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  color: source.key == currentKey
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                title: Text(source.label),
-                onTap: () => Navigator.pop(context, source.key),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (selected != null && selected != currentKey && context.mounted) {
-      await ref
-          .read(recommendTagSourceMappingProvider.notifier)
-          .setMapping(tagLabel, selected);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        ListTile(
-          leading: SettingsView._IconContainer(
-            icon: Icons.sell_outlined,
-            color: Colors.indigo,
-          ),
-          title: Text(
-            '推荐标签数据源',
-            style:
-                TextStyle(color: scheme.onSurface, fontSize: _kFontSizeLarge),
-          ),
-          subtitle: Text(
-            '每个标签可绑定不同数据源',
-            style: TextStyle(
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-              fontSize: _kFontSizeBody,
-            ),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SettingsView._helpButton(
-                helpText:
-                    '自定义推荐页顶部标签栏每个标签对应的数据源。\n\n· 默认：最新影片→最新入库、继续观看→未看完、为你推荐→服务器建议、精选→原生精选、相似→相似推荐、高分→高分视频、移动客户端推荐→本地收藏\n· 点击标签行可更换其数据源\n· 更换后，标签栏计数与点击过滤都按新数据源计算\n· 两个标签绑定同一数据源时，内容相同且会同时高亮\n\n可一键恢复默认映射。',
-                title: '推荐标签数据源',
-              ),
-              Icon(
-                _expanded ? Icons.expand_less : Icons.expand_more,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-          onTap: () => setState(() => _expanded = !_expanded),
-        ),
-        if (_expanded) ...[
-          const Divider(height: 1, indent: 56),
-          _RecommendTagMappingListTile(
-            pickSource: (context, ref, label, current) =>
-                _pickSource(context, ref, label, current),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// 标签映射列表（单独 ConsumerWidget：仅展开时构建，ref.watch 实时生效）
-class _RecommendTagMappingListTile extends ConsumerWidget {
-  const _RecommendTagMappingListTile({required this.pickSource});
-
-  final Future<void> Function(
-          BuildContext context, WidgetRef ref, String label, String current)
-      pickSource;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final mapping = ref.watch(recommendTagSourceMappingProvider);
-    final entries = mapping.entries.toList(growable: false);
-    return Column(
-      children: [
-        for (var i = 0; i < entries.length; i++) ...[
-          if (i > 0) const Divider(height: 1, indent: 56),
-          ListTile(
-            leading: Icon(Icons.label_outline,
-                color: scheme.onSurfaceVariant, size: 20),
-            title: Text(
-              entries[i].key,
-              style: TextStyle(
-                  color: scheme.onSurface, fontSize: _kFontSizeMedium),
-            ),
-            subtitle: Text(
-              '数据源：${_RecommendTagMappingTileState._sourceLabel(entries[i].value)}',
-              style: TextStyle(
-                  color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SettingsView._helpButton(
-                  helpText: _RecommendTagMappingTileState.sourceHelpText(
-                      entries[i].value),
-                  title: entries[i].key,
-                ),
-                Icon(Icons.chevron_right,
-                    color: scheme.onSurfaceVariant, size: 20),
-              ],
-            ),
-            onTap: () =>
-                pickSource(context, ref, entries[i].key, entries[i].value),
-          ),
-        ],
-        // 恢复默认映射
-        ListTile(
-          leading:
-              Icon(Icons.restart_alt, color: scheme.onSurfaceVariant, size: 20),
-          title: Text(
-            '恢复默认映射',
-            style: TextStyle(
-                color: scheme.onSurfaceVariant, fontSize: _kFontSizeSmall),
-          ),
-          onTap: () async {
-            await ref
-                .read(recommendTagSourceMappingProvider.notifier)
-                .resetMapping();
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已恢复默认标签数据源映射')),
-              );
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// 规则筛选子分区折叠卡片：标题栏 + 可折叠设置项
-///
-/// 折叠时不构建 children（避免折叠状态下触发不必要的 ref.watch），
-/// 展开时通过 childrenBuilder 每次构建，保证 ref.watch 实时生效。
-class _RuleSection extends StatefulWidget {
-  const _RuleSection({
-    required this.icon,
-    required this.title,
-    required this.childrenBuilder,
-    this.initiallyExpanded = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final List<Widget> Function() childrenBuilder;
-  final bool initiallyExpanded;
-
-  @override
-  State<_RuleSection> createState() => _RuleSectionState();
-}
-
-class _RuleSectionState extends State<_RuleSection> {
-  late bool _expanded = widget.initiallyExpanded;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 12, 6),
-            child: Row(
-              children: [
-                Icon(widget.icon, size: 16, color: scheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: _kFontSizeSmall,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: scheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (_expanded) ...widget.childrenBuilder(),
-        SettingsView._ruleSectionDivider(scheme),
-      ],
-    );
-  }
-}
-
-// ==================== 设置搜索 ====================
-
-/// 单个可搜索的设置入口
-class _SettingEntry {
-  const _SettingEntry({
-    required this.title,
-    required this.section,
-    required this.keywords,
-    required this.onTap,
-  });
-  final String title;
-  final String section;
-  final String keywords;
-  final void Function(BuildContext context) onTap;
-
-  /// 判断该入口是否匹配搜索词（标题、分组、关键词任一命中即可）
-  bool matches(String query) {
-    final q = query.toLowerCase();
-    return title.toLowerCase().contains(q) ||
-        section.toLowerCase().contains(q) ||
-        keywords.toLowerCase().contains(q);
-  }
-}
-
-/// 设置搜索底部表单：实时过滤设置项，点击后执行对应操作并关闭
-class _SettingsSearchSheet extends StatefulWidget {
-  const _SettingsSearchSheet({required this.entries});
-  final List<_SettingEntry> entries;
-
-  @override
-  State<_SettingsSearchSheet> createState() => _SettingsSearchSheetState();
-}
-
-class _SettingsSearchSheetState extends State<_SettingsSearchSheet> {
-  final _controller = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  List<_SettingEntry> get _filtered {
-    if (_query.isEmpty) return widget.entries;
-    return widget.entries.where((e) => e.matches(_query)).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final results = _filtered;
-    // 设置为屏幕高度的 70%，确保 Expanded 有明确的高度约束
-    final sheetHeight = MediaQuery.of(context).size.height * 0.7;
-    return SizedBox(
-      height: sheetHeight,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          children: [
-            // 搜索框
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: '搜索设置项…',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _controller.clear();
-                            setState(() => _query = '');
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: scheme.outline),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: scheme.primary, width: 2),
-                  ),
-                ),
-                onChanged: (value) => setState(() => _query = value),
-              ),
-            ),
-            // 搜索结果列表
-            Expanded(
-              child: results.isEmpty
-                  ? Center(
-                      child: Text(
-                        '未找到匹配的设置项',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: results.length,
-                      itemBuilder: (context, index) {
-                        final entry = results[index];
-                        return ListTile(
-                          leading: Icon(Icons.settings_outlined,
-                              color: scheme.primary),
-                          title: Text(entry.title),
-                          subtitle: Text(
-                            entry.section,
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: _kFontSizeSmall,
-                            ),
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.pop(context);
-                            entry.onTap(context);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
