@@ -81,7 +81,9 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
             TextButton(
               onPressed: () async {
                 for (final id in _selected) {
-                  await ref.read(downloadProvider.notifier).deleteDownloaded(id);
+                  await ref
+                      .read(downloadProvider.notifier)
+                      .deleteDownloaded(id);
                 }
                 if (mounted) {
                   setState(() {
@@ -101,38 +103,40 @@ class _DownloadsViewState extends ConsumerState<DownloadsView>
           ],
         ),
       ),
-      body: Column(
-        children: [
-          _StorageBar(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _DownloadingTab(),
-                _DownloadedTab(
-                  batchMode: _batchMode,
-                  selected: _selected,
-                  onTapItem: (songId) {
-                    setState(() {
-                      if (_selected.contains(songId)) {
-                        _selected.remove(songId);
-                        if (_selected.isEmpty) _batchMode = false;
-                      } else {
+      body: SafeArea(
+        child: Column(
+          children: [
+            _StorageBar(),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _DownloadingTab(),
+                  _DownloadedTab(
+                    batchMode: _batchMode,
+                    selected: _selected,
+                    onTapItem: (songId) {
+                      setState(() {
+                        if (_selected.contains(songId)) {
+                          _selected.remove(songId);
+                          if (_selected.isEmpty) _batchMode = false;
+                        } else {
+                          _selected.add(songId);
+                        }
+                      });
+                    },
+                    onLongPress: (songId) {
+                      setState(() {
+                        _batchMode = true;
                         _selected.add(songId);
-                      }
-                    });
-                  },
-                  onLongPress: (songId) {
-                    setState(() {
-                      _batchMode = true;
-                      _selected.add(songId);
-                    });
-                  },
-                ),
-              ],
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -173,7 +177,8 @@ class _StorageBar extends ConsumerWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: used <= 0 ? 0 : (used / (1024 * 1024 * 100)).clamp(0.0, 1.0),
+              value:
+                  used <= 0 ? 0 : (used / (1024 * 1024 * 100)).clamp(0.0, 1.0),
               minHeight: 4,
             ),
           ),
@@ -217,7 +222,8 @@ class _DownloadingTab extends ConsumerWidget {
                   style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 4),
               LinearProgressIndicator(
-                value: t.status == DownloadStatus.downloading ? t.progress : null,
+                value:
+                    t.status == DownloadStatus.downloading ? t.progress : null,
               ),
               const SizedBox(height: 2),
               Text(
@@ -296,7 +302,9 @@ class _DownloadedTab extends ConsumerWidget {
                   isSelected
                       ? Icons.check_circle
                       : Icons.radio_button_unchecked,
-                  color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey,
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey,
                 )
               : const Icon(Icons.music_note, size: 40),
           title: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis),

@@ -74,12 +74,10 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
         (albums[e.album] ??= _Counter(e.album, e.artist)).inc();
       }
     }
-    final topSongs = songs.values.toList()
-      ..sort((a, b) => b.count - a.count);
+    final topSongs = songs.values.toList()..sort((a, b) => b.count - a.count);
     final topArtists = artists.values.toList()
       ..sort((a, b) => b.count - a.count);
-    final topAlbums = albums.values.toList()
-      ..sort((a, b) => b.count - a.count);
+    final topAlbums = albums.values.toList()..sort((a, b) => b.count - a.count);
 
     return Scaffold(
       appBar: AppBar(
@@ -113,64 +111,64 @@ class _PlayStatsViewState extends ConsumerState<PlayStatsView> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 总览卡片
-          Row(
-            children: [
-              _OverviewCard(
-                  label: '总听歌时长',
-                  value: '${(totalSecs / 3600).toStringAsFixed(1)}',
-                  unit: '小时'),
-              const SizedBox(width: 12),
-              _OverviewCard(
-                  label: '总播放次数', value: '$totalPlays', unit: '次'),
-              const SizedBox(width: 12),
-              _OverviewCard(label: '收藏歌曲', value: '$favCount', unit: '首'),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Text('近7天听歌时长',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 120,
-            child: _WeekBarChart(days: weekDays),
-          ),
-          const SizedBox(height: 20),
-          _TopSection(
-            title: '热门歌曲',
-            items: topSongs.take(10).toList(),
-            onTap: (c) {
-              // 点击播放：从事件里找这首歌
-              final ev = scoped.firstWhere(
-                (e) => e.title == c.name,
-                orElse: () => PlayEvent(songId: '', title: c.name, playedAtMs: 0),
-              );
-              if (ev.songId.isEmpty) return;
-              ref
-                  .read(synologyPlaybackProvider.notifier)
-                  .playQueue([
-                    AudioSong(
-                        id: ev.songId,
-                        title: ev.title,
-                        tag: AudioSongTag(artist: ev.artist)),
-                  ], 0);
-            },
-          ),
-          _TopSection(
-            title: '热门艺术家',
-            items: topArtists.take(10).toList(),
-            onTap: (_) {},
-          ),
-          _TopSection(
-            title: '热门专辑',
-            items: topAlbums.take(10).toList(),
-            onTap: (_) {},
-          ),
-          const SizedBox(height: 24),
-        ],
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 总览卡片
+            Row(
+              children: [
+                _OverviewCard(
+                    label: '总听歌时长',
+                    value: '${(totalSecs / 3600).toStringAsFixed(1)}',
+                    unit: '小时'),
+                const SizedBox(width: 12),
+                _OverviewCard(label: '总播放次数', value: '$totalPlays', unit: '次'),
+                const SizedBox(width: 12),
+                _OverviewCard(label: '收藏歌曲', value: '$favCount', unit: '首'),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text('近7天听歌时长',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 120,
+              child: _WeekBarChart(days: weekDays),
+            ),
+            const SizedBox(height: 20),
+            _TopSection(
+              title: '热门歌曲',
+              items: topSongs.take(10).toList(),
+              onTap: (c) {
+                // 点击播放：从事件里找这首歌
+                final ev = scoped.firstWhere(
+                  (e) => e.title == c.name,
+                  orElse: () =>
+                      PlayEvent(songId: '', title: c.name, playedAtMs: 0),
+                );
+                if (ev.songId.isEmpty) return;
+                ref.read(synologyPlaybackProvider.notifier).playQueue([
+                  AudioSong(
+                      id: ev.songId,
+                      title: ev.title,
+                      tag: AudioSongTag(artist: ev.artist)),
+                ], 0);
+              },
+            ),
+            _TopSection(
+              title: '热门艺术家',
+              items: topArtists.take(10).toList(),
+              onTap: (_) {},
+            ),
+            _TopSection(
+              title: '热门专辑',
+              items: topAlbums.take(10).toList(),
+              onTap: (_) {},
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
@@ -197,7 +195,8 @@ String _fmtDur(int secs) {
 }
 
 class _OverviewCard extends StatelessWidget {
-  const _OverviewCard({required this.label, required this.value, required this.unit});
+  const _OverviewCard(
+      {required this.label, required this.value, required this.unit});
   final String label;
   final String value;
   final String unit;
@@ -214,8 +213,8 @@ class _OverviewCard extends StatelessWidget {
         child: Column(
           children: [
             Text(value,
-                style: const TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.bold)),
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             Text(unit,
                 style: const TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 4),
@@ -235,7 +234,8 @@ class _WeekBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxSecs = days.map((d) => d.seconds).fold<int>(0, (a, b) => a > b ? a : b);
+    final maxSecs =
+        days.map((d) => d.seconds).fold<int>(0, (a, b) => a > b ? a : b);
     final weekLabels = const ['一', '二', '三', '四', '五', '六', '日'];
     final today = DateTime.now();
     return Row(
@@ -260,7 +260,10 @@ class _WeekBarChart extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isToday
                       ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                      : Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               ),
@@ -268,7 +271,9 @@ class _WeekBarChart extends StatelessWidget {
               Text(weekLabels[d.date.weekday - 1],
                   style: TextStyle(
                       fontSize: 10,
-                      color: isToday ? Theme.of(context).colorScheme.primary : Colors.grey)),
+                      color: isToday
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey)),
             ],
           ),
         );

@@ -71,7 +71,7 @@ class _DiscoverViewState extends ConsumerState<DiscoverView> {
           ),
         ],
       ),
-      body: _buildBody(context, ref, state),
+      body: SafeArea(child: _buildBody(context, ref, state)),
     );
   }
 

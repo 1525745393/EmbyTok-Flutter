@@ -25,38 +25,41 @@ class PlaylistsView extends ConsumerWidget {
           ),
         ],
       ),
-      body: playlists.isEmpty
-          ? const Center(
-              child: Text('还没有歌单，点右上角 + 新建',
-                  style: TextStyle(color: Colors.grey)))
-          : ListView.separated(
-              itemCount: playlists.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final pl = playlists[i];
-                return ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.queue_music),
-                  ),
-                  title: Text(pl.name),
-                  subtitle: Text('${pl.songs.length} 首'),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (v) {
-                      if (v == 'rename') {
-                        _showRenameDialog(context, ref, pl);
-                      } else if (v == 'delete') {
-                        _confirmDelete(context, ref, pl);
-                      }
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'rename', child: Text('重命名')),
-                      PopupMenuItem(value: 'delete', child: Text('删除')),
-                    ],
-                  ),
-                  onTap: () => context.push('/playlists/detail', extra: pl.id),
-                );
-              },
-            ),
+      body: SafeArea(
+        child: playlists.isEmpty
+            ? const Center(
+                child: Text('还没有歌单，点右上角 + 新建',
+                    style: TextStyle(color: Colors.grey)))
+            : ListView.separated(
+                itemCount: playlists.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, i) {
+                  final pl = playlists[i];
+                  return ListTile(
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.queue_music),
+                    ),
+                    title: Text(pl.name),
+                    subtitle: Text('${pl.songs.length} 首'),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (v) {
+                        if (v == 'rename') {
+                          _showRenameDialog(context, ref, pl);
+                        } else if (v == 'delete') {
+                          _confirmDelete(context, ref, pl);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'rename', child: Text('重命名')),
+                        PopupMenuItem(value: 'delete', child: Text('删除')),
+                      ],
+                    ),
+                    onTap: () =>
+                        context.push('/playlists/detail', extra: pl.id),
+                  );
+                },
+              ),
+      ),
     );
   }
 

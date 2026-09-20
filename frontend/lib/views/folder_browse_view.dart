@@ -12,8 +12,8 @@ import '../providers/synology_auth_provider.dart';
 import '../providers/synology_playback_provider.dart';
 
 class FolderBrowseView extends ConsumerStatefulWidget {
-
   const FolderBrowseView({super.key, this.initialPath});
+
   /// 初始文件夹路径，null 表示根目录
   final String? initialPath;
 
@@ -37,8 +37,7 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
     _loadFolder();
   }
 
-  String get _currentPath =>
-      _pathStack.isEmpty ? '' : _pathStack.last;
+  String get _currentPath => _pathStack.isEmpty ? '' : _pathStack.last;
 
   String get _displayPath =>
       _pathStack.isEmpty ? '根目录' : _pathStack.last.split('/').last;
@@ -50,7 +49,8 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
     });
     try {
       final api = ref.read(synologyAuthProvider.notifier).api;
-      final items = await api.getFolders(folderPath: _currentPath.isEmpty ? null : _currentPath);
+      final items = await api.getFolders(
+          folderPath: _currentPath.isEmpty ? null : _currentPath);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -127,7 +127,7 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
             ),
         ],
       ),
-      body: _buildBody(scheme),
+      body: SafeArea(child: _buildBody(scheme)),
     );
   }
 
@@ -162,8 +162,7 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
           children: [
             Icon(Icons.folder_open, size: 48, color: scheme.onSurfaceVariant),
             const SizedBox(height: 12),
-            Text('此文件夹为空',
-                style: TextStyle(color: scheme.onSurfaceVariant)),
+            Text('此文件夹为空', style: TextStyle(color: scheme.onSurfaceVariant)),
           ],
         ),
       );
@@ -179,8 +178,8 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
               child: Icon(Icons.folder,
                   color: scheme.onPrimaryContainer, size: 22),
             ),
-            title: Text(item.name,
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+            title:
+                Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _openFolder(item),
           );
@@ -192,8 +191,8 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
               child: Icon(Icons.music_note,
                   color: scheme.onSecondaryContainer, size: 20),
             ),
-            title: Text(song.title,
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+            title:
+                Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(
               song.artistDisplay,
               maxLines: 1,
@@ -201,8 +200,8 @@ class _FolderBrowseViewState extends ConsumerState<FolderBrowseView> {
             ),
             trailing: song.durationText.isNotEmpty
                 ? Text(song.durationText,
-                    style: TextStyle(
-                        fontSize: 12, color: scheme.onSurfaceVariant))
+                    style:
+                        TextStyle(fontSize: 12, color: scheme.onSurfaceVariant))
                 : null,
             onTap: () => _playSong(song),
           );

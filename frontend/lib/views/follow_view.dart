@@ -84,16 +84,18 @@ class _FollowViewState extends ConsumerState<FollowView> {
         title: const Text('关注'),
         backgroundColor: scheme.surface,
       ),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
-        child: _buildBody(
-          context,
-          ref,
-          state,
-          nextUpItems,
-          actorItems,
-          seriesItems,
-          scheme,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () => ref.read(recommendProvider.notifier).refresh(),
+          child: _buildBody(
+            context,
+            ref,
+            state,
+            nextUpItems,
+            actorItems,
+            seriesItems,
+            scheme,
+          ),
         ),
       ),
     );
@@ -159,9 +161,13 @@ class _FollowViewState extends ConsumerState<FollowView> {
   }
 
   Widget _buildBody(
-      BuildContext context, WidgetRef ref, RecommendState state,
-      List<RecommendItem> items, List<RecommendItem> actorItems,
-      List<RecommendItem> seriesItems, ColorScheme scheme) {
+      BuildContext context,
+      WidgetRef ref,
+      RecommendState state,
+      List<RecommendItem> items,
+      List<RecommendItem> actorItems,
+      List<RecommendItem> seriesItems,
+      ColorScheme scheme) {
     // 全局加载中且暂无数据 → 骨架屏
     if (state.isLoading && state.taggedItems.isEmpty) {
       return const SkeletonGrid();
@@ -201,8 +207,8 @@ class _FollowViewState extends ConsumerState<FollowView> {
                   const SizedBox(height: 12),
                   Text(
                     hasFullContent ? '当前分类暂无内容' : '关注后这里会展示最新内容',
-                    style: TextStyle(
-                        color: scheme.onSurfaceVariant, fontSize: 15),
+                    style:
+                        TextStyle(color: scheme.onSurfaceVariant, fontSize: 15),
                   ),
                   const SizedBox(height: 8),
                   Padding(
@@ -341,7 +347,9 @@ class _FollowViewState extends ConsumerState<FollowView> {
   void _playFrom(BuildContext context, WidgetRef ref, MediaItem item,
       List<RecommendItem> items) {
     final mediaItems = items.map((r) => r.item).toList(growable: false);
-    ref.read(playbackListProvider.notifier).setPlaybackList(mediaItems, item.id);
+    ref
+        .read(playbackListProvider.notifier)
+        .setPlaybackList(mediaItems, item.id);
     context.push('/play/${item.id}', extra: {
       'item': item,
       'items': mediaItems,
@@ -456,9 +464,7 @@ class _FollowPosterCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            nextUpKind == NextUpKind.seriesUpdate
-                                ? '剧集'
-                                : '演员',
+                            nextUpKind == NextUpKind.seriesUpdate ? '剧集' : '演员',
                             style: TextStyle(
                               fontSize: 9,
                               height: 1.2,

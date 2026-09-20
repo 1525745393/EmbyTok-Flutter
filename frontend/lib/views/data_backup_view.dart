@@ -20,46 +20,48 @@ class DataBackupView extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('备份与恢复')),
-      body: ListView(
-        children: [
-          const _SectionTitle('收藏歌曲'),
-          ListTile(
-            leading: const Icon(Icons.upload_file),
-            title: const Text('导出收藏'),
-            subtitle: Text('将 ${music.pins.length} 首收藏导出为 JSON 备份'),
-            onTap: () async {
-              final json = await svc.exportFavoritesJson(music.pins);
-              await svc.shareTextFile('embytok_favorites.json', json);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已生成收藏备份文件')),
-                );
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.download_for_offline),
-            title: const Text('导入收藏'),
-            subtitle: const Text('从 JSON 备份文件恢复收藏'),
-            onTap: () => _importFavorites(context, ref, svc),
-          ),
-          const Divider(),
-          const _SectionTitle('歌单（M3U）'),
-          ListTile(
-            leading: const Icon(Icons.upload_file),
-            title: const Text('导出歌单'),
-            subtitle: Text('选择一个歌单导出为 M3U（共 ${music.playlists.length} 个）'),
-            onTap: music.playlists.isEmpty
-                ? null
-                : () => _exportPlaylist(context, ref, svc),
-          ),
-          ListTile(
-            leading: const Icon(Icons.download_for_offline),
-            title: const Text('导入歌单'),
-            subtitle: const Text('选择 .m3u / .m3u8 文件导入'),
-            onTap: () => _importPlaylist(context, ref, svc),
-          ),
-        ],
+      body: SafeArea(
+        child: ListView(
+          children: [
+            const _SectionTitle('收藏歌曲'),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: const Text('导出收藏'),
+              subtitle: Text('将 ${music.pins.length} 首收藏导出为 JSON 备份'),
+              onTap: () async {
+                final json = await svc.exportFavoritesJson(music.pins);
+                await svc.shareTextFile('embytok_favorites.json', json);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('已生成收藏备份文件')),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_for_offline),
+              title: const Text('导入收藏'),
+              subtitle: const Text('从 JSON 备份文件恢复收藏'),
+              onTap: () => _importFavorites(context, ref, svc),
+            ),
+            const Divider(),
+            const _SectionTitle('歌单（M3U）'),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: const Text('导出歌单'),
+              subtitle: Text('选择一个歌单导出为 M3U（共 ${music.playlists.length} 个）'),
+              onTap: music.playlists.isEmpty
+                  ? null
+                  : () => _exportPlaylist(context, ref, svc),
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_for_offline),
+              title: const Text('导入歌单'),
+              subtitle: const Text('选择 .m3u / .m3u8 文件导入'),
+              onTap: () => _importPlaylist(context, ref, svc),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -84,8 +86,7 @@ class DataBackupView extends ConsumerWidget {
           .read(synologyMusicProvider.notifier)
           .loadPlaylistSongs(picked.id);
       final m3u = svc.buildM3U(picked.name, songs);
-      final safeName =
-          picked.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final safeName = picked.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
       await svc.shareTextFile('$safeName.m3u', m3u);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -178,8 +179,8 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(text,
-          style: const TextStyle(fontSize: 13, color: Colors.grey)),
+      child:
+          Text(text, style: const TextStyle(fontSize: 13, color: Colors.grey)),
     );
   }
 }

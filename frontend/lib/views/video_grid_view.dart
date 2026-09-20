@@ -87,7 +87,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
       ),
-      body: _buildBody(videoState, displayItems),
+      body: SafeArea(child: _buildBody(videoState, displayItems)),
     );
   }
 
@@ -130,13 +130,11 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
       final width = position.viewportDimension;
       final crossAxisCount =
           width < 400 ? 2 : (width < 700 ? 3 : (width < 1000 ? 4 : 5));
-      final aspectRatio = crossAxisCount <= 2
-          ? 9 / 16
-          : (crossAxisCount <= 4 ? 3 / 4 : 16 / 9);
+      final aspectRatio =
+          crossAxisCount <= 2 ? 9 / 16 : (crossAxisCount <= 4 ? 3 / 4 : 16 / 9);
       const spacing = 8.0;
-      final cellWidth =
-          (width - spacing * 2 - spacing * (crossAxisCount - 1)) /
-              crossAxisCount;
+      final cellWidth = (width - spacing * 2 - spacing * (crossAxisCount - 1)) /
+          crossAxisCount;
       final cellHeight = cellWidth / aspectRatio;
       final row = index ~/ crossAxisCount;
       // 顶部 padding 8，首行起点即 offset 8
@@ -206,8 +204,7 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
         if (lastWatchedItem != null)
           ResumePlayBanner(
             title: lastWatchedItem.title,
-            onTap: () => _navigateToVideo(
-                lastWatchedItem,
+            onTap: () => _navigateToVideo(lastWatchedItem,
                 displayItems.indexWhere((i) => i.id == lastWatchedItem.id)),
           ),
         Expanded(
@@ -219,11 +216,8 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
               // - 700-1000px：平板竖屏/手机横屏，4列
               // - >=1000px：平板横屏/桌面，5列
               final width = constraints.maxWidth;
-              final crossAxisCount = width < 400
-                  ? 2
-                  : (width < 700
-                      ? 3
-                      : (width < 1000 ? 4 : 5));
+              final crossAxisCount =
+                  width < 400 ? 2 : (width < 700 ? 3 : (width < 1000 ? 4 : 5));
 
               // 根据列数计算卡片宽高比：列数越少卡片越宽越高，列数越多卡片越扁
               final childAspectRatio = crossAxisCount <= 2
@@ -251,15 +245,13 @@ class _VideoGridViewState extends ConsumerState<VideoGridView> {
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
-                  itemCount:
-                      displayItems.length + (videoState.hasMore ? 1 : 0),
+                  itemCount: displayItems.length + (videoState.hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     // 末尾加载指示器
                     if (index >= displayItems.length) {
                       final scheme = Theme.of(context).colorScheme;
                       return Center(
-                        child:
-                            CircularProgressIndicator(color: scheme.primary),
+                        child: CircularProgressIndicator(color: scheme.primary),
                       );
                     }
 

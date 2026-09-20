@@ -30,113 +30,115 @@ class ProfileView extends ConsumerWidget {
           onPressed: () => context.go('/'),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 用户信息卡片
-          _buildUserCard(auth, scheme),
-          const SizedBox(height: 16),
-          // 媒体库统计
-          _buildStatsCard(music, scheme),
-          const SizedBox(height: 16),
-          // 最近播放
-          if (recentPlaybacks.isNotEmpty) ...[
-            _buildSectionTitle('最近播放', scheme),
-            const SizedBox(height: 8),
-            ...recentPlaybacks.take(5).map((r) => ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: scheme.primaryContainer,
-                    child: Icon(Icons.music_note,
-                        size: 18, color: scheme.onPrimaryContainer),
-                  ),
-                  title: Text(r.title,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(r.subtitle,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: const Icon(Icons.play_arrow, size: 20),
-                  onTap: () {
-                    final songs = ref.read(synologyMusicProvider).songs;
-                    final match =
-                        songs.where((s) => s.id == r.mediaId).toList();
-                    if (match.isNotEmpty) {
-                      ref
-                          .read(synologyPlaybackProvider.notifier)
-                          .playQueue(match, 0);
-                    }
-                  },
-                )),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // 用户信息卡片
+            _buildUserCard(auth, scheme),
             const SizedBox(height: 16),
-          ],
-          // 设置入口
-          _buildMenuTile(
-            icon: Icons.settings,
-            title: '设置',
-            subtitle: '服务模式、服务器管理、外观',
-            onTap: () => context.go('/settings'),
-          ),
-          // 服务器管理入口
-          _buildMenuTile(
-            icon: Icons.dns,
-            title: '服务器管理',
-            subtitle: '添加、编辑、切换媒体服务器',
-            onTap: () => context.go('/servers'),
-          ),
-          // 下载管理入口
-          _buildMenuTile(
-            icon: Icons.download_for_offline,
-            title: '下载管理',
-            subtitle: '离线下载、下载队列、已下载歌曲',
-            onTap: () => context.push('/downloads'),
-          ),
-          // 切换账号入口
-          _buildMenuTile(
-            icon: Icons.switch_account,
-            title: '切换账号',
-            subtitle: '多账号快速切换、添加/删除账号',
-            onTap: () => showAccountSwitchSheet(context, ref),
-          ),
-          // 我的歌单入口
-          _buildMenuTile(
-            icon: Icons.queue_music,
-            title: '我的歌单',
-            subtitle: '本地歌单管理、歌曲加入歌单',
-            onTap: () => context.push('/playlists'),
-          ),
-          // 均衡器入口
-          _buildMenuTile(
-            icon: Icons.equalizer,
-            title: '均衡器',
-            subtitle: '10 段音效、8 种预设（Android）',
-            onTap: () => context.push('/equalizer'),
-          ),
-          // 播放统计入口
-          _buildMenuTile(
-            icon: Icons.bar_chart,
-            title: '播放统计',
-            subtitle: '听歌时长、热门歌曲/艺术家/专辑',
-            onTap: () => context.push('/play-stats'),
-          ),
-          // 数据备份入口
-          _buildMenuTile(
-            icon: Icons.backup_table,
-            title: '备份与恢复',
-            subtitle: '收藏 JSON、歌单 M3U 导入导出',
-            onTap: () => context.push('/data-backup'),
-          ),
-          const SizedBox(height: 16),
-          // 退出登录
-          if (auth.isLoggedIn)
-            OutlinedButton.icon(
-              onPressed: () => _showLogoutConfirm(context, ref),
-              icon: const Icon(Icons.logout),
-              label: const Text('退出群晖登录'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: scheme.error,
-                side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+            // 媒体库统计
+            _buildStatsCard(music, scheme),
+            const SizedBox(height: 16),
+            // 最近播放
+            if (recentPlaybacks.isNotEmpty) ...[
+              _buildSectionTitle('最近播放', scheme),
+              const SizedBox(height: 8),
+              ...recentPlaybacks.take(5).map((r) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: scheme.primaryContainer,
+                      child: Icon(Icons.music_note,
+                          size: 18, color: scheme.onPrimaryContainer),
+                    ),
+                    title: Text(r.title,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(r.subtitle,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: const Icon(Icons.play_arrow, size: 20),
+                    onTap: () {
+                      final songs = ref.read(synologyMusicProvider).songs;
+                      final match =
+                          songs.where((s) => s.id == r.mediaId).toList();
+                      if (match.isNotEmpty) {
+                        ref
+                            .read(synologyPlaybackProvider.notifier)
+                            .playQueue(match, 0);
+                      }
+                    },
+                  )),
+              const SizedBox(height: 16),
+            ],
+            // 设置入口
+            _buildMenuTile(
+              icon: Icons.settings,
+              title: '设置',
+              subtitle: '服务模式、服务器管理、外观',
+              onTap: () => context.go('/settings'),
             ),
-        ],
+            // 服务器管理入口
+            _buildMenuTile(
+              icon: Icons.dns,
+              title: '服务器管理',
+              subtitle: '添加、编辑、切换媒体服务器',
+              onTap: () => context.go('/servers'),
+            ),
+            // 下载管理入口
+            _buildMenuTile(
+              icon: Icons.download_for_offline,
+              title: '下载管理',
+              subtitle: '离线下载、下载队列、已下载歌曲',
+              onTap: () => context.push('/downloads'),
+            ),
+            // 切换账号入口
+            _buildMenuTile(
+              icon: Icons.switch_account,
+              title: '切换账号',
+              subtitle: '多账号快速切换、添加/删除账号',
+              onTap: () => showAccountSwitchSheet(context, ref),
+            ),
+            // 我的歌单入口
+            _buildMenuTile(
+              icon: Icons.queue_music,
+              title: '我的歌单',
+              subtitle: '本地歌单管理、歌曲加入歌单',
+              onTap: () => context.push('/playlists'),
+            ),
+            // 均衡器入口
+            _buildMenuTile(
+              icon: Icons.equalizer,
+              title: '均衡器',
+              subtitle: '10 段音效、8 种预设（Android）',
+              onTap: () => context.push('/equalizer'),
+            ),
+            // 播放统计入口
+            _buildMenuTile(
+              icon: Icons.bar_chart,
+              title: '播放统计',
+              subtitle: '听歌时长、热门歌曲/艺术家/专辑',
+              onTap: () => context.push('/play-stats'),
+            ),
+            // 数据备份入口
+            _buildMenuTile(
+              icon: Icons.backup_table,
+              title: '备份与恢复',
+              subtitle: '收藏 JSON、歌单 M3U 导入导出',
+              onTap: () => context.push('/data-backup'),
+            ),
+            const SizedBox(height: 16),
+            // 退出登录
+            if (auth.isLoggedIn)
+              OutlinedButton.icon(
+                onPressed: () => _showLogoutConfirm(context, ref),
+                icon: const Icon(Icons.logout),
+                label: const Text('退出群晖登录'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: scheme.error,
+                  side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -185,9 +187,8 @@ class ProfileView extends ConsumerWidget {
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: auth.isLoggedIn
-                            ? Colors.greenAccent
-                            : Colors.grey,
+                        color:
+                            auth.isLoggedIn ? Colors.greenAccent : Colors.grey,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -215,15 +216,11 @@ class ProfileView extends ConsumerWidget {
 
   Widget _buildStatsCard(SynologyMusicState music, ColorScheme scheme) {
     final stats = [
+      _StatItem(icon: Icons.music_note, label: '歌曲', value: music.songs.length),
+      _StatItem(icon: Icons.album, label: '专辑', value: music.albums.length),
+      _StatItem(icon: Icons.person, label: '歌手', value: music.artists.length),
       _StatItem(
-          icon: Icons.music_note,
-          label: '歌曲',
-          value: music.songs.length),
-      _StatItem(
-          icon: Icons.album, label: '专辑', value: music.albums.length),
-      _StatItem(
-          icon: Icons.person, label: '歌手', value: music.artists.length),
-      _StatItem(icon: Icons.playlist_play,
+          icon: Icons.playlist_play,
           label: '歌单',
           value: music.playlists.length),
     ];
@@ -258,7 +255,9 @@ class ProfileView extends ConsumerWidget {
   Widget _buildSectionTitle(String title, ColorScheme scheme) {
     return Text(title,
         style: TextStyle(
-            fontSize: 17, fontWeight: FontWeight.w700, color: scheme.onSurface));
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface));
   }
 
   Widget _buildMenuTile({
