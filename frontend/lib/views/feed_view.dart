@@ -369,32 +369,42 @@ class _FeedViewState extends ConsumerState<FeedView>
 
           // 当前位置指示：放在顶部工具栏下沿右侧，避免与底部导航栏重叠。
           // 原 bottom:16 会直接渲染在「设置」图标上方（截图中 47/50 压在图标上的根因）。
+          // 跟随顶部工具栏一起自动隐藏：单击屏幕切换控制条时同步显隐，
+          // 避免位置计数常驻遮挡视频画面。
           if (viewMode == ViewMode.feed && videoState.items.isNotEmpty)
             Positioned(
               right: 12,
               top: SafeInsets.topOf(context) + kAppToolbarHeight + 8,
-              child: ValueListenableBuilder<int>(
-                valueListenable: _currentIndexNotifier,
-                builder: (context, idx, _) {
-                  final total = videoState.items.length;
-                  final pos = (idx + 1).clamp(1, total);
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: scheme.surface.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      '$pos / $total',
-                      style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.9),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  );
-                },
+              child: IgnorePointer(
+                ignoring: !toolbarVisible,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: kToolbarAnimMs),
+                  curve: Curves.easeOut,
+                  opacity: toolbarVisible ? 1.0 : 0.0,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _currentIndexNotifier,
+                    builder: (context, idx, _) {
+                      final total = videoState.items.length;
+                      final pos = (idx + 1).clamp(1, total);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: scheme.surface.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '$pos / $total',
+                          style: TextStyle(
+                            color: scheme.onSurface.withValues(alpha: 0.9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
 
