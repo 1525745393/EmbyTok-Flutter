@@ -398,7 +398,9 @@ class _FeedViewState extends ConsumerState<FeedView>
               child: ValueListenableBuilder<bool>(
                 valueListenable: _positionBadgeVisible,
                 builder: (context, badgeVisible, _) {
-                  final show = toolbarVisible || badgeVisible;
+                  // 位置计数只跟随 badgeVisible（切视频后 3 秒），不跟随 toolbarVisible
+                  // 因为 toolbarVisibilityProvider 初始为 true，会导致位置计数常驻显示
+                  final show = badgeVisible;
                   return IgnorePointer(
                     ignoring: !show,
                     child: AnimatedOpacity(
