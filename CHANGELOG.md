@@ -1,3 +1,10 @@
+## [2.142.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.3...v2.142.4) (2026-09-20)
+
+
+### Bug Fixes
+
+* **video:** 右侧操作栏全屏按钮固定顶部不随列表滚动 ([a5f94ad](https://github.com/1525745393/EmbyTok-Flutter/commit/a5f94ad89715588d5b5a4b9f113cad14fbc6d770))
+
 ## [2.142.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.2...v2.142.3) (2026-09-20)
 
 
