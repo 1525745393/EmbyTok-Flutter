@@ -1,3 +1,10 @@
+## [2.142.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.1...v2.142.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **discover:** 类型/标签列表分页拉取全量，避免超过 100 条时显示不全 ([7df48d7](https://github.com/1525745393/EmbyTok-Flutter/commit/7df48d726d5651a743f8a0c242faf1c5b53a031d))
+
 ## [2.142.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.142.0...v2.142.1) (2026-09-19)
 
 
