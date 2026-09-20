@@ -32,8 +32,10 @@ import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
 import 'settings/settings_components.dart';
 part 'settings/settings_recommend_rules.dart';
+part 'settings/settings_recommend_rules_ext.dart';
 part 'settings/settings_builders.dart';
 part 'settings/settings_dialogs.dart';
+part 'settings/settings_dialogs_ext.dart';
 
 // 设置页面常量定义（分离到单独文件）
 part 'settings/settings_constants.dart';
