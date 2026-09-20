@@ -6,7 +6,6 @@ part of '../settings_view.dart';
 // ==================== 手势项组件 ====================
 
 class _GestureItem extends StatelessWidget {
-
   const _GestureItem({
     required this.icon,
     required this.title,
@@ -52,7 +51,6 @@ class _GestureItem extends StatelessWidget {
 // ==================== 通用选项对话框 ====================
 
 class _OptionDialog<T> extends StatelessWidget {
-
   const _OptionDialog({
     required this.title,
     required this.options,
@@ -95,7 +93,8 @@ class _OptionDialog<T> extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(_kDialogCloseLabel, style: TextStyle(color: scheme.onSurfaceVariant)),
+          child: Text(_kDialogCloseLabel,
+              style: TextStyle(color: scheme.onSurfaceVariant)),
         ),
       ],
     );
