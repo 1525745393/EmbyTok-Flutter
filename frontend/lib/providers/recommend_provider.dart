@@ -545,6 +545,10 @@ class RecommendNotifier extends StateNotifier<RecommendState> {
 
   /// 刷新（用户下拉刷新时调用）
   Future<void> refresh() async {
+    // 等待当前加载完成，避免 RefreshIndicator 转圈立刻消失但数据还在加载
+    while (_isLoading) {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
     await load();
   }
 
