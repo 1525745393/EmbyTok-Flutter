@@ -246,6 +246,8 @@ class _FollowViewState extends ConsumerState<FollowView> {
 
     // 网格 + 顶部「上次看到」续播横幅 + 分组过滤栏
     final lastWatchedItem = _lastWatchedItemOf(items);
+    // 整列表转一次，避免 itemBuilder 里每个 item 都重复创建完整 list
+    final mediaItems = items.map((r) => r.item).toList(growable: false);
     return Column(
       children: [
         if (lastWatchedItem != null)
@@ -275,7 +277,7 @@ class _FollowViewState extends ConsumerState<FollowView> {
               item: items[i].item,
               nextUpKind: items[i].nextUpKind,
               // 整列表进入播放页，支持抖音式上下滑刷视频
-              items: items.map((r) => r.item).toList(growable: false),
+              items: mediaItems,
               isLastWatched: items[i].item.id == _lastWatchedId,
             ),
           ),
