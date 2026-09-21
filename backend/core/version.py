@@ -5,10 +5,10 @@
 # ============================================================
 
 # 语义化版本号 (MAJOR.MINOR.PATCH)
-__version__ = '2.144.1'
+__version__ = '2.144.2'
 
 # 构建号
-__build_number__ = 975
+__build_number__ = 976
 
 # 完整版本信息
 __full_version__ = f'{__version__}+{__build_number__}'

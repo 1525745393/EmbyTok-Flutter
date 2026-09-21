@@ -1,3 +1,10 @@
+## [2.144.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.1...v2.144.2) (2026-09-21)
+
+
+### Performance Improvements
+
+* **follow:** itemBuilder里重复创建完整list改为外部转一次 ([64d59ff](https://github.com/1525745393/EmbyTok-Flutter/commit/64d59ffc0dfc72b2c40fbe1fe0fd2cdc381f56f5))
+
 ## [2.144.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.0...v2.144.1) (2026-09-20)
 
 
