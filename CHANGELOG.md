@@ -1,3 +1,10 @@
+# [2.145.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.3...v2.145.0) (2026-09-21)
+
+
+### Features
+
+* **settings:** 关注页收藏演员上限改为用户自定义 ([bd39aa5](https://github.com/1525745393/EmbyTok-Flutter/commit/bd39aa5db2d785dc4ad82939ce597334b690b8bd))
+
 ## [2.144.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.2...v2.144.3) (2026-09-21)
 
 
