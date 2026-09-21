@@ -240,6 +240,7 @@ class _LoadContext {
     required this.favActorNewCount,
     required this.followActorVideoCount,
     required this.followOnlyUnwatched,
+    required this.followMaxActors,
   });
   final AuthState auth;
   final List<String> selectedIds;
@@ -263,6 +264,8 @@ class _LoadContext {
   final int followActorVideoCount;
   // 关注页：只看未观看（开启后过滤已观看视频）
   final bool followOnlyUnwatched;
+  // 关注页：收藏演员拉取上限
+  final int followMaxActors;
 
   // PR #73：过滤非视频类型 item
   bool isVideo(MediaItem item) => _allowedTypes.contains(item.type);

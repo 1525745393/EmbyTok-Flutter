@@ -85,6 +85,7 @@ const String kStorageKeyFollowActorVideoCount =
 const String kStorageKeyRecommendTagSourceMapping =
     'embytok_recommend_tag_source_mapping';
 const String kStorageKeyFollowOnlyUnwatched = 'embytok_follow_only_unwatched';
+const String kStorageKeyFollowMaxActors = 'embytok_follow_max_actors';
 // 收藏夹类型筛选（Movie/Series/BoxSet/Person 的子集）
 const String kStorageKeyFavoriteIncludeTypes = 'embytok_favorite_include_types';
 const String kStorageKeyRecentlyShownItemIds =

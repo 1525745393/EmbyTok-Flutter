@@ -449,6 +449,30 @@ extension _SettingsRecommendRules2 on SettingsView {
     );
   }
 
+  Widget _buildFollowMaxActorsTile(BuildContext context, WidgetRef ref) {
+    final maxActors = ref.watch(followMaxActorsProvider);
+    return settingsTapTile(
+      icon: Icons.groups,
+      iconColor: Colors.teal,
+      title: '关注·收藏演员上限',
+      subtitle: '最多拉取 $maxActors 个收藏演员',
+      onTap: () => _showCountSliderDialog(
+        context,
+        ref,
+        title: '关注·收藏演员上限',
+        current: maxActors,
+        min: 10,
+        max: 500,
+        label: (v) => '$v 个',
+        description: '关注页拉取收藏演员的上限。超过此数量的演员不会出现在关注页。',
+        apply: (v) =>
+            ref.read(followMaxActorsProvider.notifier).setMaxActors(v),
+      ),
+      helpText:
+          '「关注·收藏演员上限」：关注视频流拉取收藏演员的最大数量。\n\n· 范围 10–500，默认 200\n· 调大 → 更多演员的作品会出现在关注页，加载更慢\n· 调小 → 只拉取最近收藏的演员，加载更快\n\n只在「关注」页面生效。',
+    );
+  }
+
   void _showCountSliderDialog(
     BuildContext context,
     WidgetRef ref, {

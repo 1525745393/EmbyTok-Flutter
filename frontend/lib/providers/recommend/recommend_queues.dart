@@ -59,11 +59,11 @@ extension _RecommendQueues on RecommendNotifier {
       // 关注流按演员逐个拉取：覆盖所有收藏演员，每个演员最多
       // followActorVideoCount 条（用户可自定义），已观看过滤由
       // followOnlyUnwatched 开关控制（默认开启）。
-      // 分页拉取所有收藏演员（上限 200 个，避免拉太多）。
+      // 分页拉取所有收藏演员（上限由用户自定义 followMaxActors）。
       List<MediaItem> items = const [];
       var hasMore = false;
       final allFavPeople = <MediaItem>[];
-      const maxFavoritePeople = 200;
+      final maxFavoritePeople = ctx.followMaxActors;
       var favOffset = 0;
       const favPageSize = 50;
       while (allFavPeople.length < maxFavoritePeople) {

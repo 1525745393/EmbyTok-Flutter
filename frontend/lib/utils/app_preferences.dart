@@ -125,7 +125,6 @@ enum OrientationMode {
 
 // 不可变的用户偏好快照
 class AppPreferences {
-
   const AppPreferences({
     this.forceDeviceMode = DeviceMode.standard,
     this.feedType = FeedType.latest,
@@ -160,6 +159,7 @@ class AppPreferences {
     this.recommendFavActorNewCount = 20,
     this.followActorVideoCount = 3,
     this.followOnlyUnwatched = true,
+    this.followMaxActors = 200,
     this.recommendTagSourceMapping = const {
       '最新影片': 'latest',
       '继续观看': 'resume',
@@ -232,6 +232,8 @@ class AppPreferences {
   final Map<String, String> recommendTagSourceMapping;
   // 关注页：只看未观看（默认 true，开启后过滤已观看视频）
   final bool followOnlyUnwatched;
+  // 关注页：收藏演员拉取上限（默认 200，范围 [10,500]）
+  final int followMaxActors;
 
   AppPreferences copyWith({
     DeviceMode? forceDeviceMode,
@@ -261,6 +263,7 @@ class AppPreferences {
     int? recommendFavActorNewCount,
     int? followActorVideoCount,
     bool? followOnlyUnwatched,
+    int? followMaxActors,
     Map<String, String>? recommendTagSourceMapping,
   }) {
     return AppPreferences(
@@ -297,7 +300,8 @@ class AppPreferences {
           recommendAntiFatigueDays ?? this.recommendAntiFatigueDays,
       recommendUserRatingEnabled:
           recommendUserRatingEnabled ?? this.recommendUserRatingEnabled,
-      recommendUserRatingMin: recommendUserRatingMin ?? this.recommendUserRatingMin,
+      recommendUserRatingMin:
+          recommendUserRatingMin ?? this.recommendUserRatingMin,
       recommendNextUpSeriesCount:
           recommendNextUpSeriesCount ?? this.recommendNextUpSeriesCount,
       recommendFavActorNewCount:
@@ -305,6 +309,7 @@ class AppPreferences {
       followActorVideoCount:
           followActorVideoCount ?? this.followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched ?? this.followOnlyUnwatched,
+      followMaxActors: followMaxActors ?? this.followMaxActors,
       recommendTagSourceMapping:
           recommendTagSourceMapping ?? this.recommendTagSourceMapping,
     );
@@ -412,6 +417,7 @@ class AppPreferencesService {
         prefs.getInt(kStorageKeyFollowActorVideoCount) ?? 3;
     final followOnlyUnwatched =
         prefs.getBool(kStorageKeyFollowOnlyUnwatched) ?? true;
+    final followMaxActors = prefs.getInt(kStorageKeyFollowMaxActors) ?? 200;
     final recommendTagSourceMappingRaw =
         prefs.getString(kStorageKeyRecommendTagSourceMapping);
     final recommendTagSourceMapping = <String, String>{
@@ -469,6 +475,7 @@ class AppPreferencesService {
       recommendFavActorNewCount: recommendFavActorNewCount,
       followActorVideoCount: followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched,
+      followMaxActors: followMaxActors,
       recommendTagSourceMapping: recommendTagSourceMapping,
     );
   }
@@ -534,10 +541,11 @@ class AppPreferencesService {
       prefs.setInt(kStorageKeyRecommendFavActorNewCount,
           preferences.recommendFavActorNewCount),
       // 关注页：每演员视频数 / 只看未观看
-      prefs.setInt(kStorageKeyFollowActorVideoCount,
-          preferences.followActorVideoCount),
-      prefs.setBool(kStorageKeyFollowOnlyUnwatched,
-          preferences.followOnlyUnwatched),
+      prefs.setInt(
+          kStorageKeyFollowActorVideoCount, preferences.followActorVideoCount),
+      prefs.setBool(
+          kStorageKeyFollowOnlyUnwatched, preferences.followOnlyUnwatched),
+      prefs.setInt(kStorageKeyFollowMaxActors, preferences.followMaxActors),
       // 推荐标签数据源映射
       prefs.setString(kStorageKeyRecommendTagSourceMapping,
           json.encode(preferences.recommendTagSourceMapping)),

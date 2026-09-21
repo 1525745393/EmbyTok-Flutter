@@ -145,6 +145,7 @@ class SettingsView extends ConsumerWidget {
                     _buildRecommendFavActorNewCountTile(context, ref),
                     _buildFollowActorVideoCountTile(context, ref),
                     _buildFollowOnlyUnwatchedTile(context, ref),
+                    _buildFollowMaxActorsTile(context, ref),
                     _buildSharedRuleHint(context, ref),
                   ],
                 ),

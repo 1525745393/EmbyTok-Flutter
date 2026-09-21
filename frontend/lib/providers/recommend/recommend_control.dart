@@ -64,6 +64,7 @@ extension _RecommendControl on RecommendNotifier {
     // 关注页：每演员视频数 / 只看未观看
     final followActorVideoCount = _ref.read(followActorVideoCountProvider);
     final followOnlyUnwatched = _ref.read(followOnlyUnwatchedProvider);
+    final followMaxActors = _ref.read(followMaxActorsProvider);
 
     // PR #83 优化：从 userBehaviorSignalProvider 读取缓存，避免每次重算
     final signal = _ref.read(userBehaviorSignalProvider);
@@ -98,6 +99,7 @@ extension _RecommendControl on RecommendNotifier {
       favActorNewCount: favActorNewCount,
       followActorVideoCount: followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched,
+      followMaxActors: followMaxActors,
     );
   }
 

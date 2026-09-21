@@ -100,6 +100,31 @@ final followOnlyUnwatchedProvider =
   (ref) => FollowOnlyUnwatchedNotifier(),
 );
 
+// 关注页 - 收藏演员拉取上限（默认 200，范围 [10,500]）
+class FollowMaxActorsNotifier extends StateNotifier<int> {
+  FollowMaxActorsNotifier() : super(200) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await const AppPreferencesService().load();
+    state = prefs.followMaxActors;
+  }
+
+  Future<void> setMaxActors(int count) async {
+    final clamped = count.clamp(10, 500);
+    state = clamped;
+    final current = await const AppPreferencesService().load();
+    await const AppPreferencesService()
+        .save(current.copyWith(followMaxActors: clamped));
+  }
+}
+
+final followMaxActorsProvider =
+    StateNotifierProvider<FollowMaxActorsNotifier, int>(
+  (ref) => FollowMaxActorsNotifier(),
+);
+
 // 推荐标签数据源映射（label → source key，默认一对一，用户可自定义）
 class RecommendTagSourceMappingNotifier
     extends StateNotifier<Map<String, String>> {
