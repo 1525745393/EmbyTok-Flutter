@@ -59,18 +59,27 @@ extension _RecommendQueues on RecommendNotifier {
       // 关注流按演员逐个拉取：覆盖所有收藏演员，每个演员最多
       // followActorVideoCount 条（用户可自定义），已观看过滤由
       // followOnlyUnwatched 开关控制（默认开启）。
+      // 分页拉取所有收藏演员（上限 200 个，避免拉太多）。
       List<MediaItem> items = const [];
       var hasMore = false;
-      final favPeople = await ctx.repo.getFavoritePeople(
-        limit: 50,
-        serverUrl: serverUrl,
-        token: token,
-        userId: userId,
-      );
-      final personIds = favPeople.items
-          .map((p) => p.id)
-          .where((id) => id.isNotEmpty)
-          .toList();
+      final allFavPeople = <MediaItem>[];
+      const maxFavoritePeople = 200;
+      var favOffset = 0;
+      const favPageSize = 50;
+      while (allFavPeople.length < maxFavoritePeople) {
+        final favPage = await ctx.repo.getFavoritePeople(
+          limit: favPageSize,
+          offset: favOffset,
+          serverUrl: serverUrl,
+          token: token,
+          userId: userId,
+        );
+        allFavPeople.addAll(favPage.items);
+        if (favPage.items.length < favPageSize) break; // 已拉完
+        favOffset += favPageSize;
+      }
+      final personIds =
+          allFavPeople.map((p) => p.id).where((id) => id.isNotEmpty).toList();
       if (personIds.isNotEmpty) {
         final perActor = ctx.followActorVideoCount;
         final all = <MediaItem>[];
