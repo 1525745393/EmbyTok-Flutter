@@ -553,7 +553,7 @@ extension _RecommendQueues on RecommendNotifier {
         if (sid.isEmpty || seen.contains(sid)) continue;
         seen.add(sid);
         seriesIds.add(sid);
-        if (seriesIds.length >= ctx.favActorNewCount) break;
+        if (seriesIds.length >= ctx.followMaxActors) break;
       }
       if (seriesIds.isEmpty) return;
 

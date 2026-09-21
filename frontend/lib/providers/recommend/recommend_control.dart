@@ -60,7 +60,6 @@ extension _RecommendControl on RecommendNotifier {
     final dislikedIds = _ref.read(dislikedItemsProvider);
     // 追剧队列数量平衡
     final nextUpSeriesCount = _ref.read(recommendNextUpSeriesCountProvider);
-    final favActorNewCount = _ref.read(recommendFavActorNewCountProvider);
     // 关注页：每演员视频数 / 只看未观看
     final followActorVideoCount = _ref.read(followActorVideoCountProvider);
     final followOnlyUnwatched = _ref.read(followOnlyUnwatchedProvider);
@@ -96,7 +95,6 @@ extension _RecommendControl on RecommendNotifier {
       userRatingEnabled: userRatingEnabled,
       userRatingMin: userRatingMin,
       nextUpSeriesCount: nextUpSeriesCount,
-      favActorNewCount: favActorNewCount,
       followActorVideoCount: followActorVideoCount,
       followOnlyUnwatched: followOnlyUnwatched,
       followMaxActors: followMaxActors,

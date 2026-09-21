@@ -237,7 +237,6 @@ class _LoadContext {
     required this.userRatingEnabled,
     required this.userRatingMin,
     required this.nextUpSeriesCount,
-    required this.favActorNewCount,
     required this.followActorVideoCount,
     required this.followOnlyUnwatched,
     required this.followMaxActors,
@@ -259,7 +258,6 @@ class _LoadContext {
   final double userRatingMin;
   // 追剧队列数量平衡
   final int nextUpSeriesCount;
-  final int favActorNewCount;
   // 关注页：每演员视频数（收藏演员逐个拉取，每个演员最多 N 条）
   final int followActorVideoCount;
   // 关注页：只看未观看（开启后过滤已观看视频）

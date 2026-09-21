@@ -142,7 +142,6 @@ class SettingsView extends ConsumerWidget {
                   title: '关注页',
                   childrenBuilder: () => [
                     _buildRecommendNextUpSeriesCountTile(context, ref),
-                    _buildRecommendFavActorNewCountTile(context, ref),
                     _buildFollowActorVideoCountTile(context, ref),
                     _buildFollowOnlyUnwatchedTile(context, ref),
                     _buildFollowMaxActorsTile(context, ref),

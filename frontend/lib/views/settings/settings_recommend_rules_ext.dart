@@ -376,31 +376,6 @@ extension _SettingsRecommendRules2 on SettingsView {
     );
   }
 
-  Widget _buildRecommendFavActorNewCountTile(
-      BuildContext context, WidgetRef ref) {
-    final count = ref.watch(recommendFavActorNewCountProvider);
-    return settingsTapTile(
-      icon: Icons.person,
-      iconColor: Colors.indigo,
-      title: '关注·演员新片数',
-      subtitle: '收藏演员新作品展示 $count 条',
-      onTap: () => _showCountSliderDialog(
-        context,
-        ref,
-        title: '关注·演员新片数',
-        current: count,
-        min: 5,
-        max: 40,
-        label: (v) => '$v 条',
-        description: '控制收藏演员新作品在关注页里占多少条。',
-        apply: (v) =>
-            ref.read(recommendFavActorNewCountProvider.notifier).setCount(v),
-      ),
-      helpText:
-          '「关注」视频流中，每位已收藏演员最多展示的新作品数量。\n\n· 默认 20（范围 5–40）\n· 调大 → 每位演员展示更多作品\n\n只影响关注页，不影响其他页面。',
-    );
-  }
-
   Widget _buildFollowActorVideoCountTile(BuildContext context, WidgetRef ref) {
     final count = ref.watch(followActorVideoCountProvider);
     return settingsTapTile(
