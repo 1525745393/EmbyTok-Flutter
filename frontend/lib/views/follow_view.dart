@@ -41,12 +41,42 @@ class _FollowViewState extends ConsumerState<FollowView> {
   /// 已定位过的视频 id
   String? _lastScrolledId;
 
-  /// 网格滚动控制器（用于定位到上次观看的视频）
+  /// 网格滚动控制器（用于定位到上次观看的视频 + 下滑加载更多）
   final ScrollController _gridController = ScrollController();
+
+  /// 防止重复触发 loadMore
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _gridController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_gridController.hasClients) return;
+    final position = _gridController.position;
+    // 接近底部（剩余 200px）时加载更多
+    if (position.pixels >= position.maxScrollExtent - 200) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    if (_isLoadingMore) return;
+    final state = ref.read(recommendProvider);
+    if (!state.hasMore || state.isLoading) return;
+    _isLoadingMore = true;
+    ref.read(recommendProvider.notifier).loadMore().whenComplete(() {
+      _isLoadingMore = false;
+    });
+  }
 
   @override
   void dispose() {
-    _gridController.dispose();
+    _gridController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
