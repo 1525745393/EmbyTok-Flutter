@@ -1,3 +1,10 @@
+## [2.144.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.2...v2.144.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* **recommend:** 收藏演员改为分页拉取上限200个 ([99c5f13](https://github.com/1525745393/EmbyTok-Flutter/commit/99c5f137f15777386e00e530ce75f5a966443025))
+
 ## [2.144.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.1...v2.144.2) (2026-09-21)
 
 
