@@ -1,3 +1,10 @@
+## [2.145.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.1...v2.145.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **recommend:** refresh等待当前加载完成避免转圈提前消失 ([9ade846](https://github.com/1525745393/EmbyTok-Flutter/commit/9ade84635c9ccdba3290d8edd1921c4ae939c849))
+
 ## [2.145.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.0...v2.145.1) (2026-09-21)
 
 
