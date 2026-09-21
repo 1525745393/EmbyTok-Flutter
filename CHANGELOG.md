@@ -1,3 +1,10 @@
+## [2.145.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.0...v2.145.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **recommend:** 收藏剧集数量改用followMaxActors删除favActorNewCount设置项 ([43fdef0](https://github.com/1525745393/EmbyTok-Flutter/commit/43fdef010b262aa8d4b1d21af01091debd50a069))
+
 # [2.145.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.144.3...v2.145.0) (2026-09-21)
 
 
