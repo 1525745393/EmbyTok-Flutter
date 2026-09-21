@@ -1,3 +1,10 @@
+# [2.146.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.2...v2.146.0) (2026-09-21)
+
+
+### Features
+
+* **follow:** 关注页下滑自动加载更多 ([a67bb13](https://github.com/1525745393/EmbyTok-Flutter/commit/a67bb133ee1312964514b043491027779975827e))
+
 ## [2.145.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.1...v2.145.2) (2026-09-21)
 
 
