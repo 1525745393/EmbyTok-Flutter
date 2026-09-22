@@ -377,6 +377,33 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           _PersonChipList(people: directors),
                           const SizedBox(height: 24),
                         ],
+                        // 剧集导航：上一集 / 下一集
+                        if (isEpisode)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('上一集')),
+                                  );
+                                },
+                                icon: const Icon(Icons.skip_previous),
+                                label: const Text('上一集'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('下一集')),
+                                  );
+                                },
+                                icon: const Icon(Icons.skip_next),
+                                label: const Text('下一集'),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 16),
                       ],
                     ),
