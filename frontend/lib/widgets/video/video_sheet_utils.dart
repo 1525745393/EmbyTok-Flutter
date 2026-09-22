@@ -304,11 +304,19 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             ),
                           ),
                         const SizedBox(height: 16),
-                        Text(item.title,
-                            style: TextStyle(
-                                color: scheme.onSurface,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700)),
+                        // 标题 + 收藏按钮
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(item.title,
+                                  style: TextStyle(
+                                      color: scheme.onSurface,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                            _FavoriteButton(item: item),
+                          ],
+                        ),
                         const SizedBox(height: 12),
                         _InfoActionRow(item: item),
                         const SizedBox(height: 8),
@@ -322,6 +330,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                         ),
                         const SizedBox(height: 20),
                         _VideoInfoRowItems(
+                          item: item,
                           duration: duration,
                           rating: rating,
                           genres: genres,
@@ -440,11 +449,13 @@ class _VideoInfoSubtitle extends StatelessWidget {
 // ===== 信息面板基本信息行 =====
 class _VideoInfoRowItems extends StatelessWidget {
   const _VideoInfoRowItems({
+    required this.item,
     required this.duration,
     required this.rating,
     required this.genres,
     required this.studios,
   });
+  final MediaItem item;
   final String duration;
   final double? rating;
   final List<String> genres;
@@ -455,6 +466,12 @@ class _VideoInfoRowItems extends StatelessWidget {
     final widgets = <Widget>[];
     if (duration.isNotEmpty) {
       widgets.add(_VideoInfoChip(label: '时长', value: duration));
+    }
+    // 播放进度
+    if (item.hasProgress) {
+      final progress = (item.progressPercent * 100).toStringAsFixed(0);
+      widgets.add(
+          _VideoInfoChip(label: '已看', value: '$progress%', highlight: true));
     }
     final r = rating;
     if (r != null && r > 0) {
@@ -578,6 +595,30 @@ class _VideoInfoChip extends StatelessWidget {
       ),
     );
     return onTap != null ? GestureDetector(onTap: onTap, child: chip) : chip;
+  }
+}
+
+// ===== 收藏按钮 =====
+class _FavoriteButton extends ConsumerWidget {
+  const _FavoriteButton({required this.item});
+  final MediaItem item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final isFavorite = item.userData?.isFavorite ?? item.isFavorite ?? false;
+    return IconButton(
+      icon: Icon(
+        isFavorite ? Icons.favorite : Icons.favorite_border,
+        color: isFavorite ? scheme.primary : scheme.onSurfaceVariant,
+      ),
+      onPressed: () {
+        // TODO: 调用 Emby API 切换收藏
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isFavorite ? '已取消收藏' : '已收藏')),
+        );
+      },
+    );
   }
 }
 
