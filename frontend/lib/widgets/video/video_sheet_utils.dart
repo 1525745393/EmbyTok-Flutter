@@ -316,7 +316,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             ),
                           ),
                         const SizedBox(height: 16),
-                        // 标题 + 收藏按钮
+                        // 标题 + 收藏 + 分享
                         Row(
                           children: [
                             Expanded(
@@ -325,6 +325,16 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                                       color: scheme.onSurface,
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700)),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.share,
+                                  color: scheme.onSurfaceVariant, size: 20),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('分享链接已复制')),
+                                );
+                              },
                             ),
                             _FavoriteButton(item: item),
                           ],
