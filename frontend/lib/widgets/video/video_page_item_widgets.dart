@@ -262,29 +262,35 @@ class _BottomInfoBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 类型标签（genre 优先，回退到 type）
+                      // 类型标签（前2个genre，回退到 type）
                       Builder(
                         builder: (_) {
-                          final tag =
+                          final tags =
                               (item.genres != null && item.genres!.isNotEmpty)
-                                  ? item.genres!.first
-                                  : item.type;
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: _kTagPaddingHorizontal,
-                                vertical: _kTagPaddingVertical),
-                            decoration: BoxDecoration(
-                              color: scheme.primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                color: scheme.onPrimary,
-                                fontSize: _kFontSizeSmall,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                                  ? item.genres!.take(2).toList()
+                                  : [item.type];
+                          return Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: tags
+                                .map((t) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: _kTagPaddingHorizontal,
+                                          vertical: _kTagPaddingVertical),
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        t,
+                                        style: TextStyle(
+                                          color: scheme.onPrimary,
+                                          fontSize: _kFontSizeSmall,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
                           );
                         },
                       ),
