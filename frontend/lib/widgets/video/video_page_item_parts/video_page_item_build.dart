@@ -245,6 +245,8 @@ extension _VideoPageItemBuild on _VideoPageItemState {
             toolbarVisible: toolbarVisible,
             bottomPadding: bottomPadding,
             onToggleFullscreen: _openFullscreenPage,
+            onInfoTap: () =>
+                sheet_utils.showVideoInfoSheet(context, widget.item),
             formatDuration: _formatDuration,
           ),
 

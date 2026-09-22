@@ -194,6 +194,7 @@ class _BottomInfoBar extends StatelessWidget {
     required this.toolbarVisible,
     required this.bottomPadding,
     required this.onToggleFullscreen,
+    required this.onInfoTap,
     required this.formatDuration,
   });
   final MediaItem item;
@@ -202,6 +203,7 @@ class _BottomInfoBar extends StatelessWidget {
   final bool toolbarVisible;
   final double bottomPadding;
   final VoidCallback onToggleFullscreen;
+  final VoidCallback onInfoTap;
   final String Function(Duration) formatDuration;
 
   @override
@@ -249,111 +251,128 @@ class _BottomInfoBar extends StatelessWidget {
                 stops: const [0.0, 0.45, 1.0],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 类型标签（genre 优先，回退到 type）
-                Builder(
-                  builder: (_) {
-                    final tag = (item.genres != null && item.genres!.isNotEmpty)
-                        ? item.genres!.first
-                        : item.type;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: _kTagPaddingHorizontal,
-                          vertical: _kTagPaddingVertical),
-                      decoration: BoxDecoration(
-                        color: scheme.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          color: scheme.onPrimary,
-                          fontSize: _kFontSizeSmall,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: _kSpacingMedium),
-                // 标题 + 评分 + 时长
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _buildTitle(item),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: scheme.onSurface,
-                          fontSize: _kFontSizeLarge,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: _kSpacingLarge),
-                    if (item.displayRating != null && item.displayRating! > 0)
-                      Text(
-                        '★ ${item.displayRating!.toStringAsFixed(1)}',
-                        style: TextStyle(
+            child: GestureDetector(
+              onTap: onInfoTap,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 类型标签（genre 优先，回退到 type）
+                  Builder(
+                    builder: (_) {
+                      final tag =
+                          (item.genres != null && item.genres!.isNotEmpty)
+                              ? item.genres!.first
+                              : item.type;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: _kTagPaddingHorizontal,
+                            vertical: _kTagPaddingVertical),
+                        decoration: BoxDecoration(
                           color: scheme.primary,
-                          fontSize: _kFontSizeMedium,
-                          fontWeight: FontWeight.w700,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                    const SizedBox(width: _kSpacingSmall),
-                    if (item.durationSeconds != null &&
-                        item.durationSeconds! > 0)
-                      Text(
-                        _formatDuration(item.durationSeconds!.toInt()),
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: _kFontSizeMedium,
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            color: scheme.onPrimary,
+                            fontSize: _kFontSizeSmall,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: _kSpacingSmall),
-                // 简介（2行）
-                if (item.overview != null && item.overview!.isNotEmpty)
-                  Text(
-                    item.overview!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: _kFontSizeMedium,
-                    ),
+                      );
+                    },
                   ),
-                // 导演/主演
-                if (item.people != null && item.people!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: _kSpacingSmall),
-                    child: Text(
-                      _buildPeopleSummary(item.people!),
-                      maxLines: 1,
+                  const SizedBox(height: _kSpacingMedium),
+                  // 标题 + 评分 + 时长
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _buildTitle(item),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurface,
+                            fontSize: _kFontSizeLarge,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: _kSpacingLarge),
+                      if (item.displayRating != null && item.displayRating! > 0)
+                        Text(
+                          '★ ${item.displayRating!.toStringAsFixed(1)}',
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontSize: _kFontSizeMedium,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      // 用户评分（如有）
+                      if (item.userRating != null && item.userRating! > 0) ...[
+                        const SizedBox(width: _kSpacingSmall),
+                        Text(
+                          '你 ★ ${item.userRating!.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: scheme.tertiary,
+                            fontSize: _kFontSizeMedium,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: _kSpacingSmall),
+                      if (item.durationSeconds != null &&
+                          item.durationSeconds! > 0)
+                        Text(
+                          _formatDuration(item.durationSeconds!.toInt()),
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: _kFontSizeMedium,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: _kSpacingSmall),
+                  // 简介（2行）
+                  if (item.overview != null && item.overview!.isNotEmpty)
+                    Text(
+                      item.overview!,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                        fontSize: _kFontSizeSmall,
+                        color: scheme.onSurfaceVariant,
+                        fontSize: _kFontSizeMedium,
                       ),
                     ),
-                  ),
-                // 进度条
-                if (hasController)
-                  Padding(
-                    padding: const EdgeInsets.only(top: _kSpacingLarge),
-                    child: SeekableProgressBar(
-                      controller: controller!,
-                      formatDuration: formatDuration,
+                  // 导演/主演
+                  if (item.people != null && item.people!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: _kSpacingSmall),
+                      child: Text(
+                        _buildPeopleSummary(item.people!),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          fontSize: _kFontSizeSmall,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
+                  // 进度条
+                  if (hasController)
+                    Padding(
+                      padding: const EdgeInsets.only(top: _kSpacingLarge),
+                      child: SeekableProgressBar(
+                        controller: controller!,
+                        formatDuration: formatDuration,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
