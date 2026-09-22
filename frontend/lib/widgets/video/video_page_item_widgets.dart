@@ -350,45 +350,50 @@ class _BottomInfoBar extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: _kSpacingSmall),
-                      // 简介（2行）
+                      // 简介（1行）
                       if (item.overview != null && item.overview!.isNotEmpty)
                         Text(
                           item.overview!,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: scheme.onSurfaceVariant,
                             fontSize: _kFontSizeMedium,
                           ),
                         ),
-                      // 播放次数（如有）
-                      if (item.userData != null && item.userData!.playCount > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(top: _kSpacingSmall),
-                          child: Text(
-                            '已播放 ${item.userData!.playCount} 次',
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.7),
-                              fontSize: _kFontSizeSmall,
+                      // 导演/主演 + 播放次数（合并一行）
+                      Builder(
+                        builder: (_) {
+                          final peopleStr =
+                              (item.people != null && item.people!.isNotEmpty)
+                                  ? _buildPeopleSummary(item.people!)
+                                  : null;
+                          final playCountStr = (item.userData != null &&
+                                  item.userData!.playCount > 0)
+                              ? '已播放 ${item.userData!.playCount} 次'
+                              : null;
+                          if (peopleStr == null && playCountStr == null) {
+                            return const SizedBox.shrink();
+                          }
+                          final text = [
+                            if (peopleStr != null) peopleStr,
+                            if (playCountStr != null) playCountStr,
+                          ].join('  |  ');
+                          return Padding(
+                            padding: const EdgeInsets.only(top: _kSpacingSmall),
+                            child: Text(
+                              text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                                fontSize: _kFontSizeSmall,
+                              ),
                             ),
-                          ),
-                        ),
-                      // 导演/主演
-                      if (item.people != null && item.people!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: _kSpacingSmall),
-                          child: Text(
-                            _buildPeopleSummary(item.people!),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.8),
-                              fontSize: _kFontSizeSmall,
-                            ),
-                          ),
-                        ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
