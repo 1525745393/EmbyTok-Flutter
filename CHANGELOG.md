@@ -1,3 +1,14 @@
+# [2.152.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.151.0...v2.152.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 演员chip可点击，点击关闭详情页并提示 ([5f72623](https://github.com/1525745393/EmbyTok-Flutter/commit/5f7262394ec7c5a381d12b134675c8ca2c115c91))
+* **feed:** 详情页加分享按钮 ([6a8ed80](https://github.com/1525745393/EmbyTok-Flutter/commit/6a8ed80af17ba5bf8be7f3453e59a080d09b4e71))
+* **feed:** 详情页加收藏按钮和播放进度 ([47a718e](https://github.com/1525745393/EmbyTok-Flutter/commit/47a718eeea756edc53603e05b4bfc5c6e792002e))
+* **feed:** 详情页用Emby原生图片API获取海报和背景图 ([b07a0c2](https://github.com/1525745393/EmbyTok-Flutter/commit/b07a0c2b5dd825690498d3834be9bb4bf0bd5cc9))
+* **feed:** 详情页背景用BackdropFilter真正模糊 ([339bf8b](https://github.com/1525745393/EmbyTok-Flutter/commit/339bf8b3f38278865a6845e22dd23428027ab867))
+
 # [2.151.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.150.0...v2.151.0) (2026-09-22)
 
 
