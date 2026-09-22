@@ -241,10 +241,10 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
               child: Stack(
                 children: [
                   // 背景模糊海报
-                  if (item.imageUrl != null)
+                  if (item.thumbnailUrl != null)
                     Positioned.fill(
                       child: Image.network(
-                        item.imageUrl!,
+                        item.thumbnailUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
@@ -273,11 +273,11 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                         ),
                         const SizedBox(height: 16),
                         // 封面海报
-                        if (item.imageUrl != null)
+                        if (item.thumbnailUrl != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(
-                              item.imageUrl!,
+                              item.thumbnailUrl!,
                               height: 200,
                               width: double.infinity,
                               fit: BoxFit.cover,
