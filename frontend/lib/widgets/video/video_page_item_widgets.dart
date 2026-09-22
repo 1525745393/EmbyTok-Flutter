@@ -361,6 +361,19 @@ class _BottomInfoBar extends StatelessWidget {
                             fontSize: _kFontSizeMedium,
                           ),
                         ),
+                      // 播放次数（如有）
+                      if (item.userData != null && item.userData!.playCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: _kSpacingSmall),
+                          child: Text(
+                            '已播放 ${item.userData!.playCount} 次',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                              fontSize: _kFontSizeSmall,
+                            ),
+                          ),
+                        ),
                       // 导演/主演
                       if (item.people != null && item.people!.isNotEmpty)
                         Padding(
