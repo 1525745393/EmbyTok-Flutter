@@ -1,6 +1,8 @@
 // 视频播放相关的底部弹出面板和对话框
 // 包含：倍速调节面板、字幕选择器、删除确认对话框、视频信息面板
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -254,7 +256,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
               ),
               child: Stack(
                 children: [
-                  // 背景模糊海报（用 Emby backdrop）
+                  // 背景模糊海报（用 Emby backdrop + BackdropFilter 真正模糊）
                   if (backdropUrl != null)
                     Positioned.fill(
                       child: Image.network(
@@ -263,10 +265,20 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
+                  // 真正模糊
+                  if (backdropUrl != null)
+                    Positioned.fill(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          color: scheme.surface.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ),
                   // 深色遮罩
                   Positioned.fill(
                     child: Container(
-                      color: scheme.surface.withValues(alpha: 0.85),
+                      color: scheme.surface.withValues(alpha: 0.7),
                     ),
                   ),
                   // 内容
