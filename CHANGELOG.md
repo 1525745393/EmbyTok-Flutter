@@ -1,3 +1,12 @@
+## [2.149.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.2...v2.149.3) (2026-09-22)
+
+
+### Bug Fixes
+
+* **feed:** 底栏内容往下移贴近底部 ([679109b](https://github.com/1525745393/EmbyTok-Flutter/commit/679109bdca0bbd6161bd7a75ce468b2c4a0ba718))
+* **feed:** 底栏恢复全部内容+深色背景避免遮挡 ([86631f0](https://github.com/1525745393/EmbyTok-Flutter/commit/86631f0d0c6f4390ff296960fefe349a2e77a787))
+* **feed:** 底栏精简到最少避免遮挡视频 ([61ef2f8](https://github.com/1525745393/EmbyTok-Flutter/commit/61ef2f874cad7f1ba3610c3c6a8ac2a33144e6f3))
+
 ## [2.149.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.1...v2.149.2) (2026-09-22)
 
 
