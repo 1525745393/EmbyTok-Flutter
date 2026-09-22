@@ -253,35 +253,40 @@ class _BottomInfoBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 类型标签
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: _kTagPaddingHorizontal,
-                      vertical: _kTagPaddingVertical),
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    item.type,
-                    style: TextStyle(
-                      color: scheme.onPrimary,
-                      fontSize: _kFontSizeSmall,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                // 类型标签（genre 优先，回退到 type）
+                Builder(
+                  builder: (_) {
+                    final tag = (item.genres != null && item.genres!.isNotEmpty)
+                        ? item.genres!.first
+                        : item.type;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: _kTagPaddingHorizontal,
+                          vertical: _kTagPaddingVertical),
+                      decoration: BoxDecoration(
+                        color: scheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          color: scheme.onPrimary,
+                          fontSize: _kFontSizeSmall,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: _kSpacingMedium),
-                // 标题 + 评分
+                // 标题 + 评分 + 时长
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Expanded(
                       child: Text(
-                        item.year != null
-                            ? '${item.title} (${item.year})'
-                            : item.title,
+                        _buildTitle(item),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -301,18 +306,42 @@ class _BottomInfoBar extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                    const SizedBox(width: _kSpacingSmall),
+                    if (item.durationSeconds != null &&
+                        item.durationSeconds! > 0)
+                      Text(
+                        _formatDuration(item.durationSeconds!.toInt()),
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: _kFontSizeMedium,
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: _kSpacingSmall),
-                // 简介
+                // 简介（2行）
                 if (item.overview != null && item.overview!.isNotEmpty)
                   Text(
                     item.overview!,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
                       fontSize: _kFontSizeMedium,
+                    ),
+                  ),
+                // 导演/主演
+                if (item.people != null && item.people!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: _kSpacingSmall),
+                    child: Text(
+                      _buildPeopleSummary(item.people!),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        fontSize: _kFontSizeSmall,
+                      ),
                     ),
                   ),
                 // 进度条
@@ -369,3 +398,40 @@ class _CenterPlayButtonWrapper extends ConsumerWidget {
 ///
 /// 从 [VideoPageItem] 提取为独立 Widget，减少父组件 build 复杂度。
 /// 内部大部分子组件不随父组件状态变化而重建，提升 PageView 滑动性能。
+
+String _buildTitle(MediaItem item) {
+  // 剧集：显示 S01E05 集名
+  if (item.type == 'Episode' && item.parentIndexNumber != null) {
+    final s = item.parentIndexNumber.toString().padLeft(2, '0');
+    final e = (item.indexNumber ?? 0).toString().padLeft(2, '0');
+    final series = item.seriesName != null ? '${item.seriesName} ' : '';
+    return '$series[S$s E$e] ${item.title}';
+  }
+  // 电影：标题 (年份)
+  if (item.year != null) return '${item.title} (${item.year})';
+  return item.title;
+}
+
+String _formatDuration(int seconds) {
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  if (h > 0) return '${h}h ${m}m';
+  return '${m}m';
+}
+
+String _buildPeopleSummary(List<Person> people) {
+  final directors = people
+      .where((p) => p.type == 'Director')
+      .map((p) => p.name)
+      .take(2)
+      .join('、');
+  final actors = people
+      .where((p) => p.type == 'Actor')
+      .map((p) => p.name)
+      .take(3)
+      .join('、');
+  final parts = <String>[];
+  if (directors.isNotEmpty) parts.add('导演：$directors');
+  if (actors.isNotEmpty) parts.add('主演：$actors');
+  return parts.join('  |  ');
+}
