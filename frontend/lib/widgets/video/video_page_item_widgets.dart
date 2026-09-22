@@ -262,39 +262,6 @@ class _BottomInfoBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 类型标签（前2个genre，回退到 type）
-                      Builder(
-                        builder: (_) {
-                          final tags =
-                              (item.genres != null && item.genres!.isNotEmpty)
-                                  ? item.genres!.take(2).toList()
-                                  : [item.type];
-                          return Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: tags
-                                .map((t) => Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: _kTagPaddingHorizontal,
-                                          vertical: _kTagPaddingVertical),
-                                      decoration: BoxDecoration(
-                                        color: scheme.primary,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        t,
-                                        style: TextStyle(
-                                          color: scheme.onPrimary,
-                                          fontSize: _kFontSizeSmall,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ))
-                                .toList(),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: _kSpacingMedium),
                       // 标题 + 评分 + 时长
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -361,39 +328,6 @@ class _BottomInfoBar extends StatelessWidget {
                             fontSize: _kFontSizeMedium,
                           ),
                         ),
-                      // 导演/主演 + 播放次数（合并一行）
-                      Builder(
-                        builder: (_) {
-                          final peopleStr =
-                              (item.people != null && item.people!.isNotEmpty)
-                                  ? _buildPeopleSummary(item.people!)
-                                  : null;
-                          final playCountStr = (item.userData != null &&
-                                  item.userData!.playCount > 0)
-                              ? '已播放 ${item.userData!.playCount} 次'
-                              : null;
-                          if (peopleStr == null && playCountStr == null) {
-                            return const SizedBox.shrink();
-                          }
-                          final text = [
-                            if (peopleStr != null) peopleStr,
-                            if (playCountStr != null) playCountStr,
-                          ].join('  |  ');
-                          return Padding(
-                            padding: const EdgeInsets.only(top: _kSpacingSmall),
-                            child: Text(
-                              text,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: scheme.onSurfaceVariant
-                                    .withValues(alpha: 0.8),
-                                fontSize: _kFontSizeSmall,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     ],
                   ),
                 ),
@@ -472,19 +406,3 @@ String _formatDurationFromSeconds(int seconds) {
   return '${m}m';
 }
 
-String _buildPeopleSummary(List<Person> people) {
-  final directors = people
-      .where((p) => p.type == 'Director')
-      .map((p) => p.name)
-      .take(2)
-      .join('、');
-  final actors = people
-      .where((p) => p.type == 'Actor')
-      .map((p) => p.name)
-      .take(3)
-      .join('、');
-  final parts = <String>[];
-  if (directors.isNotEmpty) parts.add('导演：$directors');
-  if (actors.isNotEmpty) parts.add('主演：$actors');
-  return parts.join('  |  ');
-}

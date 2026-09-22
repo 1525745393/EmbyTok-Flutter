@@ -45,7 +45,7 @@ part 'video_page_item_reporting.dart';
 // ===== UI 布局常量（避免魔法数字，提升可维护性）=====
 
 /// 底部信息栏渐变遮罩高度
-const double _kBottomInfoGradientHeight = 120;
+const double _kBottomInfoGradientHeight = 80;
 
 /// 底部控制栏高度（VideoControls compact 模式）
 const double _kBottomControlBarHeight = 24;
