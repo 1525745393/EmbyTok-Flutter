@@ -1,3 +1,17 @@
+# [2.147.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.146.0...v2.147.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* **feed:** 进度条移出GestureDetector避免点击进度条弹出详情 ([5df3cb2](https://github.com/1525745393/EmbyTok-Flutter/commit/5df3cb23b3564d051cebeec1553ae3324a13f893))
+* **feed:** 重命名_formatDuration避免与actions.dart冲突导致CI编译失败 ([4346b2b](https://github.com/1525745393/EmbyTok-Flutter/commit/4346b2b10418fbfbd98828b2aee50ce30b24443a))
+
+
+### Features
+
+* **feed:** 底栏详情可点击跳转+显示用户评分 ([6094140](https://github.com/1525745393/EmbyTok-Flutter/commit/6094140290d9e2788f0081cc2855fb45f1f1dacc))
+* **feed:** 视频流底栏详情增强 ([745e1c1](https://github.com/1525745393/EmbyTok-Flutter/commit/745e1c16a44b319ff38411637aa5c5a463117464))
+
 # [2.146.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.145.2...v2.146.0) (2026-09-21)
 
 
