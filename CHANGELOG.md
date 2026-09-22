@@ -1,3 +1,10 @@
+## [2.149.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.0...v2.149.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **feed:** 底栏渐变高度从80加到160避免内容遮挡视频 ([0899e44](https://github.com/1525745393/EmbyTok-Flutter/commit/0899e441b738f79ac5b06930383b9268776c7496))
+
 # [2.149.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.148.0...v2.149.0) (2026-09-22)
 
 
