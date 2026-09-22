@@ -1,3 +1,10 @@
+# [2.148.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.147.0...v2.148.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 类型标签显示前2个genre ([c14f9ff](https://github.com/1525745393/EmbyTok-Flutter/commit/c14f9ff9f521ba389620dcbcbd4f58978b68dfc2))
+
 # [2.147.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.146.0...v2.147.0) (2026-09-22)
 
 
