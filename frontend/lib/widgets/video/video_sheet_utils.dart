@@ -674,31 +674,39 @@ class _PersonChipList extends ConsumerWidget {
             ? '${p.name} ($role)'
             : p.name;
         final imageUrl = p.imageUrl;
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipOval(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: PersonAvatarImage(
-                    imageUrl: imageUrl,
-                    httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
-                    size: 24,
-                    memCacheWidth: 48,
+        return GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('查看演员：${p.name}')),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: scheme.surface.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipOval(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: PersonAvatarImage(
+                      imageUrl: imageUrl,
+                      httpHeaders: httpHeaders.isNotEmpty ? httpHeaders : null,
+                      size: 24,
+                      memCacheWidth: 48,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(display,
-                  style: TextStyle(color: scheme.onSurface, fontSize: 13)),
-            ],
+                const SizedBox(width: 6),
+                Text(display,
+                    style: TextStyle(color: scheme.onSurface, fontSize: 13)),
+              ],
+            ),
           ),
         );
       }).toList(),
