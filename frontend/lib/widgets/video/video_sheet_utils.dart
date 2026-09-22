@@ -648,25 +648,67 @@ class _VideoInfoChip extends StatelessWidget {
 }
 
 // ===== 收藏按钮 =====
-class _FavoriteButton extends ConsumerWidget {
+class _FavoriteButton extends ConsumerStatefulWidget {
   const _FavoriteButton({required this.item});
   final MediaItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    final isFavorite = item.userData?.isFavorite ?? item.isFavorite ?? false;
-    return IconButton(
-      icon: Icon(
-        isFavorite ? Icons.favorite : Icons.favorite_border,
-        color: isFavorite ? scheme.primary : scheme.onSurfaceVariant,
-      ),
-      onPressed: () {
-        // TODO: 调用 Emby API 切换收藏
+  ConsumerState<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
+  late bool _isFavorite;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite =
+        widget.item.userData?.isFavorite ?? widget.item.isFavorite ?? false;
+  }
+
+  Future<void> _toggle() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    final newVal = !_isFavorite;
+    try {
+      final api = ref.read(mediaServerApiProvider);
+      await api.toggleFavorite(
+        itemId: widget.item.id,
+        isFavorite: newVal,
+      );
+      setState(() => _isFavorite = newVal);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isFavorite ? '已取消收藏' : '已收藏')),
+          SnackBar(content: Text(newVal ? '已收藏' : '已取消收藏')),
         );
-      },
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作失败：$e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton(
+      icon: _loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? scheme.primary : scheme.onSurfaceVariant,
+            ),
+      onPressed: _loading ? null : _toggle,
     );
   }
 }
