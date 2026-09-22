@@ -210,6 +210,20 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
   final isEpisode =
       type == 'Episode' || (seriesName != null && seriesName.isNotEmpty);
 
+  // 从 Emby 服务器获取真正的海报/背景图 URL
+  final container = ProviderScope.containerOf(context);
+  final auth = container.read(authProvider);
+  final posterUrl = item.primaryUrl(
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 500,
+  );
+  final backdropUrl = item.backdropUrl(
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 1280,
+  );
+
   List<Person>? actors;
   List<Person>? directors;
   if (people != null && people.isNotEmpty) {
@@ -240,11 +254,11 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
               ),
               child: Stack(
                 children: [
-                  // 背景模糊海报
-                  if (item.thumbnailUrl != null)
+                  // 背景模糊海报（用 Emby backdrop）
+                  if (backdropUrl != null)
                     Positioned.fill(
                       child: Image.network(
-                        item.thumbnailUrl!,
+                        backdropUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
@@ -272,12 +286,12 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // 封面海报
-                        if (item.thumbnailUrl != null)
+                        // 封面海报（用 Emby primary poster）
+                        if (posterUrl != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.network(
-                              item.thumbnailUrl!,
+                              posterUrl,
                               height: 200,
                               width: double.infinity,
                               fit: BoxFit.cover,
