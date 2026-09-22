@@ -1,3 +1,10 @@
+# [2.149.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.148.0...v2.149.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 底栏显示播放次数 ([e0bc0dc](https://github.com/1525745393/EmbyTok-Flutter/commit/e0bc0dc4341eb9d160616ab99746fc0b678067b6))
+
 # [2.148.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.147.0...v2.148.0) (2026-09-22)
 
 
