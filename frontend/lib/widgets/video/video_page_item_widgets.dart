@@ -228,15 +228,12 @@ class _BottomInfoBar extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.fromLTRB(
               _kHorizontalPadding,
-              _kBottomInfoGradientHeight,
+              0,
               rs(_kRightActionWidth, 2.0) + _kHorizontalPadding,
               // 全面屏适配：底部叠加导航栏高度，避免进度条 / 时间文字
               // 与 HomeScaffold 底部导航栏发生视觉重叠。
               toolbarVisible
-                  ? bottomPadding +
-                      _kBottomControlBarHeight +
-                      _kBottomInfoGradientHeight +
-                      kBottomNavHeight
+                  ? bottomPadding + _kBottomControlBarHeight + kBottomNavHeight
                   : bottomPadding + _kBottomControlBarHeight + kBottomNavHeight,
             ),
             decoration: BoxDecoration(
