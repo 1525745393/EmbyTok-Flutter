@@ -1,3 +1,10 @@
+# [2.153.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.152.0...v2.153.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 详情页加剧集导航（上一集/下一集） ([cb86cba](https://github.com/1525745393/EmbyTok-Flutter/commit/cb86cba51690f4988eb2b05a1e2b97597bda36e8))
+
 # [2.152.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.151.0...v2.152.0) (2026-09-22)
 
 
