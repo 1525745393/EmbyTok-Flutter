@@ -1,3 +1,10 @@
+# [2.151.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.150.0...v2.151.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 类型标签拆成单独chip可点击，点击关闭详情页 ([51b080c](https://github.com/1525745393/EmbyTok-Flutter/commit/51b080c193c0650b71c189697db055996936ba57))
+
 # [2.150.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.3...v2.150.0) (2026-09-22)
 
 
