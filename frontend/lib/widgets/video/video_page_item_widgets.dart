@@ -334,7 +334,8 @@ class _BottomInfoBar extends StatelessWidget {
                           if (item.durationSeconds != null &&
                               item.durationSeconds! > 0)
                             Text(
-                              _formatDuration(item.durationSeconds!.toInt()),
+                              _formatDurationFromSeconds(
+                                  item.durationSeconds!.toInt()),
                               style: TextStyle(
                                 color: scheme.onSurfaceVariant,
                                 fontSize: _kFontSizeMedium,
@@ -440,7 +441,7 @@ String _buildTitle(MediaItem item) {
   return item.title;
 }
 
-String _formatDuration(int seconds) {
+String _formatDurationFromSeconds(int seconds) {
   final h = seconds ~/ 3600;
   final m = (seconds % 3600) ~/ 60;
   if (h > 0) return '${h}h ${m}m';
