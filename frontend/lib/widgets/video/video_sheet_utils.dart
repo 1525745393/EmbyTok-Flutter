@@ -223,7 +223,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
 
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: scheme.surface.withValues(alpha: 0.9),
+    backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (context) {
       return DraggableScrollableSheet(
@@ -232,70 +232,112 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
         maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) {
-          return Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            child: ListView(
-              controller: scrollController,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: scheme.onSurface.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(2),
+          return ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Container(
+              decoration: BoxDecoration(
+                color: scheme.surface.withValues(alpha: 0.95),
+              ),
+              child: Stack(
+                children: [
+                  // 背景模糊海报
+                  if (item.imageUrl != null)
+                    Positioned.fill(
+                      child: Image.network(
+                        item.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  // 深色遮罩
+                  Positioned.fill(
+                    child: Container(
+                      color: scheme.surface.withValues(alpha: 0.85),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(item.title,
-                    style: TextStyle(
-                        color: scheme.onSurface,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                _InfoActionRow(item: item),
-                const SizedBox(height: 8),
-                _VideoInfoSubtitle(
-                  type: type,
-                  year: year,
-                  isEpisode: isEpisode,
-                  seriesName: item.seriesName,
-                  season: item.parentIndexNumber,
-                  episode: item.indexNumber,
-                ),
-                const SizedBox(height: 20),
-                _VideoInfoRowItems(
-                  duration: duration,
-                  rating: rating,
-                  genres: genres,
-                  studios: studios,
-                ),
-                const SizedBox(height: 24),
-                if (overview != null && overview.isNotEmpty) ...[
-                  const _VideoInfoSectionLabel('简介'),
-                  const SizedBox(height: 8),
-                  Text(overview,
-                      style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontSize: 14,
-                          height: 1.5)),
-                  const SizedBox(height: 24),
+                  // 内容
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                    child: ListView(
+                      controller: scrollController,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: scheme.onSurface.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // 封面海报
+                        if (item.imageUrl != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              item.imageUrl!,
+                              height: 200,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                height: 200,
+                                color: scheme.onSurface.withValues(alpha: 0.1),
+                                child: Icon(Icons.movie,
+                                    size: 48, color: scheme.onSurfaceVariant),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        Text(item.title,
+                            style: TextStyle(
+                                color: scheme.onSurface,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        _InfoActionRow(item: item),
+                        const SizedBox(height: 8),
+                        _VideoInfoSubtitle(
+                          type: type,
+                          year: year,
+                          isEpisode: isEpisode,
+                          seriesName: item.seriesName,
+                          season: item.parentIndexNumber,
+                          episode: item.indexNumber,
+                        ),
+                        const SizedBox(height: 20),
+                        _VideoInfoRowItems(
+                          duration: duration,
+                          rating: rating,
+                          genres: genres,
+                          studios: studios,
+                        ),
+                        const SizedBox(height: 24),
+                        if (overview != null && overview.isNotEmpty) ...[
+                          const _VideoInfoSectionLabel('简介'),
+                          const SizedBox(height: 8),
+                          _OverviewExpandable(text: overview),
+                          const SizedBox(height: 24),
+                        ],
+                        if (actors != null && actors.isNotEmpty) ...[
+                          const _VideoInfoSectionLabel('主演'),
+                          const SizedBox(height: 8),
+                          _PersonChipList(people: actors),
+                          const SizedBox(height: 24),
+                        ],
+                        if (directors != null && directors.isNotEmpty) ...[
+                          const _VideoInfoSectionLabel('导演'),
+                          const SizedBox(height: 8),
+                          _PersonChipList(people: directors),
+                          const SizedBox(height: 24),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 ],
-                if (actors != null && actors.isNotEmpty) ...[
-                  const _VideoInfoSectionLabel('主演'),
-                  const SizedBox(height: 8),
-                  _PersonChipList(people: actors),
-                  const SizedBox(height: 24),
-                ],
-                if (directors != null && directors.isNotEmpty) ...[
-                  const _VideoInfoSectionLabel('导演'),
-                  const SizedBox(height: 8),
-                  _PersonChipList(people: directors),
-                  const SizedBox(height: 24),
-                ],
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           );
         },
@@ -415,6 +457,54 @@ class _VideoInfoRowItems extends StatelessWidget {
     }
     if (widgets.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 12, runSpacing: 10, children: widgets);
+  }
+}
+
+// ===== 简介展开/收起 =====
+class _OverviewExpandable extends StatefulWidget {
+  const _OverviewExpandable({required this.text});
+  final String text;
+
+  @override
+  State<_OverviewExpandable> createState() => _OverviewExpandableState();
+}
+
+class _OverviewExpandableState extends State<_OverviewExpandable> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isLong = widget.text.length > 100;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          maxLines: _expanded || !isLong ? null : 3,
+          overflow: _expanded || !isLong
+              ? TextOverflow.visible
+              : TextOverflow.ellipsis,
+          style: TextStyle(
+              color: scheme.onSurfaceVariant, fontSize: 14, height: 1.5),
+        ),
+        if (isLong)
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                _expanded ? '收起' : '展开全部',
+                style: TextStyle(
+                  color: scheme.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
