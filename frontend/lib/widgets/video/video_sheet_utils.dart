@@ -448,8 +448,19 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      widgets
-          .add(_VideoInfoChip(label: '类型', value: genres.take(3).join(' / ')));
+      // 类型：拆成单独 chip，可点击
+      for (final g in genres.take(3)) {
+        widgets.add(_VideoInfoChip(
+          label: '类型',
+          value: g,
+          onTap: () {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('筛选类型：$g')),
+            );
+          },
+        ));
+      }
     }
     final s = studios;
     if (s != null && s.isNotEmpty) {
@@ -514,15 +525,17 @@ class _VideoInfoChip extends StatelessWidget {
     required this.label,
     required this.value,
     this.highlight = false,
+    this.onTap,
   });
   final String label;
   final String value;
   final bool highlight;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: scheme.onSurface.withValues(alpha: 0.08),
@@ -550,6 +563,7 @@ class _VideoInfoChip extends StatelessWidget {
         ],
       ),
     );
+    return onTap != null ? GestureDetector(onTap: onTap, child: chip) : chip;
   }
 }
 
