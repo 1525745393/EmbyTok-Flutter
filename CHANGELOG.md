@@ -1,3 +1,15 @@
+# [2.150.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.3...v2.150.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* **feed:** imageUrl是方法不是字段，改用thumbnailUrl ([54be4bb](https://github.com/1525745393/EmbyTok-Flutter/commit/54be4bb5170a2d990d007960f33a079c817bba3e))
+
+
+### Features
+
+* **feed:** 详情页优化 ([723035e](https://github.com/1525745393/EmbyTok-Flutter/commit/723035e710254ff85f61ce05302f90b601392886))
+
 ## [2.149.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.2...v2.149.3) (2026-09-22)
 
 
