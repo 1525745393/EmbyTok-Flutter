@@ -1,3 +1,10 @@
+# [2.154.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.153.0...v2.154.0) (2026-09-22)
+
+
+### Features
+
+* **feed:** 收藏按钮真正对接Emby API ([a8f2867](https://github.com/1525745393/EmbyTok-Flutter/commit/a8f28673b3aebee6cd2a909e7b45113a10f354d3))
+
 # [2.153.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.152.0...v2.153.0) (2026-09-22)
 
 
