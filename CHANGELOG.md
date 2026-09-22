@@ -1,3 +1,10 @@
+## [2.149.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.1...v2.149.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **feed:** 底栏精简避免遮挡视频 ([e9010f5](https://github.com/1525745393/EmbyTok-Flutter/commit/e9010f58f4d0b00bf9adb64f4092f2e262aa8e8a))
+
 ## [2.149.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.149.0...v2.149.1) (2026-09-22)
 
 
