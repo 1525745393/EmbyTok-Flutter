@@ -676,8 +676,9 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击跳转到 Emby 类型筛选页（最多显示3个，超出显示更多）
+      // 类型：拆成单独 chip，点击后设置为发现页筛选条件并跳转
       final router = GoRouter.of(context);
+      final container = ProviderScope.containerOf(context);
       final displayGenres = genres.take(3).toList();
       for (final g in displayGenres) {
         widgets.add(_VideoInfoChip(
@@ -685,7 +686,8 @@ class _VideoInfoRowItems extends StatelessWidget {
           value: g,
           onTap: () {
             Navigator.pop(context);
-            router.push('/genre/${Uri.encodeComponent(g)}');
+            container.read(discoverProvider.notifier).saveSelection([g]);
+            router.push('/discover');
           },
         ));
       }
@@ -694,7 +696,6 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '',
           value: '+${genres.length - 3}',
           onTap: () {
-            final router = GoRouter.of(context);
             showDialog<void>(
               context: context,
               builder: (dialogContext) => AlertDialog(
@@ -708,7 +709,10 @@ class _VideoInfoRowItems extends StatelessWidget {
                             onPressed: () {
                               Navigator.pop(dialogContext); // 关闭对话框
                               Navigator.pop(context); // 关闭详情页 bottom sheet
-                              router.push('/genre/${Uri.encodeComponent(g)}');
+                              container
+                                  .read(discoverProvider.notifier)
+                                  .saveSelection([g]);
+                              router.push('/discover');
                             },
                           ))
                       .toList(),
