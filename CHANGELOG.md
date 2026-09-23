@@ -1,3 +1,10 @@
+## [2.159.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.0...v2.159.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **feed:** 演员头像用Emby API构造URL ([9d6b3a3](https://github.com/1525745393/EmbyTok-Flutter/commit/9d6b3a3b0ec1ab474c890ba0ce8353bff4897fc8))
+
 # [2.159.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.158.1...v2.159.0) (2026-09-23)
 
 
