@@ -1,3 +1,10 @@
+# [2.156.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.155.3...v2.156.0) (2026-09-23)
+
+
+### Features
+
+* **feed:** 演员chip点击真正跳转到演员详情页 ([a6f3d41](https://github.com/1525745393/EmbyTok-Flutter/commit/a6f3d41bc51c095235cc5e3b5ad73a65a851ab02))
+
 ## [2.155.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.155.2...v2.155.3) (2026-09-23)
 
 
