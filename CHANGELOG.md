@@ -1,3 +1,10 @@
+## [2.158.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.158.0...v2.158.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **feed:** 封面海报用CachedNetworkImage缓存+加载中状态 ([5f307db](https://github.com/1525745393/EmbyTok-Flutter/commit/5f307db6e75c8535269d9e39e6222ec7f49ef246))
+
 # [2.158.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.157.0...v2.158.0) (2026-09-23)
 
 
