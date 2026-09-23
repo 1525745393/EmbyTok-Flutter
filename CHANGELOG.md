@@ -1,3 +1,10 @@
+## [2.161.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.2...v2.161.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* 详情页类型标签3个问题修复 ([5d460cd](https://github.com/1525745393/EmbyTok-Flutter/commit/5d460cd64f1caa8cb0282d99cde28ee5d49253fb))
+
 ## [2.161.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.1...v2.161.2) (2026-09-23)
 
 
