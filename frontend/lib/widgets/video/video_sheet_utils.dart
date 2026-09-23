@@ -588,8 +588,9 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，可点击
-      for (final g in genres.take(3)) {
+      // 类型：拆成单独 chip，可点击（最多显示3个，超出显示更多）
+      final displayGenres = genres.take(3).toList();
+      for (final g in displayGenres) {
         widgets.add(_VideoInfoChip(
           label: '类型',
           value: g,
@@ -597,6 +598,42 @@ class _VideoInfoRowItems extends StatelessWidget {
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('筛选类型：$g')),
+            );
+          },
+        ));
+      }
+      if (genres.length > 3) {
+        widgets.add(_VideoInfoChip(
+          label: '类型',
+          value: '+${genres.length - 3}',
+          onTap: () {
+            showDialog<void>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('全部类型'),
+                content: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: genres
+                      .map((g) => ActionChip(
+                            label: Text(g),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('筛选类型：$g')),
+                              );
+                            },
+                          ))
+                      .toList(),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('关闭'),
+                  ),
+                ],
+              ),
             );
           },
         ));
