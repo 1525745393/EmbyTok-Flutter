@@ -1,3 +1,10 @@
+## [2.159.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.4...v2.159.5) (2026-09-23)
+
+
+### Bug Fixes
+
+* **feed:** 详情页封面海报用缩略图（thumbnailUrl） ([56fa536](https://github.com/1525745393/EmbyTok-Flutter/commit/56fa5364b066f812499ff108e1c9ac9b02916341))
+
 ## [2.159.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.3...v2.159.4) (2026-09-23)
 
 
