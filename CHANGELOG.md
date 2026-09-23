@@ -1,3 +1,10 @@
+# [2.161.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.160.0...v2.161.0) (2026-09-23)
+
+
+### Features
+
+* 详情页海报和缩略图支持点击全屏放大查看 ([452fe38](https://github.com/1525745393/EmbyTok-Flutter/commit/452fe38cef5c4ebfb4212a17f5c4b6808f1bd3d0))
+
 # [2.160.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.8...v2.160.0) (2026-09-23)
 
 
