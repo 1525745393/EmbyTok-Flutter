@@ -11,7 +11,7 @@ library;
 const String embytokVersion = '2.161.7';
 
 /// 构建号（与 Android versionCode / iOS buildNumber 对齐）
-const int embytokBuildNumber = 1028;
+const int embytokBuildNumber = 1029;
 
 /// 完整版本信息
 String get embytokFullVersion => '$embytokVersion+$embytokBuildNumber';

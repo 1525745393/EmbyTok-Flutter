@@ -64,7 +64,7 @@ android {
         targetSdk 34
         // 从 pubspec.yaml 显式解析：version: X.Y.Z+B
         // versionName "2.161.7"
-        versionCode 1028
+        versionCode 1029
         versionName "2.161.7"
     }
 

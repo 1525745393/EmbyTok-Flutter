@@ -3,6 +3,14 @@
 
 ### Bug Fixes
 
+* 收藏合集查询补充UserId参数 ([fbb1ddb](https://github.com/1525745393/EmbyTok-Flutter/commit/fbb1ddbef03342563cb0e94d105239e3f42e1824))
+* 类型标签点击后context失效导致跳转异常 ([fe3f152](https://github.com/1525745393/EmbyTok-Flutter/commit/fe3f152e8325e785cf00b2280008d48747838049))
+
+## [2.161.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.6...v2.161.7) (2026-09-23)
+
+
+### Bug Fixes
+
 * 类型标签点击后context失效导致跳转异常 ([fe3f152](https://github.com/1525745393/EmbyTok-Flutter/commit/fe3f152e8325e785cf00b2280008d48747838049))
 
 ## [2.161.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.5...v2.161.6) (2026-09-23)
