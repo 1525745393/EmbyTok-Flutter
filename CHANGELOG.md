@@ -1,3 +1,10 @@
+## [2.162.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.2...v2.162.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* 发现页加载防抖，避免连续添加类型时重复请求 ([12aef7a](https://github.com/1525745393/EmbyTok-Flutter/commit/12aef7a2d9dcf408fe49c4c51481e9effb3a9289))
+
 ## [2.162.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.1...v2.162.2) (2026-09-23)
 
 
