@@ -676,17 +676,11 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击后追加到发现页筛选条件（去重）
-      final container = ProviderScope.containerOf(context);
-      void addGenreToDiscover(String g) {
-        container.read(discoverProvider.notifier).addGenre(g).then((added) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(added ? '已添加「$g」到发现页筛选' : '「$g」已在发现页筛选中'),
-            ),
-          );
-        });
+      // 类型：拆成单独 chip，点击跳转到该类型影片列表页（与 Emby 服务器一致）
+      final router = GoRouter.of(context);
+      void openGenre(String g) {
+        Navigator.pop(context); // 关闭详情页 bottom sheet
+        router.push('/genre/${Uri.encodeComponent(g)}');
       }
 
       final displayGenres = genres.take(3).toList();
@@ -694,7 +688,7 @@ class _VideoInfoRowItems extends StatelessWidget {
         widgets.add(_VideoInfoChip(
           label: '',
           value: g,
-          onTap: () => addGenreToDiscover(g),
+          onTap: () => openGenre(g),
         ));
       }
       if (genres.length > 3) {
@@ -714,7 +708,7 @@ class _VideoInfoRowItems extends StatelessWidget {
                             label: Text(g),
                             onPressed: () {
                               Navigator.pop(dialogContext);
-                              addGenreToDiscover(g);
+                              openGenre(g);
                             },
                           ))
                       .toList(),
