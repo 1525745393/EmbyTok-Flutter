@@ -1,3 +1,11 @@
+## [2.162.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.0...v2.162.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* 类型标签点击只添加到发现筛选，不跳转不关闭详情页 ([de11e3e](https://github.com/1525745393/EmbyTok-Flutter/commit/de11e3e2fc0f69c0909c4c790985da0c48aa3bb0))
+* 类型标签追加到发现筛选而非覆盖 ([f2e1d61](https://github.com/1525745393/EmbyTok-Flutter/commit/f2e1d61d38d69ab16e6c7b1538b08fbbb2a1faa8))
+
 # [2.162.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.7...v2.162.0) (2026-09-23)
 
 
