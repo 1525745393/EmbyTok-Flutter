@@ -676,19 +676,30 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击后添加到发现页筛选条件
+      // 类型：拆成单独 chip，点击后追加到发现页筛选条件（去重）
       final container = ProviderScope.containerOf(context);
+      void addGenreToDiscover(String g) {
+        final current = container.read(discoverProvider).selectedGenreIds;
+        if (current.contains(g)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('「$g」已在发现页筛选中')),
+          );
+          return;
+        }
+        container
+            .read(discoverProvider.notifier)
+            .saveSelection([...current, g]);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已添加「$g」到发现页筛选')),
+        );
+      }
+
       final displayGenres = genres.take(3).toList();
       for (final g in displayGenres) {
         widgets.add(_VideoInfoChip(
           label: '',
           value: g,
-          onTap: () {
-            container.read(discoverProvider.notifier).saveSelection([g]);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('已添加「$g」到发现页筛选')),
-            );
-          },
+          onTap: () => addGenreToDiscover(g),
         ));
       }
       if (genres.length > 3) {
@@ -708,12 +719,7 @@ class _VideoInfoRowItems extends StatelessWidget {
                             label: Text(g),
                             onPressed: () {
                               Navigator.pop(dialogContext);
-                              container
-                                  .read(discoverProvider.notifier)
-                                  .saveSelection([g]);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('已添加「$g」到发现页筛选')),
-                              );
+                              addGenreToDiscover(g);
                             },
                           ))
                       .toList(),
