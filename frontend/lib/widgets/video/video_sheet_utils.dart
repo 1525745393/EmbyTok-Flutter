@@ -563,6 +563,17 @@ class _VideoInfoRowItems extends StatelessWidget {
       widgets.add(
           _VideoInfoChip(label: '已看', value: '$progress%', highlight: true));
     }
+    // 播放次数
+    final playCount = item.userData?.playCount;
+    if (playCount != null && playCount > 0) {
+      widgets.add(_VideoInfoChip(label: '播放', value: '$playCount次'));
+    }
+    // 用户评分
+    final userRating = item.userData?.rating;
+    if (userRating != null && userRating > 0) {
+      widgets.add(_VideoInfoChip(
+          label: '我的评分', value: '★ ${userRating.toStringAsFixed(1)}'));
+    }
     final r = rating;
     if (r != null && r > 0) {
       widgets.add(_VideoInfoChip(
