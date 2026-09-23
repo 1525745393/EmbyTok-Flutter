@@ -1,3 +1,10 @@
+## [2.163.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.0...v2.163.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* +N对话框心形按钮不再触发外层跳转 ([9ecad12](https://github.com/1525745393/EmbyTok-Flutter/commit/9ecad12d099c146e33fb2962bc41e53bcb78f2c2))
+
 # [2.163.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.4...v2.163.0) (2026-09-23)
 
 
