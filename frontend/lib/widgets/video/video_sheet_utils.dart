@@ -676,8 +676,7 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击后设置为发现页筛选条件并跳转
-      final router = GoRouter.of(context);
+      // 类型：拆成单独 chip，点击后添加到发现页筛选条件
       final container = ProviderScope.containerOf(context);
       final displayGenres = genres.take(3).toList();
       for (final g in displayGenres) {
@@ -685,9 +684,10 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '',
           value: g,
           onTap: () {
-            Navigator.pop(context);
             container.read(discoverProvider.notifier).saveSelection([g]);
-            router.push('/discover');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('已添加「$g」到发现页筛选')),
+            );
           },
         ));
       }
@@ -707,12 +707,13 @@ class _VideoInfoRowItems extends StatelessWidget {
                       .map((g) => ActionChip(
                             label: Text(g),
                             onPressed: () {
-                              Navigator.pop(dialogContext); // 关闭对话框
-                              Navigator.pop(context); // 关闭详情页 bottom sheet
+                              Navigator.pop(dialogContext);
                               container
                                   .read(discoverProvider.notifier)
                                   .saveSelection([g]);
-                              router.push('/discover');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('已添加「$g」到发现页筛选')),
+                              );
                             },
                           ))
                       .toList(),
