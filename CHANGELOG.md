@@ -1,3 +1,10 @@
+## [2.159.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.6...v2.159.7) (2026-09-23)
+
+
+### Bug Fixes
+
+* 详情页封面不显示 ([c7d7aa0](https://github.com/1525745393/EmbyTok-Flutter/commit/c7d7aa0e7f346c51ce150b0c867116fef70d2fd2))
+
 ## [2.159.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.5...v2.159.6) (2026-09-23)
 
 
