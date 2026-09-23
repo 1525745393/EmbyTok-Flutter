@@ -676,28 +676,26 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，可点击（最多显示3个，超出显示更多）
+      // 类型：拆成单独 chip，可点击跳转到发现页（最多显示3个，超出显示更多）
       final displayGenres = genres.take(3).toList();
       for (final g in displayGenres) {
         widgets.add(_VideoInfoChip(
-          label: '类型',
+          label: '',
           value: g,
           onTap: () {
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('筛选类型：$g')),
-            );
+            context.push('/discover');
           },
         ));
       }
       if (genres.length > 3) {
         widgets.add(_VideoInfoChip(
-          label: '类型',
+          label: '',
           value: '+${genres.length - 3}',
           onTap: () {
             showDialog<void>(
               context: context,
-              builder: (context) => AlertDialog(
+              builder: (dialogContext) => AlertDialog(
                 title: const Text('全部类型'),
                 content: Wrap(
                   spacing: 8,
@@ -706,19 +704,16 @@ class _VideoInfoRowItems extends StatelessWidget {
                       .map((g) => ActionChip(
                             label: Text(g),
                             onPressed: () {
-                              final messenger = ScaffoldMessenger.of(context);
-                              Navigator.pop(context); // 关闭对话框
+                              Navigator.pop(dialogContext); // 关闭对话框
                               Navigator.pop(context); // 关闭详情页
-                              messenger.showSnackBar(
-                                SnackBar(content: Text('筛选类型：$g')),
-                              );
+                              context.push('/discover');
                             },
                           ))
                       .toList(),
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogContext),
                     child: const Text('关闭'),
                   ),
                 ],
