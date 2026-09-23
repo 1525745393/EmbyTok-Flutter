@@ -405,6 +405,9 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             ],
                           ),
                         const SizedBox(height: 16),
+                        // 相似推荐
+                        _SimilarSection(itemId: item.id),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -709,6 +712,76 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
               color: _isFavorite ? scheme.primary : scheme.onSurfaceVariant,
             ),
       onPressed: _loading ? null : _toggle,
+    );
+  }
+}
+
+// ===== 相似推荐 =====
+class _SimilarSection extends ConsumerWidget {
+  const _SimilarSection({required this.itemId});
+  final String itemId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return FutureBuilder<List<MediaItem>>(
+      future:
+          ref.read(mediaServerApiProvider).getSimilarItems(itemId, limit: 10),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final items = snapshot.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _VideoInfoSectionLabel('相似推荐'),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 120,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final item = items[i];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('播放：${item.title}')),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 80,
+                        child: item.thumbnailUrl != null
+                            ? Image.network(
+                                item.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.1),
+                                  child: const Icon(Icons.movie),
+                                ),
+                              )
+                            : Container(
+                                color: scheme.onSurface.withValues(alpha: 0.1),
+                                child: const Icon(Icons.movie),
+                              ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
