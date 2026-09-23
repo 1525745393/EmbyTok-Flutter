@@ -1,3 +1,10 @@
+# [2.158.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.157.0...v2.158.0) (2026-09-23)
+
+
+### Features
+
+* **feed:** 详情页加播放次数和用户评分 ([d8b419c](https://github.com/1525745393/EmbyTok-Flutter/commit/d8b419cb44610188a9d7bbe025642491c13c4a70))
+
 # [2.157.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.156.0...v2.157.0) (2026-09-23)
 
 
