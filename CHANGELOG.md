@@ -1,3 +1,10 @@
+## [2.161.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.4...v2.161.5) (2026-09-23)
+
+
+### Bug Fixes
+
+* 类型标签改为Emby Genres API精确筛选 ([59ee68c](https://github.com/1525745393/EmbyTok-Flutter/commit/59ee68c097a138b99756e8982c3f8f215f679aa8))
+
 ## [2.161.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.3...v2.161.4) (2026-09-23)
 
 
