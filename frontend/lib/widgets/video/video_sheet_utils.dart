@@ -320,32 +320,41 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             children: [
                               // 左侧：Primary 竖版海报（2:3）
                               if (posterUrl != null)
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: CachedNetworkImage(
-                                    imageUrl: posterUrl,
-                                    httpHeaders: httpHeaders.isNotEmpty
+                                GestureDetector(
+                                  onTap: () => showFullScreenImageViewer(
+                                    context,
+                                    posterUrl,
+                                    headers: httpHeaders.isNotEmpty
                                         ? httpHeaders
                                         : null,
-                                    width: 110,
-                                    height: 165,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: CachedNetworkImage(
+                                      imageUrl: posterUrl,
+                                      httpHeaders: httpHeaders.isNotEmpty
+                                          ? httpHeaders
+                                          : null,
                                       width: 110,
                                       height: 165,
-                                      color: scheme.onSurface
-                                          .withValues(alpha: 0.1),
-                                      child: const Center(
-                                          child: CircularProgressIndicator()),
-                                    ),
-                                    errorWidget: (_, __, ___) => Container(
-                                      width: 110,
-                                      height: 165,
-                                      color: scheme.onSurface
-                                          .withValues(alpha: 0.1),
-                                      child: Icon(Icons.movie,
-                                          size: 40,
-                                          color: scheme.onSurfaceVariant),
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Container(
+                                        width: 110,
+                                        height: 165,
+                                        color: scheme.onSurface
+                                            .withValues(alpha: 0.1),
+                                        child: const Center(
+                                            child: CircularProgressIndicator()),
+                                      ),
+                                      errorWidget: (_, __, ___) => Container(
+                                        width: 110,
+                                        height: 165,
+                                        color: scheme.onSurface
+                                            .withValues(alpha: 0.1),
+                                        child: Icon(Icons.movie,
+                                            size: 40,
+                                            color: scheme.onSurfaceVariant),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -354,29 +363,39 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                               // 右侧：Thumb 横版视频缩略图
                               if (thumbUrl != null)
                                 Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: CachedNetworkImage(
-                                      imageUrl: thumbUrl,
-                                      httpHeaders: httpHeaders.isNotEmpty
+                                  child: GestureDetector(
+                                    onTap: () => showFullScreenImageViewer(
+                                      context,
+                                      thumbUrl,
+                                      headers: httpHeaders.isNotEmpty
                                           ? httpHeaders
                                           : null,
-                                      height: 165,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => Container(
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: CachedNetworkImage(
+                                        imageUrl: thumbUrl,
+                                        httpHeaders: httpHeaders.isNotEmpty
+                                            ? httpHeaders
+                                            : null,
                                         height: 165,
-                                        color: scheme.onSurface
-                                            .withValues(alpha: 0.1),
-                                        child: const Center(
-                                            child: CircularProgressIndicator()),
-                                      ),
-                                      errorWidget: (_, __, ___) => Container(
-                                        height: 165,
-                                        color: scheme.onSurface
-                                            .withValues(alpha: 0.1),
-                                        child: Icon(Icons.image,
-                                            size: 40,
-                                            color: scheme.onSurfaceVariant),
+                                        fit: BoxFit.cover,
+                                        placeholder: (_, __) => Container(
+                                          height: 165,
+                                          color: scheme.onSurface
+                                              .withValues(alpha: 0.1),
+                                          child: const Center(
+                                              child:
+                                                  CircularProgressIndicator()),
+                                        ),
+                                        errorWidget: (_, __, ___) => Container(
+                                          height: 165,
+                                          color: scheme.onSurface
+                                              .withValues(alpha: 0.1),
+                                          child: Icon(Icons.image,
+                                              size: 40,
+                                              color: scheme.onSurfaceVariant),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1131,4 +1150,50 @@ class _InfoActionRow extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 全屏图片查看器（支持缩放、双击关闭）
+void showFullScreenImageViewer(
+  BuildContext context,
+  String imageUrl, {
+  Map<String, String>? headers,
+}) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black,
+    builder: (ctx) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.zero,
+      child: Stack(
+        children: [
+          Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                httpHeaders: headers,
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+                errorWidget: (_, __, ___) => const Center(
+                  child:
+                      Icon(Icons.broken_image, color: Colors.white54, size: 64),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(ctx).padding.top + 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
