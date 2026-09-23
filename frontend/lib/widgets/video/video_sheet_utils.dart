@@ -228,6 +228,13 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     apiKey: auth.token,
     maxWidth: 1280,
   );
+  // Emby Thumb 横版缩略图（用于详情页右侧展示）
+  final thumbUrl = item.imageUrl(
+    'Thumb',
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 600,
+  );
   final httpHeaders = auth.token != null && auth.token!.isNotEmpty
       ? embyAuthHeaders(auth.token!)
       : <String, String>{};
@@ -306,38 +313,75 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // 封面海报（Emby Primary 竖版海报，2:3 比例完整显示）
-                        if (posterUrl != null)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: posterUrl,
-                                httpHeaders:
-                                    httpHeaders.isNotEmpty ? httpHeaders : null,
-                                width: 147,
-                                height: 220,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => Container(
-                                  width: 147,
-                                  height: 220,
-                                  color:
-                                      scheme.onSurface.withValues(alpha: 0.1),
-                                  child: const Center(
-                                    child: CircularProgressIndicator(),
+                        // 封面海报 + 视频缩略图（Emby Primary 竖版 + Thumb 横版）
+                        if (posterUrl != null || thumbUrl != null)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 左侧：Primary 竖版海报（2:3）
+                              if (posterUrl != null)
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: CachedNetworkImage(
+                                    imageUrl: posterUrl,
+                                    httpHeaders: httpHeaders.isNotEmpty
+                                        ? httpHeaders
+                                        : null,
+                                    width: 110,
+                                    height: 165,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      width: 110,
+                                      height: 165,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.1),
+                                      child: const Center(
+                                          child: CircularProgressIndicator()),
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      width: 110,
+                                      height: 165,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.1),
+                                      child: Icon(Icons.movie,
+                                          size: 40,
+                                          color: scheme.onSurfaceVariant),
+                                    ),
                                   ),
                                 ),
-                                errorWidget: (_, __, ___) => Container(
-                                  width: 147,
-                                  height: 220,
-                                  color:
-                                      scheme.onSurface.withValues(alpha: 0.1),
-                                  child: Icon(Icons.movie,
-                                      size: 48, color: scheme.onSurfaceVariant),
+                              if (posterUrl != null && thumbUrl != null)
+                                const SizedBox(width: 12),
+                              // 右侧：Thumb 横版视频缩略图
+                              if (thumbUrl != null)
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: CachedNetworkImage(
+                                      imageUrl: thumbUrl,
+                                      httpHeaders: httpHeaders.isNotEmpty
+                                          ? httpHeaders
+                                          : null,
+                                      height: 165,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Container(
+                                        height: 165,
+                                        color: scheme.onSurface
+                                            .withValues(alpha: 0.1),
+                                        child: const Center(
+                                            child: CircularProgressIndicator()),
+                                      ),
+                                      errorWidget: (_, __, ___) => Container(
+                                        height: 165,
+                                        color: scheme.onSurface
+                                            .withValues(alpha: 0.1),
+                                        child: Icon(Icons.image,
+                                            size: 40,
+                                            color: scheme.onSurfaceVariant),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                            ],
                           ),
                         const SizedBox(height: 16),
                         // 标题 + 收藏 + 分享
