@@ -1,3 +1,15 @@
+# [2.163.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.4...v2.163.0) (2026-09-23)
+
+
+### Bug Fixes
+
+* 发现设置页同步显示从详情页心形按钮添加的类型 ([6e2175a](https://github.com/1525745393/EmbyTok-Flutter/commit/6e2175ad7dc0528843323fa272dbc1c4537572c8))
+
+
+### Features
+
+* 类型标签添加心形按钮，点击添加到发现页筛选 ([63a3d8a](https://github.com/1525745393/EmbyTok-Flutter/commit/63a3d8a83ff47ccc481d3b823cd8678e04a9068b))
+
 ## [2.162.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.3...v2.162.4) (2026-09-23)
 
 
