@@ -920,28 +920,38 @@ class _SimilarSectionState extends ConsumerState<_SimilarSection> {
   @override
   void initState() {
     super.initState();
-    _future = ref
-        .read(mediaServerApiProvider)
-        .getSimilarItems(widget.itemId, limit: 10);
+    final auth = ref.read(authProvider);
+    _future = ref.read(cachedMediaRepositoryProvider).getSimilarItems(
+          widget.itemId,
+          limit: 10,
+          serverUrl: auth.embyServerUrl ?? '',
+          token: auth.token ?? '',
+          userId: auth.user?.id,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final auth = ref.watch(authProvider);
+    final httpHeaders = auth.token != null && auth.token!.isNotEmpty
+        ? embyAuthHeaders(auth.token!)
+        : <String, String>{};
     return FutureBuilder<List<MediaItem>>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
+          return _buildSkeleton(scheme);
         }
         if (snapshot.hasError) {
           return const SizedBox.shrink();
         }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        // 过滤掉当前项本身
+        final items =
+            (snapshot.data ?? []).where((e) => e.id != widget.itemId).toList();
+        if (items.isEmpty) {
           return const SizedBox.shrink();
         }
-        final items = snapshot.data!;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -963,14 +973,13 @@ class _SimilarSectionState extends ConsumerState<_SimilarSection> {
                   return GestureDetector(
                     onTap: () {
                       final navigator = Navigator.of(context);
-                      final messenger = ScaffoldMessenger.of(context);
                       navigator.pop();
                       if (item.id.isNotEmpty) {
-                        context.push('/play/${item.id}');
-                      } else {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('播放：${item.title}')),
-                        );
+                        context.push('/play/${item.id}', extra: {
+                          'item': item,
+                          'items': items,
+                          'source': 'similar',
+                        });
                       }
                     },
                     child: ClipRRect(
@@ -978,10 +987,16 @@ class _SimilarSectionState extends ConsumerState<_SimilarSection> {
                       child: SizedBox(
                         width: 80,
                         child: posterUrl != null
-                            ? Image.network(
-                                posterUrl,
+                            ? CachedNetworkImage(
+                                imageUrl: posterUrl,
+                                httpHeaders:
+                                    httpHeaders.isNotEmpty ? httpHeaders : null,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                placeholder: (_, __) => Container(
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.1),
+                                ),
+                                errorWidget: (_, __, ___) => Container(
                                   color:
                                       scheme.onSurface.withValues(alpha: 0.1),
                                   child: const Icon(Icons.movie),
@@ -1000,6 +1015,31 @@ class _SimilarSectionState extends ConsumerState<_SimilarSection> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSkeleton(ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _VideoInfoSectionLabel('相似推荐'),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 120,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: 4,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, __) => ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 80,
+                color: scheme.onSurface.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
