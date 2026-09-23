@@ -28,6 +28,7 @@ import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/discover_view.dart';
 import 'views/follow_view.dart';
+import 'views/genre_items_view.dart';
 import 'views/search_view.dart';
 import 'views/servers_view.dart';
 import 'views/downloads_view.dart';
@@ -291,6 +292,14 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/discover',
         builder: (context, state) => const DiscoverView(),
+      ),
+      // 类型影片列表：按 Emby Genres API 精确筛选
+      GoRoute(
+        path: '/genre/:genreName',
+        builder: (context, state) => GenreItemsView(
+          genreName:
+              Uri.decodeComponent(state.pathParameters['genreName'] ?? ''),
+        ),
       ),
       // 群晖 Audio Station 音乐：独立路由
       GoRoute(
