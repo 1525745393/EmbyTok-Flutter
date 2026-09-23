@@ -1,3 +1,10 @@
+## [2.159.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.5...v2.159.6) (2026-09-23)
+
+
+### Bug Fixes
+
+* 收藏合集改为最近收藏影片所属合集 ([db8756c](https://github.com/1525745393/EmbyTok-Flutter/commit/db8756c9e39b3594818c93a6788fc49d5b4acc4f))
+
 ## [2.159.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.4...v2.159.5) (2026-09-23)
 
 
