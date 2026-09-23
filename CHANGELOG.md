@@ -1,3 +1,10 @@
+## [2.159.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.2...v2.159.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* **update:** 检查更新修复 ([7b0198d](https://github.com/1525745393/EmbyTok-Flutter/commit/7b0198d0b34eec274062124979e950d6dd0131be))
+
 ## [2.159.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.1...v2.159.2) (2026-09-23)
 
 
