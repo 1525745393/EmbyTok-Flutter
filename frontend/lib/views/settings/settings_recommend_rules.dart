@@ -170,12 +170,17 @@ extension _SettingsRecommendRules on SettingsView {
 
   Widget _buildDiscoverGenresTile(BuildContext context, WidgetRef ref) {
     final discover = ref.watch(discoverProvider);
-    final names = discover.genres
+    // 从 genres 列表匹配已知名称；未匹配的 selectedGenreIds 项直接作为名称显示
+    final knownNames = discover.genres
         .where((g) => discover.selectedGenreIds.contains(g.id))
         .map((g) => g.name)
+        .toSet();
+    final unmatched = discover.selectedGenreIds
+        .where((id) => !discover.genres.any((g) => g.id == id))
         .toList();
+    final names = [...knownNames, ...unmatched];
     final scheme = Theme.of(context).colorScheme;
-    final empty = discover.selectedGenreIds.isEmpty || names.isEmpty;
+    final empty = discover.selectedGenreIds.isEmpty;
     return ListTile(
       leading: settingsIconContainer(
           icon: Icons.explore_outlined, color: Colors.orange),
@@ -198,21 +203,13 @@ extension _SettingsRecommendRules on SettingsView {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  if (names.isEmpty)
+                  for (final name in names)
                     settingsLibraryChip(
-                      label: '已选 ${discover.selectedGenreIds.length} 个类型',
+                      label: name,
                       icon: Icons.sell_outlined,
                       color: scheme.onSurfaceVariant,
                       background: scheme.surfaceContainerHighest,
-                    )
-                  else
-                    for (final name in names)
-                      settingsLibraryChip(
-                        label: name,
-                        icon: Icons.sell_outlined,
-                        color: scheme.onSurfaceVariant,
-                        background: scheme.surfaceContainerHighest,
-                      ),
+                    ),
                 ],
               ),
       ),
