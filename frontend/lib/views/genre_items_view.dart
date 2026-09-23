@@ -98,17 +98,35 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
 
   Widget _buildBody() {
     if (_error != null && _items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      return RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _items.clear();
+            _offset = 0;
+            _hasMore = true;
+          });
+          await _loadMore();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 16),
-            Text('加载失败: $_error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadMore,
-              child: const Text('重试'),
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48),
+                    const SizedBox(height: 16),
+                    Text('加载失败: $_error'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadMore,
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -118,7 +136,25 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_items.isEmpty) {
-      return const Center(child: Text('暂无影片'));
+      return RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _items.clear();
+            _offset = 0;
+            _hasMore = true;
+          });
+          await _loadMore();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(
+              height: 300,
+              child: Center(child: Text('暂无影片，下拉刷新')),
+            ),
+          ],
+        ),
+      );
     }
     return GridView.builder(
       controller: _scrollController,
@@ -132,6 +168,25 @@ class _GenreItemsViewState extends ConsumerState<GenreItemsView> {
       itemCount: _items.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= _items.length) {
+          // 底部：加载中或加载失败
+          if (_error != null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 24),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      setState(() => _error = null);
+                      _loadMore();
+                    },
+                    child: const Text('加载失败，点击重试'),
+                  ),
+                ],
+              ),
+            );
+          }
           return const Center(child: CircularProgressIndicator());
         }
         final item = _items[index];
