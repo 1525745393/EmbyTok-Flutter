@@ -718,26 +718,41 @@ class _VideoInfoRowItems extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: genres
-                      .map((g) => ActionChip(
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(g),
-                                const SizedBox(width: 4),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.pop(dialogContext);
-                                    addToDiscover(g);
-                                  },
-                                  child: const Icon(Icons.favorite_border,
-                                      size: 16),
-                                ),
-                              ],
-                            ),
-                            onPressed: () {
+                      .map((g) => InkWell(
+                            onTap: () {
                               Navigator.pop(dialogContext);
                               openGenre(g);
                             },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(g),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      Navigator.pop(dialogContext);
+                                      addToDiscover(g);
+                                    },
+                                    child: Icon(Icons.favorite_border,
+                                        size: 16,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ))
                       .toList(),
                 ),
