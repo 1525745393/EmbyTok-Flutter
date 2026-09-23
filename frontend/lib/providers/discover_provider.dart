@@ -10,6 +10,7 @@
 // - 存储：SharedPreferences，按当前账号分桶（accountScopedKey），类型/标签/合集分开保存
 // - 未配置任何条目时：返回空列表，页面展示引导用户去设置
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,6 +91,8 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
   static const String _kStorageTagsKey = kStorageKeyDiscoverTags;
   static const String _kStorageCollectionsKey = kStorageKeyDiscoverCollections;
   static const int _kPerSourceLimit = 30;
+
+  Timer? _loadDebounce;
 
   AuthState get _auth => _ref.read(authProvider);
 
@@ -228,8 +231,16 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
     } catch (e) {
       AppLogger.error('追加发现类型失败', error: e);
     }
-    await load();
+    _scheduleLoad();
     return true;
+  }
+
+  /// 防抖加载：连续多次添加/修改筛选时合并为一次 load
+  void _scheduleLoad() {
+    _loadDebounce?.cancel();
+    _loadDebounce = Timer(const Duration(milliseconds: 300), () {
+      load();
+    });
   }
 
   /// 保存用户选择的标签（id 列表）并加载内容
