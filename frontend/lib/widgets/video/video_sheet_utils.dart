@@ -269,10 +269,12 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                   // 真正模糊
                   if (backdropUrl != null)
                     Positioned.fill(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                          color: scheme.surface.withValues(alpha: 0.3),
+                      child: RepaintBoundary(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            color: scheme.surface.withValues(alpha: 0.3),
+                          ),
                         ),
                       ),
                     ),
@@ -698,7 +700,13 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败：$e')),
+          SnackBar(
+            content: Text('操作失败：$e'),
+            action: SnackBarAction(
+              label: '重试',
+              onPressed: _toggle,
+            ),
+          ),
         );
       }
     } finally {
