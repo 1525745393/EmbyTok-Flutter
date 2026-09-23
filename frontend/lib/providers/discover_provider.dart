@@ -215,6 +215,23 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
     await load();
   }
 
+  /// 追加一个类型到现有筛选（去重），避免外部读取 state 的竞态
+  Future<bool> addGenre(String genre) async {
+    final current = List<String>.from(state.selectedGenreIds);
+    if (current.contains(genre)) return false;
+    current.add(genre);
+    state = state.copyWith(selectedGenreIds: current);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = await accountScopedKey(_kStorageGenresKey);
+      await prefs.setString(key, jsonEncode(current));
+    } catch (e) {
+      AppLogger.error('追加发现类型失败', error: e);
+    }
+    await load();
+    return true;
+  }
+
   /// 保存用户选择的标签（id 列表）并加载内容
   Future<void> saveTags(List<String> tagIds) async {
     state = state.copyWith(selectedTagIds: tagIds);

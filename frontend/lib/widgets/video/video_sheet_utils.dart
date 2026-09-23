@@ -679,19 +679,14 @@ class _VideoInfoRowItems extends StatelessWidget {
       // 类型：拆成单独 chip，点击后追加到发现页筛选条件（去重）
       final container = ProviderScope.containerOf(context);
       void addGenreToDiscover(String g) {
-        final current = container.read(discoverProvider).selectedGenreIds;
-        if (current.contains(g)) {
+        container.read(discoverProvider.notifier).addGenre(g).then((added) {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('「$g」已在发现页筛选中')),
+            SnackBar(
+              content: Text(added ? '已添加「$g」到发现页筛选' : '「$g」已在发现页筛选中'),
+            ),
           );
-          return;
-        }
-        container
-            .read(discoverProvider.notifier)
-            .saveSelection([...current, g]);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已添加「$g」到发现页筛选')),
-        );
+        });
       }
 
       final displayGenres = genres.take(3).toList();
