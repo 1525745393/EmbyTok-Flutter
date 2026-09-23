@@ -196,8 +196,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/',
         builder: (context, state) {
-          final mode = ProviderScope.containerOf(context)
-              .read(serviceModeProvider);
+          final mode =
+              ProviderScope.containerOf(context).read(serviceModeProvider);
           if (mode == AppServiceMode.music) {
             return const MainView();
           }
@@ -208,15 +208,21 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       // 搜索：独立路由（深层链接场景），按返回键跳回首页
       GoRoute(
         path: '/search',
-        builder: (context, state) => PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
-            // 尝试 pop 保留浏览历史（走 GoRouter API 与路由状态同步），失败则回到首页
-            _popOrGoHome(context, didPop);
-          },
-          child: const SearchView(),
-        ),
+        builder: (context, state) {
+          final extra = state.extra;
+          final initialQuery = extra is Map && extra['initialQuery'] is String
+              ? extra['initialQuery'] as String
+              : null;
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (didPop) return;
+              // 尝试 pop 保留浏览历史（走 GoRouter API 与路由状态同步），失败则回到首页
+              _popOrGoHome(context, didPop);
+            },
+            child: SearchView(initialQuery: initialQuery),
+          );
+        },
       ),
       // 收藏
       GoRoute(

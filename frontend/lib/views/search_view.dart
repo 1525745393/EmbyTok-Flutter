@@ -20,8 +20,9 @@ import '../widgets/error_state_card.dart';
 import '../widgets/person_avatar_image.dart';
 
 class SearchView extends ConsumerStatefulWidget {
-  const SearchView({super.key, this.useScaffold = true});
+  const SearchView({super.key, this.useScaffold = true, this.initialQuery});
   final bool useScaffold;
+  final String? initialQuery;
 
   @override
   ConsumerState<SearchView> createState() => _SearchViewState();
@@ -39,9 +40,15 @@ class _SearchViewState extends ConsumerState<SearchView>
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _controller = TextEditingController(text: widget.initialQuery ?? '');
     _focusNode.requestFocus();
     _scrollController.addListener(_onScroll);
+    // 如果有初始搜索词，自动触发搜索
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(searchProvider.notifier).search(widget.initialQuery!);
+      });
+    }
   }
 
   @override

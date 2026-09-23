@@ -676,7 +676,7 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，可点击跳转到发现页（最多显示3个，超出显示更多）
+      // 类型：拆成单独 chip，可点击搜索该类型（最多显示3个，超出显示更多）
       final displayGenres = genres.take(3).toList();
       for (final g in displayGenres) {
         widgets.add(_VideoInfoChip(
@@ -684,7 +684,7 @@ class _VideoInfoRowItems extends StatelessWidget {
           value: g,
           onTap: () {
             Navigator.pop(context);
-            context.push('/discover');
+            context.push('/search', extra: {'initialQuery': g});
           },
         ));
       }
@@ -706,7 +706,8 @@ class _VideoInfoRowItems extends StatelessWidget {
                             onPressed: () {
                               Navigator.pop(dialogContext); // 关闭对话框
                               Navigator.pop(context); // 关闭详情页
-                              context.push('/discover');
+                              context
+                                  .push('/search', extra: {'initialQuery': g});
                             },
                           ))
                       .toList(),
@@ -810,12 +811,14 @@ class _VideoInfoChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
+          if (label.isNotEmpty) ...[
+            Text(label,
+                style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+          ],
           Text(value,
               style: TextStyle(
                   color: highlight ? scheme.primary : scheme.onSurface,
