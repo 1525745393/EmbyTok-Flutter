@@ -334,8 +334,9 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                                 final url =
                                     '${auth.embyServerUrl}/web/index.html#!/details?id=${item.id}';
                                 Clipboard.setData(ClipboardData(text: url));
+                                final messenger = ScaffoldMessenger.of(context);
                                 Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                messenger.showSnackBar(
                                   const SnackBar(content: Text('分享链接已复制到剪贴板')),
                                 );
                               },
@@ -388,8 +389,10 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             children: [
                               OutlinedButton.icon(
                                 onPressed: () {
+                                  final messenger =
+                                      ScaffoldMessenger.of(context);
                                   Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  messenger.showSnackBar(
                                     const SnackBar(content: Text('上一集')),
                                   );
                                 },
@@ -398,8 +401,10 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                               ),
                               OutlinedButton.icon(
                                 onPressed: () {
+                                  final messenger =
+                                      ScaffoldMessenger.of(context);
                                   Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  messenger.showSnackBar(
                                     const SnackBar(content: Text('下一集')),
                                   );
                                 },
@@ -721,17 +726,31 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
 }
 
 // ===== 相似推荐 =====
-class _SimilarSection extends ConsumerWidget {
+class _SimilarSection extends ConsumerStatefulWidget {
   const _SimilarSection({required this.itemId});
   final String itemId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SimilarSection> createState() => _SimilarSectionState();
+}
+
+class _SimilarSectionState extends ConsumerState<_SimilarSection> {
+  Future<List<MediaItem>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ref
+        .read(mediaServerApiProvider)
+        .getSimilarItems(widget.itemId, limit: 10);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final auth = ref.watch(authProvider);
     return FutureBuilder<List<MediaItem>>(
-      future:
-          ref.read(mediaServerApiProvider).getSimilarItems(itemId, limit: 10),
+      future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
@@ -841,8 +860,9 @@ class _PersonChipList extends ConsumerWidget {
         final imageUrl = p.imageUrl;
         return GestureDetector(
           onTap: () {
+            final messenger = ScaffoldMessenger.of(context);
             Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(content: Text('查看演员：${p.name}')),
             );
           },
