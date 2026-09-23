@@ -4,6 +4,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
@@ -330,9 +331,12 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                               icon: Icon(Icons.share,
                                   color: scheme.onSurfaceVariant, size: 20),
                               onPressed: () {
+                                final url =
+                                    '${auth.embyServerUrl}/web/index.html#!/details?id=${item.id}';
+                                Clipboard.setData(ClipboardData(text: url));
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('分享链接已复制')),
+                                  const SnackBar(content: Text('分享链接已复制到剪贴板')),
                                 );
                               },
                             ),
@@ -724,11 +728,15 @@ class _SimilarSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final auth = ref.watch(authProvider);
     return FutureBuilder<List<MediaItem>>(
       future:
           ref.read(mediaServerApiProvider).getSimilarItems(itemId, limit: 10),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        if (snapshot.hasError) {
           return const SizedBox.shrink();
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -748,6 +756,11 @@ class _SimilarSection extends ConsumerWidget {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, i) {
                   final item = items[i];
+                  final posterUrl = item.primaryUrl(
+                    embyServerUrl: auth.embyServerUrl,
+                    apiKey: auth.token,
+                    maxWidth: 200,
+                  );
                   return GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
@@ -759,9 +772,9 @@ class _SimilarSection extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                       child: SizedBox(
                         width: 80,
-                        child: item.thumbnailUrl != null
+                        child: posterUrl != null
                             ? Image.network(
-                                item.thumbnailUrl!,
+                                posterUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
                                   color:
