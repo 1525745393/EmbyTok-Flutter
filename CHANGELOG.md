@@ -1,3 +1,10 @@
+# [2.159.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.158.1...v2.159.0) (2026-09-23)
+
+
+### Features
+
+* **feed:** 类型超过3个时显示+N按钮，点击弹出全部类型 ([07b3ad1](https://github.com/1525745393/EmbyTok-Flutter/commit/07b3ad1a2d32eb965938fb3e32ed2588b099d17e))
+
 ## [2.158.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.158.0...v2.158.1) (2026-09-23)
 
 
