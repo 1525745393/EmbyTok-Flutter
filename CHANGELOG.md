@@ -1,3 +1,10 @@
+## [2.162.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.3...v2.162.4) (2026-09-23)
+
+
+### Bug Fixes
+
+* 详情页类型标签恢复跳转类型影片列表页 ([afba97a](https://github.com/1525745393/EmbyTok-Flutter/commit/afba97aa69e561bab9f860eb1eae3ab3190fc140))
+
 ## [2.162.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.162.2...v2.162.3) (2026-09-23)
 
 
