@@ -106,31 +106,40 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
 
-    // 第一步：拉取收藏的影片，带上 CollectionIds 字段
-    final favoriteParams = <String, dynamic>{
-      'Limit': '200',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields': 'CollectionIds,ImageTags',
-      'IncludeItemTypes': 'Movie,Episode,Series,Video',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-    final favResp =
-        await _apiClient.get<dynamic>(path, queryParameters: favoriteParams);
-    final favData = favResp.data;
-    final favItems =
-        favData is List ? favData : (favData['Items'] as List<dynamic>?) ?? [];
-
-    // 第二步：聚合所有 CollectionIds，去重，保持收藏顺序
+    // 第一步：循环翻页拉取收藏的影片，带上 CollectionIds 字段
+    // 最多拉 5 页（每页 200，共 1000 条），避免无限循环
     final boxSetIdSet = <String>{};
-    for (final item in favItems.whereType<Map<String, dynamic>>()) {
-      final collectionIds = item['CollectionIds'];
-      if (collectionIds is List) {
-        for (final cid in collectionIds) {
-          if (cid is String && cid.isNotEmpty) boxSetIdSet.add(cid);
+    const pageSize = 200;
+    const maxPages = 5;
+    for (var page = 0; page < maxPages; page++) {
+      final favoriteParams = <String, dynamic>{
+        'Limit': '$pageSize',
+        'StartIndex': '${page * pageSize}',
+        'Recursive': 'true',
+        'Filters': 'IsFavorite',
+        'Fields': 'CollectionIds,ImageTags',
+        'IncludeItemTypes': 'Movie,Episode,Series,Video',
+        'SortBy': 'DateCreated',
+        'SortOrder': 'Descending',
+      };
+      final favResp =
+          await _apiClient.get<dynamic>(path, queryParameters: favoriteParams);
+      final favData = favResp.data;
+      final favItems = favData is List
+          ? favData
+          : (favData['Items'] as List<dynamic>?) ?? [];
+
+      for (final item in favItems.whereType<Map<String, dynamic>>()) {
+        final collectionIds = item['CollectionIds'];
+        if (collectionIds is List) {
+          for (final cid in collectionIds) {
+            if (cid is String && cid.isNotEmpty) boxSetIdSet.add(cid);
+          }
         }
       }
+
+      // 不足一页说明已拉完
+      if (favItems.length < pageSize) break;
     }
 
     if (boxSetIdSet.isEmpty) {

@@ -223,6 +223,12 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     auth.token,
     maxWidth: 500,
   );
+  // 高清版 Primary 海报（用于全屏查看）
+  final posterUrlHiRes = item.thumbnailUrlWithAuth(
+    auth.embyServerUrl,
+    auth.token,
+    maxWidth: 1280,
+  );
   final backdropUrl = item.backdropUrl(
     embyServerUrl: auth.embyServerUrl,
     apiKey: auth.token,
@@ -234,6 +240,13 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     embyServerUrl: auth.embyServerUrl,
     apiKey: auth.token,
     maxWidth: 600,
+  );
+  // 高清版 Thumb（用于全屏查看）
+  final thumbUrlHiRes = item.imageUrl(
+    'Thumb',
+    embyServerUrl: auth.embyServerUrl,
+    apiKey: auth.token,
+    maxWidth: 1280,
   );
   final httpHeaders = auth.token != null && auth.token!.isNotEmpty
       ? embyAuthHeaders(auth.token!)
@@ -323,7 +336,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                                 GestureDetector(
                                   onTap: () => showFullScreenImageViewer(
                                     context,
-                                    posterUrl,
+                                    posterUrlHiRes ?? posterUrl,
                                     headers: httpHeaders.isNotEmpty
                                         ? httpHeaders
                                         : null,
@@ -366,7 +379,7 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                                   child: GestureDetector(
                                     onTap: () => showFullScreenImageViewer(
                                       context,
-                                      thumbUrl,
+                                      thumbUrlHiRes ?? thumbUrl,
                                       headers: httpHeaders.isNotEmpty
                                           ? httpHeaders
                                           : null,
@@ -1152,7 +1165,7 @@ class _InfoActionRow extends ConsumerWidget {
   }
 }
 
-/// 全屏图片查看器（支持缩放、双击关闭）
+/// 全屏图片查看器（支持双指缩放、双击缩放、关闭按钮）
 void showFullScreenImageViewer(
   BuildContext context,
   String imageUrl, {
@@ -1164,15 +1177,67 @@ void showFullScreenImageViewer(
     builder: (ctx) => Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: EdgeInsets.zero,
-      child: Stack(
-        children: [
-          Center(
+      child: _FullScreenImageViewer(
+        imageUrl: imageUrl,
+        headers: headers,
+      ),
+    ),
+  );
+}
+
+class _FullScreenImageViewer extends StatefulWidget {
+  const _FullScreenImageViewer({
+    required this.imageUrl,
+    this.headers,
+  });
+
+  final String imageUrl;
+  final Map<String, String>? headers;
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
+  final _transformationController = TransformationController();
+  TapDownDetails? _doubleTapDetails;
+
+  void _handleDoubleTapDown(TapDownDetails details) {
+    _doubleTapDetails = details;
+  }
+
+  void _handleDoubleTap() {
+    if (_transformationController.value != Matrix4.identity()) {
+      _transformationController.value = Matrix4.identity();
+    } else {
+      final position = _doubleTapDetails!.localPosition;
+      _transformationController.value = Matrix4.identity()
+        ..translateByDouble(-position.dx * 2, -position.dy * 2, 0, 0)
+        ..scaleByDouble(2.0, 2.0, 1.0, 1.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Center(
+          child: GestureDetector(
+            onDoubleTapDown: _handleDoubleTapDown,
+            onDoubleTap: _handleDoubleTap,
             child: InteractiveViewer(
+              transformationController: _transformationController,
               minScale: 0.5,
               maxScale: 4.0,
               child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                httpHeaders: headers,
+                imageUrl: widget.imageUrl,
+                httpHeaders: widget.headers,
                 fit: BoxFit.contain,
                 placeholder: (_, __) => const Center(
                   child: CircularProgressIndicator(color: Colors.white),
@@ -1184,16 +1249,16 @@ void showFullScreenImageViewer(
               ),
             ),
           ),
-          Positioned(
-            top: MediaQuery.of(ctx).padding.top + 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(ctx).pop(),
-            ),
+        ),
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 8,
+          right: 8,
+          child: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 28),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      ],
+    );
+  }
 }
