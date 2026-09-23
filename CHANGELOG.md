@@ -1,3 +1,10 @@
+# [2.157.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.156.0...v2.157.0) (2026-09-23)
+
+
+### Features
+
+* **feed:** 剧集导航真正跳转到上一集/下一集 ([94c5ed4](https://github.com/1525745393/EmbyTok-Flutter/commit/94c5ed43363ed64d6739f9b6164a93ef83d2d447))
+
 # [2.156.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.155.3...v2.156.0) (2026-09-23)
 
 
