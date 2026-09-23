@@ -386,30 +386,22 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           const SizedBox(height: 24),
                         ],
                         // 剧集导航：上一集 / 下一集
-                        if (isEpisode)
+                        if (isEpisode && item.seriesId != null)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               OutlinedButton.icon(
                                 onPressed: () {
-                                  final messenger =
-                                      ScaffoldMessenger.of(context);
-                                  Navigator.pop(context);
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('上一集')),
-                                  );
+                                  final c = ProviderScope.containerOf(context);
+                                  _navigateToEpisode(context, c, item, -1);
                                 },
                                 icon: const Icon(Icons.skip_previous),
                                 label: const Text('上一集'),
                               ),
                               OutlinedButton.icon(
                                 onPressed: () {
-                                  final messenger =
-                                      ScaffoldMessenger.of(context);
-                                  Navigator.pop(context);
-                                  messenger.showSnackBar(
-                                    const SnackBar(content: Text('下一集')),
-                                  );
+                                  final c = ProviderScope.containerOf(context);
+                                  _navigateToEpisode(context, c, item, 1);
                                 },
                                 icon: const Icon(Icons.skip_next),
                                 label: const Text('下一集'),
@@ -431,6 +423,40 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
       );
     },
   );
+}
+
+// 剧集导航：跳转到上一集/下一集
+Future<void> _navigateToEpisode(
+  BuildContext context,
+  ProviderContainer container,
+  MediaItem item,
+  int offset,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  Navigator.pop(context);
+  try {
+    final api = container.read(mediaServerApiProvider);
+    final episodes = await api.getEpisodes(item.seriesId!, limit: 100);
+    final items = episodes.items;
+    final currentIndex = items.indexWhere((e) => e.id == item.id);
+    if (currentIndex < 0) {
+      messenger.showSnackBar(const SnackBar(content: Text('未找到当前剧集')));
+      return;
+    }
+    final targetIndex = currentIndex + offset;
+    if (targetIndex < 0 || targetIndex >= items.length) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(offset < 0 ? '已经是第一集' : '已经是最后一集')),
+      );
+      return;
+    }
+    final targetItem = items[targetIndex];
+    if (context.mounted) {
+      context.push('/play/${targetItem.id}');
+    }
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('加载失败：$e')));
+  }
 }
 
 // ===== 信息面板副标题行 =====
