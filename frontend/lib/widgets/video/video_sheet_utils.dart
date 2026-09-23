@@ -937,6 +937,7 @@ class _PersonChipList extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
     final token = authState.token;
+    final serverUrl = authState.embyServerUrl;
     final httpHeaders = token != null && token.isNotEmpty
         ? embyAuthHeaders(token)
         : <String, String>{};
@@ -948,7 +949,14 @@ class _PersonChipList extends ConsumerWidget {
         final display = role != null && role.isNotEmpty && role != p.name
             ? '${p.name} ($role)'
             : p.name;
-        final imageUrl = p.imageUrl;
+        // 构造演员头像 URL：优先用 imageUrl，否则用 serverUrl + personId
+        final imageUrl = p.imageUrl ??
+            (p.id != null &&
+                    p.id!.isNotEmpty &&
+                    serverUrl != null &&
+                    serverUrl.isNotEmpty
+                ? '$serverUrl/Items/${p.id}/Images/Primary'
+                : null);
         return GestureDetector(
           onTap: () {
             final messenger = ScaffoldMessenger.of(context);
