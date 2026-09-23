@@ -1,3 +1,10 @@
+## [2.155.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.155.1...v2.155.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **feed:** 详情页context安全和缓存 ([35e707a](https://github.com/1525745393/EmbyTok-Flutter/commit/35e707a385ea4f47077d8c43d8fc469f10d4280a))
+
 ## [2.155.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.155.0...v2.155.1) (2026-09-23)
 
 
