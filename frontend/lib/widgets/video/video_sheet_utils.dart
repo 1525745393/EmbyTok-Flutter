@@ -3,6 +3,7 @@
 
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -306,12 +307,19 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                         if (posterUrl != null)
                           ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              posterUrl,
+                            child: CachedNetworkImage(
+                              imageUrl: posterUrl,
                               height: 200,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              placeholder: (_, __) => Container(
+                                height: 200,
+                                color: scheme.onSurface.withValues(alpha: 0.1),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
                                 height: 200,
                                 color: scheme.onSurface.withValues(alpha: 0.1),
                                 child: Icon(Icons.movie,
