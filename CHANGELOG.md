@@ -1,3 +1,10 @@
+## [2.159.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.7...v2.159.8) (2026-09-23)
+
+
+### Bug Fixes
+
+* 详情页封面完整显示 Emby 竖版海报 ([8507441](https://github.com/1525745393/EmbyTok-Flutter/commit/8507441e499264ccc014a93f55210d68a38a4e4a))
+
 ## [2.159.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.6...v2.159.7) (2026-09-23)
 
 
