@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
@@ -870,9 +871,13 @@ class _PersonChipList extends ConsumerWidget {
           onTap: () {
             final messenger = ScaffoldMessenger.of(context);
             Navigator.pop(context);
-            messenger.showSnackBar(
-              SnackBar(content: Text('查看演员：${p.name}')),
-            );
+            if (p.id != null && p.id!.isNotEmpty) {
+              context.push('/person/${p.id}');
+            } else {
+              messenger.showSnackBar(
+                SnackBar(content: Text('查看演员：${p.name}')),
+              );
+            }
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
