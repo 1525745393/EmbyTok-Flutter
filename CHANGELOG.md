@@ -1,3 +1,10 @@
+# [2.162.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.7...v2.162.0) (2026-09-23)
+
+
+### Features
+
+* 详情页类型标签点击后对接发现设置 ([b0a60bb](https://github.com/1525745393/EmbyTok-Flutter/commit/b0a60bb0c3875da2ca7d007657c92c6dcd2bb5ff))
+
 ## [2.161.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.6...v2.161.7) (2026-09-23)
 
 
