@@ -1,3 +1,10 @@
+## [2.159.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.3...v2.159.4) (2026-09-23)
+
+
+### Bug Fixes
+
+* **feed:** 相似推荐点击跳转到播放页 ([275c1dc](https://github.com/1525745393/EmbyTok-Flutter/commit/275c1dc8c7cccb3c4fbb5256eb91d6a1b9dd7b4f))
+
 ## [2.159.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.2...v2.159.3) (2026-09-23)
 
 
