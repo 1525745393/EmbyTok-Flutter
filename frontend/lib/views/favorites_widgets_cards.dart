@@ -10,9 +10,9 @@ class _BoxSetTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authProvider);
-    final imageUrl = item.thumbnailUrlWithAuth(
-      authState.embyServerUrl,
-      authState.token,
+    final imageUrl = item.primaryUrl(
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
       maxWidth: 180,
     );
     final headers = item.authHeaders(authState.token);

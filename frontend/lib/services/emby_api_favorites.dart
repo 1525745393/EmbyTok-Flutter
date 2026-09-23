@@ -155,6 +155,8 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
       'Recursive': 'true',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
     final boxResp = await _apiClient.get<dynamic>(
       '/Items',
