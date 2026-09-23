@@ -1,3 +1,10 @@
+# [2.155.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.154.0...v2.155.0) (2026-09-23)
+
+
+### Features
+
+* **feed:** 详情页加相似推荐横向列表 ([154bd1d](https://github.com/1525745393/EmbyTok-Flutter/commit/154bd1db4c83af6de33904f1de0126ff2ce777f5))
+
 # [2.154.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.153.0...v2.154.0) (2026-09-22)
 
 
