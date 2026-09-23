@@ -90,6 +90,9 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     );
   }
 
+  /// 最近收藏的影片所属合集
+  /// Emby 的 BoxSet 本身不支持 IsFavorite 收藏标记，
+  /// 因此改为：查询用户收藏的影片 → 提取 CollectionIds → 聚合去重 → 查询合集详情。
   Future<FavoritesPageResult> getFavoriteBoxSets({
     int limit = 50,
     int offset = 0,
@@ -98,38 +101,66 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    final params = <String, dynamic>{
-      'Limit': '$limit',
-      'StartIndex': '$offset',
-      'Recursive': 'true',
-      'Filters': 'IsFavorite',
-      'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
-      'IncludeItemTypes': 'BoxSet',
-      'SortBy': 'DateCreated',
-      'SortOrder': 'Descending',
-    };
-
     final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
 
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: params,
+    // 第一步：拉取收藏的影片，带上 CollectionIds 字段
+    final favoriteParams = <String, dynamic>{
+      'Limit': '200',
+      'Recursive': 'true',
+      'Filters': 'IsFavorite',
+      'Fields': 'CollectionIds,ImageTags',
+      'IncludeItemTypes': 'Movie,Episode,Series,Video',
+      'SortBy': 'DateCreated',
+      'SortOrder': 'Descending',
+    };
+    final favResp =
+        await _apiClient.get<dynamic>(path, queryParameters: favoriteParams);
+    final favData = favResp.data;
+    final favItems =
+        favData is List ? favData : (favData['Items'] as List<dynamic>?) ?? [];
+
+    // 第二步：聚合所有 CollectionIds，去重，保持收藏顺序
+    final boxSetIdSet = <String>{};
+    for (final item in favItems.whereType<Map<String, dynamic>>()) {
+      final collectionIds = item['CollectionIds'];
+      if (collectionIds is List) {
+        for (final cid in collectionIds) {
+          if (cid is String && cid.isNotEmpty) boxSetIdSet.add(cid);
+        }
+      }
+    }
+
+    if (boxSetIdSet.isEmpty) {
+      return const FavoritesPageResult(items: [], totalCount: 0);
+    }
+
+    final allIds = boxSetIdSet.toList();
+    final pagedIds = allIds.skip(offset).take(limit).toList(growable: false);
+
+    // 第三步：按 Ids 批量查询合集详情
+    final boxSetParams = <String, dynamic>{
+      'Ids': pagedIds.join(','),
+      'Fields':
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData',
+      'Recursive': 'true',
+    };
+    final boxResp = await _apiClient.get<dynamic>(
+      '/Items',
+      queryParameters: boxSetParams,
     );
-    final data = resp.data;
-    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
-    final totalCount = data is Map
-        ? (data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
+    final boxData = boxResp.data;
+    final boxItems =
+        boxData is List ? boxData : (boxData['Items'] as List<dynamic>?) ?? [];
+
     return FavoritesPageResult(
-      items: items
+      items: boxItems
           .whereType<Map<String, dynamic>>()
           .map((e) => MediaItem.fromJson(e))
           .toList(),
-      totalCount: totalCount,
+      totalCount: allIds.length,
     );
   }
 
