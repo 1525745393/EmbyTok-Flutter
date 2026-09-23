@@ -676,11 +676,24 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击跳转到该类型影片列表页（与 Emby 服务器一致）
+      // 类型：拆成单独 chip，点击文字跳转影片列表；点击心形添加到发现页筛选
       final router = GoRouter.of(context);
+      final container = ProviderScope.containerOf(context);
       void openGenre(String g) {
         Navigator.pop(context); // 关闭详情页 bottom sheet
         router.push('/genre/${Uri.encodeComponent(g)}');
+      }
+
+      void addToDiscover(String g) {
+        container.read(discoverProvider.notifier).addGenre(g).then((added) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(added ? '已添加「$g」到发现页筛选' : '「$g」已在发现页筛选中'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        });
       }
 
       final displayGenres = genres.take(3).toList();
@@ -689,6 +702,7 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '',
           value: g,
           onTap: () => openGenre(g),
+          heartOnTap: () => addToDiscover(g),
         ));
       }
       if (genres.length > 3) {
@@ -705,7 +719,21 @@ class _VideoInfoRowItems extends StatelessWidget {
                   runSpacing: 8,
                   children: genres
                       .map((g) => ActionChip(
-                            label: Text(g),
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(g),
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.pop(dialogContext);
+                                    addToDiscover(g);
+                                  },
+                                  child: const Icon(Icons.favorite_border,
+                                      size: 16),
+                                ),
+                              ],
+                            ),
                             onPressed: () {
                               Navigator.pop(dialogContext);
                               openGenre(g);
@@ -789,11 +817,13 @@ class _VideoInfoChip extends StatelessWidget {
     required this.value,
     this.highlight = false,
     this.onTap,
+    this.heartOnTap,
   });
   final String label;
   final String value;
   final bool highlight;
   final VoidCallback? onTap;
+  final VoidCallback? heartOnTap;
 
   @override
   Widget build(BuildContext context) {
@@ -808,23 +838,36 @@ class _VideoInfoChip extends StatelessWidget {
             : null,
       ),
       constraints: const BoxConstraints(minWidth: 80),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (label.isNotEmpty) ...[
-            Text(label,
-                style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500)),
-            const SizedBox(height: 4),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (label.isNotEmpty) ...[
+                Text(label,
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+              ],
+              Text(value,
+                  style: TextStyle(
+                      color: highlight ? scheme.primary : scheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+          if (heartOnTap != null) ...[
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: heartOnTap,
+              child: Icon(Icons.favorite_border,
+                  size: 16, color: scheme.onSurfaceVariant),
+            ),
           ],
-          Text(value,
-              style: TextStyle(
-                  color: highlight ? scheme.primary : scheme.onSurface,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700)),
         ],
       ),
     );
