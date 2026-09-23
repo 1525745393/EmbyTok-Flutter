@@ -1,3 +1,10 @@
+## [2.161.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.3...v2.161.4) (2026-09-23)
+
+
+### Bug Fixes
+
+* 类型标签点击搜索该类型+空label不残留空白 ([19e5c55](https://github.com/1525745393/EmbyTok-Flutter/commit/19e5c558cf9e3182d777c015814c95a45d63f15c))
+
 ## [2.161.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.161.2...v2.161.3) (2026-09-23)
 
 
