@@ -228,6 +228,9 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     apiKey: auth.token,
     maxWidth: 1280,
   );
+  final httpHeaders = auth.token != null && auth.token!.isNotEmpty
+      ? embyAuthHeaders(auth.token!)
+      : <String, String>{};
 
   List<Person>? actors;
   List<Person>? directors;
@@ -309,6 +312,8 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                             borderRadius: BorderRadius.circular(12),
                             child: CachedNetworkImage(
                               imageUrl: posterUrl,
+                              httpHeaders:
+                                  httpHeaders.isNotEmpty ? httpHeaders : null,
                               height: 200,
                               width: double.infinity,
                               fit: BoxFit.cover,
@@ -618,9 +623,10 @@ class _VideoInfoRowItems extends StatelessWidget {
                       .map((g) => ActionChip(
                             label: Text(g),
                             onPressed: () {
-                              Navigator.pop(context);
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              final messenger = ScaffoldMessenger.of(context);
+                              Navigator.pop(context); // 关闭对话框
+                              Navigator.pop(context); // 关闭详情页
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('筛选类型：$g')),
                               );
                             },
@@ -955,7 +961,7 @@ class _PersonChipList extends ConsumerWidget {
                     p.id!.isNotEmpty &&
                     serverUrl != null &&
                     serverUrl.isNotEmpty
-                ? '$serverUrl/Items/${p.id}/Images/Primary'
+                ? '$serverUrl/Items/${p.id}/Images/Primary?maxWidth=200'
                 : null);
         return GestureDetector(
           onTap: () {
