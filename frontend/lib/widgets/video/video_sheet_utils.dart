@@ -879,10 +879,16 @@ class _SimilarSectionState extends ConsumerState<_SimilarSection> {
                   );
                   return GestureDetector(
                     onTap: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('播放：${item.title}')),
-                      );
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      navigator.pop();
+                      if (item.id.isNotEmpty) {
+                        context.push('/play/${item.id}');
+                      } else {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('播放：${item.title}')),
+                        );
+                      }
                     },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
