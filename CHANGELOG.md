@@ -1,3 +1,10 @@
+# [2.160.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.8...v2.160.0) (2026-09-23)
+
+
+### Features
+
+* 详情页同时显示 Primary 海报和 Thumb 视频缩略图 ([1dc7fb3](https://github.com/1525745393/EmbyTok-Flutter/commit/1dc7fb35d87e967fe1aa669f5e700a27025df709))
+
 ## [2.159.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.159.7...v2.159.8) (2026-09-23)
 
 
