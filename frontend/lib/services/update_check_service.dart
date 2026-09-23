@@ -457,7 +457,11 @@ class UpdateCheckService {
             receiveTimeout: const Duration(seconds: 120),
           ),
           onReceiveProgress: (received, total) {
-            if (total <= 0) return;
+            if (total <= 0) {
+              // 服务器不返回 Content-Length，传 -1 表示不确定
+              onProgress(-1);
+              return;
+            }
             onProgress(received / total);
           },
         );
@@ -479,9 +483,14 @@ class UpdateCheckService {
           'source': isMirror ? '镜像 #$i' : '原始链接',
           'error': e.message,
         });
-        // 删除未完成的文件
-        if (await existingFile.exists()) {
-          await existingFile.delete();
+        // 删除未完成的文件（但不删除已验证的完整文件）
+        final saveFile = File(savePath);
+        if (await saveFile.exists()) {
+          final fileSize = await saveFile.length();
+          // 如果文件大小与预期不符，说明下载不完整，删除
+          if (fileSize != asset.size) {
+            await saveFile.delete();
+          }
         }
         continue;
       }
