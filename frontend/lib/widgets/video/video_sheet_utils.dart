@@ -215,14 +215,11 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
   final isEpisode =
       type == 'Episode' || (seriesName != null && seriesName.isNotEmpty);
 
-  // 从 Emby 服务器获取真正的海报/背景图 URL
+  // 用缩略图（thumbnailUrl），避免加载原图太大
+  final posterUrl = item.thumbnailUrl;
+  // 从 Emby 服务器获取背景图 URL
   final container = ProviderScope.containerOf(context);
   final auth = container.read(authProvider);
-  final posterUrl = item.primaryUrl(
-    embyServerUrl: auth.embyServerUrl,
-    apiKey: auth.token,
-    maxWidth: 500,
-  );
   final backdropUrl = item.backdropUrl(
     embyServerUrl: auth.embyServerUrl,
     apiKey: auth.token,
