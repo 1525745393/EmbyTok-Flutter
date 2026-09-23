@@ -306,29 +306,36 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // 封面海报（用 Emby primary poster）
+                        // 封面海报（Emby Primary 竖版海报，2:3 比例完整显示）
                         if (posterUrl != null)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: posterUrl,
-                              httpHeaders:
-                                  httpHeaders.isNotEmpty ? httpHeaders : null,
-                              height: 200,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                height: 200,
-                                color: scheme.onSurface.withValues(alpha: 0.1),
-                                child: const Center(
-                                  child: CircularProgressIndicator(),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: CachedNetworkImage(
+                                imageUrl: posterUrl,
+                                httpHeaders:
+                                    httpHeaders.isNotEmpty ? httpHeaders : null,
+                                width: 147,
+                                height: 220,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) => Container(
+                                  width: 147,
+                                  height: 220,
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.1),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 ),
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                height: 200,
-                                color: scheme.onSurface.withValues(alpha: 0.1),
-                                child: Icon(Icons.movie,
-                                    size: 48, color: scheme.onSurfaceVariant),
+                                errorWidget: (_, __, ___) => Container(
+                                  width: 147,
+                                  height: 220,
+                                  color:
+                                      scheme.onSurface.withValues(alpha: 0.1),
+                                  child: Icon(Icons.movie,
+                                      size: 48, color: scheme.onSurfaceVariant),
+                                ),
                               ),
                             ),
                           ),
