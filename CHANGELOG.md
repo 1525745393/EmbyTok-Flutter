@@ -1,3 +1,10 @@
+## [2.163.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.1...v2.163.2) (2026-09-24)
+
+
+### Bug Fixes
+
+* 多选对话框显示并允许取消不在列表中的已选类型 ([ce3ad01](https://github.com/1525745393/EmbyTok-Flutter/commit/ce3ad01a5b657f32d55bebf47967bc38fa12fa31))
+
 ## [2.163.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.0...v2.163.1) (2026-09-23)
 
 
