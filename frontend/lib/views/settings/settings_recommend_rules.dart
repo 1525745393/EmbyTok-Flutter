@@ -398,8 +398,17 @@ extension _SettingsRecommendRules on SettingsView {
     if (!context.mounted) return;
     final state = ref.read(discoverProvider);
     final effectiveItems = itemsOf(state);
+    final selectedIds = selectedOf(state);
 
-    if (effectiveItems.isEmpty) {
+    // 把已选但不在列表中的项追加到末尾，让用户可以取消
+    final knownIds = effectiveItems.map((e) => e.id).toSet();
+    final extraSelected = selectedIds
+        .where((id) => !knownIds.contains(id))
+        .map((id) => Library(id: id, name: id, type: 'Unknown'))
+        .toList();
+    final allItems = [...effectiveItems, ...extraSelected];
+
+    if (allItems.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(emptyMessage)),
@@ -408,7 +417,7 @@ extension _SettingsRecommendRules on SettingsView {
     }
 
     // 本地副本供勾选（不直接改 provider，点确定才保存）
-    final selected = Set<String>.from(selectedOf(state));
+    final selected = Set<String>.from(selectedIds);
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
@@ -420,14 +429,21 @@ extension _SettingsRecommendRules on SettingsView {
           height: 400,
           child: StatefulBuilder(
             builder: (dialogContext, setDialogState) => ListView.builder(
-              itemCount: effectiveItems.length,
+              itemCount: allItems.length,
               itemBuilder: (context, i) {
-                final g = effectiveItems[i];
+                final g = allItems[i];
                 final checked = selected.contains(g.id);
+                final isExtra = i >= effectiveItems.length;
                 return CheckboxListTile(
                   value: checked,
-                  title:
-                      Text(g.name, style: TextStyle(color: scheme.onSurface)),
+                  title: Text(
+                    isExtra ? '${g.name}（未在服务器列表）' : g.name,
+                    style: TextStyle(
+                      color:
+                          isExtra ? scheme.onSurfaceVariant : scheme.onSurface,
+                      fontStyle: isExtra ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
                   dense: true,
                   onChanged: (v) => setDialogState(() {
                     if (v == true) {
