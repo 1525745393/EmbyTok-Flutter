@@ -1,3 +1,12 @@
+## [2.183.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.1...v2.183.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* 媒体库心形按钮用GestureDetector参与手势竞技场 ([ed341e5](https://github.com/1525745393/EmbyTok-Flutter/commit/ed341e5b60c137aeb7a8eb0d84ea3f0e3a1732d3))
+* 媒体库心形按钮用Listener拦截手势，阻止冒泡到外层InkWell ([96dbfdf](https://github.com/1525745393/EmbyTok-Flutter/commit/96dbfdffb9fe432846a935a41a882c4aa07dd4eb))
+* 收藏页面影片卡片心形按钮改为可点击取消收藏 ([6c7ac99](https://github.com/1525745393/EmbyTok-Flutter/commit/6c7ac999c9745fe89b0eb7358e77f78206553872))
+
 ## [2.183.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.0...v2.183.1) (2026-09-25)
 
 
