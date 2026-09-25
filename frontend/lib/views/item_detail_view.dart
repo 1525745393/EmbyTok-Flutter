@@ -69,13 +69,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
     return Scaffold(
       backgroundColor: scheme.surface,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: scheme.surface,
-        foregroundColor: scheme.onSurface,
-        title: Text(
-          _item?.title ?? '详情',
-          style: const TextStyle(fontSize: 16),
-        ),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(''),
       ),
       body: _buildBody(authState, favorited, scheme),
     );
@@ -129,7 +128,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
-  // 顶部背景大图
+  // 顶部沉浸式背景大图 + 叠加标题/操作
   Widget _buildBackdrop(MediaItem item, AuthState authState) {
     final imageUrl = item.backdropUrl(
           embyServerUrl: authState.embyServerUrl,
@@ -140,89 +139,129 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           apiKey: authState.token,
         );
     final headers = item.authHeaders(authState.token);
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: imageUrl != null && imageUrl.isNotEmpty
-          ? CachedNetworkImage(
-              imageUrl: imageUrl,
-              cacheManager: AppImageCacheManager.largeImage,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              httpHeaders: headers.isNotEmpty ? headers : null,
-              memCacheWidth: 1000,
-              placeholder: (_, __) =>
-                  Container(color: Theme.of(context).colorScheme.surface),
-              errorWidget: (_, __, ___) =>
-                  _BackdropPlaceholder(type: item.type),
-            )
-          : _BackdropPlaceholder(type: item.type),
+    final scheme = Theme.of(context).colorScheme;
+    final progress = item.progressPercent;
+
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: imageUrl != null && imageUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  cacheManager: AppImageCacheManager.largeImage,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  httpHeaders: headers.isNotEmpty ? headers : null,
+                  memCacheWidth: 1000,
+                  placeholder: (_, __) => Container(
+                      color: Theme.of(context).colorScheme.surface),
+                  errorWidget: (_, __, ___) =>
+                      _BackdropPlaceholder(type: item.type),
+                )
+              : _BackdropPlaceholder(type: item.type),
+        ),
+        // 底部渐变遮罩，使下面的文字可读
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  scheme.surface.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // 叠加标题和播放按钮
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  shadows: [
+                    Shadow(blurRadius: 4, color: Colors.black54),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  // 播放按钮
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    icon: const Icon(Icons.play_arrow, size: 18),
+                    label: Text(
+                      progress > 0 ? '继续观看 ${(progress * 100).round()}%' : '立即播放',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    onPressed: () => _playItem(item),
+                  ),
+                  const SizedBox(width: 8),
+                  // 收藏按钮
+                  _buildFavoriteButton(
+                      ref.watch(favoritesProvider).favoriteIds.contains(item.id),
+                      scheme,
+                      dark: true),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  // 主信息区：标题、类型标签、年份、评分 + 操作按钮
+  // 主信息区：类型标签、年份、评分 + 导演 + 时长
   Widget _buildMainInfo(MediaItem item, bool favorited) {
     final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
     final rating = item.communityRating ?? item.rating;
-    // 导演：从 people 中过滤 type 为 Director 的人，取第一个
     final director =
         item.people?.where((p) => p.type == 'Director').firstOrNull;
     final directorName = director?.name;
-    // 时长
     final durationText = item.formattedDuration;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题
-          Text(
-            item.title,
-            style: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
           // 类型标签 + 年份 + 评分 + 导演 + 时长
           Wrap(
             spacing: 8,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _buildTypeChip(item.type),
+              _buildInfoChip(item.type),
               if (year != null) _buildInfoChip(year.toString()),
               if (rating != null && rating > 0) _buildRatingChip(rating),
               if (directorName != null && directorName.isNotEmpty)
                 _buildInfoChip('导演：$directorName'),
               if (durationText.isNotEmpty) _buildInfoChip(durationText),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // 操作栏：立即播放 + 收藏
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: scheme.primary,
-                    foregroundColor: scheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: const Icon(Icons.play_arrow, size: 20),
-                  label: const Text(
-                    '立即播放',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                  onPressed: () => _playItem(item),
-                ),
-              ),
-              const SizedBox(width: 12),
-              _buildFavoriteButton(favorited, scheme),
             ],
           ),
         ],
@@ -231,18 +270,21 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 
   // 收藏按钮
-  Widget _buildFavoriteButton(bool favorited, ColorScheme scheme) {
+  Widget _buildFavoriteButton(bool favorited, ColorScheme scheme,
+      {bool dark = false}) {
+    final bg = dark ? Colors.white.withValues(alpha: 0.25) : scheme.onSurface.withValues(alpha: 0.1);
+    final iconColor = dark ? Colors.white : (favorited ? scheme.primary : scheme.onSurface);
     return Container(
       decoration: BoxDecoration(
-        color: scheme.onSurface.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: scheme.outlineVariant),
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: dark ? Colors.white24 : scheme.outlineVariant),
       ),
       child: IconButton(
         icon: Icon(
           favorited ? Icons.favorite : Icons.favorite_border,
-          color: favorited ? scheme.primary : scheme.onSurface,
-          size: 22,
+          color: iconColor,
+          size: 20,
         ),
         onPressed: _toggleFavorite,
         tooltip: favorited ? '取消收藏' : '添加收藏',
@@ -586,11 +628,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                         key: Key(item.id),
                         item: item,
                         authState: authState,
-                        // 点击相似推荐：跳转到播放页，并注入相似推荐列表作为播放队列
-                        onTap: () => context.push('/play/${item.id}', extra: {
-                          'item': item,
-                          'items': _similarItems,
-                        }),
+                        // 点击相似推荐：进入该影片详情页
+                        onTap: () => context.push('/item/${item.id}', extra: item),
                       );
                     },
                   ),
