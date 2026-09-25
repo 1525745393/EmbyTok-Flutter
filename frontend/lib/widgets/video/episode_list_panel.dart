@@ -25,8 +25,9 @@ class EpisodeListPanel extends ConsumerStatefulWidget {
   /// 当前播放的剧集
   final MediaItem currentItem;
 
-  /// 选择剧集后的回调
-  final void Function(MediaItem episode) onPlayEpisode;
+  /// 选择剧集后的回调：返回选中剧集和当前季完整剧集列表
+  final void Function(MediaItem episode, List<MediaItem> seasonEpisodes)
+      onPlayEpisode;
 
   @override
   ConsumerState<EpisodeListPanel> createState() => _EpisodeListPanelState();
@@ -176,8 +177,10 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                           ),
                           if (widget.currentItem.parentIndexNumber != null)
                             Text(
-                              '第 ${widget.currentItem.parentIndexNumber} 季 · '
-                              '第 ${widget.currentItem.indexNumber ?? '?'} 集',
+                              _seasons.isNotEmpty && _selectedSeasonId != null
+                                  ? '${_seasons.where((s) => s.id == _selectedSeasonId).firstOrNull?.title ?? "第${widget.currentItem.parentIndexNumber}季"}'
+                                  : '第 ${widget.currentItem.parentIndexNumber} 季 · '
+                                      '第 ${widget.currentItem.indexNumber ?? '?'} 集',
                               style: const TextStyle(
                                 color: Colors.white60,
                                 fontSize: 12,
@@ -257,7 +260,7 @@ class _EpisodeListPanelState extends ConsumerState<EpisodeListPanel> {
                                     isCurrent: isCurrent,
                                     onTap: () {
                                       Navigator.of(context).pop();
-                                      widget.onPlayEpisode(ep);
+                                      widget.onPlayEpisode(ep, _episodes);
                                     },
                                   );
                                 },
@@ -332,9 +335,9 @@ class _EpisodeTile extends StatelessWidget {
 /// 显示剧集列表面板
 void showEpisodeListPanel(
   BuildContext context,
-  WidgetRef ref,
   MediaItem currentItem, {
-  required void Function(MediaItem episode) onPlayEpisode,
+  required void Function(MediaItem episode, List<MediaItem> seasonEpisodes)
+      onPlayEpisode,
 }) {
   showModalBottomSheet<void>(
     context: context,
