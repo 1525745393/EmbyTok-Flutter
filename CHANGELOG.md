@@ -1,3 +1,15 @@
+# [2.168.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.167.1...v2.168.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 底栏媒体库与 Emby 服务器适配修复 ([820a570](https://github.com/1525745393/EmbyTok-Flutter/commit/820a570ed3ae92f75ac9cff5fe827b4dd55a8bd9))
+
+
+### Features
+
+* 媒体库卡片改为封面图背景+半透明文字叠加 ([5f96b55](https://github.com/1525745393/EmbyTok-Flutter/commit/5f96b55d29749f9a0ec97054dbb8b92a90261285))
+
 ## [2.167.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.167.0...v2.167.1) (2026-09-25)
 
 
