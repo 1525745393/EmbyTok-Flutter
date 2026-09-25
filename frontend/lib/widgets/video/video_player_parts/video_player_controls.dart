@@ -390,6 +390,12 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
         'itemId': widget.item.id,
         'selectedTrackId': selectedTrackId,
       });
+      // 清空旧字幕，避免显示上一个视频的残留字幕
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _subtitleCues = const <SubtitleCue>[];
+        });
+      }
       return;
     }
 
@@ -404,6 +410,11 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
           'itemId': widget.item.id,
           'sourcesCount': sources?.length ?? 0,
         });
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _subtitleCues = const <SubtitleCue>[];
+          });
+        }
         return;
       }
       if (trackIndex == null) {
@@ -411,6 +422,11 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
           'itemId': widget.item.id,
           'selectedTrackId': selectedTrackId,
         });
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _subtitleCues = const <SubtitleCue>[];
+          });
+        }
         return;
       }
     }
@@ -495,14 +511,16 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
 
     // 用户有偏好语言时，优先匹配
     if (settings.language.isNotEmpty) {
-      // 精确匹配语言代码
+      final preferred = _normalizeLang(settings.language);
+      // 精确匹配 + 规范化匹配（chi/zho/zh 视为中文）
       matchedTrack = tracks.firstWhere(
-        (t) => t.language.toLowerCase() == settings.language.toLowerCase(),
+        (t) =>
+            t.language.toLowerCase() == settings.language.toLowerCase() ||
+            _normalizeLang(t.language) == preferred,
         orElse: () => tracks.first,
       );
       // firstWhere 的 orElse 会返回 first，但需要验证是否真的匹配到了
-      if (matchedTrack.language.toLowerCase() !=
-          settings.language.toLowerCase()) {
+      if (_normalizeLang(matchedTrack.language) != preferred) {
         matchedTrack = null;
       }
     }
@@ -516,6 +534,36 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     ref.read(selectedSubtitleProvider.notifier).state = matchedTrack.id;
     // 直接加载字幕，不依赖 ref.listen（避免时序竞态）
     _loadSubtitle(matchedTrack.id);
+  }
+
+  /// 规范化语言代码，使不同写法能匹配到同一语言
+  /// 例如 chi/zho/zh → zh, eng/english → en
+  static String _normalizeLang(String code) {
+    final c = code.toLowerCase().trim();
+    const aliases = {
+      'chi': 'zh',
+      'zho': 'zh',
+      'cn': 'zh',
+      'chs': 'zh',
+      'cht': 'zh',
+      'eng': 'en',
+      'english': 'en',
+      'jpn': 'ja',
+      'jp': 'ja',
+      'kor': 'ko',
+      'kr': 'ko',
+      'fre': 'fr',
+      'fra': 'fr',
+      'french': 'fr',
+      'ger': 'de',
+      'deu': 'de',
+      'german': 'de',
+      'spa': 'es',
+      'esp': 'es',
+      'por': 'pt',
+      'rus': 'ru',
+    };
+    return aliases[c] ?? c;
   }
 
   void _applyInitialVolume(VideoPlayerController c) {

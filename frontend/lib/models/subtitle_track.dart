@@ -1,7 +1,6 @@
 // 字幕轨道模型
 
 class SubtitleTrack {
-
   const SubtitleTrack({
     required this.id,
     required this.name,
@@ -21,6 +20,7 @@ class SubtitleTrack {
         url: json['url'] as String?,
         isDefault: json['isDefault'] as bool? ?? false,
         isForced: json['isForced'] as bool? ?? false,
+        localFilePath: json['localFilePath'] as String?,
       );
   final String id;
   final String name;
@@ -47,11 +47,11 @@ class SubtitleTrack {
         'url': url,
         'isDefault': isDefault,
         'isForced': isForced,
+        if (localFilePath != null) 'localFilePath': localFilePath,
       };
 }
 
 class SubtitleCue {
-
   const SubtitleCue(
     this.start,
     this.end,
@@ -370,7 +370,6 @@ List<SubtitleCue> parseAss(String content) {
 
 /// ASS 对话文本解析结果
 class _AssTextResult {
-
   const _AssTextResult({
     required this.text,
     this.isBold = false,
