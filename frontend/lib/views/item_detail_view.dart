@@ -230,6 +230,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                       ref.watch(favoritesProvider).favoriteIds.contains(item.id),
                       scheme,
                       dark: true),
+                  const SizedBox(width: 8),
+                  // 标记已观看/未观看
+                  _buildWatchedButton(item, scheme, authState),
                 ],
               ),
             ],
@@ -253,13 +256,14 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 类型标签 + 年份 + 评分 + 导演 + 时长
+          // 影片类型标签 + 年份 + 评分 + 导演 + 时长
           Wrap(
             spacing: 8,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _buildInfoChip(item.type),
+              // 影片类型（动作/冒险/科幻等），最多显示前3个
+              ...item.displayGenres.take(3).map((g) => _buildInfoChip(g)),
               if (year != null) _buildInfoChip(year.toString()),
               if (rating != null && rating > 0) _buildRatingChip(rating),
               if (directorName != null && directorName.isNotEmpty)
@@ -294,6 +298,48 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         ),
         onPressed: _toggleFavorite,
         tooltip: favorited ? '取消收藏' : '添加收藏',
+      ),
+    );
+  }
+
+  // 标记已观看/未观看按钮
+  Widget _buildWatchedButton(MediaItem item, ColorScheme scheme,
+      AuthState authState) {
+    final watched = item.isWatched;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.25),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white24),
+      ),
+      child: IconButton(
+        icon: Icon(
+          watched ? Icons.done_all : Icons.remove_done,
+          color: Colors.white,
+          size: 20,
+        ),
+        tooltip: watched ? '标记为未观看' : '标记为已观看',
+        onPressed: () async {
+          final service = ref.read(embytokServiceProvider);
+          if (watched) {
+            await service.markAsUnplayed(item.id,
+                serverUrl: authState.embyServerUrl, token: authState.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已标记为未观看')),
+              );
+            }
+          } else {
+            await service.markAsPlayed(item.id,
+                serverUrl: authState.embyServerUrl, token: authState.token);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已标记为已观看')),
+              );
+            }
+          }
+          _loadDetail();
+        },
       ),
     );
   }
