@@ -1,3 +1,10 @@
+# [2.169.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.168.0...v2.169.0) (2026-09-25)
+
+
+### Features
+
+* 媒体库页面对标 Emby Web 端 ([9dd79c8](https://github.com/1525745393/EmbyTok-Flutter/commit/9dd79c802c8a49e5ad62a0269261dbc5c4a0e4ad))
+
 # [2.168.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.167.1...v2.168.0) (2026-09-25)
 
 
