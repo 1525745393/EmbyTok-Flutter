@@ -1,3 +1,10 @@
+## [2.183.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.2...v2.183.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* 心形按钮用Material+InkWell赢得手势竞技场 ([b7f941b](https://github.com/1525745393/EmbyTok-Flutter/commit/b7f941b7ede342e2902a72cfc88ef6de54c95520))
+
 ## [2.183.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.1...v2.183.2) (2026-09-25)
 
 
