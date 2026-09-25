@@ -24,7 +24,6 @@ num? _parseNumDynamic(dynamic value) {
 }
 
 class MediaItem {
-
   const MediaItem({
     required this.id,
     required this.title,
@@ -448,13 +447,17 @@ class MediaItem {
     final tracks = <SubtitleTrack>[];
     for (final source in sources) {
       for (final stream in source.subtitleStreams) {
+        // 多 MediaSource 时轨道 index 可能重复，用 sourceId:index 保证唯一
+        final trackId = '${source.id}:${stream.index}';
         tracks.add(SubtitleTrack(
-          id: stream.index.toString(),
+          id: trackId,
           name: stream.displayTitle ?? '',
           language: stream.language ?? '',
-          format: stream.codec ?? '',
+          // codec 为空时默认按 srt 解析
+          format: (stream.codec ?? '').isEmpty ? 'srt' : stream.codec!,
           isDefault: stream.isDefault,
           isForced: stream.isForced,
+          url: stream.deliveryUrl,
         ));
       }
     }

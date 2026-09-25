@@ -10,14 +10,16 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
     required String mediaSourceId,
     required int index,
     String format = 'srt',
+    String? directUrl,
     String? serverUrl,
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
     try {
-      final url =
+      // 外挂字幕：Emby 提供了完整 DeliveryUrl，直接请求
+      final url = directUrl ??
           '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
-      AppLogger.debug('请求字幕', data: {'url': url});
+      AppLogger.debug('请求字幕', data: {'url': url, 'direct': directUrl != null});
       final resp = await _apiClient.dio.get<String>(
         url,
         options: Options(

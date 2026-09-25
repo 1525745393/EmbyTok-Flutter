@@ -377,12 +377,16 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
       for (int i = 0; i < tracks.length; i++) {
         if (tracks[i].id == selectedTrackId) {
           selectedTrack = tracks[i];
-          trackIndex = int.tryParse(tracks[i].id);
+          // 轨道 ID 格式为 "sourceId:index"，解析出 index
+          final parts = tracks[i].id.split(':');
+          if (parts.length == 2) {
+            trackIndex = int.tryParse(parts[1]);
+          } else {
+            trackIndex = int.tryParse(tracks[i].id);
+          }
           break;
         }
       }
-      // 如果没找到匹配的 track，尝试直接解析 selectedTrackId 作为索引
-      trackIndex ??= int.tryParse(selectedTrackId);
     }
 
     if (selectedTrack == null) {
@@ -402,13 +406,19 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     // 服务器字幕需要 mediaSourceId
     String? mediaSourceId;
     if (!isLocal) {
-      final sources = widget.item.mediaSources;
-      mediaSourceId =
-          (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+      // 从轨道 ID "sourceId:index" 中解析出 mediaSourceId
+      final idParts = selectedTrack.id.split(':');
+      if (idParts.length == 2) {
+        mediaSourceId = idParts[0];
+      } else {
+        final sources = widget.item.mediaSources;
+        mediaSourceId =
+            (sources != null && sources.isNotEmpty) ? sources.first.id : null;
+      }
       if (mediaSourceId == null || mediaSourceId.isEmpty) {
         AppLogger.warn('字幕加载失败：无有效 mediaSourceId', data: {
           'itemId': widget.item.id,
-          'sourcesCount': sources?.length ?? 0,
+          'selectedTrackId': selectedTrack.id,
         });
         if (mounted && !_isDisposed) {
           setState(() {
@@ -464,11 +474,13 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
         );
       } else {
         // 服务器字幕：按轨道的原始格式请求，保留原生样式（ASS/VTT 等）
+        // 外挂字幕直接用 DeliveryUrl，内嵌字幕走标准流端点
         cues = await embService.getSubtitleCues(
           itemId: widget.item.id,
           mediaSourceId: mediaSourceId!,
           index: trackIndex!,
           format: selectedTrack.format,
+          directUrl: selectedTrack.url,
         );
       }
       AppLogger.debug('字幕加载完成', data: {
