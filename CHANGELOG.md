@@ -1,3 +1,10 @@
+# [2.180.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.179.0...v2.180.0) (2026-09-25)
+
+
+### Features
+
+* 出品公司超过3家时折叠，可点击展开全部 ([de1679b](https://github.com/1525745393/EmbyTok-Flutter/commit/de1679bdb37146ac4efecfb53c374a294e9f3e03))
+
 # [2.179.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.178.0...v2.179.0) (2026-09-25)
 
 
