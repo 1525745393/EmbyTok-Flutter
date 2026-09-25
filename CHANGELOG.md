@@ -1,3 +1,10 @@
+# [2.179.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.178.0...v2.179.0) (2026-09-25)
+
+
+### Features
+
+* 详情页补充家长评级和制作公司（对标 Emby Web） ([b848e04](https://github.com/1525745393/EmbyTok-Flutter/commit/b848e049601461c25ce99d8cd766cfb2dd680904))
+
 # [2.178.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.6...v2.178.0) (2026-09-25)
 
 
