@@ -524,8 +524,8 @@ class FavoritesNotifier extends StateNotifier<FavoritesState> {
       return;
     }
 
-    // 去重：防止快速连点产生重复请求
-    if (_pendingToggles.contains(item.id)) return;
+    // 允许快速连续点击：每次都做乐观更新反转 UI，
+    // 服务器请求会按最终状态执行（Emby toggle 基于最终状态）
     _pendingToggles.add(item.id);
 
     // 1. 读取当前状态（乐观更新的基准）
