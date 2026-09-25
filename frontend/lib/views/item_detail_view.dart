@@ -452,9 +452,21 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               separatorBuilder: (_, __) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 final person = people[index];
+                // 构建演员头像完整 URL（Emby People 数组通常不返回完整 ImageUrl）
+                String? avatarUrl;
+                if (person.id != null && person.id!.isNotEmpty &&
+                    authState.embyServerUrl != null &&
+                    authState.token != null) {
+                  avatarUrl =
+                      '${authState.embyServerUrl}/Items/${person.id}/Images/Primary?MaxWidth=200&api_key=${authState.token}';
+                } else if (person.imageUrl != null &&
+                    person.imageUrl!.startsWith('http')) {
+                  avatarUrl = person.imageUrl;
+                }
                 return _CastCard(
                   key: Key(person.id ?? person.name),
                   person: person,
+                  avatarUrl: avatarUrl,
                   httpHeaders: httpHeaders,
                   onTap: () {
                     final pid = person.id;
@@ -464,7 +476,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                         id: pid,
                         title: person.name,
                         type: 'Person',
-                        thumbnailUrl: person.imageUrl,
+                        thumbnailUrl: avatarUrl,
                         overview: person.overview,
                       ),
                       'personType': person.type,

@@ -37,15 +37,20 @@ class _BackdropPlaceholder extends StatelessWidget {
 // 演员卡片：圆形头像 + 名称 + 角色
 class _CastCard extends StatelessWidget {
   const _CastCard(
-      {super.key, required this.person, required this.httpHeaders, this.onTap});
+      {super.key,
+      required this.person,
+      required this.httpHeaders,
+      this.avatarUrl,
+      this.onTap});
   final Person person;
   final Map<String, String> httpHeaders;
+  final String? avatarUrl;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final imageUrl = person.imageUrl;
+    final imageUrl = avatarUrl ?? person.imageUrl;
     final role = person.role;
     return GestureDetector(
       onTap: onTap,
