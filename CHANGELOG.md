@@ -1,3 +1,10 @@
+## [2.177.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.1...v2.177.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* 详情页演员头像不显示 ([117b170](https://github.com/1525745393/EmbyTok-Flutter/commit/117b170b7dd37bda61bc471e6b1b8be68da48607))
+
 ## [2.177.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.0...v2.177.1) (2026-09-25)
 
 
