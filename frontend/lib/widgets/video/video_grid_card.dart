@@ -74,6 +74,30 @@ class VideoGridCard extends ConsumerWidget {
                           bottom: 6,
                           child: _buildDurationBadge(duration, scheme),
                         ),
+                      // HD/4K 分辨率标签（左上角，蓝色圆点右侧）
+                      if (item.videoHeight != null && item.videoHeight! >= 1080)
+                        Positioned(
+                          left: 20,
+                          top: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: item.videoHeight! >= 2160
+                                  ? Colors.amber[700]
+                                  : Colors.blue,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              item.videoHeight! >= 2160 ? '4K' : 'HD',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       // 未观看蓝色圆点角标（对标 Emby Web）
                       if (!item.isWatched && progress == 0)
                         Positioned(

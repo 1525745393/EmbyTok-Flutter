@@ -93,13 +93,27 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                 onPressed: () => setState(() => _selectedLibrary = null),
               ),
               Expanded(
-                child: Text(
-                  library.name,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: scheme.onSurface,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      library.name,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    if (library.itemCount != null)
+                      Text(
+                        '${library.itemCount} 项',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
