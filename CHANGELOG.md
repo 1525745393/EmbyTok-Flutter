@@ -1,3 +1,20 @@
+# [2.164.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.5...v2.164.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* CI 构建失败 — getSubtitleCues 中间层和抽象类缺少 directUrl 参数 ([796d4b7](https://github.com/1525745393/EmbyTok-Flutter/commit/796d4b7e28b68faa12322b58d1ff72525e010a86))
+* SRT/VTT 解析器 <br> 标签转换为换行 ([5084610](https://github.com/1525745393/EmbyTok-Flutter/commit/5084610d81c77cfbd37746f30cd304bc20e96e1e))
+* 剧集列表面板审查修复 ([170a584](https://github.com/1525745393/EmbyTok-Flutter/commit/170a584eecd7e9bd300a8c1a0997a44e35073651))
+* 字幕与 Emby 服务器适配性三项修复 ([6927894](https://github.com/1525745393/EmbyTok-Flutter/commit/6927894345c38801090856f01cb2f87d3232ac8c))
+* 字幕加载失败时自动回退到 vtt 格式 ([0e48194](https://github.com/1525745393/EmbyTok-Flutter/commit/0e481948839403348b40a0c520d901f80b48fc6d))
+* 字幕格式适配完整性 ([a195ffc](https://github.com/1525745393/EmbyTok-Flutter/commit/a195ffce4c2878b3e0f6b0a2b975ad27cd7aa481))
+
+
+### Features
+
+* 播放器剧集/季切换多段式播放列表 ([e6e0a57](https://github.com/1525745393/EmbyTok-Flutter/commit/e6e0a5784cc66fbe83e6626d2ac44b1e3100366f))
+
 ## [2.163.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.4...v2.163.5) (2026-09-25)
 
 
