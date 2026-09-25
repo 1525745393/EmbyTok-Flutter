@@ -1,3 +1,15 @@
+# [2.174.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.173.0...v2.174.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 详情页审查修复 ([ccf0cc8](https://github.com/1525745393/EmbyTok-Flutter/commit/ccf0cc85a2b5efe8cece1687c629f75be894e9d5))
+
+
+### Features
+
+* 影片详情页对标 Emby Web ([a92de05](https://github.com/1525745393/EmbyTok-Flutter/commit/a92de0551fc4d27fcec12073b2ff03905d96c467))
+
 # [2.173.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.172.0...v2.173.0) (2026-09-25)
 
 
