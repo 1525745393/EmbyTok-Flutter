@@ -173,21 +173,34 @@ class _MoviePosterCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    // 心形角标
+                    // 心形角标（可点击取消收藏）
                     Positioned(
                       bottom: _kHeartBadgeOffset,
                       right: _kHeartBadgeOffset,
-                      child: Icon(
-                        Icons.favorite,
-                        color: scheme.primary,
-                        size: _kHeartBadgeSize,
-                        shadows: [
-                          Shadow(
-                            color: scheme.onSurface
-                                .withValues(alpha: _kHeartBadgeShadowAlpha),
-                            blurRadius: _kHeartBadgeShadowBlurRadius,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => ref
+                            .read(favoritesProvider.notifier)
+                            .toggleFavorite(item),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            shape: BoxShape.circle,
                           ),
-                        ],
+                          child: Icon(
+                            Icons.favorite,
+                            color: Colors.red,
+                            size: _kHeartBadgeSize,
+                            shadows: [
+                              Shadow(
+                                color: scheme.onSurface
+                                    .withValues(alpha: _kHeartBadgeShadowAlpha),
+                                blurRadius: _kHeartBadgeShadowBlurRadius,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
