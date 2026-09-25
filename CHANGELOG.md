@@ -1,3 +1,10 @@
+# [2.171.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.170.0...v2.171.0) (2026-09-25)
+
+
+### Features
+
+* 媒体库网格自适应列数+底部状态文字 ([d9ec589](https://github.com/1525745393/EmbyTok-Flutter/commit/d9ec58922510a998c180761864b9bedcafa6736e))
+
 # [2.170.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.169.0...v2.170.0) (2026-09-25)
 
 
