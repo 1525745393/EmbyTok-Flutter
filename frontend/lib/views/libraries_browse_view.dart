@@ -293,8 +293,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 }
 
-/// 媒体库卡片
-class _LibraryCard extends StatelessWidget {
+/// 媒体库卡片：封面图背景 + 半透明文字叠加（对标 Emby Web）
+class _LibraryCard extends ConsumerWidget {
   const _LibraryCard({required this.library, required this.onTap});
   final Library library;
   final VoidCallback onTap;
@@ -308,45 +308,93 @@ class _LibraryCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final auth = ref.read(authProvider);
+
+    // 构建媒体库封面图 URL（ImageTags.Primary）
+    String? coverUrl;
+    if (library.coverImageUrl != null &&
+        auth.embyServerUrl != null &&
+        auth.token != null) {
+      coverUrl =
+          '${auth.embyServerUrl}/Items/${library.id}/Images/Primary?MaxWidth=400&Tag=${library.coverImageUrl}&api_key=${auth.token}';
+    }
+
     return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(_icon, size: 40, color: scheme.primary),
-              const Spacer(),
-              Text(
-                library.name,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: scheme.onSurface,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 封面图背景
+            if (coverUrl != null)
+              Image.network(
+                coverUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _buildFallback(scheme),
+              )
+            else
+              _buildFallback(scheme),
+
+            // 半透明渐变叠加
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
+                  stops: const [0.4, 1.0],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-              if (library.itemCount != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '${library.itemCount} 项',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: scheme.onSurfaceVariant,
+            ),
+
+            // 文字内容
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    library.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ],
-          ),
+                  if (library.itemCount != null)
+                    Text(
+                      '${library.itemCount} 项',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFallback(ColorScheme scheme) {
+    return Container(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(_icon, size: 40, color: scheme.primary),
       ),
     );
   }
