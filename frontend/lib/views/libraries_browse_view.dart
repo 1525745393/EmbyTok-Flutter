@@ -2,7 +2,7 @@
 // 1. 媒体库卡片网格（2列）
 // 2. 点击卡片后在当前页面内进入该库影片列表（不跳转 feed 视频流）
 // 3. 有返回按钮回到媒体库列表
-// 4. 点击影片设置临时筛选并跳转 feed 播放
+// 4. 点击影片进入影片详情页
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,11 +26,21 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: _selectedLibrary == null
-          ? _buildLibraryGrid(context)
-          : _buildLibraryContent(context, _selectedLibrary!),
+    return PopScope(
+      canPop: _selectedLibrary == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // 在媒体库内容页时，返回键先回到媒体库列表
+        if (_selectedLibrary != null) {
+          setState(() => _selectedLibrary = null);
+        }
+      },
+      child: SafeArea(
+        bottom: false,
+        child: _selectedLibrary == null
+            ? _buildLibraryGrid(context)
+            : _buildLibraryContent(context, _selectedLibrary!),
+      ),
     );
   }
 
@@ -117,7 +127,12 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
             ],
           ),
         ),
-        Expanded(child: _LibraryItemsList(library: library)),
+        Expanded(
+          child: _LibraryItemsList(
+            key: ValueKey(library.id),
+            library: library,
+          ),
+        ),
       ],
     );
   }
@@ -125,7 +140,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 
 /// 单个媒体库的影片网格列表
 class _LibraryItemsList extends ConsumerStatefulWidget {
-  const _LibraryItemsList({required this.library});
+  const _LibraryItemsList({super.key, required this.library});
   final Library library;
 
   @override
@@ -184,22 +199,24 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     try {
       final service = ref.read(embytokServiceProvider);
-      final newItems = await service.getChildren(
+      final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
         offset: _startIndex,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
+        sortBy: 'SortName',
+        sortOrder: 'Ascending',
       );
 
       setState(() {
         if (loadMore) {
-          _items.addAll(newItems);
+          _items.addAll(resp.items);
         } else {
-          _items = newItems;
+          _items = resp.items;
         }
-        _startIndex += newItems.length;
-        _hasMore = newItems.length >= _limit;
+        _startIndex += resp.items.length;
+        _hasMore = _startIndex < resp.total;
         _isLoading = false;
       });
     } catch (e) {
