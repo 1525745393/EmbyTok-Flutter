@@ -440,14 +440,17 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                     notifier.addGenre(g);
                   }
                 },
-                child: Icon(
-                  selectedGenres.contains(g)
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  size: 14,
-                  color: selectedGenres.contains(g)
-                      ? Colors.red
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    selectedGenres.contains(g)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    size: 14,
+                    color: selectedGenres.contains(g)
+                        ? Colors.red
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
