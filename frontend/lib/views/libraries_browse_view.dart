@@ -389,25 +389,43 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadItems(),
-            child: GridView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.67,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _items.length + (_hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= _items.length) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final item = _items[index];
-                return VideoGridCard(
-                  item: item,
-                  onTap: () {
-                    context.push('/item/${item.id}', extra: item);
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 自适应列数：手机宽度约 360-400px 时 3 列，更宽时 4-5 列
+                final width = constraints.maxWidth;
+                final crossAxisCount = width >= 600 ? 4 : (width >= 420 ? 4 : 3);
+                return GridView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: 0.67,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: _items.length + 1, // 底部状态行
+                  itemBuilder: (context, index) {
+                    if (index >= _items.length) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            _hasMore ? '加载中…' : '共 ${_items.length} 项',
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    final item = _items[index];
+                    return VideoGridCard(
+                      item: item,
+                      onTap: () {
+                        context.push('/item/${item.id}', extra: item);
+                      },
+                    );
                   },
                 );
               },
