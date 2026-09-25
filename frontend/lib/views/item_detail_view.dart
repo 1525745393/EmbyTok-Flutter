@@ -276,7 +276,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   Widget _buildFavoriteButton(bool favorited, ColorScheme scheme,
       {bool dark = false}) {
     final bg = dark ? Colors.white.withValues(alpha: 0.25) : scheme.onSurface.withValues(alpha: 0.1);
-    final iconColor = dark ? Colors.white : (favorited ? scheme.primary : scheme.onSurface);
+    // dark 模式下收藏变红，未收藏白色；普通模式收藏用 primary
+    final iconColor = favorited
+        ? (dark ? Colors.red : scheme.primary)
+        : (dark ? Colors.white : scheme.onSurface);
     return Container(
       decoration: BoxDecoration(
         color: bg,
