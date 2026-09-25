@@ -1,3 +1,10 @@
+## [2.181.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.181.0...v2.181.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* 心形按钮快速连点被去重拦截导致无法取消收藏 ([bcbb9a7](https://github.com/1525745393/EmbyTok-Flutter/commit/bcbb9a793858d9536f0559831250339288c49304))
+
 # [2.181.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.180.0...v2.181.0) (2026-09-25)
 
 
