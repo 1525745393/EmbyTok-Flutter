@@ -414,12 +414,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
-  // 构建影片类型标签（超过4个可展开）
+  // 构建影片类型标签（超过4个可展开，点击跳转同类型影片）
   List<Widget> _buildGenresChips(MediaItem item) {
     final genres = item.displayGenres;
     final visible = _genresExpanded ? genres : genres.take(4).toList();
     return [
-      ...visible.map((g) => _buildInfoChip(g)),
+      ...visible.map((g) => GestureDetector(
+            onTap: () {
+              // 将该类型加入发现页筛选并跳转
+              ref.read(discoverProvider.notifier).addGenre(g);
+              context.push('/discover');
+            },
+            child: _buildInfoChip(g),
+          )),
       if (genres.length > 4)
         _buildExpandChip(
           _genresExpanded ? '收起' : '展开全部(${genres.length})',
