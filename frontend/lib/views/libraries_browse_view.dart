@@ -150,6 +150,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   int _startIndex = 0;
   static const int _limit = 50;
   bool _hasMore = true;
+  int _total = 0; // 媒体库影片总数
   late final ScrollController _scrollController;
   int _requestId = 0; // 竞态防护：只接受最新请求的结果
 
@@ -318,6 +319,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           _items = resp.items;
         }
         _startIndex += resp.items.length;
+        _total = resp.total;
         _hasMore = _startIndex < resp.total;
         _isLoading = false;
       });
@@ -373,6 +375,32 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     return Column(
       children: [
+        // 标题栏：库名 + 影片总数
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.library.name,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+              if (_total > 0)
+                Text(
+                  '$_total 项',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
         // 搜索框（展开时显示）
         if (_showSearch)
           Padding(
