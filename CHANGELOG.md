@@ -1,3 +1,11 @@
+# [2.165.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.164.0...v2.165.0) (2026-09-25)
+
+
+### Features
+
+* 底栏添加媒体库浏览标签 ([8665a50](https://github.com/1525745393/EmbyTok-Flutter/commit/8665a50c30499959bc9acf8a577193c3a2fe06c3))
+* 视频库首页顶栏显示所有媒体库名称标签 ([ccec690](https://github.com/1525745393/EmbyTok-Flutter/commit/ccec690c9569831a62374fb6a9a168eb3fbe8494))
+
 # [2.164.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.5...v2.164.0) (2026-09-25)
 
 
