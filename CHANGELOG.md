@@ -1,3 +1,15 @@
+# [2.173.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.172.0...v2.173.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 媒体库页面审查修复 ([b54a62d](https://github.com/1525745393/EmbyTok-Flutter/commit/b54a62dbe2bcc10df9c055f29f3ca3328da90cb7))
+
+
+### Features
+
+* 影片卡片长按菜单（对标 Emby Web 右键菜单） ([a7f36b2](https://github.com/1525745393/EmbyTok-Flutter/commit/a7f36b2629bb63b90115b9b2cd2ce2d9d9e872d8))
+
 # [2.172.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.171.0...v2.172.0) (2026-09-25)
 
 
