@@ -153,6 +153,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     String sortOrder = 'Descending',
     String? searchTerm,
     bool excludePlayed = false,
+    String? includeItemTypes,
     CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
@@ -174,7 +175,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       'Recursive': 'true',
       'Fields':
           'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
+      'IncludeItemTypes': includeItemTypes ?? 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
       if (excludePlayed) 'Filters': 'IsUnplayed',

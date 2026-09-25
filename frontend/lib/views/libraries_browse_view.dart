@@ -47,7 +47,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   // ==================== 媒体库卡片网格 ====================
 
   Widget _buildLibraryGrid(BuildContext context) {
-    final visibleLibraries = ref.watch(visibleLibraryListProvider);
+    // 底栏"媒体库"显示 Emby 服务器上的全部媒体库，不受设置里隐藏列表影响
     final librariesAsync = ref.watch(libraryListProvider);
     final scheme = Theme.of(context).colorScheme;
 
@@ -72,8 +72,8 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
           child: librariesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('加载失败: $e')),
-            data: (_) {
-              if (visibleLibraries.isEmpty) {
+            data: (libraries) {
+              if (libraries.isEmpty) {
                 return const Center(child: Text('暂无媒体库'));
               }
               return GridView.builder(
@@ -84,9 +84,9 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                 ),
-                itemCount: visibleLibraries.length,
+                itemCount: libraries.length,
                 itemBuilder: (context, index) {
-                  final lib = visibleLibraries[index];
+                  final lib = libraries[index];
                   return _LibraryCard(
                     library: lib,
                     onTap: () => setState(() => _selectedLibrary = lib),
@@ -199,6 +199,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     try {
       final service = ref.read(embytokServiceProvider);
+      // 根据媒体库类型设置 IncludeItemTypes：
+      // - movies 库只返回电影
+      // - tvshows 库只返回 Series（不返回单集 Episode）
+      // - 其他保持默认（混合）
+      final libType = widget.library.type;
+      String? includeItemTypes;
+      if (libType == 'movies') {
+        includeItemTypes = 'Movie';
+      } else if (libType == 'tvshows') {
+        includeItemTypes = 'Series';
+      }
       final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
@@ -207,6 +218,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         token: auth.token,
         sortBy: 'SortName',
         sortOrder: 'Ascending',
+        includeItemTypes: includeItemTypes,
       );
 
       setState(() {

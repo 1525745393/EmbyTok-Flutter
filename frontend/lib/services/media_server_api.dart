@@ -60,6 +60,7 @@ abstract class MediaServerApi {
     String sortOrder = 'Descending',
     String? searchTerm,
     bool excludePlayed = false,
+    String? includeItemTypes,
     CancelToken? cancelToken,
   });
 

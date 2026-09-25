@@ -40,6 +40,7 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
     String sortOrder = 'Descending',
     String? searchTerm,
     bool excludePlayed = false,
+    String? includeItemTypes,
     CancelToken? cancelToken,
   }) {
     return _api.getLibraryItems(
@@ -53,6 +54,7 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
       sortOrder: sortOrder,
       searchTerm: searchTerm,
       excludePlayed: excludePlayed,
+      includeItemTypes: includeItemTypes,
       cancelToken: cancelToken,
     );
   }
