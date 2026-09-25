@@ -15,10 +15,12 @@ class VideoGridCard extends ConsumerWidget {
     super.key,
     required this.item,
     this.onTap,
+    this.onLongPress,
     this.isLastWatched = false,
   });
   final MediaItem item;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   /// 是否为上次观看到的视频（渲染醒目「上次看到」角标 + 进度百分比）
   final bool isLastWatched;
@@ -39,6 +41,7 @@ class VideoGridCard extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
         // 用 Ink 绘制背景：InkWell 水波纹绘制在 Material 的 InkLayer，
         // 若用 Container 其背景会画在水波纹之上、削弱点击反馈

@@ -194,6 +194,73 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     }
   }
 
+  Future<void> _showItemActions(BuildContext context, MediaItem item) async {
+    final auth = ref.read(authProvider);
+    final service = ref.read(embytokServiceProvider);
+    final played = item.isWatched;
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            ListTile(
+              leading: Icon(played ? Icons.remove_done : Icons.done_all),
+              title: Text(played ? '标记为未观看' : '标记为已观看'),
+              onTap: () => Navigator.pop(context, 'toggle_played'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('查看详情'),
+              onTap: () => Navigator.pop(context, 'details'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == 'toggle_played') {
+      try {
+        if (played) {
+          await service.markAsUnplayed(item.id,
+              serverUrl: auth.embyServerUrl, token: auth.token);
+        } else {
+          await service.markAsPlayed(item.id,
+              serverUrl: auth.embyServerUrl, token: auth.token);
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(played ? '已标记为未观看' : '已标记为已观看')),
+          );
+          _loadItems(); // 刷新列表
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('操作失败，请重试')),
+          );
+        }
+      }
+    } else if (result == 'details') {
+      if (context.mounted) {
+        context.push('/item/${item.id}', extra: item);
+      }
+    }
+  }
+
   Future<void> _loadItems({bool loadMore = false}) async {
     if (_isLoading && loadMore) return;
     final myRequestId = ++_requestId; // 递增请求 ID
@@ -462,6 +529,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                       onTap: () {
                         context.push('/item/${item.id}', extra: item);
                       },
+                      onLongPress: () => _showItemActions(context, item),
                     );
                   },
                 );
