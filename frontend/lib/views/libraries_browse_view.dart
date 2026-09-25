@@ -1,8 +1,8 @@
-// 媒体库浏览页面：显示所有媒体库卡片，点击进入该媒体库内容
-//
-// 设计：和 Emby Web 端一样，首页显示媒体库卡片网格。
-// 点击某个媒体库后，临时筛选 feed 流只显示该库内容（不修改设置）。
-// 通过底栏"媒体库"标签进入，与设置里的媒体库选择完全独立。
+// 媒体库浏览页面：
+// 1. 媒体库卡片网格（2列）
+// 2. 点击卡片后在当前页面内进入该库影片列表（不跳转 feed 视频流）
+// 3. 有返回按钮回到媒体库列表
+// 4. 点击影片设置临时筛选并跳转 feed 播放
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,134 +11,257 @@ import '../models/models.dart';
 import '../providers/library_provider.dart';
 import '../providers/page_navigation_provider.dart';
 import '../providers/providers.dart';
+import '../widgets/video/video_grid_card.dart';
 
-class LibrariesBrowseView extends ConsumerWidget {
+class LibrariesBrowseView extends ConsumerStatefulWidget {
   const LibrariesBrowseView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final librariesAsync = ref.watch(libraryListProvider);
-    final visibleLibraries = ref.watch(visibleLibraryListProvider);
-    final topBarFilter = ref.watch(topBarLibraryFilterProvider);
-    final scheme = Theme.of(context).colorScheme;
+  ConsumerState<LibrariesBrowseView> createState() =>
+      _LibrariesBrowseViewState();
+}
 
+class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
+  Library? _selectedLibrary;
+
+  @override
+  Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
-      child: Column(
-        children: [
-          // 顶部标题栏
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-              children: [
-                Text(
-                  '媒体库',
+      child: _selectedLibrary == null
+          ? _buildLibraryGrid(context)
+          : _buildLibraryContent(context, _selectedLibrary!),
+    );
+  }
+
+  // ==================== 媒体库卡片网格 ====================
+
+  Widget _buildLibraryGrid(BuildContext context) {
+    final visibleLibraries = ref.watch(visibleLibraryListProvider);
+    final librariesAsync = ref.watch(libraryListProvider);
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Row(
+            children: [
+              Text(
+                '资源库',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: librariesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('加载失败: $e')),
+            data: (_) {
+              if (visibleLibraries.isEmpty) {
+                return const Center(child: Text('暂无媒体库'));
+              }
+              return GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: visibleLibraries.length,
+                itemBuilder: (context, index) {
+                  final lib = visibleLibraries[index];
+                  return _LibraryCard(
+                    library: lib,
+                    onTap: () => setState(() => _selectedLibrary = lib),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==================== 单个媒体库内容浏览 ====================
+
+  Widget _buildLibraryContent(BuildContext context, Library library) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => _selectedLibrary = null),
+              ),
+              Expanded(
+                child: Text(
+                  library.name,
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: scheme.onSurface,
                   ),
                 ),
-                const Spacer(),
-                if (topBarFilter != null)
-                  TextButton.icon(
-                    onPressed: () {
-                      ref.read(topBarLibraryFilterProvider.notifier).state = null;
-                    },
-                    icon: const Icon(Icons.filter_alt_off, size: 18),
-                    label: const Text('清除筛选'),
-                  ),
-              ],
-            ),
-          ),
-          // 媒体库网格
-          Expanded(
-            child: librariesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 12),
-                    Text('加载媒体库失败: $e'),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => ref.invalidate(libraryListProvider),
-                      child: const Text('重试'),
-                    ),
-                  ],
-                ),
               ),
-              data: (libraries) {
-                if (visibleLibraries.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.video_library_outlined,
-                            size: 64, color: scheme.onSurfaceVariant),
-                        const SizedBox(height: 16),
-                        Text(
-                          '暂无可见媒体库',
-                          style: TextStyle(color: scheme.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '请在设置中添加媒体库',
-                          style: TextStyle(
-                              color: scheme.onSurfaceVariant, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 1.6,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: visibleLibraries.length,
-                  itemBuilder: (context, index) {
-                    final lib = visibleLibraries[index];
-                    final isSelected = topBarFilter == lib.id;
-                    return _LibraryCard(
-                      library: lib,
-                      isSelected: isSelected,
-                      onTap: () {
-                        // 设置临时筛选
-                        ref.read(topBarLibraryFilterProvider.notifier).state =
-                            lib.id;
-                        // 跳转到 feed 页面查看该媒体库内容
-                        ref
-                            .read(pageNavigationNotifierProvider)
-                            .goToPage(PageIndices.feed);
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+            ],
           ),
-        ],
+        ),
+        Expanded(child: _LibraryItemsList(library: library)),
+      ],
+    );
+  }
+}
+
+/// 单个媒体库的影片网格列表
+class _LibraryItemsList extends ConsumerStatefulWidget {
+  const _LibraryItemsList({required this.library});
+  final Library library;
+
+  @override
+  ConsumerState<_LibraryItemsList> createState() => _LibraryItemsListState();
+}
+
+class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
+  List<MediaItem> _items = [];
+  bool _isLoading = true;
+  String? _error;
+  int _startIndex = 0;
+  static const int _limit = 50;
+  bool _hasMore = true;
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+    _loadItems();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 500) {
+      _loadItems(loadMore: true);
+    }
+  }
+
+  Future<void> _loadItems({bool loadMore = false}) async {
+    if (_isLoading && loadMore) return;
+    setState(() {
+      _isLoading = true;
+      if (!loadMore) {
+        _error = null;
+        _startIndex = 0;
+        _hasMore = true;
+      }
+    });
+
+    try {
+      final auth = ref.read(authProvider);
+      final service = ref.read(embytokServiceProvider);
+      final newItems = await service.getChildren(
+        widget.library.id,
+        limit: _limit,
+        offset: _startIndex,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+
+      setState(() {
+        if (loadMore) {
+          _items.addAll(newItems);
+        } else {
+          _items = newItems;
+        }
+        _startIndex += newItems.length;
+        _hasMore = newItems.length >= _limit;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading && _items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('加载失败: $_error'),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => _loadItems(),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_items.isEmpty) {
+      return const Center(child: Text('此媒体库暂无内容'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _loadItems(),
+      child: GridView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.65,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: _items.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _items.length) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final item = _items[index];
+          return VideoGridCard(
+            item: item,
+            onTap: () {
+              // 点击影片：设置临时筛选为该媒体库，跳转 feed 播放
+              ref.read(topBarLibraryFilterProvider.notifier).state =
+                  widget.library.id;
+              ref.read(pageNavigationNotifierProvider).goToPage(0);
+            },
+          );
+        },
       ),
     );
   }
 }
 
-/// 媒体库卡片：显示名称和类型图标
+/// 媒体库卡片
 class _LibraryCard extends StatelessWidget {
-  const _LibraryCard({
-    required this.library,
-    required this.isSelected,
-    required this.onTap,
-  });
-
+  const _LibraryCard({required this.library, required this.onTap});
   final Library library;
-  final bool isSelected;
   final VoidCallback onTap;
 
   IconData get _icon {
@@ -146,7 +269,6 @@ class _LibraryCard extends StatelessWidget {
     if (type.contains('movie')) return Icons.movie_outlined;
     if (type.contains('tv')) return Icons.tv_outlined;
     if (type.contains('music')) return Icons.library_music_outlined;
-    if (type.contains('boxsets')) return Icons.collections_outlined;
     return Icons.video_library_outlined;
   }
 
@@ -154,9 +276,7 @@ class _LibraryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected
-          ? scheme.primaryContainer.withValues(alpha: 0.5)
-          : scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -167,32 +287,28 @@ class _LibraryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _icon,
-                size: 36,
-                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
-              ),
+              Icon(_icon, size: 40, color: scheme.primary),
               const Spacer(),
               Text(
                 library.name,
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                   color: scheme.onSurface,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                library.type,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: scheme.onSurfaceVariant,
+              if (library.itemCount != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${library.itemCount} 项',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ],
           ),
         ),
