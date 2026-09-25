@@ -41,6 +41,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   bool _loadingEpisodes = false;
   // 简介展开状态
   bool _overviewExpanded = false;
+  bool _studiosExpanded = false;
   // 相关推荐
   List<MediaItem> _similarItems = const <MediaItem>[];
   bool _loadingSimilar = false;
@@ -274,15 +275,37 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               if (durationText.isNotEmpty) _buildInfoChip(durationText),
             ],
           ),
-          // 制作公司
+          // 制作公司（超过3家可展开）
           if (item.studioNames != null && item.studioNames!.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(
-              '出品：${item.studioNames!.take(3).join("、")}',
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
+            StatefulBuilder(
+              builder: (context, setState) {
+                final studios = item.studioNames!;
+                final expanded = _studiosExpanded;
+                final visible = expanded ? studios : studios.take(3).toList();
+                return GestureDetector(
+                  onTap: () => setState(() => _studiosExpanded = !_studiosExpanded),
+                  child: RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                      children: [
+                        TextSpan(text: '出品：${visible.join("、")}'),
+                        if (studios.length > 3)
+                          TextSpan(
+                            text: expanded ? ' 收起' : ' 展开全部(${studios.length})',
+                            style: TextStyle(
+                              color: scheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ],
