@@ -1,3 +1,17 @@
+# [2.176.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.175.0...v2.176.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 清理心形按钮死代码并增大触摸区域 ([0bdbcfa](https://github.com/1525745393/EmbyTok-Flutter/commit/0bdbcfa8fc32e07098a87b387d0bc752b0dce250))
+* 移除媒体库内容页重复标题栏 ([e6224e7](https://github.com/1525745393/EmbyTok-Flutter/commit/e6224e797620091c85e9c75da2e3e86731bde90c))
+
+
+### Features
+
+* 影片卡片右上角添加收藏心形按钮（对标抖音） ([6253c7a](https://github.com/1525745393/EmbyTok-Flutter/commit/6253c7ab33ad9b9d842a022de0c7b9eca4b9a45a))
+* 长按菜单添加收藏/取消收藏选项（对标 Emby Web） ([b7c19cb](https://github.com/1525745393/EmbyTok-Flutter/commit/b7c19cb6dd0cfa9dd0255ab6265f4778e966cc32))
+
 # [2.175.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.174.0...v2.175.0) (2026-09-25)
 
 
