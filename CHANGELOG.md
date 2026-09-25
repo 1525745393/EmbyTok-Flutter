@@ -1,3 +1,10 @@
+## [2.167.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.167.0...v2.167.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* 底栏媒体库审查修复 ([e339266](https://github.com/1525745393/EmbyTok-Flutter/commit/e339266287298924a6f74fc2ac8239577803f149))
+
 # [2.167.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.166.0...v2.167.0) (2026-09-25)
 
 
