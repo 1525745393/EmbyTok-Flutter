@@ -348,31 +348,63 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       ),
       child: IconButton(
         icon: Icon(
-          watched ? Icons.done_all : Icons.remove_done,
+          watched ? Icons.visibility : Icons.visibility_off,
           color: Colors.white,
           size: 20,
         ),
         tooltip: watched ? '标记为未观看' : '标记为已观看',
         onPressed: () async {
+          // 乐观更新 UI
+          final oldData = item.userData;
+          final newData = UserData(
+            playbackPositionTicks: oldData?.playbackPositionTicks ?? 0,
+            isFavorite: oldData?.isFavorite ?? false,
+            played: !watched,
+            unplayedItemCount: oldData?.unplayedItemCount ?? 0,
+            lastPlayedDate: oldData?.lastPlayedDate,
+            playCount: oldData?.playCount ?? 0,
+            rating: oldData?.rating,
+          );
+          setState(() {
+            _item = item.copyWith(userData: newData);
+          });
+
           final service = ref.read(embytokServiceProvider);
-          if (watched) {
-            await service.markAsUnplayed(item.id,
-                serverUrl: authState.embyServerUrl, token: authState.token);
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已标记为未观看')),
-              );
+          try {
+            if (watched) {
+              await service.markAsUnplayed(item.id,
+                  serverUrl: authState.embyServerUrl, token: authState.token);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已标记为未观看')),
+                );
+              }
+            } else {
+              await service.markAsPlayed(item.id,
+                  serverUrl: authState.embyServerUrl, token: authState.token);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已标记为已观看')),
+                );
+              }
             }
-          } else {
-            await service.markAsPlayed(item.id,
-                serverUrl: authState.embyServerUrl, token: authState.token);
+            // 失效详情缓存，下次进入时获取最新状态
+            try {
+              final cacheController = ref.read(cacheControllerProvider);
+              final serverUrl = authState.embyServerUrl;
+              if (serverUrl != null) {
+                cacheController.invalidateItemDetail(item.id, serverUrl);
+              }
+            } catch (_) {}
+          } catch (e) {
+            // 失败回滚
             if (mounted) {
+              setState(() => _item = item);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已标记为已观看')),
+                SnackBar(content: Text('操作失败：$e')),
               );
             }
           }
-          _loadDetail();
         },
       ),
     );
