@@ -445,6 +445,7 @@ abstract class MediaServerApi {
     required String mediaSourceId,
     required int index,
     String format = 'srt',
+    String? directUrl,
     String? serverUrl,
     String? token,
   });

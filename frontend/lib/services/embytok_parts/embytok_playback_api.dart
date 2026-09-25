@@ -36,12 +36,14 @@ mixin EmbytokPlaybackApi on EmbytokServiceBase {
     required String mediaSourceId,
     required int index,
     String format = 'srt',
+    String? directUrl,
     String? serverUrl,
     String? token,
   }) async {
     // 内存缓存：仅缓存成功且非空的结果，避免重复请求
     // 空结果和失败请求不缓存，确保下次可以重试
-    final cacheKey = '${itemId}_${mediaSourceId}_${index}_$format';
+    final cacheKey =
+        '${itemId}_${mediaSourceId}_${index}_$format${directUrl != null ? '_direct' : ''}';
     final cached = _subtitleCache.get(cacheKey);
     if (cached != null) {
       AppLogger.debug('字幕缓存命中',
@@ -54,6 +56,7 @@ mixin EmbytokPlaybackApi on EmbytokServiceBase {
         mediaSourceId: mediaSourceId,
         index: index,
         format: format,
+        directUrl: directUrl,
         serverUrl: serverUrl,
         token: token,
       );
