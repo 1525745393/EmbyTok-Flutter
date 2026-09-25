@@ -220,6 +220,11 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.play_arrow),
+              title: const Text('播放'),
+              onTap: () => Navigator.pop(context, 'play'),
+            ),
+            ListTile(
               leading: Icon(played ? Icons.remove_done : Icons.done_all),
               title: Text(played ? '标记为未观看' : '标记为已观看'),
               onTap: () => Navigator.pop(context, 'toggle_played'),
@@ -234,7 +239,12 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       ),
     );
 
-    if (result == 'toggle_played') {
+    if (result == 'play') {
+      if (context.mounted) {
+        ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
+        context.push('/play/${item.id}', extra: item);
+      }
+    } else if (result == 'toggle_played') {
       try {
         if (played) {
           await service.markAsUnplayed(item.id,
