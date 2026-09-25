@@ -17,6 +17,7 @@ class VideoGridCard extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.isLastWatched = false,
+    this.showFavoriteButton = false,
   });
   final MediaItem item;
   final VoidCallback? onTap;
@@ -24,6 +25,9 @@ class VideoGridCard extends ConsumerWidget {
 
   /// 是否为上次观看到的视频（渲染醒目「上次看到」角标 + 进度百分比）
   final bool isLastWatched;
+
+  /// 是否在卡片右上角显示收藏心形按钮（对标抖音）
+  final bool showFavoriteButton;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -122,6 +126,13 @@ class VideoGridCard extends ConsumerWidget {
                           right: 0,
                           bottom: 4,
                           child: _buildProgressBar(progress, scheme),
+                        ),
+                      // 收藏心形按钮（右上角，对标抖音）
+                      if (showFavoriteButton)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: _FavoriteHeartButton(item: item, ref: ref),
                         ),
                     ],
                   ),
@@ -267,5 +278,36 @@ class VideoGridCard extends ConsumerWidget {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
     }
     return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+}
+
+/// 收藏心形按钮（对标抖音：空心→点击变红填充）
+class _FavoriteHeartButton extends ConsumerWidget {
+  const _FavoriteHeartButton({required this.item, required this.ref});
+  final MediaItem item;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isFav = ref.watch(favoritesProvider).favoriteIds.contains(item.id);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(item),
+        customBorder: const CircleBorder(),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isFav ? Icons.favorite : Icons.favorite_border,
+            color: isFav ? Colors.red : Colors.white,
+            size: 18,
+          ),
+        ),
+      ),
+    );
   }
 }

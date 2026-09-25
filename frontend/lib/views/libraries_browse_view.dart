@@ -564,6 +564,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     final item = _items[index];
                     return VideoGridCard(
                       item: item,
+                      showFavoriteButton: true,
                       onTap: () {
                         context.push('/item/${item.id}', extra: item);
                       },
