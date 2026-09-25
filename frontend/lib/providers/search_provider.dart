@@ -44,7 +44,6 @@ const searchCategories = [
 
 /// 搜索人物结果
 class SearchPerson {
-
   const SearchPerson({
     required this.id,
     required this.name,
@@ -81,7 +80,6 @@ class SearchPerson {
 
 /// 搜索状态：关键字、结果列表、加载状态
 class SearchState {
-
   const SearchState({
     this.results = const <MediaItem>[],
     this.query = '',
@@ -142,7 +140,6 @@ class SearchState {
 
 // 搜索 Notifier
 class SearchNotifier extends StateNotifier<SearchState> {
-
   SearchNotifier(this._ref) : super(const SearchState()) {
     _service = _ref.read(embytokServiceProvider);
   }
@@ -242,7 +239,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
       if (searchCategory == SearchCategory.persons) {
         await _searchPersons(seq, query, serverUrl, token);
       } else {
-        await _searchMedia(seq, query, serverUrl, token, userId, searchCategory);
+        await _searchMedia(
+            seq, query, serverUrl, token, userId, searchCategory);
       }
       // 竞态保护：已有更新的搜索请求，丢弃本次结果
       if (seq != _searchSeq) return;
@@ -338,6 +336,9 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     AppLogger.debug('加载更多搜索结果', data: {'offset': state.offset});
 
+    // 记录当前搜索序号，加载更多完成后检查是否已有新搜索发起
+    final loadMoreSeq = _searchSeq;
+
     state = state.copyWith(isLoading: true, error: null);
 
     final auth = _auth;
@@ -359,6 +360,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
         token: token,
         userId: userId,
       );
+      // 竞态保护：期间已有新搜索发起，丢弃本次加载更多结果
+      if (loadMoreSeq != _searchSeq) return;
       final newItems = <MediaItem>[...state.results, ...resp.items];
       final hasMore = state.offset + resp.items.length < resp.total;
       state = state.copyWith(
@@ -370,6 +373,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
       );
       AppLogger.debug('加载更多成功', data: {'newCount': resp.items.length});
     } catch (e) {
+      if (loadMoreSeq != _searchSeq) return;
       final message = e is String ? e : '加载更多失败：$e';
       state = state.copyWith(isLoading: false, error: message);
       AppLogger.error('加载更多搜索结果失败', error: e);

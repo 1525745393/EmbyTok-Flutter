@@ -24,7 +24,6 @@ const int _kSearchHintsCacheMaxSize = 20;
 
 /// 搜索建议状态
 class SearchHintsState {
-
   const SearchHintsState({
     this.hints = const [],
     this.query = '',
@@ -53,7 +52,6 @@ class SearchHintsState {
 
 // 搜索建议 Notifier
 class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
-
   SearchHintsNotifier(this._ref) : super(const SearchHintsState()) {
     _service = _ref.read(embytokServiceProvider);
   }
@@ -62,6 +60,9 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
 
   /// 防抖 Timer：连续输入时只保留最后一次
   Timer? _debounceTimer;
+
+  /// 请求序号：防竞态，旧请求返回时不再覆盖最新结果
+  int _hintsSeq = 0;
 
   /// 搜索结果缓存（短 TTL，避免短时间内重复搜索同一关键词）
   final MemoryCache<List<SearchHint>> _cache =
@@ -88,6 +89,7 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
 
   /// 实际执行搜索建议查询
   Future<void> _doFetchHints(String query) async {
+    final seq = ++_hintsSeq;
     // 先检查缓存
     final cacheKey = '$query:${_auth.embyServerUrl}:${_auth.token}';
     final cached = _cache.get(cacheKey);
@@ -124,6 +126,8 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
         serverUrl: serverUrl,
         token: token,
       );
+      // 竞态保护：已有更新的请求，丢弃本次结果
+      if (seq != _hintsSeq) return;
       // 写入缓存
       _cache.set(cacheKey, hints, ttl: _kSearchHintsCacheTtl);
       state = SearchHintsState(
@@ -134,6 +138,7 @@ class SearchHintsNotifier extends StateNotifier<SearchHintsState> {
       );
       AppLogger.debug('搜索建议获取成功', data: {'count': hints.length});
     } catch (e) {
+      if (seq != _hintsSeq) return;
       final message = e is String ? e : '获取搜索建议失败：$e';
       state = state.copyWith(isLoading: false, error: message);
       AppLogger.error('搜索建议获取失败', error: e);
