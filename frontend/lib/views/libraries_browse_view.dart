@@ -199,6 +199,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     final auth = ref.read(authProvider);
     final service = ref.read(embytokServiceProvider);
     final played = item.isWatched;
+    final favorites = ref.read(favoritesProvider);
+    final isFav = favorites.favoriteIds.contains(item.id);
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -224,6 +226,14 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               onTap: () => Navigator.pop(context, 'play'),
             ),
             ListTile(
+              leading: Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                color: isFav ? Theme.of(context).colorScheme.primary : null,
+              ),
+              title: Text(isFav ? '取消收藏' : '收藏'),
+              onTap: () => Navigator.pop(context, 'favorite'),
+            ),
+            ListTile(
               leading: Icon(played ? Icons.remove_done : Icons.done_all),
               title: Text(played ? '标记为未观看' : '标记为已观看'),
               onTap: () => Navigator.pop(context, 'toggle_played'),
@@ -243,6 +253,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         ref.read(playbackListProvider.notifier).setPlaybackList([item], item.id);
         context.push('/play/${item.id}', extra: item);
       }
+    } else if (result == 'favorite') {
+      ref.read(favoritesProvider.notifier).toggleFavorite(item);
     } else if (result == 'toggle_played') {
       try {
         if (played) {
