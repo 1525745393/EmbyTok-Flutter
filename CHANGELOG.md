@@ -1,3 +1,10 @@
+# [2.177.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.176.0...v2.177.0) (2026-09-25)
+
+
+### Features
+
+* 底部状态行显示已加载/总数（对标 Emby Web） ([2cd1fd2](https://github.com/1525745393/EmbyTok-Flutter/commit/2cd1fd282894bf463a9239ff94cbc1f2878f7db8))
+
 # [2.176.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.175.0...v2.176.0) (2026-09-25)
 
 
