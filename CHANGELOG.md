@@ -1,3 +1,10 @@
+# [2.181.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.180.0...v2.181.0) (2026-09-25)
+
+
+### Features
+
+* 影片类型标签超过4个时折叠，可点击展开全部 ([b0e20d9](https://github.com/1525745393/EmbyTok-Flutter/commit/b0e20d9cd851fa31c1552fd568e2ec86e7b6f316))
+
 # [2.180.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.179.0...v2.180.0) (2026-09-25)
 
 
