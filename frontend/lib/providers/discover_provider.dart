@@ -235,6 +235,22 @@ class DiscoverNotifier extends StateNotifier<DiscoverState> {
     return true;
   }
 
+  /// 移除一个发现类型
+  Future<bool> removeGenre(String genre) async {
+    final current = List<String>.from(state.selectedGenreIds);
+    if (!current.remove(genre)) return false;
+    state = state.copyWith(selectedGenreIds: current);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = await accountScopedKey(_kStorageGenresKey);
+      await prefs.setString(key, jsonEncode(current));
+    } catch (e) {
+      AppLogger.error('移除发现类型失败', error: e);
+    }
+    _scheduleLoad();
+    return true;
+  }
+
   /// 防抖加载：连续多次添加/修改筛选时合并为一次 load
   void _scheduleLoad() {
     _loadDebounce?.cancel();
