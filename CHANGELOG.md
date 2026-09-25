@@ -1,3 +1,10 @@
+## [2.177.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.4...v2.177.5) (2026-09-25)
+
+
+### Bug Fixes
+
+* 心形按钮恢复 InkWell 水波纹点击反馈 ([fb39c3b](https://github.com/1525745393/EmbyTok-Flutter/commit/fb39c3b4bef7880fefcb90df3b8507df6d7b8e0c))
+
 ## [2.177.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.3...v2.177.4) (2026-09-25)
 
 
