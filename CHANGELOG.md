@@ -1,3 +1,15 @@
+# [2.183.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.182.0...v2.183.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 类型标签心形按钮扩大触摸区域至22px ([9f42225](https://github.com/1525745393/EmbyTok-Flutter/commit/9f422258204b4a4cba6b111c3a6cbaeb7389916b))
+
+
+### Features
+
+* 详情页类型标签添加心形按钮（对标抖音） ([3616edd](https://github.com/1525745393/EmbyTok-Flutter/commit/3616edd45cc082826b686b6b5f5b8503845de6e9))
+
 # [2.182.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.181.1...v2.182.0) (2026-09-25)
 
 
