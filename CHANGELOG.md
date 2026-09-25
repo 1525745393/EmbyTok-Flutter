@@ -1,3 +1,10 @@
+## [2.183.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.3...v2.183.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* 详情页已观看按钮乐观更新UI状态 ([507b9dd](https://github.com/1525745393/EmbyTok-Flutter/commit/507b9ddd42282bf344fdfa1df845f8e88cbea8cd))
+
 ## [2.183.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.2...v2.183.3) (2026-09-25)
 
 
