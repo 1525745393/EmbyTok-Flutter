@@ -1,3 +1,10 @@
+# [2.166.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.165.0...v2.166.0) (2026-09-25)
+
+
+### Features
+
+* 媒体库浏览改为页内导航，不跳转视频流 ([e450680](https://github.com/1525745393/EmbyTok-Flutter/commit/e450680b83146d2bacf611e073420b3fb59129d1))
+
 # [2.165.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.164.0...v2.165.0) (2026-09-25)
 
 
