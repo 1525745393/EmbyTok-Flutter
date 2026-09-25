@@ -1,3 +1,11 @@
+# [2.172.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.171.0...v2.172.0) (2026-09-25)
+
+
+### Features
+
+* 优化媒体库空状态和错误状态UI ([160e3db](https://github.com/1525745393/EmbyTok-Flutter/commit/160e3db16c9bcf617bce08ae0fc8527fa79b24be))
+* 媒体库页面对标 Emby Web 细节优化 ([ce8163f](https://github.com/1525745393/EmbyTok-Flutter/commit/ce8163fbf509167dc9fc914ac3aa845a54595403))
+
 # [2.171.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.170.0...v2.171.0) (2026-09-25)
 
 
