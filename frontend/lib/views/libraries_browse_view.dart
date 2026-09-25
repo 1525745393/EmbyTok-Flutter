@@ -244,6 +244,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (_isLoading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -252,8 +253,12 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('加载失败: $_error'),
+            Icon(Icons.error_outline, size: 48, color: scheme.error),
             const SizedBox(height: 12),
+            Text('加载失败', style: TextStyle(fontSize: 16, color: scheme.onSurface)),
+            const SizedBox(height: 4),
+            Text('请检查网络后重试', style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 16),
             FilledButton(
               onPressed: () => _loadItems(),
               child: const Text('重试'),
@@ -263,10 +268,21 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       );
     }
     if (_items.isEmpty) {
-      return const Center(child: Text('此媒体库暂无内容'));
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.video_library_outlined, size: 48, color: scheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              _searchQuery.isNotEmpty ? '未找到相关影片' : '此媒体库暂无内容',
+              style: TextStyle(fontSize: 16, color: scheme.onSurface),
+            ),
+          ],
+        ),
+      );
     }
 
-    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         // 搜索框（展开时显示）
