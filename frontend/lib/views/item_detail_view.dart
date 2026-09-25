@@ -416,45 +416,58 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // 构建影片类型标签（超过4个可展开，点击进入类型影片页，心形按钮加入发现筛选）
   List<Widget> _buildGenresChips(MediaItem item) {
+    final discoverState = ref.watch(discoverProvider);
+    final selectedGenres = discoverState.selectedGenreIds;
+    // 构建 名称→ID 映射，兼容设置页保存的 ID 和详情页传入的名称
+    final nameToId = <String, String>{
+      for (final g in discoverState.genres) g.name: g.id,
+    };
+    bool isGenreSelected(String name) {
+      if (selectedGenres.contains(name)) return true;
+      final id = nameToId[name];
+      return id != null && selectedGenres.contains(id);
+    }
+
     final genres = item.displayGenres;
-    final selectedGenres = ref.watch(discoverProvider).selectedGenreIds;
     final visible = _genresExpanded ? genres : genres.take(4).toList();
     return [
-      ...visible.map((g) => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    context.push('/genre/${Uri.encodeComponent(g)}'),
-                child: _buildInfoChip(g),
-              ),
-              const SizedBox(width: 2),
-              // 心形按钮：点击加入发现页筛选
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  final notifier = ref.read(discoverProvider.notifier);
-                  if (selectedGenres.contains(g)) {
-                    notifier.removeGenre(g);
-                  } else {
-                    notifier.addGenre(g);
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(
-                    selectedGenres.contains(g)
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    size: 14,
-                    color: selectedGenres.contains(g)
-                        ? Colors.red
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+      ...visible.map((g) {
+        final selected = isGenreSelected(g);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () =>
+                  context.push('/genre/${Uri.encodeComponent(g)}'),
+              child: _buildInfoChip(g),
+            ),
+            const SizedBox(width: 2),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                final notifier = ref.read(discoverProvider.notifier);
+                if (selected) {
+                  notifier.removeGenre(g);
+                  final id = nameToId[g];
+                  if (id != null) notifier.removeGenre(id);
+                } else {
+                  notifier.addGenre(g);
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  selected ? Icons.favorite : Icons.favorite_border,
+                  size: 14,
+                  color: selected
+                      ? Colors.red
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-            ],
-          )),
+            ),
+          ],
+        );
+      }),
       if (genres.length > 4)
         _buildExpandChip(
           _genresExpanded ? '收起' : '展开全部(${genres.length})',
