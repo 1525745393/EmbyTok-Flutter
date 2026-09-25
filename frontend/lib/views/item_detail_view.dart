@@ -66,14 +66,15 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final currentItem = _item;
     final favorited = currentItem != null &&
         ref.watch(favoritesProvider).favoriteIds.contains(currentItem.id);
+    final hasBackdrop = !_loading && _error == null && currentItem != null;
 
     return Scaffold(
       backgroundColor: scheme.surface,
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: hasBackdrop,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: hasBackdrop ? Colors.transparent : scheme.surface,
+        foregroundColor: hasBackdrop ? Colors.white : scheme.onSurface,
+        elevation: hasBackdrop ? 0 : null,
         title: const Text(''),
       ),
       body: _buildBody(authState, favorited, scheme),
@@ -110,7 +111,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             // 顶部大图（横屏海报）
             _buildBackdrop(item, authState),
             // 主信息区 + 操作栏
-            _buildMainInfo(item, favorited),
+            _buildMainInfo(item),
             // 简介区（可展开折叠）
             if (overview != null && overview.isNotEmpty)
               _buildOverview(overview),
@@ -190,6 +191,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             children: [
               Text(
                 item.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -237,7 +240,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 
   // 主信息区：类型标签、年份、评分 + 导演 + 时长
-  Widget _buildMainInfo(MediaItem item, bool favorited) {
+  Widget _buildMainInfo(MediaItem item) {
     final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
     final rating = item.communityRating ?? item.rating;
