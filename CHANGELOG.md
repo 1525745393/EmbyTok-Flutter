@@ -1,3 +1,12 @@
+# [2.175.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.174.0...v2.175.0) (2026-09-25)
+
+
+### Features
+
+* 媒体库内容页添加标题栏（对标 Emby Web） ([061e9da](https://github.com/1525745393/EmbyTok-Flutter/commit/061e9dac6400d9f2e6bca3ff64024045ed56dd5e))
+* 媒体库添加排序方向切换（对标 Emby Web） ([e0ab29e](https://github.com/1525745393/EmbyTok-Flutter/commit/e0ab29ef9c38729e15647264b6a025d4902fc793))
+* 长按菜单添加播放选项（对标 Emby Web 右键菜单） ([93ad861](https://github.com/1525745393/EmbyTok-Flutter/commit/93ad86154f83bfc0b91b8063d3b22de8f9bdd847))
+
 # [2.174.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.173.0...v2.174.0) (2026-09-25)
 
 
