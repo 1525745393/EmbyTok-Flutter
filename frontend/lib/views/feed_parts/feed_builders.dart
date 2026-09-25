@@ -44,8 +44,6 @@ extension _FeedBuilders on _FeedViewState {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 当前媒体库标签
-          _buildLibraryChip(scheme),
           _buildTopBarButton(
             icon: Icons.search,
             label: '搜索',
@@ -93,55 +91,6 @@ extension _FeedBuilders on _FeedViewState {
           ),
         ],
       ),
-    );
-  }
-
-  /// 媒体库标签栏：横向显示所有可见媒体库名称，点击临时筛选
-  Widget _buildLibraryChip(ColorScheme scheme) {
-    final libraries = ref.watch(visibleLibraryListProvider);
-    final topBarFilter = ref.watch(topBarLibraryFilterProvider);
-    if (libraries.isEmpty) return const SizedBox.shrink();
-
-    final color = scheme.onSurface.withValues(alpha: 0.85);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: libraries.map((lib) {
-        // 顶栏筛选优先高亮；无筛选时高亮设置里选中的第一个
-        final effectiveFilter = topBarFilter;
-        final selected = effectiveFilter != null
-            ? lib.id == effectiveFilter
-            : false;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: InkWell(
-            onTap: () {
-              // 点击顶栏标签：设置临时筛选（不改变设置里的媒体库选择）
-              // 再次点击同一标签则取消筛选，恢复设置里的选择
-              final current = ref.read(topBarLibraryFilterProvider);
-              ref.read(topBarLibraryFilterProvider.notifier).state =
-                  current == lib.id ? null : lib.id;
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: selected
-                    ? scheme.primary.withValues(alpha: 0.25)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                lib.name,
-                style: TextStyle(
-                  color: selected ? scheme.primary : color,
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 

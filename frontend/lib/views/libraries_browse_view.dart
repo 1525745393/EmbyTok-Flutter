@@ -156,6 +156,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 
   void _onScroll() {
+    if (!_hasMore || _isLoading) return;
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 500) {
       _loadItems(loadMore: true);
@@ -164,6 +165,14 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   Future<void> _loadItems({bool loadMore = false}) async {
     if (_isLoading && loadMore) return;
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated || auth.embyServerUrl == null || auth.token == null) {
+      setState(() {
+        _error = '未登录';
+        _isLoading = false;
+      });
+      return;
+    }
     setState(() {
       _isLoading = true;
       if (!loadMore) {
@@ -174,7 +183,6 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     });
 
     try {
-      final auth = ref.read(authProvider);
       final service = ref.read(embytokServiceProvider);
       final newItems = await service.getChildren(
         widget.library.id,
