@@ -1,3 +1,10 @@
+## [2.163.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.3...v2.163.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* 搜索功能两处竞态保护 ([5b94c5a](https://github.com/1525745393/EmbyTok-Flutter/commit/5b94c5a5c0032dbf539f538a948b7ca83a155743))
+
 ## [2.163.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.2...v2.163.3) (2026-09-25)
 
 
