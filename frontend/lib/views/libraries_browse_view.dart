@@ -4,6 +4,7 @@
 // 3. 有返回按钮回到媒体库列表
 // 4. 点击影片进入影片详情页
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../models/models.dart';
 import '../providers/library_provider.dart';
 import '../providers/providers.dart';
+import '../utils/image_cache_manager.dart';
 import '../widgets/video/video_grid_card.dart';
 
 class LibrariesBrowseView extends ConsumerStatefulWidget {
@@ -52,7 +54,9 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 
     return librariesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('加载失败: $e')),
+      error: (e, _) => const Center(
+        child: Text('加载失败，请稍后重试'),
+      ),
       data: (libraries) {
         if (libraries.isEmpty) {
           return const Center(child: Text('暂无媒体库'));
@@ -147,6 +151,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   static const int _limit = 50;
   bool _hasMore = true;
   late final ScrollController _scrollController;
+  int _requestId = 0; // 竞态防护：只接受最新请求的结果
 
   // 排序选项
   static const _sortOptions = {
@@ -191,8 +196,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   Future<void> _loadItems({bool loadMore = false}) async {
     if (_isLoading && loadMore) return;
+    final myRequestId = ++_requestId; // 递增请求 ID
     final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.embyServerUrl == null || auth.token == null) {
+      if (myRequestId != _requestId) return; // 已有更新请求
       setState(() {
         _error = '未登录';
         _isLoading = false;
@@ -210,10 +217,6 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     try {
       final service = ref.read(embytokServiceProvider);
-      // 根据媒体库类型设置 IncludeItemTypes：
-      // - movies 库只返回电影
-      // - tvshows 库只返回 Series（不返回单集 Episode）
-      // - 其他保持默认（混合）
       final libType = widget.library.type;
       String? includeItemTypes;
       if (libType == 'movies') {
@@ -238,6 +241,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
       );
 
+      if (myRequestId != _requestId) return; // 已有更新请求，丢弃旧结果
       setState(() {
         if (loadMore) {
           _items.addAll(resp.items);
@@ -249,6 +253,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _isLoading = false;
       });
     } catch (e) {
+      if (myRequestId != _requestId) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -421,9 +426,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
             onRefresh: () => _loadItems(),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // 自适应列数：手机宽度约 360-400px 时 3 列，更宽时 4-5 列
+                // 自适应列数：平板宽度 4 列，手机 3 列
                 final width = constraints.maxWidth;
-                final crossAxisCount = width >= 600 ? 4 : (width >= 420 ? 4 : 3);
+                final crossAxisCount = width >= 600 ? 4 : 3;
                 return GridView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -440,7 +445,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            _hasMore ? '加载中…' : '共 ${_items.length} 项',
+                            _isLoading && _hasMore
+                                ? '加载中…'
+                                : '共 ${_items.length} 项',
                             style: TextStyle(
                               color: scheme.onSurfaceVariant,
                               fontSize: 12,
@@ -505,10 +512,12 @@ class _LibraryCard extends ConsumerWidget {
           children: [
             // 封面图背景
             if (coverUrl != null)
-              Image.network(
-                coverUrl,
+              CachedNetworkImage(
+                imageUrl: coverUrl,
+                cacheManager: AppImageCacheManager.thumbnail,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _buildFallback(scheme),
+                memCacheWidth: 400,
+                errorWidget: (_, __, ___) => _buildFallback(scheme),
               )
             else
               _buildFallback(scheme),
