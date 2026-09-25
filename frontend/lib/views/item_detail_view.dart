@@ -256,7 +256,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 影片类型标签 + 年份 + 评分 + 导演 + 时长
+          // 影片类型标签 + 年份 + 评分 + 导演 + 时长 + 评级
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -266,11 +266,25 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               ...item.displayGenres.take(3).map((g) => _buildInfoChip(g)),
               if (year != null) _buildInfoChip(year.toString()),
               if (rating != null && rating > 0) _buildRatingChip(rating),
+              // 家长评级（如 PG-13/R）
+              if (item.officialRating != null && item.officialRating!.isNotEmpty)
+                _buildInfoChip(item.officialRating!),
               if (directorName != null && directorName.isNotEmpty)
                 _buildInfoChip('导演：$directorName'),
               if (durationText.isNotEmpty) _buildInfoChip(durationText),
             ],
           ),
+          // 制作公司
+          if (item.studioNames != null && item.studioNames!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              '出品：${item.studioNames!.take(3).join("、")}',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
     );
