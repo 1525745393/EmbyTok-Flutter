@@ -1,3 +1,10 @@
+# [2.178.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.6...v2.178.0) (2026-09-25)
+
+
+### Features
+
+* 详情页显示影片类型标签 + 标记已观看按钮（对标 Emby Web） ([a1e8ab9](https://github.com/1525745393/EmbyTok-Flutter/commit/a1e8ab9554f6b7c4cb11f86e66fb46c9d0cb7e1b))
+
 ## [2.177.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.5...v2.177.6) (2026-09-25)
 
 
