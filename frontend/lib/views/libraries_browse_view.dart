@@ -49,54 +49,32 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   Widget _buildLibraryGrid(BuildContext context) {
     // 底栏"媒体库"显示 Emby 服务器上的全部媒体库，不受设置里隐藏列表影响
     final librariesAsync = ref.watch(libraryListProvider);
-    final scheme = Theme.of(context).colorScheme;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
-            children: [
-              Text(
-                '资源库',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: scheme.onSurface,
-                ),
-              ),
-            ],
+    return librariesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('加载失败: $e')),
+      data: (libraries) {
+        if (libraries.isEmpty) {
+          return const Center(child: Text('暂无媒体库'));
+        }
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 1.6,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
           ),
-        ),
-        Expanded(
-          child: librariesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('加载失败: $e')),
-            data: (libraries) {
-              if (libraries.isEmpty) {
-                return const Center(child: Text('暂无媒体库'));
-              }
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: libraries.length,
-                itemBuilder: (context, index) {
-                  final lib = libraries[index];
-                  return _LibraryCard(
-                    library: lib,
-                    onTap: () => setState(() => _selectedLibrary = lib),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+          itemCount: libraries.length,
+          itemBuilder: (context, index) {
+            final lib = libraries[index];
+            return _LibraryCard(
+              library: lib,
+              onTap: () => setState(() => _selectedLibrary = lib),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -156,6 +134,15 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   bool _hasMore = true;
   late final ScrollController _scrollController;
 
+  // 排序选项
+  static const _sortOptions = {
+    '名称': ('SortName', 'Ascending'),
+    '最新入库': ('DateCreated', 'Descending'),
+    '评分': ('CommunityRating,SortName', 'Descending'),
+    '上映年份': ('ProductionYear,SortName', 'Descending'),
+  };
+  String _sortLabel = '名称';
+
   @override
   void initState() {
     super.initState();
@@ -210,14 +197,15 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       } else if (libType == 'tvshows') {
         includeItemTypes = 'Series';
       }
+      final sort = _sortOptions[_sortLabel]!;
       final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
         offset: _startIndex,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
-        sortBy: 'SortName',
-        sortOrder: 'Ascending',
+        sortBy: sort.$1,
+        sortOrder: sort.$2,
         includeItemTypes: includeItemTypes,
       );
 
@@ -263,32 +251,73 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       return const Center(child: Text('此媒体库暂无内容'));
     }
 
-    return RefreshIndicator(
-      onRefresh: () => _loadItems(),
-      child: GridView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 0.65,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        // 排序栏
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            children: [
+              Icon(Icons.sort, size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _sortOptions.keys.map((label) {
+                      final selected = label == _sortLabel;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: ChoiceChip(
+                          label: Text(label, style: const TextStyle(fontSize: 12)),
+                          selected: selected,
+                          onSelected: (_) {
+                            if (_sortLabel != label) {
+                              setState(() => _sortLabel = label);
+                              _loadItems();
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        itemCount: _items.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _items.length) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final item = _items[index];
-          return VideoGridCard(
-            item: item,
-            onTap: () {
-              // 点击影片：先进入影片详情页（显示标题、简介、演职人员等）
-              context.push('/item/${item.id}', extra: item);
-            },
-          );
-        },
-      ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => _loadItems(),
+            child: GridView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 0.67,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: _items.length + (_hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index >= _items.length) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final item = _items[index];
+                return VideoGridCard(
+                  item: item,
+                  onTap: () {
+                    context.push('/item/${item.id}', extra: item);
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
