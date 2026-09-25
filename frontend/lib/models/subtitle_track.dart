@@ -114,7 +114,11 @@ List<SubtitleCue> parseSrt(String content) {
 
 /// 移除 SRT 中的 HTML 标签（<i>、<b>、<font> 等）
 String _stripHtmlTags(String text) {
-  return text.replaceAll(RegExp(r'<[^>]*>'), '');
+  // <br> 转换为换行
+  var t = text.replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n');
+  // 移除其他标签
+  t = t.replaceAll(RegExp(r'<[^>]*>'), '');
+  return t;
 }
 
 Duration? _parseSrtTime(String s) {
@@ -292,7 +296,11 @@ Duration? _parseVttTime(String s) {
 
 /// 移除 VTT 标签（<c>、<i>、<b>、<u>、<ruby>、<rt> 等）
 String _stripVttTags(String text) {
-  return text.replaceAll(RegExp(r'<[^>]*>'), '');
+  // <br> 转换为换行
+  var t = text.replaceAll(RegExp(r'<\s*br\s*/?>', caseSensitive: false), '\n');
+  // 移除其他标签
+  t = t.replaceAll(RegExp(r'<[^>]*>'), '');
+  return t;
 }
 
 // ============================
