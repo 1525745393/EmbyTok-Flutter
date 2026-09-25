@@ -132,7 +132,7 @@ class VideoGridCard extends ConsumerWidget {
                         Positioned(
                           right: 4,
                           top: 4,
-                          child: _FavoriteHeartButton(item: item, ref: ref),
+                          child: _FavoriteHeartButton(item: item),
                         ),
                     ],
                   ),
@@ -283,9 +283,8 @@ class VideoGridCard extends ConsumerWidget {
 
 /// 收藏心形按钮（对标抖音：空心→点击变红填充）
 class _FavoriteHeartButton extends ConsumerWidget {
-  const _FavoriteHeartButton({required this.item, required this.ref});
+  const _FavoriteHeartButton({required this.item});
   final MediaItem item;
-  final WidgetRef ref;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -296,7 +295,7 @@ class _FavoriteHeartButton extends ConsumerWidget {
         onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(item),
         customBorder: const CircleBorder(),
         child: Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.3),
             shape: BoxShape.circle,
