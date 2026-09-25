@@ -1,3 +1,10 @@
+# [2.182.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.181.1...v2.182.0) (2026-09-25)
+
+
+### Features
+
+* 详情页类型标签可点击，点击加入发现页筛选并跳转 ([675b08e](https://github.com/1525745393/EmbyTok-Flutter/commit/675b08eba8e34ffaba517e261fbdadf666381ac2))
+
 ## [2.181.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.181.0...v2.181.1) (2026-09-25)
 
 
