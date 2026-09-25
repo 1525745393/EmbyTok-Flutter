@@ -74,6 +74,21 @@ class VideoGridCard extends ConsumerWidget {
                           bottom: 6,
                           child: _buildDurationBadge(duration, scheme),
                         ),
+                      // 未观看蓝色圆点角标（对标 Emby Web）
+                      if (!item.isWatched && progress == 0)
+                        Positioned(
+                          left: 6,
+                          top: 6,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 1.5),
+                            ),
+                          ),
+                        ),
                       if (progress > 0)
                         Positioned(
                           left: 0,
