@@ -264,19 +264,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // 影片类型（动作/冒险/科幻等），超过4个可展开
-              ...() {
-                final genres = item.displayGenres;
-                final visible = _genresExpanded ? genres : genres.take(4).toList();
-                return [
-                  ...visible.map((g) => _buildInfoChip(g)),
-                  if (genres.length > 4)
-                    _buildExpandChip(
-                      _genresExpanded ? '收起' : '展开全部(${genres.length})',
-                      () => setState(() => _genresExpanded = !_genresExpanded),
-                    ),
-                ];
-              }(),
+              ..._buildGenresChips(item),
               if (year != null) _buildInfoChip(year.toString()),
               if (rating != null && rating > 0) _buildRatingChip(rating),
               // 家长评级（如 PG-13/R）
@@ -290,34 +278,31 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           // 制作公司（超过3家可展开）
           if (item.studioNames != null && item.studioNames!.isNotEmpty) ...[
             const SizedBox(height: 10),
-            StatefulBuilder(
-              builder: (context, setState) {
-                final studios = item.studioNames!;
-                final expanded = _studiosExpanded;
-                final visible = expanded ? studios : studios.take(3).toList();
-                return GestureDetector(
-                  onTap: () => setState(() => _studiosExpanded = !_studiosExpanded),
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontSize: 12,
-                      ),
-                      children: [
-                        TextSpan(text: '出品：${visible.join("、")}'),
-                        if (studios.length > 3)
-                          TextSpan(
-                            text: expanded ? ' 收起' : ' 展开全部(${studios.length})',
-                            style: TextStyle(
-                              color: scheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                      ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    '出品：${(_studiosExpanded ? item.studioNames! : item.studioNames!.take(3)).join("、")}',
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
                     ),
                   ),
-                );
-              },
+                ),
+                if (item.studioNames!.length > 3)
+                  GestureDetector(
+                    onTap: () => setState(() => _studiosExpanded = !_studiosExpanded),
+                    child: Text(
+                      _studiosExpanded ? '收起' : '展开全部(${item.studioNames!.length})',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ],
         ],
@@ -427,6 +412,20 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
       ),
     );
+  }
+
+  // 构建影片类型标签（超过4个可展开）
+  List<Widget> _buildGenresChips(MediaItem item) {
+    final genres = item.displayGenres;
+    final visible = _genresExpanded ? genres : genres.take(4).toList();
+    return [
+      ...visible.map((g) => _buildInfoChip(g)),
+      if (genres.length > 4)
+        _buildExpandChip(
+          _genresExpanded ? '收起' : '展开全部(${genres.length})',
+          () => setState(() => _genresExpanded = !_genresExpanded),
+        ),
+    ];
   }
 
   // 展开/收起标签
