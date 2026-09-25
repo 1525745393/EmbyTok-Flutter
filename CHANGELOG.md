@@ -1,3 +1,15 @@
+# [2.167.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.166.0...v2.167.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* 移除顶栏媒体库标签，修复审查发现的问题 ([6b6fc45](https://github.com/1525745393/EmbyTok-Flutter/commit/6b6fc45e0b5c9a13b98273d779da0a133604df95))
+
+
+### Features
+
+* 媒体库点击影片进入详情页而非直接播放 ([5046caa](https://github.com/1525745393/EmbyTok-Flutter/commit/5046caa9bdf070f80c2cf7c669b8b4bf7e16cc47))
+
 # [2.166.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.165.0...v2.166.0) (2026-09-25)
 
 
