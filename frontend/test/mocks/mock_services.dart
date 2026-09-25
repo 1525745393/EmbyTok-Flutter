@@ -60,6 +60,8 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String? sortBy,
     String? sortOrder,
     String? searchTerm,
+    String? includeItemTypes,
+    String? playedFilter,
     bool? excludePlayed,
     CancelToken? cancelToken,
   }) =>
@@ -73,6 +75,8 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #sortBy: sortBy,
           #sortOrder: sortOrder,
           #searchTerm: searchTerm,
+          #includeItemTypes: includeItemTypes,
+          #playedFilter: playedFilter,
           #excludePlayed: excludePlayed,
           #cancelToken: cancelToken,
         }),
