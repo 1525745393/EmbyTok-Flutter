@@ -1,3 +1,13 @@
+# [2.170.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.169.0...v2.170.0) (2026-09-25)
+
+
+### Features
+
+* 媒体库内容页添加搜索功能 ([8d18851](https://github.com/1525745393/EmbyTok-Flutter/commit/8d188513f22c9f2267ee0229dcec741b6f31a7dc))
+* 媒体库内容页添加观看状态筛选 ([53fb225](https://github.com/1525745393/EmbyTok-Flutter/commit/53fb225218ceb815186c8a7bdc37b468746368a2))
+* 影片卡片标题下方显示年份和评分 ([1a0cd5d](https://github.com/1525745393/EmbyTok-Flutter/commit/1a0cd5d361a66e02ecd863bbf316c27a91987461))
+* 影片卡片添加未观看蓝色圆点角标 ([9673489](https://github.com/1525745393/EmbyTok-Flutter/commit/967348969bf75210dd7b7aebc332b1b176aee837))
+
 # [2.169.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.168.0...v2.169.0) (2026-09-25)
 
 
