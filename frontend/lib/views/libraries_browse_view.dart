@@ -161,6 +161,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     '上映年份': ('ProductionYear,SortName', 'Descending'),
   };
   String _sortLabel = '名称';
+  bool _sortAscending = false; // 用户可切换升序/降序
 
   // 观看状态筛选
   static const _filterOptions = ['全部', '未观看', '已观看'];
@@ -292,6 +293,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         includeItemTypes = 'Series';
       }
       final sort = _sortOptions[_sortLabel]!;
+      final sortOrder = _sortAscending ? 'Ascending' : 'Descending';
       String? playedFilter;
       if (_filterLabel == '未观看') playedFilter = 'unplayed';
       if (_filterLabel == '已观看') playedFilter = 'played';
@@ -302,7 +304,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         serverUrl: auth.embyServerUrl,
         token: auth.token,
         sortBy: sort.$1,
-        sortOrder: sort.$2,
+        sortOrder: sortOrder,
         includeItemTypes: includeItemTypes,
         playedFilter: playedFilter,
         searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
@@ -434,6 +436,20 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     }).toList(),
                   ),
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _sortAscending
+                      ? Icons.arrow_upward
+                      : Icons.arrow_downward,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+                tooltip: _sortAscending ? '升序' : '降序',
+                onPressed: () {
+                  setState(() => _sortAscending = !_sortAscending);
+                  _loadItems();
+                },
               ),
               IconButton(
                 icon: Icon(
