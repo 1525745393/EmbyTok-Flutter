@@ -6,10 +6,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/models.dart';
 import '../providers/library_provider.dart';
-import '../providers/page_navigation_provider.dart';
 import '../providers/providers.dart';
 import '../widgets/video/video_grid_card.dart';
 
@@ -246,10 +246,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           return VideoGridCard(
             item: item,
             onTap: () {
-              // 点击影片：设置临时筛选为该媒体库，跳转 feed 播放
-              ref.read(topBarLibraryFilterProvider.notifier).state =
-                  widget.library.id;
-              ref.read(pageNavigationNotifierProvider).goToPage(0);
+              // 点击影片：先进入影片详情页（显示标题、简介、演职人员等）
+              context.push('/item/${item.id}', extra: item);
             },
           );
         },
