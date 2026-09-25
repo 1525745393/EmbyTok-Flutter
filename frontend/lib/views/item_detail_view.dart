@@ -42,6 +42,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   // 简介展开状态
   bool _overviewExpanded = false;
   bool _studiosExpanded = false;
+  bool _genresExpanded = false;
   // 相关推荐
   List<MediaItem> _similarItems = const <MediaItem>[];
   bool _loadingSimilar = false;
@@ -263,8 +264,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // 影片类型（动作/冒险/科幻等），最多显示前3个
-              ...item.displayGenres.take(3).map((g) => _buildInfoChip(g)),
+              // 影片类型（动作/冒险/科幻等），超过4个可展开
+              ...() {
+                final genres = item.displayGenres;
+                final visible = _genresExpanded ? genres : genres.take(4).toList();
+                return [
+                  ...visible.map((g) => _buildInfoChip(g)),
+                  if (genres.length > 4)
+                    _buildExpandChip(
+                      _genresExpanded ? '收起' : '展开全部(${genres.length})',
+                      () => setState(() => _genresExpanded = !_genresExpanded),
+                    ),
+                ];
+              }(),
               if (year != null) _buildInfoChip(year.toString()),
               if (rating != null && rating > 0) _buildRatingChip(rating),
               // 家长评级（如 PG-13/R）
@@ -413,6 +425,29 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       child: Text(
         text,
         style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+      ),
+    );
+  }
+
+  // 展开/收起标签
+  Widget _buildExpandChip(String text, VoidCallback onTap) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: scheme.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
