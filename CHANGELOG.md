@@ -1,3 +1,11 @@
+## [2.163.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.4...v2.163.5) (2026-09-25)
+
+
+### Bug Fixes
+
+* 字幕控制面板语言选择保存轨道ID而非语言代码 ([fa39752](https://github.com/1525745393/EmbyTok-Flutter/commit/fa397528efcc5a637b9bdc393ea5fbbd36703daf))
+* 播放开始上报 EventName 从 TimeUpdate 改为 PlaybackStart ([6a118c3](https://github.com/1525745393/EmbyTok-Flutter/commit/6a118c3715e1d813c49432cd09b03e9c4587a95c))
+
 ## [2.163.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.3...v2.163.4) (2026-09-25)
 
 
