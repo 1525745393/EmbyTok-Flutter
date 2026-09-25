@@ -27,39 +27,81 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
     String? token,
   }) async {
     _ensureConfig(serverUrl, token);
-    try {
-      // 外挂字幕：Emby 提供了完整 DeliveryUrl，直接请求
-      // 内嵌字幕：对于图片字幕（PGS/VobSub）或不支持的格式，
-      // 请求 vtt 让 Emby 服务端转码为 WebVTT 文本
-      final lowerFormat = format.toLowerCase();
-      final requestFormat =
-          _supportedFormats.contains(lowerFormat) ? lowerFormat : 'vtt';
-      final parseFormat = directUrl != null ? lowerFormat : requestFormat;
 
-      final url = directUrl ??
-          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$requestFormat';
-      AppLogger.debug('请求字幕', data: {
-        'url': url,
-        'direct': directUrl != null,
-        'origFormat': format,
+    // 外挂字幕：Emby 提供了完整 DeliveryUrl，直接请求
+    if (directUrl != null && directUrl.isNotEmpty) {
+      try {
+        AppLogger.debug('请求外挂字幕', data: {'url': directUrl});
+        final resp = await _apiClient.dio.get<String>(directUrl);
+        final text = resp.data;
+        if (text == null || text.isEmpty) return const <SubtitleCue>[];
+        return parseSubtitle(text, format.toLowerCase());
+      } catch (e) {
+        AppLogger.warn('外挂字幕请求失败',
+            data: {'url': directUrl, 'error': e.toString()});
+        return const <SubtitleCue>[];
+      }
+    }
+
+    // 内嵌字幕：先按原始格式请求，失败则回退到 vtt
+    final lowerFormat = format.toLowerCase();
+    final requestFormat =
+        _supportedFormats.contains(lowerFormat) ? lowerFormat : 'vtt';
+
+    final primary = await _fetchSubtitleStream(
+      itemId: itemId,
+      mediaSourceId: mediaSourceId,
+      index: index,
+      format: requestFormat,
+    );
+    if (primary != null && primary.isNotEmpty) return primary;
+
+    // 主格式失败，回退到 vtt
+    if (requestFormat != 'vtt') {
+      AppLogger.debug('主格式字幕为空，回退到 vtt', data: {
+        'itemId': itemId,
         'requestFormat': requestFormat,
-        'parseFormat': parseFormat,
       });
+      final fallback = await _fetchSubtitleStream(
+        itemId: itemId,
+        mediaSourceId: mediaSourceId,
+        index: index,
+        format: 'vtt',
+      );
+      if (fallback != null && fallback.isNotEmpty) return fallback;
+    }
+
+    AppLogger.warn('字幕加载失败：所有格式均为空', data: {
+      'itemId': itemId,
+      'mediaSourceId': mediaSourceId,
+      'index': index,
+      'requestFormat': requestFormat,
+    });
+    return const <SubtitleCue>[];
+  }
+
+  /// 请求字幕流端点并解析
+  Future<List<SubtitleCue>?> _fetchSubtitleStream({
+    required String itemId,
+    required String mediaSourceId,
+    required int index,
+    required String format,
+  }) async {
+    try {
+      final url =
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
+      AppLogger.debug('请求字幕流', data: {'url': url, 'format': format});
       final resp = await _apiClient.dio.get<String>(
         url,
-        options: Options(
-          headers: {
-            'Accept': 'text/plain',
-          },
-        ),
+        options: Options(headers: {'Accept': 'text/plain'}),
       );
       final text = resp.data;
       if (text == null || text.isEmpty) {
         AppLogger.debug('字幕内容为空',
             data: {'url': url, 'statusCode': resp.statusCode});
-        return const <SubtitleCue>[];
+        return null;
       }
-      final cues = parseSubtitle(text, parseFormat);
+      final cues = parseSubtitle(text, format);
       AppLogger.debug('字幕解析完成', data: {
         'url': url,
         'format': format,
@@ -68,14 +110,14 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       });
       return cues;
     } catch (e) {
-      AppLogger.warn('字幕请求失败', data: {
+      AppLogger.warn('字幕流请求失败', data: {
         'itemId': itemId,
         'mediaSourceId': mediaSourceId,
         'index': index,
         'format': format,
         'error': e.toString(),
       });
-      return const <SubtitleCue>[];
+      return null;
     }
   }
 
