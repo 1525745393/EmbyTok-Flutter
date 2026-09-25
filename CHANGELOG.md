@@ -1,3 +1,10 @@
+## [2.163.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.2...v2.163.3) (2026-09-25)
+
+
+### Bug Fixes
+
+* 字幕功能三处修复 ([19ddc74](https://github.com/1525745393/EmbyTok-Flutter/commit/19ddc74ad608122ce585c2651a08a253f9ff13f6))
+
 ## [2.163.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.163.1...v2.163.2) (2026-09-24)
 
 
