@@ -4,6 +4,18 @@ part of 'emby_server_api.dart';
 
 // ==================== _EmbyPlaybackApi ====================
 
+/// 客户端可直接解析的字幕格式
+/// 不在此列表中的格式（pgs/vobsub/sub/dvdsub 等图片字幕或冷门格式）
+/// 请求时统一用 vtt，让 Emby 服务端转码
+const Set<String> _supportedFormats = {
+  'srt',
+  'subrip',
+  'vtt',
+  'webvtt',
+  'ass',
+  'ssa'
+};
+
 mixin _EmbyPlaybackApi on EmbyServerApiBase {
   Future<List<SubtitleCue>> getSubtitleCues({
     required String itemId,
@@ -17,9 +29,22 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
     _ensureConfig(serverUrl, token);
     try {
       // 外挂字幕：Emby 提供了完整 DeliveryUrl，直接请求
+      // 内嵌字幕：对于图片字幕（PGS/VobSub）或不支持的格式，
+      // 请求 vtt 让 Emby 服务端转码为 WebVTT 文本
+      final lowerFormat = format.toLowerCase();
+      final requestFormat =
+          _supportedFormats.contains(lowerFormat) ? lowerFormat : 'vtt';
+      final parseFormat = directUrl != null ? lowerFormat : requestFormat;
+
       final url = directUrl ??
-          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
-      AppLogger.debug('请求字幕', data: {'url': url, 'direct': directUrl != null});
+          '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$requestFormat';
+      AppLogger.debug('请求字幕', data: {
+        'url': url,
+        'direct': directUrl != null,
+        'origFormat': format,
+        'requestFormat': requestFormat,
+        'parseFormat': parseFormat,
+      });
       final resp = await _apiClient.dio.get<String>(
         url,
         options: Options(
@@ -34,7 +59,7 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
             data: {'url': url, 'statusCode': resp.statusCode});
         return const <SubtitleCue>[];
       }
-      final cues = parseSubtitle(text, format);
+      final cues = parseSubtitle(text, parseFormat);
       AppLogger.debug('字幕解析完成', data: {
         'url': url,
         'format': format,

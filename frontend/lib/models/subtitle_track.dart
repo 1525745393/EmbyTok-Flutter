@@ -482,16 +482,18 @@ Duration? _parseAssTime(String s) {
 /// 根据字幕格式自动选择解析器
 /// format: 'srt' / 'vtt' / 'ass' / 'ssa' 等
 List<SubtitleCue> parseSubtitle(String content, String format) {
+  // 统一去除 BOM 头，避免影响格式检测和首行解析
+  final normalized = content.replaceAll(RegExp(r'^\uFEFF'), '');
   switch (format.toLowerCase()) {
     case 'vtt':
     case 'webvtt':
-      return parseVtt(content);
+      return parseVtt(normalized);
     case 'ass':
     case 'ssa':
-      return parseAss(content);
+      return parseAss(normalized);
     case 'srt':
     case 'subrip':
     default:
-      return parseSrt(content);
+      return parseSrt(normalized);
   }
 }
