@@ -1,3 +1,10 @@
+## [2.183.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.0...v2.183.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* 详情页类型心形按钮状态不正确 ([a6254f4](https://github.com/1525745393/EmbyTok-Flutter/commit/a6254f404571b17d6db687307f5066219c155ab0))
+
 # [2.183.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.182.0...v2.183.0) (2026-09-25)
 
 
