@@ -72,8 +72,8 @@ class SubtitleControls extends ConsumerWidget {
                 ...tracks.map(
                   (t) => _chip(
                     label: t.name.isNotEmpty ? t.name : t.language,
-                    selected: settings.language == t.id,
-                    onTap: () => notifier.setLanguage(t.id),
+                    selected: settings.language == t.language,
+                    onTap: () => notifier.setLanguage(t.language),
                     scheme: scheme,
                   ),
                 ),
