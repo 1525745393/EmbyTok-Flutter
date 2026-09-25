@@ -153,7 +153,7 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       'IsPaused': isPaused,
       'IsMuted': isMuted,
       'PlayMethod': playMethod,
-      'EventName': 'TimeUpdate',
+      'EventName': 'PlaybackStart',
       'CanSeek': true,
       'QueueableMediaTypes': ['Video'],
       'MediaSourceId': mediaSourceId ?? itemId,
