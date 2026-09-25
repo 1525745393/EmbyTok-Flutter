@@ -1,3 +1,10 @@
+## [2.177.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.3...v2.177.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* mock 补充 getLibraryItems 缺失的 includeItemTypes/playedFilter 参数 ([5252835](https://github.com/1525745393/EmbyTok-Flutter/commit/525283590622ace46adc77d0e544b5cbd720e2c6))
+
 ## [2.177.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.2...v2.177.3) (2026-09-25)
 
 
