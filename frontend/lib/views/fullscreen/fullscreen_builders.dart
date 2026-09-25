@@ -258,6 +258,14 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
                       },
                     ),
                     const Spacer(),
+                    // 剧集列表按钮（仅剧集显示）
+                    if (playingItem?.seriesId != null)
+                      IconButton(
+                        icon: const Icon(Icons.playlist_play,
+                            color: Colors.white, size: 22),
+                        onPressed: () => _showEpisodeList(playingItem!),
+                        tooltip: '剧集列表',
+                      ),
                     IconButton(
                       icon: const Icon(Icons.subtitles,
                           color: Colors.white, size: 22),

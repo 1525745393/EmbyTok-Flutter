@@ -417,4 +417,35 @@ extension _FullscreenControls on _FullscreenVideoPageState {
     if (idx == null || idx <= 0) return;
     ref.read(feedViewPageJumpRequestProvider.notifier).state = idx - 1;
   }
+
+  /// 显示剧集列表面板
+  void _showEpisodeList(MediaItem currentItem) {
+    showEpisodeListPanel(
+      context,
+      ref,
+      currentItem,
+      onPlayEpisode: (episode) {
+        // 同季：在当前播放列表中找到目标 index
+        final currentItems = ref.read(playbackListProvider).items;
+        final targetIndex = currentItems.indexWhere((e) => e.id == episode.id);
+        if (targetIndex >= 0) {
+          // 同季切换：直接跳转
+          ref.read(feedViewPageJumpRequestProvider.notifier).state =
+              targetIndex;
+        } else {
+          // 跨季：更新播放列表为新季剧集，选中剧集放第一位
+          // 注意：EpisodeListPanel 已经加载了新季剧集，这里需要传递
+          // 简化处理：更新 playbackList 并跳转第 0 页
+          // EpisodeListPanel 内部维护了 _episodes，但我们无法直接获取
+          // 通过 playbackListProvider 通知 feed_view 重建
+          // 这里只更新当前播放 item，实际列表由 EpisodeListPanel 管理
+          ref
+              .read(playbackStateProvider.notifier)
+              .setPlaying(episode.id, episode);
+          // 跳转到第 0 页（feed_view 会根据新 playbackState 更新）
+          ref.read(feedViewPageJumpRequestProvider.notifier).state = 0;
+        }
+      },
+    );
+  }
 }

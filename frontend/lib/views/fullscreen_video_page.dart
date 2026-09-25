@@ -25,6 +25,7 @@ import '../utils/constants.dart';
 import '../utils/logger.dart';
 import '../utils/safe_insets.dart';
 import '../utils/system_gesture_exclusion.dart';
+import '../widgets/video/episode_list_panel.dart';
 import '../widgets/video/subtitle_renderer.dart';
 import '../widgets/video/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
