@@ -1,3 +1,10 @@
+## [2.177.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.0...v2.177.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* 详情页收藏按钮在深色背景下收藏后变红 ([f23c61a](https://github.com/1525745393/EmbyTok-Flutter/commit/f23c61a899c9905417b7543ff792b20c662ff912))
+
 # [2.177.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.176.0...v2.177.0) (2026-09-25)
 
 
