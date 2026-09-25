@@ -102,15 +102,50 @@ class VideoGridCard extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurface,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (item.productionYear != null ||
+                        item.communityRating != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          if (item.productionYear != null)
+                            Text(
+                              '${item.productionYear}',
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          if (item.communityRating != null) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.star,
+                                size: 11, color: Colors.amber[700]),
+                            const SizedBox(width: 2),
+                            Text(
+                              item.communityRating!.toStringAsFixed(1),
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
