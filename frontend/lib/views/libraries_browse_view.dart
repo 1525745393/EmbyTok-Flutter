@@ -143,6 +143,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   };
   String _sortLabel = '名称';
 
+  // 观看状态筛选
+  static const _filterOptions = ['全部', '未观看', '已观看'];
+  String _filterLabel = '全部';
+
   @override
   void initState() {
     super.initState();
@@ -198,6 +202,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         includeItemTypes = 'Series';
       }
       final sort = _sortOptions[_sortLabel]!;
+      String? playedFilter;
+      if (_filterLabel == '未观看') playedFilter = 'unplayed';
+      if (_filterLabel == '已观看') playedFilter = 'played';
       final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
@@ -207,6 +214,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         sortBy: sort.$1,
         sortOrder: sort.$2,
         includeItemTypes: includeItemTypes,
+        playedFilter: playedFilter,
       );
 
       setState(() {
@@ -275,6 +283,41 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                           onSelected: (_) {
                             if (_sortLabel != label) {
                               setState(() => _sortLabel = label);
+                              _loadItems();
+                            }
+                          },
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 观看状态筛选
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          child: Row(
+            children: [
+              Icon(Icons.filter_list, size: 18, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _filterOptions.map((label) {
+                      final selected = label == _filterLabel;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: ChoiceChip(
+                          label: Text(label, style: const TextStyle(fontSize: 12)),
+                          selected: selected,
+                          onSelected: (_) {
+                            if (_filterLabel != label) {
+                              setState(() => _filterLabel = label);
                               _loadItems();
                             }
                           },

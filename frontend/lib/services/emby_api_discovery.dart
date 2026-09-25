@@ -154,6 +154,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     String? searchTerm,
     bool excludePlayed = false,
     String? includeItemTypes,
+    String? playedFilter, // 'all' | 'unplayed' | 'played'
     CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
@@ -179,6 +180,8 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
       if (excludePlayed) 'Filters': 'IsUnplayed',
+      if (playedFilter == 'unplayed') 'Filters': 'IsUnplayed',
+      if (playedFilter == 'played') 'Filters': 'IsPlayed',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
