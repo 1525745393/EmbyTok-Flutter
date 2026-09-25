@@ -150,6 +150,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   int _startIndex = 0;
   static const int _limit = 50;
   bool _hasMore = true;
+  int _total = 0;
   late final ScrollController _scrollController;
   int _requestId = 0; // 竞态防护：只接受最新请求的结果
 
@@ -340,6 +341,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           _items = resp.items;
         }
         _startIndex += resp.items.length;
+        _total = resp.total;
         _hasMore = _startIndex < resp.total;
         _isLoading = false;
       });
@@ -552,7 +554,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                           child: Text(
                             _isLoading && _hasMore
                                 ? '加载中…'
-                                : '共 ${_items.length} 项',
+                                : _total > 0
+                                    ? '已加载 ${_items.length} / $_total 项'
+                                    : '共 ${_items.length} 项',
                             style: TextStyle(
                               color: scheme.onSurfaceVariant,
                               fontSize: 12,
