@@ -147,6 +147,11 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   static const _filterOptions = ['全部', '未观看', '已观看'];
   String _filterLabel = '全部';
 
+  // 搜索
+  String _searchQuery = '';
+  bool _showSearch = false;
+  final _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -158,6 +163,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -215,6 +221,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         sortOrder: sort.$2,
         includeItemTypes: includeItemTypes,
         playedFilter: playedFilter,
+        searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
       );
 
       setState(() {
@@ -262,6 +269,38 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
+        // 搜索框（展开时显示）
+        if (_showSearch)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '在${widget.library.name}中搜索…',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      _showSearch = false;
+                      _searchQuery = '';
+                      _searchController.clear();
+                    });
+                    _loadItems();
+                  },
+                ),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onSubmitted: (value) {
+                setState(() => _searchQuery = value.trim());
+                _loadItems();
+              },
+            ),
+          ),
         // 排序栏
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -293,6 +332,21 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     }).toList(),
                   ),
                 ),
+              ),
+              IconButton(
+                icon: Icon(
+                  _showSearch ? Icons.filter_alt : Icons.search,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+                onPressed: () {
+                  setState(() => _showSearch = !_showSearch);
+                  if (!_showSearch) {
+                    _searchQuery = '';
+                    _searchController.clear();
+                    _loadItems();
+                  }
+                },
               ),
             ],
           ),
