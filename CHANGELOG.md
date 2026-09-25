@@ -1,3 +1,10 @@
+## [2.177.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.5...v2.177.6) (2026-09-25)
+
+
+### Bug Fixes
+
+* 心形按钮点击冒泡到卡片跳转详情 ([0a2582d](https://github.com/1525745393/EmbyTok-Flutter/commit/0a2582d95369770f680b0fe9666ca2f96f4b26d4))
+
 ## [2.177.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.177.4...v2.177.5) (2026-09-25)
 
 
