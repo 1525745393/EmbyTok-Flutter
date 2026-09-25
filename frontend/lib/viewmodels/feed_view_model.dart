@@ -361,9 +361,14 @@ class FeedViewModel {
     );
   }
 
-  /// 当前媒体库 ID（多选时取第一个，未选则为空字符串）
+  /// 当前媒体库 ID（顶栏临时筛选优先，其次选中列表第一个，未选则为空）
   String _currentLibraryId() {
     try {
+      // 顶栏临时筛选优先
+      final topBarFilter = _ref.read(topBarLibraryFilterProvider);
+      if (topBarFilter != null && topBarFilter.isNotEmpty) {
+        return topBarFilter;
+      }
       final libs = _ref.read(libraryListProvider);
       final libValue = libs.value;
       if (!libs.hasValue || libValue == null || libValue.isEmpty) return '';

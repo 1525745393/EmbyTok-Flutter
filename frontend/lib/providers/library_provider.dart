@@ -321,3 +321,9 @@ final recommendLibraryConfiguredProvider =
     StateNotifierProvider<_BoolConfigNotifier, bool>(
   (ref) => _BoolConfigNotifier(kStorageKeyRecommendLibraryConfigured),
 );
+
+/// 顶栏临时媒体库筛选（不持久化，不影响设置里的媒体库选择）
+///
+/// 点击顶栏媒体库标签时设置为此库 ID，feed 流只加载该库内容。
+/// 设为 null 时恢复使用 selectedLibraryIdsProvider（设置里的选择）。
+final topBarLibraryFilterProvider = StateProvider<String?>((ref) => null);

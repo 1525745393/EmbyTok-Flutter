@@ -96,23 +96,30 @@ extension _FeedBuilders on _FeedViewState {
     );
   }
 
-  /// 媒体库标签栏：横向显示所有可见媒体库名称，点击切换
+  /// 媒体库标签栏：横向显示所有可见媒体库名称，点击临时筛选
   Widget _buildLibraryChip(ColorScheme scheme) {
     final libraries = ref.watch(visibleLibraryListProvider);
-    final selectedIds = ref.watch(selectedLibraryIdsProvider);
+    final topBarFilter = ref.watch(topBarLibraryFilterProvider);
     if (libraries.isEmpty) return const SizedBox.shrink();
 
     final color = scheme.onSurface.withValues(alpha: 0.85);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: libraries.map((lib) {
-        final selected = selectedIds.contains(lib.id);
+        // 顶栏筛选优先高亮；无筛选时高亮设置里选中的第一个
+        final effectiveFilter = topBarFilter;
+        final selected = effectiveFilter != null
+            ? lib.id == effectiveFilter
+            : false;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2),
           child: InkWell(
             onTap: () {
-              // 单选切换：点击某个媒体库即选中它
-              ref.read(selectedLibraryIdsProvider.notifier).setLibrary(lib.id);
+              // 点击顶栏标签：设置临时筛选（不改变设置里的媒体库选择）
+              // 再次点击同一标签则取消筛选，恢复设置里的选择
+              final current = ref.read(topBarLibraryFilterProvider);
+              ref.read(topBarLibraryFilterProvider.notifier).state =
+                  current == lib.id ? null : lib.id;
             },
             borderRadius: BorderRadius.circular(8),
             child: Container(

@@ -76,6 +76,17 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
         }
       },
     );
+    // 监听顶栏媒体库临时筛选变化：切换顶栏标签时自动刷新
+    _topBarFilterSubscription = _ref.listen<String?>(
+      topBarLibraryFilterProvider,
+      (previous, next) {
+        if (next != previous) {
+          AppLogger.debug('顶栏媒体库筛选变化：$previous -> $next，刷新视频列表');
+          _ref.read(playbackStateProvider.notifier).clear();
+          refresh(forceRefresh: true);
+        }
+      },
+    );
     // 监听 gridSearchQueryProvider 变化：网格搜索只影响 gridItems，不影响 feed 的 items
     // 设计原则：feed 和 grid 数据隔离。搜索是 grid 的本地行为，feed 始终是未过滤的视频流。
     _searchQuerySubscription = _ref.listen<String>(
@@ -125,6 +136,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
   ProviderSubscription<List<String>>? _libraryIdsSubscription;
   ProviderSubscription<FeedType>? _feedTypeSubscription;
   ProviderSubscription<bool>? _excludePlayedSubscription;
+  ProviderSubscription<String?>? _topBarFilterSubscription;
   ProviderSubscription<String>? _searchQuerySubscription;
   ProviderSubscription<ViewMode>? _viewModeSubscription;
 
@@ -164,7 +176,11 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     final gen = ++_refreshGeneration;
 
     final currentFeedType = _ref.read(feedTypeProvider);
-    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    // 顶栏临时筛选优先，其次设置里的选中列表
+    final topBarFilter = _ref.read(topBarLibraryFilterProvider);
+    final selectedIds = topBarFilter != null && topBarFilter.isNotEmpty
+        ? [topBarFilter]
+        : _ref.read(selectedLibraryIdsProvider);
 
     state = VideoListState(
       items: const <MediaItem>[],
@@ -482,7 +498,10 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
       return;
     }
 
-    final selectedIds = _ref.read(selectedLibraryIdsProvider);
+    final topBarFilter = _ref.read(topBarLibraryFilterProvider);
+    final selectedIds = topBarFilter != null && topBarFilter.isNotEmpty
+        ? [topBarFilter]
+        : _ref.read(selectedLibraryIdsProvider);
     if (selectedIds.isEmpty) {
       state = state.copyWith(hasMore: false);
       return;
@@ -821,6 +840,7 @@ class VideoListNotifier extends StateNotifier<VideoListState> {
     _libraryIdsSubscription?.close();
     _feedTypeSubscription?.close();
     _excludePlayedSubscription?.close();
+    _topBarFilterSubscription?.close();
     _searchQuerySubscription?.close();
     _viewModeSubscription?.close();
     super.dispose();

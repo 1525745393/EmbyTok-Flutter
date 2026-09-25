@@ -9,10 +9,11 @@ import '../utils/constants.dart';
 class PageIndices {
   static const int feed = 0;
   static const int favorites = 1;
-  static const int actors = 2;
-  static const int settings = 3;
-  static const int search = 4;
-  static const int history = 5;
+  static const int libraries = 2; // 新增：媒体库浏览（收藏右边）
+  static const int actors = 3;
+  static const int settings = 4;
+  static const int search = 5;
+  static const int history = 6;
 }
 
 // 页面导航状态
@@ -65,7 +66,12 @@ class PageNavigationNotifier extends StateNotifier<PageNavigationState> {
       if (index != null &&
           index >= PageIndices.feed &&
           index <= PageIndices.settings) {
-        state = PageNavigationState(currentIndex: index, isOverlayPage: false);
+        // 兼容旧版本：旧索引 2=演员, 3=设置；新版本 2=媒体库, 3=演员, 4=设置
+        // 如果旧索引是 2 或 3，映射到新索引
+        int mapped = index;
+        if (index == 2) mapped = PageIndices.actors; // 旧演员 → 新演员
+        if (index == 3) mapped = PageIndices.settings; // 旧设置 → 新设置
+        state = PageNavigationState(currentIndex: mapped, isOverlayPage: false);
       }
     } catch (_) {
     // 存储操作失败不影响主流程，静默处理

@@ -1,5 +1,5 @@
 // 主骨架页：底部导航栏 + 页面切换
-// 底部导航栏4个标签：首页、收藏、演员、设置
+// 底部导航栏5个标签：首页、收藏、媒体库、演员、设置
 // 搜索和历史通过 FeedView 顶部操作栏的图标按钮访问（覆盖层页面）
 //
 // 系统返回键拦截：HomeScaffold 的 PopScope 拦截系统返回键。
@@ -32,6 +32,7 @@ import '../utils/safe_unawaited.dart';
 import 'history_view.dart';
 import 'settings_view.dart';
 import 'actors_view.dart';
+import 'libraries_browse_view.dart';
 
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
@@ -260,7 +261,14 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                     ),
                     child: const FavoritesView(),
                   ),
-                  // 索引 2: 演员页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
+                  // 索引 2: 媒体库浏览页面
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: kBottomNavHeight + bottomPadding,
+                    ),
+                    child: const LibrariesBrowseView(),
+                  ),
+                  // 索引 3: 演员页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(
                       top: SafeInsets.topOf(context),
@@ -268,7 +276,7 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                     ),
                     child: const ActorsView(),
                   ),
-                  // 索引 3: 设置页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
+                  // 索引 4: 设置页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(
                     padding: EdgeInsets.only(
                       top: SafeInsets.topOf(context),
@@ -353,6 +361,13 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                                   selectedIcon: Icon(Icons.favorite,
                                       color: scheme.primary),
                                   label: '收藏',
+                                ),
+                                NavigationDestination(
+                                  icon: Icon(Icons.video_library_outlined,
+                                      color: scheme.onSurfaceVariant),
+                                  selectedIcon: Icon(Icons.video_library,
+                                      color: scheme.primary),
+                                  label: '媒体库',
                                 ),
                                 NavigationDestination(
                                   icon: Icon(Icons.person_outline,
