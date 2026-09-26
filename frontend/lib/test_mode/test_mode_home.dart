@@ -9,6 +9,7 @@ import 'subpages/crash_simulator_page.dart';
 import 'subpages/environment_switch_page.dart';
 import 'subpages/http_capture_panel.dart';
 import 'subpages/log_viewer_page.dart';
+import 'subpages/lock_screen_control_test_page.dart';
 import 'subpages/network_weak_test_page.dart';
 import 'subpages/performance_debug_page.dart';
 import 'subpages/player_test_page.dart';
@@ -133,6 +134,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildConfigTransfer,
     ),
     _TestModuleEntry(
+      icon: Icons.lock_clock,
+      color: Colors.deepPurple,
+      title: '锁屏/蓝牙控制专项',
+      subtitle: '验证通知栏与蓝牙耳机媒体控制',
+      builder: _buildLockScreen,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -154,6 +162,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildStorage(BuildContext _) => const StorageViewerPage();
   static Widget _buildSandbox(BuildContext _) => const SandboxBrowserPage();
   static Widget _buildConfigTransfer(BuildContext _) => const TestConfigTransferPage();
+  static Widget _buildLockScreen(BuildContext _) => const LockScreenControlTestPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
