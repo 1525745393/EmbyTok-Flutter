@@ -1,3 +1,10 @@
+# [2.207.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.206.0...v2.207.0) (2026-09-26)
+
+
+### Features
+
+* P0-3多账号快速切换 ([9c9550f](https://github.com/1525745393/EmbyTok-Flutter/commit/9c9550fd600d260347d896c206a01d55619721f7))
+
 # [2.206.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.205.0...v2.206.0) (2026-09-26)
 
 
