@@ -1,3 +1,10 @@
+## [2.183.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.5...v2.183.6) (2026-09-26)
+
+
+### Bug Fixes
+
+* 心形按钮移到外层Stack，彻底消除与InkWell的手势竞争 ([77f8ff2](https://github.com/1525745393/EmbyTok-Flutter/commit/77f8ff2eca0f2bbbd8ba20d2d250bb1789b335bd))
+
 ## [2.183.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.4...v2.183.5) (2026-09-26)
 
 
