@@ -1,3 +1,10 @@
+# [2.206.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.205.0...v2.206.0) (2026-09-26)
+
+
+### Features
+
+* P0产品建议-缓存管理中心+一键反馈 ([a0be632](https://github.com/1525745393/EmbyTok-Flutter/commit/a0be632f15940265f7f6f46f27016a0ebd2e2579))
+
 # [2.205.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.204.1...v2.205.0) (2026-09-26)
 
 
