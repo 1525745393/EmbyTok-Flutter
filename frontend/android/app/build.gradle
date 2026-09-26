@@ -84,6 +84,9 @@ android {
             signingConfig signingConfigs.debug
             minifyEnabled false
             shrinkResources false
+            // debug 版使用不同包名，可与 release 版共存
+            applicationIdSuffix ".debug"
+            resValue "string", "app_name", "EmbyTok Dev"
         }
         release {
             minifyEnabled true
