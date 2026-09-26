@@ -13,6 +13,7 @@ import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
 import '../utils/logger.dart';
 import '../widgets/person_avatar_image.dart';
+import '../widgets/video/video_sheet_utils.dart';
 part 'item_detail_widgets.dart';
 part 'item_detail_loaders.dart';
 
@@ -113,6 +114,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           children: [
             // 顶部大图（横屏海报）
             _buildBackdrop(item, authState, favorited),
+            // Primary 海报 + Thumb 缩略图（对标视频流 info sheet，点击可放大）
+            _buildPosterRow(item, authState),
             // 主信息区 + 操作栏
             _buildMainInfo(item),
             // 简介区（可展开折叠）
@@ -242,7 +245,111 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
-  // 主信息区：类型标签、年份、评分 + 导演 + 时长
+  // Primary 竖版海报 + Thumb 横版缩略图（对标视频流 info sheet）
+  Widget _buildPosterRow(MediaItem item, AuthState authState) {
+    final scheme = Theme.of(context).colorScheme;
+    final headers = item.authHeaders(authState.token);
+    final posterUrl = item.primaryUrl(
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
+      maxWidth: 300,
+    );
+    final posterHiRes = item.primaryUrl(
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
+      maxWidth: 1280,
+    );
+    final thumbUrl = item.imageUrl(
+      'Thumb',
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
+      maxWidth: 600,
+    );
+    final thumbHiRes = item.imageUrl(
+      'Thumb',
+      embyServerUrl: authState.embyServerUrl,
+      apiKey: authState.token,
+      maxWidth: 1280,
+    );
+
+    if (posterUrl == null && thumbUrl == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Primary 竖版海报（2:3），点击放大
+          if (posterUrl != null)
+            GestureDetector(
+              onTap: () => showFullScreenImageViewer(
+                context,
+                posterHiRes ?? posterUrl,
+                headers: headers.isNotEmpty ? headers : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: posterUrl,
+                  cacheManager: AppImageCacheManager.thumbnail,
+                  width: 80,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  httpHeaders: headers.isNotEmpty ? headers : null,
+                  memCacheWidth: 160,
+                  placeholder: (_, __) => Container(
+                    width: 80,
+                    height: 120,
+                    color: scheme.onSurface.withValues(alpha: 0.1),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    width: 80,
+                    height: 120,
+                    color: scheme.onSurface.withValues(alpha: 0.1),
+                    child: Icon(Icons.movie, size: 24, color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ),
+          if (posterUrl != null && thumbUrl != null) const SizedBox(width: 12),
+          // Thumb 横版视频缩略图，点击放大
+          if (thumbUrl != null)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => showFullScreenImageViewer(
+                  context,
+                  thumbHiRes ?? thumbUrl,
+                  headers: headers.isNotEmpty ? headers : null,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: CachedNetworkImage(
+                    imageUrl: thumbUrl,
+                    cacheManager: AppImageCacheManager.thumbnail,
+                    height: 120,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    httpHeaders: headers.isNotEmpty ? headers : null,
+                    memCacheWidth: 400,
+                    placeholder: (_, __) => Container(
+                      height: 120,
+                      color: scheme.onSurface.withValues(alpha: 0.1),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      height: 120,
+                      color: scheme.onSurface.withValues(alpha: 0.1),
+                      child: Icon(Icons.image, size: 24, color: scheme.onSurfaceVariant),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 主信息区（类型标签、年份、评分、导演、时长、出品公司）：类型标签、年份、评分 + 导演 + 时长
   Widget _buildMainInfo(MediaItem item) {
     final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
