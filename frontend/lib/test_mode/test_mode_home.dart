@@ -10,6 +10,7 @@ import 'subpages/log_viewer_page.dart';
 import 'subpages/network_weak_test_page.dart';
 import 'subpages/performance_debug_page.dart';
 import 'subpages/player_test_page.dart';
+import 'subpages/route_direct_panel.dart';
 import 'subpages/test_mode_about_page.dart';
 
 /// 测试模块入口定义
@@ -77,6 +78,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildLog,
     ),
     _TestModuleEntry(
+      icon: Icons.link,
+      color: Colors.deepPurple,
+      title: '路由直达面板',
+      subtitle: '直接跳转任意路由，无需走正常导航',
+      builder: _buildRoute,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -91,6 +99,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildEnv(BuildContext _) => const EnvironmentSwitchPage();
   static Widget _buildPerf(BuildContext _) => const PerformanceDebugPage();
   static Widget _buildLog(BuildContext _) => const LogViewerPage();
+  static Widget _buildRoute(BuildContext _) => const RouteDirectPanel();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
