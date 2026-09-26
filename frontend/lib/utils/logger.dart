@@ -197,6 +197,25 @@ class AppLogger {
     await _ensureLogFilePath();
   }
 
+  /// 记录启动时的设备与版本信息（导出日志时自动附带）
+  ///
+  /// 在 App 启动后尽早调用，记录一次设备型号、系统版本、App 版本，
+  /// 方便用户导出日志排查时无需手动说明环境。
+  static void logSessionStart({
+    required String appVersion,
+    String? deviceModel,
+    String? osVersion,
+    String? serverUrl,
+  }) {
+    info('App 启动', data: {
+      'appVersion': appVersion,
+      if (deviceModel != null) 'device': deviceModel,
+      if (osVersion != null) 'os': osVersion,
+      if (serverUrl != null) 'server': serverUrl,
+      'mode': kDebugMode ? 'debug' : 'release',
+    });
+  }
+
   /// 设置最小日志级别
   static void setMinLevel(LogLevel level) {
     _minLevel = level;
@@ -457,11 +476,22 @@ class AppLogger {
   }
 
   /// 获取所有已持久化的日志内容（供设置页预览或导出）
+  ///
+  /// 自动附带导出时间、日志条数和日志文件路径作为头部，
+  /// 方便用户提交反馈时附带上下文。
   static Future<String> exportLogs() async {
     if (!_initialized) {
       await _ensureLogFilePath();
     }
-    return _persistedBuffer.join('\n');
+    final header = [
+      '=== EmbyTok 日志导出 ===',
+      '导出时间: ${DateTime.now().toIso8601String()}',
+      '日志条数: ${_persistedBuffer.length}',
+      '文件路径: ${_logFilePath ?? "未知"}',
+      '=========================',
+      '',
+    ].join('\n');
+    return '$header${_persistedBuffer.join('\n')}';
   }
 
   /// 清除所有已持久化的日志（内存 + 文件）

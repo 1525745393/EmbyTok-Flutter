@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
 import 'services/api_client.dart';
 import 'utils/logger.dart';
@@ -16,6 +17,13 @@ import 'utils/logger.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLogger.init();
+  // 记录启动会话信息（App 版本、运行模式），导出日志时自动附带
+  try {
+    final info = await PackageInfo.fromPlatform();
+    AppLogger.logSessionStart(appVersion: info.version);
+  } catch (_) {
+    // 版本信息获取失败不阻塞启动
+  }
   // P0-1：加载全局 SSL 证书校验配置（允许自签名证书）
   // 必须在任何 ApiClient 实例创建之前调用
   await ApiClient.loadGlobalSettings();
@@ -50,7 +58,8 @@ Future<void> main() async {
   // 兜底策略：记录日志 + 跳过该帧（build 异常用灰屏替代），App 继续运行。
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    AppLogger.error('Flutter 未捕获异常', error: details.exception);
+    AppLogger.error('Flutter 未捕获异常',
+        error: details.exception, stackTrace: details.stack);
   };
   PlatformDispatcher.instance.onError = (error, stack) {
     AppLogger.error('Platform 未捕获异常', error: error, stackTrace: stack);
