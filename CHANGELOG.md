@@ -1,3 +1,10 @@
+# [2.196.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.2...v2.196.0) (2026-09-26)
+
+
+### Features
+
+* 播放器多音轨选择功能，对接Emby MediaStreams ([783dc25](https://github.com/1525745393/EmbyTok-Flutter/commit/783dc257ccf2c1eea07fd864b9256eb2a76931c4))
+
 ## [2.195.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.1...v2.195.2) (2026-09-26)
 
 
