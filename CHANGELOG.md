@@ -1,3 +1,10 @@
+## [2.195.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.0...v2.195.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 详情页PosterRow尺寸调整为100x150等高对齐 ([13ce4bb](https://github.com/1525745393/EmbyTok-Flutter/commit/13ce4bb6a5037442bfa21f47a3add998ec6075d6))
+
 # [2.195.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.194.0...v2.195.0) (2026-09-26)
 
 
