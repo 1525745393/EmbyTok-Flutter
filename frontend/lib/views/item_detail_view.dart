@@ -274,82 +274,102 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
     if (posterUrl == null && thumbUrl == null) return const SizedBox.shrink();
 
-    // 等高对齐：Primary 竖版海报 110x165（2:3），Thumb 横版高度同 165
-    // 尺寸与视频流 info sheet 完全一致
-    const double posterW = 110;
-    const double posterH = 165;
+    // 响应式尺寸：根据屏幕宽度缩放
+    final screenWidth = MediaQuery.of(context).size.width;
+    final posterW = (screenWidth * 0.28).clamp(90.0, 130.0);
+    final posterH = posterW * 1.5;
     const double radius = 12;
+
+    Widget buildImage({
+      required String imageUrl,
+      required String hiResUrl,
+      required double width,
+      required double height,
+      required String label,
+      required IconData placeholderIcon,
+      required String heroTag,
+      int memCacheWidth = 500,
+    }) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Hero(
+            tag: heroTag,
+            child: GestureDetector(
+              onTap: () => showFullScreenImageViewer(
+                context,
+                hiResUrl,
+                headers: headers.isNotEmpty ? headers : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(radius),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  cacheManager: AppImageCacheManager.thumbnail,
+                  width: width,
+                  height: height,
+                  fit: BoxFit.cover,
+                  httpHeaders: headers.isNotEmpty ? headers : null,
+                  memCacheWidth: memCacheWidth,
+                  placeholder: (_, __) => Container(
+                    width: width,
+                    height: height,
+                    color: scheme.onSurface.withValues(alpha: 0.1),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    width: width,
+                    height: height,
+                    color: scheme.onSurface.withValues(alpha: 0.1),
+                    child: Icon(placeholderIcon,
+                        size: 36, color: scheme.onSurfaceVariant),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Primary 竖版海报（2:3），点击放大
           if (posterUrl != null)
-            GestureDetector(
-              onTap: () => showFullScreenImageViewer(
-                context,
-                posterHiRes ?? posterUrl,
-                headers: headers.isNotEmpty ? headers : null,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(radius),
-                child: CachedNetworkImage(
-                  imageUrl: posterUrl,
-                  cacheManager: AppImageCacheManager.thumbnail,
-                  width: posterW,
-                  height: posterH,
-                  fit: BoxFit.cover,
-                  httpHeaders: headers.isNotEmpty ? headers : null,
-                  memCacheWidth: 220,
-                  placeholder: (_, __) => Container(
-                    width: posterW,
-                    height: posterH,
-                    color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    width: posterW,
-                    height: posterH,
-                    color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: Icon(Icons.movie, size: 40, color: scheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
+            buildImage(
+              imageUrl: posterUrl,
+              hiResUrl: posterHiRes ?? posterUrl,
+              width: posterW,
+              height: posterH,
+              label: '海报',
+              placeholderIcon: Icons.movie,
+              heroTag: 'poster_${item.id}',
+              memCacheWidth: 220,
             ),
           if (posterUrl != null && thumbUrl != null) const SizedBox(width: 12),
-          // Thumb 横版视频缩略图，点击放大，高度与 Primary 对齐
           if (thumbUrl != null)
             Expanded(
-              child: GestureDetector(
-                onTap: () => showFullScreenImageViewer(
-                  context,
-                  thumbHiRes ?? thumbUrl,
-                  headers: headers.isNotEmpty ? headers : null,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(radius),
-                  child: CachedNetworkImage(
-                    imageUrl: thumbUrl,
-                    cacheManager: AppImageCacheManager.thumbnail,
-                    height: posterH,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    httpHeaders: headers.isNotEmpty ? headers : null,
-                    memCacheWidth: 500,
-                    placeholder: (_, __) => Container(
-                      height: posterH,
-                      color: scheme.onSurface.withValues(alpha: 0.1),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      height: posterH,
-                      color: scheme.onSurface.withValues(alpha: 0.1),
-                      child: Icon(Icons.image, size: 40, color: scheme.onSurfaceVariant),
-                    ),
-                  ),
-                ),
+              child: buildImage(
+                imageUrl: thumbUrl,
+                hiResUrl: thumbHiRes ?? thumbUrl,
+                width: double.infinity,
+                height: posterH,
+                label: '视频缩略图',
+                placeholderIcon: Icons.image,
+                heroTag: 'thumb_${item.id}',
+                memCacheWidth: 500,
               ),
             ),
         ],
