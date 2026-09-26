@@ -244,22 +244,40 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         await _apiClient.delete<dynamic>(path);
       }
     } on AppError catch (e) {
-      // nginx 反代可能拦截带自定义头的 POST/DELETE，
+      // nginx 反代可能拦截 POST/DELETE（返回 HTML 403 页面），
       // 降级尝试在 query parameter 中附带 api_key
       if (e.statusCode == 403 && token != null && token.isNotEmpty) {
-        AppLogger.warn('收藏请求 403，尝试 query parameter 认证',
-            data: {'path': path});
-        final authToken = token;
-        if (isFavorite) {
-          await _apiClient.post<dynamic>(
-            path,
-            queryParameters: {'api_key': authToken},
-          );
+        // 检测是否为 nginx HTML 错误页（而非 Emby JSON 错误）
+        final isNginxBlock = e.debugMessage?.contains('<html>') == true ||
+            e.debugMessage?.contains('nginx') == true;
+        if (isNginxBlock) {
+          AppLogger.warn('nginx 拦截收藏请求，尝试 query parameter 认证',
+              data: {'path': path});
         } else {
-          await _apiClient.delete<dynamic>(
-            path,
-            queryParameters: {'api_key': authToken},
-          );
+          AppLogger.warn('收藏请求 403，尝试 query parameter 认证',
+              data: {'path': path});
+        }
+        try {
+          if (isFavorite) {
+            await _apiClient.post<dynamic>(
+              path,
+              queryParameters: {'api_key': token},
+            );
+          } else {
+            await _apiClient.delete<dynamic>(
+              path,
+              queryParameters: {'api_key': token},
+            );
+          }
+        } on AppError catch (e2) {
+          // 两次都失败，给出明确的错误提示
+          if (e2.statusCode == 403) {
+            throw AppError.forbidden(
+              message:
+                  '服务器拒绝了收藏请求（403）。请检查 nginx 反向代理是否允许 POST/DELETE 方法，并正确传递 X-Emby-Authorization 头。',
+            );
+          }
+          rethrow;
         }
       } else {
         rethrow;

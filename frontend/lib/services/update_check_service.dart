@@ -176,14 +176,17 @@ class UpdateCheckService {
     'https://gh-proxy.com/',
     'https://ghfast.top/',
     'https://ghproxy.net/',
+    'https://mirror.ghproxy.com/',
+    'https://ghps.cc/',
   ];
 
-  /// APK 下载镜像（原始链接失败后依次尝试，已移除停止服务的旧镜像）
+  /// APK 下载镜像（原始链接失败后依次尝试）
   static const List<String> _downloadMirrors = [
     'https://ghfast.top/',
     'https://gh-proxy.com/',
     'https://ghproxy.net/',
-    'https://gh.ddlc.top/',
+    'https://mirror.ghproxy.com/',
+    'https://ghps.cc/',
   ];
 
   final Dio _dio;

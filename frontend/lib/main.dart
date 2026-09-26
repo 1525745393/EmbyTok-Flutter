@@ -66,6 +66,36 @@ Future<void> main() async {
     return true; // 已处理，不终止 App
   };
 
+  // 构建错误时显示友好界面而非红屏/灰屏
+  ErrorWidget.builder = (details) {
+    AppLogger.error('Widget 构建失败',
+        error: details.exception, stackTrace: details.stack);
+    return Material(
+      color: const Color(0xFF1A1A1A),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white54, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                '页面渲染出现问题',
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '请返回上一页重试',
+                style: TextStyle(color: Colors.white38, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   runZonedGuarded(
     () => runApp(const ProviderScope(child: EmbyTokApp())),
     (error, stackTrace) {

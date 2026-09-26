@@ -91,8 +91,15 @@ mixin _EmbyPlaybackApi on EmbyServerApiBase {
       final url =
           '/Videos/$itemId/$mediaSourceId/Subtitles/$index/0/Stream.$format';
       AppLogger.debug('请求字幕流', data: {'url': url, 'format': format});
+      // 附带 api_key 作为 query parameter（nginx 反代可能不透传自定义头）
+      final auth = _defaultToken;
+      final queryParams = <String, dynamic>{};
+      if (auth != null && auth.isNotEmpty) {
+        queryParams['api_key'] = auth;
+      }
       final resp = await _apiClient.dio.get<String>(
         url,
+        queryParameters: queryParams.isEmpty ? null : queryParams,
         options: Options(headers: {'Accept': 'text/plain'}),
       );
       final text = resp.data;
