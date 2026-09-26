@@ -60,9 +60,12 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String? sortBy,
     String? sortOrder,
     String? searchTerm,
+    bool? excludePlayed,
     String? includeItemTypes,
     String? playedFilter,
-    bool? excludePlayed,
+    String? genre,
+    bool? resumable,
+    int? year,
     CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
@@ -75,9 +78,12 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #sortBy: sortBy,
           #sortOrder: sortOrder,
           #searchTerm: searchTerm,
+          #excludePlayed: excludePlayed,
           #includeItemTypes: includeItemTypes,
           #playedFilter: playedFilter,
-          #excludePlayed: excludePlayed,
+          #genre: genre,
+          #resumable: resumable,
+          #year: year,
           #cancelToken: cancelToken,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(
