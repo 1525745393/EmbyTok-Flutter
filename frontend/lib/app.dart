@@ -297,8 +297,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/genre/:genreName',
         builder: (context, state) => GenreItemsView(
-          genreName:
-              Uri.decodeComponent(state.pathParameters['genreName'] ?? ''),
+          // GoRouter 已自动解码 pathParameters，无需再次 Uri.decodeComponent
+          // （双重解码会导致含 % 的类型名如 "100%" 抛出 FormatException）
+          genreName: state.pathParameters['genreName'] ?? '',
         ),
       ),
       // 群晖 Audio Station 音乐：独立路由
