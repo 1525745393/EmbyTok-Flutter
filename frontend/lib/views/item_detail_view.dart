@@ -247,7 +247,6 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
   // Primary 竖版海报 + Thumb 横版缩略图（对标视频流 info sheet）
   Widget _buildPosterRow(MediaItem item, AuthState authState) {
-    final scheme = Theme.of(context).colorScheme;
     final headers = item.authHeaders(authState.token);
     final posterUrl = item.primaryUrl(
       embyServerUrl: authState.embyServerUrl,
@@ -278,7 +277,6 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final screenWidth = MediaQuery.of(context).size.width;
     final posterW = (screenWidth * 0.28).clamp(90.0, 130.0);
     final posterH = posterW * 1.5;
-    const double radius = 12;
 
     Widget buildImage({
       required String imageUrl,
@@ -1049,20 +1047,21 @@ class _AutoHideLabelImageState extends State<_AutoHideLabelImage> {
             ),
           ),
         ),
-        AnimatedOpacity(
-          opacity: _labelVisible ? 1.0 : 0.0,
+        AnimatedSize(
           duration: const Duration(milliseconds: 300),
-          child: Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              widget.label,
-              style: TextStyle(
-                fontSize: 11,
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          child: _labelVisible
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
       ],
     );
