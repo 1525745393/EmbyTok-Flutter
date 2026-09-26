@@ -1,3 +1,10 @@
+## [2.189.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.189.1...v2.189.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* mock_services补齐getLibraryItems新参数 ([149fff6](https://github.com/1525745393/EmbyTok-Flutter/commit/149fff6e91c14630102ce36d34a34645fe160459))
+
 ## [2.189.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.189.0...v2.189.1) (2026-09-26)
 
 
