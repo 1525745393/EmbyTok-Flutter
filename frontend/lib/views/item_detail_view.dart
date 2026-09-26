@@ -274,6 +274,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
     if (posterUrl == null && thumbUrl == null) return const SizedBox.shrink();
 
+    // 等高对齐：Primary 竖版海报 100x150（2:3），Thumb 横版高度同 150
+    const double posterW = 100;
+    const double posterH = 150;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
@@ -292,27 +296,27 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 child: CachedNetworkImage(
                   imageUrl: posterUrl,
                   cacheManager: AppImageCacheManager.thumbnail,
-                  width: 80,
-                  height: 120,
+                  width: posterW,
+                  height: posterH,
                   fit: BoxFit.cover,
                   httpHeaders: headers.isNotEmpty ? headers : null,
-                  memCacheWidth: 160,
+                  memCacheWidth: 200,
                   placeholder: (_, __) => Container(
-                    width: 80,
-                    height: 120,
+                    width: posterW,
+                    height: posterH,
                     color: scheme.onSurface.withValues(alpha: 0.1),
                   ),
                   errorWidget: (_, __, ___) => Container(
-                    width: 80,
-                    height: 120,
+                    width: posterW,
+                    height: posterH,
                     color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: Icon(Icons.movie, size: 24, color: scheme.onSurfaceVariant),
+                    child: Icon(Icons.movie, size: 28, color: scheme.onSurfaceVariant),
                   ),
                 ),
               ),
             ),
           if (posterUrl != null && thumbUrl != null) const SizedBox(width: 12),
-          // Thumb 横版视频缩略图，点击放大
+          // Thumb 横版视频缩略图，点击放大，高度与 Primary 对齐
           if (thumbUrl != null)
             Expanded(
               child: GestureDetector(
@@ -326,19 +330,19 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   child: CachedNetworkImage(
                     imageUrl: thumbUrl,
                     cacheManager: AppImageCacheManager.thumbnail,
-                    height: 120,
+                    height: posterH,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     httpHeaders: headers.isNotEmpty ? headers : null,
-                    memCacheWidth: 400,
+                    memCacheWidth: 500,
                     placeholder: (_, __) => Container(
-                      height: 120,
+                      height: posterH,
                       color: scheme.onSurface.withValues(alpha: 0.1),
                     ),
                     errorWidget: (_, __, ___) => Container(
-                      height: 120,
+                      height: posterH,
                       color: scheme.onSurface.withValues(alpha: 0.1),
-                      child: Icon(Icons.image, size: 24, color: scheme.onSurfaceVariant),
+                      child: Icon(Icons.image, size: 28, color: scheme.onSurfaceVariant),
                     ),
                   ),
                 ),
