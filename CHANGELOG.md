@@ -1,3 +1,10 @@
+## [2.188.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.188.0...v2.188.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 审查修复——随机算法/Filters覆盖/空筛选提示 ([d2492bd](https://github.com/1525745393/EmbyTok-Flutter/commit/d2492bd07fc4f28e1a9cbd0655b9f906bacb284c))
+
 # [2.188.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.187.0...v2.188.0) (2026-09-26)
 
 
