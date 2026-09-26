@@ -19,6 +19,7 @@ import 'subpages/route_direct_panel.dart';
 import 'subpages/sandbox_browser_page.dart';
 import 'subpages/storage_viewer_page.dart';
 import 'subpages/test_config_transfer_page.dart';
+import 'subpages/test_data_setup_page.dart';
 import 'subpages/test_mode_about_page.dart';
 
 /// 测试模块入口定义
@@ -149,6 +150,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildMock,
     ),
     _TestModuleEntry(
+      icon: Icons.dataset,
+      color: Colors.green,
+      title: '测试数据初始化',
+      subtitle: '一键填充/清空收藏演员、筛选、播放历史',
+      builder: _buildDataSetup,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -172,6 +180,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildConfigTransfer(BuildContext _) => const TestConfigTransferPage();
   static Widget _buildLockScreen(BuildContext _) => const LockScreenControlTestPage();
   static Widget _buildMock(BuildContext _) => const ApiMockPanel();
+  static Widget _buildDataSetup(BuildContext _) => const TestDataSetupPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
