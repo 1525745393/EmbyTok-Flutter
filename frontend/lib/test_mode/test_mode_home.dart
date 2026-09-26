@@ -16,6 +16,7 @@ import 'subpages/proxy_settings_page.dart';
 import 'subpages/route_direct_panel.dart';
 import 'subpages/sandbox_browser_page.dart';
 import 'subpages/storage_viewer_page.dart';
+import 'subpages/test_config_transfer_page.dart';
 import 'subpages/test_mode_about_page.dart';
 
 /// 测试模块入口定义
@@ -125,6 +126,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildSandbox,
     ),
     _TestModuleEntry(
+      icon: Icons.swap_horiz,
+      color: Colors.teal,
+      title: '测试配置导入导出',
+      subtitle: '分享 SharedPreferences 快照复现 bug（自动脱敏）',
+      builder: _buildConfigTransfer,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -145,6 +153,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildProxy(BuildContext _) => const ProxySettingsPage();
   static Widget _buildStorage(BuildContext _) => const StorageViewerPage();
   static Widget _buildSandbox(BuildContext _) => const SandboxBrowserPage();
+  static Widget _buildConfigTransfer(BuildContext _) => const TestConfigTransferPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
