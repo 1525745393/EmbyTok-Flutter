@@ -1,12 +1,13 @@
 // 设置页面：主题、播放、字幕、存储、账户、关于等
 // 优化：组件提取、配置化、UI 优化、新增功能
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show LicenseRegistry, kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData, HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
@@ -28,6 +29,7 @@ import '../utils/donate_colors.dart';
 import '../utils/formatters.dart' show formatBytes;
 import '../utils/logger.dart';
 import '../utils/performance_monitor.dart';
+import '../test_mode/test_mode_switch.dart';
 import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
 import 'settings/settings_components.dart';
@@ -51,6 +53,10 @@ part 'settings/settings_recommend_advanced.dart';
 part 'settings/settings_about.dart';
 
 // ==================== 主页面 ====================
+
+// 版本号连点计数（测试模式入口，仅 debug 生效）
+int _versionTapCount = 0;
+Timer? _versionTapResetTimer;
 
 class SettingsView extends ConsumerWidget {
   const SettingsView({super.key});

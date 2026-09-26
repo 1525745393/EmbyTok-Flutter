@@ -514,6 +514,20 @@ class AppLogger {
     }
   }
 
+  /// 读取最近 N 条日志（供测试模式日志查看器使用）
+  ///
+  /// 返回按时间正序排列的日志行（最早在前），最多 limit 条。
+  static Future<List<String>> readRecentLogs({int limit = 500}) async {
+    if (!_initialized) {
+      await _ensureLogFilePath();
+    }
+    if (_persistedBuffer.isEmpty) return const [];
+    final start = _persistedBuffer.length > limit
+        ? _persistedBuffer.length - limit
+        : 0;
+    return List<String>.unmodifiable(_persistedBuffer.sublist(start));
+  }
+
   /// 格式化结构化数据
   static String _formatData(Map<String, dynamic> data) {
     // 敏感信息已在 _log 中通过 _redactMap 脱敏，此处直接格式化

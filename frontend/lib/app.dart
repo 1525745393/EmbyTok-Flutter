@@ -45,6 +45,8 @@ import 'views/synology_music_view.dart';
 import 'views/music/artist_detail_page.dart';
 import 'widgets/performance_overlay.dart';
 import 'widgets/video/video_page_item.dart';
+import 'test_mode/test_mode_switch.dart';
+import 'test_mode/test_mode_home.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
 /// 当认证状态变化时调用 notify() 触发 GoRouter 重新评估 redirect
@@ -93,6 +95,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         );
         final isLoggedIn = embyLoggedIn || synoLoggedIn;
         final goingToLogin = state.matchedLocation == '/login';
+        // 测试模式路由绕过登录守卫（仅 debug 构建注册）
+        final goingToTestMode = state.matchedLocation == '/test-mode';
+        if (goingToTestMode) return null;
         // 路由守卫日志：记录重定向决策
         if (!isLoggedIn && !goingToLogin) {
           AppLogger.debug('路由守卫', data: {
@@ -404,6 +409,12 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           transitionsBuilder: _slideUpTransition,
         ),
       ),
+      // 测试模式控制台：仅 debug / dart-define 构建注册，绕过登录守卫
+      if (isAppTestMode)
+        GoRoute(
+          path: '/test-mode',
+          builder: (context, state) => const TestModeHomePage(),
+        ),
     ];
   }
 
