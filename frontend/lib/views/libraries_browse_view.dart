@@ -4,6 +4,8 @@
 // 3. 有返回按钮回到媒体库列表
 // 4. 点击影片进入影片详情页
 
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -206,7 +208,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   /// 随机播放当前库中的一部影片
   void _playRandom() {
     if (_items.isEmpty) return;
-    final item = _items[DateTime.now().millisecondsSinceEpoch % _items.length];
+    final item = _items[Random().nextInt(_items.length)];
     ref.read(playbackListProvider.notifier).setPlaybackList(_items, item.id);
     context.push('/play/${item.id}', extra: item);
   }
@@ -418,6 +420,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       );
     }
     if (_items.isEmpty) {
+      final hasFilter = _selectedGenre != null ||
+          _filterLabel != '全部' ||
+          _searchQuery.isNotEmpty;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -425,9 +430,29 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
             Icon(Icons.video_library_outlined, size: 48, color: scheme.onSurfaceVariant),
             const SizedBox(height: 12),
             Text(
-              _searchQuery.isNotEmpty ? '未找到相关影片' : '此媒体库暂无内容',
+              _searchQuery.isNotEmpty
+                  ? '未找到相关影片'
+                  : hasFilter
+                      ? '当前筛选条件下无影片'
+                      : '此媒体库暂无内容',
               style: TextStyle(fontSize: 16, color: scheme.onSurface),
             ),
+            if (hasFilter) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedGenre = null;
+                    _filterLabel = '全部';
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                  _loadItems();
+                },
+                icon: const Icon(Icons.clear, size: 16),
+                label: const Text('清除筛选'),
+              ),
+            ],
           ],
         ),
       );

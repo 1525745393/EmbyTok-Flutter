@@ -181,10 +181,13 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       'IncludeItemTypes': includeItemTypes ?? 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,
-      if (excludePlayed) 'Filters': 'IsUnplayed',
-      if (playedFilter == 'unplayed') 'Filters': 'IsUnplayed',
-      if (playedFilter == 'played') 'Filters': 'IsPlayed',
-      if (resumable) 'Filters': 'IsResumable',
+      // Filters 互斥，用 if-else 链避免后写覆盖前写
+      if (resumable)
+        'Filters': 'IsResumable'
+      else if (playedFilter == 'unplayed' || excludePlayed)
+        'Filters': 'IsUnplayed'
+      else if (playedFilter == 'played')
+        'Filters': 'IsPlayed',
       if (genre != null && genre.isNotEmpty) 'Genres': genre,
     };
 
