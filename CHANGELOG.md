@@ -1,3 +1,10 @@
+# [2.192.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.3...v2.192.0) (2026-09-26)
+
+
+### Features
+
+* 媒体库列表视图增强音频编码与字幕信息 ([e4a2460](https://github.com/1525745393/EmbyTok-Flutter/commit/e4a2460cff27a485a3bd576b3f406323be8cafbf))
+
 ## [2.191.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.2...v2.191.3) (2026-09-26)
 
 
