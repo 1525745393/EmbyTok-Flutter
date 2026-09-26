@@ -1,3 +1,10 @@
+## [2.193.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.0...v2.193.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复类型路由 Uri.decodeComponent 崩溃 ([99879dd](https://github.com/1525745393/EmbyTok-Flutter/commit/99879dd5767cc03e03be12f28caa07fa1f3a78a9))
+
 # [2.193.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.192.0...v2.193.0) (2026-09-26)
 
 
