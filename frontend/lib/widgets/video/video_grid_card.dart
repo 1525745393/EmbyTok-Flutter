@@ -41,9 +41,11 @@ class VideoGridCard extends ConsumerWidget {
     final progress = item.progressPercent;
     final duration = item.durationSeconds;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Stack(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
@@ -127,13 +129,7 @@ class VideoGridCard extends ConsumerWidget {
                           bottom: 4,
                           child: _buildProgressBar(progress, scheme),
                         ),
-                      // 收藏心形按钮（右上角，对标抖音）
-                      if (showFavoriteButton)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: _FavoriteHeartButton(item: item),
-                        ),
+                      // 收藏心形按钮移到外层 Stack，避免与 InkWell 手势竞争
                     ],
                   ),
                 ),
@@ -190,6 +186,15 @@ class VideoGridCard extends ConsumerWidget {
           ),
         ),
       ),
+      ),
+      // 心形按钮在外层 Stack，不在 InkWell 内部，彻底消除手势竞争
+      if (showFavoriteButton)
+        Positioned(
+          right: 4,
+          top: 4,
+          child: _FavoriteHeartButton(item: item),
+        ),
+      ],
     );
   }
 
@@ -288,23 +293,23 @@ class _FavoriteHeartButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFav = ref.watch(favoritesProvider).favoriteIds.contains(item.id);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(item),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isFav ? Icons.favorite : Icons.favorite_border,
-            color: isFav ? Colors.red : Colors.white,
-            size: 18,
-          ),
+    // 参考视频流：用 select 精确监听当前 item 的收藏状态
+    final favorited = ref.watch(
+      favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => ref.read(favoritesProvider.notifier).toggleFavorite(item),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.4),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          favorited ? Icons.favorite : Icons.favorite_border,
+          color: favorited ? Colors.red : Colors.white,
+          size: 18,
         ),
       ),
     );

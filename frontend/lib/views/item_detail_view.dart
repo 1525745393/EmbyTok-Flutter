@@ -67,7 +67,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     final authState = ref.watch(authProvider);
     final currentItem = _item;
     final favorited = currentItem != null &&
-        ref.watch(favoritesProvider).favoriteIds.contains(currentItem.id);
+        ref.watch(favoritesProvider.select(
+            (s) => s.favoriteIds.contains(currentItem.id)));
     final hasBackdrop = !_loading && _error == null && currentItem != null;
 
     return Scaffold(
