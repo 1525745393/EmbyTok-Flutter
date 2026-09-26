@@ -1,3 +1,10 @@
+## [2.204.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.204.0...v2.204.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 详情页海报+缩略图布局优化 ([89f654f](https://github.com/1525745393/EmbyTok-Flutter/commit/89f654f4d52da50d77741abe387f5e388a6c19c1))
+
 # [2.204.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.203.0...v2.204.0) (2026-09-26)
 
 
