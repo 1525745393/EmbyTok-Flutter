@@ -173,6 +173,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   bool _showSearch = false;
   final _searchController = TextEditingController();
 
+  // 视图模式：grid 网格 / list 列表
+  bool _isListView = false;
+
   @override
   void initState() {
     super.initState();
@@ -235,7 +238,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               onTap: () => Navigator.pop(context, 'favorite'),
             ),
             ListTile(
-              leading: Icon(played ? Icons.remove_done : Icons.done_all),
+              leading: Icon(played ? Icons.visibility_off : Icons.visibility),
               title: Text(played ? '标记为未观看' : '标记为已观看'),
               onTap: () => Navigator.pop(context, 'toggle_played'),
             ),
@@ -257,6 +260,25 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     } else if (result == 'favorite') {
       ref.read(favoritesProvider.notifier).toggleFavorite(item);
     } else if (result == 'toggle_played') {
+      // 乐观更新：先改本地列表，再调 API，失败回滚
+      final idx = _items.indexWhere((e) => e.id == item.id);
+      MediaItem? rolledBack;
+      if (idx >= 0) {
+        final old = _items[idx];
+        rolledBack = old;
+        final newData = UserData(
+          playbackPositionTicks: old.userData?.playbackPositionTicks ?? 0,
+          isFavorite: old.userData?.isFavorite ?? false,
+          played: !played,
+          unplayedItemCount: old.userData?.unplayedItemCount ?? 0,
+          lastPlayedDate: old.userData?.lastPlayedDate,
+          playCount: old.userData?.playCount ?? 0,
+          rating: old.userData?.rating,
+        );
+        setState(() {
+          _items[idx] = old.copyWith(userData: newData);
+        });
+      }
       try {
         if (played) {
           await service.markAsUnplayed(item.id,
@@ -269,10 +291,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(played ? '已标记为未观看' : '已标记为已观看')),
           );
-          _loadItems(); // 刷新列表
         }
       } catch (e) {
-        if (mounted) {
+        if (mounted && rolledBack != null && idx >= 0) {
+          setState(() => _items[idx] = rolledBack!);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('操作失败，请重试')),
           );
@@ -477,6 +499,15 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               ),
               IconButton(
                 icon: Icon(
+                  _isListView ? Icons.grid_view : Icons.view_list,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+                tooltip: _isListView ? '网格视图' : '列表视图',
+                onPressed: () => setState(() => _isListView = !_isListView),
+              ),
+              IconButton(
+                icon: Icon(
                   _showSearch ? Icons.filter_alt : Icons.search,
                   size: 20,
                   color: scheme.onSurfaceVariant,
@@ -533,8 +564,44 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
             onRefresh: () => _loadItems(),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // 自适应列数：平板宽度 4 列，手机 3 列
                 final width = constraints.maxWidth;
+                // 底部状态行
+                Widget buildFooter() => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          _isLoading && _hasMore
+                              ? '加载中…'
+                              : _total > 0
+                                  ? '已加载 ${_items.length} / $_total 项'
+                                  : '共 ${_items.length} 项',
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    );
+
+                if (_isListView) {
+                  // 列表视图（对标 Emby Web 列表模式）
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    itemCount: _items.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index >= _items.length) return buildFooter();
+                      final item = _items[index];
+                      return _LibraryListItem(
+                        item: item,
+                        onTap: () => context.push('/item/${item.id}', extra: item),
+                        onLongPress: () => _showItemActions(context, item),
+                      );
+                    },
+                  );
+                }
+
+                // 网格视图
                 final crossAxisCount = width >= 600 ? 4 : 3;
                 return GridView.builder(
                   controller: _scrollController,
@@ -545,33 +612,14 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
-                  itemCount: _items.length + 1, // 底部状态行
+                  itemCount: _items.length + 1,
                   itemBuilder: (context, index) {
-                    if (index >= _items.length) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            _isLoading && _hasMore
-                                ? '加载中…'
-                                : _total > 0
-                                    ? '已加载 ${_items.length} / $_total 项'
-                                    : '共 ${_items.length} 项',
-                            style: TextStyle(
-                              color: scheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
+                    if (index >= _items.length) return buildFooter();
                     final item = _items[index];
                     return VideoGridCard(
                       item: item,
                       showFavoriteButton: true,
-                      onTap: () {
-                        context.push('/item/${item.id}', extra: item);
-                      },
+                      onTap: () => context.push('/item/${item.id}', extra: item),
                       onLongPress: () => _showItemActions(context, item),
                     );
                   },
@@ -648,6 +696,24 @@ class _LibraryCard extends ConsumerWidget {
               ),
             ),
 
+            // 左上角类型图标（对标 Emby Web）
+            Positioned(
+              left: 10,
+              top: 10,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _icon,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
             // 文字内容
             Positioned(
               left: 12,
@@ -685,10 +751,156 @@ class _LibraryCard extends ConsumerWidget {
   }
 
   Widget _buildFallback(ColorScheme scheme) {
+    // 按库类型生成彩色渐变（对标 Emby Web）
+    final type = library.type;
+    List<Color> gradient;
+    if (type.contains('movie')) {
+      gradient = [const Color(0xFF1565C0), const Color(0xFF0D47A1)];
+    } else if (type.contains('tv')) {
+      gradient = [const Color(0xFF6A1B9A), const Color(0xFF4A148C)];
+    } else if (type.contains('music')) {
+      gradient = [const Color(0xFF2E7D32), const Color(0xFF1B5E20)];
+    } else {
+      gradient = [scheme.surfaceContainerHighest, scheme.surfaceContainerHighest];
+    }
     return Container(
-      color: scheme.surfaceContainerHighest,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+      ),
       child: Center(
-        child: Icon(_icon, size: 40, color: scheme.primary),
+        child: Icon(_icon, size: 40, color: Colors.white.withValues(alpha: 0.9)),
+      ),
+    );
+  }
+}
+
+/// 列表视图的影片行：缩略图 + 标题/年份/评分 + 收藏心形
+class _LibraryListItem extends ConsumerWidget {
+  const _LibraryListItem({
+    required this.item,
+    required this.onTap,
+    required this.onLongPress,
+  });
+  final MediaItem item;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final auth = ref.read(authProvider);
+    final favorited = ref.watch(
+      favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
+    );
+
+    String? thumbUrl;
+    if (item.imageUrl != null &&
+        auth.embyServerUrl != null &&
+        auth.token != null) {
+      thumbUrl =
+          '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=${item.imageUrl}&api_key=${auth.token}';
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 缩略图
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  width: 60,
+                  height: 90,
+                  child: thumbUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: thumbUrl,
+                          cacheManager: AppImageCacheManager.thumbnail,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 120,
+                          errorWidget: (_, __, ___) => Container(
+                            color: scheme.surfaceContainerHighest,
+                            child: const Icon(Icons.movie_outlined, size: 24),
+                          ),
+                        )
+                      : Container(
+                          color: scheme.surfaceContainerHighest,
+                          child: const Icon(Icons.movie_outlined, size: 24),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 标题信息
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (item.productionYear != null)
+                          Text(
+                            '${item.productionYear}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        if (item.communityRating != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.star, size: 12, color: Colors.amber[700]),
+                          const SizedBox(width: 2),
+                          Text(
+                            item.communityRating!.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // 收藏心形
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () =>
+                    ref.read(favoritesProvider.notifier).toggleFavorite(item),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    favorited ? Icons.favorite : Icons.favorite_border,
+                    color: favorited ? Colors.red : scheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
