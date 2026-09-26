@@ -1,3 +1,10 @@
+## [2.184.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.1...v2.184.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复列表视图心形按钮手势竞争 + GUID正则缓存 ([2762100](https://github.com/1525745393/EmbyTok-Flutter/commit/2762100e8a1da7b99f21b44faa584886c9723f16))
+
 ## [2.184.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.0...v2.184.1) (2026-09-26)
 
 
