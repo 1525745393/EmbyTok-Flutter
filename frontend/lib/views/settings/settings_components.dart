@@ -254,6 +254,9 @@ Widget settingsInfoTile({
 
   /// 可选点击回调；传入后整个 tile 可点击（帮助按钮仍独立响应）
   VoidCallback? onTap,
+
+  /// 自定义 trailing（覆盖帮助按钮）
+  Widget? trailing,
 }) {
   return Builder(builder: (context) {
     final scheme = Theme.of(context).colorScheme;
@@ -274,7 +277,7 @@ Widget settingsInfoTile({
               ),
             )
           : null,
-      trailing: settingsHelpButton(helpText: helpText, title: title),
+      trailing: trailing ?? settingsHelpButton(helpText: helpText, title: title),
     );
   });
 }

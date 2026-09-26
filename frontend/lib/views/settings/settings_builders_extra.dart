@@ -396,8 +396,10 @@ extension _SettingsBuilders2 on SettingsView {
         iconColor: Colors.blue,
         title: syno.account ?? (syno.isLoggedIn ? '群晖账号' : '未登录'),
         subtitle: syno.serverUrl ?? '未连接群晖 NAS',
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _showAccountSwitcher(context, ref),
         helpText:
-            '当前登录的账号信息（音乐模式）。\n\n· 显示群晖 Audio Station 账号与 NAS 地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
+            '当前登录的账号信息（音乐模式）。\n\n· 点击可快速切换到其他已保存的服务器\n· 显示群晖 Audio Station 账号与 NAS 地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
       );
     }
     final auth = ref.watch(authProvider);
@@ -407,9 +409,125 @@ extension _SettingsBuilders2 on SettingsView {
       iconColor: Colors.blue,
       title: name,
       subtitle: auth.backendUrl ?? '未连接服务器',
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _showAccountSwitcher(context, ref),
       helpText:
-          '当前登录的账号信息（视频模式）。\n\n· 显示 Emby 账号名与服务器地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
+          '当前登录的账号信息（视频模式）。\n\n· 点击可快速切换到其他已保存的服务器\n· 显示 Emby 账号名与服务器地址\n· 信息不符时，可到「服务器管理」重新登录或切换服务器',
     );
+  }
+
+  /// 快速账号切换弹窗：列出所有已配置服务器，点击即切换
+  void _showAccountSwitcher(BuildContext context, WidgetRef ref) {
+    final servers = ref.read(serverRegistryProvider);
+    final activeId = ref.read(activeServerIdProvider);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('切换服务器',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            if (servers.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('尚未添加服务器'),
+              )
+            else
+              ...servers.map((s) {
+                final isActive = s.id == activeId;
+                return ListTile(
+                  leading: Icon(
+                    isActive ? Icons.check_circle : Icons.storage_outlined,
+                    color: isActive ? Colors.green : null,
+                  ),
+                  title: Text(s.name),
+                  subtitle: Text('${s.kind.label} · ${s.username}'),
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    _switchServerQuick(context, ref, s);
+                  },
+                );
+              }),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('服务器管理'),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                context.push('/servers');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 快速切换服务器（复用 servers_view 的登录逻辑）
+  Future<void> _switchServerQuick(
+      BuildContext context, WidgetRef ref, ServerProfile server) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final registry = ref.read(serverRegistryProvider.notifier);
+    final secureStorage = ref.read(secureStorageProvider);
+    await registry.touch(server.id);
+    await ref.read(activeServerIdProvider.notifier).setActive(server.id);
+
+    try {
+      if (server.kind == ServerKind.synology) {
+        String? sid;
+        try {
+          sid = await secureStorage.read(key: serverSynoSidKey(server.id));
+        } catch (_) {}
+        final synoAuth = ref.read(synologyAuthProvider.notifier);
+        if (sid != null && sid.isNotEmpty) {
+          await synoAuth.restoreSession(
+            serverUrl: server.resolveUrl(),
+            account: server.username,
+            sid: sid,
+          );
+        } else {
+          final password = await secureStorage.read(
+              key: 'server_password_${server.id}');
+          if (password == null) {
+            messenger.showSnackBar(const SnackBar(
+                content: Text('未保存该服务器的密码，请编辑后重试')));
+            return;
+          }
+          await synoAuth.login(
+            serverUrl: server.resolveUrl(),
+            account: server.username,
+            password: password,
+          );
+        }
+      } else {
+        final password = await secureStorage.read(
+            key: 'server_password_${server.id}');
+        if (password == null) {
+          messenger.showSnackBar(const SnackBar(
+              content: Text('未保存该服务器的密码，请编辑后重试')));
+          return;
+        }
+        await ref.read(authProvider.notifier).login(
+              server.resolveUrl(),
+              server.username,
+              password,
+            );
+      }
+      if (context.mounted) {
+        messenger.showSnackBar(
+            SnackBar(content: Text('已切换到「${server.name}」')));
+      }
+    } catch (e) {
+      AppLogger.error('切换服务器失败', error: e);
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e')));
+      }
+    }
   }
 
   Widget _buildSelfSignedCertificateTile(BuildContext context, WidgetRef ref) {
