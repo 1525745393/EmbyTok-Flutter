@@ -12,7 +12,9 @@ import 'subpages/log_viewer_page.dart';
 import 'subpages/network_weak_test_page.dart';
 import 'subpages/performance_debug_page.dart';
 import 'subpages/player_test_page.dart';
+import 'subpages/proxy_settings_page.dart';
 import 'subpages/route_direct_panel.dart';
+import 'subpages/sandbox_browser_page.dart';
 import 'subpages/storage_viewer_page.dart';
 import 'subpages/test_mode_about_page.dart';
 
@@ -102,11 +104,25 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildCapture,
     ),
     _TestModuleEntry(
+      icon: Icons.vpn_key,
+      color: Colors.deepOrange,
+      title: 'HTTP 代理设置',
+      subtitle: '配置 Charles/mitmproxy 外部抓包代理',
+      builder: _buildProxy,
+    ),
+    _TestModuleEntry(
       icon: Icons.storage,
       color: Colors.brown,
       title: '存储查看器',
       subtitle: '查看 shared_preferences 所有 key-value',
       builder: _buildStorage,
+    ),
+    _TestModuleEntry(
+      icon: Icons.folder_outlined,
+      color: Colors.indigo,
+      title: '沙盒文件浏览器',
+      subtitle: '遍历应用文档目录，查看缓存与日志文件',
+      builder: _buildSandbox,
     ),
     _TestModuleEntry(
       icon: Icons.info_outline,
@@ -126,7 +142,9 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildRoute(BuildContext _) => const RouteDirectPanel();
   static Widget _buildCrash(BuildContext _) => const CrashSimulatorPage();
   static Widget _buildCapture(BuildContext _) => const HttpCapturePanel();
+  static Widget _buildProxy(BuildContext _) => const ProxySettingsPage();
   static Widget _buildStorage(BuildContext _) => const StorageViewerPage();
+  static Widget _buildSandbox(BuildContext _) => const SandboxBrowserPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
