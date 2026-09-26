@@ -179,7 +179,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       'SortOrder': sortOrder,
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': includeItemTypes ?? 'Movie,Episode,Video,MusicVideo,Series',
       'ExcludeItemTypes': 'Playlist',
       if (searchTerm != null && searchTerm.isNotEmpty) 'SearchTerm': searchTerm,

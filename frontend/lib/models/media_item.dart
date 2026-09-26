@@ -506,11 +506,20 @@ class MediaItem {
         embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
   }
 
-  // 获取背景图 URL
+  // 获取背景图 URL（从 BackdropImageTags 列表取第一个 tag）
   String? backdropUrl(
       {String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
-    return imageUrl('Backdrop',
-        embyServerUrl: embyServerUrl, apiKey: apiKey, maxWidth: maxWidth);
+    final url = embyServerUrl;
+    if (url == null || url.isEmpty) return null;
+    // Emby 返回的 Backdrop tag 在 BackdropImageTags（List<String>）中，
+    // 不在 ImageTags（Map）中，需单独取第一个 tag 构建 URL。
+    final tags = backdropImageTags;
+    if (tags == null || tags.isEmpty) return null;
+    final tag = tags.first;
+    if (tag.isEmpty) return null;
+    final key = apiKey ?? '';
+    final tagParam = Uri.encodeQueryComponent(tag);
+    return '$url/Items/$id/Images/Backdrop?MaxWidth=$maxWidth&Tag=$tagParam&Format=jpg${key.isNotEmpty ? '&api_key=$key' : ''}';
   }
 
   // 动态构造 Emby 视频流播放 URL
