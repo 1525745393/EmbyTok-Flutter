@@ -123,6 +123,68 @@ class TestDataSetupPage extends StatelessWidget {
     await _toast(context, '已填充 Last.fm 测试 API Key');
   }
 
+  // === 填充：视频流位置记忆 ===
+  Future<void> _fillFeedPosition(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('kStorageKeyLastFeedVideoIndex', 15);
+    await prefs.setString('kStorageKeyLastFeedVideoItemId', 'test_video_016');
+    await prefs.setString('kStorageKeyFeedType', 'recommend');
+    await _toast(context, '已设置视频流位置：推荐页第16个视频');
+  }
+
+  // === 填充：播放器偏好 ===
+  Future<void> _fillPlayerPrefs(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('kStorageKeyDefaultPlaybackRate', 1.25);
+    await prefs.setString('kStorageKeyDefaultSubtitleLanguage', 'chi');
+    await prefs.setBool('kStorageKeyIsMuted', false);
+    await prefs.setBool('kStorageKeyIsAutoPlay', true);
+    await prefs.setBool('kStorageKeyAutoResumeAfterInterruption', true);
+    await _toast(context, '已填充播放器偏好：1.25x、中文字幕、自动续播');
+  }
+
+  // === 填充：关注页规则 ===
+  Future<void> _fillFollowRules(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('kStorageKeyFollowMaxActors', 3);
+    await prefs.setStringList('kStorageKeyFavoriteIncludeTypes',
+        ['Movie', 'Series']);
+    await _toast(context, '已设置关注规则：每演员3个视频，含影片和剧集');
+  }
+
+  // === 填充：演员页偏好 ===
+  Future<void> _fillActorsPrefs(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('kStorageKeyActorsGridColumns', 3);
+    await prefs.setInt('kStorageKeyActorsSelectedTab', 0);
+    await prefs.setString('kStorageKeyActorsSearchQuery', '');
+    await prefs.setString('kStorageKeyActorsSortMode', 'name');
+    await _toast(context, '已设置演员页：3列网格、名称排序');
+  }
+
+  // === 填充：隐藏媒体库 ===
+  Future<void> _fillHiddenLibraries(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('kStorageKeyHiddenLibraryIds',
+        ['lib_music', 'lib_photos']);
+    await _toast(context, '已隐藏音乐和照片媒体库');
+  }
+
+  // === 填充：音乐收藏歌手 ===
+  Future<void> _fillFavoriteArtists(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favorite_artists',
+        ['artist_1001', 'artist_1002', 'artist_1003']);
+    await _toast(context, '已填充 3 个音乐收藏歌手');
+  }
+
+  // === 填充：更新提示状态 ===
+  Future<void> _fillUpdateShown(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('update_shown_ver', '9.9.9');
+    await _toast(context, '已标记最新版本为已提示（不再弹更新）');
+  }
+
   // === 填充：页面导航位置 ===
   Future<void> _fillNavPosition(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
@@ -224,10 +286,46 @@ class TestDataSetupPage extends StatelessWidget {
             onTap: () => _fillLastFmConfig(context),
           ),
           ListTile(
-            leading: const Icon(Icons.tab, color: Colors.teal),
-            title: const Text('设置启动页为收藏页'),
-            subtitle: const Text('验证导航位置记忆'),
-            onTap: () => _fillNavPosition(context),
+            leading: const Icon(Icons.tv, color: Colors.indigo),
+            title: const Text('填充视频流位置记忆'),
+            subtitle: const Text('推荐页第16个视频，测试位置恢复'),
+            onTap: () => _fillFeedPosition(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.play_circle_outline, color: Colors.green),
+            title: const Text('填充播放器偏好'),
+            subtitle: const Text('1.25x速度、中文字幕、自动续播'),
+            onTap: () => _fillPlayerPrefs(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.rule_folder, color: Colors.teal),
+            title: const Text('填充关注页规则'),
+            subtitle: const Text('每演员3个视频，含影片和剧集'),
+            onTap: () => _fillFollowRules(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.grid_view, color: Colors.blueGrey),
+            title: const Text('填充演员页偏好'),
+            subtitle: const Text('3列网格、名称排序'),
+            onTap: () => _fillActorsPrefs(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.visibility_off, color: Colors.grey),
+            title: const Text('隐藏音乐和照片媒体库'),
+            subtitle: const Text('测试媒体库筛选'),
+            onTap: () => _fillHiddenLibraries(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.queue_music, color: Colors.pink),
+            title: const Text('填充音乐收藏歌手'),
+            subtitle: const Text('3个假歌手ID，测试音乐收藏页'),
+            onTap: () => _fillFavoriteArtists(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.system_update, color: Colors.orange),
+            title: const Text('标记最新版本为已提示'),
+            subtitle: const Text('不再弹更新提示'),
+            onTap: () => _fillUpdateShown(context),
           ),
 
           const Divider(),
