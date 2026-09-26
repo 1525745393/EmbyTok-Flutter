@@ -290,55 +290,16 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
       required String heroTag,
       int memCacheWidth = 500,
     }) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Hero(
-            tag: heroTag,
-            child: GestureDetector(
-              onTap: () => showFullScreenImageViewer(
-                context,
-                hiResUrl,
-                headers: headers.isNotEmpty ? headers : null,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(radius),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  cacheManager: AppImageCacheManager.thumbnail,
-                  width: width,
-                  height: height,
-                  fit: BoxFit.cover,
-                  httpHeaders: headers.isNotEmpty ? headers : null,
-                  memCacheWidth: memCacheWidth,
-                  placeholder: (_, __) => Container(
-                    width: width,
-                    height: height,
-                    color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    width: width,
-                    height: height,
-                    color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: Icon(placeholderIcon,
-                        size: 36, color: scheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+      return _AutoHideLabelImage(
+        imageUrl: imageUrl,
+        hiResUrl: hiResUrl,
+        width: width,
+        height: height,
+        label: label,
+        placeholderIcon: placeholderIcon,
+        heroTag: heroTag,
+        headers: headers,
+        memCacheWidth: memCacheWidth,
       );
     }
 
@@ -1006,3 +967,104 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 }
 
 // 顶部背景图占位
+
+/// 图注标签3秒后自动淡出隐藏的图片组件
+class _AutoHideLabelImage extends StatefulWidget {
+  const _AutoHideLabelImage({
+    required this.imageUrl,
+    required this.hiResUrl,
+    required this.width,
+    required this.height,
+    required this.label,
+    required this.placeholderIcon,
+    required this.heroTag,
+    required this.headers,
+    this.memCacheWidth = 500,
+  });
+
+  final String imageUrl;
+  final String hiResUrl;
+  final double width;
+  final double height;
+  final String label;
+  final IconData placeholderIcon;
+  final String heroTag;
+  final Map<String, String> headers;
+  final int memCacheWidth;
+
+  @override
+  State<_AutoHideLabelImage> createState() => _AutoHideLabelImageState();
+}
+
+class _AutoHideLabelImageState extends State<_AutoHideLabelImage> {
+  bool _labelVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _labelVisible = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Hero(
+          tag: widget.heroTag,
+          child: GestureDetector(
+            onTap: () => showFullScreenImageViewer(
+              context,
+              widget.hiResUrl,
+              headers: widget.headers.isNotEmpty ? widget.headers : null,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CachedNetworkImage(
+                imageUrl: widget.imageUrl,
+                cacheManager: AppImageCacheManager.thumbnail,
+                width: widget.width,
+                height: widget.height,
+                fit: BoxFit.cover,
+                httpHeaders: widget.headers.isNotEmpty ? widget.headers : null,
+                memCacheWidth: widget.memCacheWidth,
+                placeholder: (_, __) => Container(
+                  width: widget.width,
+                  height: widget.height,
+                  color: scheme.onSurface.withValues(alpha: 0.1),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: widget.width,
+                  height: widget.height,
+                  color: scheme.onSurface.withValues(alpha: 0.1),
+                  child: Icon(widget.placeholderIcon,
+                      size: 36, color: scheme.onSurfaceVariant),
+                ),
+              ),
+            ),
+          ),
+        ),
+        AnimatedOpacity(
+          opacity: _labelVisible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 300),
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 11,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
