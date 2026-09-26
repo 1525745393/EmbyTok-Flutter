@@ -1,3 +1,15 @@
+# [2.194.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.3...v2.194.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 详情页后台刷新保留本地userData，日志级别提升为warn ([951024c](https://github.com/1525745393/EmbyTok-Flutter/commit/951024c779771c18019b097fbf72c76ed11efe98))
+
+
+### Features
+
+* 详情页对齐视频流info sheet，添加Primary海报+Thumb缩略图行 ([3e0327c](https://github.com/1525745393/EmbyTok-Flutter/commit/3e0327cb7349e3bc58b7e6ff072a480dcec6212b))
+
 ## [2.193.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.2...v2.193.3) (2026-09-26)
 
 
