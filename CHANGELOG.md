@@ -1,3 +1,10 @@
+# [2.210.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.209.0...v2.210.0) (2026-09-26)
+
+
+### Features
+
+* P2智能缓存清理开关+年度报告 ([607f56d](https://github.com/1525745393/EmbyTok-Flutter/commit/607f56df3bbc47177a54cd1dd9186c2cf3e2593f))
+
 # [2.209.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.208.0...v2.209.0) (2026-09-26)
 
 
