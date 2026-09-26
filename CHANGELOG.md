@@ -1,3 +1,15 @@
+# [2.186.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.185.1...v2.186.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 补全空catch块的错误日志记录 ([70ba420](https://github.com/1525745393/EmbyTok-Flutter/commit/70ba420796b47f7402c3671b2f40bfcfcfceb4d3))
+
+
+### Features
+
+* 完善日志系统 ([12cf073](https://github.com/1525745393/EmbyTok-Flutter/commit/12cf07382145e7af6daeee485bf0b5e85628da57))
+
 ## [2.185.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.185.0...v2.185.1) (2026-09-26)
 
 
