@@ -1,3 +1,10 @@
+## [2.195.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.1...v2.195.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* 详情页PosterRow完全对齐视频流info sheet尺寸 ([41f0190](https://github.com/1525745393/EmbyTok-Flutter/commit/41f01907044616448447eea3b77ba28621ebff26))
+
 ## [2.195.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.0...v2.195.1) (2026-09-26)
 
 
