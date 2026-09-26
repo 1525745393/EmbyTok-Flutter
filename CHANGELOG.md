@@ -1,3 +1,10 @@
+## [2.210.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.1...v2.210.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* 审查修复-切换服务器回滚/HttpClient泄漏/demo缓存清理 ([3e2d6e9](https://github.com/1525745393/EmbyTok-Flutter/commit/3e2d6e9004a880cedc1f6c94ff4b6eeea9db819a))
+
 ## [2.210.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.0...v2.210.1) (2026-09-26)
 
 
