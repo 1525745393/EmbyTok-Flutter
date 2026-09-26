@@ -1,3 +1,10 @@
+## [2.193.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.1...v2.193.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复详情页封面 backdrop 图不显示 ([6bc0145](https://github.com/1525745393/EmbyTok-Flutter/commit/6bc0145d00a339da813d4428c994c169b3e47baf))
+
 ## [2.193.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.0...v2.193.1) (2026-09-26)
 
 
