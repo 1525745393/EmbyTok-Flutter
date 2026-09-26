@@ -274,9 +274,11 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
 
     if (posterUrl == null && thumbUrl == null) return const SizedBox.shrink();
 
-    // 等高对齐：Primary 竖版海报 100x150（2:3），Thumb 横版高度同 150
-    const double posterW = 100;
-    const double posterH = 150;
+    // 等高对齐：Primary 竖版海报 110x165（2:3），Thumb 横版高度同 165
+    // 尺寸与视频流 info sheet 完全一致
+    const double posterW = 110;
+    const double posterH = 165;
+    const double radius = 12;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -292,7 +294,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 headers: headers.isNotEmpty ? headers : null,
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(radius),
                 child: CachedNetworkImage(
                   imageUrl: posterUrl,
                   cacheManager: AppImageCacheManager.thumbnail,
@@ -300,17 +302,18 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   height: posterH,
                   fit: BoxFit.cover,
                   httpHeaders: headers.isNotEmpty ? headers : null,
-                  memCacheWidth: 200,
+                  memCacheWidth: 220,
                   placeholder: (_, __) => Container(
                     width: posterW,
                     height: posterH,
                     color: scheme.onSurface.withValues(alpha: 0.1),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (_, __, ___) => Container(
                     width: posterW,
                     height: posterH,
                     color: scheme.onSurface.withValues(alpha: 0.1),
-                    child: Icon(Icons.movie, size: 28, color: scheme.onSurfaceVariant),
+                    child: Icon(Icons.movie, size: 40, color: scheme.onSurfaceVariant),
                   ),
                 ),
               ),
@@ -326,7 +329,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   headers: headers.isNotEmpty ? headers : null,
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(radius),
                   child: CachedNetworkImage(
                     imageUrl: thumbUrl,
                     cacheManager: AppImageCacheManager.thumbnail,
@@ -338,11 +341,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                     placeholder: (_, __) => Container(
                       height: posterH,
                       color: scheme.onSurface.withValues(alpha: 0.1),
+                      child: const Center(child: CircularProgressIndicator()),
                     ),
                     errorWidget: (_, __, ___) => Container(
                       height: posterH,
                       color: scheme.onSurface.withValues(alpha: 0.1),
-                      child: Icon(Icons.image, size: 28, color: scheme.onSurfaceVariant),
+                      child: Icon(Icons.image, size: 40, color: scheme.onSurfaceVariant),
                     ),
                   ),
                 ),
