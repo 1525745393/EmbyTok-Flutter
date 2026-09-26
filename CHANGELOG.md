@@ -1,3 +1,10 @@
+## [2.196.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.196.0...v2.196.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 音轨切换添加reinitToken竞态保护 ([0e32f30](https://github.com/1525745393/EmbyTok-Flutter/commit/0e32f30f9695d617d9823b8049decd4460de76a8))
+
 # [2.196.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.195.2...v2.196.0) (2026-09-26)
 
 
