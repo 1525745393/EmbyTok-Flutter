@@ -295,6 +295,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 音轨切换：记录当前播放位置，释放旧 controller，用新 URL 重建后 seek 回原位置
   Future<void> _reinitForAudioTrackSwitch() async {
     if (_isDisposed) return;
+    // 递增令牌：快速连续切换音轨时取消上一次未完成的初始化
+    final token = ++_reinitToken;
     // 记录当前位置
     final currentPos = _controller?.value.position ?? Duration.zero;
     AppLogger.debug('音轨切换，重建播放器', data: {
@@ -304,17 +306,18 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     });
     // 释放旧 controller
     _releaseCurrentController();
-    if (!mounted || _isDisposed) return;
+    if (!mounted || _isDisposed || _reinitToken != token) return;
     // 标记预加载 controller 已使用（不使用预加载，因为它带的是原始 URL）
     _preloadedControllerUsed = true;
     setState(() {
       _initialized = false;
       _hasError = false;
     });
-    // 用新 URL 初始化
-    await _initVideo();
-    // seek 回原位置
-    if (_controller != null && mounted && !_isDisposed) {
+    // 用新 URL 初始化（传入 token 实现竞态保护）
+    await _initVideo(token: token);
+    // seek 回原位置（仅当令牌仍有效时）
+    if (_reinitToken != token || _isDisposed) return;
+    if (_controller != null && mounted) {
       try {
         await _controller!.seekTo(currentPos);
         if (widget.isCurrentPage) await _controller!.play();
