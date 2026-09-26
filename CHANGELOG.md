@@ -1,3 +1,10 @@
+## [2.185.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.185.0...v2.185.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复日志系统审查发现的问题 ([7f31e3c](https://github.com/1525745393/EmbyTok-Flutter/commit/7f31e3c51970abd1fad2afa171fd6f415974721f))
+
 # [2.185.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.2...v2.185.0) (2026-09-26)
 
 
