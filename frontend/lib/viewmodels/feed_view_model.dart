@@ -349,6 +349,8 @@ class FeedViewModel {
     _lastReportedItem = newItem;
     if (oldItem == null) return;
     if (newItem != null && oldItem.id == newItem.id) return;
+    // 校验 itemId 为 Emby GUID 格式（32位+4短横线），非 GUID 跳过避免服务器 500
+    if (!_isValidGuid(oldItem.id)) return;
     safeUnawaited(
       _cloudService.saveCloudSync(
         itemId: oldItem.id,
@@ -359,6 +361,15 @@ class FeedViewModel {
       ),
       context: 'FeedViewModel._saveCloudSyncIfNeeded',
     );
+  }
+
+  /// 校验字符串是否为 Emby GUID 格式（xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+  static bool _isValidGuid(String id) {
+    if (id.length != 36) return false;
+    final regex = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    );
+    return regex.hasMatch(id);
   }
 
   /// 当前媒体库 ID（顶栏临时筛选优先，其次选中列表第一个，未选则为空）

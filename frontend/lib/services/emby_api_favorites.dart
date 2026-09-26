@@ -229,15 +229,41 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       'itemId': itemId,
       'isFavorite': isFavorite,
     });
+    if (itemId.isEmpty) {
+      throw AppError.unknown(message: 'itemId 为空，无法切换收藏');
+    }
     _ensureConfig(serverUrl, token);
     final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId ?? '').isNotEmpty
         ? '/Users/$effectiveUserId/FavoriteItems/$itemId'
         : '/UserFavoriteItems/$itemId';
-    if (isFavorite) {
-      await _apiClient.post<dynamic>(path);
-    } else {
-      await _apiClient.delete<dynamic>(path);
+    try {
+      if (isFavorite) {
+        await _apiClient.post<dynamic>(path);
+      } else {
+        await _apiClient.delete<dynamic>(path);
+      }
+    } on AppError catch (e) {
+      // nginx 反代可能拦截带自定义头的 POST/DELETE，
+      // 降级尝试在 query parameter 中附带 api_key
+      if (e.statusCode == 403 && token != null && token.isNotEmpty) {
+        AppLogger.warn('收藏请求 403，尝试 query parameter 认证',
+            data: {'path': path});
+        final authToken = token;
+        if (isFavorite) {
+          await _apiClient.post<dynamic>(
+            path,
+            queryParameters: {'api_key': authToken},
+          );
+        } else {
+          await _apiClient.delete<dynamic>(
+            path,
+            queryParameters: {'api_key': authToken},
+          );
+        }
+      } else {
+        rethrow;
+      }
     }
     AppLogger.debug('收藏状态已更新');
   }
