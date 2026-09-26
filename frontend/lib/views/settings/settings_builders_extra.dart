@@ -322,16 +322,14 @@ extension _SettingsBuilders2 on SettingsView {
       loading: () => '加载中…',
       error: (_, __) => '未知',
     );
-    return GestureDetector(
+    return settingsInfoTile(
+      icon: Icons.new_releases_outlined,
+      iconColor: Colors.blueGrey,
+      title: '版本',
+      subtitle: subtitle,
+      helpText:
+          '当前 App 版本与构建号。\n\n版本格式：主版本.次版本.修订号+构建号\n· 修订号 +1 → 小修复\n· 次版本 +1 → 新功能\n\n如发现新版本无法下载，可到「检查更新」重试。\n\n（debug 构建连续点击 5 次可进入测试模式）',
       onTap: () => _handleVersionTap(context),
-      child: settingsInfoTile(
-        icon: Icons.new_releases_outlined,
-        iconColor: Colors.blueGrey,
-        title: '版本',
-        subtitle: subtitle,
-        helpText:
-            '当前 App 版本与构建号。\n\n版本格式：主版本.次版本.修订号+构建号\n· 修订号 +1 → 小修复\n· 次版本 +1 → 新功能\n\n如发现新版本无法下载，可到「检查更新」重试。\n\n（debug 构建连续点击 5 次可进入测试模式）',
-      ),
     );
   }
 

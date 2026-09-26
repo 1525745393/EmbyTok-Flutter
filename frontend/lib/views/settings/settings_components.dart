@@ -251,10 +251,14 @@ Widget settingsInfoTile({
 
   /// 帮助文本：非空时在 trailing 显示帮助按钮，点击弹出详细说明
   String? helpText,
+
+  /// 可选点击回调；传入后整个 tile 可点击（帮助按钮仍独立响应）
+  VoidCallback? onTap,
 }) {
   return Builder(builder: (context) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
+      onTap: onTap,
       leading:
           settingsIconContainer(icon: icon, color: iconColor ?? scheme.primary),
       title: Text(
