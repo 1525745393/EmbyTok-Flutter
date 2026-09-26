@@ -77,16 +77,26 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   static const Duration _backgroundReleaseDelay = Duration(milliseconds: 800);
   // 字幕选择变化监听订阅（在 initState 中注册，dispose 时关闭）
   ProviderSubscription<String?>? _subtitleSubscription;
+  // 音轨选择变化监听订阅
+  ProviderSubscription<int?>? _audioTrackSubscription;
 
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
+  // 追加 AudioStreamIndex 参数支持多音轨切换
   String? get _playbackUrl {
     // 优先使用预置的 playbackUrl
-    final url = widget.item.playbackUrl;
-    if (url != null && url.isNotEmpty) {
-      return url;
+    var url = widget.item.playbackUrl;
+    if (url == null || url.isEmpty) {
+      // 尝试动态构造 Emby 视频流 URL
+      url = widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
     }
-    // 尝试动态构造 Emby 视频流 URL
-    return widget.item.computePlaybackUrl(widget.embyServerUrl, widget.token);
+    if (url == null || url.isEmpty) return null;
+    // 追加音轨参数（用户选择非默认音轨时）
+    final audioIndex = ref.read(selectedAudioStreamIndexProvider);
+    if (audioIndex != null) {
+      final sep = url.contains('?') ? '&' : '?';
+      url = '$url${sep}AudioStreamIndex=$audioIndex';
+    }
+    return url;
   }
 
   // 判断是否可以播放视频（需要 playbackUrl 且非 web 环境）
@@ -108,6 +118,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         ref.listenManual<String?>(selectedSubtitleProvider, (previous, next) {
       if (next != previous) {
         _loadSubtitle(next);
+      }
+    });
+    // 音轨切换：重建 controller 并 seek 回原位置
+    _audioTrackSubscription =
+        ref.listenManual<int?>(selectedAudioStreamIndexProvider, (prev, next) {
+      if (prev != next && mounted && _canPlayVideo) {
+        _reinitForAudioTrackSwitch();
       }
     });
     if (_canPlayVideo) {
@@ -269,9 +286,42 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     _backgroundReleaseTimer?.cancel();
     _positionMs.dispose();
     _subtitleSubscription?.close();
+    _audioTrackSubscription?.close();
     // 先停后释放，给底层 MediaCodec 留出缓冲时间
     _releaseCurrentController();
     super.dispose();
+  }
+
+  // 音轨切换：记录当前播放位置，释放旧 controller，用新 URL 重建后 seek 回原位置
+  Future<void> _reinitForAudioTrackSwitch() async {
+    if (_isDisposed) return;
+    // 记录当前位置
+    final currentPos = _controller?.value.position ?? Duration.zero;
+    AppLogger.debug('音轨切换，重建播放器', data: {
+      'itemId': widget.item.id,
+      'positionMs': currentPos.inMilliseconds,
+      'audioIndex': ref.read(selectedAudioStreamIndexProvider),
+    });
+    // 释放旧 controller
+    _releaseCurrentController();
+    if (!mounted || _isDisposed) return;
+    // 标记预加载 controller 已使用（不使用预加载，因为它带的是原始 URL）
+    _preloadedControllerUsed = true;
+    setState(() {
+      _initialized = false;
+      _hasError = false;
+    });
+    // 用新 URL 初始化
+    await _initVideo();
+    // seek 回原位置
+    if (_controller != null && mounted && !_isDisposed) {
+      try {
+        await _controller!.seekTo(currentPos);
+        if (widget.isCurrentPage) await _controller!.play();
+      } catch (e) {
+        AppLogger.debug('音轨切换后 seek 失败', data: {'error': e.toString()});
+      }
+    }
   }
 
   @override

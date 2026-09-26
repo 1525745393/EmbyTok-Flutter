@@ -272,6 +272,8 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                 sheet_utils.showSpeedControlPanel(context, _videoController),
             onSubtitleTap: () => sheet_utils.showSubtitleSelector(
                 context, widget.item.subtitleTracks),
+            onAudioTap: () => sheet_utils.showAudioTrackSelector(
+                context, widget.item.audioTracks),
           ),
 
         // 纯净模式：可拖动按钮组

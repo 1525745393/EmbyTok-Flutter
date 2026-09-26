@@ -85,6 +85,10 @@ final playbackRateProvider = StateProvider<double>((ref) => 1.0);
 /// 当前选中的字幕轨道（语言或轨道 ID，null 表示关闭字幕）
 final selectedSubtitleProvider = StateProvider<String?>((ref) => null);
 
+/// 当前选中的音轨 index（null 表示默认音轨）
+/// 用户切换音轨后，VideoPlayerWidget 会用新的 AudioStreamIndex 参数重建 controller
+final selectedAudioStreamIndexProvider = StateProvider<int?>((ref) => null);
+
 /// 当前视频的本地外挂字幕轨道列表
 /// 用户通过文件选择器导入的字幕会添加到这里
 final localSubtitleTracksProvider =

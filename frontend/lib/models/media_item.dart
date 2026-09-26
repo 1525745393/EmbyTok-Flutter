@@ -464,6 +464,16 @@ class MediaItem {
     return tracks;
   }
 
+  // 获取所有音轨（从 mediaSources 的 audioStreams 提取）
+  List<MediaStream> get audioTracks {
+    final sources = mediaSources;
+    if (sources == null || sources.isEmpty) return const [];
+    for (final source in sources) {
+      if (source.audioStreams.isNotEmpty) return source.audioStreams;
+    }
+    return const [];
+  }
+
   // 字幕 cues（从 subtitleCues 字段，或从 mediaSources 的 subtitleCues ）
   List<SubtitleCue>? get subtitleCues {
     // 优先从 rawJson 读取（如果已缓存的话）

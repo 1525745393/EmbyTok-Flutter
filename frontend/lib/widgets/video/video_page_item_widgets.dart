@@ -20,6 +20,7 @@ class _RightActionButtons extends ConsumerWidget {
     required this.onCommentTap,
     this.onSpeedTap,
     this.onSubtitleTap,
+    this.onAudioTap,
   });
   final MediaItem item;
   final VideoPlayerController? controller;
@@ -35,6 +36,7 @@ class _RightActionButtons extends ConsumerWidget {
   final VoidCallback onCommentTap;
   final VoidCallback? onSpeedTap;
   final VoidCallback? onSubtitleTap;
+  final VoidCallback? onAudioTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,6 +165,16 @@ class _RightActionButtons extends ConsumerWidget {
                         hasSubtitles: item.subtitleTracks.isNotEmpty,
                         onTap: onSubtitleTap,
                       ),
+                      // 多音轨按钮：仅当有2个以上音轨时显示
+                      if (item.audioTracks.length > 1) ...[
+                        SizedBox(height: rs(16, 1.5)),
+                        PressableActionButton(
+                          icon: Icons.audiotrack,
+                          label: '音轨',
+                          color: scheme.onSurface,
+                          onTap: onAudioTap ?? () {},
+                        ),
+                      ],
                       SizedBox(height: rs(16, 1.5)),
                       DiscMuteButton(
                         discRotation: discRotation,
