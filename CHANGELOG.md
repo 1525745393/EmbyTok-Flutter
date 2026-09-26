@@ -1,3 +1,10 @@
+# [2.204.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.203.0...v2.204.0) (2026-09-26)
+
+
+### Features
+
+* debug版版本号随CI运行自动递增 ([5a27837](https://github.com/1525745393/EmbyTok-Flutter/commit/5a278372df69a5911a297cb43dbe4e32b22ed43c))
+
 # [2.203.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.202.1...v2.203.0) (2026-09-26)
 
 
