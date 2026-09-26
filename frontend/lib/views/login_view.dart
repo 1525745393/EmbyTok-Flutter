@@ -10,6 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../providers/demo_mode_provider.dart';
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
 import '../providers/service_mode_provider.dart';
@@ -444,6 +445,12 @@ class _LoginViewState extends ConsumerState<LoginView> {
                           : const Text('登录'),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // 演示模式：无服务器浏览完整 UI
+                  TextButton(
+                    onPressed: () => _enterDemoMode(context, ref),
+                    child: const Text('体验演示模式（无需服务器）'),
+                  ),
                 ],
               ),
             ),
@@ -451,6 +458,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
         ),
       ),
     );
+  }
+
+  /// 进入演示模式：设置 mock 拦截，绕过登录直接浏览
+  void _enterDemoMode(BuildContext context, WidgetRef ref) {
+    ApiClient.demoMode = true;
+    ref.read(demoModeProvider.notifier).state = true;
+    AppLogger.info('进入演示模式');
+    context.go('/');
   }
 
   /// 判断是否为 HTTP（非 HTTPS）以显示安全提示

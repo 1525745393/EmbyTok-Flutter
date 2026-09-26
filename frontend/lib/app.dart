@@ -18,6 +18,7 @@ import '../utils/memory_pressure_handler.dart';
 import '../utils/safe_unawaited.dart';
 import 'theme/app_theme.dart';
 import 'providers/providers.dart';
+import 'providers/demo_mode_provider.dart';
 import 'providers/service_mode_provider.dart';
 import 'views/actors_view.dart';
 import 'views/boxset_detail_view.dart';
@@ -107,6 +108,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         // 测试模式路由绕过登录守卫（仅 debug 构建注册）
         final goingToTestMode = state.matchedLocation == '/test-mode';
         if (goingToTestMode) return null;
+        // 演示模式绕过登录守卫
+        if (ref.read(demoModeProvider)) return null;
         // 路由守卫日志：记录重定向决策
         if (!isLoggedIn && !goingToLogin) {
           AppLogger.debug('路由守卫', data: {
