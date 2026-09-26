@@ -633,7 +633,7 @@ class _VideoInfoSubtitle extends StatelessWidget {
 }
 
 // ===== 信息面板基本信息行 =====
-class _VideoInfoRowItems extends StatelessWidget {
+class _VideoInfoRowItems extends ConsumerWidget {
   const _VideoInfoRowItems({
     required this.item,
     required this.duration,
@@ -648,7 +648,7 @@ class _VideoInfoRowItems extends StatelessWidget {
   final List<String>? studios;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final widgets = <Widget>[];
     if (duration.isNotEmpty) {
       widgets.add(_VideoInfoChip(label: '时长', value: duration));
@@ -676,97 +676,43 @@ class _VideoInfoRowItems extends StatelessWidget {
           label: '评分', value: '★ ${r.toStringAsFixed(1)}', highlight: true));
     }
     if (genres.isNotEmpty) {
-      // 类型：拆成单独 chip，点击文字跳转影片列表；点击心形添加到发现页筛选
+      // 类型标签：与媒体库详情页保持一致——默认前4个，心形反映发现页选中状态
       final router = GoRouter.of(context);
-      final container = ProviderScope.containerOf(context);
+      final discoverState = ref.watch(discoverProvider);
+      final selectedGenres = discoverState.selectedGenreIds;
+      final nameToId = <String, String>{
+        for (final g in discoverState.genres) g.name: g.id,
+      };
+      bool isGenreSelected(String name) {
+        if (selectedGenres.contains(name)) return true;
+        final id = nameToId[name];
+        return id != null && selectedGenres.contains(id);
+      }
+
       void openGenre(String g) {
-        Navigator.pop(context); // 关闭详情页 bottom sheet
+        Navigator.pop(context);
         router.push('/genre/${Uri.encodeComponent(g)}');
       }
 
-      void addToDiscover(String g) {
-        container.read(discoverProvider.notifier).addGenre(g).then((added) {
-          if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(added ? '已添加「$g」到发现页筛选' : '「$g」已在发现页筛选中'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        });
+      void toggleDiscover(String g) {
+        final notifier = ref.read(discoverProvider.notifier);
+        if (isGenreSelected(g)) {
+          notifier.removeGenre(g);
+          final id = nameToId[g];
+          if (id != null) notifier.removeGenre(id);
+        } else {
+          notifier.addGenre(g);
+        }
       }
 
-      final displayGenres = genres.take(3).toList();
-      for (final g in displayGenres) {
-        widgets.add(_VideoInfoChip(
-          label: '',
-          value: g,
-          onTap: () => openGenre(g),
-          heartOnTap: () => addToDiscover(g),
-        ));
-      }
-      if (genres.length > 3) {
-        widgets.add(_VideoInfoChip(
-          label: '',
-          value: '+${genres.length - 3}',
-          onTap: () {
-            showDialog<void>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('全部类型'),
-                content: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: genres
-                      .map((g) => InkWell(
-                            onTap: () {
-                              Navigator.pop(dialogContext);
-                              openGenre(g);
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(g),
-                                  const SizedBox(width: 6),
-                                  GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () {
-                                      Navigator.pop(dialogContext);
-                                      addToDiscover(g);
-                                    },
-                                    child: Icon(Icons.favorite_border,
-                                        size: 16,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('关闭'),
-                  ),
-                ],
-              ),
-            );
-          },
-        ));
-      }
+      // 用 StatefulWidget 管理展开/收起状态
+      widgets.add(_GenreChipsWrap(
+        genres: genres,
+        selectedGenres: selectedGenres,
+        nameToId: nameToId,
+        onTapGenre: openGenre,
+        onToggleHeart: toggleDiscover,
+      ));
     }
     final s = studios;
     if (s != null && s.isNotEmpty) {
@@ -833,12 +779,14 @@ class _VideoInfoChip extends StatelessWidget {
     this.highlight = false,
     this.onTap,
     this.heartOnTap,
+    this.heartSelected = false,
   });
   final String label;
   final String value;
   final bool highlight;
   final VoidCallback? onTap;
   final VoidCallback? heartOnTap;
+  final bool heartSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -879,8 +827,11 @@ class _VideoInfoChip extends StatelessWidget {
             const SizedBox(width: 6),
             GestureDetector(
               onTap: heartOnTap,
-              child: Icon(Icons.favorite_border,
-                  size: 16, color: scheme.onSurfaceVariant),
+              child: Icon(
+                heartSelected ? Icons.favorite : Icons.favorite_border,
+                size: 16,
+                color: heartSelected ? Colors.red : scheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -1355,6 +1306,61 @@ class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
+      ],
+    );
+  }
+}
+
+// ===== 类型标签组（可展开/收起，与媒体库详情页一致）=====
+class _GenreChipsWrap extends StatefulWidget {
+  const _GenreChipsWrap({
+    required this.genres,
+    required this.selectedGenres,
+    required this.nameToId,
+    required this.onTapGenre,
+    required this.onToggleHeart,
+  });
+  final List<String> genres;
+  final List<String> selectedGenres;
+  final Map<String, String> nameToId;
+  final void Function(String) onTapGenre;
+  final void Function(String) onToggleHeart;
+
+  @override
+  State<_GenreChipsWrap> createState() => _GenreChipsWrapState();
+}
+
+class _GenreChipsWrapState extends State<_GenreChipsWrap> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible =
+        _expanded ? widget.genres : widget.genres.take(4).toList();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ...visible.map((g) {
+          final selected = widget.selectedGenres.contains(g) ||
+              (widget.nameToId[g] != null &&
+                  widget.selectedGenres.contains(widget.nameToId[g]));
+          return _VideoInfoChip(
+            label: '',
+            value: g,
+            onTap: () => widget.onTapGenre(g),
+            heartOnTap: () => widget.onToggleHeart(g),
+            heartSelected: selected,
+          );
+        }),
+        if (widget.genres.length > 4)
+          _VideoInfoChip(
+            label: '',
+            value:
+                _expanded ? '收起' : '展开全部(${widget.genres.length})',
+            onTap: () => setState(() => _expanded = !_expanded),
+          ),
       ],
     );
   }
