@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'subpages/basic_test_page.dart';
+import 'subpages/crash_simulator_page.dart';
 import 'subpages/environment_switch_page.dart';
 import 'subpages/log_viewer_page.dart';
 import 'subpages/network_weak_test_page.dart';
@@ -85,6 +86,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildRoute,
     ),
     _TestModuleEntry(
+      icon: Icons.bug_report,
+      color: Colors.redAccent,
+      title: '崩溃模拟面板',
+      subtitle: '验证异常捕获逻辑与日志记录',
+      builder: _buildCrash,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -100,6 +108,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildPerf(BuildContext _) => const PerformanceDebugPage();
   static Widget _buildLog(BuildContext _) => const LogViewerPage();
   static Widget _buildRoute(BuildContext _) => const RouteDirectPanel();
+  static Widget _buildCrash(BuildContext _) => const CrashSimulatorPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
