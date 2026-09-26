@@ -4,12 +4,15 @@
 // 持久化说明：
 // - WARN 和 ERROR 级别日志会写入本地文件，方便用户导出排查
 // - 采用环形缓冲：最多保留 500 条，超出后覆盖最旧记录
-// - 日志文件路径：应用文档目录/logs/app.log
+// - 按日期轮转：app_YYYY-MM-DD.log，每天一个文件
+// - 批量写入：500ms 防抖合并 I/O，避免频繁文件写入
+// - WARN/ERROR 始终记录堆栈跟踪，便于 Release 模式排查
 //
 // 模块标签（tag）说明：
 // - 所有 log 方法接受可选的 tag 参数，用于标识日志来源模块
 // - 输出格式：[LEVEL][TAG] timestamp - message，无 tag 时格式同旧版
 
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -294,8 +297,9 @@ class AppLogger {
       buffer.write(' | Error: $error');
     }
 
-    // 添加堆栈跟踪
-    if (stackTrace != null && kDebugMode) {
+    // 添加堆栈跟踪（WARN/ERROR 始终记录，便于排查；DEBUG 仅在 Debug 模式）
+    if (stackTrace != null &&
+        (kDebugMode || level.priority >= LogLevel.warn.priority)) {
       buffer.write('\nStackTrace:\n$stackTrace');
     }
 
@@ -331,24 +335,36 @@ class AppLogger {
   /// 采用环形缓冲策略：超出 _maxPersistedLogs 时移除最旧记录
   static void _persistLog(String logLine) {
     _persistedBuffer.add(logLine);
+    _unflushedLines.add(logLine);
     // 超出上限时移除最旧的记录（FIFO）
     while (_persistedBuffer.length > _maxPersistedLogs) {
       _persistedBuffer.removeAt(0);
     }
     // 异步写入文件，不阻塞调用方
-    _flushToFile();
+    _scheduleFlush();
+  }
+
+  // 批量写入防抖：连续日志合并为一次 I/O
+  static Timer? _flushTimer;
+
+  static void _scheduleFlush() {
+    _flushTimer ??= Timer(const Duration(milliseconds: 500), _flushToFile);
   }
 
   /// 将内存缓冲区写入日志文件
   ///
-  /// 使用 IOSink 追加写入，避免每次重写整个文件
+  /// 批量追加写入自上次 flush 以来的新日志，避免每条日志一次 I/O
   static Future<void> _flushToFile() async {
+    _flushTimer?.cancel();
+    _flushTimer = null;
     try {
       final path = await _ensureLogFilePath();
       final file = File(path);
-      // 写入最新一条（追加模式）
-      final lastLine = _persistedBuffer.last;
-      await file.writeAsString('$lastLine\n', mode: FileMode.append);
+      // 写入自上次 flush 以来的增量
+      if (_unflushedLines.isEmpty) return;
+      final lines = _unflushedLines.join('\n');
+      await file.writeAsString('$lines\n', mode: FileMode.append);
+      _unflushedLines.clear();
     } catch (e) {
       // 持久化失败不影响主流程，仅开发时打印
       if (kDebugMode) {
@@ -357,6 +373,9 @@ class AppLogger {
       }
     }
   }
+
+  /// 自上次 flush 以来未写入文件的日志行
+  static final List<String> _unflushedLines = [];
 
   /// 懒加载日志文件路径，首次调用时创建文件并加载历史内容
   static Future<String> _ensureLogFilePath() async {
@@ -367,7 +386,9 @@ class AppLogger {
       if (!await logDir.exists()) {
         await logDir.create(recursive: true);
       }
-      _logFilePath = '${logDir.path}/app.log';
+      // 按日期轮转：每天一个文件 app_YYYY-MM-DD.log
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      _logFilePath = '${logDir.path}/app_$today.log';
       // 首次初始化时加载已有日志到内存缓冲区
       final file = File(_logFilePath!);
       if (await file.exists()) {
@@ -390,7 +411,8 @@ class AppLogger {
         // ignore: avoid_print
         print('日志路径初始化失败: $e');
       }
-      _logFilePath = '/tmp/embytok_app.log';
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      _logFilePath = '/tmp/embytok_app_$today.log';
       _initialized = true;
     }
     return _logFilePath!;
