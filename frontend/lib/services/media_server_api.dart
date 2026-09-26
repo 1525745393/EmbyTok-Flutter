@@ -62,6 +62,8 @@ abstract class MediaServerApi {
     bool excludePlayed = false,
     String? includeItemTypes,
     String? playedFilter,
+    String? genre,
+    bool resumable = false,
     CancelToken? cancelToken,
   });
 

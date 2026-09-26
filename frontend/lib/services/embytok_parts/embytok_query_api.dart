@@ -42,6 +42,8 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
     bool excludePlayed = false,
     String? includeItemTypes,
     String? playedFilter,
+    String? genre,
+    bool resumable = false,
     CancelToken? cancelToken,
   }) {
     return _api.getLibraryItems(
@@ -57,6 +59,8 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
       excludePlayed: excludePlayed,
       includeItemTypes: includeItemTypes,
       playedFilter: playedFilter,
+      genre: genre,
+      resumable: resumable,
       cancelToken: cancelToken,
     );
   }

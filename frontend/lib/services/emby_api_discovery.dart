@@ -155,6 +155,8 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     bool excludePlayed = false,
     String? includeItemTypes,
     String? playedFilter, // 'all' | 'unplayed' | 'played'
+    String? genre, // 类型筛选
+    bool resumable = false, // 续看筛选
     CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
@@ -182,6 +184,8 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       if (excludePlayed) 'Filters': 'IsUnplayed',
       if (playedFilter == 'unplayed') 'Filters': 'IsUnplayed',
       if (playedFilter == 'played') 'Filters': 'IsPlayed',
+      if (resumable) 'Filters': 'IsResumable',
+      if (genre != null && genre.isNotEmpty) 'Genres': genre,
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
