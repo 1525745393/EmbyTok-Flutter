@@ -1,3 +1,10 @@
+## [2.210.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.0...v2.210.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 审查修复-年份插值/demo路径匹配/退出机制/缓存标注 ([95fe5ba](https://github.com/1525745393/EmbyTok-Flutter/commit/95fe5badc8f3e9f6e566db300beb20d35776f2e0))
+
 # [2.210.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.209.0...v2.210.0) (2026-09-26)
 
 
