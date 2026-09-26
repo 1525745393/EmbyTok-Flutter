@@ -64,6 +64,7 @@ abstract class MediaServerApi {
     String? playedFilter,
     String? genre,
     bool resumable = false,
+    int? year,
     CancelToken? cancelToken,
   });
 

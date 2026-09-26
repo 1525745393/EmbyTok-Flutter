@@ -174,6 +174,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   String? _selectedGenre;
   bool _showGenreFilter = false;
 
+  // 年份筛选
+  int? _selectedYear;
+  bool _showYearFilter = false;
+
   // 搜索
   String _searchQuery = '';
   bool _showSearch = false;
@@ -203,6 +207,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _scrollController.position.maxScrollExtent - 500) {
       _loadItems(loadMore: true);
     }
+  }
+
+  /// 播放当前库全部影片（顺序）
+  void _playAll() {
+    if (_items.isEmpty) return;
+    ref.read(playbackListProvider.notifier).setPlaybackList(_items, _items.first.id);
+    context.push('/play/${_items.first.id}', extra: _items.first);
   }
 
   /// 随机播放当前库中的一部影片
@@ -370,6 +381,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         playedFilter: playedFilter,
         resumable: resumable,
         genre: _selectedGenre,
+        year: _selectedYear,
         searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
       );
 
@@ -421,6 +433,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     }
     if (_items.isEmpty) {
       final hasFilter = _selectedGenre != null ||
+          _selectedYear != null ||
           _filterLabel != '全部' ||
           _searchQuery.isNotEmpty;
       return Center(
@@ -443,6 +456,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 onPressed: () {
                   setState(() {
                     _selectedGenre = null;
+                    _selectedYear = null;
                     _filterLabel = '全部';
                     _searchQuery = '';
                     _searchController.clear();
@@ -594,6 +608,27 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   onPressed: () =>
                       setState(() => _showGenreFilter = !_showGenreFilter),
                 ),
+                // 年份筛选按钮
+                IconButton(
+                  icon: Icon(
+                    _selectedYear != null
+                        ? Icons.calendar_today
+                        : Icons.calendar_today_outlined,
+                    size: 18,
+                    color: _selectedYear != null
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                  ),
+                  tooltip: _selectedYear != null ? '年份: $_selectedYear' : '按年份筛选',
+                  onPressed: () =>
+                      setState(() => _showYearFilter = !_showYearFilter),
+                ),
+                // 播放全部（顺序）
+                IconButton(
+                  icon: Icon(Icons.play_arrow, size: 18, color: scheme.onSurfaceVariant),
+                  tooltip: '播放全部',
+                  onPressed: _items.isEmpty ? null : _playAll,
+                ),
                 // 随机播放
                 IconButton(
                   icon: Icon(Icons.shuffle, size: 18, color: scheme.onSurfaceVariant),
@@ -639,6 +674,53 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                               setState(() {
                                 _selectedGenre = g;
                                 _showGenreFilter = false;
+                              });
+                              _loadItems();
+                            },
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+            );
+          }),
+        // 年份筛选展开条
+        if (_items.isNotEmpty && _showYearFilter)
+          Builder(builder: (_) {
+            // 从已加载数据提取年份，降序排列
+            final years = <int>{};
+            for (final item in _items) {
+              if (item.productionYear != null) years.add(item.productionYear!);
+            }
+            final sorted = years.toList()..sort((a, b) => b.compareTo(a));
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ChoiceChip(
+                      label: const Text('全部', style: TextStyle(fontSize: 12)),
+                      selected: _selectedYear == null,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedYear = null;
+                          _showYearFilter = false;
+                        });
+                        _loadItems();
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    ...sorted.map((y) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: ChoiceChip(
+                            label: Text('$y', style: const TextStyle(fontSize: 12)),
+                            selected: _selectedYear == y,
+                            onSelected: (_) {
+                              setState(() {
+                                _selectedYear = y;
+                                _showYearFilter = false;
                               });
                               _loadItems();
                             },

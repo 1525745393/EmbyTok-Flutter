@@ -157,6 +157,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     String? playedFilter, // 'all' | 'unplayed' | 'played'
     String? genre, // 类型筛选
     bool resumable = false, // 续看筛选
+    int? year, // 年份筛选
     CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
@@ -189,6 +190,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
       else if (playedFilter == 'played')
         'Filters': 'IsPlayed',
       if (genre != null && genre.isNotEmpty) 'Genres': genre,
+      if (year != null) 'Years': '$year',
     };
 
     final effectiveUserId = userId ?? _defaultUserId;
