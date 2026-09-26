@@ -170,6 +170,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   // 类型筛选（从已加载数据中提取）
   String? _selectedGenre;
+  bool _showGenreFilter = false;
 
   // 搜索
   String _searchQuery = '';
@@ -200,6 +201,14 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _scrollController.position.maxScrollExtent - 500) {
       _loadItems(loadMore: true);
     }
+  }
+
+  /// 随机播放当前库中的一部影片
+  void _playRandom() {
+    if (_items.isEmpty) return;
+    final item = _items[DateTime.now().millisecondsSinceEpoch % _items.length];
+    ref.read(playbackListProvider.notifier).setPlaybackList(_items, item.id);
+    context.push('/play/${item.id}', extra: item);
   }
 
   Future<void> _showItemActions(BuildContext context, MediaItem item) async {
@@ -545,9 +554,77 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     }
                   },
                 ),
+                // 类型筛选按钮
+                IconButton(
+                  icon: Icon(
+                    _selectedGenre != null
+                        ? Icons.label
+                        : Icons.label_outline,
+                    size: 18,
+                    color: _selectedGenre != null
+                        ? scheme.primary
+                        : scheme.onSurfaceVariant,
+                  ),
+                  tooltip: _selectedGenre != null ? '类型: $_selectedGenre' : '按类型筛选',
+                  onPressed: () =>
+                      setState(() => _showGenreFilter = !_showGenreFilter),
+                ),
+                // 随机播放
+                IconButton(
+                  icon: Icon(Icons.shuffle, size: 18, color: scheme.onSurfaceVariant),
+                  tooltip: '随机播放',
+                  onPressed: _items.isEmpty ? null : _playRandom,
+                ),
               ],
             ),
           ),
+        // 类型筛选展开条
+        if (_items.isNotEmpty && _showGenreFilter)
+          Builder(builder: (_) {
+            // 从已加载数据提取类型
+            final genres = <String>{};
+            for (final item in _items) {
+              genres.addAll(item.displayGenres);
+            }
+            final sorted = genres.toList()..sort();
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ChoiceChip(
+                      label: const Text('全部', style: TextStyle(fontSize: 12)),
+                      selected: _selectedGenre == null,
+                      onSelected: (_) {
+                        setState(() {
+                          _selectedGenre = null;
+                          _showGenreFilter = false;
+                        });
+                        _loadItems();
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    ...sorted.map((g) => Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          child: ChoiceChip(
+                            label: Text(g, style: const TextStyle(fontSize: 12)),
+                            selected: _selectedGenre == g,
+                            onSelected: (_) {
+                              setState(() {
+                                _selectedGenre = g;
+                                _showGenreFilter = false;
+                              });
+                              _loadItems();
+                            },
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )),
+                  ],
+                ),
+              ),
+            );
+          }),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadItems(),
