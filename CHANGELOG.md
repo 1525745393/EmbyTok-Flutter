@@ -1,3 +1,10 @@
+## [2.191.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.1...v2.191.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* 日志导出问题修复 ([0b7fe25](https://github.com/1525745393/EmbyTok-Flutter/commit/0b7fe25aa28a26bd652e0209fb404391348398a9))
+
 ## [2.191.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.0...v2.191.1) (2026-09-26)
 
 
