@@ -1,3 +1,10 @@
+# [2.195.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.194.0...v2.195.0) (2026-09-26)
+
+
+### Features
+
+* 视频流info sheet类型标签与媒体库详情页统一 ([a217b71](https://github.com/1525745393/EmbyTok-Flutter/commit/a217b719d236f00e3e0b3ac979fabcc65537665d))
+
 # [2.194.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.193.3...v2.194.0) (2026-09-26)
 
 
