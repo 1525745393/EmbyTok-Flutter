@@ -1,3 +1,10 @@
+# [2.193.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.192.0...v2.193.0) (2026-09-26)
+
+
+### Features
+
+* 媒体库批量选择模式 ([8e2b4af](https://github.com/1525745393/EmbyTok-Flutter/commit/8e2b4af5da61cfdf0639f6a17c44824e3dea06b3))
+
 # [2.192.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.3...v2.192.0) (2026-09-26)
 
 
