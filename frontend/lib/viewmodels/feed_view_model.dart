@@ -363,13 +363,14 @@ class FeedViewModel {
     );
   }
 
-  /// 校验字符串是否为 Emby GUID 格式（xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+  /// Emby GUID 格式正则（xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx）
+  static final RegExp _guidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
+  /// 校验字符串是否为 Emby GUID 格式
   static bool _isValidGuid(String id) {
-    if (id.length != 36) return false;
-    final regex = RegExp(
-      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-    );
-    return regex.hasMatch(id);
+    return id.length == 36 && _guidRegex.hasMatch(id);
   }
 
   /// 当前媒体库 ID（顶栏临时筛选优先，其次选中列表第一个，未选则为空）

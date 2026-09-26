@@ -805,103 +805,116 @@ class _LibraryListItem extends ConsumerWidget {
           '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=${item.imageUrl}&api_key=${auth.token}';
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 缩略图
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: SizedBox(
-                  width: 60,
-                  height: 90,
-                  child: thumbUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: thumbUrl,
-                          cacheManager: AppImageCacheManager.thumbnail,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 120,
-                          errorWidget: (_, __, ___) => Container(
-                            color: scheme.surfaceContainerHighest,
-                            child: const Icon(Icons.movie_outlined, size: 24),
-                          ),
-                        )
-                      : Container(
-                          color: scheme.surfaceContainerHighest,
-                          child: const Icon(Icons.movie_outlined, size: 24),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 标题信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: scheme.onSurface,
-                      ),
+    return Stack(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 缩略图
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      width: 60,
+                      height: 90,
+                      child: thumbUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: thumbUrl,
+                              cacheManager: AppImageCacheManager.thumbnail,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 120,
+                              errorWidget: (_, __, ___) => Container(
+                                color: scheme.surfaceContainerHighest,
+                                child: const Icon(Icons.movie_outlined, size: 24),
+                              ),
+                            )
+                          : Container(
+                              color: scheme.surfaceContainerHighest,
+                              child: const Icon(Icons.movie_outlined, size: 24),
+                            ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
+                  ),
+                  const SizedBox(width: 12),
+                  // 标题信息
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (item.productionYear != null)
-                          Text(
-                            '${item.productionYear}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: scheme.onSurfaceVariant,
-                            ),
+                        Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface,
                           ),
-                        if (item.communityRating != null) ...[
-                          const SizedBox(width: 8),
-                          Icon(Icons.star, size: 12, color: Colors.amber[700]),
-                          const SizedBox(width: 2),
-                          Text(
-                            item.communityRating!.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (item.productionYear != null)
+                              Text(
+                                '${item.productionYear}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            if (item.communityRating != null) ...[
+                              const SizedBox(width: 8),
+                              Icon(Icons.star, size: 12, color: Colors.amber[700]),
+                              const SizedBox(width: 2),
+                              Text(
+                                item.communityRating!.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-              // 收藏心形
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () =>
-                    ref.read(favoritesProvider.notifier).toggleFavorite(item),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Icon(
-                    favorited ? Icons.favorite : Icons.favorite_border,
-                    color: favorited ? Colors.red : scheme.onSurfaceVariant,
-                    size: 20,
                   ),
-                ),
+                  // 预留心形按钮位置，避免内容被遮挡
+                  const SizedBox(width: 40),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        // 收藏心形按钮在外层 Stack，不在 InkWell 内部，彻底消除手势竞争
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () =>
+                  ref.read(favoritesProvider.notifier).toggleFavorite(item),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  favorited ? Icons.favorite : Icons.favorite_border,
+                  color: favorited ? Colors.red : scheme.onSurfaceVariant,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
