@@ -1,3 +1,10 @@
+## [2.191.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.2...v2.191.3) (2026-09-26)
+
+
+### Bug Fixes
+
+* 测试环境下AppLogger不创建Timer导致CI失败 ([df6ecae](https://github.com/1525745393/EmbyTok-Flutter/commit/df6ecaef211ec28e426be5d227bcbb537867f513))
+
 ## [2.191.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.191.1...v2.191.2) (2026-09-26)
 
 
