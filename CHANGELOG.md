@@ -1,3 +1,10 @@
+## [2.202.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.202.0...v2.202.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复连点版本号无法进入测试模式 ([7ada60a](https://github.com/1525745393/EmbyTok-Flutter/commit/7ada60a609b31638e6144335bb057f44e2ca2542))
+
 # [2.202.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.201.0...v2.202.0) (2026-09-26)
 
 
