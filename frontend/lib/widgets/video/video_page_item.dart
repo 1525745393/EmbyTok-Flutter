@@ -392,11 +392,16 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // ===== 播放上报链方法 =====
 
   // ===== 认证辅助 =====
+  // 缓存 auth 值，避免 dispose() 后 ref.read 抛 "Cannot use ref after disposed"
+  String? _cachedServerUrl;
+  String? _cachedToken;
+
   // 使用 ref.read 而非 ref.watch，因为这些方法在非 build 上下文中调用
   // （如 _reportPlaybackStart、_reportPlaybackProgress 等回调）
   // 只需读取当前值，不需要订阅变化触发重建
-  String? _authServerUrl() => ref.read(authProvider).embyServerUrl;
-  String? _authToken() => ref.read(authProvider).token;
+  // dispose 时返回缓存值，防止 ref after disposed 异常
+  String? _authServerUrl() => _cachedServerUrl ?? ref.read(authProvider).embyServerUrl;
+  String? _authToken() => _cachedToken ?? ref.read(authProvider).token;
 
   /// 安全执行上报类异步操作：捕获异常并记录日志，避免未捕获的 Future 错误
   /// 用于 markAsPlayed、report* 等不阻塞主流程的后台请求
@@ -425,7 +430,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   @override
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  @override
+  Widget build(BuildContext context) {
+    // 缓存 auth 值，dispose 后上报使用缓存值避免 ref after disposed
+    final auth = ref.read(authProvider);
+    _cachedServerUrl = auth.embyServerUrl;
+    _cachedToken = auth.token;
+    return _buildPage(context);
+  }
 }
 
 /// 中央播放按钮包装器：仅监听 isPlayingProvider，避免父组件因播放状态变化而整体重建
