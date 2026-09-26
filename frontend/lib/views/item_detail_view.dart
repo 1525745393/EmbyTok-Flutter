@@ -349,7 +349,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
     );
   }
 
-  // 主信息区（类型标签、年份、评分、导演、时长、出品公司）：类型标签、年份、评分 + 导演 + 时长
+  // 主信息区（类型标签、年份、评分、导演、时长、出品公司）
   Widget _buildMainInfo(MediaItem item) {
     final scheme = Theme.of(context).colorScheme;
     final year = item.productionYear ?? item.year;
@@ -513,26 +513,6 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
             }
           }
         },
-      ),
-    );
-  }
-
-  // 类型标签
-  Widget _buildTypeChip(String type) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: scheme.primary,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        type,
-        style: TextStyle(
-          color: scheme.onPrimary,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }
