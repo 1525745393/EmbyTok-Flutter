@@ -1,3 +1,11 @@
+# [2.199.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.198.0...v2.199.0) (2026-09-26)
+
+
+### Features
+
+* CI包体积验证和测试配置导入导出 ([1c5c9a0](https://github.com/1525745393/EmbyTok-Flutter/commit/1c5c9a03b05597fda2c01ad841a5b3657beeeeb4))
+* 沙盒文件浏览器和HTTP代理设置 ([8c6b498](https://github.com/1525745393/EmbyTok-Flutter/commit/8c6b498fdd5df728feddf751218cbc0e37c29558))
+
 # [2.198.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.197.0...v2.198.0) (2026-09-26)
 
 
