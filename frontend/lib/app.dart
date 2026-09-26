@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
+import '../services/api_client.dart';
 import '../utils/logger.dart';
 import '../utils/memory_pressure_handler.dart';
 import '../utils/safe_unawaited.dart';
@@ -47,6 +49,7 @@ import 'widgets/performance_overlay.dart';
 import 'widgets/video/video_page_item.dart';
 import 'test_mode/test_mode_switch.dart';
 import 'test_mode/test_mode_home.dart';
+import 'test_mode/test_env_provider.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
 /// 当认证状态变化时调用 notify() 触发 GoRouter 重新评估 redirect
@@ -82,6 +85,10 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     }
     // 启动时自动从 NAS 同步歌手收藏（后台异步执行）
     _syncFavoritesFromNasOnStartup();
+    // 恢复测试模式环境覆盖（仅 debug，从 SharedPreferences 读取）
+    if (isAppTestMode) {
+      _restoreTestEnvOverride();
+    }
     _router = GoRouter(
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
@@ -126,6 +133,21 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     _memoryHandler.dispose();
     _refreshNotifier.dispose();
     super.dispose();
+  }
+
+  /// 恢复测试模式环境覆盖：启动时读取 SharedPreferences，若有则应用并显示红色横幅
+  Future<void> _restoreTestEnvOverride() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('test_mode_override_base_url') ?? '';
+      if (saved.isNotEmpty) {
+        ApiClient().setBaseUrl(saved);
+        ref.read(testEnvOverrideProvider.notifier).state = saved;
+        AppLogger.warn('测试环境覆盖已恢复', data: {'baseUrl': saved});
+      }
+    } catch (e) {
+      AppLogger.debug('恢复测试环境覆盖失败', data: {'error': e.toString()});
+    }
   }
 
   /// 初始化 AudioService：注册 EmbytokAudioHandler 到系统媒体控制
@@ -528,6 +550,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
     });
 
     final themeMode = ref.watch(themeModeProvider);
+    // 测试模式环境覆盖横幅：非默认环境时顶部红色条
+    final testEnvOverride = isAppTestMode ? ref.watch(testEnvOverrideProvider) : null;
 
     return MaterialApp.router(
       title: 'EmbyTok',
@@ -540,7 +564,29 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: systemOverlayStyleOf(context),
           child: AppPerformanceOverlay(
-            child: child ?? const SizedBox.shrink(),
+            child: Column(
+              children: [
+                if (testEnvOverride != null && testEnvOverride.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 3),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Text(
+                        '测试环境: $testEnvOverride',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                Expanded(child: child ?? const SizedBox.shrink()),
+              ],
+            ),
           ),
         );
       },

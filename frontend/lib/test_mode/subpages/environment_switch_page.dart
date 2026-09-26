@@ -2,20 +2,23 @@
 // 退出测试模式或重启 App 后自动恢复原配置
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../providers/providers.dart';
 import '../../services/api_client.dart';
+import '../test_env_provider.dart';
 
 const _kTestEnvKey = 'test_mode_override_base_url';
 
-class EnvironmentSwitchPage extends StatefulWidget {
+class EnvironmentSwitchPage extends ConsumerStatefulWidget {
   const EnvironmentSwitchPage({super.key});
 
   @override
-  State<EnvironmentSwitchPage> createState() => _EnvironmentSwitchPageState();
+  ConsumerState<EnvironmentSwitchPage> createState() => _EnvironmentSwitchPageState();
 }
 
-class _EnvironmentSwitchPageState extends State<EnvironmentSwitchPage> {
+class _EnvironmentSwitchPageState extends ConsumerState<EnvironmentSwitchPage> {
   static const _presets = [
     ['正式', ''],
     ['开发', 'http://192.168.1.100:8096'],
@@ -44,6 +47,9 @@ class _EnvironmentSwitchPageState extends State<EnvironmentSwitchPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kTestEnvKey, url);
     ApiClient().setBaseUrl(url);
+    // 更新全局 provider，触发红色横幅显示
+    ref.read(testEnvOverrideProvider.notifier).state =
+        url.isEmpty ? null : url;
     setState(() => _current = url);
   }
 
