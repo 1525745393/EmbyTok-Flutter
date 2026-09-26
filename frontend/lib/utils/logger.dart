@@ -358,13 +358,14 @@ class AppLogger {
     _flushTimer?.cancel();
     _flushTimer = null;
     try {
+      // 在 await 之前取出并清空，避免 await 期间新日志被误清
+      if (_unflushedLines.isEmpty) return;
+      final linesToWrite = List<String>.from(_unflushedLines);
+      _unflushedLines.clear();
       final path = await _ensureLogFilePath();
       final file = File(path);
-      // 写入自上次 flush 以来的增量
-      if (_unflushedLines.isEmpty) return;
-      final lines = _unflushedLines.join('\n');
-      await file.writeAsString('$lines\n', mode: FileMode.append);
-      _unflushedLines.clear();
+      await file.writeAsString('${linesToWrite.join('\n')}\n',
+          mode: FileMode.append);
     } catch (e) {
       // 持久化失败不影响主流程，仅开发时打印
       if (kDebugMode) {
@@ -378,8 +379,15 @@ class AppLogger {
   static final List<String> _unflushedLines = [];
 
   /// 懒加载日志文件路径，首次调用时创建文件并加载历史内容
+  ///
+  /// 每次调用检查日期是否跨午夜，跨天则切换到新文件。
+  /// 初始化时自动清理 7 天前的旧日志文件。
   static Future<String> _ensureLogFilePath() async {
-    if (_initialized && _logFilePath != null) return _logFilePath!;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    // 已初始化且日期未变，直接复用缓存路径
+    if (_initialized && _logFilePath != null && _logFilePath!.contains(today)) {
+      return _logFilePath!;
+    }
     try {
       final dir = await getApplicationDocumentsDirectory();
       final logDir = Directory('${dir.path}/logs');
@@ -387,35 +395,55 @@ class AppLogger {
         await logDir.create(recursive: true);
       }
       // 按日期轮转：每天一个文件 app_YYYY-MM-DD.log
-      final today = DateTime.now().toIso8601String().substring(0, 10);
       _logFilePath = '${logDir.path}/app_$today.log';
+      // 自动清理 7 天前的旧日志
+      _cleanOldLogs(logDir);
       // 首次初始化时加载已有日志到内存缓冲区
-      final file = File(_logFilePath!);
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final lines = content.split('\n').where((l) => l.isNotEmpty).toList();
-        // 只保留最新的 _maxPersistedLogs 条
-        if (lines.length > _maxPersistedLogs) {
-          _persistedBuffer.clear();
-          _persistedBuffer
-              .addAll(lines.sublist(lines.length - _maxPersistedLogs));
-        } else {
-          _persistedBuffer.clear();
-          _persistedBuffer.addAll(lines);
+      if (!_initialized) {
+        final file = File(_logFilePath!);
+        if (await file.exists()) {
+          final content = await file.readAsString();
+          final lines = content.split('\n').where((l) => l.isNotEmpty).toList();
+          if (lines.length > _maxPersistedLogs) {
+            _persistedBuffer
+                .addAll(lines.sublist(lines.length - _maxPersistedLogs));
+          } else {
+            _persistedBuffer.addAll(lines);
+          }
         }
+        _initialized = true;
       }
-      _initialized = true;
     } catch (e) {
       // 路径获取失败时使用临时目录作为兜底
       if (kDebugMode) {
         // ignore: avoid_print
         print('日志路径初始化失败: $e');
       }
-      final today = DateTime.now().toIso8601String().substring(0, 10);
       _logFilePath = '/tmp/embytok_app_$today.log';
       _initialized = true;
     }
     return _logFilePath!;
+  }
+
+  /// 清理 7 天前的旧日志文件
+  static void _cleanOldLogs(Directory logDir) {
+    try {
+      final now = DateTime.now();
+      for (final entity in logDir.listSync()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        // 匹配 app_YYYY-MM-DD.log
+        if (!name.startsWith('app_') || !name.endsWith('.log')) continue;
+        final dateStr = name.substring(4, 14);
+        final fileDate = DateTime.tryParse(dateStr);
+        if (fileDate == null) continue;
+        if (now.difference(fileDate).inDays > 7) {
+          entity.delete();
+        }
+      }
+    } catch (_) {
+      // 清理失败静默处理
+    }
   }
 
   /// 获取日志文件路径（供设置页导出使用）
@@ -439,6 +467,9 @@ class AppLogger {
   /// 清除所有已持久化的日志（内存 + 文件）
   static Future<void> clearLogs() async {
     _persistedBuffer.clear();
+    _unflushedLines.clear();
+    _flushTimer?.cancel();
+    _flushTimer = null;
     if (_logFilePath != null) {
       try {
         final file = File(_logFilePath!);
