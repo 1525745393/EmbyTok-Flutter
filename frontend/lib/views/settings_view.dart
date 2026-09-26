@@ -21,6 +21,7 @@ import '../providers/server_registry_provider.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
 import 'settings/network_diagnostic_page.dart';
+import 'settings/year_report_page.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
@@ -283,6 +284,8 @@ class SettingsView extends ConsumerWidget {
             Colors.teal,
             [
               _buildCacheManagementTile(context, ref),
+              _buildSmartCacheTile(context, ref),
+              _buildYearReportTile(context, ref),
               _buildNetworkDiagnosticTile(context, ref),
               _buildFeedbackTile(context, ref),
             ],
@@ -544,6 +547,46 @@ class SettingsView extends ConsumerWidget {
           builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
         ),
       ),
+    );
+  }
+
+  // 年度报告入口
+  Widget _buildYearReportTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.auto_graph, color: Colors.teal),
+      title: const Text('年度报告'),
+      subtitle: const Text('查看今年的观影统计'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const YearReportPage()),
+      ),
+    );
+  }
+
+  // 智能缓存清理开关
+  Widget _buildSmartCacheTile(BuildContext context, WidgetRef ref) {
+    return StatefulBuilder(
+      builder: (context, setTileState) {
+        return FutureBuilder<bool>(
+          future: SharedPreferences.getInstance()
+              .then((p) => p.getBool('smart_cache_cleanup') ?? true),
+          builder: (context, snapshot) {
+            final enabled = snapshot.data ?? true;
+            return SwitchListTile(
+              secondary: const Icon(Icons.memory, color: Colors.teal),
+              title: const Text('智能缓存清理'),
+              subtitle: const Text('内存不足时自动清理图片和视频缓存'),
+              value: enabled,
+              onChanged: (v) async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('smart_cache_cleanup', v);
+                setTileState(() {});
+              },
+            );
+          },
+        );
+      },
     );
   }
 }
