@@ -18,6 +18,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/artist_metadata_provider.dart';
 import '../providers/server_registry_provider.dart';
+import 'settings/cache_management_page.dart';
+import 'settings/feedback_page.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
@@ -271,6 +273,18 @@ class SettingsView extends ConsumerWidget {
               _buildBatchScanTile(context, ref),
             ],
           ),
+          // 通用
+          _buildSection(
+            context,
+            ref,
+            '通用',
+            Icons.tune,
+            Colors.teal,
+            [
+              _buildCacheManagementTile(context, ref),
+              _buildFeedbackTile(context, ref),
+            ],
+          ),
           // 关于
           _buildSection(
             context,
@@ -484,6 +498,34 @@ class SettingsView extends ConsumerWidget {
   /// 替代框架内置的英文 [showLicensePage]，使用 [LicenseRegistry] 异步收集
   /// 所有依赖的许可证条目，渲染为中文界面的可展开列表。
   // ==================== 工具方法 ====================
+
+  // 缓存管理入口
+  Widget _buildCacheManagementTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.storage, color: Colors.teal),
+      title: const Text('缓存管理'),
+      subtitle: const Text('查看和清理图片缓存、日志'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CacheManagementPage()),
+      ),
+    );
+  }
+
+  // 反馈入口
+  Widget _buildFeedbackTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.feedback_outlined, color: Colors.teal),
+      title: const Text('反馈与帮助'),
+      subtitle: const Text('遇到问题？一键提交反馈'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FeedbackPage()),
+      ),
+    );
+  }
 }
 
 // 打赏收款码占位组件：尚未提供图片时显示提示
