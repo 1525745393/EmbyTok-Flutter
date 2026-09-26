@@ -64,19 +64,24 @@ extension _ItemDetailLoaders on _ItemDetailViewState {
   Future<void> _refreshFullDetail(AuthState auth) async {
     try {
       final cachedRepo = ref.read(cachedMediaRepositoryProvider);
-      final item = await cachedRepo.getItemDetail(
+      final fresh = await cachedRepo.getItemDetail(
         widget.itemId,
         serverUrl: auth.embyServerUrl!,
         token: auth.token!,
         userId: auth.user?.id,
       );
       if (!mounted) return;
-      // 仅当服务器返回了更完整的数据时才替换（保留 initialItem 的 userData 等本地状态）
+      // 保留当前 _item 的 userData（播放进度、收藏状态等本地乐观状态），
+      // 用服务器返回的完整元数据合并，避免缓存旧数据覆盖用户刚操作的状态
+      final current = _item;
+      final merged = current != null
+          ? fresh.copyWith(userData: current.userData ?? fresh.userData)
+          : fresh;
       setState(() {
-        _item = item;
+        _item = merged;
       });
     } catch (e) {
-      AppLogger.debug('后台刷新详情失败，保留 initialItem', data: {
+      AppLogger.warn('后台刷新详情失败，保留 initialItem', data: {
         'itemId': widget.itemId,
         'error': e.toString(),
       });
