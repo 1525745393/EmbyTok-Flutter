@@ -1,3 +1,10 @@
+# [2.188.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.187.0...v2.188.0) (2026-09-26)
+
+
+### Features
+
+* 媒体库新增类型筛选chips和随机播放 ([7eee199](https://github.com/1525745393/EmbyTok-Flutter/commit/7eee19982b5ac34ee8fc8c9d95085a07a4c5e4a7))
+
 # [2.187.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.186.0...v2.187.0) (2026-09-26)
 
 
