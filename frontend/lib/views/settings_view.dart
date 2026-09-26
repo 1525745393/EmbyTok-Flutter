@@ -20,6 +20,7 @@ import '../providers/artist_metadata_provider.dart';
 import '../providers/server_registry_provider.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
+import 'settings/network_diagnostic_page.dart';
 import '../providers/service_mode_provider.dart';
 import '../providers/providers.dart';
 import '../services/services.dart';
@@ -282,6 +283,7 @@ class SettingsView extends ConsumerWidget {
             Colors.teal,
             [
               _buildCacheManagementTile(context, ref),
+              _buildNetworkDiagnosticTile(context, ref),
               _buildFeedbackTile(context, ref),
             ],
           ),
@@ -523,6 +525,24 @@ class SettingsView extends ConsumerWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const FeedbackPage()),
+      ),
+    );
+  }
+
+  // 网络诊断入口
+  Widget _buildNetworkDiagnosticTile(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final serverUrl = auth.embyServerUrl ?? auth.backendUrl;
+    return ListTile(
+      leading: const Icon(Icons.network_check, color: Colors.teal),
+      title: const Text('网络诊断'),
+      subtitle: const Text('检测服务器连接、延迟和证书状态'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
+        ),
       ),
     );
   }
