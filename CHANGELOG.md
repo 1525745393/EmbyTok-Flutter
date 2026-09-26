@@ -1,3 +1,10 @@
+# [2.200.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.199.0...v2.200.0) (2026-09-26)
+
+
+### Features
+
+* 锁屏/蓝牙控制专项测试页 ([8f94f9a](https://github.com/1525745393/EmbyTok-Flutter/commit/8f94f9a8e13e8968834078819811d503f603ade3))
+
 # [2.199.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.198.0...v2.199.0) (2026-09-26)
 
 
