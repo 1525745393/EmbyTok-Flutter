@@ -15,6 +15,7 @@ import '../models/models.dart';
 import '../providers/library_provider.dart';
 import '../providers/providers.dart';
 import '../utils/image_cache_manager.dart';
+import '../utils/logger.dart';
 import '../widgets/video/video_grid_card.dart';
 
 class LibrariesBrowseView extends ConsumerStatefulWidget {
@@ -164,7 +165,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     '上映年份': ('ProductionYear,SortName', 'Descending'),
   };
   String _sortLabel = '名称';
-  bool _sortAscending = false; // 用户可切换升序/降序
+  // 初始化排序方向跟随"名称"选项的默认值（Ascending）
+  bool _sortAscending = true;
 
   // 观看状态筛选
   static const _filterOptions = ['全部', '续看', '未观看', '已观看'];
@@ -317,7 +319,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
             SnackBar(content: Text(played ? '已标记为未观看' : '已标记为已观看')),
           );
         }
-      } catch (e) {
+      } catch (e, st) {
+        AppLogger.error('标记观看状态失败', error: e, stackTrace: st);
         if (mounted && rolledBack != null && idx >= 0) {
           setState(() => _items[idx] = rolledBack!);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -397,8 +400,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _hasMore = _startIndex < resp.total;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
       if (myRequestId != _requestId) return;
+      AppLogger.error('媒体库列表加载失败', error: e, stackTrace: st);
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -523,7 +527,11 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                       selected: selected,
                       onSelected: (_) {
                         if (_sortLabel != label) {
-                          setState(() => _sortLabel = label);
+                          setState(() {
+                            _sortLabel = label;
+                            // 切换排序字段时重置为该字段的默认方向
+                            _sortAscending = _sortOptions[label]!.$2 == 'Ascending';
+                          });
                           _loadItems();
                         }
                       },
