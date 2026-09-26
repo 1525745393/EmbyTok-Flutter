@@ -187,6 +187,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   // 类型筛选（从已加载数据中提取）
   String? _selectedGenre;
   bool _showGenreFilter = false;
+  List<String> _serverGenres = []; // 从 Emby /Genres 获取的完整类型列表
+  bool _loadingGenres = false;
 
   // 年份筛选
   int? _selectedYear;
@@ -345,6 +347,27 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         context.push('/item/${item.id}', extra: item);
       }
     }
+  }
+
+  /// 从 Emby 服务器获取完整类型列表（对标 Emby Web 类型筛选）
+  Future<List<String>> _loadServerGenres() async {
+    if (_serverGenres.isNotEmpty) return _serverGenres;
+    if (_loadingGenres) return const [];
+    _loadingGenres = true;
+    try {
+      final auth = ref.read(authProvider);
+      final service = ref.read(embytokServiceProvider);
+      final genres = await service.getGenres(
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+      _serverGenres = genres.map((g) => g.name).toList();
+    } catch (e) {
+      AppLogger.error('加载类型列表失败', error: e);
+    } finally {
+      _loadingGenres = false;
+    }
+    return _serverGenres;
   }
 
   Future<void> _loadItems({bool loadMore = false}) async {
@@ -660,51 +683,69 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           ),
         // 类型筛选展开条
         if (_items.isNotEmpty && _showGenreFilter)
-          Builder(builder: (_) {
-            // 从已加载数据提取类型
-            final genres = <String>{};
-            for (final item in _items) {
-              genres.addAll(item.displayGenres);
-            }
-            final sorted = genres.toList()..sort();
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: const Text('全部', style: TextStyle(fontSize: 12)),
-                      selected: _selectedGenre == null,
-                      onSelected: (_) {
-                        setState(() {
-                          _selectedGenre = null;
-                          _showGenreFilter = false;
-                        });
-                        _loadItems();
-                      },
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    ...sorted.map((g) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
-                          child: ChoiceChip(
-                            label: Text(g, style: const TextStyle(fontSize: 12)),
-                            selected: _selectedGenre == g,
-                            onSelected: (_) {
-                              setState(() {
-                                _selectedGenre = g;
-                                _showGenreFilter = false;
-                              });
-                              _loadItems();
-                            },
-                            visualDensity: VisualDensity.compact,
+          FutureBuilder<List<String>>(
+            future: _loadServerGenres(),
+            builder: (context, snapshot) {
+              // 优先用服务器完整类型列表，fallback 到当前页提取
+              final genres = <String>{};
+              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                genres.addAll(snapshot.data!);
+              } else {
+                for (final item in _items) {
+                  genres.addAll(item.displayGenres);
+                }
+              }
+              final sorted = genres.toList()..sort();
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      if (_loadingGenres ||
+                          (snapshot.connectionState == ConnectionState.waiting &&
+                              _serverGenres.isEmpty))
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
-                        )),
-                  ],
+                        ),
+                      ChoiceChip(
+                        label: const Text('全部', style: TextStyle(fontSize: 12)),
+                        selected: _selectedGenre == null,
+                        onSelected: (_) {
+                          setState(() {
+                            _selectedGenre = null;
+                            _showGenreFilter = false;
+                          });
+                          _loadItems();
+                        },
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      ...sorted.map((g) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: ChoiceChip(
+                              label: Text(g, style: const TextStyle(fontSize: 12)),
+                              selected: _selectedGenre == g,
+                              onSelected: (_) {
+                                setState(() {
+                                  _selectedGenre = g;
+                                  _showGenreFilter = false;
+                                });
+                                _loadItems();
+                              },
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          )),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         // 年份筛选展开条
         if (_items.isNotEmpty && _showYearFilter)
           Builder(builder: (_) {
