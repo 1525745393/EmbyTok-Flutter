@@ -1,3 +1,11 @@
+# [2.203.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.202.1...v2.203.0) (2026-09-26)
+
+
+### Features
+
+* debug版使用独立包名，可与release版共存 ([c543025](https://github.com/1525745393/EmbyTok-Flutter/commit/c543025f647f32d528214fd01bd39ff60c5752a6))
+* debug版固定初始版本号1.0.0(versionCode=1) ([404bfe0](https://github.com/1525745393/EmbyTok-Flutter/commit/404bfe08ebb1b8f2fb57e71d2751cfc8b3c8c778))
+
 ## [2.202.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.202.0...v2.202.1) (2026-09-26)
 
 
