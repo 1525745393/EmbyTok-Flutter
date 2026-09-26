@@ -1,3 +1,10 @@
+## [2.183.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.4...v2.183.5) (2026-09-26)
+
+
+### Bug Fixes
+
+* toggleFavorite并发拦截，防止快速连点/手势竞争导致状态反转 ([953c1cb](https://github.com/1525745393/EmbyTok-Flutter/commit/953c1cb9f38d2358b9ce77eb03453c65449c54cd))
+
 ## [2.183.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.3...v2.183.4) (2026-09-25)
 
 
