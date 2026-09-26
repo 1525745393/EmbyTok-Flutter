@@ -1,3 +1,10 @@
+# [2.185.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.2...v2.185.0) (2026-09-26)
+
+
+### Features
+
+* 改进日志系统 ([ccaa9ea](https://github.com/1525745393/EmbyTok-Flutter/commit/ccaa9ea37b47e025f222663c2ef18f000db1153f))
+
 ## [2.184.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.1...v2.184.2) (2026-09-26)
 
 
