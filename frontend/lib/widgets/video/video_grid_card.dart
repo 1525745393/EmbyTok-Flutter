@@ -129,7 +129,6 @@ class VideoGridCard extends ConsumerWidget {
                           bottom: 4,
                           child: _buildProgressBar(progress, scheme),
                         ),
-                      // 收藏心形按钮移到外层 Stack，避免与 InkWell 手势竞争
                     ],
                   ),
                 ),
