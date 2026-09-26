@@ -1,3 +1,10 @@
+# [2.209.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.208.0...v2.209.0) (2026-09-26)
+
+
+### Features
+
+* P1-1演示模式-无服务器浏览完整UI ([3dcebc7](https://github.com/1525745393/EmbyTok-Flutter/commit/3dcebc79bf77a18f931259675c80bf8ba9a27e76))
+
 # [2.208.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.207.0...v2.208.0) (2026-09-26)
 
 
