@@ -1,3 +1,11 @@
+## [2.189.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.189.0...v2.189.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 分页加载失败footer显示重试按钮 ([8a83772](https://github.com/1525745393/EmbyTok-Flutter/commit/8a837726e5d638d83c823097bf34e35c517387f3))
+* 媒体库心形按钮长按穿透+错误重试+滚动防重复 ([466e075](https://github.com/1525745393/EmbyTok-Flutter/commit/466e07500431e0a1bc3b18c31932e08d8422ea52))
+
 # [2.189.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.188.1...v2.189.0) (2026-09-26)
 
 
