@@ -30,12 +30,12 @@ class YearReportPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$now.year 年度报告'),
+        title: Text('${now.year} 年度报告'),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () => Share.share(
-              '我在 EmbyTok $now.year 年观看了 $totalHours 小时内容，'
+              '我在 EmbyTok ${now.year} 年观看了 $totalHours 小时内容，'
               '共 $totalPlays 次播放，活跃 $uniqueDays 天！',
               subject: 'EmbyTok 年度报告',
             ),
@@ -50,7 +50,7 @@ class YearReportPage extends ConsumerWidget {
             child: Column(
               children: [
                 Text(
-                  '$now.year',
+                  '${now.year}',
                   style: TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.bold,

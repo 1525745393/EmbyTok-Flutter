@@ -127,7 +127,7 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.image, color: Colors.blue),
-                  title: const Text('图片与缩略图缓存'),
+                  title: const Text('临时缓存（图片/缩略图/下载）'),
                   subtitle: Text(_formatSize(_imageCacheSize)),
                   trailing: TextButton(
                     onPressed: () => _clearTempCache(context),

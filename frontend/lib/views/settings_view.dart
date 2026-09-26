@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../providers/artist_metadata_provider.dart';
+import '../providers/demo_mode_provider.dart';
 import '../providers/server_registry_provider.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
@@ -288,6 +289,7 @@ class SettingsView extends ConsumerWidget {
               _buildYearReportTile(context, ref),
               _buildNetworkDiagnosticTile(context, ref),
               _buildFeedbackTile(context, ref),
+              if (ref.watch(demoModeProvider)) _buildExitDemoTile(context, ref),
             ],
           ),
           // 关于
@@ -547,6 +549,21 @@ class SettingsView extends ConsumerWidget {
           builder: (_) => NetworkDiagnosticPage(serverUrl: serverUrl),
         ),
       ),
+    );
+  }
+
+  // 退出演示模式
+  Widget _buildExitDemoTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.exit_to_app, color: Colors.red),
+      title: const Text('退出演示模式'),
+      subtitle: const Text('返回登录页，连接真实服务器'),
+      onTap: () {
+        ApiClient.demoMode = false;
+        ref.read(demoModeProvider.notifier).state = false;
+        AppLogger.info('退出演示模式');
+        context.go('/login');
+      },
     );
   }
 
