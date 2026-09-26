@@ -193,6 +193,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   // 视图密度：1=大图(2列) 2=中图(3列) 3=小图(4列)
   int _gridDensity = 2;
 
+  // 批量选择模式
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
+
   // 类型筛选（从已加载数据中提取）
   String? _selectedGenre;
   bool _showGenreFilter = false;
@@ -247,6 +251,88 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     final item = _items[Random().nextInt(_items.length)];
     ref.read(playbackListProvider.notifier).setPlaybackList(_items, item.id);
     context.push('/play/${item.id}', extra: item);
+  }
+
+  // ---- 批量选择模式 ----
+
+  void _enterSelectionMode(String itemId) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..add(itemId);
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelection(String itemId) {
+    setState(() {
+      if (!_selectedIds.add(itemId)) _selectedIds.remove(itemId);
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      if (_selectedIds.length == _items.length) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds
+          ..clear()
+          ..addAll(_items.map((e) => e.id));
+      }
+    });
+  }
+
+  /// 批量收藏
+  Future<void> _batchFavorite() async {
+    final service = ref.read(embytokServiceProvider);
+    final favorites = ref.read(favoritesProvider);
+    final ids = _selectedIds.toList();
+    int ok = 0;
+    for (final id in ids) {
+      try {
+        final isFav = favorites.favoriteIds.contains(id);
+        if (!isFav) {
+          await service.toggleFavorite(itemId: id, isFavorite: true);
+          ok++;
+        }
+      } catch (_) {}
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已收藏 $ok/${ids.length} 部影片')),
+      );
+      _exitSelectionMode();
+    }
+  }
+
+  /// 批量取消收藏
+  Future<void> _batchUnfavorite() async {
+    final service = ref.read(embytokServiceProvider);
+    final favorites = ref.read(favoritesProvider);
+    final ids = _selectedIds.toList();
+    int ok = 0;
+    for (final id in ids) {
+      try {
+        final isFav = favorites.favoriteIds.contains(id);
+        if (isFav) {
+          await service.toggleFavorite(itemId: id, isFavorite: false);
+          ok++;
+        }
+      } catch (_) {}
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已取消收藏 $ok/${ids.length} 部影片')),
+      );
+      _exitSelectionMode();
+    }
   }
 
   Future<void> _showItemActions(BuildContext context, MediaItem item) async {
@@ -523,6 +609,43 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
     return Column(
       children: [
+        // 批量选择模式顶部栏
+        if (_selectionMode)
+          Container(
+            color: scheme.primaryContainer.withValues(alpha: 0.3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: '退出选择',
+                  onPressed: _exitSelectionMode,
+                ),
+                Text(
+                  '已选 ${_selectedIds.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: _selectAll,
+                  child: Text(_selectedIds.length == _items.length
+                      ? '全不选'
+                      : '全选'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite_border),
+                  tooltip: '收藏所选',
+                  onPressed: _batchFavorite,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.favorite),
+                  tooltip: '取消收藏所选',
+                  color: Colors.red,
+                  onPressed: _batchUnfavorite,
+                ),
+              ],
+            ),
+          ),
         // 搜索框（展开时显示）
         if (_showSearch)
           Padding(
@@ -911,10 +1034,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     itemBuilder: (context, index) {
                       if (index >= _items.length) return buildFooter();
                       final item = _items[index];
+                      final selected = _selectedIds.contains(item.id);
                       return _LibraryListItem(
                         item: item,
-                        onTap: () => context.push('/item/${item.id}', extra: item),
-                        onLongPress: () => _showItemActions(context, item),
+                        selected: selected,
+                        selectionMode: _selectionMode,
+                        onTap: _selectionMode
+                            ? () => _toggleSelection(item.id)
+                            : () => context.push('/item/${item.id}', extra: item),
+                        onLongPress: _selectionMode
+                            ? null
+                            : () => _enterSelectionMode(item.id),
                       );
                     },
                   );
@@ -942,6 +1072,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   itemBuilder: (context, index) {
                     if (index >= _items.length) return buildFooter();
                     final item = _items[index];
+                    final selected = _selectedIds.contains(item.id);
                     // NEW 标签：7天内添加的影片（左上角，与未观看蓝点错开）
                     final isNew = item.dateCreated != null &&
                         DateTime.now().difference(item.dateCreated!).inDays <= 7;
@@ -949,11 +1080,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                       children: [
                         VideoGridCard(
                           item: item,
-                          showFavoriteButton: true,
-                          onTap: () => context.push('/item/${item.id}', extra: item),
-                          onLongPress: () => _showItemActions(context, item),
+                          showFavoriteButton: !_selectionMode,
+                          selected: selected,
+                          selectionMode: _selectionMode,
+                          onTap: _selectionMode
+                              ? () => _toggleSelection(item.id)
+                              : () => context.push('/item/${item.id}', extra: item),
+                          onLongPress: _selectionMode
+                              ? null
+                              : () => _enterSelectionMode(item.id),
                         ),
-                        if (isNew)
+                        if (isNew && !_selectionMode)
                           Positioned(
                             right: 6,
                             top: 6,
@@ -1138,10 +1275,14 @@ class _LibraryListItem extends ConsumerWidget {
     required this.item,
     required this.onTap,
     required this.onLongPress,
+    this.selected = false,
+    this.selectionMode = false,
   });
   final MediaItem item;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
+  final bool selected;
+  final bool selectionMode;
 
   String _formatDuration(double seconds) {
     final h = seconds ~/ 3600;
@@ -1191,6 +1332,22 @@ class _LibraryListItem extends ConsumerWidget {
 
     return Stack(
       children: [
+        // 选择模式：选中背景色
+        if (selectionMode)
+          Positioned.fill(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: selected
+                    ? scheme.primary.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: selected
+                    ? Border.all(color: scheme.primary, width: 2)
+                    : null,
+              ),
+            ),
+          ),
         Material(
           color: Colors.transparent,
           child: InkWell(
@@ -1365,25 +1522,33 @@ class _LibraryListItem extends ConsumerWidget {
             ),
           ),
         ),
-        // 收藏心形按钮在外层 Stack，只拦截 tap，长按穿透到下层 InkWell
+        // 右侧操作按钮：选择模式下显示复选框，否则显示心形收藏
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
           child: Center(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () =>
-                  ref.read(favoritesProvider.notifier).toggleFavorite(item),
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  favorited ? Icons.favorite : Icons.favorite_border,
-                  color: favorited ? Colors.red : scheme.onSurfaceVariant,
-                  size: 20,
-                ),
-              ),
-            ),
+            child: selectionMode
+                ? Icon(
+                    selected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                    size: 24,
+                  )
+                : GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () =>
+                        ref.read(favoritesProvider.notifier).toggleFavorite(item),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        favorited ? Icons.favorite : Icons.favorite_border,
+                        color: favorited ? Colors.red : scheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                    ),
+                  ),
           ),
         ),
       ],

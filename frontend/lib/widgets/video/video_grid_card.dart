@@ -18,6 +18,8 @@ class VideoGridCard extends ConsumerWidget {
     this.onLongPress,
     this.isLastWatched = false,
     this.showFavoriteButton = false,
+    this.selected = false,
+    this.selectionMode = false,
   });
   final MediaItem item;
   final VoidCallback? onTap;
@@ -28,6 +30,12 @@ class VideoGridCard extends ConsumerWidget {
 
   /// 是否在卡片右上角显示收藏心形按钮（对标抖音）
   final bool showFavoriteButton;
+
+  /// 批量选择模式下是否被选中
+  final bool selected;
+
+  /// 是否处于批量选择模式
+  final bool selectionMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,6 +51,22 @@ class VideoGridCard extends ConsumerWidget {
 
     return Stack(
       children: [
+        // 选择模式选中边框
+        if (selectionMode)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: selected
+                    ? scheme.primary.withValues(alpha: 0.2)
+                    : null,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected ? scheme.primary : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
         Material(
           color: Colors.transparent,
           child: InkWell(
@@ -187,11 +211,22 @@ class VideoGridCard extends ConsumerWidget {
       ),
       ),
       // 心形按钮在外层 Stack，不在 InkWell 内部，彻底消除手势竞争
-      if (showFavoriteButton)
+      if (showFavoriteButton && !selectionMode)
         Positioned(
           right: 4,
           top: 4,
           child: _FavoriteHeartButton(item: item),
+        ),
+      // 批量选择模式复选框
+      if (selectionMode)
+        Positioned(
+          left: 4,
+          top: 4,
+          child: Icon(
+            selected ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: selected ? scheme.primary : Colors.white70,
+            size: 24,
+          ),
         ),
       ],
     );
