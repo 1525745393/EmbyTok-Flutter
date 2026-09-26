@@ -1,3 +1,15 @@
+# [2.189.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.188.1...v2.189.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 媒体库排序方向初始化+补错误日志 ([399f8b4](https://github.com/1525745393/EmbyTok-Flutter/commit/399f8b45e30ee38b7108a8b1a304705e2a4ad755))
+
+
+### Features
+
+* 媒体库新增年份筛选和播放全部 ([a87e115](https://github.com/1525745393/EmbyTok-Flutter/commit/a87e115ca7bfaa43fc936f7fb753571656606c7e))
+
 ## [2.188.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.188.0...v2.188.1) (2026-09-26)
 
 
