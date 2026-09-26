@@ -1149,6 +1149,26 @@ class _LibraryListItem extends ConsumerWidget {
     return h > 0 ? '${h}h ${m}m' : '${m}m';
   }
 
+  /// 提取音频编码摘要（如 "DTS"、"AAC 5.1"）
+  String? _audioCodecLabel(MediaItem item) {
+    final sources = item.mediaSources;
+    if (sources == null || sources.isEmpty) return null;
+    for (final src in sources) {
+      final audio = src.defaultAudioStream;
+      if (audio != null && audio.codec != null) {
+        return audio.codec!.toUpperCase();
+      }
+    }
+    return null;
+  }
+
+  /// 统计字幕轨数量
+  int _subtitleCount(MediaItem item) {
+    final sources = item.mediaSources;
+    if (sources == null || sources.isEmpty) return 0;
+    return sources.expand((s) => s.subtitleStreams).length;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -1158,12 +1178,16 @@ class _LibraryListItem extends ConsumerWidget {
     );
 
     String? thumbUrl;
-    if (item.imageUrl != null &&
+    final imageTag = item.imageTags?['Primary'];
+    if (imageTag != null &&
         auth.embyServerUrl != null &&
         auth.token != null) {
       thumbUrl =
-          '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=${item.imageUrl}&api_key=${auth.token}';
+          '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=$imageTag&api_key=${auth.token}';
     }
+
+    final audioCodec = _audioCodecLabel(item);
+    final subCount = _subtitleCount(item);
 
     return Stack(
       children: [
@@ -1273,6 +1297,31 @@ class _LibraryListItem extends ConsumerWidget {
                                     fontSize: 8,
                                     fontWeight: FontWeight.bold,
                                   ),
+                                ),
+                              ),
+                            ],
+                            // 音频编码
+                            if (audioCodec != null) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                audioCodec,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            // 字幕数量
+                            if (subCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Icon(Icons.subtitles,
+                                  size: 12, color: scheme.onSurfaceVariant),
+                              const SizedBox(width: 1),
+                              Text(
+                                '$subCount',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
