@@ -327,23 +327,28 @@ extension _SettingsBuilders2 on SettingsView {
       iconColor: Colors.blueGrey,
       title: '版本',
       subtitle: subtitle,
-      helpText:
-          '当前 App 版本与构建号。\n\n版本格式：主版本.次版本.修订号+构建号\n· 修订号 +1 → 小修复\n· 次版本 +1 → 新功能\n\n如发现新版本无法下载，可到「检查更新」重试。\n\n（debug 构建连续点击 5 次可进入测试模式）',
       onTap: () => _handleVersionTap(context),
     );
   }
 
   void _handleVersionTap(BuildContext context) {
-    if (!isAppTestMode) return;
     _versionTapCount++;
     _versionTapResetTimer?.cancel();
     _versionTapResetTimer = Timer(const Duration(milliseconds: kTestModeTapResetMs), () {
       _versionTapCount = 0;
     });
     HapticFeedback.lightImpact();
+
     if (_versionTapCount >= kTestModeTapThreshold) {
       _versionTapCount = 0;
       _versionTapResetTimer?.cancel();
+      if (!isAppTestMode) {
+        // release/profile 构建：路由未注册，给出明确提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('测试模式仅在 debug 构建中可用')),
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('进入测试模式')),
       );
@@ -351,7 +356,7 @@ extension _SettingsBuilders2 on SettingsView {
     } else {
       final remaining = kTestModeTapThreshold - _versionTapCount;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('再点 $remaining 次进入测试模式'), duration: const Duration(milliseconds: 800)),
+        SnackBar(content: Text('再点 $remaining 次${isAppTestMode ? '' : '（测试模式仅 debug 可用）'}'), duration: const Duration(milliseconds: 800)),
       );
     }
   }
