@@ -72,7 +72,11 @@ jobs:
         working-directory: frontend
 
       - name: 构建 Debug APK
-        run: flutter build apk --debug --dart-define=${{ github.event.inputs.dart-define || 'TEST_MODE=true' }}
+        run: |
+          flutter build apk --debug \
+            --build-number ${{ github.run_number }} \
+            --build-name "1.0.0+${{ github.run_number }}" \
+            --dart-define=${{ github.event.inputs.dart-define || 'TEST_MODE=true' }}
         working-directory: frontend
 
       - name: 上传 Debug APK
