@@ -112,7 +112,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 顶部大图（横屏海报）
-            _buildBackdrop(item, authState),
+            _buildBackdrop(item, authState, favorited),
             // 主信息区 + 操作栏
             _buildMainInfo(item),
             // 简介区（可展开折叠）
@@ -133,7 +133,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   }
 
   // 顶部沉浸式背景大图 + 叠加标题/操作
-  Widget _buildBackdrop(MediaItem item, AuthState authState) {
+  Widget _buildBackdrop(MediaItem item, AuthState authState, bool favorited) {
     final imageUrl = item.backdropUrl(
           embyServerUrl: authState.embyServerUrl,
           apiKey: authState.token,
@@ -228,11 +228,8 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                     onPressed: () => _playItem(item),
                   ),
                   const SizedBox(width: 8),
-                  // 收藏按钮
-                  _buildFavoriteButton(
-                      ref.watch(favoritesProvider).favoriteIds.contains(item.id),
-                      scheme,
-                      dark: true),
+                  // 收藏按钮（复用 build() 中已 watch 的 favorited，避免重复 watch）
+                  _buildFavoriteButton(favorited, scheme, dark: true),
                   const SizedBox(width: 8),
                   // 标记已观看/未观看
                   _buildWatchedButton(item, scheme, authState),
@@ -657,8 +654,12 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 if (person.id != null && person.id!.isNotEmpty &&
                     authState.embyServerUrl != null &&
                     authState.token != null) {
+                  final tag = person.primaryImageTag;
+                  final tagParam = tag != null && tag.isNotEmpty
+                      ? '&Tag=${Uri.encodeQueryComponent(tag)}'
+                      : '';
                   avatarUrl =
-                      '${authState.embyServerUrl}/Items/${person.id}/Images/Primary?MaxWidth=200&api_key=${authState.token}';
+                      '${authState.embyServerUrl}/Items/${person.id}/Images/Primary?MaxWidth=200$tagParam&api_key=${authState.token}';
                 } else if (person.imageUrl != null &&
                     person.imageUrl!.startsWith('http')) {
                   avatarUrl = person.imageUrl;

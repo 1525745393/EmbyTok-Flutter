@@ -6,26 +6,39 @@ part of 'item_detail_view.dart';
 
 extension _ItemDetailLoaders on _ItemDetailViewState {
   Future<void> _loadDetail() async {
+    final auth = ref.read(authProvider);
+    final currentItem = _item;
+
+    // 有 initialItem 时先展示，再后台静默刷新完整数据（补全 People/BackdropImageTags 等）
+    if (currentItem != null && currentItem.id == widget.itemId) {
+      setState(() {
+        _loading = false;
+        _error = null;
+      });
+      // 剧集类：加载季列表
+      if (currentItem.type == 'Series') {
+        await _loadSeasons(currentItem.id);
+      }
+      // 异步加载相似推荐
+      _loadSimilarItems(currentItem.id);
+      // 后台静默刷新完整详情（不阻塞 UI，失败则保留 initialItem）
+      _refreshFullDetail(auth);
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final auth = ref.read(authProvider);
-      final currentItem = _item;
-      MediaItem item;
-      if (currentItem != null && currentItem.id == widget.itemId) {
-        item = currentItem;
-      } else {
-        // 通过缓存仓库获取，减少重复 API 请求
-        final cachedRepo = ref.read(cachedMediaRepositoryProvider);
-        item = await cachedRepo.getItemDetail(
-          widget.itemId,
-          serverUrl: auth.embyServerUrl!,
-          token: auth.token!,
-          userId: auth.user?.id,
-        );
-      }
+      // 通过缓存仓库获取，减少重复 API 请求
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final item = await cachedRepo.getItemDetail(
+        widget.itemId,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
+        userId: auth.user?.id,
+      );
       if (!mounted) return;
       setState(() {
         _item = item;
@@ -44,6 +57,29 @@ extension _ItemDetailLoaders on _ItemDetailViewState {
           _loading = false;
         });
       }
+    }
+  }
+
+  /// 后台静默刷新完整详情数据，失败不影响已有 UI
+  Future<void> _refreshFullDetail(AuthState auth) async {
+    try {
+      final cachedRepo = ref.read(cachedMediaRepositoryProvider);
+      final item = await cachedRepo.getItemDetail(
+        widget.itemId,
+        serverUrl: auth.embyServerUrl!,
+        token: auth.token!,
+        userId: auth.user?.id,
+      );
+      if (!mounted) return;
+      // 仅当服务器返回了更完整的数据时才替换（保留 initialItem 的 userData 等本地状态）
+      setState(() {
+        _item = item;
+      });
+    } catch (e) {
+      AppLogger.debug('后台刷新详情失败，保留 initialItem', data: {
+        'itemId': widget.itemId,
+        'error': e.toString(),
+      });
     }
   }
 

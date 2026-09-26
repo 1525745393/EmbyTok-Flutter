@@ -7,6 +7,7 @@ class Person { // 演员简介
     this.role = '',
     this.type = 'Actor',
     this.imageUrl,
+    this.primaryImageTag,
     this.itemId,
     this.overview,
   });
@@ -21,6 +22,8 @@ class Person { // 演员简介
       imageUrl: (json['ImageUrl'] as String?) ??
           (json['image_url'] as String?) ??
           (json['imageUrl'] as String?),
+      primaryImageTag: (json['PrimaryImageTag'] as String?) ??
+          (json['primaryImageTag'] as String?),
       itemId: (json['ItemId'] as int?) ??
           (json['itemId'] as int?) ??
           (json['item_id'] as int?),
@@ -32,6 +35,7 @@ class Person { // 演员简介
   final String? role; // 角色名（如 "主角"）
   final String type; // 类型：Actor/Director/Writer 等
   final String? imageUrl; // 头像图片 URL
+  final String? primaryImageTag; // Emby People PrimaryImageTag，用于带 Tag 参数请求头像
   final int? itemId; // 关联的媒体项 ID（如存在）
   final String? overview;
 
@@ -41,6 +45,7 @@ class Person { // 演员简介
         'role': role,
         'type': type,
         'image_url': imageUrl,
+        'primary_image_tag': primaryImageTag,
         'item_id': itemId,
         'overview': overview,
       };
