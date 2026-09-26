@@ -30,7 +30,7 @@ class CrashSimulatorPage extends StatelessWidget {
               try {
                 String? nullStr;
                 // ignore: unnecessary_null_comparison
-                if (nullStr.length == 0) {}
+                if (nullStr?.length == 0) {}
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('已捕获: $e')),

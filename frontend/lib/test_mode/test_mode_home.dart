@@ -7,11 +7,13 @@ import 'package:flutter/services.dart';
 import 'subpages/basic_test_page.dart';
 import 'subpages/crash_simulator_page.dart';
 import 'subpages/environment_switch_page.dart';
+import 'subpages/http_capture_panel.dart';
 import 'subpages/log_viewer_page.dart';
 import 'subpages/network_weak_test_page.dart';
 import 'subpages/performance_debug_page.dart';
 import 'subpages/player_test_page.dart';
 import 'subpages/route_direct_panel.dart';
+import 'subpages/storage_viewer_page.dart';
 import 'subpages/test_mode_about_page.dart';
 
 /// 测试模块入口定义
@@ -93,6 +95,20 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildCrash,
     ),
     _TestModuleEntry(
+      icon: Icons.wifi,
+      color: Colors.blue,
+      title: '网络抓包面板',
+      subtitle: '记录 App 所有 HTTP 请求，按路径筛选',
+      builder: _buildCapture,
+    ),
+    _TestModuleEntry(
+      icon: Icons.storage,
+      color: Colors.brown,
+      title: '存储查看器',
+      subtitle: '查看 shared_preferences 所有 key-value',
+      builder: _buildStorage,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -109,6 +125,8 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildLog(BuildContext _) => const LogViewerPage();
   static Widget _buildRoute(BuildContext _) => const RouteDirectPanel();
   static Widget _buildCrash(BuildContext _) => const CrashSimulatorPage();
+  static Widget _buildCapture(BuildContext _) => const HttpCapturePanel();
+  static Widget _buildStorage(BuildContext _) => const StorageViewerPage();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override
