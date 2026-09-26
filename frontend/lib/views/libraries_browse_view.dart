@@ -57,8 +57,20 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 
     return librariesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(
-        child: Text('加载失败，请稍后重试'),
+      error: (e, _) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 12),
+            const Text('加载失败，请稍后重试'),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => ref.invalidate(libraryListProvider),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
       ),
       data: (libraries) {
         if (libraries.isEmpty) {
@@ -204,7 +216,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   }
 
   void _onScroll() {
-    if (!_hasMore || _isLoading) return;
+    if (!_hasMore || _isLoading || _error != null) return;
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 500) {
       _loadItems(loadMore: true);
@@ -1087,14 +1099,14 @@ class _LibraryListItem extends ConsumerWidget {
             ),
           ),
         ),
-        // 收藏心形按钮在外层 Stack，不在 InkWell 内部，彻底消除手势竞争
+        // 收藏心形按钮在外层 Stack，只拦截 tap，长按穿透到下层 InkWell
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
           child: Center(
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.translucent,
               onTap: () =>
                   ref.read(favoritesProvider.notifier).toggleFavorite(item),
               child: Padding(
