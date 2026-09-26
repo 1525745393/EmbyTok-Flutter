@@ -66,6 +66,7 @@ class MockEmbytokService extends Mock implements EmbytokService {
     String? genre,
     bool? resumable,
     int? year,
+    double? minCommunityRating,
     CancelToken? cancelToken,
   }) =>
       super.noSuchMethod(
@@ -84,6 +85,7 @@ class MockEmbytokService extends Mock implements EmbytokService {
           #genre: genre,
           #resumable: resumable,
           #year: year,
+          #minCommunityRating: minCommunityRating,
           #cancelToken: cancelToken,
         }),
         returnValue: Future.value(PaginatedResponse<MediaItem>(

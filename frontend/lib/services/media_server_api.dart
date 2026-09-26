@@ -65,6 +65,7 @@ abstract class MediaServerApi {
     String? genre,
     bool resumable = false,
     int? year,
+    double? minCommunityRating,
     CancelToken? cancelToken,
   });
 

@@ -175,6 +175,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     '最新入库': ('DateCreated', 'Descending'),
     '评分': ('CommunityRating,SortName', 'Descending'),
     '上映年份': ('ProductionYear,SortName', 'Descending'),
+    '随机': ('Random', 'Ascending'),
   };
   String _sortLabel = '名称';
   // 初始化排序方向跟随"名称"选项的默认值（Ascending）
@@ -183,6 +184,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   // 观看状态筛选
   static const _filterOptions = ['全部', '续看', '未观看', '已观看'];
   String _filterLabel = '全部';
+
+  // 最低评分筛选（0=不限，7/8/9 对应 Emby MinCommunityRating）
+  static const _ratingOptions = [0, 7, 8, 9];
+  int _minRating = 0;
+
+  // 视图密度：1=大图(2列) 2=中图(3列) 3=小图(4列)
+  int _gridDensity = 2;
 
   // 类型筛选（从已加载数据中提取）
   String? _selectedGenre;
@@ -420,6 +428,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         resumable: resumable,
         genre: _selectedGenre,
         year: _selectedYear,
+        minCommunityRating: _minRating > 0 ? _minRating.toDouble() : null,
         searchTerm: _searchQuery.isEmpty ? null : _searchQuery,
       );
 
@@ -610,7 +619,29 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     ),
                   );
                 }),
-                // 视图切换
+                // 最低评分筛选
+                ..._ratingOptions.map((r) {
+                  final selected = r == _minRating;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: ChoiceChip(
+                      label: Text(
+                        r == 0 ? '全部评分' : '≥$r分',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      selected: selected,
+                      onSelected: (_) {
+                        if (_minRating != r) {
+                          setState(() => _minRating = r);
+                          _loadItems();
+                        }
+                      },
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  );
+                }),
+                // 视图切换（列表/网格）
                 IconButton(
                   icon: Icon(
                     _isListView ? Icons.grid_view : Icons.view_list,
@@ -620,6 +651,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   tooltip: _isListView ? '网格视图' : '列表视图',
                   onPressed: () => setState(() => _isListView = !_isListView),
                 ),
+                // 网格密度切换（仅网格视图时可用）
+                if (!_isListView)
+                  IconButton(
+                    icon: Icon(
+                      Icons.grid_on,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    tooltip: '切换卡片大小',
+                    onPressed: () => setState(() => _gridDensity = _gridDensity >= 3 ? 1 : _gridDensity + 1),
+                  ),
                 // 搜索
                 IconButton(
                   icon: Icon(
@@ -853,14 +895,21 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   );
                 }
 
-                // 网格视图
-                final crossAxisCount = width >= 600 ? 4 : 3;
+                // 网格视图：根据密度和屏幕宽度计算列数
+                int crossAxisCount;
+                double childRatio;
+                if (width >= 600) {
+                  crossAxisCount = _gridDensity == 1 ? 3 : _gridDensity == 2 ? 4 : 5;
+                } else {
+                  crossAxisCount = _gridDensity == 1 ? 2 : _gridDensity == 2 ? 3 : 4;
+                }
+                childRatio = _gridDensity == 1 ? 0.55 : 0.67; // 大图更高
                 return GridView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.67,
+                    childAspectRatio: childRatio,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
@@ -868,11 +917,39 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   itemBuilder: (context, index) {
                     if (index >= _items.length) return buildFooter();
                     final item = _items[index];
-                    return VideoGridCard(
-                      item: item,
-                      showFavoriteButton: true,
-                      onTap: () => context.push('/item/${item.id}', extra: item),
-                      onLongPress: () => _showItemActions(context, item),
+                    // NEW 标签：7天内添加的影片
+                    final isNew = item.dateCreated != null &&
+                        DateTime.now().difference(item.dateCreated!).inDays <= 7;
+                    return Stack(
+                      children: [
+                        VideoGridCard(
+                          item: item,
+                          showFavoriteButton: true,
+                          onTap: () => context.push('/item/${item.id}', extra: item),
+                          onLongPress: () => _showItemActions(context, item),
+                        ),
+                        if (isNew)
+                          Positioned(
+                            left: 6,
+                            bottom: 60,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: Colors.green[600],
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: const Text(
+                                'NEW',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 );
@@ -1041,6 +1118,12 @@ class _LibraryListItem extends ConsumerWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
+  String _formatDuration(double seconds) {
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    return h > 0 ? '${h}h ${m}m' : '${m}m';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
@@ -1133,6 +1216,41 @@ class _LibraryListItem extends ConsumerWidget {
                                 ),
                               ),
                             ],
+                            // 时长
+                            if (item.durationSeconds != null &&
+                                item.durationSeconds! > 0) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatDuration(item.durationSeconds!),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                            // HD/4K 标签
+                            if (item.videoHeight != null &&
+                                item.videoHeight! >= 1080) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 3, vertical: 0.5),
+                                decoration: BoxDecoration(
+                                  color: item.videoHeight! >= 2160
+                                      ? Colors.amber[700]
+                                      : Colors.blue,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                                child: Text(
+                                  item.videoHeight! >= 2160 ? '4K' : 'HD',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         // 类型标签（最多显示前3个）
@@ -1145,6 +1263,21 @@ class _LibraryListItem extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 11,
                               color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                        // 播放进度条（续看）
+                        if (item.progressPercent > 0) ...[
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: LinearProgressIndicator(
+                              value: item.progressPercent,
+                              minHeight: 3,
+                              backgroundColor:
+                                  scheme.onSurfaceVariant.withValues(alpha: 0.2),
+                              valueColor:
+                                  AlwaysStoppedAnimation(scheme.primary),
                             ),
                           ),
                         ],

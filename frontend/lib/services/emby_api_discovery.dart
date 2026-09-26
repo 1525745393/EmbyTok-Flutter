@@ -158,6 +158,7 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     String? genre, // 类型筛选
     bool resumable = false, // 续看筛选
     int? year, // 年份筛选
+    double? minCommunityRating, // 最低评分筛选
     CancelToken? cancelToken,
   }) async {
     AppLogger.debug('请求视频列表', data: {
@@ -191,6 +192,8 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
         'Filters': 'IsPlayed',
       if (genre != null && genre.isNotEmpty) 'Genres': genre,
       if (year != null) 'Years': '$year',
+      if (minCommunityRating != null && minCommunityRating > 0)
+        'MinCommunityRating': minCommunityRating.toString(),
     };
 
     final effectiveUserId = userId ?? _defaultUserId;

@@ -45,6 +45,7 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
     String? genre,
     bool resumable = false,
     int? year,
+    double? minCommunityRating,
     CancelToken? cancelToken,
   }) {
     return _api.getLibraryItems(
@@ -63,6 +64,7 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
       genre: genre,
       resumable: resumable,
       year: year,
+      minCommunityRating: minCommunityRating,
       cancelToken: cancelToken,
     );
   }
