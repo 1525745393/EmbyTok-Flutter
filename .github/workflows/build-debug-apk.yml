@@ -1,0 +1,88 @@
+# ===========================================================
+# Debug APK 构建工作流
+#
+# 手动触发，构建 debug APK（包含测试模式控制台），上传为 artifact。
+# 用于 QA 测试测试模式控制台，无需本地 Flutter 环境。
+#
+# 触发条件：workflow_dispatch（手动点击 Run workflow）
+# ===========================================================
+
+name: Build Debug APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      dart-define:
+        description: '额外 dart-define（如 TEST_MODE=true）'
+        required: false
+        default: 'TEST_MODE=true'
+
+jobs:
+  build-debug:
+    name: 构建 Debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: 缓存 Gradle 依赖
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: 缓存 Android NDK
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/ndk
+          key: ${{ runner.os }}-ndk-28.2.13676358
+          restore-keys: |
+            ${{ runner.os }}-ndk-
+
+      - name: 安装 Android NDK 28.2.13676358
+        run: |
+          if [ -d "$ANDROID_HOME/ndk/28.2.13676358" ]; then
+            echo "NDK 已缓存"
+          else
+            echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"
+          fi
+
+      - name: 设置 Flutter 3.44.8
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          flutter-version: "3.44.8"
+          cache: true
+
+      - name: 安装依赖
+        run: flutter pub get
+        working-directory: frontend
+
+      - name: 构建 Debug APK
+        run: flutter build apk --debug --dart-define=${{ github.event.inputs.dart-define || 'TEST_MODE=true' }}
+        working-directory: frontend
+
+      - name: 上传 Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: embytok-debug-apk
+          path: frontend/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 输出 APK 大小
+        run: |
+          ls -lh frontend/build/app/outputs/flutter-apk/app-debug.apk
