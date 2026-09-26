@@ -188,6 +188,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   // 最低评分筛选（0=不限，7/8/9 对应 Emby MinCommunityRating）
   static const _ratingOptions = [0, 7, 8, 9];
   int _minRating = 0;
+  bool _showRatingFilter = false;
 
   // 视图密度：1=大图(2列) 2=中图(3列) 3=小图(4列)
   int _gridDensity = 2;
@@ -584,22 +585,23 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     ),
                   );
                 }),
-                // 分隔 + 升序/降序切换
-                IconButton(
-                  icon: Icon(
-                    _sortAscending
-                        ? Icons.arrow_upward
-                        : Icons.arrow_downward,
-                    size: 16,
-                    color: scheme.onSurfaceVariant,
+                // 分隔 + 升序/降序切换（随机排序时无意义，隐藏）
+                if (_sortLabel != '随机')
+                  IconButton(
+                    icon: Icon(
+                      _sortAscending
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    tooltip: _sortAscending ? '升序' : '降序',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      setState(() => _sortAscending = !_sortAscending);
+                      _loadItems();
+                    },
                   ),
-                  tooltip: _sortAscending ? '升序' : '降序',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    setState(() => _sortAscending = !_sortAscending);
-                    _loadItems();
-                  },
-                ),
                 // 观看状态筛选
                 ..._filterOptions.map((label) {
                   final selected = label == _filterLabel;
@@ -619,28 +621,20 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     ),
                   );
                 }),
-                // 最低评分筛选
-                ..._ratingOptions.map((r) {
-                  final selected = r == _minRating;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      label: Text(
-                        r == 0 ? '全部评分' : '≥$r分',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      selected: selected,
-                      onSelected: (_) {
-                        if (_minRating != r) {
-                          setState(() => _minRating = r);
-                          _loadItems();
-                        }
-                      },
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  );
-                }),
+                // 评分筛选按钮（非全部评分时高亮）
+                IconButton(
+                  icon: Icon(
+                    Icons.star_border,
+                    size: 18,
+                    color: _minRating > 0
+                        ? Colors.amber[700]
+                        : scheme.onSurfaceVariant,
+                  ),
+                  tooltip: '评分筛选',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () =>
+                      setState(() => _showRatingFilter = !_showRatingFilter),
+                ),
                 // 视图切换（列表/网格）
                 IconButton(
                   icon: Icon(
@@ -835,6 +829,37 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               ),
             );
           }),
+        // 评分筛选展开条
+        if (_items.isNotEmpty && _showRatingFilter)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _ratingOptions.map((r) {
+                  final selected = r == _minRating;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: ChoiceChip(
+                      label: Text(
+                        r == 0 ? '全部评分' : '≥$r分',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      selected: selected,
+                      onSelected: (_) {
+                        setState(() {
+                          _minRating = r;
+                          _showRatingFilter = false;
+                        });
+                        _loadItems();
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => _loadItems(),
@@ -917,7 +942,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                   itemBuilder: (context, index) {
                     if (index >= _items.length) return buildFooter();
                     final item = _items[index];
-                    // NEW 标签：7天内添加的影片
+                    // NEW 标签：7天内添加的影片（左上角，与未观看蓝点错开）
                     final isNew = item.dateCreated != null &&
                         DateTime.now().difference(item.dateCreated!).inDays <= 7;
                     return Stack(
@@ -930,8 +955,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                         ),
                         if (isNew)
                           Positioned(
-                            left: 6,
-                            bottom: 60,
+                            right: 6,
+                            top: 6,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 1),
