@@ -367,6 +367,8 @@ class AppLogger {
   static Timer? _flushTimer;
 
   static void _scheduleFlush() {
+    // 未初始化（如单元测试环境）时不创建 Timer，避免测试结束后 Timer 仍 pending
+    if (!_initialized) return;
     _flushTimer ??= Timer(const Duration(milliseconds: 500), _flushToFile);
   }
 
