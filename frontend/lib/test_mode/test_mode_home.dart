@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'subpages/api_mock_panel.dart';
 import 'subpages/basic_test_page.dart';
 import 'subpages/crash_simulator_page.dart';
 import 'subpages/environment_switch_page.dart';
@@ -141,6 +142,13 @@ class TestModeHomePage extends StatelessWidget {
       builder: _buildLockScreen,
     ),
     _TestModuleEntry(
+      icon: Icons.api,
+      color: Colors.cyan,
+      title: 'API Mock',
+      subtitle: '按路径拦截请求返回预设 JSON，测试空状态/错误态',
+      builder: _buildMock,
+    ),
+    _TestModuleEntry(
       icon: Icons.info_outline,
       color: Colors.grey,
       title: '关于测试模式',
@@ -163,6 +171,7 @@ class TestModeHomePage extends StatelessWidget {
   static Widget _buildSandbox(BuildContext _) => const SandboxBrowserPage();
   static Widget _buildConfigTransfer(BuildContext _) => const TestConfigTransferPage();
   static Widget _buildLockScreen(BuildContext _) => const LockScreenControlTestPage();
+  static Widget _buildMock(BuildContext _) => const ApiMockPanel();
   static Widget _buildAbout(BuildContext _) => const TestModeAboutPage();
 
   @override

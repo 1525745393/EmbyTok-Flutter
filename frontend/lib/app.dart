@@ -51,6 +51,7 @@ import 'test_mode/test_mode_switch.dart';
 import 'test_mode/test_mode_home.dart';
 import 'test_mode/test_env_provider.dart';
 import 'test_mode/http_capture_log.dart';
+import 'test_mode/api_mock.dart';
 
 /// 桥接 Riverpod 认证状态到 GoRouter 的 refreshListenable
 /// 当认证状态变化时调用 notify() 触发 GoRouter 重新评估 redirect
@@ -148,6 +149,8 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       }
       // 注册网络抓包拦截器（仅 debug）
       ApiClient().dio.interceptors.add(CaptureLogInterceptor());
+      // 注册 API Mock 拦截器（仅 debug，默认关闭）
+      ApiClient().dio.interceptors.add(MockInterceptor());
     } catch (e) {
       AppLogger.debug('恢复测试环境覆盖失败', data: {'error': e.toString()});
     }
