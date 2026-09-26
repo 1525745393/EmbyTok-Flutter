@@ -1,3 +1,15 @@
+# [2.205.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.204.1...v2.205.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 审查修复-图注淡出后真正移除布局空间+清理未使用变量 ([0d6f57e](https://github.com/1525745393/EmbyTok-Flutter/commit/0d6f57e2c71ba5040f18af23d8dff80756dc543e))
+
+
+### Features
+
+* 图注标签3秒后自动淡出隐藏 ([8c97a3a](https://github.com/1525745393/EmbyTok-Flutter/commit/8c97a3a001b47c81908bd94d20104723a627aa17))
+
 ## [2.204.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.204.0...v2.204.1) (2026-09-26)
 
 
