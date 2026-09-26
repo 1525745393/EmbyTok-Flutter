@@ -561,6 +561,10 @@ class SettingsView extends ConsumerWidget {
       onTap: () {
         ApiClient.demoMode = false;
         ref.read(demoModeProvider.notifier).state = false;
+        // 清除演示模式缓存的 mock 数据，避免残留
+        try {
+          ref.read(cacheControllerProvider).invalidateAll();
+        } catch (_) {}
         AppLogger.info('退出演示模式');
         context.go('/login');
       },

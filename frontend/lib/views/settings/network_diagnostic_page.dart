@@ -134,14 +134,14 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
 
     // 4. HTTPS 握手测试
     if (uri.scheme == 'https') {
+      HttpClient? client;
       try {
         final sw = Stopwatch()..start();
-        final client = HttpClient()
+        client = HttpClient()
           ..connectionTimeout = const Duration(seconds: 8);
         final request = await client.getUrl(uri);
         final response = await request.close().timeout(const Duration(seconds: 8));
         sw.stop();
-        client.close();
         _addResult(_DiagResult(
           label: 'HTTPS 握手',
           detail: '握手成功，状态码 ${response.statusCode}，耗时 ${sw.elapsedMilliseconds}ms',
@@ -154,6 +154,8 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
           detail: '失败：$e\n建议：证书是否过期？是否需要开启"允许自签名证书"？',
           success: false,
         ));
+      } finally {
+        client?.close(force: true);
       }
     } else {
       _addResult(const _DiagResult(
@@ -164,15 +166,15 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
     }
 
     // 5. API 响应测试
+    HttpClient? apiClient;
     try {
       final sw = Stopwatch()..start();
-      final client = HttpClient()
+      apiClient = HttpClient()
         ..connectionTimeout = const Duration(seconds: 10);
       final apiUri = Uri.parse('${_serverUrl!}/emby/System/Info/Public');
-      final request = await client.getUrl(apiUri);
+      final request = await apiClient.getUrl(apiUri);
       final response = await request.close().timeout(const Duration(seconds: 10));
       sw.stop();
-      client.close();
       _addResult(_DiagResult(
         label: 'API 响应',
         detail: response.statusCode == 200
@@ -187,6 +189,8 @@ class _NetworkDiagnosticPageState extends State<NetworkDiagnosticPage> {
         detail: '请求失败：$e\n建议：确认服务器路径正确（/emby）',
         success: false,
       ));
+    } finally {
+      apiClient?.close(force: true);
     }
 
     AppLogger.info('网络诊断完成', data: {'results': _results.length});

@@ -469,13 +469,14 @@ extension _SettingsBuilders2 on SettingsView {
   }
 
   /// 快速切换服务器（复用 servers_view 的登录逻辑）
+  ///
+  /// 先尝试登录，成功后再 setActive；失败时保持旧服务器激活状态不变。
   Future<void> _switchServerQuick(
       BuildContext context, WidgetRef ref, ServerProfile server) async {
     final messenger = ScaffoldMessenger.of(context);
     final registry = ref.read(serverRegistryProvider.notifier);
     final secureStorage = ref.read(secureStorageProvider);
-    await registry.touch(server.id);
-    await ref.read(activeServerIdProvider.notifier).setActive(server.id);
+    final prevActiveId = ref.read(activeServerIdProvider);
 
     try {
       if (server.kind == ServerKind.synology) {
@@ -518,14 +519,20 @@ extension _SettingsBuilders2 on SettingsView {
               password,
             );
       }
+      // 登录成功后才更新激活状态和最后使用时间
+      await registry.touch(server.id);
+      await ref.read(activeServerIdProvider.notifier).setActive(server.id);
       if (context.mounted) {
         messenger.showSnackBar(
             SnackBar(content: Text('已切换到「${server.name}」')));
       }
     } catch (e) {
-      AppLogger.error('切换服务器失败', error: e);
+      AppLogger.error('切换服务器失败，保持原服务器', data: {
+        'error': e.toString(),
+        'prevActiveId': prevActiveId,
+      });
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e')));
+        messenger.showSnackBar(SnackBar(content: Text('切换失败：$e（保持原服务器）')));
       }
     }
   }
