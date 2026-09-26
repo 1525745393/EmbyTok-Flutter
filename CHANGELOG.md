@@ -1,3 +1,16 @@
+# [2.202.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.201.0...v2.202.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复连点版本号无法进入测试模式 ([8fb8477](https://github.com/1525745393/EmbyTok-Flutter/commit/8fb84772a7f0d51f2a71a01becb22a93dd3bacd7))
+
+
+### Features
+
+* 完善测试数据，新增8类配置填充 ([062d253](https://github.com/1525745393/EmbyTok-Flutter/commit/062d2537ed8df10b3e65e1f999b3af3c25ccc210))
+* 完善测试数据初始化，覆盖11种场景 ([86aaa3e](https://github.com/1525745393/EmbyTok-Flutter/commit/86aaa3ee154967a0ccba989357c3ed8f0b10fb5e))
+
 # [2.201.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.200.0...v2.201.0) (2026-09-26)
 
 
