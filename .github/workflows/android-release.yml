@@ -21,6 +21,11 @@ name: Android Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/build-debug-apk.yml'
+      - 'frontend/lib/test_mode/**'
+      - 'frontend/test/test_mode/**'
+      - '**.md'
   workflow_dispatch:
 
 concurrency:
