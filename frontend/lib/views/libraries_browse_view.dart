@@ -759,22 +759,40 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 // 底部状态行
-                Widget buildFooter() => Center(
+                Widget buildFooter() {
+                  // 分页加载更多失败：显示错误+点击重试
+                  if (_error != null && _items.isNotEmpty) {
+                    return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Text(
-                          _isLoading && _hasMore
-                              ? '加载中…'
-                              : _total > 0
-                                  ? '已加载 ${_items.length} / $_total 项'
-                                  : '共 ${_items.length} 项',
-                          style: TextStyle(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
+                        child: TextButton.icon(
+                          onPressed: () {
+                            setState(() => _error = null);
+                            _loadItems(loadMore: true);
+                          },
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text('加载失败，点击重试'),
                         ),
                       ),
                     );
+                  }
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        _isLoading && _hasMore
+                            ? '加载中…'
+                            : _total > 0
+                                ? '已加载 ${_items.length} / $_total 项'
+                                : '共 ${_items.length} 项',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
                 if (_isListView) {
                   // 列表视图（对标 Emby Web 列表模式）
