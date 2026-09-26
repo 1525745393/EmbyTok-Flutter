@@ -1,3 +1,15 @@
+# [2.190.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.189.2...v2.190.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复日志中两个崩溃问题 ([9fdbfaf](https://github.com/1525745393/EmbyTok-Flutter/commit/9fdbfaf0d430f36d810c0c1f79660a8bdf741677))
+
+
+### Features
+
+* 媒体库类型筛选对接Emby /Genres原生API ([07b0469](https://github.com/1525745393/EmbyTok-Flutter/commit/07b0469ebb4e1bca509853f1deaefc7b5965e7fb))
+
 ## [2.189.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.189.1...v2.189.2) (2026-09-26)
 
 
