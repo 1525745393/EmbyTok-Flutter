@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/logger.dart';
+
 import 'syno_accounts_provider.dart';
 
 const String _kStorageKey = 'play_events_v1';
@@ -98,7 +100,9 @@ class PlayEventsNotifier extends StateNotifier<List<PlayEvent>> {
         key,
         jsonEncode(state.map((e) => e.toJson()).toList()),
       );
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.error('播放事件持久化失败', error: e, stackTrace: st);
+    }
   }
 
   /// 记录一次播放

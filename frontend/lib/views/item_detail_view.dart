@@ -396,7 +396,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
               if (serverUrl != null) {
                 cacheController.invalidateItemDetail(item.id, serverUrl);
               }
-            } catch (_) {}
+            } catch (e, st) {
+              AppLogger.error('失效详情缓存失败', error: e, stackTrace: st);
+            }
           } catch (e) {
             // 失败回滚
             if (mounted) {

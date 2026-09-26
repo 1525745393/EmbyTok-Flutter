@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/audio_models.dart';
+import '../utils/logger.dart';
 import 'syno_accounts_provider.dart' show accountScopedKey;
 
 /// 一个本地歌单
@@ -100,7 +101,9 @@ class PlaylistsNotifier extends StateNotifier<List<LocalPlaylist>> {
       final key = await _scopedKey;
       await prefs.setString(
           key, jsonEncode(state.map((e) => e.toJson()).toList()));
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.error('歌单持久化失败', error: e, stackTrace: st);
+    }
   }
 
   /// 新建歌单，返回新建的歌单
