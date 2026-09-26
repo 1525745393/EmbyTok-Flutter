@@ -1,3 +1,13 @@
+# [2.198.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.197.0...v2.198.0) (2026-09-26)
+
+
+### Features
+
+* 崩溃模拟面板，验证异常捕获与日志记录 ([587c5ac](https://github.com/1525745393/EmbyTok-Flutter/commit/587c5ac3f5a6cc9c823801313e618fb1f29f4606))
+* 测试模式环境切换红色横幅 ([9cfface](https://github.com/1525745393/EmbyTok-Flutter/commit/9cfface336ff311a7abe6c369206cc84da940657))
+* 网络抓包面板和存储查看器 ([5e4d19c](https://github.com/1525745393/EmbyTok-Flutter/commit/5e4d19c0d9d534144e6256ab6765358b2e439100))
+* 路由直达面板，测试模式可直接跳转任意路由 ([019141c](https://github.com/1525745393/EmbyTok-Flutter/commit/019141c74f303f53f9033361ad705b012525548b))
+
 # [2.197.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.196.1...v2.197.0) (2026-09-26)
 
 
