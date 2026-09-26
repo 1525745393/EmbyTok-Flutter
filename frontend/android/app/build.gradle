@@ -87,6 +87,9 @@ android {
             // debug 版使用不同包名，可与 release 版共存
             applicationIdSuffix ".debug"
             resValue "string", "app_name", "EmbyTok Dev"
+            // 固定初始版本号，避免与 release 版本冲突
+            versionCode 1
+            versionName "1.0.0"
         }
         release {
             minifyEnabled true
