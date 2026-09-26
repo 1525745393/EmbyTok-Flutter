@@ -1,3 +1,10 @@
+## [2.184.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.184.0...v2.184.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* 修复日志暴露的三个问题 ([cd18961](https://github.com/1525745393/EmbyTok-Flutter/commit/cd189614644131622131a865716fd03bdda9bd39))
+
 # [2.184.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.183.6...v2.184.0) (2026-09-26)
 
 
