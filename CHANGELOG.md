@@ -1,3 +1,10 @@
+# [2.208.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.207.0...v2.208.0) (2026-09-26)
+
+
+### Features
+
+* P1-2网络诊断工具 ([f9a65bc](https://github.com/1525745393/EmbyTok-Flutter/commit/f9a65bc6b773acccea39e1eb18a2222683be4f71))
+
 # [2.207.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.206.0...v2.207.0) (2026-09-26)
 
 
