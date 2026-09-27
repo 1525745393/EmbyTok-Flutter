@@ -274,6 +274,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   List<MediaItem> _folderItems = [];
   bool _folderLoading = false;
   String? _folderError;
+  int _folderRequestId = 0;
 
   @override
   void initState() {
@@ -548,6 +549,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
 
   /// 加载文件夹内容
   Future<void> _loadFolder() async {
+    final myRequestId = ++_folderRequestId;
     setState(() {
       _folderLoading = true;
       _folderError = null;
@@ -563,13 +565,13 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
-      if (!mounted) return;
+      if (!mounted || myRequestId != _folderRequestId) return;
       setState(() {
         _folderItems = items;
         _folderLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || myRequestId != _folderRequestId) return;
       setState(() {
         _folderError = e.toString();
         _folderLoading = false;
