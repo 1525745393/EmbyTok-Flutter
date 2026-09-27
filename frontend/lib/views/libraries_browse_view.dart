@@ -79,22 +79,143 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
         if (libraries.isEmpty) {
           return const Center(child: Text('暂无媒体库'));
         }
-        return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 1.6,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: libraries.length,
-          itemBuilder: (context, index) {
-            final lib = libraries[index];
-            return _LibraryCard(
-              library: lib,
-              onTap: () => setState(() => _selectedLibrary = lib),
-            );
-          },
+        return Column(
+          children: [
+            // 继续观看横滑区块（对标 Emby Web 首页）
+            _buildContinueWatchingRow(context),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 1.6,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: libraries.length,
+                itemBuilder: (context, index) {
+                  final lib = libraries[index];
+                  return _LibraryCard(
+                    library: lib,
+                    onTap: () => setState(() => _selectedLibrary = lib),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 继续观看横滑区块（对标 Emby Web 首页顶部大卡片）
+  Widget _buildContinueWatchingRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final resumeAsync = ref.watch(resumeItemsProvider);
+    return resumeAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (items) {
+        if (items.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Text(
+                '继续观看',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 110,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final progress = (item.userData?.playedPercentage ?? 0) / 100;
+                  return GestureDetector(
+                    onTap: () => context.push('/item/${item.id}', extra: item),
+                    child: SizedBox(
+                      width: 180,
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: item.backdropUrl() ?? item.thumbnailUrlWithAuth() ?? '',
+                              fit: BoxFit.cover,
+                              width: 180,
+                              height: 110,
+                              cacheManager: AppImageCacheManager.thumbnail,
+                              errorWidget: (_, __, ___) => Container(
+                                color: scheme.surfaceContainerHighest,
+                                child: const Icon(Icons.movie, size: 36),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(8)),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.8),
+                                  ],
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: progress.clamp(0.0, 1.0),
+                                      minHeight: 3,
+                                      backgroundColor: Colors.white24,
+                                      valueColor: AlwaysStoppedAnimation(
+                                          scheme.primary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         );
       },
     );
