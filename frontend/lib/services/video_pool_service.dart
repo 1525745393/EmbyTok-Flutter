@@ -9,6 +9,7 @@
 
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
@@ -141,10 +142,15 @@ class VideoPoolService {
       // 降级链：DirectPlay → DirectStream → HLS
       // 统一生成一次 playSessionId，HLS URL 与存储的会话共用，保证 Emby 上报关联一致
       final playSessionId = _generatePlaySessionId();
+      // 自适应码率：移动网络时限制转码码率为 2Mbps，Wi-Fi 时 20Mbps
+      final connectivity = await Connectivity().checkConnectivity();
+      final isMobile = connectivity == ConnectivityResult.mobile;
+      final maxBitrate = isMobile ? 2000000 : 20000000;
       final urls = <int, String?>{
         0: item.computePlaybackUrl(serverUrl, token),
         1: item.computeDirectStreamUrl(serverUrl, token),
-        2: item.computeHlsUrl(serverUrl, token, playSessionId: playSessionId),
+        2: item.computeHlsUrl(serverUrl, token,
+            playSessionId: playSessionId, maxVideoBitrate: maxBitrate),
       };
       final headers = item.authHeaders(token);
 

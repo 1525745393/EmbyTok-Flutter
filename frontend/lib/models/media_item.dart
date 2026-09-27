@@ -610,8 +610,9 @@ class MediaItem {
   }
 
   // 构造 HLS 转码 URL（最后一级降级）
+  /// [maxVideoBitrate] 视频码率上限（bps），移动数据时传入较小值节省流量
   String? computeHlsUrl(String? embyServerUrl, String? token,
-      {String? playSessionId}) {
+      {String? playSessionId, int? maxVideoBitrate}) {
     if (embyServerUrl == null || embyServerUrl.isEmpty) return null;
     if (token == null || token.isEmpty) return null;
     final encodedToken = Uri.encodeQueryComponent(token);
@@ -622,9 +623,10 @@ class MediaItem {
         mediaSourceId != null ? '&MediaSourceId=$mediaSourceId' : '';
     final sessionParam =
         playSessionId != null ? '&PlaySessionId=$playSessionId' : '';
+    final bitrate = maxVideoBitrate ?? 20000000;
     return '$embyServerUrl/Videos/$id/master.m3u8?api_key=$encodedToken'
         '&VideoCodec=h264&AudioCodec=aac,mp3,ac3'
-        '&VideoBitrate=20000000&AudioBitrate=320000'
+        '&VideoBitrate=$bitrate&AudioBitrate=320000'
         '&TranscodingMaxAudioChannels=2'
         '&SegmentContainer=ts&MinSegments=1&BreakOnNonKeyFrames=True'
         '&AllowVideoStreamCopy=true&AllowAudioStreamCopy=true'
