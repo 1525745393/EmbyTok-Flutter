@@ -1,3 +1,10 @@
+# [2.219.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.218.0...v2.219.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式收藏页显示真实影片+分页支持 ([b81e072](https://github.com/1525745393/EmbyTok-Flutter/commit/b81e072e2d7e55346e6a422f79928d924f1436aa))
+
 # [2.218.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.217.0...v2.218.0) (2026-09-27)
 
 
