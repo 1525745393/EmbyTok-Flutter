@@ -1323,7 +1323,14 @@ class _LibraryListItem extends ConsumerWidget {
     if (imageTag != null &&
         auth.embyServerUrl != null &&
         auth.token != null) {
-      if (item.id.startsWith('demo_')) {
+      if (item.id.startsWith('tmdb_')) {
+        // TMDB 数据：imageTag 就是 poster_path，直拼 TMDB CDN
+        if (imageTag.startsWith('/')) {
+          thumbUrl = 'https://image.tmdb.org/t/p/w200$imageTag';
+        } else {
+          thumbUrl = 'https://picsum.photos/seed/embytok_${item.id}/120/180';
+        }
+      } else if (item.id.startsWith('demo_')) {
         // 演示模式：优先 TMDB 海报，未收录回退 picsum
         final idx = int.tryParse(item.id.replaceFirst('demo_', '')) ?? 0;
         const demoPosters = {
