@@ -1,3 +1,10 @@
+## [2.225.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.0...v2.225.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* 语音搜索dispose停止监听+onResult mounted守卫 ([f2deffd](https://github.com/1525745393/EmbyTok-Flutter/commit/f2deffd847643ed1e6bb614fdc841fffb078401f))
+
 # [2.225.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.224.0...v2.225.0) (2026-09-27)
 
 
