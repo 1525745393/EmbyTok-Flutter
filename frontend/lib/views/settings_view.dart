@@ -199,6 +199,10 @@ class SettingsView extends ConsumerWidget {
               [
                 _buildSubtitleLanguageTile(context, ref),
                 _buildSubtitleSizeTile(context, ref),
+                _buildSubtitleColorTile(context, ref),
+                _buildSubtitlePositionTile(context, ref),
+                _buildSubtitleShadowTile(context, ref),
+                _buildSubtitleTimeOffsetTile(context, ref),
               ],
             ),
           // 外观设置（主题通用保留；视频方向仅视频模式）

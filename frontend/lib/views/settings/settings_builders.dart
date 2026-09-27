@@ -103,6 +103,178 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildSubtitleColorTile(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(subtitleSettingsProvider);
+    final colorLabel = settings.color == 'yellow' ? '黄色' : '白色';
+    return settingsTapTile(
+      icon: Icons.color_lens_outlined,
+      iconColor: Colors.teal,
+      title: '字幕颜色',
+      subtitle: colorLabel,
+      onTap: () => _showSubtitleColorDialog(context, ref, settings.color),
+      helpText: '选择字幕文字颜色。\n\n· 白色 → 最通用\n· 黄色 → 在浅色画面上更清晰',
+    );
+  }
+
+  Widget _buildSubtitlePositionTile(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(subtitleSettingsProvider);
+    final posLabel = switch (settings.position) {
+      'center' => '屏幕中间',
+      'lower' => '偏下',
+      _ => '底部',
+    };
+    return settingsTapTile(
+      icon: Icons.vertical_align_bottom_outlined,
+      iconColor: Colors.teal,
+      title: '字幕位置',
+      subtitle: posLabel,
+      onTap: () => _showSubtitlePositionDialog(context, ref, settings.position),
+      helpText: '调整字幕在屏幕上的垂直位置。\n\n· 底部 → 默认\n· 偏下 → 避开播放器控制条\n· 中间 → 适合遮挡Logo',
+    );
+  }
+
+  Widget _buildSubtitleShadowTile(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(subtitleSettingsProvider);
+    return SwitchListTile(
+      secondary: const Icon(Icons.layers_outline, color: Colors.teal),
+      title: const Text('字幕阴影'),
+      subtitle: Text(settings.shadowEnabled ? '已启用' : '已关闭'),
+      value: settings.shadowEnabled,
+      onChanged: (v) =>
+          ref.read(subtitleSettingsProvider.notifier).setShadowEnabled(v),
+    );
+  }
+
+  Widget _buildSubtitleTimeOffsetTile(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(subtitleSettingsProvider);
+    final offsetLabel = settings.timeOffset == 0
+        ? '无偏移'
+        : '${settings.timeOffset > 0 ? '+' : ''}${settings.timeOffset}ms';
+    return settingsTapTile(
+      icon: Icons.timer_outlined,
+      iconColor: Colors.teal,
+      title: '字幕时间偏移',
+      subtitle: offsetLabel,
+      onTap: () =>
+          _showSubtitleTimeOffsetDialog(context, ref, settings.timeOffset),
+      helpText: '微调字幕与音频的同步。\n\n· 正数 → 字幕延迟出现\n· 负数 → 字幕提前出现\n\n用于修复字幕不同步问题。',
+    );
+  }
+
+  void _showSubtitleColorDialog(
+      BuildContext context, WidgetRef ref, String current) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('字幕颜色'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('白色'),
+              value: 'white',
+              groupValue: current,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setColor(v!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('黄色'),
+              value: 'yellow',
+              groupValue: current,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setColor(v!);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubtitlePositionDialog(
+      BuildContext context, WidgetRef ref, String current) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('字幕位置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('底部'),
+              value: 'bottom',
+              groupValue: current,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('偏下'),
+              value: 'lower',
+              groupValue: current,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('屏幕中间'),
+              value: 'center',
+              groupValue: current,
+              onChanged: (v) {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setPosition(v!);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSubtitleTimeOffsetDialog(
+      BuildContext context, WidgetRef ref, int current) {
+    int temp = current;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('字幕时间偏移'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${temp > 0 ? '+' : ''}$temp ms'),
+              Slider(
+                min: -5000,
+                max: 5000,
+                divisions: 20,
+                value: temp.toDouble(),
+                label: '${temp > 0 ? '+' : ''}$temp ms',
+                onChanged: (v) => setState(() => temp = v.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消')),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ref.read(subtitleSettingsProvider.notifier).setTimeOffset(temp);
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildThemeTile(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     return settingsTapTile(
