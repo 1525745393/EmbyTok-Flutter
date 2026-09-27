@@ -62,6 +62,7 @@ class _SearchViewState extends ConsumerState<SearchView>
 
   @override
   void dispose() {
+    _speech.stop();
     _controller.dispose();
     _debounce?.cancel();
     _hintDebounce?.cancel();
@@ -94,11 +95,12 @@ class _SearchViewState extends ConsumerState<SearchView>
       localeId: 'zh_CN',
       listenFor: const Duration(seconds: 15),
       onResult: (result) {
+        if (!mounted) return;
         if (result.finalResult) {
           _controller.text = result.recognizedWords;
           _onQueryChanged(result.recognizedWords);
           _doSearch(result.recognizedWords);
-          if (mounted) setState(() => _isListening = false);
+          setState(() => _isListening = false);
         }
       },
     );
