@@ -1,3 +1,11 @@
+## [2.227.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.0...v2.227.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* mock getGenres补充parentId参数 ([232da42](https://github.com/1525745393/EmbyTok-Flutter/commit/232da4237996599479d448e677a3fbad72ebaee7))
+* 补充所有测试mock的getGenres parentId参数 ([eba6279](https://github.com/1525745393/EmbyTok-Flutter/commit/eba6279b5b1d1658869fc2a65dbcb80a3af6e454))
+
 # [2.227.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.226.0...v2.227.0) (2026-09-27)
 
 
