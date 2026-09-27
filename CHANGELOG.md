@@ -1,3 +1,11 @@
+# [2.215.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.214.0...v2.215.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式对接TMDB API获取真实影片数据 ([a54009f](https://github.com/1525745393/EmbyTok-Flutter/commit/a54009faa9707b91d1880defa1a8a7bf34cc52a1))
+* 演示模式封面对接TMDB真实电影海报CDN ([944e4c8](https://github.com/1525745393/EmbyTok-Flutter/commit/944e4c8c4a54147fabc34eb2c0e05a394951bbc0))
+
 # [2.214.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.213.0...v2.214.0) (2026-09-27)
 
 
