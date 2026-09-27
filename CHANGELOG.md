@@ -1,3 +1,10 @@
+# [2.223.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.222.0...v2.223.0) (2026-09-27)
+
+
+### Features
+
+* **P1:** 搜索页热门搜索词 ([16ff943](https://github.com/1525745393/EmbyTok-Flutter/commit/16ff943b8175378a2f36f86d9b7ee316109f58ce))
+
 # [2.222.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.221.0...v2.222.0) (2026-09-27)
 
 
