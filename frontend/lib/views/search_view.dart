@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../models/models.dart';
 import '../utils/constants.dart';
@@ -41,6 +42,10 @@ class _SearchViewState extends ConsumerState<SearchView>
   final ScrollController _scrollController = ScrollController();
   SearchCategory _selectedCategory = SearchCategory.all;
 
+  // 语音搜索
+  bool _isListening = false;
+  final SpeechToText _speech = SpeechToText();
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +73,36 @@ class _SearchViewState extends ConsumerState<SearchView>
 
   @override
   bool get wantKeepAlive => true;
+
+  /// 切换语音搜索
+  Future<void> _toggleVoiceSearch() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+    final available = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'notListening' && mounted) {
+          setState(() => _isListening = false);
+        }
+      },
+    );
+    if (!available) return;
+    setState(() => _isListening = true);
+    await _speech.listen(
+      localeId: 'zh_CN',
+      listenFor: const Duration(seconds: 15),
+      onResult: (result) {
+        if (result.finalResult) {
+          _controller.text = result.recognizedWords;
+          _onQueryChanged(result.recognizedWords);
+          _doSearch(result.recognizedWords);
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+    );
+  }
 
   /// 滚动到底部时自动加载更多
   void _onScroll() {
@@ -209,7 +244,13 @@ class _SearchViewState extends ConsumerState<SearchView>
                             _onQueryChanged('');
                           },
                         )
-                      : null,
+                      : IconButton(
+                          icon: Icon(Icons.mic,
+                              color: _isListening
+                                  ? scheme.primary
+                                  : scheme.onSurface.withValues(alpha: 0.6)),
+                          onPressed: _toggleVoiceSearch,
+                        ),
                   filled: true,
                   fillColor: scheme.onSurface.withValues(alpha: 0.05),
                   border: OutlineInputBorder(
