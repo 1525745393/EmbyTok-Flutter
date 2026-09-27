@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../providers/sleep_timer_provider.dart';
 import '../../utils/logger.dart';
 import 'subtitle_selector.dart';
 
@@ -153,6 +154,54 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
     );
   }
 
+  Future<void> _showSleepTimerMenu() async {
+    final current = ref.read(sleepTimerProvider);
+    final minutes = [15, 30, 45, 60];
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('睡眠定时器', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            if (current.isActive)
+              ListTile(
+                leading: const Icon(Icons.timer_off, color: Colors.red),
+                title: Text(current.stopAfterCurrent
+                    ? '当前结束后暂停（已设置）'
+                    : '取消（剩余 ${current.remaining?.inMinutes ?? 0}:${((current.remaining?.inSeconds ?? 0) % 60).toString().padLeft(2, '0')}）'),
+                onTap: () {
+                  ref.read(sleepTimerProvider.notifier).cancel();
+                  Navigator.pop(context);
+                },
+              ),
+            ...minutes.map((m) => ListTile(
+                  leading: Icon(Icons.bedtime, color: Theme.of(context).colorScheme.primary),
+                  title: Text('$m 分钟后暂停'),
+                  onTap: () {
+                    ref.read(sleepTimerProvider.notifier).start(Duration(minutes: m));
+                    Navigator.pop(context);
+                  },
+                )),
+            ListTile(
+              leading: Icon(Icons.stop_circle, color: Theme.of(context).colorScheme.primary),
+              title: const Text('当前视频结束后暂停'),
+              onTap: () {
+                ref.read(sleepTimerProvider.notifier).setStopAfterCurrent();
+                Navigator.pop(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (choice != null) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -273,6 +322,7 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
             icon: Icon(Icons.more_vert, color: scheme.onSurface, size: 20),
             onSelected: (value) {
               if (value == 'subtitles') _showSubtitleMenu();
+              if (value == 'sleep') _showSleepTimerMenu();
             },
             itemBuilder: (context) => [
               PopupMenuItem<String>(
@@ -283,6 +333,19 @@ class _VideoControlsState extends ConsumerState<VideoControls> {
                         color: scheme.onSurfaceVariant, size: 20),
                     const SizedBox(width: 10),
                     Text('字幕',
+                        style:
+                            TextStyle(color: scheme.onSurface, fontSize: 14)),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'sleep',
+                child: Row(
+                  children: [
+                    Icon(Icons.bedtime,
+                        color: scheme.onSurfaceVariant, size: 20),
+                    const SizedBox(width: 10),
+                    Text('睡眠定时器',
                         style:
                             TextStyle(color: scheme.onSurface, fontSize: 14)),
                   ],

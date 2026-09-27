@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../providers/sleep_timer_provider.dart';
 import '../../providers/video_comments_provider.dart';
 import '../../services/embytok_service.dart';
 import '../../utils/logger.dart';
@@ -198,6 +199,14 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _service = ref.read(embytokServiceProvider);
     WidgetsBinding.instance.addObserver(this);
     _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
+
+    // 注册睡眠定时器超时回调：倒计时结束时暂停播放
+    ref.read(sleepTimerProvider.notifier).setOnTimeout(() {
+      if (mounted && _videoController?.value.isPlaying == true) {
+        _videoController?.pause();
+      }
+    });
+
     _discRotationCtrl = AnimationController(
       vsync: this,
       duration: _kControlsAutoHideDelay,
