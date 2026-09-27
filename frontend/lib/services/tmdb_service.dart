@@ -50,4 +50,51 @@ class TmdbService {
       return [];
     }
   }
+
+  /// 获取类型映射 (genre_id → 类型名)
+  static Future<Map<int, String>> getGenres() async {
+    if (!isConfigured) return {};
+    try {
+      final results = <int, String>{};
+      // 电影类型
+      final r1 = await http
+          .get(Uri.parse('$_base/genre/movie/list?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 5));
+      if (r1.statusCode == 200) {
+        final data = jsonDecode(r1.body);
+        for (final g in data['genres'] ?? []) {
+          results[g['id'] as int] = g['name'] as String;
+        }
+      }
+      // 剧集类型
+      final r2 = await http
+          .get(Uri.parse('$_base/genre/tv/list?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 5));
+      if (r2.statusCode == 200) {
+        final data = jsonDecode(r2.body);
+        for (final g in data['genres'] ?? []) {
+          results[g['id'] as int] = g['name'] as String;
+        }
+      }
+      return results;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// 获取热门演员（用于演示模式演员列表）
+  static Future<List<Map<String, dynamic>>> getPopularPeople() async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/person/popular?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

@@ -12,13 +12,17 @@ final demoModeProvider = StateProvider<bool>((ref) => false);
 class DemoTmdbCache {
   static final List<Map<String, dynamic>> movies = [];
   static final List<Map<String, dynamic>> tvShows = [];
+  static Map<int, String> genres = {};
+  static final List<Map<String, dynamic>> people = [];
   static bool loaded = false;
 
   static Future<void> load() async {
     if (loaded) return;
     final results = await TmdbService.getTrendingMovies();
     final tv = await TmdbService.getTrendingTv();
-    // 仅在有数据时标记 loaded，失败允许下次重试
+    final genreMap = await TmdbService.getGenres();
+    final popularPeople = await TmdbService.getPopularPeople();
+    // 仅在有影片数据时标记 loaded，失败允许下次重试
     if (results.isNotEmpty || tv.isNotEmpty) {
       movies
         ..clear()
@@ -26,6 +30,10 @@ class DemoTmdbCache {
       tvShows
         ..clear()
         ..addAll(tv);
+      genres = genreMap;
+      people
+        ..clear()
+        ..addAll(popularPeople);
       loaded = true;
     }
   }
@@ -267,12 +275,37 @@ class DemoMockData {
 
     // ---- 类型 / 演员 / 工作室 / 标签 ----
     if (path.endsWith('/Genres')) {
+      // 优先用 TMDB 真实类型
+      if (DemoTmdbCache.genres.isNotEmpty) {
+        return {
+          'Items': [
+            for (var entry in DemoTmdbCache.genres.entries)
+              {'Name': entry.value, 'MovieCount': 5, 'Id': 'genre_${entry.key}'}
+          ],
+          'TotalRecordCount': DemoTmdbCache.genres.length,
+        };
+      }
       return {
         'Items': [for (var g in _allGenres) {'Name': g, 'MovieCount': 3}],
         'TotalRecordCount': _allGenres.length,
       };
     }
     if (path.endsWith('/Persons')) {
+      // 优先用 TMDB 热门演员
+      if (DemoTmdbCache.people.isNotEmpty) {
+        return {
+          'Items': [
+            for (var i = 0; i < DemoTmdbCache.people.length; i++)
+              {
+                'Name': DemoTmdbCache.people[i]['name'] ?? 'Unknown',
+                'Type': 'Actor',
+                'Id': 'person_popular_$i',
+                'PrimaryImageTag': DemoTmdbCache.people[i]['profile_path'] ?? '',
+              }
+          ],
+          'TotalRecordCount': DemoTmdbCache.people.length,
+        };
+      }
       final allActors = <String>{};
       for (var m in _movies) {
         allActors.addAll((m['actors'] as List).cast<String>());
@@ -381,6 +414,29 @@ class DemoMockData {
     final release = m['release_date'] ?? m['first_air_date'] ?? '';
     final year = release.isNotEmpty ? int.tryParse(release.substring(0, 4)) : 0;
 
+    // genre_ids → 类型名
+    final genreIds = (m['genre_ids'] as List?)?.cast<int>() ?? [];
+    final genreNames = genreIds
+        .map((id) => DemoTmdbCache.genres[id])
+        .whereType<String>()
+        .toList();
+
+    // 从热门演员中取 3 个作为本片演员
+    final people = DemoTmdbCache.people;
+    final cast = <Map<String, dynamic>>[];
+    if (people.isNotEmpty) {
+      for (var j = 0; j < 3 && j < people.length; j++) {
+        final p = people[(idx + j) % people.length];
+        cast.add({
+          'Name': p['name'] ?? 'Unknown',
+          'Type': j == 0 ? 'Actor' : 'Actor',
+          'Id': 'person_tmdb_${idx}_$j',
+          'Role': j == 0 ? '主演' : '配角',
+          'PrimaryImageTag': p['profile_path'] ?? '',
+        });
+      }
+    }
+
     return {
       'Id': 'tmdb_$idx',
       'Name': m['title'] ?? m['name'] ?? 'Unknown',
@@ -389,7 +445,7 @@ class DemoMockData {
       'PremiereDate': release,
       'CommunityRating': (m['vote_average'] as num?)?.toDouble() ?? 0.0,
       'Overview': m['overview'] ?? '',
-      'Genres': const [],
+      'Genres': genreNames,
       'Tags': const ['TMDB'],
       'ImageTags': {'Primary': poster, 'Thumb': backdrop},
       'BackdropImageTags': [backdrop],
@@ -411,14 +467,7 @@ class DemoMockData {
           'Size': 8000000000,
         },
       ],
-      'People': [
-        {
-          'Name': 'Demo Actor ${idx + 1}',
-          'Type': 'Actor',
-          'Id': 'person_tmdb_${idx}_0',
-          'Role': '主演',
-        },
-      ],
+      'People': cast,
     };
   }
 

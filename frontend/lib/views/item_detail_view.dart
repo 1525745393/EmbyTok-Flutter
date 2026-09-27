@@ -726,16 +726,18 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 // 构建演员头像完整 URL（Emby People 数组通常不返回完整 ImageUrl）
                 String? avatarUrl;
                 final pid = person.id ?? '';
+                final imgTag = person.primaryImageTag ?? '';
                 if (pid.isNotEmpty &&
                     authState.embyServerUrl != null &&
                     authState.token != null) {
-                  // 演示模式：演员头像用 picsum 占位图
-                  if (pid.startsWith('person_') || pid.startsWith('demo_')) {
+                  // TMDB 演员：profile_path 以 / 开头，直拼 TMDB CDN
+                  if (imgTag.startsWith('/')) {
+                    avatarUrl = 'https://image.tmdb.org/t/p/w200$imgTag';
+                  } else if (pid.startsWith('person_') || pid.startsWith('demo_')) {
                     avatarUrl = 'https://picsum.photos/seed/embytok_$pid/200/200';
                   } else {
-                    final tag = person.primaryImageTag;
-                    final tagParam = tag != null && tag.isNotEmpty
-                        ? '&Tag=${Uri.encodeQueryComponent(tag)}'
+                    final tagParam = imgTag.isNotEmpty
+                        ? '&Tag=${Uri.encodeQueryComponent(imgTag)}'
                         : '';
                     avatarUrl =
                         '${authState.embyServerUrl}/Items/$pid/Images/Primary?MaxWidth=200$tagParam&api_key=${authState.token}';
