@@ -1,3 +1,10 @@
+# [2.228.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.3...v2.228.0) (2026-09-27)
+
+
+### Features
+
+* P1家长控制/儿童模式设置页 ([31247b4](https://github.com/1525745393/EmbyTok-Flutter/commit/31247b45512f82095038ad274fd24e9ce87f998a))
+
 ## [2.227.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.2...v2.227.3) (2026-09-27)
 
 
