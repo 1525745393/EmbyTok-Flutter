@@ -1,3 +1,15 @@
+# [2.224.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.223.0...v2.224.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* 历史删除Dismissible状态一致性+并发清空+恢复注释 ([f43b260](https://github.com/1525745393/EmbyTok-Flutter/commit/f43b260fee793cd739cdb7ee779678fea7ace2fa))
+
+
+### Features
+
+* **P1:** 自适应码率-移动网络自动降转码码率 ([6c75177](https://github.com/1525745393/EmbyTok-Flutter/commit/6c75177dff12f00cd53496d2712063c88a6fecbd))
+
 # [2.223.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.222.0...v2.223.0) (2026-09-27)
 
 
