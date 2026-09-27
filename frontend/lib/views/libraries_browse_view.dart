@@ -483,6 +483,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         _error = null;
         _startIndex = 0;
         _hasMore = true;
+        // 筛选/排序变化时退出批量选择，避免旧选中状态残留
+        _selectionMode = false;
+        _selectedIds.clear();
       }
     });
 
