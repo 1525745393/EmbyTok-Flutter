@@ -1,3 +1,10 @@
+## [2.227.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.2...v2.227.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* toggleLibrary空列表赋值+测试Fields补BackdropImageTags ([d831f80](https://github.com/1525745393/EmbyTok-Flutter/commit/d831f8033f08c2ed691cbed23c28ea31b085c272))
+
 ## [2.227.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.1...v2.227.2) (2026-09-27)
 
 
