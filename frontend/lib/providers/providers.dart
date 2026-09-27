@@ -19,6 +19,7 @@ export 'video_playback_controller.dart';
 export 'media_server_api_provider.dart';
 export 'embytok_service_provider.dart';
 export 'item_detail_provider.dart';
+export 'watchlist_provider.dart';
 export 'recommend_provider.dart';
 export 'recommend_signals.dart';
 export 'discover_provider.dart';

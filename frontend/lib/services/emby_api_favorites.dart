@@ -338,4 +338,74 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     _ensureConfig(serverUrl, token);
     await _apiClient.delete<dynamic>('/UserPlayedItems/$itemId');
   }
+
+  // ==================== Watchlist（稍后观看） ====================
+
+  /// 获取稍后观看列表
+  Future<FavoritesPageResult> getWatchlist({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    final path = (effectiveUserId ?? '').isNotEmpty
+        ? '/Users/$effectiveUserId/Items'
+        : '/Items';
+    final resp = await _apiClient.get<dynamic>(
+      path,
+      queryParameters: {
+        'Filters': 'IsWatchlisted',
+        'Recursive': 'true',
+        'IncludeMediaTypes': 'Video',
+        'Limit': '$limit',
+        'StartIndex': '$offset',
+        'SortBy': 'DateUpdated,SortName',
+        'SortOrder': 'Descending,Ascending',
+      },
+    );
+    final data = resp.data;
+    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
+    final totalCount = data is Map
+        ? (data['TotalRecordCount'] as int?) ?? items.length
+        : items.length;
+    return FavoritesPageResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map((e) => MediaItem.fromJson(e))
+          .toList(),
+      totalCount: totalCount,
+    );
+  }
+
+  /// 切换稍后观看状态
+  Future<void> toggleWatchlist({
+    required String itemId,
+    required bool isWatchlisted,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) async {
+    AppLogger.debug('切换稍后观看状态请求', data: {
+      'itemId': itemId,
+      'isWatchlisted': isWatchlisted,
+    });
+    if (itemId.isEmpty) {
+      throw AppError.unknown(message: 'itemId 为空，无法切换稍后观看');
+    }
+    _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
+    final params = <String, dynamic>{
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
+    };
+    final path = '/Items/$itemId/Watchlist';
+    if (isWatchlisted) {
+      await _apiClient.post<dynamic>(path, queryParameters: params);
+    } else {
+      await _apiClient.delete<dynamic>(path, queryParameters: params);
+    }
+  }
 }

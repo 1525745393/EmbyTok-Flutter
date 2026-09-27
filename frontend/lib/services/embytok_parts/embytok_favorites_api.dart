@@ -150,4 +150,38 @@ mixin EmbytokFavoritesApi on EmbytokServiceBase {
       token: token,
     );
   }
+
+  // ==================== Watchlist（稍后观看） ====================
+
+  Future<FavoritesPageResult> getWatchlist({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.getWatchlist(
+      limit: limit,
+      offset: offset,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
+
+  Future<void> toggleWatchlist({
+    required String itemId,
+    required bool isWatchlisted,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  }) {
+    return _api.toggleWatchlist(
+      itemId: itemId,
+      isWatchlisted: isWatchlisted,
+      userId: userId,
+      serverUrl: serverUrl,
+      token: token,
+    );
+  }
 }
