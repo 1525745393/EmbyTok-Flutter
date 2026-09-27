@@ -1,3 +1,10 @@
+## [2.225.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.5...v2.225.6) (2026-09-27)
+
+
+### Bug Fixes
+
+* 删除_getLibraryIcon中带尾随空格的死代码case ([b4af3a3](https://github.com/1525745393/EmbyTok-Flutter/commit/b4af3a377660fac8d273401ba5a5891ea5fd3e2e))
+
 ## [2.225.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.4...v2.225.5) (2026-09-27)
 
 
