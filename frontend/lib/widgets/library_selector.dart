@@ -656,7 +656,6 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
       case 'movie':
         return Icons.movie;
       case 'tvshows':
-      case 'tvshows ':
         return Icons.tv;
       case 'music':
         return Icons.music_note;
