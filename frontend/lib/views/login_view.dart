@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/demo_mode_provider.dart';
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
+import '../models/models.dart';
 import '../providers/service_mode_provider.dart';
 import '../services/services.dart';
 import '../utils/constants.dart';
@@ -464,6 +465,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
   void _enterDemoMode(BuildContext context, WidgetRef ref) {
     ApiClient.demoMode = true;
     ref.read(demoModeProvider.notifier).state = true;
+    // 注入 mock 登录状态，让顶栏/设置页/图片 URL 拼接等正常工作
+    ref.read(authProvider.notifier).state = AuthState(
+      isAuthenticated: true,
+      user: const User(id: 'demo_user', name: '演示用户', accessToken: 'demo_token'),
+      embyServerUrl: 'https://demo.emby.local',
+      token: 'demo_token',
+    );
     AppLogger.info('进入演示模式');
     context.go('/');
   }

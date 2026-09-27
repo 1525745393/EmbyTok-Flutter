@@ -148,13 +148,18 @@ class DemoMockData {
       'Name': type == 'Episode' ? '演示剧集 ${i + 1}' : '演示影片 ${i + 1}',
       'Type': type,
       'ProductionYear': year,
+      'PremiereDate': '$year-0${(i % 9) + 1}-15',
       'CommunityRating': 7.0 + (i % 3) + 0.5,
+      'CriticRating': 60 + (i % 40),
       'OfficialRating': i % 3 == 0 ? 'PG-13' : 'R',
       'RunTimeTicks': type == 'Episode' ? 2700000000 : 54000000000,
       'Overview': '这是演示模式下的示例内容简介，用于展示界面布局和交互效果。'
           '连接真实服务器后将显示实际影片信息。',
       'Genres': [_genres[i % _genres.length], _genres[(i + 1) % _genres.length]],
+      'Tags': ['演示标签 ${i + 1}'],
       'ImageTags': {'Primary': 'demo$i', 'Thumb': 'demo$i'},
+      'Width': 1920,
+      'Height': 1080,
       'UserData': {
         'IsFavorite': i % 4 == 0,
         'PlaybackPositionTicks': withPosition ? 1800000000 : (i % 3 == 0 ? 900000000 : 0),
@@ -162,13 +167,21 @@ class DemoMockData {
       },
       'People': [
         {'Name': '演示导演', 'Type': 'Director', 'Id': 'person_dir'},
-        {'Name': _actors[i % _actors.length], 'Type': 'Actor', 'Id': 'person_$i'},
-        {'Name': _actors[(i + 1) % _actors.length], 'Type': 'Actor'},
+        {'Name': _actors[i % _actors.length], 'Type': 'Actor', 'Id': 'person_$i', 'Role': '主演'},
+        {'Name': _actors[(i + 1) % _actors.length], 'Type': 'Actor', 'Role': '配角'},
       ],
       'Studios': [
         {'Name': _studios[i % _studios.length], 'Id': 'studio_$i'},
       ],
       'BackdropImageTags': ['demo${i}_backdrop'],
+      'MediaSources': [
+        {
+          'Id': 'src_demo_$i',
+          'Name': '演示源',
+          'Container': 'mkv',
+          'Size': 5000000000,
+        },
+      ],
     };
   }
 }

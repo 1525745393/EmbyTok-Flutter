@@ -561,6 +561,8 @@ class SettingsView extends ConsumerWidget {
       onTap: () {
         ApiClient.demoMode = false;
         ref.read(demoModeProvider.notifier).state = false;
+        // 重置 auth state，避免 demo 登录状态残留
+        ref.read(authProvider.notifier).state = const AuthState();
         // 清除演示模式缓存的 mock 数据，避免残留
         try {
           ref.read(cacheControllerProvider).invalidateAll();
