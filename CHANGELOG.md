@@ -1,3 +1,10 @@
+# [2.225.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.224.0...v2.225.0) (2026-09-27)
+
+
+### Features
+
+* **P1:** 语音搜索 ([dfeb4c9](https://github.com/1525745393/EmbyTok-Flutter/commit/dfeb4c939de59b4a14595c15803f72708a82af49))
+
 # [2.224.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.223.0...v2.224.0) (2026-09-27)
 
 
