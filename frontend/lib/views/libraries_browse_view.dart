@@ -157,7 +157,12 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: CachedNetworkImage(
-                              imageUrl: backdrop ?? item.thumbnailUrlWithAuth() ?? '',
+                              imageUrl: backdrop ??
+                                  item.thumbnailUrlWithAuth(
+                                    auth.embyServerUrl,
+                                    auth.token,
+                                  ) ??
+                                  '',
                               fit: BoxFit.cover,
                               width: 180,
                               height: 110,

@@ -71,7 +71,11 @@ class WatchlistView extends ConsumerWidget {
                     fit: StackFit.expand,
                     children: [
                       CachedNetworkImage(
-                        imageUrl: item.thumbnailUrlWithAuth() ?? '',
+                        imageUrl: item.thumbnailUrlWithAuth(
+                              ref.read(authProvider).embyServerUrl,
+                              ref.read(authProvider).token,
+                            ) ??
+                            '',
                         fit: BoxFit.cover,
                         cacheManager: AppImageCacheManager.thumbnail,
                         errorWidget: (_, __, ___) => Container(
