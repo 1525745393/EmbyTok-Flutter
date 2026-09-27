@@ -132,7 +132,7 @@ class SelectedLibraryNotifier extends StateNotifier<List<String>> {
   }
 
   /// 切换单个媒体库的选中状态（立即持久化，供设置页 chip 快捷移除/撤销）
-  /// 至少保留一个选中项，避免清空后无可用媒体库
+  /// 取消最后一个选中项时不生效，保证始终至少有一个媒体库被选中
   void toggleLibrary(String libraryId) {
     if (state.contains(libraryId)) {
       final newList = state.where((id) => id != libraryId).toList();
