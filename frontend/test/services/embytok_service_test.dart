@@ -77,7 +77,7 @@ void main() {
       'SortOrder': 'Descending',
       'Recursive': 'true',
       'Fields':
-          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,MediaSources,Path',
+          'Overview,Genres,People,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,UserData,MediaSources,Path',
       'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
     };
   }
