@@ -427,6 +427,7 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         ),
         onPressed: _toggleFavorite,
         tooltip: favorited ? '取消收藏' : '添加收藏',
+        focusColor: scheme.primary.withValues(alpha: 0.2),
       ),
     );
   }
