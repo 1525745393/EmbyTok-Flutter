@@ -1,3 +1,10 @@
+## [2.225.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.1...v2.225.2) (2026-09-27)
+
+
+### Bug Fixes
+
+* 媒体库筛选/排序变化时退出批量选择模式 ([0c50b95](https://github.com/1525745393/EmbyTok-Flutter/commit/0c50b95d703954a0d1201719cee14d376ceeb8de))
+
 ## [2.225.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.0...v2.225.1) (2026-09-27)
 
 
