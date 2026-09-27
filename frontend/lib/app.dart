@@ -23,6 +23,7 @@ import 'providers/service_mode_provider.dart';
 import 'views/actors_view.dart';
 import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
+import 'views/watchlist_view.dart';
 import 'views/history_view.dart';
 import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
@@ -271,6 +272,18 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
             _popOrGoHome(context, didPop);
           },
           child: const FavoritesView(),
+        ),
+      ),
+      // 稍后观看
+      GoRoute(
+        path: '/watchlist',
+        builder: (context, state) => PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _popOrGoHome(context, didPop);
+          },
+          child: const WatchlistView(),
         ),
       ),
       // 收藏分类详情

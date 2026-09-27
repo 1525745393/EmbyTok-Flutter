@@ -234,6 +234,9 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                   // 收藏按钮（复用 build() 中已 watch 的 favorited，避免重复 watch）
                   _buildFavoriteButton(favorited, scheme, dark: true),
                   const SizedBox(width: 8),
+                  // 稍后看按钮
+                  _buildWatchlistButton(item, dark: true),
+                  const SizedBox(width: 8),
                   // 标记已观看/未观看
                   _buildWatchedButton(item, scheme, authState),
                 ],
@@ -424,6 +427,33 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
         ),
         onPressed: _toggleFavorite,
         tooltip: favorited ? '取消收藏' : '添加收藏',
+      ),
+    );
+  }
+
+  // 稍后看按钮
+  Widget _buildWatchlistButton(MediaItem item, {bool dark = false}) {
+    final bg = dark ? Colors.white.withValues(alpha: 0.25) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1);
+    final watchlisted = ref.watch(watchlistNotifierProvider).contains(item.id);
+    final iconColor = watchlisted
+        ? (dark ? Colors.amber : Theme.of(context).colorScheme.primary)
+        : (dark ? Colors.white : Theme.of(context).colorScheme.onSurface);
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: dark ? Colors.white24 : Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: IconButton(
+        icon: Icon(
+          watchlisted ? Icons.bookmark : Icons.bookmark_border,
+          color: iconColor,
+          size: 20,
+        ),
+        onPressed: () async {
+          await ref.read(watchlistNotifierProvider.notifier).toggle(item, watchlisted);
+        },
+        tooltip: watchlisted ? '取消稍后看' : '加入稍后看',
       ),
     );
   }
