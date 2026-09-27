@@ -1,3 +1,10 @@
+## [2.211.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.211.0...v2.211.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* 演示模式路径匹配顺序-续看/最新/计数被单item正则截获 ([babab39](https://github.com/1525745393/EmbyTok-Flutter/commit/babab39e552d75802dbd380211b13f11c630734c))
+
 # [2.211.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.2...v2.211.0) (2026-09-27)
 
 
