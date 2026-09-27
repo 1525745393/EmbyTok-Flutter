@@ -725,15 +725,21 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
                 final person = people[index];
                 // 构建演员头像完整 URL（Emby People 数组通常不返回完整 ImageUrl）
                 String? avatarUrl;
-                if (person.id != null && person.id!.isNotEmpty &&
+                final pid = person.id ?? '';
+                if (pid.isNotEmpty &&
                     authState.embyServerUrl != null &&
                     authState.token != null) {
-                  final tag = person.primaryImageTag;
-                  final tagParam = tag != null && tag.isNotEmpty
-                      ? '&Tag=${Uri.encodeQueryComponent(tag)}'
-                      : '';
-                  avatarUrl =
-                      '${authState.embyServerUrl}/Items/${person.id}/Images/Primary?MaxWidth=200$tagParam&api_key=${authState.token}';
+                  // 演示模式：演员头像用 picsum 占位图
+                  if (pid.startsWith('person_') || pid.startsWith('demo_')) {
+                    avatarUrl = 'https://picsum.photos/seed/embytok_$pid/200/200';
+                  } else {
+                    final tag = person.primaryImageTag;
+                    final tagParam = tag != null && tag.isNotEmpty
+                        ? '&Tag=${Uri.encodeQueryComponent(tag)}'
+                        : '';
+                    avatarUrl =
+                        '${authState.embyServerUrl}/Items/$pid/Images/Primary?MaxWidth=200$tagParam&api_key=${authState.token}';
+                  }
                 } else if (person.imageUrl != null &&
                     person.imageUrl!.startsWith('http')) {
                   avatarUrl = person.imageUrl;

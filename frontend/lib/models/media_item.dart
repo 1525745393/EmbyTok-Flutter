@@ -498,6 +498,12 @@ class MediaItem {
     String? apiKey,
     int maxWidth = 800,
   }) {
+    // 演示模式：demo item 返回 picsum 占位图，让封面真实可见
+    if (id.startsWith('demo_')) {
+      final seed = 'embytok_$id';
+      final h = type == 'Primary' ? (maxWidth * 1.5).round() : (maxWidth * 9 ~/ 16);
+      return 'https://picsum.photos/seed/$seed/$maxWidth/$h';
+    }
     final url = embyServerUrl;
     if (url == null || url.isEmpty) return thumbnailUrl;
     final tags = imageTags;
@@ -519,6 +525,10 @@ class MediaItem {
   // 获取背景图 URL（从 BackdropImageTags 列表取第一个 tag）
   String? backdropUrl(
       {String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
+    // 演示模式
+    if (id.startsWith('demo_')) {
+      return 'https://picsum.photos/seed/embytok_${id}_bg/$maxWidth/${(maxWidth * 9 ~/ 16)}';
+    }
     final url = embyServerUrl;
     if (url == null || url.isEmpty) return null;
     // Emby 返回的 Backdrop tag 在 BackdropImageTags（List<String>）中，

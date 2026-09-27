@@ -59,8 +59,10 @@ class PosterAvatar extends ConsumerWidget {
 
     final actorId = firstActor?.id;
     if (firstActor != null && actorId != null && actorId.isNotEmpty) {
-      final actorImageUrl = embyServerUrl != null && token != null
-          ? '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200&api_key=$token'
+      final actorImageUrl = (embyServerUrl != null && token != null)
+          ? (actorId.startsWith('person_') || actorId.startsWith('demo_')
+              ? 'https://picsum.photos/seed/embytok_$actorId/200/200'
+              : '$embyServerUrl/Items/$actorId/Images/Primary?MaxWidth=200&api_key=$token')
           : firstActor.imageUrl;
       final headers = item.authHeaders(token);
       final isFavorited =

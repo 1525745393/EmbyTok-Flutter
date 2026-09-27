@@ -1323,8 +1323,12 @@ class _LibraryListItem extends ConsumerWidget {
     if (imageTag != null &&
         auth.embyServerUrl != null &&
         auth.token != null) {
-      thumbUrl =
-          '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=$imageTag&api_key=${auth.token}';
+      if (item.id.startsWith('demo_')) {
+        thumbUrl = 'https://picsum.photos/seed/embytok_${item.id}/120/180';
+      } else {
+        thumbUrl =
+            '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=$imageTag&api_key=${auth.token}';
+      }
     }
 
     final audioCodec = _audioCodecLabel(item);
