@@ -140,7 +140,14 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  final progress = (item.userData?.playedPercentage ?? 0) / 100;
+                  final ticks = item.userData?.playbackPositionTicks ?? 0;
+                  final total = item.runtimeTicks ?? 0;
+                  final progress = total > 0 ? (ticks / total).clamp(0.0, 1.0) : 0.0;
+                  final auth = ref.read(authProvider);
+                  final backdrop = item.backdropUrl(
+                    embyServerUrl: auth.embyServerUrl,
+                    apiKey: auth.token,
+                  );
                   return GestureDetector(
                     onTap: () => context.push('/item/${item.id}', extra: item),
                     child: SizedBox(
@@ -150,7 +157,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: CachedNetworkImage(
-                              imageUrl: item.backdropUrl() ?? item.thumbnailUrlWithAuth() ?? '',
+                              imageUrl: backdrop ?? item.thumbnailUrlWithAuth() ?? '',
                               fit: BoxFit.cover,
                               width: 180,
                               height: 110,
