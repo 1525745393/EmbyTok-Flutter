@@ -1,3 +1,10 @@
+# [2.216.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.3...v2.216.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式完善-TMDB真实类型/演员/头像 ([712fd44](https://github.com/1525745393/EmbyTok-Flutter/commit/712fd44a29acb0e0abea8d6a64c188d9c9abb46c))
+
 ## [2.215.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.2...v2.215.3) (2026-09-27)
 
 
