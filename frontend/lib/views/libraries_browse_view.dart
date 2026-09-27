@@ -28,6 +28,9 @@ class LibrariesBrowseView extends ConsumerStatefulWidget {
 
 class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   Library? _selectedLibrary;
+  // 媒体库子 Tab（对标 Emby Web：电影/播放记录/合集）
+  int _currentLibraryTab = 0;
+  static const _libraryTabs = ['电影', '播放记录', '合集'];
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +107,15 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
           child: Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => _selectedLibrary = null),
+                onPressed: () => setState(() {
+                  _selectedLibrary = null;
+                  _currentLibraryTab = 0;
+                }),
               ),
               Expanded(
                 child: Column(
@@ -138,10 +144,47 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
             ],
           ),
         ),
+        // 子 Tab 栏（对标 Emby Web）
+        SizedBox(
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: _libraryTabs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 20),
+            itemBuilder: (context, index) {
+              final selected = index == _currentLibraryTab;
+              return GestureDetector(
+                onTap: () => setState(() => _currentLibraryTab = index),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _libraryTabs[index],
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                        color: selected ? scheme.primary : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 2,
+                      width: 24,
+                      color: selected ? scheme.primary : Colors.transparent,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const Divider(height: 1),
         Expanded(
           child: _LibraryItemsList(
-            key: ValueKey(library.id),
+            key: ValueKey('${library.id}_$_currentLibraryTab'),
             library: library,
+            tab: _currentLibraryTab,
           ),
         ),
       ],
@@ -151,8 +194,10 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
 
 /// 单个媒体库的影片网格列表
 class _LibraryItemsList extends ConsumerStatefulWidget {
-  const _LibraryItemsList({super.key, required this.library});
+  const _LibraryItemsList({super.key, required this.library, this.tab = 0});
   final Library library;
+  /// 子 Tab：0=电影 1=播放记录 2=合集
+  final int tab;
 
   @override
   ConsumerState<_LibraryItemsList> createState() => _LibraryItemsListState();
@@ -514,7 +559,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       final service = ref.read(embytokServiceProvider);
       final libType = widget.library.type;
       String? includeItemTypes;
-      if (libType == 'movies') {
+      if (widget.tab == 2) {
+        // 合集 Tab：只显示 BoxSet
+        includeItemTypes = 'BoxSet';
+      } else if (libType == 'movies') {
         includeItemTypes = 'Movie';
       } else if (libType == 'tvshows') {
         includeItemTypes = 'Series';
@@ -525,9 +573,16 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       final sortOrder = _sortAscending ? 'Ascending' : 'Descending';
       String? playedFilter;
       bool resumable = false;
-      if (_filterLabel == '续看') resumable = true;
-      if (_filterLabel == '未观看') playedFilter = 'unplayed';
-      if (_filterLabel == '已观看') playedFilter = 'played';
+      // Tab=1 播放记录：强制显示未看完的
+      if (widget.tab == 1) {
+        resumable = true;
+      } else if (_filterLabel == '续看') {
+        resumable = true;
+      } else if (_filterLabel == '未观看') {
+        playedFilter = 'unplayed';
+      } else if (_filterLabel == '已观看') {
+        playedFilter = 'played';
+      }
       final resp = await service.getLibraryItems(
         widget.library.id,
         limit: _limit,
