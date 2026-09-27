@@ -1,3 +1,10 @@
+## [2.215.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.2...v2.215.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* 演示模式tmdb背景图URL修复 ([4cffbd0](https://github.com/1525745393/EmbyTok-Flutter/commit/4cffbd0c78059e2561e098a39fd58445773d53ea))
+
 ## [2.215.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.1...v2.215.2) (2026-09-27)
 
 
