@@ -92,12 +92,13 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
     }
   }
 
-  /// 一键清空全部历史（从本地列表移除）
+  /// 一键清空全部历史（分批并发删除，每批 5 个）
   Future<void> clearAll() async {
-    for (final item in state.items) {
-      try {
-        await removeItem(item.id);
-      } catch (_) {}
+    final items = List.of(state.items);
+    for (var i = 0; i < items.length; i += 5) {
+      final batch = items.sublist(
+          i, i + 5 > items.length ? items.length : i + 5);
+      await Future.wait(batch.map((item) => removeItem(item.id)));
     }
     state = state.copyWith(items: []);
   }

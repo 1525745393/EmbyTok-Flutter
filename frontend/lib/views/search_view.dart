@@ -1,4 +1,5 @@
 // 搜索页：关键词输入 + 搜索建议 + 分组搜索结果 + 搜索历史
+// useScaffold=true: 独立路由模式；useScaffold=false: 覆盖层模式
 
 import 'dart:async';
 

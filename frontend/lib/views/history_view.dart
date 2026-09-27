@@ -200,7 +200,7 @@ class _HistoryViewState extends ConsumerState<HistoryView>
               child: const Icon(Icons.delete, color: Colors.white),
             ),
             confirmDismiss: (direction) async {
-              return await showDialog<bool>(
+              final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('删除记录'),
@@ -219,10 +219,17 @@ class _HistoryViewState extends ConsumerState<HistoryView>
                     ),
                   ) ??
                   false;
+              if (!confirmed) return false;
+              // 先调 API 删除，成功才允许 Dismissible 滑走
+              await ref.read(watchHistoryProvider.notifier).removeItem(item.id);
+              // API 失败时本地 state 未更新，返回 false 让 Dismissible 回弹
+              final stillInList = ref
+                  .read(watchHistoryProvider)
+                  .items
+                  .any((i) => i.id == item.id);
+              return !stillInList;
             },
-            onDismissed: (_) {
-              ref.read(watchHistoryProvider.notifier).removeItem(item.id);
-            },
+            onDismissed: (_) {},
             child: _HistoryTile(
                 key: Key(item.id), item: item, allItems: state.items),
           );
