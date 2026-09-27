@@ -126,7 +126,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                     ),
                     if (library.itemCount != null)
                       Text(
-                        '${library.itemCount} 项',
+                        '当前项目数: ${library.itemCount}',
                         style: TextStyle(
                           fontSize: 12,
                           color: scheme.onSurfaceVariant,
@@ -169,12 +169,16 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   late final ScrollController _scrollController;
   int _requestId = 0; // 竞态防护：只接受最新请求的结果
 
-  // 排序选项
+  // 排序选项（对标 Emby Web 排序菜单）
   static const _sortOptions = {
     '名称': ('SortName', 'Ascending'),
     '最新入库': ('DateCreated', 'Descending'),
     '评分': ('CommunityRating,SortName', 'Descending'),
     '上映年份': ('ProductionYear,SortName', 'Descending'),
+    '影评人评分': ('CriticRating,SortName', 'Descending'),
+    '播放日期': ('DatePlayed,SortName', 'Descending'),
+    '加入时间': ('DateContentLastAdded,SortName', 'Descending'),
+    '时长': ('Runtime,SortName', 'Descending'),
     '随机': ('Random', 'Ascending'),
   };
   String _sortLabel = '名称';
