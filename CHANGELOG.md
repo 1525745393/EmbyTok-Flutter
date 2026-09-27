@@ -1,3 +1,10 @@
+# [2.211.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.2...v2.211.0) (2026-09-27)
+
+
+### Features
+
+* 增强演示模式-覆盖推荐/续看/最新/类型/演员/搜索等端点 ([7f54e1e](https://github.com/1525745393/EmbyTok-Flutter/commit/7f54e1edc963bc722ff282fc0150f30f75df9f58))
+
 ## [2.210.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.210.1...v2.210.2) (2026-09-26)
 
 
