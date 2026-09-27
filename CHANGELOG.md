@@ -1,3 +1,10 @@
+# [2.217.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.216.0...v2.217.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式搜索对接TMDB实时API ([5bc0947](https://github.com/1525745393/EmbyTok-Flutter/commit/5bc0947f829b010d1e7da7e293ad8d63bc632fdb))
+
 # [2.216.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.3...v2.216.0) (2026-09-27)
 
 
