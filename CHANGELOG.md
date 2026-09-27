@@ -1,3 +1,10 @@
+# [2.220.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.219.0...v2.220.0) (2026-09-27)
+
+
+### Features
+
+* **P0:** 睡眠定时器 ([90236f3](https://github.com/1525745393/EmbyTok-Flutter/commit/90236f35741fd2a59b88f1f07bbcb52526b1f980))
+
 # [2.219.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.218.0...v2.219.0) (2026-09-27)
 
 
