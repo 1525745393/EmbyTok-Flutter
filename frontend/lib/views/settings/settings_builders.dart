@@ -136,7 +136,7 @@ extension _SettingsBuilders on SettingsView {
   Widget _buildSubtitleShadowTile(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(subtitleSettingsProvider);
     return SwitchListTile(
-      secondary: const Icon(Icons.layers_outline, color: Colors.teal),
+      secondary: const Icon(Icons.blur_on_outlined, color: Colors.teal),
       title: const Text('字幕阴影'),
       subtitle: Text(settings.shadowEnabled ? '已启用' : '已关闭'),
       value: settings.shadowEnabled,

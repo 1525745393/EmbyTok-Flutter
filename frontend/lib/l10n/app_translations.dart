@@ -73,7 +73,8 @@ class AppTranslations {
   }
 
   static AppTranslations of(BuildContext context) {
-    return Localizations.of<AppTranslations>(context) ?? AppTranslations(Locale('zh', 'CN'));
+    return Localizations.of<AppTranslations>(context, AppTranslations) ??
+        AppTranslations(const Locale('zh', 'CN'));
   }
 
   String get languageCode => '${locale.languageCode}_${locale.countryCode}';
