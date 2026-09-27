@@ -1,3 +1,10 @@
+# [2.213.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.212.0...v2.213.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式使用真实影片数据-10部电影+5部剧集 ([6a44233](https://github.com/1525745393/EmbyTok-Flutter/commit/6a442338e2d07f4682eeeed757e8833e005f56ca))
+
 # [2.212.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.211.1...v2.212.0) (2026-09-27)
 
 
