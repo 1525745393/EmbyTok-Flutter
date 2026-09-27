@@ -82,11 +82,27 @@ class DemoMockData {
       ];
     }
 
-    // ---- 收藏 GET 列表 ----
+    // ---- 收藏 GET 列表：返回前 5 部 trending 作为收藏 ----
     if (path.endsWith('/FavoriteItems') ||
         (path.contains('/FavoriteItems') &&
             !RegExp(r'/FavoriteItems/\w+').hasMatch(path))) {
-      return {'Items': <dynamic>[], 'TotalRecordCount': 0};
+      final all = DemoTmdbCache.allItems;
+      if (all.isEmpty) return {'Items': <dynamic>[], 'TotalRecordCount': 0};
+      final favCount = all.length < 5 ? all.length : 5;
+      final items = List.generate(favCount, (i) {
+        final item = _buildTmdbItem(all[i], i);
+        item['UserData'] = {
+          'IsFavorite': true,
+          'PlaybackPositionTicks': 0,
+          'PlayCount': 1,
+        };
+        return item;
+      });
+      return {
+        'Items': items,
+        'TotalRecordCount': favCount,
+        'StartIndex': 0,
+      };
     }
 
     // ---- 收藏 POST/DELETE ----
@@ -367,9 +383,11 @@ class DemoMockData {
       return {'Name': pid, 'Type': 'Actor', 'Overview': ''};
     }
 
-    // ---- 通用影片列表（兜底）----
+    // ---- 通用影片列表（兜底，支持分页）----
     if (path.contains('/Items')) {
-      return _itemList(20);
+      final startIndex = int.tryParse(query?['StartIndex']?.toString() ?? '');
+      final limit = int.tryParse(query?['Limit']?.toString() ?? '');
+      return _itemList(20, startIndex: startIndex, limit: limit);
     }
 
     return null;
@@ -406,19 +424,21 @@ class DemoMockData {
     return people;
   }
 
-  /// 从 TMDB 缓存生成影片列表
+  /// 从 TMDB 缓存生成影片列表（支持分页）
   static Map<String, dynamic> _itemList(int count,
-      {int offset = 0, bool withPosition = false}) {
+      {int offset = 0, bool withPosition = false, int? startIndex, int? limit}) {
     final all = DemoTmdbCache.allItems;
     final total = all.length;
     if (total == 0) {
       return {'Items': <dynamic>[], 'TotalRecordCount': 0, 'StartIndex': 0};
     }
-    final items = List.generate(count, (i) {
-      final idx = (offset + i) % total;
+    final start = startIndex ?? offset;
+    final n = limit ?? count;
+    final items = List.generate(n, (i) {
+      final idx = (start + i) % total;
       return _buildTmdbItem(all[idx], idx, withPosition: withPosition);
     });
-    return {'Items': items, 'TotalRecordCount': total, 'StartIndex': 0};
+    return {'Items': items, 'TotalRecordCount': total, 'StartIndex': start};
   }
 
   /// 从 TMDB JSON 构建 Emby item，同时把原始数据存入 extraItems 供详情页查找
