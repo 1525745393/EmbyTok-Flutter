@@ -577,7 +577,7 @@ class MediaItem {
     // 兼容旧版 ImageTags['Backdrop']（Map）格式。
     List<String>? tags = backdropImageTags;
     if (tags == null || tags.isEmpty) {
-      final mapTag = imageTags['Backdrop'];
+      final mapTag = imageTags?['Backdrop'];
       if (mapTag is String && mapTag.isNotEmpty) {
         tags = [mapTag];
       }
