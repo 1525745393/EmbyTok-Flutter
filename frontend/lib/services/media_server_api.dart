@@ -408,6 +408,24 @@ abstract class MediaServerApi {
     String? token,
   });
 
+  /// 获取稍后观看列表
+  Future<FavoritesPageResult> getWatchlist({
+    int limit = 50,
+    int offset = 0,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  });
+
+  /// 切换稍后观看状态
+  Future<void> toggleWatchlist({
+    required String itemId,
+    required bool isWatchlisted,
+    String? userId,
+    String? serverUrl,
+    String? token,
+  });
+
   /// 标记已看
   Future<void> markAsPlayed(
     String itemId, {
