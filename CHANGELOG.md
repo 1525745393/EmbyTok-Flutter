@@ -1,3 +1,16 @@
+# [2.229.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.228.0...v2.229.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* l10n Localizations.of参数+Icons名称修复 ([79671fa](https://github.com/1525745393/EmbyTok-Flutter/commit/79671fa407398cb1cdd33097aae3e78b99def660))
+
+
+### Features
+
+* P1多语言国际化基础框架(zh/en) ([16e830d](https://github.com/1525745393/EmbyTok-Flutter/commit/16e830da02e0edd497d77092f5e06cd7cb17a4b3))
+* P2字幕样式增强(颜色/位置/阴影/时间偏移) ([7e1fbce](https://github.com/1525745393/EmbyTok-Flutter/commit/7e1fbce1b622f53c2c4d08331a4856fee092f08f))
+
 # [2.228.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.3...v2.228.0) (2026-09-27)
 
 
