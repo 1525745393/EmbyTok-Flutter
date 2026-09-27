@@ -245,9 +245,71 @@ class DemoMockData {
         final idx = int.tryParse(id.replaceFirst('tmdb_', '')) ?? -1;
         final all = DemoTmdbCache.allItems;
         if (idx >= 0 && idx < all.length) {
-          return _buildTmdbItem(all[idx], idx);
+          final item = _buildTmdbItem(all[idx], idx);
+          // 异步加载真实演职员（导演+演员），替换随机演员
+          final tmdbId = all[idx]['id'] as int?;
+          if (tmdbId != null) {
+            final credits = await TmdbService.getMovieCredits(tmdbId);
+            if (credits.isNotEmpty) {
+              final castList = (credits['cast'] as List?) ?? [];
+              final crewList = (credits['crew'] as List?) ?? [];
+              final people = <Map<String, dynamic>>[];
+              // 导演
+              for (final c in crewList) {
+                if (c['job'] == 'Director') {
+                  people.add({
+                    'Name': c['name'] ?? 'Unknown',
+                    'Type': 'Director',
+                    'Id': 'person_dir_${tmdbId}',
+                    'PrimaryImageTag': c['profile_path'] ?? '',
+                  });
+                }
+              }
+              // 前 5 个演员
+              for (var i = 0; i < castList.length && i < 5; i++) {
+                final c = castList[i] as Map<String, dynamic>;
+                people.add({
+                  'Name': c['name'] ?? 'Unknown',
+                  'Type': 'Actor',
+                  'Id': 'person_tmdbcast_${c['id']}',
+                  'Role': c['character'] ?? '',
+                  'PrimaryImageTag': c['profile_path'] ?? '',
+                });
+              }
+              if (people.isNotEmpty) item['People'] = people;
+            }
+          }
+          return item;
         }
       }
+    }
+
+    // ---- 演员详情 /Persons/{id} ----
+    final personMatch = RegExp(r'/Persons/(person_\w+)').firstMatch(path);
+    if (personMatch != null) {
+      final pid = personMatch.group(1)!;
+      // 从 popular people 中找
+      for (var i = 0; i < DemoTmdbCache.people.length; i++) {
+        final p = DemoTmdbCache.people[i];
+        if ('person_popular_$i' == pid) {
+          return {
+            'Name': p['name'] ?? 'Unknown',
+            'Type': 'Actor',
+            'Id': pid,
+            'Overview': p['known_for_department'] ?? 'Actor',
+            'Birthday': p['birthday'] ?? '',
+            'PlaceOfBirth': p['place_of_birth'] ?? '',
+            'ProductionYear':
+                p['known_for'] is List && (p['known_for'] as List).isNotEmpty
+                    ? 0
+                    : 0,
+            'ImageTags': {
+              'Primary': p['profile_path'] ?? '',
+            },
+          };
+        }
+      }
+      return {'Name': pid, 'Type': 'Actor', 'Overview': ''};
     }
 
     // ---- 通用影片列表（兜底）----
