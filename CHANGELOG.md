@@ -1,3 +1,10 @@
+# [2.214.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.213.0...v2.214.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式封面和演员头像真实加载-picsum占位图 ([4ba7300](https://github.com/1525745393/EmbyTok-Flutter/commit/4ba7300c537d89eea55341900bdc8519aa9e9a02))
+
 # [2.213.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.212.0...v2.213.0) (2026-09-27)
 
 
