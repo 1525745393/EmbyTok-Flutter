@@ -1,7 +1,4 @@
 // 搜索页：关键词输入 + 搜索建议 + 分组搜索结果 + 搜索历史
-// 支持两种模式：
-//   useScaffold=true: 独立路由模式（含 Scaffold + AppBar，通过 GoRouter 路由访问）
-//   useScaffold=false: 覆盖层模式（仅内容，通过 HomeScaffold Stack 渲染，Provider 管理返回）
 
 import 'dart:async';
 
@@ -18,6 +15,12 @@ import '../utils/image_cache_manager.dart';
 import '../widgets/empty_state_card.dart';
 import '../widgets/error_state_card.dart';
 import '../widgets/person_avatar_image.dart';
+
+/// 热门搜索词（本地推荐，后续可对接服务端热搜 API）
+const List<String> _hotSearches = [
+  '电影', '剧集', '科幻', '动作', '喜剧',
+  '高分', '热门', '新片', '经典', '动画',
+];
 
 class SearchView extends ConsumerStatefulWidget {
   const SearchView({super.key, this.useScaffold = true, this.initialQuery});
@@ -454,8 +457,31 @@ class _SearchViewState extends ConsumerState<SearchView>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 8),
+          // 热门搜索
+          Text('热门搜索',
+              style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.7),
+                  fontSize: 14)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _hotSearches
+                .map((kw) => ActionChip(
+                      label: Text(kw,
+                          style: TextStyle(
+                              color: scheme.onSurface, fontSize: 13)),
+                      onPressed: () {
+                        _controller.text = kw;
+                        _doSearch(kw);
+                      },
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 20),
           // 搜索历史
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
