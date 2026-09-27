@@ -497,7 +497,6 @@ class MediaItem {
     2: '/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg', // 肖申克的救赎
     3: '/9xjZS2rlVxm8SFx8kPC3aIGCOJk.jpg', // 泰坦尼克号
     4: '/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg', // 阿凡达
-    10: '/1XwkCfL3zqJqJXz3JqJqJXz3JqJ.jpg', // 权力的游戏（占位，可能404）
   };
 
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
@@ -510,9 +509,12 @@ class MediaItem {
   }) {
     // TMDB 演示数据：ImageTags 存的是 poster_path，直拼 TMDB CDN
     if (id.startsWith('tmdb_')) {
-      final tags = imageTags;
-      if (tags == null) return null;
-      final path = tags[type] ?? tags['Primary'];
+      String? path;
+      if (type == 'Backdrop') {
+        final bts = backdropImageTags;
+        path = (bts != null && bts.isNotEmpty) ? bts.first : null;
+      }
+      path ??= imageTags?[type] ?? imageTags?['Primary'];
       if (path == null || path.isEmpty || !path.startsWith('/')) return null;
       final w = maxWidth <= 200
           ? 'w200'
@@ -556,6 +558,15 @@ class MediaItem {
   // 获取背景图 URL（从 BackdropImageTags 列表取第一个 tag）
   String? backdropUrl(
       {String? embyServerUrl, String? apiKey, int maxWidth = 1280}) {
+    // TMDB 演示数据：直拼 TMDB CDN
+    if (id.startsWith('tmdb_')) {
+      final bts = backdropImageTags;
+      if (bts == null || bts.isEmpty) return null;
+      final path = bts.first;
+      if (path.isEmpty || !path.startsWith('/')) return null;
+      final w = maxWidth <= 780 ? 'w780' : 'w1280';
+      return 'https://image.tmdb.org/t/p/$w$path';
+    }
     // 演示模式
     if (id.startsWith('demo_')) {
       return 'https://picsum.photos/seed/embytok_${id}_bg/$maxWidth/${(maxWidth * 9 ~/ 16)}';
