@@ -150,4 +150,18 @@ class TmdbService {
       return [];
     }
   }
+
+  /// 获取影片演职员（导演+演员）
+  static Future<Map<String, dynamic>> getMovieCredits(int movieId) async {
+    if (!isConfigured) return {};
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/movie/$movieId/credits?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return {};
+      return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
 }

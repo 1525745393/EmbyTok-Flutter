@@ -115,7 +115,62 @@ class DemoMockData {
 
     // ---- 相似推荐 ----
     if (path.contains('/Similar')) {
+      // 尝试从 /Items/{id}/Similar 提取影片 ID，调 TMDB recommendations
+      final simMatch = RegExp(r'/Items/(tmdb_\d+)/Similar').firstMatch(path);
+      if (simMatch != null) {
+        final idx = int.tryParse(
+                simMatch.group(1)!.replaceFirst('tmdb_', '')) ??
+            -1;
+        final all = DemoTmdbCache.allItems;
+        if (idx >= 0 && idx < all.length) {
+          final tmdbId = all[idx]['id'] as int?;
+          if (tmdbId != null) {
+            final recs = await TmdbService.getRecommendations(tmdbId);
+            if (recs.isNotEmpty) {
+              final items = recs
+                  .asMap()
+                  .entries
+                  .map((e) => _buildTmdbItem(e.value, 200 + e.key))
+                  .toList();
+              return {
+                'Items': items,
+                'TotalRecordCount': items.length,
+                'StartIndex': 0,
+              };
+            }
+          }
+        }
+      }
       return _itemList(6, offset: 3);
+    }
+
+    // ---- 类型筛选：/Items?Genres=xxx ----
+    if (path.contains('/Items') && query != null) {
+      final genreName = query['Genres'] as String?;
+      if (genreName != null && genreName.isNotEmpty) {
+        // 反查 genre ID
+        final genreId = DemoTmdbCache.genres.entries
+            .firstWhere(
+              (e) => e.value == genreName,
+              orElse: () => const MapEntry(0, ''),
+            )
+            .key;
+        if (genreId > 0) {
+          final results = await TmdbService.discoverByGenre(genreId);
+          if (results.isNotEmpty) {
+            final items = results
+                .asMap()
+                .entries
+                .map((e) => _buildTmdbItem(e.value, 300 + e.key))
+                .toList();
+            return {
+              'Items': items,
+              'TotalRecordCount': items.length,
+              'StartIndex': 0,
+            };
+          }
+        }
+      }
     }
 
     // ---- 类型 ----
