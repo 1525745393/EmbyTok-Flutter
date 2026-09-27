@@ -1,3 +1,10 @@
+## [2.225.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.4...v2.225.5) (2026-09-27)
+
+
+### Bug Fixes
+
+* toggleLibrary取消最后一个时保留当前选中而非清空 ([35ded4c](https://github.com/1525745393/EmbyTok-Flutter/commit/35ded4c56153fa9548ca4f8154c1c8b46db8ec25))
+
 ## [2.225.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.3...v2.225.4) (2026-09-27)
 
 
