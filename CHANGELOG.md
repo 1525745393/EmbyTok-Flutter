@@ -1,3 +1,19 @@
+# [2.227.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.226.0...v2.227.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* MediaServerApi抽象类添加watchlist方法声明 ([c5ea64a](https://github.com/1525745393/EmbyTok-Flutter/commit/c5ea64a166d3344c4371e8de987fa9c3472be024))
+* thumbnailUrlWithAuth传入serverUrl和apiKey参数 ([545d63f](https://github.com/1525745393/EmbyTok-Flutter/commit/545d63f831741e5aa0330160838828d5738e656b))
+* 修复继续观看区块的playedPercentage和backdropUrl参数 ([6333d67](https://github.com/1525745393/EmbyTok-Flutter/commit/6333d6767855a273052238c12ffcfd3d3a68e86d))
+
+
+### Features
+
+* 媒体库首页添加继续观看横滑区块（对标Emby Web） ([038556a](https://github.com/1525745393/EmbyTok-Flutter/commit/038556a7b7d26080271850d21c186229b9b00370))
+* 添加Watchlist(稍后观看)API和Provider层 ([9683817](https://github.com/1525745393/EmbyTok-Flutter/commit/96838170b4333ca861a0b14de48631a537db2a50))
+* 详情页添加稍后看按钮+独立稍后观看列表页 ([1d77eb6](https://github.com/1525745393/EmbyTok-Flutter/commit/1d77eb61478aac607d060e176c35253e6ce1e298))
+
 # [2.226.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.6...v2.226.0) (2026-09-27)
 
 
