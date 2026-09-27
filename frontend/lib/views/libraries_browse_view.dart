@@ -28,9 +28,9 @@ class LibrariesBrowseView extends ConsumerStatefulWidget {
 
 class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   Library? _selectedLibrary;
-  // 媒体库子 Tab（对标 Emby Web：电影/播放记录/合集）
+  // 媒体库子 Tab（对标 Emby Web：电影/播放记录/合集/分类）
   int _currentLibraryTab = 0;
-  static const _libraryTabs = ['电影', '播放记录', '合集'];
+  static const _libraryTabs = ['电影', '播放记录', '合集', '分类'];
 
   @override
   Widget build(BuildContext context) {
@@ -265,6 +265,9 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   int _viewMode = 0;
   bool get _isListView => _viewMode == 2;
   bool get _useBackdrop => _viewMode == 1;
+
+  // 分类 Tab：true=类型列表 false=该类型影片
+  bool _categoryShowList = true;
 
   @override
   void initState() {
@@ -690,8 +693,61 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       );
     }
 
+    // 分类 Tab：显示该库类型列表，点击后显示该类型影片
+    if (widget.tab == 3 && _categoryShowList) {
+      return FutureBuilder<List<String>>(
+        future: _loadServerGenres(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final genres = snapshot.data ?? [];
+          if (genres.isEmpty) {
+            return const Center(child: Text('暂无分类'));
+          }
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            children: genres.map((g) {
+              return ListTile(
+                leading: const Icon(Icons.label_outline),
+                title: Text(g),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  setState(() {
+                    _selectedGenre = g;
+                    _categoryShowList = false;
+                  });
+                  _loadItems();
+                },
+              );
+            }).toList(),
+          );
+        },
+      );
+    }
+
     return Column(
       children: [
+        // 分类 Tab：已选类型时的返回栏
+        if (widget.tab == 3 && !_categoryShowList)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => setState(() {
+                    _categoryShowList = true;
+                    _selectedGenre = null;
+                  }),
+                ),
+                Text(
+                  _selectedGenre ?? '',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
         // 批量选择模式顶部栏
         if (_selectionMode)
           Container(
