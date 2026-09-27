@@ -347,11 +347,13 @@ mixin EmbytokQueryApi on EmbytokServiceBase {
 
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     String? serverUrl,
     String? token,
   }) {
     return _api.getGenres(
       limit: limit,
+      parentId: parentId,
       serverUrl: serverUrl,
       token: token,
     );

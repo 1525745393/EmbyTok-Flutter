@@ -469,6 +469,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
       final auth = ref.read(authProvider);
       final service = ref.read(embytokServiceProvider);
       final genres = await service.getGenres(
+        parentId: widget.library.id,
         serverUrl: auth.embyServerUrl,
         token: auth.token,
       );
@@ -513,6 +514,8 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
         includeItemTypes = 'Movie';
       } else if (libType == 'tvshows') {
         includeItemTypes = 'Series';
+      } else if (libType == 'homevideos' || libType == 'boxsets') {
+        includeItemTypes = 'Movie,Series,Episode,Video';
       }
       final sort = _sortOptions[_sortLabel]!;
       final sortOrder = _sortAscending ? 'Ascending' : 'Descending';

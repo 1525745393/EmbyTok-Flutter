@@ -293,8 +293,8 @@ abstract class CachedMediaRepositoryBase {
     return 'children:$serverUrl:$token:$parentId:$limit:$offset';
   }
 
-  String _genresKey(int limit, String serverUrl, String token) {
-    return 'genres:$serverUrl:$token:$limit';
+  String _genresKey(int limit, String? parentId, String serverUrl, String token) {
+    return 'genres:$serverUrl:$token:$limit:${parentId ?? ""}';
   }
 
   String _collectionsKey(int limit, String serverUrl, String token) {

@@ -368,6 +368,7 @@ abstract class MediaRepository {
   /// 类型列表极少变化，适合长 TTL 缓存。
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     required String serverUrl,
     required String token,
   });

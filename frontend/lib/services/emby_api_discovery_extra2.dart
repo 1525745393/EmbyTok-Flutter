@@ -206,6 +206,7 @@ mixin _EmbyDiscoveryApi3 on EmbyServerApiBase {
 
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     String? serverUrl,
     String? token,
   }) async {
@@ -221,6 +222,7 @@ mixin _EmbyDiscoveryApi3 on EmbyServerApiBase {
         'Recursive': 'true',
         // 视频发现场景：只拉取视频类媒体类型，避免混入音乐/照片等流派
         'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
+        if (parentId != null && parentId.isNotEmpty) 'ParentId': parentId,
       };
       final resp = await _apiClient.get<dynamic>(
         '/Genres',

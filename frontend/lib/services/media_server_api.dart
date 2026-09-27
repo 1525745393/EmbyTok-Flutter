@@ -297,6 +297,7 @@ abstract class MediaServerApi {
   /// 类型列表（Genres）
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     String? serverUrl,
     String? token,
   });

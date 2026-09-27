@@ -528,15 +528,17 @@ mixin _CacheQueryApi on CachedMediaRepositoryBase {
 
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     required String serverUrl,
     required String token,
   }) {
-    final key = _genresKey(limit, serverUrl, token);
+    final key = _genresKey(limit, parentId, serverUrl, token);
     return _withCache(
         _genresCache,
         key,
         () => _inner.getGenres(
               limit: limit,
+              parentId: parentId,
               serverUrl: serverUrl,
               token: token,
             ),

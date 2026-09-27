@@ -505,11 +505,13 @@ class EmbyRepository implements MediaRepository {
   @override
   Future<List<Library>> getGenres({
     int limit = 100,
+    String? parentId,
     required String serverUrl,
     required String token,
   }) {
     return _service.getGenres(
       limit: limit,
+      parentId: parentId,
       serverUrl: serverUrl,
       token: token,
     );
