@@ -490,6 +490,16 @@ class MediaItem {
     return null;
   }
 
+  // 演示模式：demo index → TMDB poster path（真实电影海报）
+  static const Map<int, String> _demoPosters = {
+    0: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg', // 星际穿越
+    1: '/9gk7adHYeDk6vihnYdoV8iSdOv5.jpg', // 盗梦空间
+    2: '/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg', // 肖申克的救赎
+    3: '/9xjZS2rlVxm8SFx8kPC3aIGCOJk.jpg', // 泰坦尼克号
+    4: '/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg', // 阿凡达
+    10: '/1XwkCfL3zqJqJXz3JqJqJXz3JqJ.jpg', // 权力的游戏（占位，可能404）
+  };
+
   // 生成图片 URL（需要 Emby 服务器 URL 与 api_key/token）
   // type: Primary/Backdrop/Thumb/Art/Logo/Box/BoxRear
   String? imageUrl(
@@ -498,8 +508,14 @@ class MediaItem {
     String? apiKey,
     int maxWidth = 800,
   }) {
-    // 演示模式：demo item 返回 picsum 占位图，让封面真实可见
+    // 演示模式：优先用 TMDB 真实海报，未收录的回退 picsum
     if (id.startsWith('demo_')) {
+      final idx = int.tryParse(id.replaceFirst('demo_', '')) ?? 0;
+      final poster = _demoPosters[idx];
+      if (poster != null && type == 'Primary') {
+        final w = maxWidth <= 200 ? 'w200' : (maxWidth <= 300 ? 'w300' : 'w500');
+        return 'https://image.tmdb.org/t/p/$w$poster';
+      }
       final seed = 'embytok_$id';
       final h = type == 'Primary' ? (maxWidth * 1.5).round() : (maxWidth * 9 ~/ 16);
       return 'https://picsum.photos/seed/$seed/$maxWidth/$h';

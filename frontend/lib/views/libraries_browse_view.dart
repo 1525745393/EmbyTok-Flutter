@@ -1324,7 +1324,19 @@ class _LibraryListItem extends ConsumerWidget {
         auth.embyServerUrl != null &&
         auth.token != null) {
       if (item.id.startsWith('demo_')) {
-        thumbUrl = 'https://picsum.photos/seed/embytok_${item.id}/120/180';
+        // 演示模式：优先 TMDB 海报，未收录回退 picsum
+        final idx = int.tryParse(item.id.replaceFirst('demo_', '')) ?? 0;
+        const demoPosters = {
+          0: '/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',
+          1: '/9gk7adHYeDk6vihnYdoV8iSdOv5.jpg',
+          2: '/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg',
+          3: '/9xjZS2rlVxm8SFx8kPC3aIGCOJk.jpg',
+          4: '/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg',
+        };
+        final poster = demoPosters[idx];
+        thumbUrl = poster != null
+            ? 'https://image.tmdb.org/t/p/w200$poster'
+            : 'https://picsum.photos/seed/embytok_${item.id}/120/180';
       } else {
         thumbUrl =
             '${auth.embyServerUrl}/Items/${item.id}/Images/Primary?MaxWidth=120&Tag=$imageTag&api_key=${auth.token}';
