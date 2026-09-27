@@ -289,22 +289,30 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     });
   }
 
-  /// 批量收藏
+  /// 批量收藏（分批并发，每批 5 个）
   Future<void> _batchFavorite() async {
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
-    final ids = _selectedIds.toList();
+    final ids = _selectedIds.where((id) => !favorites.favoriteIds.contains(id)).toList();
+    if (ids.isEmpty) {
+      if (mounted) _exitSelectionMode();
+      return;
+    }
     int ok = 0;
-    for (final id in ids) {
-      try {
-        final isFav = favorites.favoriteIds.contains(id);
-        if (!isFav) {
+    for (var i = 0; i < ids.length; i += 5) {
+      final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
+      final results = await Future.wait(batch.map((id) async {
+        try {
           await service.toggleFavorite(itemId: id, isFavorite: true);
-          ok++;
+          return true;
+        } catch (_) {
+          return false;
         }
-      } catch (_) {}
+      }));
+      ok += results.where((r) => r).length;
     }
     if (mounted) {
+      ref.invalidate(favoritesProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('已收藏 $ok/${ids.length} 部影片')),
       );
@@ -312,22 +320,30 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     }
   }
 
-  /// 批量取消收藏
+  /// 批量取消收藏（分批并发，每批 5 个）
   Future<void> _batchUnfavorite() async {
     final service = ref.read(embytokServiceProvider);
     final favorites = ref.read(favoritesProvider);
-    final ids = _selectedIds.toList();
+    final ids = _selectedIds.where((id) => favorites.favoriteIds.contains(id)).toList();
+    if (ids.isEmpty) {
+      if (mounted) _exitSelectionMode();
+      return;
+    }
     int ok = 0;
-    for (final id in ids) {
-      try {
-        final isFav = favorites.favoriteIds.contains(id);
-        if (isFav) {
+    for (var i = 0; i < ids.length; i += 5) {
+      final batch = ids.sublist(i, i + 5 > ids.length ? ids.length : i + 5);
+      final results = await Future.wait(batch.map((id) async {
+        try {
           await service.toggleFavorite(itemId: id, isFavorite: false);
-          ok++;
+          return true;
+        } catch (_) {
+          return false;
         }
-      } catch (_) {}
+      }));
+      ok += results.where((r) => r).length;
     }
     if (mounted) {
+      ref.invalidate(favoritesProvider);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('已取消收藏 $ok/${ids.length} 部影片')),
       );
