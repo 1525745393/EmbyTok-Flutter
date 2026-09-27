@@ -1,3 +1,10 @@
+## [2.215.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.0...v2.215.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* 演示模式审查修复-API key/demo重试/MediaSource/People ([933e12c](https://github.com/1525745393/EmbyTok-Flutter/commit/933e12c00862cb5baa32048b7f4e2978f0d5c956))
+
 # [2.215.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.214.0...v2.215.0) (2026-09-27)
 
 
