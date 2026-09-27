@@ -375,6 +375,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit = 100,
     String? serverUrl,
     String? token,
+    String? parentId,
   }) =>
       super.noSuchMethod(
         Invocation.method(#getGenres, [], {
