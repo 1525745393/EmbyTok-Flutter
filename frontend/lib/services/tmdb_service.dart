@@ -164,4 +164,40 @@ class TmdbService {
       return {};
     }
   }
+
+  /// 按分类获取影片列表
+  /// category: popular / top_rated / upcoming / now_playing
+  static Future<List<Map<String, dynamic>>> getMovieList(
+      String category) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/movie/$category?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 获取演员作品
+  static Future<List<Map<String, dynamic>>> getPersonMovieCredits(
+      int personId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/person/$personId/combined_credits?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final cast = (data['cast'] as List?) ?? [];
+      return cast.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

@@ -102,6 +102,7 @@ class DemoMockData {
       };
     }
     if (path.contains('/Items/Latest') || path.endsWith('/Latest')) {
+      // 最新影片 = trending（已在缓存中）
       return _itemList(10, offset: 0);
     }
     if (path.contains('/Shows/NextUp')) {
@@ -110,6 +111,44 @@ class DemoMockData {
     if (path.contains('/Shows/Recommended') ||
         path.contains('/Movies/Recommendations') ||
         path.contains('/Suggestions')) {
+      // 根据 query 参数选择不同 TMDB 分类
+      if (query != null) {
+        // 高分影片
+        if (query['SortBy'] == 'CommunityRating' ||
+            query['MinCommunityRating'] != null) {
+          final results = await TmdbService.getMovieList('top_rated');
+          if (results.isNotEmpty) {
+            final items = results
+                .asMap()
+                .entries
+                .map((e) => _buildTmdbItem(e.value, 400 + e.key))
+                .toList();
+            return {
+              'Items': items,
+              'TotalRecordCount': items.length,
+              'StartIndex': 0,
+            };
+          }
+        }
+        // 即将上映
+        if (query['IsAiring'] == 'false' &&
+            query['Recursive'] == 'true' &&
+            query['SortBy'] == 'PremiereDate,Ascending') {
+          final results = await TmdbService.getMovieList('upcoming');
+          if (results.isNotEmpty) {
+            final items = results
+                .asMap()
+                .entries
+                .map((e) => _buildTmdbItem(e.value, 500 + e.key))
+                .toList();
+            return {
+              'Items': items,
+              'TotalRecordCount': items.length,
+              'StartIndex': 0,
+            };
+          }
+        }
+      }
       return _itemList(10);
     }
 
