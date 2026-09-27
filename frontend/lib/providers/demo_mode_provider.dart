@@ -14,6 +14,11 @@ class DemoTmdbCache {
   static final List<Map<String, dynamic>> tvShows = [];
   static Map<int, String> genres = {};
   static final List<Map<String, dynamic>> people = [];
+
+  /// 额外影片缓存：搜索/相似/类型筛选等 API 返回的影片，按 ID 索引
+  /// 以便详情页能根据 tmdb_ ID 找回原始 TMDB 数据
+  static final Map<String, Map<String, dynamic>> extraItems = {};
+
   static bool loaded = false;
 
   static Future<void> load() async {
@@ -281,40 +286,32 @@ class DemoMockData {
       final id = singleItemMatch.group(1)!;
       const reserved = {'Latest', 'Resume', 'Counts', 'Similar', 'Children'};
       if (!reserved.contains(id) && id.startsWith('tmdb_')) {
+        // 先从 extraItems 找（搜索/相似/类型筛选返回的影片）
+        final extra = DemoTmdbCache.extraItems[id];
+        if (extra != null) {
+          final idx = int.tryParse(id.replaceFirst('tmdb_', '')) ?? 0;
+          final item = _buildTmdbItem(extra, idx);
+          // 异步加载真实演职员
+          final tmdbId = extra['id'] as int?;
+          if (tmdbId != null) {
+            final credits = await TmdbService.getMovieCredits(tmdbId);
+            if (credits.isNotEmpty) {
+              final people = _extractCredits(credits);
+              if (people.isNotEmpty) item['People'] = people;
+            }
+          }
+          return item;
+        }
+        // 再从 trending 缓存找
         final idx = int.tryParse(id.replaceFirst('tmdb_', '')) ?? -1;
         final all = DemoTmdbCache.allItems;
         if (idx >= 0 && idx < all.length) {
           final item = _buildTmdbItem(all[idx], idx);
-          // 异步加载真实演职员（导演+演员），替换随机演员
           final tmdbId = all[idx]['id'] as int?;
           if (tmdbId != null) {
             final credits = await TmdbService.getMovieCredits(tmdbId);
             if (credits.isNotEmpty) {
-              final castList = (credits['cast'] as List?) ?? [];
-              final crewList = (credits['crew'] as List?) ?? [];
-              final people = <Map<String, dynamic>>[];
-              // 导演
-              for (final c in crewList) {
-                if (c['job'] == 'Director') {
-                  people.add({
-                    'Name': c['name'] ?? 'Unknown',
-                    'Type': 'Director',
-                    'Id': 'person_dir_${tmdbId}',
-                    'PrimaryImageTag': c['profile_path'] ?? '',
-                  });
-                }
-              }
-              // 前 5 个演员
-              for (var i = 0; i < castList.length && i < 5; i++) {
-                final c = castList[i] as Map<String, dynamic>;
-                people.add({
-                  'Name': c['name'] ?? 'Unknown',
-                  'Type': 'Actor',
-                  'Id': 'person_tmdbcast_${c['id']}',
-                  'Role': c['character'] ?? '',
-                  'PrimaryImageTag': c['profile_path'] ?? '',
-                });
-              }
+              final people = _extractCredits(credits);
               if (people.isNotEmpty) item['People'] = people;
             }
           }
@@ -338,14 +335,33 @@ class DemoMockData {
             'Overview': p['known_for_department'] ?? 'Actor',
             'Birthday': p['birthday'] ?? '',
             'PlaceOfBirth': p['place_of_birth'] ?? '',
-            'ProductionYear':
-                p['known_for'] is List && (p['known_for'] as List).isNotEmpty
-                    ? 0
-                    : 0,
+            'ProductionYear': 0,
             'ImageTags': {
               'Primary': p['profile_path'] ?? '',
             },
           };
+        }
+      }
+      // person_tmdbcast_ 前缀：从 credits 演员中找头像
+      if (pid.startsWith('person_tmdbcast_')) {
+        final personId = int.tryParse(pid.replaceFirst('person_tmdbcast_', ''));
+        if (personId != null) {
+          for (final p in DemoTmdbCache.people) {
+            if (p['id'] == personId) {
+              return {
+                'Name': p['name'] ?? 'Unknown',
+                'Type': 'Actor',
+                'Id': pid,
+                'Overview': p['known_for_department'] ?? 'Actor',
+                'Birthday': p['birthday'] ?? '',
+                'PlaceOfBirth': p['place_of_birth'] ?? '',
+                'ProductionYear': 0,
+                'ImageTags': {
+                  'Primary': p['profile_path'] ?? '',
+                },
+              };
+            }
+          }
         }
       }
       return {'Name': pid, 'Type': 'Actor', 'Overview': ''};
@@ -360,6 +376,35 @@ class DemoMockData {
   }
 
   // ---- 辅助方法 ----
+
+  /// 从 TMDB credits JSON 提取导演+演员列表
+  static List<Map<String, dynamic>> _extractCredits(
+      Map<String, dynamic> credits) {
+    final castList = (credits['cast'] as List?) ?? [];
+    final crewList = (credits['crew'] as List?) ?? [];
+    final people = <Map<String, dynamic>>[];
+    for (final c in crewList) {
+      if (c['job'] == 'Director') {
+        people.add({
+          'Name': c['name'] ?? 'Unknown',
+          'Type': 'Director',
+          'Id': 'person_dir_${c["id"]}',
+          'PrimaryImageTag': c['profile_path'] ?? '',
+        });
+      }
+    }
+    for (var i = 0; i < castList.length && i < 5; i++) {
+      final c = castList[i] as Map<String, dynamic>;
+      people.add({
+        'Name': c['name'] ?? 'Unknown',
+        'Type': 'Actor',
+        'Id': 'person_tmdbcast_${c["id"]}',
+        'Role': c['character'] ?? '',
+        'PrimaryImageTag': c['profile_path'] ?? '',
+      });
+    }
+    return people;
+  }
 
   /// 从 TMDB 缓存生成影片列表
   static Map<String, dynamic> _itemList(int count,
@@ -376,9 +421,12 @@ class DemoMockData {
     return {'Items': items, 'TotalRecordCount': total, 'StartIndex': 0};
   }
 
-  /// 从 TMDB JSON 构建 Emby item
+  /// 从 TMDB JSON 构建 Emby item，同时把原始数据存入 extraItems 供详情页查找
   static Map<String, dynamic> _buildTmdbItem(Map<String, dynamic> m, int idx,
       {bool withPosition = false}) {
+    final id = 'tmdb_$idx';
+    DemoTmdbCache.extraItems[id] = m;
+
     final isTv = m['title'] == null;
     final poster = m['poster_path'] as String? ?? '';
     final backdrop = m['backdrop_path'] as String? ?? '';
