@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
+import 'media_server_api_provider.dart';
 
 /// 观看历史状态：从 Emby 获取最近播放（Resume）的视频列表
 class WatchHistoryState {
@@ -70,6 +71,35 @@ class WatchHistoryNotifier extends StateNotifier<WatchHistoryState> {
   // 刷新观看历史
   Future<void> refresh() async {
     await load();
+  }
+
+  /// 删除单条历史记录（调用 Emby API 清除播放进度）
+  Future<void> removeItem(String itemId) async {
+    final auth = _ref.read(authProvider);
+    if (auth.user?.id == null) return;
+    try {
+      await _ref.read(mediaServerApiProvider).markAsUnplayed(
+            itemId,
+            serverUrl: auth.embyServerUrl!,
+            token: auth.token!,
+          );
+      state = state.copyWith(
+        items: state.items.where((i) => i.id != itemId).toList(),
+      );
+      AppLogger.info('已删除历史记录', data: {'itemId': itemId});
+    } catch (e) {
+      AppLogger.error('删除历史记录失败', error: e);
+    }
+  }
+
+  /// 一键清空全部历史（从本地列表移除）
+  Future<void> clearAll() async {
+    for (final item in state.items) {
+      try {
+        await removeItem(item.id);
+      } catch (_) {}
+    }
+    state = state.copyWith(items: []);
   }
 }
 

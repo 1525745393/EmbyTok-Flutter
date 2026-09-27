@@ -33,6 +33,29 @@ class _HistoryViewState extends ConsumerState<HistoryView>
     });
   }
 
+  Future<void> _confirmClearAll(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空观看历史'),
+        content: const Text('将删除全部观看记录，此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清空', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(watchHistoryProvider.notifier).clearAll();
+    }
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -89,6 +112,14 @@ class _HistoryViewState extends ConsumerState<HistoryView>
               const Text('观看历史'),
             ],
           ),
+          actions: [
+            if (state.items.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.delete_sweep, size: 22),
+                tooltip: '清空全部',
+                onPressed: () => _confirmClearAll(context, ref),
+              ),
+          ],
         ),
         body: SafeArea(
           child: _buildBody(state),
@@ -156,8 +187,45 @@ class _HistoryViewState extends ConsumerState<HistoryView>
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final item = state.items[index];
-          return _HistoryTile(
-              key: Key(item.id), item: item, allItems: state.items);
+          return Dismissible(
+            key: Key('hist_${item.id}'),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            confirmDismiss: (direction) async {
+              return await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('删除记录'),
+                      content: Text('删除「${item.title}」的观看记录？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('取消'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('删除',
+                              style: TextStyle(color: Colors.red)),
+                        ),
+                      ],
+                    ),
+                  ) ??
+                  false;
+            },
+            onDismissed: (_) {
+              ref.read(watchHistoryProvider.notifier).removeItem(item.id);
+            },
+            child: _HistoryTile(
+                key: Key(item.id), item: item, allItems: state.items),
+          );
         },
       ),
     );
