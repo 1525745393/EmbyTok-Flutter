@@ -261,8 +261,10 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   bool _showSearch = false;
   final _searchController = TextEditingController();
 
-  // 视图模式：grid 网格 / list 列表
-  bool _isListView = false;
+  // 视图模式：0=竖版海报网格 1=横版海报网格(Backdrop 16:9) 2=列表
+  int _viewMode = 0;
+  bool get _isListView => _viewMode == 2;
+  bool get _useBackdrop => _viewMode == 1;
 
   @override
   void initState() {
@@ -842,15 +844,24 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 // 视图切换（列表/网格）
                 IconButton(
                   icon: Icon(
-                    _isListView ? Icons.grid_view : Icons.view_list,
+                    _viewMode == 0
+                        ? Icons.grid_view
+                        : _viewMode == 1
+                            ? Icons.rectangle
+                            : Icons.view_list,
                     size: 18,
                     color: scheme.onSurfaceVariant,
                   ),
-                  tooltip: _isListView ? '网格视图' : '列表视图',
-                  onPressed: () => setState(() => _isListView = !_isListView),
+                  tooltip: _viewMode == 0
+                      ? '竖版海报'
+                      : _viewMode == 1
+                          ? '横版海报'
+                          : '列表视图',
+                  onPressed: () =>
+                      setState(() => _viewMode = (_viewMode + 1) % 3),
                 ),
-                // 网格密度切换（仅网格视图时可用）
-                if (!_isListView)
+                // 网格密度切换（仅竖版网格视图时可用）
+                if (!_isListView && !_useBackdrop)
                   IconButton(
                     icon: Icon(
                       Icons.grid_on,
@@ -1134,12 +1145,17 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                 // 网格视图：根据密度和屏幕宽度计算列数
                 int crossAxisCount;
                 double childRatio;
-                if (width >= 600) {
+                if (_useBackdrop) {
+                  // 横版海报（Backdrop 16:9，对标 Emby Web）
+                  crossAxisCount = 1;
+                  childRatio = 16 / 9.5;
+                } else if (width >= 600) {
                   crossAxisCount = _gridDensity == 1 ? 3 : _gridDensity == 2 ? 4 : 5;
+                  childRatio = _gridDensity == 1 ? 0.55 : 0.67;
                 } else {
                   crossAxisCount = _gridDensity == 1 ? 2 : _gridDensity == 2 ? 3 : 4;
+                  childRatio = _gridDensity == 1 ? 0.55 : 0.67;
                 }
-                childRatio = _gridDensity == 1 ? 0.55 : 0.67; // 大图更高
                 return GridView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -1157,6 +1173,84 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                     // NEW 标签：7天内添加的影片（左上角，与未观看蓝点错开）
                     final isNew = item.dateCreated != null &&
                         DateTime.now().difference(item.dateCreated!).inDays <= 7;
+
+                    // 横版海报模式（Backdrop 16:9，对标 Emby Web）
+                    if (_useBackdrop) {
+                      final auth = ref.read(authProvider);
+                      final backdrop = item.backdropUrl(
+                        embyServerUrl: auth.embyServerUrl,
+                        apiKey: auth.token,
+                        maxWidth: 1280,
+                      );
+                      return GestureDetector(
+                        onTap: _selectionMode
+                            ? () => _toggleSelection(item.id)
+                            : () => context.push('/item/${item.id}', extra: item),
+                        onLongPress: _selectionMode
+                            ? null
+                            : () => _enterSelectionMode(item.id),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (backdrop != null)
+                                CachedNetworkImage(
+                                  imageUrl: backdrop,
+                                  fit: BoxFit.cover,
+                                  cacheManager: AppImageCacheManager.thumbnail,
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: scheme.surfaceContainerHighest,
+                                    child: const Icon(Icons.movie, size: 48),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  color: scheme.surfaceContainerHighest,
+                                  child: const Icon(Icons.movie, size: 48),
+                                ),
+                              // 底部渐变 + 标题
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withValues(alpha: 0.7),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Text(
+                                    item.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (selected)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Icon(Icons.check_circle,
+                                      color: scheme.primary, size: 24),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
                     return Stack(
                       children: [
                         VideoGridCard(
