@@ -1,3 +1,17 @@
+# [2.218.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.217.0...v2.218.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* 演示模式详情页缓存ExtraItems+演员详情修复 ([e58e1f2](https://github.com/1525745393/EmbyTok-Flutter/commit/e58e1f2de71d00b9555a1c05bc3979c4cafb1ec5))
+
+
+### Features
+
+* 演示模式影片详情加载真实演职员+演员详情页 ([541ae1c](https://github.com/1525745393/EmbyTok-Flutter/commit/541ae1c1d80da2d987e0c2cd073c62d57beb9b89))
+* 演示模式推荐分类对接TMDB-top_rated/upcoming ([55c6589](https://github.com/1525745393/EmbyTok-Flutter/commit/55c6589982a2d92245a773752bfbf6233a1295dc))
+* 演示模式相似推荐和类型筛选对接TMDB实时API ([3dc4ca5](https://github.com/1525745393/EmbyTok-Flutter/commit/3dc4ca56184cfe21b5834951e2278d8052e382bf))
+
 # [2.217.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.216.0...v2.217.0) (2026-09-27)
 
 
