@@ -1,3 +1,20 @@
+# [2.226.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.6...v2.226.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* 修复MediaItem字段名name→title,移除不存在的isFolder ([f587d26](https://github.com/1525745393/EmbyTok-Flutter/commit/f587d26dc9be0b1b8a8ca5441f7f8fba3efcfd5e))
+* 文件夹Tab加载添加竞态防护 ([90ff793](https://github.com/1525745393/EmbyTok-Flutter/commit/90ff793a26b444afce1f3537363928690389f9f6))
+
+
+### Features
+
+* 媒体库对标Emby Web - 补全排序选项+项目数文案 ([41cc191](https://github.com/1525745393/EmbyTok-Flutter/commit/41cc191bd36042c391527d64c270c42bc24ec686))
+* 媒体库添加分类Tab（类型列表→点击类型筛选影片） ([0229042](https://github.com/1525745393/EmbyTok-Flutter/commit/02290422300ce8e069e571aaf559db07ecbf52b6))
+* 媒体库添加文件夹Tab（递归浏览文件夹结构） ([9068068](https://github.com/1525745393/EmbyTok-Flutter/commit/9068068ebb9d03241f0e9a17bd3188cddbd50681))
+* 媒体库添加横版海报视图(Backdrop 16:9)对标Emby Web ([cee5a20](https://github.com/1525745393/EmbyTok-Flutter/commit/cee5a204ec669c8631a4f383c0ef930285cba435))
+* 媒体库页添加子Tab栏（电影/播放记录/合集）对标Emby Web ([9660ecf](https://github.com/1525745393/EmbyTok-Flutter/commit/9660ecf1c88688a2a03d58b8672f9ba49b094e82))
+
 ## [2.225.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.5...v2.225.6) (2026-09-27)
 
 
