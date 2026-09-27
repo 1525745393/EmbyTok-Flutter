@@ -52,31 +52,27 @@ class DemoMockData {
       ];
     }
 
-    // ---- 收藏 POST/DELETE（返回空成功）----
+    // ---- 收藏 GET 列表 ----
+    if (path.endsWith('/FavoriteItems') ||
+        (path.contains('/FavoriteItems') && !RegExp(r'/FavoriteItems/\w+').hasMatch(path))) {
+      return {'Items': <dynamic>[], 'TotalRecordCount': 0};
+    }
+
+    // ---- 收藏 POST/DELETE（返回成功）----
     if (path.contains('/FavoriteItems/') &&
         RegExp(r'/FavoriteItems/\w+').hasMatch(path)) {
       return {'Success': true};
     }
 
-    // ---- 单 item 详情 ----
-    final singleItemMatch = RegExp(r'/Items/([^/?]+)').firstMatch(path);
-    if (singleItemMatch != null && !path.contains('/Similar') && !path.contains('/Children')) {
-      final id = singleItemMatch.group(1)!;
-      final index = int.tryParse(id.replaceAll('demo_', '')) ?? 0;
-      return _demoItem(index);
-    }
-
-    // ---- 相似推荐 ----
-    if (path.contains('/Similar')) {
-      return _itemList(10, offset: 10);
-    }
-
-    // ---- 续看 / 最新 / 推荐 / 追剧 ----
-    if (path.contains('/Items/Resume') || path.contains('/Resume')) {
+    // ---- 续看 / 最新（必须在单 item 正则之前匹配）----
+    if (path.contains('/Items/Resume') || path.endsWith('/Resume')) {
       return _itemList(8, withPosition: true);
     }
-    if (path.contains('/Items/Latest') || path.contains('/Latest')) {
+    if (path.contains('/Items/Latest') || path.endsWith('/Latest')) {
       return _itemList(12, offset: 20);
+    }
+    if (path.contains('/Items/Counts')) {
+      return {'Movie': 120, 'Series': 45, 'Episode': 800};
     }
     if (path.contains('/Shows/NextUp')) {
       return _itemList(6, type: 'Episode');
@@ -87,12 +83,17 @@ class DemoMockData {
       return _itemList(10, offset: 5);
     }
 
+    // ---- 相似推荐 ----
+    if (path.contains('/Similar')) {
+      return _itemList(10, offset: 10);
+    }
+
     // ---- 类型 / 演员 / 工作室 / 标签 ----
-    if (path.endsWith('/Genres') || path.contains('/Genres?')) {
+    if (path.endsWith('/Genres')) {
       return {'Items': [for (var g in _genres) {'Name': g, 'MovieCount': 5}], 'TotalRecordCount': _genres.length};
     }
-    if (path.contains('/Persons') || path.endsWith('/Persons')) {
-      return {'Items': [for (var a in _actors) {'Name': a, 'Type': 'Actor', 'Id': 'person_$_actors.indexOf(a)'}], 'TotalRecordCount': _actors.length};
+    if (path.endsWith('/Persons')) {
+      return {'Items': [for (var i = 0; i < _actors.length; i++) {'Name': _actors[i], 'Type': 'Actor', 'Id': 'person_$i'}], 'TotalRecordCount': _actors.length};
     }
     if (path.contains('/Studios')) {
       return {'Items': [for (var s in _studios) {'Name': s}], 'TotalRecordCount': _studios.length};
@@ -106,12 +107,19 @@ class DemoMockData {
       return _itemList(5);
     }
 
-    // ---- 计数 ----
-    if (path.contains('/Items/Counts')) {
-      return {'Movie': 120, 'Series': 45, 'Episode': 800};
+    // ---- 单 item 详情（排除保留字后最后匹配）----
+    final singleItemMatch = RegExp(r'/Items/([^/?]+)').firstMatch(path);
+    if (singleItemMatch != null) {
+      final id = singleItemMatch.group(1)!;
+      // 排除非 item 的保留路径段
+      const reserved = {'Latest', 'Resume', 'Counts', 'Similar', 'Children'};
+      if (!reserved.contains(id)) {
+        final index = int.tryParse(id.replaceAll('demo_', '')) ?? 0;
+        return _demoItem(index);
+      }
     }
 
-    // ---- 通用影片列表（最后匹配，兜底）----
+    // ---- 通用影片列表（兜底）----
     if (path.contains('/Items')) {
       final limit = query?['Limit'] ?? 30;
       final count = limit is int ? limit : 20;
