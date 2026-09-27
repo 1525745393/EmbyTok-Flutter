@@ -573,9 +573,15 @@ class MediaItem {
     }
     final url = embyServerUrl;
     if (url == null || url.isEmpty) return null;
-    // Emby 返回的 Backdrop tag 在 BackdropImageTags（List<String>）中，
-    // 不在 ImageTags（Map）中，需单独取第一个 tag 构建 URL。
-    final tags = backdropImageTags;
+    // Emby 返回的 Backdrop tag 优先在 BackdropImageTags（List<String>）中，
+    // 兼容旧版 ImageTags['Backdrop']（Map）格式。
+    List<String>? tags = backdropImageTags;
+    if (tags == null || tags.isEmpty) {
+      final mapTag = imageTags['Backdrop'];
+      if (mapTag is String && mapTag.isNotEmpty) {
+        tags = [mapTag];
+      }
+    }
     if (tags == null || tags.isEmpty) return null;
     final tag = tags.first;
     if (tag.isEmpty) return null;
