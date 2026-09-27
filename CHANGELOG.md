@@ -1,3 +1,10 @@
+# [2.212.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.211.1...v2.212.0) (2026-09-27)
+
+
+### Features
+
+* 演示模式对齐真实登录-注入mock auth state和详情字段 ([63b9c8a](https://github.com/1525745393/EmbyTok-Flutter/commit/63b9c8a28ba3f2d880d22f86005ba1a93b4ae736))
+
 ## [2.211.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.211.0...v2.211.1) (2026-09-27)
 
 
