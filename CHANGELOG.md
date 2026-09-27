@@ -1,3 +1,11 @@
+# [2.230.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.229.0...v2.230.0) (2026-09-27)
+
+
+### Features
+
+* P2无障碍支持(按钮焦点色+语义标签) ([c75b372](https://github.com/1525745393/EmbyTok-Flutter/commit/c75b372ee642fac64cdbe4d97de64f499b65fbc3))
+* P2深链接解析器(Emby Web URL提取itemId) ([9dfc7f9](https://github.com/1525745393/EmbyTok-Flutter/commit/9dfc7f92271bcb67025ce3bf49713add269ae59b))
+
 # [2.229.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.228.0...v2.229.0) (2026-09-27)
 
 
