@@ -1,3 +1,10 @@
+# [2.221.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.220.0...v2.221.0) (2026-09-27)
+
+
+### Features
+
+* **P1:** 观看历史管理增强 ([b59fda3](https://github.com/1525745393/EmbyTok-Flutter/commit/b59fda3c6c2e2d4fb880677aeebd4f0da013efbf))
+
 # [2.220.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.219.0...v2.220.0) (2026-09-27)
 
 
