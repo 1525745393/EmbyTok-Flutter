@@ -16,15 +16,18 @@ class DemoTmdbCache {
 
   static Future<void> load() async {
     if (loaded) return;
-    loaded = true;
     final results = await TmdbService.getTrendingMovies();
-    movies
-      ..clear()
-      ..addAll(results);
     final tv = await TmdbService.getTrendingTv();
-    tvShows
-      ..clear()
-      ..addAll(tv);
+    // 仅在有数据时标记 loaded，失败允许下次重试
+    if (results.isNotEmpty || tv.isNotEmpty) {
+      movies
+        ..clear()
+        ..addAll(results);
+      tvShows
+        ..clear()
+        ..addAll(tv);
+      loaded = true;
+    }
   }
 }
 
@@ -397,8 +400,25 @@ class DemoMockData {
         'PlaybackPositionTicks': withPosition ? 1800000000 : 0,
         'PlayCount': idx % 2,
       },
-      'Studios': const [],
-      'MediaSources': const [],
+      'Studios': const [
+        {'Name': 'TMDB Studio', 'Id': 'studio_tmdb'},
+      ],
+      'MediaSources': [
+        {
+          'Id': 'src_tmdb_$idx',
+          'Name': 'Blu-ray 1080p',
+          'Container': 'mkv',
+          'Size': 8000000000,
+        },
+      ],
+      'People': [
+        {
+          'Name': 'Demo Actor ${idx + 1}',
+          'Type': 'Actor',
+          'Id': 'person_tmdb_${idx}_0',
+          'Role': '主演',
+        },
+      ],
     };
   }
 
