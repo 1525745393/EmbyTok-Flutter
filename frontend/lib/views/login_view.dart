@@ -472,6 +472,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
       embyServerUrl: 'https://demo.emby.local',
       token: 'demo_token',
     );
+    // 异步从 TMDB 加载真实影片数据（海报/简介/评分），加载后下拉刷新即可看到
+    DemoTmdbCache.load().then((_) {
+      AppLogger.info('TMDB 演示数据加载完成: ${DemoTmdbCache.movies.length} 部电影, ${DemoTmdbCache.tvShows.length} 部剧集');
+    });
     AppLogger.info('进入演示模式');
     context.go('/');
   }

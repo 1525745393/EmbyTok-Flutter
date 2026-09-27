@@ -1,11 +1,32 @@
 // 演示模式：无服务器浏览完整 UI
 //
 // 激活后 ApiClient 拦截器返回预设 mock 数据，所有页面可正常浏览。
-// 数据使用真实热门影片/剧集元数据，图片由 Image.network 加载失败时显示占位图。
+// 优先从 TMDB API 获取真实影片数据（海报/简介/评分），失败回退本地硬编码。
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/tmdb_service.dart';
 
 /// 演示模式开关
 final demoModeProvider = StateProvider<bool>((ref) => false);
+
+/// TMDB 真实数据缓存（演示模式启动时异步填充）
+class DemoTmdbCache {
+  static final List<Map<String, dynamic>> movies = [];
+  static final List<Map<String, dynamic>> tvShows = [];
+  static bool loaded = false;
+
+  static Future<void> load() async {
+    if (loaded) return;
+    loaded = true;
+    final results = await TmdbService.getTrendingMovies();
+    movies
+      ..clear()
+      ..addAll(results);
+    final tv = await TmdbService.getTrendingTv();
+    tvShows
+      ..clear()
+      ..addAll(tv);
+  }
+}
 
 /// 演示模式 mock 数据生成器
 class DemoMockData {
@@ -296,6 +317,17 @@ class DemoMockData {
       final id = singleItemMatch.group(1)!;
       const reserved = {'Latest', 'Resume', 'Counts', 'Similar', 'Children'};
       if (!reserved.contains(id)) {
+        // TMDB 数据
+        if (id.startsWith('tmdb_')) {
+          final idx = int.tryParse(id.replaceFirst('tmdb_', '')) ?? 0;
+          final tmdbAll = [
+            ...DemoTmdbCache.movies,
+            ...DemoTmdbCache.tvShows,
+          ];
+          if (idx < tmdbAll.length) {
+            return _buildTmdbItem(tmdbAll[idx], idx);
+          }
+        }
         final index = int.tryParse(id.replaceAll('demo_', '')) ?? 0;
         return _buildItem(index);
       }
@@ -313,6 +345,22 @@ class DemoMockData {
 
   static Map<String, dynamic> _itemList(int count,
       {int offset = 0, String type = 'Movie', bool withPosition = false}) {
+    // 优先使用 TMDB 真实数据
+    if (DemoTmdbCache.movies.isNotEmpty || DemoTmdbCache.tvShows.isNotEmpty) {
+      final tmdbAll = [
+        ...DemoTmdbCache.movies,
+        ...DemoTmdbCache.tvShows,
+      ];
+      final total = tmdbAll.length;
+      if (total > 0) {
+        final items = List.generate(count, (i) {
+          final idx = (offset + i) % total;
+          return _buildTmdbItem(tmdbAll[idx], idx, withPosition: withPosition);
+        });
+        return {'Items': items, 'TotalRecordCount': total, 'StartIndex': 0};
+      }
+    }
+    // 回退本地硬编码
     final total = _movies.length + _tvShows.length;
     final items = List.generate(count, (i) {
       final idx = (offset + i) % total;
@@ -321,7 +369,40 @@ class DemoMockData {
     return {'Items': items, 'TotalRecordCount': total, 'StartIndex': 0};
   }
 
-  /// 从真实影片库构建 Emby item JSON
+  /// 从 TMDB JSON 构建 Emby item
+  static Map<String, dynamic> _buildTmdbItem(Map<String, dynamic> m, int idx,
+      {bool withPosition = false}) {
+    final isTv = m['title'] == null;
+    final poster = m['poster_path'] as String? ?? '';
+    final backdrop = m['backdrop_path'] as String? ?? '';
+    final release = m['release_date'] ?? m['first_air_date'] ?? '';
+    final year = release.isNotEmpty ? int.tryParse(release.substring(0, 4)) : 0;
+
+    return {
+      'Id': 'tmdb_$idx',
+      'Name': m['title'] ?? m['name'] ?? 'Unknown',
+      'Type': isTv ? 'Series' : 'Movie',
+      'ProductionYear': year ?? 0,
+      'PremiereDate': release,
+      'CommunityRating': (m['vote_average'] as num?)?.toDouble() ?? 0.0,
+      'Overview': m['overview'] ?? '',
+      'Genres': const [],
+      'Tags': const ['TMDB'],
+      'ImageTags': {'Primary': poster, 'Thumb': backdrop},
+      'BackdropImageTags': [backdrop],
+      'Width': 1920,
+      'Height': 1080,
+      'UserData': {
+        'IsFavorite': idx % 3 == 0,
+        'PlaybackPositionTicks': withPosition ? 1800000000 : 0,
+        'PlayCount': idx % 2,
+      },
+      'Studios': const [],
+      'MediaSources': const [],
+    };
+  }
+
+  /// 从本地硬编码影片库构建 Emby item
   static Map<String, dynamic> _buildItem(int i, {bool withPosition = false}) {
     final total = _movies.length + _tvShows.length;
     final idx = i % total;

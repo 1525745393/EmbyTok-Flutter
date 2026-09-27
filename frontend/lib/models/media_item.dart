@@ -508,6 +508,21 @@ class MediaItem {
     String? apiKey,
     int maxWidth = 800,
   }) {
+    // TMDB 演示数据：ImageTags 存的是 poster_path，直拼 TMDB CDN
+    if (id.startsWith('tmdb_')) {
+      final tags = imageTags;
+      if (tags == null) return null;
+      final path = tags[type] ?? tags['Primary'];
+      if (path == null || path.isEmpty || !path.startsWith('/')) return null;
+      final w = maxWidth <= 200
+          ? 'w200'
+          : maxWidth <= 300
+              ? 'w300'
+              : maxWidth <= 500
+                  ? 'w500'
+                  : 'w780';
+      return 'https://image.tmdb.org/t/p/$w$path';
+    }
     // 演示模式：优先用 TMDB 真实海报，未收录的回退 picsum
     if (id.startsWith('demo_')) {
       final idx = int.tryParse(id.replaceFirst('demo_', '')) ?? 0;
