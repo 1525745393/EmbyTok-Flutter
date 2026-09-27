@@ -292,6 +292,40 @@ class SettingsView extends ConsumerWidget {
               if (ref.watch(demoModeProvider)) _buildExitDemoTile(context, ref),
             ],
           ),
+          // 家长控制
+          _buildSection(
+            context,
+            ref,
+            '家长控制',
+            Icons.family_restroom,
+            Colors.green,
+            [
+              SwitchListTile(
+                title: const Text('儿童模式'),
+                subtitle: const Text('启用后仅显示适合儿童的内容'),
+                value: ref.watch(parentalControlProvider).kidsModeEnabled,
+                onChanged: (v) =>
+                    ref.read(parentalControlProvider.notifier).setKidsMode(v),
+              ),
+              ListTile(
+                leading: const Icon(Icons.star_outline),
+                title: const Text('最高允许评分'),
+                subtitle: Text(
+                    ref.watch(parentalControlProvider).maxRating ?? '不限制'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showRatingPicker(context, ref),
+              ),
+              SwitchListTile(
+                title: const Text('隐藏受限内容'),
+                subtitle: const Text('隐藏超过评分限制的影片'),
+                value:
+                    ref.watch(parentalControlProvider).hideRestrictedContent,
+                onChanged: (v) => ref
+                    .read(parentalControlProvider.notifier)
+                    .setHideRestricted(v),
+              ),
+            ],
+          ),
           // 关于
           _buildSection(
             context,
@@ -610,6 +644,40 @@ class SettingsView extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+
+  void _showRatingPicker(BuildContext context, WidgetRef ref) {
+    const ratings = ['G', 'PG', 'PG-13', 'R', 'NC-17'];
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('选择最高允许评分'),
+            ),
+            ...ratings.map((r) => RadioListTile<String>(
+                  title: Text(r),
+                  value: r,
+                  groupValue: ref.read(parentalControlProvider).maxRating,
+                  onChanged: (v) {
+                    Navigator.pop(context);
+                    ref.read(parentalControlProvider.notifier).setMaxRating(v);
+                  },
+                )),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('不限制'),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(parentalControlProvider.notifier).setMaxRating(null);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
