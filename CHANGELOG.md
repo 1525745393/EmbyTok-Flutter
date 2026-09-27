@@ -1,3 +1,10 @@
+# [2.222.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.221.0...v2.222.0) (2026-09-27)
+
+
+### Features
+
+* **P0:** 片尾下一集按钮 ([73d8a11](https://github.com/1525745393/EmbyTok-Flutter/commit/73d8a1174c65e2be82c63596a31f701204a80731))
+
 # [2.221.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.220.0...v2.221.0) (2026-09-27)
 
 
