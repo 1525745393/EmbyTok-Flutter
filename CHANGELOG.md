@@ -1,3 +1,11 @@
+## [2.227.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.1...v2.227.2) (2026-09-27)
+
+
+### Bug Fixes
+
+* backdropUrl兼容ImageTags.Backdrop Map格式 ([74cbae9](https://github.com/1525745393/EmbyTok-Flutter/commit/74cbae99d44ba3cdb61de6382eee21dc8c200e85))
+* imageTags可空检查 ([8f62b07](https://github.com/1525745393/EmbyTok-Flutter/commit/8f62b0721dc1655a17c2ff2cead851f380e9d64a))
+
 ## [2.227.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.227.0...v2.227.1) (2026-09-27)
 
 
