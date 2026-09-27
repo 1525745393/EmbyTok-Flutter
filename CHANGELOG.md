@@ -1,3 +1,10 @@
+## [2.225.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.3...v2.225.4) (2026-09-27)
+
+
+### Bug Fixes
+
+* 媒体库类型筛选按当前库过滤+补充homevideos/boxsets类型映射 ([b4764b0](https://github.com/1525745393/EmbyTok-Flutter/commit/b4764b059466ca8f342065da9006a44517e5c773))
+
 ## [2.225.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.2...v2.225.3) (2026-09-27)
 
 
