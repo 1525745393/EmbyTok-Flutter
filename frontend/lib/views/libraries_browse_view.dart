@@ -623,15 +623,14 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
             itemCount: _folderItems.length,
             itemBuilder: (context, index) {
               final item = _folderItems[index];
-              final isFolder = item.isFolder ||
-                  item.type == 'Folder' ||
-                  item.type == 'CollectionFolder';
+              final isFolder = item.type.toLowerCase() == 'folder' ||
+                  item.type.toLowerCase() == 'collectionfolder';
               return ListTile(
                 leading: Icon(
                   isFolder ? Icons.folder : Icons.movie,
                   color: isFolder ? scheme.primary : scheme.onSurfaceVariant,
                 ),
-                title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 trailing: isFolder ? const Icon(Icons.chevron_right) : null,
                 onTap: () {
                   if (isFolder) {
@@ -1401,7 +1400,7 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
                                     ),
                                   ),
                                   child: Text(
-                                    item.name,
+                                    item.title,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
