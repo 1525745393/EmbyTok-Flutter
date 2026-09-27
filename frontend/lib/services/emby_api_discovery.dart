@@ -252,8 +252,8 @@ mixin _EmbyDiscoveryApi on EmbyServerApiBase {
     AppLogger.debug('获取子项', data: {'parentId': parentId, 'limit': limit});
     _ensureConfig(serverUrl, token);
     final params = <String, dynamic>{
-      'limit': '$limit',
-      'startIndex': '$offset',
+      'Limit': '$limit',
+      'StartIndex': '$offset',
     };
     final resp = await _apiClient.get<dynamic>(
       '/Items/$parentId/Children',
