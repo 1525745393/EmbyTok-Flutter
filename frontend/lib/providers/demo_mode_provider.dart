@@ -204,8 +204,8 @@ class DemoMockData {
   ];
 
   /// 根据请求路径返回 mock JSON 响应
-  static dynamic handleRequest(String path,
-      [Map<String, dynamic>? query]) {
+  static Future<dynamic> handleRequest(String path,
+      [Map<String, dynamic>? query]) async {
     // ---- 系统与用户 ----
     if (path.contains('/System/Info/Public')) {
       return {
@@ -344,6 +344,22 @@ class DemoMockData {
 
     // ---- 搜索 ----
     if (path.contains('/Search/Hints')) {
+      final searchTerm = query?['searchTerm'] as String? ?? '';
+      if (searchTerm.isNotEmpty && DemoTmdbCache.loaded) {
+        final results = await TmdbService.searchMovies(searchTerm);
+        if (results.isNotEmpty) {
+          final items = results
+              .asMap()
+              .entries
+              .map((e) => _buildTmdbItem(e.value, 100 + e.key))
+              .toList();
+          return {
+            'Items': items,
+            'TotalRecordCount': items.length,
+            'StartIndex': 0,
+          };
+        }
+      }
       return _itemList(4);
     }
 

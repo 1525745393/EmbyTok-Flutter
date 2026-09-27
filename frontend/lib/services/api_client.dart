@@ -118,10 +118,11 @@ class ApiClient {
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          // 演示模式：返回 mock 数据
+        onRequest: (options, handler) async {
+          // 演示模式：返回 mock 数据（支持异步 TMDB API 调用）
           if (demoMode) {
-            final mock = DemoMockData.handleRequest(options.path, options.queryParameters);
+            final mock = await DemoMockData.handleRequest(
+                options.path, options.queryParameters);
             if (mock != null) {
               return handler.resolve(Response(
                 requestOptions: options,

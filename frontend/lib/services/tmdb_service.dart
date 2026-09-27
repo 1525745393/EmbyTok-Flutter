@@ -97,4 +97,57 @@ class TmdbService {
       return [];
     }
   }
+
+  /// 搜索影片
+  static Future<List<Map<String, dynamic>>> searchMovies(String query) async {
+    if (!isConfigured || query.isEmpty) return [];
+    try {
+      final encoded = Uri.encodeQueryComponent(query);
+      final r = await http
+          .get(Uri.parse('$_base/search/movie?api_key=$_apiKey&query=$encoded'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 按类型发现影片
+  static Future<List<Map<String, dynamic>>> discoverByGenre(
+      int genreId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/discover/movie?api_key=$_apiKey&with_genres=$genreId&sort_by=popularity.desc'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 获取影片推荐
+  static Future<List<Map<String, dynamic>>> getRecommendations(
+      int movieId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/movie/$movieId/recommendations?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }
