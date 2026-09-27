@@ -1,3 +1,10 @@
+## [2.215.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.1...v2.215.2) (2026-09-27)
+
+
+### Bug Fixes
+
+* 媒体库列表缩略图支持tmdb_id直拼TMDB CDN ([a173773](https://github.com/1525745393/EmbyTok-Flutter/commit/a1737731a43b69e44077a81ad144b42af6ea53fe))
+
 ## [2.215.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.215.0...v2.215.1) (2026-09-27)
 
 
