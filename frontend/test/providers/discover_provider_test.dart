@@ -63,6 +63,7 @@ class _MockMediaRepository extends Mock implements MediaRepository {
     int? limit,
     String? serverUrl,
     String? token,
+    String? parentId,
   }) async {
     return genres;
   }

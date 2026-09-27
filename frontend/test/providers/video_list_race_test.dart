@@ -526,6 +526,7 @@ class _MockMediaRepository implements MediaRepository {
     int limit = 100,
     required String serverUrl,
     required String token,
+    String? parentId,
   }) async {
     final req = _createPendingRequest('getGenres', {
       'serverUrl': serverUrl,
