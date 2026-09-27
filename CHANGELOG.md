@@ -1,3 +1,10 @@
+## [2.225.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.2...v2.225.3) (2026-09-27)
+
+
+### Bug Fixes
+
+* 媒体库批量收藏改为并发+刷新favoritesProvider ([6d2e24d](https://github.com/1525745393/EmbyTok-Flutter/commit/6d2e24de12fbf4c08af4cf3d5e3b77a9ddd4de5d))
+
 ## [2.225.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.225.1...v2.225.2) (2026-09-27)
 
 
