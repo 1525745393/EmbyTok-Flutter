@@ -30,7 +30,7 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   Library? _selectedLibrary;
   // 媒体库子 Tab（对标 Emby Web：电影/播放记录/合集/分类）
   int _currentLibraryTab = 0;
-  static const _libraryTabs = ['电影', '播放记录', '合集', '分类'];
+  static const _libraryTabs = ['电影', '播放记录', '合集', '分类', '文件夹'];
 
   @override
   Widget build(BuildContext context) {
@@ -269,12 +269,22 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
   // 分类 Tab：true=类型列表 false=该类型影片
   bool _categoryShowList = true;
 
+  // 文件夹 Tab：路径栈
+  final List<String> _folderPathStack = [];
+  List<MediaItem> _folderItems = [];
+  bool _folderLoading = false;
+  String? _folderError;
+
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    _loadItems();
+    if (widget.tab == 4) {
+      _loadFolder();
+    } else {
+      _loadItems();
+    }
   }
 
   @override
@@ -536,6 +546,107 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
     return _serverGenres;
   }
 
+  /// 加载文件夹内容
+  Future<void> _loadFolder() async {
+    setState(() {
+      _folderLoading = true;
+      _folderError = null;
+    });
+    try {
+      final auth = ref.read(authProvider);
+      final service = ref.read(embytokServiceProvider);
+      final parentId =
+          _folderPathStack.isEmpty ? widget.library.id : _folderPathStack.last;
+      final items = await service.getChildren(
+        parentId,
+        limit: 100,
+        serverUrl: auth.embyServerUrl,
+        token: auth.token,
+      );
+      if (!mounted) return;
+      setState(() {
+        _folderItems = items;
+        _folderLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _folderError = e.toString();
+        _folderLoading = false;
+      });
+    }
+  }
+
+  Widget _buildFolderView(ColorScheme scheme) {
+    if (_folderLoading && _folderItems.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_folderError != null && _folderItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: scheme.error),
+            const SizedBox(height: 12),
+            const Text('加载失败'),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: _loadFolder, child: const Text('重试')),
+          ],
+        ),
+      );
+    }
+    return Column(
+      children: [
+        // 路径栏
+        if (_folderPathStack.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_upward),
+                  tooltip: '返回上级',
+                  onPressed: () {
+                    setState(() => _folderPathStack.removeLast());
+                    _loadFolder();
+                  },
+                ),
+                const Text('返回上级文件夹'),
+              ],
+            ),
+          ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            itemCount: _folderItems.length,
+            itemBuilder: (context, index) {
+              final item = _folderItems[index];
+              final isFolder = item.isFolder ||
+                  item.type == 'Folder' ||
+                  item.type == 'CollectionFolder';
+              return ListTile(
+                leading: Icon(
+                  isFolder ? Icons.folder : Icons.movie,
+                  color: isFolder ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+                title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                trailing: isFolder ? const Icon(Icons.chevron_right) : null,
+                onTap: () {
+                  if (isFolder) {
+                    setState(() => _folderPathStack.add(item.id));
+                    _loadFolder();
+                  } else {
+                    context.push('/item/${item.id}', extra: item);
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _loadItems({bool loadMore = false}) async {
     if (_isLoading && loadMore) return;
     final myRequestId = ++_requestId; // 递增请求 ID
@@ -691,6 +802,11 @@ class _LibraryItemsListState extends ConsumerState<_LibraryItemsList> {
           ],
         ),
       );
+    }
+
+    // 文件夹 Tab：按文件夹结构浏览
+    if (widget.tab == 4) {
+      return _buildFolderView(scheme);
     }
 
     // 分类 Tab：显示该库类型列表，点击后显示该类型影片
