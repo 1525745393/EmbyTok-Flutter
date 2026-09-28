@@ -1,3 +1,10 @@
+## [2.232.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.8...v2.232.9) (2026-09-28)
+
+
+### Bug Fixes
+
+* 收藏POST请求传空JSON body修复403(部分nginx/Emby要求非空body) ([af3d5ea](https://github.com/1525745393/EmbyTok-Flutter/commit/af3d5eabcc3c70929cfcddf990f42b90e94371bb))
+
 ## [2.232.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.7...v2.232.8) (2026-09-28)
 
 
