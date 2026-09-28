@@ -342,6 +342,10 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
   // ==================== Watchlist（稍后观看） ====================
 
   /// 获取稍后观看列表
+  ///
+  /// 注意：`Filters=IsWatchlisted` 需要 Emby Server 4.8+。
+  /// 旧版本服务器会返回 400 "Requested value 'IsWatchlisted' was not found"，
+  /// 此时优雅降级为空列表，而不是把错误抛给用户。
   Future<FavoritesPageResult> getWatchlist({
     int limit = 50,
     int offset = 0,
@@ -354,30 +358,40 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     final path = (effectiveUserId ?? '').isNotEmpty
         ? '/Users/$effectiveUserId/Items'
         : '/Items';
-    final resp = await _apiClient.get<dynamic>(
-      path,
-      queryParameters: {
-        'Filters': 'IsWatchlisted',
-        'Recursive': 'true',
-        'IncludeMediaTypes': 'Video',
-        'Limit': '$limit',
-        'StartIndex': '$offset',
-        'SortBy': 'DateUpdated,SortName',
-        'SortOrder': 'Descending,Ascending',
-      },
-    );
-    final data = resp.data;
-    final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
-    final totalCount = data is Map
-        ? (data['TotalRecordCount'] as int?) ?? items.length
-        : items.length;
-    return FavoritesPageResult(
-      items: items
-          .whereType<Map<String, dynamic>>()
-          .map((e) => MediaItem.fromJson(e))
-          .toList(),
-      totalCount: totalCount,
-    );
+    try {
+      final resp = await _apiClient.get<dynamic>(
+        path,
+        queryParameters: {
+          'Filters': 'IsWatchlisted',
+          'Recursive': 'true',
+          'IncludeMediaTypes': 'Video',
+          'Limit': '$limit',
+          'StartIndex': '$offset',
+          'SortBy': 'DateUpdated,SortName',
+          'SortOrder': 'Descending,Ascending',
+        },
+      );
+      final data = resp.data;
+      final items = data is List ? data : (data['Items'] as List<dynamic>?) ?? [];
+      final totalCount = data is Map
+          ? (data['TotalRecordCount'] as int?) ?? items.length
+          : items.length;
+      return FavoritesPageResult(
+        items: items
+            .whereType<Map<String, dynamic>>()
+            .map((e) => MediaItem.fromJson(e))
+            .toList(),
+        totalCount: totalCount,
+      );
+    } catch (e) {
+      // 旧版 Emby 不支持 IsWatchlisted filter：降级为空列表
+      final msg = e.toString();
+      if (msg.contains('IsWatchlisted') || msg.contains('not found')) {
+        AppLogger.info('服务器不支持 IsWatchlisted 过滤器，稍后观看列表为空', data: {'error': msg});
+        return const FavoritesPageResult(items: [], totalCount: 0);
+      }
+      rethrow;
+    }
   }
 
   /// 切换稍后观看状态
