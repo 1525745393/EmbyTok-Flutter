@@ -1,3 +1,10 @@
+## [2.232.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.1...v2.232.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* 稍后观看入口移至页面底部避免遮挡首屏网格 ([10bbff2](https://github.com/1525745393/EmbyTok-Flutter/commit/10bbff22b0793149b1be6963d8f8913502b0c986))
+
 ## [2.232.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.0...v2.232.1) (2026-09-28)
 
 
