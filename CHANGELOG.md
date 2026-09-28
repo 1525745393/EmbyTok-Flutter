@@ -1,3 +1,10 @@
+## [2.232.22](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.21...v2.232.22) (2026-09-28)
+
+
+### Bug Fixes
+
+* DELETE取消收藏带?api_key=query参数(参考EmbyX实现)绕过Cloudflare WAF ([ca92cbc](https://github.com/1525745393/EmbyTok-Flutter/commit/ca92cbca6c7aa539d5e2b311b2acb96b0f77a5a7))
+
 ## [2.232.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.20...v2.232.21) (2026-09-28)
 
 
