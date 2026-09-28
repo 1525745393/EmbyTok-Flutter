@@ -1,3 +1,10 @@
+## [2.232.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.4...v2.232.5) (2026-09-28)
+
+
+### Bug Fixes
+
+* 继续观看API对齐Emby Web参数(MediaTypes=Video+UserId)并加日志 ([59993f6](https://github.com/1525745393/EmbyTok-Flutter/commit/59993f6381fd5e9823767cd0bd845cf72538894e))
+
 ## [2.232.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.3...v2.232.4) (2026-09-28)
 
 
