@@ -103,6 +103,17 @@ class ApiClient {
     _setupCertificateValidation(validate);
   }
 
+  /// 从 baseUrl 提取 Origin（scheme://host:port），用于设置 Origin/Referer 头
+  static String? _originFromBaseUrl(String baseUrl) {
+    try {
+      final uri = Uri.parse(baseUrl);
+      if (uri.host.isEmpty) return null;
+      return '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 暴露内部 Dio 实例，用于测试验证
   Dio get dio => _dio;
 
@@ -152,6 +163,16 @@ class ApiClient {
           // 仅在请求未指定 Accept 时设置默认值
           // 字幕请求需要 Accept: text/plain，不能被覆盖
           options.headers.putIfAbsent('Accept', () => 'application/json');
+          // 加 Origin/Referer 头，避免 Cloudflare Bot Fight Mode 拦截
+          // 无 Origin 的请求被识别为机器人，DELETE 等写操作返回 403
+          final base = _dio.options.baseUrl;
+          if (base.isNotEmpty) {
+            final origin = _originFromBaseUrl(base);
+            if (origin != null) {
+              options.headers.putIfAbsent('Origin', () => origin);
+              options.headers.putIfAbsent('Referer', () => '$origin/');
+            }
+          }
           // DELETE 无 body 时移除 content-type 头，避免 Cloudflare WAF
           // 因"有 Content-Type: application/json 但无 body"的 DELETE 请求返回 403
           if (options.method.toUpperCase() == 'DELETE' && options.data == null) {
