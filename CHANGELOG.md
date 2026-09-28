@@ -1,3 +1,10 @@
+## [2.232.21](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.20...v2.232.21) (2026-09-28)
+
+
+### Bug Fixes
+
+* DELETE取消收藏带空JSON body绕过Cloudflare WAF无body拦截规则 ([ed941ef](https://github.com/1525745393/EmbyTok-Flutter/commit/ed941ef45e6bd18065bdc2e528ea0023eeb0cd43))
+
 ## [2.232.20](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.19...v2.232.20) (2026-09-28)
 
 
