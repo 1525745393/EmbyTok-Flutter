@@ -556,9 +556,8 @@ void main() {
         dioAdapter.onDelete(
           '/Users/$testUserId/FavoriteItems/$testItemId',
           (server) => server.reply(200, {}),
-          // DELETE 现在带空 JSON body {}（绕过 Cloudflare WAF），
-          // 测试需匹配任意 body
-          data: Matchers.any,
+          // DELETE 带 ?api_key= query parameter（参考 EmbyX）
+          query: {'api_key': testToken},
         );
 
         await service.toggleFavorite(

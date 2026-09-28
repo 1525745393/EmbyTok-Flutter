@@ -241,11 +241,12 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       if (isFavorite) {
         await _apiClient.post<dynamic>(path);
       } else {
-        // 取消收藏：DELETE 带空 JSON body，绕过 Cloudflare WAF
-        // 无 body 的 DELETE 被识别为机器人，带 {} body 像真实客户端
+        // 取消收藏：DELETE + ?api_key= query parameter
+        // 参考 EmbyX 实现：URL 中带 api_key 绕过 Cloudflare WAF
+        // WAF 拦截只有 header token 没有 query token 的 DELETE 请求
         await _apiClient.delete<dynamic>(
           path,
-          data: const {},
+          queryParameters: token != null ? {'api_key': token} : null,
         );
       }
     } on AppError catch (e) {
