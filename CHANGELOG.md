@@ -1,3 +1,10 @@
+## [2.232.18](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.17...v2.232.18) (2026-09-28)
+
+
+### Bug Fixes
+
+* POST UserData字段名改为favorite(Emby UserItemDataDto标准字段) ([7cf4c49](https://github.com/1525745393/EmbyTok-Flutter/commit/7cf4c49a124ccbe9ae2fa7335d1f4907d117614f))
+
 ## [2.232.17](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.16...v2.232.17) (2026-09-28)
 
 
