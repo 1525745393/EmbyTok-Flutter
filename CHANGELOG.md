@@ -1,3 +1,10 @@
+## [2.232.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.5...v2.232.6) (2026-09-28)
+
+
+### Bug Fixes
+
+* 继续观看放宽参数+加刷新按钮+日志记录请求 ([81a94d2](https://github.com/1525745393/EmbyTok-Flutter/commit/81a94d2c67dea72f544a69c2297d34a3245a04af))
+
 ## [2.232.5](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.4...v2.232.5) (2026-09-28)
 
 
