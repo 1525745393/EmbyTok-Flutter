@@ -1,3 +1,10 @@
+# [2.236.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.235.0...v2.236.0) (2026-09-28)
+
+
+### Features
+
+* 播放失败时自动建议用外部播放器(VLC/MX Player)打开 ([deba379](https://github.com/1525745393/EmbyTok-Flutter/commit/deba3797d4f77a5f5db407ea280b3c8e7fbe0cbc))
+
 # [2.235.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.234.0...v2.235.0) (2026-09-28)
 
 
