@@ -569,7 +569,7 @@ extension _SettingsBuilders on SettingsView {
       PlayerEngine.vlc: 'VLC（兼容兜底）',
     };
     return settingsTapTile(
-      icon: Icons.movie_outline,
+      icon: Icons.movie_outlined,
       iconColor: Colors.orange,
       title: '默认播放器',
       subtitle: names[engine] ?? '自动选择',

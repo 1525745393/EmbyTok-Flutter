@@ -195,7 +195,7 @@ class SettingsView extends ConsumerWidget {
               context,
               ref,
               '播放器',
-              Icons.movie_outline,
+              Icons.movie_outlined,
               Colors.orange,
               [
                 _buildPlayerEngineTile(context, ref),
