@@ -200,9 +200,6 @@ extension _FavoritesViewBuild on _FavoritesViewState {
           // 统计概览卡
           _buildStatsRow(scheme, state),
           const SizedBox(height: _kStatsContentSpacing),
-          // 稍后观看入口
-          _buildWatchlistEntry(scheme),
-          const SizedBox(height: _kGroupSpacing),
           // 搜索无结果：给出明确提示 + 一键清空搜索词返回全量
           if (isSearchNoResult)
             _SearchNoResultHint(
@@ -315,6 +312,9 @@ extension _FavoritesViewBuild on _FavoritesViewState {
                       onToggle: _toggleSelect,
                     ),
             ),
+            // 稍后观看入口（放在页面底部，不影响首屏影片网格定位）
+            const SizedBox(height: _kGroupSpacing),
+            _buildWatchlistEntry(scheme),
           ],
         ],
       ),
