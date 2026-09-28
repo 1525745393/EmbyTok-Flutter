@@ -1,3 +1,10 @@
+## [2.232.17](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.16...v2.232.17) (2026-09-28)
+
+
+### Bug Fixes
+
+* POST UserData改用camelCase isFavorite+记录响应体 ([8aa2e40](https://github.com/1525745393/EmbyTok-Flutter/commit/8aa2e4068064df096026c02344d30b969f4c8c62))
+
 ## [2.232.16](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.15...v2.232.16) (2026-09-28)
 
 
