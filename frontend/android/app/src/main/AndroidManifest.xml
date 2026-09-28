@@ -49,6 +49,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- 深链接：embytok://item/123 直接打开 App -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="embytok"/>
+            </intent-filter>
         </activity>
         <meta-data android:name="flutterEmbedding" android:value="2"/>
         <receiver

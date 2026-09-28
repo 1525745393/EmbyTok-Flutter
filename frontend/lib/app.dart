@@ -7,6 +7,7 @@ import 'package:audio_service/audio_service.dart'
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +18,7 @@ import '../utils/logger.dart';
 import '../utils/memory_pressure_handler.dart';
 import '../utils/safe_unawaited.dart';
 import 'theme/app_theme.dart';
+import 'l10n/app_translations.dart';
 import 'providers/providers.dart';
 import 'providers/demo_mode_provider.dart';
 import 'providers/service_mode_provider.dart';
@@ -582,6 +584,13 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       darkTheme: buildDarkTheme(),
       themeMode: parseThemeMode(themeMode),
       routerConfig: _router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocale.supportedLocales,
+      locale: null, // null = 跟随系统；后续可从设置读取用户选择
       builder: (context, child) {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: systemOverlayStyleOf(context),
