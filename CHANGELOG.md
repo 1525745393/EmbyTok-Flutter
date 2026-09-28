@@ -1,3 +1,10 @@
+## [2.232.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.3...v2.232.4) (2026-09-28)
+
+
+### Bug Fixes
+
+* 书签按钮操作失败时显示SnackBar提示并回滚状态 ([e96422c](https://github.com/1525745393/EmbyTok-Flutter/commit/e96422c2e33ac319ba496a30847ad4822491a350))
+
 ## [2.232.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.2...v2.232.3) (2026-09-28)
 
 
