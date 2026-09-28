@@ -1,3 +1,10 @@
+## [2.232.8](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.7...v2.232.8) (2026-09-28)
+
+
+### Bug Fixes
+
+* MainActivity继承AudioServiceFragmentActivity修复AudioService初始化失败 ([39d2e61](https://github.com/1525745393/EmbyTok-Flutter/commit/39d2e611e9a36f0eb82a70a23f6dbc7c76bb89f7))
+
 ## [2.232.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.6...v2.232.7) (2026-09-28)
 
 
