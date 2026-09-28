@@ -22,6 +22,7 @@ mixin _EmbyDiscoveryApi2 on EmbyServerApiBase {
       // Emby Web 首页"继续观看"参数
       'Fields':
           'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,UserData,People,Chapters,MediaSources',
+      'Filters': 'IsResumable',
       if (effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
     };

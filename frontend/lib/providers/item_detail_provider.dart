@@ -78,14 +78,19 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
   if (svr == null || tkn == null) return <MediaItem>[];
   // 通过缓存仓库获取，减少重复 API 请求
   final cachedRepo = ref.watch(cachedMediaRepositoryProvider);
-  final result = await cachedRepo.getResumeItems(
-    serverUrl: svr,
-    token: tkn,
-    userId: auth.user?.id,
-  );
-  AppLogger.info('继续观看：从服务器获取到 ${result.items.length} 条记录',
-      data: {'total': result.total, 'userId': auth.user?.id});
-  return result.items;
+  try {
+    final result = await cachedRepo.getResumeItems(
+      serverUrl: svr,
+      token: tkn,
+      userId: auth.user?.id,
+    );
+    AppLogger.info('继续观看：从服务器获取到 ${result.items.length} 条记录',
+        data: {'total': result.total, 'userId': auth.user?.id});
+    return result.items;
+  } catch (e) {
+    AppLogger.error('继续观看：获取失败', error: e);
+    rethrow;
+  }
 });
 
 // ============================
