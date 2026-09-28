@@ -26,6 +26,11 @@ class ApiClient {
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 30),
           contentType: Headers.jsonContentType,
+          // 使用 Emby 官方客户端风格的 User-Agent，避免 Cloudflare WAF
+          // 拦截 Dart 默认 UA (Dart/x.x.x) 的 DELETE 等写操作请求
+          headers: {
+            'User-Agent': 'EmbyTok/1.0.0 (Android)',
+          },
         )) {
     // 优先使用传入参数，否则使用全局配置
     final shouldValidate =
