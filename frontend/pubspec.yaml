@@ -22,7 +22,7 @@ dependencies:
   flutter_secure_storage: ^9.2.0
   cached_network_image: ^3.3.0
   flutter_cache_manager: ^3.4.1
-  intl: ^0.19.0
+  intl: ^0.20.2
   connectivity_plus: ^5.0.0
   video_player: ^2.9.0
   screen_brightness: ^0.2.2+1
