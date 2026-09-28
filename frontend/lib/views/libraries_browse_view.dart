@@ -112,26 +112,47 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
   Widget _buildContinueWatchingRow(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final resumeAsync = ref.watch(resumeItemsProvider);
-    return resumeAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            '继续观看',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        resumeAsync.when(
+          loading: () => const SizedBox(
+            height: 110,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, __) => SizedBox(
+            height: 110,
+            child: Center(
               child: Text(
-                '继续观看',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurface,
-                ),
+                '加载失败，请重试',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
             ),
-            SizedBox(
+          ),
+          data: (items) {
+            if (items.isEmpty) {
+              return SizedBox(
+                height: 110,
+                child: Center(
+                  child: Text(
+                    '暂无未看完的视频，去发现页找找吧',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                ),
+              );
+            }
+            return SizedBox(
               height: 110,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
@@ -142,7 +163,8 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                   final item = items[index];
                   final ticks = item.userData?.playbackPositionTicks ?? 0;
                   final total = item.runtimeTicks ?? 0;
-                  final progress = total > 0 ? (ticks / total).clamp(0.0, 1.0) : 0.0;
+                  final progress =
+                      total > 0 ? (ticks / total).clamp(0.0, 1.0) : 0.0;
                   final auth = ref.read(authProvider);
                   final backdrop = item.backdropUrl(
                     embyServerUrl: auth.embyServerUrl,
@@ -226,10 +248,10 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
                   );
                 },
               ),
-            ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ],
     );
   }
 
