@@ -14,18 +14,22 @@ mixin _EmbyDiscoveryApi2 on EmbyServerApiBase {
     String? userId,
   }) async {
     _ensureConfig(serverUrl, token);
+    final effectiveUserId = userId ?? _defaultUserId;
     final params = <String, dynamic>{
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
+      // Emby Web 首页"继续观看"标准参数
+      'MediaTypes': 'Video',
+      'IncludeItemTypes': 'Movie,Episode',
+      'IsPlayed': 'false',
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People',
-      'IncludeItemTypes': 'Movie,Episode,Video,MusicVideo,Series',
-      'ExcludeItemTypes': 'Playlist',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People,Chapters,MediaSources',
+      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
+        'UserId': effectiveUserId,
     };
     // 多用户服务器：显式带 userId（/Users/{id}/Items/Resume），
     // 无 userId 时回退 /Items/Resume（依赖 token 上下文）
-    final effectiveUserId = userId ?? _defaultUserId;
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items/Resume'
         : '/Items/Resume';

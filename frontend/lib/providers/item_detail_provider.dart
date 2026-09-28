@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../services/embytok_service.dart';
+import '../utils/logger.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
 
@@ -81,6 +82,8 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
     serverUrl: svr,
     token: tkn,
   );
+  AppLogger.info('继续观看：从服务器获取到 ${result.items.length} 条记录',
+      data: {'total': result.total});
   return result.items;
 });
 
