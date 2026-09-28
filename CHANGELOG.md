@@ -1,3 +1,10 @@
+## [2.232.7](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.6...v2.232.7) (2026-09-28)
+
+
+### Bug Fixes
+
+* 继续观看传入userId参数(对齐推荐页工作实现) ([c821a48](https://github.com/1525745393/EmbyTok-Flutter/commit/c821a48c11816781383595ef0bac73404e1e6fd2))
+
 ## [2.232.6](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.5...v2.232.6) (2026-09-28)
 
 
