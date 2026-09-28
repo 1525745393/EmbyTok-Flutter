@@ -152,6 +152,18 @@ class ApiClient {
           return handler.next(response);
         },
         onError: (error, handler) {
+          // 403 时记录完整请求信息，便于排查收藏等写操作失败
+          if (error.response?.statusCode == 403) {
+            final req = error.requestOptions;
+            AppLogger.warn('HTTP 403 请求详情', data: {
+              'method': req.method,
+              'path': req.path,
+              'contentType': req.contentType,
+              'hasBody': req.data != null,
+              'headers': req.headers.keys.toList(),
+              'responseHeaders': error.response?.headers.map.map((k, v) => MapEntry(k, v.join(','))),
+            });
+          }
           return handler.next(error);
         },
       ),
