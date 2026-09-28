@@ -84,7 +84,7 @@ final resumeItemsProvider = FutureProvider<List<MediaItem>>((ref) async {
       token: tkn,
       userId: auth.user?.id,
     );
-    AppLogger.info('继续观看：从服务器获取到 ${result.items.length} 条记录',
+    AppLogger.warn('继续观看：从服务器获取到 ${result.items.length} 条记录',
         data: {'total': result.total, 'userId': auth.user?.id});
     return result.items;
   } catch (e) {
