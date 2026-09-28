@@ -705,6 +705,20 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
                               horizontal: 12, vertical: 4),
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      // 播放失败时建议用外部播放器（VLC/MX Player）兜底
+                      TextButton.icon(
+                        onPressed: () =>
+                            _playWithExternalPlayerFromError(context),
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('用外部播放器打开',
+                            style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                        ),
+                      ),
                     ],
                   ],
                 ],

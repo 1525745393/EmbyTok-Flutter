@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../services/external_player_service.dart';
 import '../../utils/image_cache_manager.dart';
 import '../../utils/logger.dart';
 import 'subtitle_renderer.dart';
@@ -106,6 +107,32 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // web 环境下 video_player 需要额外配置，降级为缩略图展示
     if (kIsWeb) return false;
     return true;
+  }
+
+  /// 播放失败时用第三方外部播放器兜底
+  ///
+  /// 内置播放器无法解码某些编码（如 Dolby Vision P7、HEVC 10bit 等）时，
+  /// 自动唤起 VLC / MX Player 等外部播放器播放视频流。
+  Future<void> _playWithExternalPlayerFromError(BuildContext context) async {
+    final url = _playbackUrl;
+    if (url == null || url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('无法获取播放地址')),
+      );
+      return;
+    }
+    final success = await ExternalPlayerService.play(
+      videoUrl: url,
+      title: widget.item.title,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? '已唤起外部播放器'
+            : '未找到可用的外部播放器，请安装 VLC 或 MX Player'),
+      ),
+    );
   }
 
   @override
