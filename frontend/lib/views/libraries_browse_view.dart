@@ -116,14 +116,26 @@ class _LibrariesBrowseViewState extends ConsumerState<LibrariesBrowseView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Text(
-            '继续观看',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-            ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '继续观看',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 18),
+                tooltip: '刷新继续观看',
+                color: scheme.onSurfaceVariant,
+                onPressed: () => ref.invalidate(resumeItemsProvider),
+              ),
+            ],
           ),
         ),
         resumeAsync.when(

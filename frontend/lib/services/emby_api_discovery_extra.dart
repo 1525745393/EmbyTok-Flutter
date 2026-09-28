@@ -19,12 +19,9 @@ mixin _EmbyDiscoveryApi2 on EmbyServerApiBase {
       'Limit': '$limit',
       'StartIndex': '$offset',
       'Recursive': 'true',
-      // Emby Web 首页"继续观看"标准参数
-      'MediaTypes': 'Video',
-      'IncludeItemTypes': 'Movie,Episode',
-      'IsPlayed': 'false',
+      // Emby Web 首页"继续观看"参数
       'Fields':
-          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,UserData,People,Chapters,MediaSources',
+          'Overview,Genres,CommunityRating,RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,UserData,People,Chapters,MediaSources',
       if (effectiveUserId != null && effectiveUserId.isNotEmpty)
         'UserId': effectiveUserId,
     };
@@ -33,6 +30,7 @@ mixin _EmbyDiscoveryApi2 on EmbyServerApiBase {
     final path = (effectiveUserId != null && effectiveUserId.isNotEmpty)
         ? '/Users/$effectiveUserId/Items/Resume'
         : '/Items/Resume';
+    AppLogger.debug('继续观看请求', data: {'path': path, 'params': params});
     final resp = await _apiClient.get<dynamic>(
       path,
       queryParameters: params,
