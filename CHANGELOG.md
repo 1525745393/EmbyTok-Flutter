@@ -1,3 +1,10 @@
+## [2.232.20](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.19...v2.232.20) (2026-09-28)
+
+
+### Bug Fixes
+
+* 加Origin/Referer头避免Cloudflare Bot Fight Mode拦截DELETE ([103b368](https://github.com/1525745393/EmbyTok-Flutter/commit/103b368f0c202973491aef0717909919632ee120))
+
 ## [2.232.19](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.18...v2.232.19) (2026-09-28)
 
 
