@@ -377,6 +377,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     _playSessionId = null;
     _hasNotifiedEnded = false;
     _hasStoppedReported = false;
+    _disposed = true;
     super.dispose();
   }
 
@@ -407,13 +408,20 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   // 缓存 auth 值，避免 dispose() 后 ref.read 抛 "Cannot use ref after disposed"
   String? _cachedServerUrl;
   String? _cachedToken;
+  bool _disposed = false;
 
   // 使用 ref.read 而非 ref.watch，因为这些方法在非 build 上下文中调用
   // （如 _reportPlaybackStart、_reportPlaybackProgress 等回调）
   // 只需读取当前值，不需要订阅变化触发重建
   // dispose 时返回缓存值，防止 ref after disposed 异常
-  String? _authServerUrl() => _cachedServerUrl ?? ref.read(authProvider).embyServerUrl;
-  String? _authToken() => _cachedToken ?? ref.read(authProvider).token;
+  String? _authServerUrl() {
+    if (_disposed) return _cachedServerUrl;
+    return _cachedServerUrl ?? ref.read(authProvider).embyServerUrl;
+  }
+  String? _authToken() {
+    if (_disposed) return _cachedToken;
+    return _cachedToken ?? ref.read(authProvider).token;
+  }
 
   /// 安全执行上报类异步操作：捕获异常并记录日志，避免未捕获的 Future 错误
   /// 用于 markAsPlayed、report* 等不阻塞主流程的后台请求
