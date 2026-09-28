@@ -553,8 +553,13 @@ void main() {
       });
 
       test('传入 userId 时移除收藏调用 DELETE', () async {
-        dioAdapter
-            .onDelete('/Users/$testUserId/FavoriteItems/$testItemId', (server) => server.reply(200, {}));
+        dioAdapter.onDelete(
+          '/Users/$testUserId/FavoriteItems/$testItemId',
+          (server) => server.reply(200, {}),
+          // DELETE 现在带空 JSON body {}（绕过 Cloudflare WAF），
+          // 测试需匹配任意 body
+          data: Matchers.any,
+        );
 
         await service.toggleFavorite(
           itemId: testItemId,
