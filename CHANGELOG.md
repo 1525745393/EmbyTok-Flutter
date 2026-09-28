@@ -1,3 +1,11 @@
+## [2.231.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.2...v2.231.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* intl版本升级到0.20.2解决flutter_localizations依赖冲突 ([8ac920b](https://github.com/1525745393/EmbyTok-Flutter/commit/8ac920b28e533e18bb91215a1181bb1a9355e3ca))
+* 补全第四批PRD缺口(i18n接入MaterialApp+深链接Scheme+无障碍) ([39ec5b9](https://github.com/1525745393/EmbyTok-Flutter/commit/39ec5b9ed8b45448040bb72178594249b77a7488))
+
 ## [2.231.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.1...v2.231.2) (2026-09-28)
 
 
