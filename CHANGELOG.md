@@ -1,3 +1,10 @@
+## [2.232.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.12...v2.232.13) (2026-09-28)
+
+
+### Bug Fixes
+
+* 收藏403多层fallback(DELETE→api_key→POST+MethodOverride→+api_key) ([d34fdfa](https://github.com/1525745393/EmbyTok-Flutter/commit/d34fdfa469a6d995b3794f124fe4e4afb88f28d8))
+
 ## [2.232.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.11...v2.232.12) (2026-09-28)
 
 
