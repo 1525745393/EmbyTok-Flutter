@@ -277,12 +277,12 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
           if (!isFavorite && effectiveUserId != null && effectiveUserId.isNotEmpty) {
             AppLogger.warn('Fallback 1 仍 403，尝试 POST UserData 端点');
             try {
-              await _apiClient.post<dynamic>(
+              final resp = await _apiClient.post<dynamic>(
                 '/Users/$effectiveUserId/Items/$itemId/UserData',
-                data: {'IsFavorite': false},
+                data: {'isFavorite': false},
               );
-              AppLogger.warn('Fallback 2 成功（POST UserData IsFavorite=false）',
-                  data: {'itemId': itemId});
+              AppLogger.warn('Fallback 2 成功（POST UserData isFavorite=false）',
+                  data: {'itemId': itemId, 'response': resp});
             } on AppError catch (e2) {
               AppLogger.warn('Fallback 2 失败', data: {
                 'statusCode': e2.statusCode,
@@ -295,7 +295,7 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
                 await _apiClient.post<dynamic>(
                   '/Users/$effectiveUserId/Items/$itemId/UserData',
                   queryParameters: {'api_key': token},
-                  data: {'IsFavorite': false},
+                  data: {'isFavorite': false},
                 );
                 AppLogger.warn('Fallback 3 成功（POST UserData + api_key）',
                     data: {'itemId': itemId});
