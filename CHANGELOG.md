@@ -1,3 +1,10 @@
+## [2.232.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.9...v2.232.10) (2026-09-28)
+
+
+### Bug Fixes
+
+* 收藏403添加X-MediaBrowser-Token兼容头(部分nginx/Emby版本只认此头) ([a82285d](https://github.com/1525745393/EmbyTok-Flutter/commit/a82285dfb855fb6f290b3cc9708d19bb1d959047))
+
 ## [2.232.9](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.8...v2.232.9) (2026-09-28)
 
 
