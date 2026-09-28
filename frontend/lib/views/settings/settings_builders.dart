@@ -557,4 +557,79 @@ extension _SettingsBuilders on SettingsView {
       helpText: '查看本机观看统计：总播放次数、平均完播率。\n\n点击可查看详情并支持清空统计。\n\n数据仅保存在本机，不会上传。',
     );
   }
+
+  /// 默认播放器引擎选择
+  Widget _buildPlayerEngineTile(BuildContext context, WidgetRef ref) {
+    final engine = ref.watch(playerEngineSettingsProvider
+        .select((s) => s.defaultEngine));
+    final names = {
+      PlayerEngine.auto: '自动选择',
+      PlayerEngine.exo: 'EXO（默认）',
+      PlayerEngine.mpv: 'MPV（深度定制）',
+      PlayerEngine.vlc: 'VLC（兼容兜底）',
+    };
+    return settingsTapTile(
+      icon: Icons.movie_outline,
+      iconColor: Colors.orange,
+      title: '默认播放器',
+      subtitle: names[engine] ?? '自动选择',
+      onTap: () => _showPlayerEnginePicker(context, ref, engine),
+      helpText: '选择默认视频播放引擎。\n\n'
+          '· 自动选择 → 根据视频编码和设备能力自动匹配\n'
+          '· EXO → 默认引擎，兼容性最好\n'
+          '· MPV → 支持软硬解切换、缓存定制、ASS 字幕样式\n'
+          '· VLC → 网络流兼容性最好\n\n'
+          '切换后新打开的视频使用新引擎。',
+    );
+  }
+
+  /// 第三方播放器兜底开关
+  Widget _buildThirdPartyFallbackTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(
+        playerEngineSettingsProvider.select((s) => s.thirdPartyFallback));
+    return SwitchListTile(
+      secondary: const Icon(Icons.open_in_new, color: Colors.deepOrange),
+      title: const Text('第三方播放器兜底'),
+      subtitle: const Text('内置播放器无法解码时，唤起外部播放器'),
+      value: enabled,
+      onChanged: (v) =>
+          ref.read(playerEngineSettingsProvider.notifier).setThirdPartyFallback(v),
+    );
+  }
+
+  void _showPlayerEnginePicker(
+      BuildContext context, WidgetRef ref, PlayerEngine current) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('选择默认播放器'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: PlayerEngine.values
+              .where((e) => e != PlayerEngine.external)
+              .map((e) {
+            final names = {
+              PlayerEngine.auto: '自动选择',
+              PlayerEngine.exo: 'EXO（默认）',
+              PlayerEngine.mpv: 'MPV（深度定制）',
+              PlayerEngine.vlc: 'VLC（兼容兜底）',
+            };
+            return RadioListTile<PlayerEngine>(
+              value: e,
+              groupValue: current,
+              title: Text(names[e] ?? ''),
+              onChanged: (v) {
+                if (v != null) {
+                  ref
+                      .read(playerEngineSettingsProvider.notifier)
+                      .setDefaultEngine(v);
+                }
+                Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 }

@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/artist_metadata_provider.dart';
 import '../providers/demo_mode_provider.dart';
+import '../providers/player_engine_provider.dart';
 import '../providers/server_registry_provider.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
@@ -186,6 +187,19 @@ class SettingsView extends ConsumerWidget {
                 _buildFullscreenGestureBackTile(context, ref),
                 _buildPlaybackRateTile(context, ref),
                 _buildGestureControlTile(context, ref),
+              ],
+            ),
+          // 播放器引擎设置（音乐模式隐藏）
+          if (!isMusicMode)
+            _buildSection(
+              context,
+              ref,
+              '播放器',
+              Icons.movie_outline,
+              Colors.orange,
+              [
+                _buildPlayerEngineTile(context, ref),
+                _buildThirdPartyFallbackTile(context, ref),
               ],
             ),
           // 字幕设置（音乐模式隐藏）
