@@ -1,3 +1,10 @@
+## [2.232.24](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.23...v2.232.24) (2026-09-28)
+
+
+### Bug Fixes
+
+* DELETE请求移除X-Emby-Token/X-MediaBrowser-Token头(参考EmbyX) ([e640b09](https://github.com/1525745393/EmbyTok-Flutter/commit/e640b09015c703e2453a68ccd0309617ef0c4a1c))
+
 ## [2.232.23](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.22...v2.232.23) (2026-09-28)
 
 
