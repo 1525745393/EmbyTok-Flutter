@@ -6,7 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.core.view.WindowCompat
-import io.flutter.embedding.android.FlutterFragmentActivity
+import com.ryanheise.audioservice.AudioServiceFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -15,7 +15,7 @@ import io.flutter.plugin.common.MethodChannel
  *
  * 全面屏手势适配 + 10 段均衡器（Android AudioEffect.Equalizer，绑定全局 audioSession=0）。
  *
- * 必须继承 FlutterFragmentActivity（而非 FlutterActivity），
+ * 必须继承 AudioServiceFragmentActivity（而非 FlutterFragmentActivity/FlutterActivity），
  * 否则 audio_service 的 AudioService.init() 会抛 PlatformException。
  *
  * 系统手势排除（com.embytok/system_gesture）：
@@ -24,7 +24,7 @@ import io.flutter.plugin.common.MethodChannel
  *   水平拖动进度时被系统返回手势抢占而退出全屏。退出全屏时清除。
  *   仅 Android 10+（API 29）支持，低版本自动忽略。
  */
-class MainActivity : FlutterFragmentActivity() {
+class MainActivity : AudioServiceFragmentActivity() {
 
     private var equalizer: Equalizer? = null
     private val eqChannel = "com.embytok/equalizer"
