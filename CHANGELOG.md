@@ -1,3 +1,11 @@
+## [2.232.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.10...v2.232.11) (2026-09-28)
+
+
+### Bug Fixes
+
+* api_client缺少AppLogger import导致编译失败 ([a658ff6](https://github.com/1525745393/EmbyTok-Flutter/commit/a658ff6cefc8dac681edd537d155562e80efa652))
+* 取消收藏DELETE请求加Content-Length:0头(部分nginx/Emby要求) ([306394f](https://github.com/1525745393/EmbyTok-Flutter/commit/306394f73ba024a80d09df4adb6cf125e903503f))
+
 ## [2.232.10](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.9...v2.232.10) (2026-09-28)
 
 
