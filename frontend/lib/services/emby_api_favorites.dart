@@ -250,82 +250,24 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         );
       }
     } on AppError catch (e) {
-      // 403 时多层 fallback，覆盖 Cloudflare WAF 对 DELETE 方法的拦截
-      if (e.statusCode == 403 && token != null && token.isNotEmpty) {
-        AppLogger.warn('收藏请求 403，开始多层 fallback',
-            data: {'path': path, 'isFavorite': isFavorite});
-
-        // Fallback 1: DELETE + query parameter api_key
+      // 403 时尝试一次 DELETE + api_key query parameter
+      // 参考 EmbyX：URL 中带 api_key 绕过 Cloudflare WAF
+      if (e.statusCode == 403 && token != null && token.isNotEmpty && !isFavorite) {
+        AppLogger.warn('收藏请求 403，重试 DELETE + api_key',
+            data: {'path': path});
         try {
-          if (isFavorite) {
-            await _apiClient.post<dynamic>(
-              path,
-              queryParameters: {'api_key': token},
-            );
-          } else {
-            await _apiClient.delete<dynamic>(
-              path,
-              queryParameters: {'api_key': token},
-              headers: const {'Content-Length': '0'},
-            );
-          }
-          AppLogger.debug('Fallback 1 成功（api_key）');
+          await _apiClient.delete<dynamic>(
+            path,
+            queryParameters: {'api_key': token},
+          );
+          AppLogger.debug('DELETE + api_key 成功');
         } on AppError catch (e1) {
-          if (e1.statusCode != 403) rethrow;
-
-          // Fallback 2 (仅取消收藏): POST /Users/{userId}/Items/{itemId}/UserData
-          // body: {"IsFavorite": false}
-          // 这是纯 POST 请求，Cloudflare 不会拦截（添加收藏的 POST 已验证可通过）
-          if (!isFavorite && effectiveUserId != null && effectiveUserId.isNotEmpty) {
-            // Fallback 2: POST + X-HTTP-Method-Override: DELETE
-            // Cloudflare 看到 POST 放行，Emby 服务器看到 Method-Override 当 DELETE 处理
-            AppLogger.warn('Fallback 1 仍 403，尝试 POST + Method-Override: DELETE');
-            try {
-              await _apiClient.post<dynamic>(
-                path,
-                headers: const {'X-HTTP-Method-Override': 'DELETE'},
-              );
-              AppLogger.warn('Fallback 2 成功（POST + Method-Override: DELETE）',
-                  data: {'itemId': itemId});
-            } on AppError catch (e2) {
-              AppLogger.warn('Fallback 2(Method-Override) 失败', data: {
-                'statusCode': e2.statusCode,
-                'message': e2.message,
-              });
-              if (e2.statusCode == 403) {
-                // Fallback 3: POST UserData 端点
-                AppLogger.warn('Fallback 2 仍 403，尝试 POST UserData 端点');
-                try {
-                  final resp = await _apiClient.post<dynamic>(
-                    '/Users/$effectiveUserId/Items/$itemId/UserData',
-                    data: {'favorite': false},
-                  );
-                  AppLogger.warn('Fallback 3 成功（POST UserData favorite=false）',
-                      data: {'itemId': itemId, 'response': resp});
-                } on AppError catch (e3) {
-                  AppLogger.warn('Fallback 3(UserData) 失败', data: {
-                    'statusCode': e3.statusCode,
-                    'message': e3.message,
-                  });
-                  if (e3.statusCode == 403) {
-                    throw AppError.forbidden(
-                      message:
-                          '服务器拒绝了取消收藏请求（403）。请在 Cloudflare 后台允许 DELETE 方法到 /FavoriteItems 路径。',
-                    );
-                  }
-                  rethrow;
-                }
-              } else {
-                rethrow;
-              }
-            }
-          } else {
-            // 添加收藏的 fallback 已经是 POST + api_key，如果还失败就抛错
-            throw AppError.forbidden(
-              message:
-                  '服务器拒绝了收藏请求（403）。请检查 Cloudflare/nginx WAF 规则。',
-            );
-          }
+          AppLogger.error('取消收藏所有 fallback 均失败（Cloudflare WAF 拦截 DELETE）',
+              error: e1);
+          throw AppError.forbidden(
+            message:
+                '服务器拒绝了取消收藏请求（403）。这是 Cloudflare WAF 拦截了 DELETE 方法。请在 Cloudflare 后台添加规则：路径包含 /FavoriteItems 时跳过 WAF 检查。',
+          );
         }
       } else {
         rethrow;
