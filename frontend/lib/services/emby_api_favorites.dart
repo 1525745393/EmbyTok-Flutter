@@ -279,9 +279,9 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
             try {
               final resp = await _apiClient.post<dynamic>(
                 '/Users/$effectiveUserId/Items/$itemId/UserData',
-                data: {'isFavorite': false},
+                data: {'favorite': false},
               );
-              AppLogger.warn('Fallback 2 成功（POST UserData isFavorite=false）',
+              AppLogger.warn('Fallback 2 成功（POST UserData favorite=false）',
                   data: {'itemId': itemId, 'response': resp});
             } on AppError catch (e2) {
               AppLogger.warn('Fallback 2 失败', data: {
@@ -295,7 +295,7 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
                 await _apiClient.post<dynamic>(
                   '/Users/$effectiveUserId/Items/$itemId/UserData',
                   queryParameters: {'api_key': token},
-                  data: {'isFavorite': false},
+                  data: {'favorite': false},
                 );
                 AppLogger.warn('Fallback 3 成功（POST UserData + api_key）',
                     data: {'itemId': itemId});
