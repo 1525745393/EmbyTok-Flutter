@@ -241,27 +241,19 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       if (isFavorite) {
         await _apiClient.post<dynamic>(path);
       } else {
-        // DELETE 必须显式带 Content-Length: 0，否则部分 nginx/Emby 会因
-        // 无 Content-Length 的 DELETE 请求返回 403（POST 有默认 body 不受影响）
+        // 取消收藏：DELETE 请求（拦截器已自动移除无 body 时的 content-type）
         await _apiClient.delete<dynamic>(
           path,
           headers: const {'Content-Length': '0'},
         );
       }
     } on AppError catch (e) {
-      // nginx 反代可能拦截 POST/DELETE（返回 HTML 403 页面），
-      // 降级尝试在 query parameter 中附带 api_key
+      // 403 时多层 fallback，覆盖 nginx/Cloudflare WAF 各种拦截配置
       if (e.statusCode == 403 && token != null && token.isNotEmpty) {
-        // 检测是否为 nginx HTML 错误页（而非 Emby JSON 错误）
-        final isNginxBlock = e.debugMessage?.contains('<html>') == true ||
-            e.debugMessage?.contains('nginx') == true;
-        if (isNginxBlock) {
-          AppLogger.warn('nginx 拦截收藏请求，尝试 query parameter 认证',
-              data: {'path': path});
-        } else {
-          AppLogger.warn('收藏请求 403，尝试 query parameter 认证',
-              data: {'path': path, 'debugMessage': e.debugMessage});
-        }
+        AppLogger.warn('收藏请求 403，开始多层 fallback',
+            data: {'path': path, 'isFavorite': isFavorite});
+
+        // Fallback 1: DELETE + query parameter api_key
         try {
           if (isFavorite) {
             await _apiClient.post<dynamic>(
@@ -275,15 +267,53 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
               headers: const {'Content-Length': '0'},
             );
           }
-        } on AppError catch (e2) {
-          // 两次都失败，给出明确的错误提示
-          if (e2.statusCode == 403) {
-            throw AppError.forbidden(
-              message:
-                  '服务器拒绝了收藏请求（403）。请检查 nginx 反向代理是否允许 POST/DELETE 方法，并正确传递 X-Emby-Authorization 头。',
+          AppLogger.debug('Fallback 1 成功（api_key）');
+        } on AppError catch (e1) {
+          if (e1.statusCode != 403) rethrow;
+          // Fallback 2: POST + X-HTTP-Method-Override: DELETE
+          // 绕过 Cloudflare/nginx 对 DELETE 方法的拦截
+          AppLogger.warn('Fallback 1 仍 403，尝试 POST + Method-Override');
+          try {
+            final overrideHeaders = <String, dynamic>{
+              'X-HTTP-Method-Override': 'DELETE',
+            };
+            if (!isFavorite) {
+              overrideHeaders['Content-Length'] = '0';
+            }
+            await _apiClient.post<dynamic>(
+              path,
+              headers: overrideHeaders,
+              data: isFavorite ? null : <String, dynamic>{},
             );
+            AppLogger.debug('Fallback 2 成功（POST + Method-Override）');
+          } on AppError catch (e2) {
+            if (e2.statusCode != 403) rethrow;
+            // Fallback 3: POST + Method-Override + api_key
+            AppLogger.warn('Fallback 2 仍 403，尝试 POST + Method-Override + api_key');
+            try {
+              final overrideHeaders = <String, dynamic>{
+                'X-HTTP-Method-Override': 'DELETE',
+              };
+              if (!isFavorite) {
+                overrideHeaders['Content-Length'] = '0';
+              }
+              await _apiClient.post<dynamic>(
+                path,
+                queryParameters: {'api_key': token},
+                headers: overrideHeaders,
+                data: isFavorite ? null : <String, dynamic>{},
+              );
+              AppLogger.debug('Fallback 3 成功（POST + Method-Override + api_key）');
+            } on AppError catch (e3) {
+              if (e3.statusCode == 403) {
+                throw AppError.forbidden(
+                  message:
+                      '服务器拒绝了收藏请求（403）。已尝试 DELETE、api_key、POST+Method-Override 多种方式均被拦截。请检查 Cloudflare/nginx WAF 规则是否允许对 Emby API 的写操作。',
+                );
+              }
+              rethrow;
+            }
           }
-          rethrow;
         }
       } else {
         rethrow;
