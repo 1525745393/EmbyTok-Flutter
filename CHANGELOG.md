@@ -1,3 +1,11 @@
+## [2.232.16](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.15...v2.232.16) (2026-09-28)
+
+
+### Bug Fixes
+
+* 继续观看去掉不兼容的Filters参数+日志改warn级别 ([0ecdb24](https://github.com/1525745393/EmbyTok-Flutter/commit/0ecdb2480384b6a649ed10e9e807a4f1f5402e81))
+* 设置Emby风格User-Agent避免Cloudflare拦截DELETE(别的APP能取消收藏原因) ([5d37a1a](https://github.com/1525745393/EmbyTok-Flutter/commit/5d37a1aba22ea874f5f5fb25370aec1d344f0089))
+
 ## [2.232.15](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.14...v2.232.15) (2026-09-28)
 
 
