@@ -1,3 +1,10 @@
+## [2.232.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.2...v2.232.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* 旧版Emby不支持IsWatchlisted过滤器时优雅降级为空列表 ([5751f37](https://github.com/1525745393/EmbyTok-Flutter/commit/5751f37659b86aa31491949ac2118dcc6c6cd384))
+
 ## [2.232.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.1...v2.232.2) (2026-09-28)
 
 
