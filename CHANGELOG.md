@@ -1,3 +1,15 @@
+# [2.233.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.25...v2.233.0) (2026-09-28)
+
+
+### Bug Fixes
+
+* Icons.movie_outline→movie_outlined(CI编译错误) ([4b027c3](https://github.com/1525745393/EmbyTok-Flutter/commit/4b027c3b72b85da01b56446cb1f311bf9fce39f0))
+
+
+### Features
+
+* 多播放器PRD第一阶段-设置页新增播放器分组(默认引擎+第三方兜底开关) ([4459229](https://github.com/1525745393/EmbyTok-Flutter/commit/44592293dfb833731c7cf0003c2da34646ad9396))
+
 ## [2.232.25](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.24...v2.232.25) (2026-09-28)
 
 
