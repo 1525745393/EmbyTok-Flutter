@@ -173,6 +173,12 @@ class ApiClient {
               options.headers.putIfAbsent('Referer', () => '$origin/');
             }
           }
+          // DELETE 请求：移除额外 Token 头，只保留 X-Emby-Authorization
+          // 参考 EmbyX 实现：Cloudflare WAF 可能拦截带旧版 Token 头的 DELETE
+          if (options.method.toUpperCase() == 'DELETE') {
+            options.headers.remove('X-Emby-Token');
+            options.headers.remove('X-MediaBrowser-Token');
+          }
           // DELETE 无 body 时移除 content-type 头，避免 Cloudflare WAF
           // 因"有 Content-Type: application/json 但无 body"的 DELETE 请求返回 403
           if (options.method.toUpperCase() == 'DELETE' && options.data == null) {
