@@ -1,3 +1,10 @@
+# [2.232.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.3...v2.232.0) (2026-09-28)
+
+
+### Features
+
+* 继续观看区块空状态显示提示而非隐藏 ([5e4ef66](https://github.com/1525745393/EmbyTok-Flutter/commit/5e4ef66635dbac40374db4a0db36ff583f89655b))
+
 ## [2.231.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.2...v2.231.3) (2026-09-28)
 
 
