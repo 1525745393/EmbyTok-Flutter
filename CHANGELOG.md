@@ -1,3 +1,10 @@
+## [2.232.19](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.18...v2.232.19) (2026-09-28)
+
+
+### Bug Fixes
+
+* 取消收藏改用POST+X-HTTP-Method-Override:DELETE绕过Cloudflare拦截 ([137515b](https://github.com/1525745393/EmbyTok-Flutter/commit/137515bfc77e89cfb1334de0a4a0ccabdaf99a7f))
+
 ## [2.232.18](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.17...v2.232.18) (2026-09-28)
 
 
