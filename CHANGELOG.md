@@ -1,3 +1,10 @@
+## [2.232.23](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.22...v2.232.23) (2026-09-28)
+
+
+### Bug Fixes
+
+* 修正测试断言 ([820ba3f](https://github.com/1525745393/EmbyTok-Flutter/commit/820ba3f685285a305e5539fba4626f1c5dca388f))
+
 ## [2.232.22](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.21...v2.232.22) (2026-09-28)
 
 
