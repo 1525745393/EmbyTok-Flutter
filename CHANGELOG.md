@@ -1,3 +1,10 @@
+# [2.237.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.236.0...v2.237.0) (2026-09-28)
+
+
+### Features
+
+* 接入 MPV 引擎(media_kit/libmpv)，支持 HDR/杜比/ASS字幕全格式播放 ([e2ae68d](https://github.com/1525745393/EmbyTok-Flutter/commit/e2ae68d25bdad5797140c95afd1ec5664b47bc39))
+
 # [2.236.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.235.0...v2.236.0) (2026-09-28)
 
 
