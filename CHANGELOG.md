@@ -1,3 +1,10 @@
+## [2.232.12](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.11...v2.232.12) (2026-09-28)
+
+
+### Bug Fixes
+
+* DELETE无body时移除content-type头(Cloudflare WAF拦截带JSON头的空body DELETE) ([fe8bff7](https://github.com/1525745393/EmbyTok-Flutter/commit/fe8bff712b28581e8607d731494dd9f4a87ea1ee))
+
 ## [2.232.11](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.10...v2.232.11) (2026-09-28)
 
 
