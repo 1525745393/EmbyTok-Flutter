@@ -136,8 +136,9 @@ class ApiClient {
             // 已登录：将 Token 内嵌到 X-Emby-Authorization（Emby 规范要求）
             options.headers['X-Emby-Authorization'] =
                 '$_clientAuthPrefix, Token="$token"';
-            // 同时发送 X-Emby-Token 兼容旧版服务器
+            // 同时发送多种 Token 头兼容不同版本/反代配置的 Emby 服务器
             options.headers['X-Emby-Token'] = token;
+            options.headers['X-MediaBrowser-Token'] = token;
           } else {
             // 未登录（如登录请求本身）：仅发送客户端标识
             options.headers['X-Emby-Authorization'] = _clientAuthPrefix;

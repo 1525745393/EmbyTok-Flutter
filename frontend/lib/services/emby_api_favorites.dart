@@ -239,8 +239,7 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         : '/UserFavoriteItems/$itemId';
     try {
       if (isFavorite) {
-        // POST 必须传空 JSON body，否则部分 nginx/Emby 会因空 body 返回 403
-        await _apiClient.post<dynamic>(path, data: <String, dynamic>{});
+        await _apiClient.post<dynamic>(path);
       } else {
         await _apiClient.delete<dynamic>(path);
       }
@@ -262,7 +261,6 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
           if (isFavorite) {
             await _apiClient.post<dynamic>(
               path,
-              data: <String, dynamic>{},
               queryParameters: {'api_key': token},
             );
           } else {
