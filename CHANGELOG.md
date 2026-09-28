@@ -1,3 +1,10 @@
+## [2.232.25](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.24...v2.232.25) (2026-09-28)
+
+
+### Bug Fixes
+
+* 移除有害fallback(POST+Method-Override反而添加收藏),简化为单次DELETE+api_key重试 ([559bbe5](https://github.com/1525745393/EmbyTok-Flutter/commit/559bbe5a801268314d633b8ecec1f7aa217d7846))
+
 ## [2.232.24](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.23...v2.232.24) (2026-09-28)
 
 
