@@ -1,3 +1,10 @@
+# [2.231.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.230.0...v2.231.0) (2026-09-28)
+
+
+### Features
+
+* 设置页语言切换+家长控制观影限时入口 ([c302dfd](https://github.com/1525745393/EmbyTok-Flutter/commit/c302dfd055343bd5b49a1eb2af047796b6cf7417))
+
 # [2.230.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.229.0...v2.230.0) (2026-09-27)
 
 
