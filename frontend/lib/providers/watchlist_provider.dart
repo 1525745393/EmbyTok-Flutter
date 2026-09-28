@@ -54,6 +54,8 @@ class WatchlistNotifier extends StateNotifier<Map<String, bool>> {
     } catch (e) {
       // 失败回滚
       state = {...state, item.id: currentlyWatchlisted};
+      // 重新抛出，让 UI 层显示错误提示
+      rethrow;
     }
   }
 }
