@@ -435,7 +435,10 @@ class _ItemDetailViewState extends ConsumerState<ItemDetailView> {
   // 稍后看按钮
   Widget _buildWatchlistButton(MediaItem item, {bool dark = false}) {
     final bg = dark ? Colors.white.withValues(alpha: 0.25) : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1);
-    final watchlisted = ref.watch(watchlistNotifierProvider).contains(item.id);
+    // 优先服务端 UserData.IsWatchlisted；本地 toggle 状态覆盖
+    final serverWatchlisted = item.userData?.isWatchlisted ?? false;
+    final localOverride = ref.watch(watchlistNotifierProvider)[item.id];
+    final watchlisted = localOverride ?? serverWatchlisted;
     final iconColor = watchlisted
         ? (dark ? Colors.amber : Theme.of(context).colorScheme.primary)
         : (dark ? Colors.white : Theme.of(context).colorScheme.onSurface);

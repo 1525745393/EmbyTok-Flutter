@@ -200,6 +200,9 @@ extension _FavoritesViewBuild on _FavoritesViewState {
           // 统计概览卡
           _buildStatsRow(scheme, state),
           const SizedBox(height: _kStatsContentSpacing),
+          // 稍后观看入口
+          _buildWatchlistEntry(scheme),
+          const SizedBox(height: _kGroupSpacing),
           // 搜索无结果：给出明确提示 + 一键清空搜索词返回全量
           if (isSearchNoResult)
             _SearchNoResultHint(
@@ -314,6 +317,47 @@ extension _FavoritesViewBuild on _FavoritesViewState {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// 稍后观看入口卡片
+  Widget _buildWatchlistEntry(ColorScheme scheme) {
+    return InkWell(
+      onTap: () => context.push('/watchlist'),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.bookmark_outline, color: scheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '稍后观看',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '在影片详情页点击书签即可收藏',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }

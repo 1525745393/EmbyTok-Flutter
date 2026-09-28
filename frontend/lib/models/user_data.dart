@@ -4,6 +4,7 @@ class UserData {
   const UserData({
     this.playbackPositionTicks = 0.0,
     this.isFavorite = false,
+    this.isWatchlisted = false,
     this.played = false,
     this.unplayedItemCount = 0,
     this.lastPlayedDate,
@@ -27,6 +28,10 @@ class UserData {
           (json['is_favorite'] as bool?) ??
           (json['isFavorite'] as bool?) ??
           false,
+      isWatchlisted: (json['IsWatchlisted'] as bool?) ??
+          (json['is_watchlisted'] as bool?) ??
+          (json['isWatchlisted'] as bool?) ??
+          false,
       played: (json['Played'] as bool?) ?? (json['played'] as bool?) ?? false,
       unplayedItemCount: (json['UnplayedItemCount'] as int?) ??
           (json['unplayed_item_count'] as int?) ??
@@ -42,6 +47,7 @@ class UserData {
   }
   final double playbackPositionTicks; // 已播放时长（tick 单位）
   final bool isFavorite; // 是否已收藏
+  final bool isWatchlisted; // 是否在稍后观看列表（Emby UserData.IsWatchlisted）
   final bool played; // 是否已完整观看
   final int unplayedItemCount; // 未看集数（用于剧集/季）
   final String? lastPlayedDate; // 最后播放日期
@@ -55,6 +61,7 @@ class UserData {
   Map<String, dynamic> toJson() => {
         'playback_position_ticks': playbackPositionTicks,
         'is_favorite': isFavorite,
+        'is_watchlisted': isWatchlisted,
         'played': played,
         'unplayed_item_count': unplayedItemCount,
         'last_played_date': lastPlayedDate,
