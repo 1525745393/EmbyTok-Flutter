@@ -147,6 +147,12 @@ class ApiClient {
           // 仅在请求未指定 Accept 时设置默认值
           // 字幕请求需要 Accept: text/plain，不能被覆盖
           options.headers.putIfAbsent('Accept', () => 'application/json');
+          // DELETE 无 body 时移除 content-type 头，避免 Cloudflare WAF
+          // 因"有 Content-Type: application/json 但无 body"的 DELETE 请求返回 403
+          if (options.method.toUpperCase() == 'DELETE' && options.data == null) {
+            options.headers.remove('content-type');
+            options.headers.remove('Content-Type');
+          }
           return handler.next(options);
         },
         onResponse: (response, handler) {
