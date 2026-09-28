@@ -241,14 +241,14 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       if (isFavorite) {
         await _apiClient.post<dynamic>(path);
       } else {
-        // 取消收藏：DELETE 请求（拦截器已自动移除无 body 时的 content-type）
+        // 取消收藏：优先 DELETE（拦截器已自动移除无 body 时的 content-type）
         await _apiClient.delete<dynamic>(
           path,
           headers: const {'Content-Length': '0'},
         );
       }
     } on AppError catch (e) {
-      // 403 时多层 fallback，覆盖 nginx/Cloudflare WAF 各种拦截配置
+      // 403 时多层 fallback，覆盖 Cloudflare WAF 对 DELETE 方法的拦截
       if (e.statusCode == 403 && token != null && token.isNotEmpty) {
         AppLogger.warn('收藏请求 403，开始多层 fallback',
             data: {'path': path, 'isFavorite': isFavorite});
@@ -270,49 +270,45 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
           AppLogger.debug('Fallback 1 成功（api_key）');
         } on AppError catch (e1) {
           if (e1.statusCode != 403) rethrow;
-          // Fallback 2: POST + X-HTTP-Method-Override: DELETE
-          // 绕过 Cloudflare/nginx 对 DELETE 方法的拦截
-          AppLogger.warn('Fallback 1 仍 403，尝试 POST + Method-Override');
-          try {
-            final overrideHeaders = <String, dynamic>{
-              'X-HTTP-Method-Override': 'DELETE',
-            };
-            if (!isFavorite) {
-              overrideHeaders['Content-Length'] = '0';
-            }
-            await _apiClient.post<dynamic>(
-              path,
-              headers: overrideHeaders,
-              data: isFavorite ? null : <String, dynamic>{},
-            );
-            AppLogger.debug('Fallback 2 成功（POST + Method-Override）');
-          } on AppError catch (e2) {
-            if (e2.statusCode != 403) rethrow;
-            // Fallback 3: POST + Method-Override + api_key
-            AppLogger.warn('Fallback 2 仍 403，尝试 POST + Method-Override + api_key');
+
+          // Fallback 2 (仅取消收藏): POST /Users/{userId}/Items/{itemId}/UserData
+          // body: {"IsFavorite": false}
+          // 这是纯 POST 请求，Cloudflare 不会拦截（添加收藏的 POST 已验证可通过）
+          if (!isFavorite && effectiveUserId != null && effectiveUserId.isNotEmpty) {
+            AppLogger.warn('Fallback 1 仍 403，尝试 POST UserData 端点');
             try {
-              final overrideHeaders = <String, dynamic>{
-                'X-HTTP-Method-Override': 'DELETE',
-              };
-              if (!isFavorite) {
-                overrideHeaders['Content-Length'] = '0';
-              }
               await _apiClient.post<dynamic>(
-                path,
-                queryParameters: {'api_key': token},
-                headers: overrideHeaders,
-                data: isFavorite ? null : <String, dynamic>{},
+                '/Users/$effectiveUserId/Items/$itemId/UserData',
+                data: {'IsFavorite': false},
               );
-              AppLogger.debug('Fallback 3 成功（POST + Method-Override + api_key）');
-            } on AppError catch (e3) {
-              if (e3.statusCode == 403) {
-                throw AppError.forbidden(
-                  message:
-                      '服务器拒绝了收藏请求（403）。已尝试 DELETE、api_key、POST+Method-Override 多种方式均被拦截。请检查 Cloudflare/nginx WAF 规则是否允许对 Emby API 的写操作。',
+              AppLogger.debug('Fallback 2 成功（POST UserData IsFavorite=false）');
+            } on AppError catch (e2) {
+              if (e2.statusCode != 403) rethrow;
+              // Fallback 3: POST UserData + api_key
+              AppLogger.warn('Fallback 2 仍 403，尝试 POST UserData + api_key');
+              try {
+                await _apiClient.post<dynamic>(
+                  '/Users/$effectiveUserId/Items/$itemId/UserData',
+                  queryParameters: {'api_key': token},
+                  data: {'IsFavorite': false},
                 );
+                AppLogger.debug('Fallback 3 成功（POST UserData + api_key）');
+              } on AppError catch (e3) {
+                if (e3.statusCode == 403) {
+                  throw AppError.forbidden(
+                    message:
+                        '服务器拒绝了收藏请求（403）。已尝试 DELETE、api_key、POST UserData 多种方式均被 Cloudflare/nginx WAF 拦截。',
+                  );
+                }
+                rethrow;
               }
-              rethrow;
             }
+          } else {
+            // 添加收藏的 fallback 已经是 POST + api_key，如果还失败就抛错
+            throw AppError.forbidden(
+              message:
+                  '服务器拒绝了收藏请求（403）。请检查 Cloudflare/nginx WAF 规则。',
+            );
           }
         }
       } else {
