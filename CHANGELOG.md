@@ -1,3 +1,10 @@
+# [2.234.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.233.0...v2.234.0) (2026-09-28)
+
+
+### Features
+
+* 多播放器PRD第一阶段-第三方播放器兜底(ExternalPlayerService+右侧操作栏外部播放按钮) ([7af8f23](https://github.com/1525745393/EmbyTok-Flutter/commit/7af8f23b7cfc959567cd95c711e489d2c9d96e15))
+
 # [2.233.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.25...v2.233.0) (2026-09-28)
 
 
