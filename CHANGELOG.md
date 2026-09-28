@@ -1,3 +1,10 @@
+## [2.232.15](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.14...v2.232.15) (2026-09-28)
+
+
+### Bug Fixes
+
+* 继续观看加Filters=IsResumable参数+错误日志 ([0960a6d](https://github.com/1525745393/EmbyTok-Flutter/commit/0960a6d0a481a4d5d4f8efe8b9cc9f3ee66ffe19))
+
 ## [2.232.14](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.13...v2.232.14) (2026-09-28)
 
 
