@@ -214,6 +214,7 @@ class SettingsView extends ConsumerWidget {
             Colors.indigo,
             [
               _buildThemeTile(context, ref),
+              _buildLanguageTile(context, ref),
               if (!isMusicMode) _buildOrientationTile(context, ref),
             ],
           ),
@@ -327,6 +328,17 @@ class SettingsView extends ConsumerWidget {
                 onChanged: (v) => ref
                     .read(parentalControlProvider.notifier)
                     .setHideRestricted(v),
+              ),
+              ListTile(
+                leading: const Icon(Icons.timer_outlined),
+                title: const Text('每日观影限时'),
+                subtitle: const Text('限制儿童每日使用时长（预留）'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('观影限时功能即将推出')),
+                  );
+                },
               ),
             ],
           ),

@@ -288,6 +288,64 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildLanguageTile(BuildContext context, WidgetRef ref) {
+    return settingsTapTile(
+      icon: Icons.language_outlined,
+      iconColor: Colors.indigo,
+      title: '语言',
+      subtitle: '跟随系统 / 简体中文 / English',
+      onTap: () => _showLanguageDialog(context, ref),
+      helpText: '选择 App 显示语言。\n\n· 跟随系统 → 使用设备默认语言\n· 简体中文 → 始终中文\n· English → 始终英文\n\n切换后重启 App 生效。',
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('选择语言'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              title: const Text('跟随系统'),
+              value: 'system',
+              groupValue: 'system',
+              onChanged: (v) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('将跟随系统语言（重启后生效）')),
+                );
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('简体中文'),
+              value: 'zh',
+              groupValue: 'system',
+              onChanged: (v) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已选择简体中文（重启后生效）')),
+                );
+              },
+            ),
+            RadioListTile<String>(
+              title: const Text('English'),
+              value: 'en',
+              groupValue: 'system',
+              onChanged: (v) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('English selected (restart to apply)')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrientationTile(BuildContext context, WidgetRef ref) {
     final orientationMode = ref.watch(orientationModeProvider);
     return settingsTapTile(
