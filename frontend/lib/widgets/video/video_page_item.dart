@@ -21,6 +21,7 @@ import '../../providers/providers.dart';
 import '../../providers/sleep_timer_provider.dart';
 import '../../providers/video_comments_provider.dart';
 import '../../services/embytok_service.dart';
+import '../../services/external_player_service.dart';
 import '../../utils/logger.dart';
 import '../../utils/fullscreen_navigator.dart';
 import '../../utils/constants.dart';

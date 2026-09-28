@@ -134,6 +134,14 @@ class _RightActionButtons extends ConsumerWidget {
                         onTap: onShareTap,
                       ),
                       SizedBox(height: rs(16, 1.5)),
+                      // 第三方播放器兜底：内置播放器无法解码时用外部播放器播放
+                      PressableActionButton(
+                        icon: Icons.open_in_new,
+                        label: '外部播放',
+                        color: scheme.onSurface,
+                        onTap: () => _playWithExternalPlayer(context, item),
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
                       PressableActionButton(
                         icon: Icons.chat_bubble_outline,
                         label: '评论',
@@ -495,4 +503,33 @@ String _buildPeopleSummary(List<Person> people) {
   if (directors.isNotEmpty) parts.add('导演：$directors');
   if (actors.isNotEmpty) parts.add('主演：$actors');
   return parts.join('  |  ');
+}
+
+/// 用第三方外部播放器播放当前视频
+///
+/// 当内置播放器无法解码时，通过 Android Intent 唤起已安装的第三方播放器
+/// （VLC / MX Player 等）播放视频流。
+void _playWithExternalPlayer(BuildContext context, MediaItem item) async {
+  final url = item.playbackUrl;
+  if (url == null || url.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('无法获取播放地址')),
+    );
+    return;
+  }
+
+  final success = await ExternalPlayerService.play(
+    videoUrl: url,
+    title: item.title,
+  );
+
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success
+            ? '已唤起外部播放器'
+            : '未找到可用的外部播放器，请安装 VLC 或 MX Player'),
+      ),
+    );
+  }
 }
