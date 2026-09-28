@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_error.dart';
 import '../providers/demo_mode_provider.dart';
 import '../utils/constants.dart';
+import '../utils/logger.dart';
 import '../utils/formatters.dart';
 
 class ApiClient {
