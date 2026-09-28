@@ -1,3 +1,10 @@
+# [2.235.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.234.0...v2.235.0) (2026-09-28)
+
+
+### Features
+
+* 多播放器PRD第二阶段-播放前媒体信息卡(视频编码/分辨率/HDR杜比/音频编码/音轨字幕数) ([51f9904](https://github.com/1525745393/EmbyTok-Flutter/commit/51f9904f2601fa8f6b69161af55f6070f7c8fdbf))
+
 # [2.234.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.233.0...v2.234.0) (2026-09-28)
 
 
