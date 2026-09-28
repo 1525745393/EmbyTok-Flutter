@@ -473,6 +473,8 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
                           _OverviewExpandable(text: overview),
                           const SizedBox(height: 24),
                         ],
+                        // 技术参数：视频编码/分辨率/HDR/杜比/音频编码（PRD 播放前媒体信息卡）
+                        _buildTechInfoSection(context, item),
                         if (actors != null && actors.isNotEmpty) ...[
                           const _VideoInfoSectionLabel('主演'),
                           const SizedBox(height: 8),
@@ -1368,4 +1370,142 @@ class _GenreChipsWrapState extends State<_GenreChipsWrap> {
       ],
     );
   }
+}
+
+/// 构建技术参数区块（PRD 播放前媒体信息卡）
+///
+/// 显示视频编码、分辨率、HDR/杜比格式、音频编码、音轨数、字幕数等。
+/// 帮助用户在播放前了解片源规格，判断是否需要切换播放器或转码。
+Widget _buildTechInfoSection(BuildContext context, MediaItem item) {
+  final scheme = Theme.of(context).colorScheme;
+  final source = item.primaryMediaSource;
+  if (source == null) return const SizedBox.shrink();
+
+  // 找视频轨和默认音轨
+  final videoStream = source.mediaStreams
+      .where((s) => s.type == 'Video')
+      .cast<MediaStream?>()
+      .firstWhere((s) => s != null, orElse: () => null);
+  final audioStreams =
+      source.mediaStreams.where((s) => s.type == 'Audio').toList();
+  final subtitleStreams =
+      source.mediaStreams.where((s) => s.type == 'Subtitle').toList();
+
+  // 收集参数行
+  final rows = <Widget>[];
+
+  // 视频编码 + Profile
+  if (videoStream?.codec != null) {
+    final codec = videoStream!.codec!.toUpperCase();
+    final profile = videoStream.profile;
+    rows.add(_techRow(context, '视频编码',
+        profile != null ? '$codec ($profile)' : codec));
+  }
+
+  // 分辨率
+  final w = source.width ?? videoStream?.width;
+  final h = source.height ?? videoStream?.height;
+  if (w != null && h != null) {
+    String label = '$w×$h';
+    if (h >= 2160) {
+      label = '4K ($w×$h)';
+    } else if (h >= 1080) {
+      label = '1080p ($w×$h)';
+    } else if (h >= 720) {
+      label = '720p ($w×$h)';
+    }
+    rows.add(_techRow(context, '分辨率', label));
+  }
+
+  // 动态范围（HDR/杜比）
+  if (videoStream != null && videoStream.videoRangeType != null) {
+    rows.add(_techRow(context, '动态范围', videoStream.videoRangeLabel,
+        highlight: videoStream.isDolbyVision || videoStream.isHdr));
+  }
+
+  // 容器格式
+  if (source.container != null) {
+    rows.add(_techRow(context, '封装', source.container!.toUpperCase()));
+  }
+
+  // 码率
+  if (source.bitrate != null) {
+    final mbps = (source.bitrate! / 1000000).toStringAsFixed(1);
+    rows.add(_techRow(context, '码率', '$mbps Mbps'));
+  }
+
+  // 音频编码（默认音轨）
+  if (audioStreams.isNotEmpty) {
+    final defaultAudio = audioStreams.firstWhere(
+      (s) => s.isDefault,
+      orElse: () => audioStreams.first,
+    );
+    final codec = defaultAudio.codec?.toUpperCase() ?? '未知';
+    final channels = defaultAudio.channels ??
+        defaultAudio.audioChannels ??
+        audioStreams.first.channels;
+    final channelStr = channels != null ? '${channels}ch' : '';
+    rows.add(_techRow(context, '音频编码',
+        channelStr.isNotEmpty ? '$codec ($channelStr)' : codec));
+  }
+
+  // 音轨数 / 字幕数
+  if (audioStreams.length > 1) {
+    rows.add(_techRow(context, '音轨数', '${audioStreams.length} 条'));
+  }
+  if (subtitleStreams.isNotEmpty) {
+    rows.add(_techRow(context, '字幕数', '${subtitleStreams.length} 条'));
+  }
+
+  if (rows.isEmpty) return const SizedBox.shrink();
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const _VideoInfoSectionLabel('技术参数'),
+      const SizedBox(height: 8),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(children: rows),
+      ),
+      const SizedBox(height: 24),
+    ],
+  );
+}
+
+Widget _techRow(BuildContext context, String label, String value,
+    {bool highlight = false}) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 3),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              color: highlight ? scheme.primary : scheme.onSurface,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

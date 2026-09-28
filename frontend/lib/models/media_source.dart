@@ -113,6 +113,14 @@ class MediaStream { // 视频高度
     this.codec,
     this.width,
     this.height,
+    this.profile,
+    this.videoRangeType,
+    this.channels,
+    this.sampleRate,
+    this.bitrate,
+    this.title,
+    this.aspectRatio,
+    this.audioChannels,
   });
 
   factory MediaStream.fromJson(Map<String, dynamic> json) {
@@ -136,6 +144,25 @@ class MediaStream { // 视频高度
       codec: (json['Codec'] as String?) ?? (json['codec'] as String?),
       width: (json['Width'] as int?) ?? (json['width'] as int?),
       height: (json['Height'] as int?) ?? (json['height'] as int?),
+      // 编码 Profile（如 High, Main 10）
+      profile: (json['Profile'] as String?) ?? (json['profile'] as String?),
+      // 动态范围：SDR / HDR10 / HLG / DOVI（Dolby Vision）
+      videoRangeType: (json['VideoRangeType'] as String?) ??
+          (json['video_range_type'] as String?) ??
+          (json['VideoRange'] as String?),
+      // 音频声道数
+      channels: (json['Channels'] as int?) ?? (json['channels'] as int?),
+      // 音频采样率
+      sampleRate:
+          (json['SampleRate'] as int?) ?? (json['sample_rate'] as int?),
+      // 码率
+      bitrate: (json['Bitrate'] as int?) ?? (json['bitrate'] as int?),
+      // 轨道标题
+      title: (json['Title'] as String?) ?? (json['title'] as String?),
+      aspectRatio:
+          (json['AspectRatio'] as String?) ?? (json['aspect_ratio'] as String?),
+      audioChannels:
+          (json['AudioChannels'] as int?) ?? (json['audio_channels'] as int?),
     );
   }
   final int index;
@@ -149,4 +176,32 @@ class MediaStream { // 视频高度
   final String? codec; // 编码
   final int? width; // 视频宽度
   final int? height;
+  final String? profile; // 编码 Profile
+  final String? videoRangeType; // 动态范围 SDR/HDR10/HLG/DOVI
+  final int? channels; // 音频声道数
+  final int? sampleRate; // 采样率
+  final int? bitrate; // 码率
+  final String? title; // 轨道标题
+  final String? aspectRatio; // 宽高比
+  final int? audioChannels; // 音频声道数（另一种字段名）
+
+  /// 是否为杜比 Vision 内容
+  bool get isDolbyVision =>
+      videoRangeType?.toUpperCase().contains('DOVI') == true ||
+      videoRangeType?.toUpperCase().contains('DOLBY') == true;
+
+  /// 是否为 HDR 内容
+  bool get isHdr {
+    final r = videoRangeType?.toUpperCase() ?? '';
+    return r.contains('HDR') || r.contains('HLG');
+  }
+
+  /// 格式化动态范围显示
+  String get videoRangeLabel {
+    if (isDolbyVision) return 'Dolby Vision';
+    if (videoRangeType != null && videoRangeType!.isNotEmpty) {
+      return videoRangeType!;
+    }
+    return 'SDR';
+  }
 }
