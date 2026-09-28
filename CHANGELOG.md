@@ -1,3 +1,10 @@
+## [2.232.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.0...v2.232.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* Watchlist 详情页按钮初始状态同步服务端+收藏页添加入口 ([3380b18](https://github.com/1525745393/EmbyTok-Flutter/commit/3380b18ff5cbd08dd56de3d423ce3803f447dc98))
+
 # [2.232.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.3...v2.232.0) (2026-09-28)
 
 
