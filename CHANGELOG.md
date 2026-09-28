@@ -1,3 +1,10 @@
+## [2.231.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.0...v2.231.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* 修复dispose后ref.read导致播放上报崩溃 ([cf9c4fe](https://github.com/1525745393/EmbyTok-Flutter/commit/cf9c4fe8dcba9a75ff3eb84e6ed790a898b1b7a5))
+
 # [2.231.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.230.0...v2.231.0) (2026-09-28)
 
 
