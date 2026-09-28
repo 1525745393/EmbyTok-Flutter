@@ -61,6 +61,11 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin jni_flutter, com.github.dart_lang.jni_flutter.JniFlutterPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new com.alexmercerind.media_kit_video.MediaKitVideoPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin media_kit_video, com.alexmercerind.media_kit_video.MediaKitVideoPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new com.crazecoder.openfile.OpenFilePlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin open_filex, com.crazecoder.openfile.OpenFilePlugin", e);
@@ -104,6 +109,16 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new io.flutter.plugins.videoplayer.VideoPlayerPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin video_player_android, io.flutter.plugins.videoplayer.VideoPlayerPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.kurenai7968.volume_controller.VolumeControllerPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin volume_controller, com.kurenai7968.volume_controller.VolumeControllerPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin wakelock_plus, dev.fluttercommunity.plus.wakelock.WakelockPlusPlugin", e);
     }
   }
 }

@@ -9,10 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
+import '../../providers/player_engine_provider.dart';
 import '../../providers/providers.dart';
 import '../../services/external_player_service.dart';
 import '../../utils/image_cache_manager.dart';
 import '../../utils/logger.dart';
+import 'mpv_video_player.dart';
 import 'subtitle_renderer.dart';
 part 'video_player_parts/video_player_controls.dart';
 
@@ -356,6 +358,26 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // 多播放器 PRD 第三阶段：用户选择 MPV 引擎时使用 libmpv 渲染
+    final engine = ref.watch(playerEngineSettingsProvider).defaultEngine;
+    if (engine == PlayerEngine.mpv) {
+      final mpvUrl = _playbackUrl;
+      if (mpvUrl == null || mpvUrl.isEmpty) {
+        return _buildThumbnailPlaceholder(context);
+      }
+      return MpvVideoPlayer(
+        url: mpvUrl,
+        httpHeaders: widget.token != null
+            ? {
+                'X-Emby-Token': widget.token!,
+                'Accept': 'video/*',
+              }
+            : const {'Accept': 'video/*'},
+        autoPlay: widget.autoPlay,
+        muted: !widget.isCurrentPage,
+      );
+    }
+
     final vc = _controller;
 
     // 场景 1：无法播放视频，显示缩略图占位

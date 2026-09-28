@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'app.dart';
 import 'services/api_client.dart';
@@ -16,6 +17,8 @@ import 'utils/logger.dart';
 /// - 初始化 Riverpod 状态管理
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 初始化 MPV 引擎（多播放器 PRD 第三阶段）
+  MediaKit.ensureInitialized();
   await AppLogger.init();
   // 记录启动会话信息（App 版本、运行模式），导出日志时自动附带
   try {
