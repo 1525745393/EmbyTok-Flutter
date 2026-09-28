@@ -1,3 +1,10 @@
+## [2.232.14](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.13...v2.232.14) (2026-09-28)
+
+
+### Bug Fixes
+
+* 取消收藏403改用POST UserData端点(纯POST绕过Cloudflare DELETE拦截) ([d52be84](https://github.com/1525745393/EmbyTok-Flutter/commit/d52be8415747be6e388c2100d4f6842ae1a4908c))
+
 ## [2.232.13](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.232.12...v2.232.13) (2026-09-28)
 
 
