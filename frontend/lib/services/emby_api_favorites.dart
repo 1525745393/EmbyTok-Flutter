@@ -241,7 +241,12 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       if (isFavorite) {
         await _apiClient.post<dynamic>(path);
       } else {
-        await _apiClient.delete<dynamic>(path);
+        // DELETE 必须显式带 Content-Length: 0，否则部分 nginx/Emby 会因
+        // 无 Content-Length 的 DELETE 请求返回 403（POST 有默认 body 不受影响）
+        await _apiClient.delete<dynamic>(
+          path,
+          headers: const {'Content-Length': '0'},
+        );
       }
     } on AppError catch (e) {
       // nginx 反代可能拦截 POST/DELETE（返回 HTML 403 页面），
@@ -267,6 +272,7 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
             await _apiClient.delete<dynamic>(
               path,
               queryParameters: {'api_key': token},
+              headers: const {'Content-Length': '0'},
             );
           }
         } on AppError catch (e2) {
