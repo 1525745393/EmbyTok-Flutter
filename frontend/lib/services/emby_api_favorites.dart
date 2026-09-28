@@ -241,10 +241,11 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
       if (isFavorite) {
         await _apiClient.post<dynamic>(path);
       } else {
-        // 取消收藏：优先 DELETE（拦截器已自动移除无 body 时的 content-type）
+        // 取消收藏：DELETE 带空 JSON body，绕过 Cloudflare WAF
+        // 无 body 的 DELETE 被识别为机器人，带 {} body 像真实客户端
         await _apiClient.delete<dynamic>(
           path,
-          headers: const {'Content-Length': '0'},
+          data: const {},
         );
       }
     } on AppError catch (e) {
