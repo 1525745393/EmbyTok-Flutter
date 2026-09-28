@@ -281,8 +281,13 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
                 '/Users/$effectiveUserId/Items/$itemId/UserData',
                 data: {'IsFavorite': false},
               );
-              AppLogger.debug('Fallback 2 成功（POST UserData IsFavorite=false）');
+              AppLogger.warn('Fallback 2 成功（POST UserData IsFavorite=false）',
+                  data: {'itemId': itemId});
             } on AppError catch (e2) {
+              AppLogger.warn('Fallback 2 失败', data: {
+                'statusCode': e2.statusCode,
+                'message': e2.message,
+              });
               if (e2.statusCode != 403) rethrow;
               // Fallback 3: POST UserData + api_key
               AppLogger.warn('Fallback 2 仍 403，尝试 POST UserData + api_key');
@@ -292,8 +297,13 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
                   queryParameters: {'api_key': token},
                   data: {'IsFavorite': false},
                 );
-                AppLogger.debug('Fallback 3 成功（POST UserData + api_key）');
+                AppLogger.warn('Fallback 3 成功（POST UserData + api_key）',
+                    data: {'itemId': itemId});
               } on AppError catch (e3) {
+                AppLogger.warn('Fallback 3 失败', data: {
+                  'statusCode': e3.statusCode,
+                  'message': e3.message,
+                });
                 if (e3.statusCode == 403) {
                   throw AppError.forbidden(
                     message:
