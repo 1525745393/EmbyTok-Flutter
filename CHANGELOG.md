@@ -1,3 +1,10 @@
+## [2.231.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.1...v2.231.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* AudioService初始化失败-添加AudioServiceActivity meta-data ([39c6fee](https://github.com/1525745393/EmbyTok-Flutter/commit/39c6feef1098a90e2f9a95acf71105f938d9e2c9))
+
 ## [2.231.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.231.0...v2.231.1) (2026-09-28)
 
 
