@@ -174,6 +174,9 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // 帧预览缩略图：拖动进度条时在进度条上方显示
+                if (_sliderSeekHandler.seekPreviewMs != null)
+                  _buildFramePreview(context, _sliderSeekHandler.seekPreviewMs!),
                 ValueListenableBuilder<VideoPlayerValue>(
                   valueListenable: controller,
                   builder: (context, value, child) {
@@ -554,6 +557,46 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
           }
         },
         onClose: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
+  /// 帧预览缩略图（多播放器 PRD：拖动进度条时显示 Emby trickplay 缩略图）
+  ///
+  /// Emby API: /Items/{itemId}/Images/Playback/{width}?mediaSourceId=...&offset={ticks}
+  /// 服务端未配置 trickplay 时返回 404，错误图占位。
+  Widget _buildFramePreview(BuildContext context, double previewMs) {
+    final item = currentItem;
+    final auth = ref.read(authProvider);
+    if (item == null || auth.embyServerUrl == null || auth.token == null) {
+      return const SizedBox.shrink();
+    }
+    final msId = item.primaryMediaSource?.id;
+    if (msId == null) return const SizedBox.shrink();
+
+    // 1 tick = 100ns，毫秒转 tick = ms * 10000
+    final offsetTicks = (previewMs * 10000).round();
+    final url =
+        '${auth.embyServerUrl}/Items/${item.id}/Images/Playback/288?mediaSourceId=$msId&offset=$offsetTicks&X-Emby-Token=${auth.token}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      width: 160,
+      height: 90,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white24),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        headers: {'Accept': 'image/*'},
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(Icons.image_not_supported_outlined,
+              color: Colors.white24, size: 24),
+        ),
       ),
     );
   }
