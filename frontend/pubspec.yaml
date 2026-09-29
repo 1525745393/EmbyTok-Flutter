@@ -25,6 +25,8 @@ dependencies:
   intl: ^0.20.2
   connectivity_plus: ^5.0.0
   video_player: ^2.9.0
+  # 屏幕常亮：播放视频时防止息屏
+  wakelock_plus: ^1.2.8
   # MPV 引擎（多播放器 PRD 第三阶段）：基于 libmpv，支持 HDR/杜比/ASS 字幕/全格式
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1

@@ -4,6 +4,8 @@
 
 import 'dart:async';
 
+import 'package:wakelock_plus/wakelock_plus.dart';
+
 import 'dart:convert';
 
 import '../../utils/safe_insets.dart';
@@ -204,7 +206,10 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     super.initState();
     _service = ref.read(embytokServiceProvider);
     WidgetsBinding.instance.addObserver(this);
-    _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
+    _lastLifecycleState = WidgetsBinding.instance.lifecycleState();
+
+    // 播放视频时保持屏幕常亮
+    WakelockPlus.enable();
 
     // 注册睡眠定时器超时回调：倒计时结束时暂停播放
     ref.read(sleepTimerProvider.notifier).setOnTimeout(() {
@@ -361,6 +366,8 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
 
   @override
   void dispose() {
+    // 释放屏幕常亮
+    WakelockPlus.disable();
     // 显式取消 listenManual 订阅，避免内存泄漏
     _isPlayingSubscription?.close();
     _isAutoPlaySubscription?.close();
