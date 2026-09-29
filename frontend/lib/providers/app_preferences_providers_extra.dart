@@ -483,3 +483,31 @@ final videoFitModeProvider =
     StateNotifierProvider<VideoFitModeNotifier, VideoFitMode>(
   (ref) => VideoFitModeNotifier(),
 );
+
+/// 自动连播下一集：播放结束后自动切到下一个视频
+class AutoPlayNextNotifier extends StateNotifier<bool> {
+  AutoPlayNextNotifier() : super(false) {
+    _load();
+  }
+
+  static const _key = 'auto_play_next';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_key) ?? false;
+  }
+
+  Future<void> setEnabled(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, value);
+  }
+}
+
+final autoPlayNextProvider =
+    StateNotifierProvider<AutoPlayNextNotifier, bool>(
+  (ref) => AutoPlayNextNotifier(),
+);
+
+/// 自动连播事件触发器：播放结束时自增，外层监听后切到下一页
+final autoPlayNextTriggerProvider = StateProvider<int>((ref) => 0);

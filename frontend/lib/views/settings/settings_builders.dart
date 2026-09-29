@@ -775,6 +775,17 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildAutoPlayNextTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(autoPlayNextProvider);
+    return SwitchListTile(
+      secondary: const Icon(Icons.playlist_play, color: Colors.green),
+      title: const Text('自动连播下一集'),
+      subtitle: const Text('视频播放结束后自动切到下一个视频'),
+      value: enabled,
+      onChanged: (v) => ref.read(autoPlayNextProvider.notifier).setEnabled(v),
+    );
+  }
+
   void _showVideoFitPicker(
       BuildContext context, WidgetRef ref, VideoFitMode current) {
     final names = {

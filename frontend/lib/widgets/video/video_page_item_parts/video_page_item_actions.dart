@@ -168,8 +168,10 @@ extension _VideoPageItemActions on _VideoPageItemState {
           }
         }
         ref.read(videoListProvider.notifier).removePlayedItem(widget.item.id);
-        // 视频播放结束：已移除自动播放和下一集功能
-        // 用户需要手动滑动切换到下一个视频
+        // 自动连播下一集：用户在设置中开启后，播放结束自动切到下一个视频
+        if (ref.read(autoPlayNextProvider)) {
+          ref.read(autoPlayNextTriggerProvider.notifier).state++;
+        }
       }
     }
   }

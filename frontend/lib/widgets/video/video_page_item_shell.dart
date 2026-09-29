@@ -203,6 +203,20 @@ class _PlaybackShellState extends ConsumerState<PlaybackShell> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    // 监听自动连播事件：当前视频播放结束且用户开启了自动连播时，自动切到下一页
+    ref.listen<int>(autoPlayNextTriggerProvider, (prev, next) {
+      if (next != prev && mounted && _pageController.hasClients) {
+        final nextIndex = _currentIndex + 1;
+        if (nextIndex < _items.length) {
+          _pageController.animateToPage(
+            nextIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: scheme.surface,
