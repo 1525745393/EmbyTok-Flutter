@@ -29,6 +29,8 @@ export '../services/video_pool_service.dart';
 export 'audio_focus_provider.dart';
 // AudioHandler / MediaSession：锁屏/通知栏媒体控制
 export 'audio_handler_provider.dart';
+// 睡眠定时器：横屏播放器右上角入口
+export 'sleep_timer_provider.dart';
 
 // ---- 收藏与历史 ----
 export 'favorites_provider.dart';

@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color;
 
-import '../models/danmaku_item.dart';
-import '../utils/app_logger.dart';
+import '../utils/logger.dart';
 
 /// 弹弹Play（dandanplay）弹幕源 API
 ///

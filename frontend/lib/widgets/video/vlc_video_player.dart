@@ -95,7 +95,8 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
   /// 播放速度控制（与 EXO/MPV 对齐）
   void setSpeed(double speed) {
     try {
-      _controller?.setRate(speed);
+      // vlc_player 2.x 使用 setPlaybackSpeed，而非 setRate
+      _controller?.setPlaybackSpeed(speed);
     } catch (e) {
       AppLogger.debug('VLC setSpeed 失败', data: {'error': e.toString()});
     }
