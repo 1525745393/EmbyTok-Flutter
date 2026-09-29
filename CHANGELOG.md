@@ -1,3 +1,12 @@
+## [2.241.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.0...v2.241.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* media_kit_video版本改为^2.0.1 ([6644046](https://github.com/1525745393/EmbyTok-Flutter/commit/66440468c7bc7c0d60fd004800aae5bb4362edba))
+* 升级media_kit到最新版1.2.6确保Android native库正确打包 ([93b783e](https://github.com/1525745393/EmbyTok-Flutter/commit/93b783ec54ba41b651837a9f7a2e4009a9fb08b2))
+* 缺失media_kit_libs_android导致libmpv.so未打包进APK - MPV会crash且APK异常变小 ([1bee931](https://github.com/1525745393/EmbyTok-Flutter/commit/1bee931d10f95ab94b48302b8cbcec5f8886e5c6))
+
 # [2.241.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.240.0...v2.241.0) (2026-09-29)
 
 
