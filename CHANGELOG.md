@@ -1,3 +1,10 @@
+# [2.246.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.245.0...v2.246.0) (2026-09-29)
+
+
+### Features
+
+* 慢动作速度选项增加0.25x ([1c8cfce](https://github.com/1525745393/EmbyTok-Flutter/commit/1c8cfce62b49874f87a4e4ce0f6cf970e8700ce8))
+
 # [2.245.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.244.0...v2.245.0) (2026-09-29)
 
 
