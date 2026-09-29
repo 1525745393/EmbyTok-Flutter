@@ -358,6 +358,15 @@ class SettingsView extends ConsumerWidget {
                   );
                 },
               ),
+              // PIN 锁
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: const Text('应用 PIN 锁'),
+                subtitle: Text(
+                    ref.watch(pinLockProvider).isEmpty ? '未设置' : '已启用'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showPinLockDialog(context, ref),
+              ),
             ],
           ),
           // 关于
@@ -711,6 +720,122 @@ class SettingsView extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _showPinLockDialog(BuildContext context, WidgetRef ref) async {
+    final currentPin = ref.read(pinLockProvider);
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(currentPin.isEmpty ? '设置 PIN 锁' : '修改/关闭 PIN 锁'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(currentPin.isEmpty
+                ? '输入 4 位数字 PIN'
+                : '输入当前 PIN 以验证'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: '••••',
+                counterText: '',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          if (currentPin.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                ref.read(pinLockProvider.notifier).setPin('');
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN 锁已关闭')),
+                );
+              },
+              child: const Text('关闭锁'),
+            ),
+          TextButton(
+            onPressed: () {
+              final input = controller.text;
+              if (input.length != 4) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('请输入 4 位数字')),
+                );
+                return;
+              }
+              if (currentPin.isNotEmpty && input != currentPin) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN 不正确')),
+                );
+                return;
+              }
+              if (currentPin.isEmpty) {
+                // 新设置
+                ref.read(pinLockProvider.notifier).setPin(input);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('PIN 锁已启用')),
+                );
+              } else {
+                // 验证成功，提示输入新 PIN
+                Navigator.pop(context);
+                _showSetNewPinDialog(context, ref);
+              }
+            },
+            child: Text(currentPin.isEmpty ? '设置' : '验证'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSetNewPinDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('输入新 PIN'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          maxLength: 4,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: '••••', counterText: ''),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.length != 4) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('请输入 4 位数字')),
+                );
+                return;
+              }
+              ref.read(pinLockProvider.notifier).setPin(controller.text);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('PIN 已更新')),
+              );
+            },
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
   }

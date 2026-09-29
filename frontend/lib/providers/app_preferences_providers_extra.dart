@@ -384,3 +384,41 @@ final favoriteIncludeTypesProvider =
     StateNotifierProvider<FavoriteIncludeTypesNotifier, Set<String>>(
   (ref) => FavoriteIncludeTypesNotifier(),
 );
+
+// ---------------- PIN 锁 ----------------
+
+/// PIN 锁状态：存储 4 位数字 PIN（空字符串表示未设置）
+class PinLockNotifier extends StateNotifier<String> {
+  PinLockNotifier() : super('') {
+    _load();
+  }
+
+  static const _key = 'app_pin_code';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString(_key) ?? '';
+  }
+
+  Future<void> setPin(String pin) async {
+    state = pin;
+    final prefs = await SharedPreferences.getInstance();
+    if (pin.isEmpty) {
+      await prefs.remove(_key);
+    } else {
+      await prefs.setString(_key, pin);
+    }
+  }
+
+  bool get isEnabled => state.isNotEmpty;
+
+  bool verify(String input) => input == state;
+}
+
+final pinLockProvider =
+    StateNotifierProvider<PinLockNotifier, String>(
+  (ref) => PinLockNotifier(),
+);
+
+/// PIN 是否已解锁（本次会话内）
+final pinUnlockedProvider = StateProvider<bool>((ref) => false);

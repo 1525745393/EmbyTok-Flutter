@@ -27,6 +27,7 @@ import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
 import 'views/watchlist_view.dart';
 import 'views/history_view.dart';
+import 'views/pin_lock_screen.dart';
 import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
 import 'views/login_view.dart';
@@ -99,6 +100,16 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       initialLocation: '/',
       refreshListenable: _refreshNotifier,
       redirect: (BuildContext context, GoRouterState state) {
+        // PIN 锁检查：已设置 PIN 但未验证时跳转到 PIN 页
+        final pin = ref.read(pinLockProvider);
+        final pinUnlocked = ref.read(pinUnlockedProvider);
+        final goingToPin = state.matchedLocation == '/pin';
+        if (pin.isNotEmpty && !pinUnlocked && !goingToPin) {
+          return '/pin';
+        }
+        if (pin.isEmpty && goingToPin) {
+          return '/';
+        }
         // 登录判定：Emby 或群晖任一登录即可（音乐模式用户可能只登录群晖）
         final embyLoggedIn = ref.read(
           authProvider.select((s) => s.isAuthenticated),
@@ -228,6 +239,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   /// 构建路由表（静态配置，不依赖 widget 状态）
   List<RouteBase> _buildRoutes() {
     return [
+      // PIN 锁验证页
+      GoRoute(
+        path: '/pin',
+        builder: (context, state) => const PinLockScreen(),
+      ),
       // 登录
       GoRoute(
         path: '/login',
