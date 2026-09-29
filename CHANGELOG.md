@@ -1,3 +1,15 @@
+# [2.242.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.2...v2.242.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* AudioService.init等待endOfFrame避免Activity未attach报错 ([6d59b1d](https://github.com/1525745393/EmbyTok-Flutter/commit/6d59b1d7eb810fa890e5797275465afe153bbcdd))
+
+
+### Features
+
+* MPV启用libass字幕渲染；hwDec选项说明mpv自动管理 ([42549c6](https://github.com/1525745393/EmbyTok-Flutter/commit/42549c660f6027cce528bcae74ea9323088cb621))
+
 ## [2.241.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.1...v2.241.2) (2026-09-29)
 
 
