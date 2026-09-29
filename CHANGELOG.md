@@ -1,3 +1,10 @@
+## [2.238.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.238.0...v2.238.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* 修复media_kit导致APP黑屏 - try-catch保护初始化 + extractNativeLibs=true ([1798276](https://github.com/1525745393/EmbyTok-Flutter/commit/179827633c9ba0a99980847f2403b579261ba47a))
+
 # [2.238.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.237.0...v2.238.0) (2026-09-29)
 
 
