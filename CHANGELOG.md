@@ -1,3 +1,10 @@
+# [2.238.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.237.0...v2.238.0) (2026-09-29)
+
+
+### Features
+
+* MPV深度定制设置(PRD R2) - 解码方式/缓存大小/ASS字体覆盖可配置 ([8a5a427](https://github.com/1525745393/EmbyTok-Flutter/commit/8a5a427e0972f8ed3232ec70528077f1f636eae9))
+
 # [2.237.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.236.0...v2.237.0) (2026-09-28)
 
 
