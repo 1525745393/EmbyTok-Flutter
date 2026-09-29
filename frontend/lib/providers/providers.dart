@@ -21,7 +21,6 @@ export 'embytok_service_provider.dart';
 export 'item_detail_provider.dart';
 export 'watchlist_provider.dart';
 export 'parental_control_provider.dart';
-export 'app_preferences_providers_extra.dart';
 export 'recommend_provider.dart';
 export 'recommend_signals.dart';
 export 'discover_provider.dart';

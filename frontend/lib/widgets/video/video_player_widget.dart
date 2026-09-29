@@ -260,7 +260,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (next != null) {
       _fallbackEngine = next;
       // 记录降级日志
-      AppLogger.w('自动降级：$current → $next', tag: 'EngineFallback');
+      AppLogger.warn('自动降级：$current → $next', tag: 'EngineFallback');
     }
 
     setState(() {
