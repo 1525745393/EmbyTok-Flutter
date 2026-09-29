@@ -261,6 +261,11 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
                         );
                       },
                     ),
+                    // PRD P1：下一集按钮（与上一集对称）
+                    IconButton(
+                      icon: const Icon(Icons.skip_next, color: Colors.white),
+                      onPressed: _hasNext() ? _jumpToNext : null,
+                    ),
                     const Spacer(),
                     // 剧集列表按钮（仅剧集显示）
                     if (playingItem?.seriesId != null)
@@ -374,11 +379,45 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
         return _buildSpeedList(controller);
       case _SettingsTab.ratio:
         return _buildRatioList();
+      case _SettingsTab.subtitle:
+        return _buildSubtitleList(controller);
+      case _SettingsTab.audio:
+        return _buildAudioTrackList(controller);
+      case _SettingsTab.quality:
+        return _buildQualityList();
     }
   }
 
+  /// 字幕列表（PRD P1：复用竖屏字幕选择能力，横屏接入）
+  Widget _buildSubtitleList(VideoPlayerController controller) {
+    // TODO: 接入 subtitle_selector.dart 的轨道列表，当前先显示占位
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Text('字幕轨道（接入中）', style: TextStyle(color: Colors.white70)),
+    );
+  }
+
+  /// 音轨列表（PRD P1：复用竖屏 audio_track_selector.dart，横屏接入）
+  Widget _buildAudioTrackList(VideoPlayerController controller) {
+    // TODO: 接入 audio_track_selector.dart 的轨道列表
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Text('音轨轨道（接入中）', style: TextStyle(color: Colors.white70)),
+    );
+  }
+
+  /// 清晰度列表（PRD P1：复用竖屏 quality_button.dart，横屏接入）
+  Widget _buildQualityList() {
+    // TODO: 接入 quality_button.dart 的码率切换
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Text('清晰度（自动 / 接入中）', style: TextStyle(color: Colors.white70)),
+    );
+  }
+
   Widget _buildSpeedList(VideoPlayerController controller) {
-    const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    // 与竖屏统一：0.25–2.0 七档（PRD P1 倍速档位不一致）
+    const rates = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     final currentRate = ref.watch(playbackRateProvider);
     return Column(
       children: rates.map((rate) {

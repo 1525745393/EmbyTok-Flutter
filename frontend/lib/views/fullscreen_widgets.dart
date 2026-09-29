@@ -185,7 +185,8 @@ class _SettingsListItem extends StatelessWidget {
   }
 }
 
-enum _SettingsTab { speed, ratio }
+/// 横屏设置面板 Tab（PRD：扩展为 6 个 Tab：倍速/画面/字幕/音轨/清晰度/播放高级）
+enum _SettingsTab { speed, ratio, subtitle, audio, quality }
 
 enum _AspectRatioMode { auto, contain, cover, fill, sixteenNine, fourThree }
 

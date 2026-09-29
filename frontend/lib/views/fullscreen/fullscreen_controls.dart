@@ -418,6 +418,23 @@ extension _FullscreenControls on _FullscreenVideoPageState {
     ref.read(feedViewPageJumpRequestProvider.notifier).state = idx - 1;
   }
 
+  /// PRD P1：是否有下一集（播放列表中还有后续项）
+  bool _hasNext() {
+    final idx = _getCurrentIndex();
+    if (idx == null) return false;
+    final list = ref.read(playbackListProvider).items;
+    return idx < list.length - 1;
+  }
+
+  /// PRD P1：跳转到下一集
+  void _jumpToNext() {
+    final idx = _getCurrentIndex();
+    if (idx == null) return;
+    final list = ref.read(playbackListProvider).items;
+    if (idx >= list.length - 1) return;
+    ref.read(feedViewPageJumpRequestProvider.notifier).state = idx + 1;
+  }
+
   /// 显示剧集列表面板
   void _showEpisodeList(MediaItem currentItem) {
     showEpisodeListPanel(

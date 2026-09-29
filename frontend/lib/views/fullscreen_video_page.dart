@@ -666,6 +666,12 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
         return Icons.speed;
       case _SettingsTab.ratio:
         return Icons.aspect_ratio;
+      case _SettingsTab.subtitle:
+        return Icons.subtitles;
+      case _SettingsTab.audio:
+        return Icons.audiotrack;
+      case _SettingsTab.quality:
+        return Icons.hd;
     }
   }
 
