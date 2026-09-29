@@ -216,13 +216,25 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     // 降级链：DirectPlay → DirectStream → HLS（与 VideoPoolService.preload 一致）。
     // 部分视频 DirectPlay 编码/封装 ExoPlayer 不兼容（HEVC 10bit、特殊音轨等），
     // 直接失败会导致"播放异常"，降级到转码流可显著提升播放成功率。
+    //
+    // 杜比视界内容：EXO 不支持 DV Profile 7 解码，直接从 HLS 转码开始，
+    // 避免先黑屏再降级的用户体验问题。
     final playSessionId = 'emb-dyn-${DateTime.now().microsecondsSinceEpoch}';
+    final isDv = widget.item.isDolbyVision;
     final urls = <int, String?>{
-      0: _playbackUrl,
-      1: widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token),
+      0: isDv
+          ? null
+          : _playbackUrl,
+      1: isDv
+          ? null
+          : widget.item.computeDirectStreamUrl(widget.embyServerUrl, widget.token),
       2: widget.item.computeHlsUrl(widget.embyServerUrl, widget.token,
           playSessionId: playSessionId),
     };
+    if (isDv) {
+      AppLogger.info('杜比视界内容，直接使用HLS转码播放',
+          data: {'itemId': widget.item.id});
+    }
 
     for (int level = 0; level < 3; level++) {
       final url = urls[level];
