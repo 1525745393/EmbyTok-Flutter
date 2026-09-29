@@ -203,6 +203,7 @@ class SettingsView extends ConsumerWidget {
                 _buildMpvHwDecTile(context, ref),
                 _buildMpvCacheTile(context, ref),
                 _buildMpvAssStyleTile(context, ref),
+                _buildPlaybackInfoOsdTile(context, ref),
               ],
             ),
           // 字幕设置（音乐模式隐藏）

@@ -685,6 +685,19 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  /// 播放信息 OSD 开关（多播放器 PRD 第二轮 P1）
+  /// 在视频流左上角半透明显示当前引擎/编码/分辨率/HDR 格式
+  Widget _buildPlaybackInfoOsdTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(playbackInfoOsdProvider);
+    return SwitchListTile(
+      secondary: const Icon(Icons.info_outline, color: Colors.blueGrey),
+      title: const Text('播放信息浮层'),
+      subtitle: const Text('视频左上角显示引擎/编码/分辨率/HDR'),
+      value: enabled,
+      onChanged: (v) => ref.read(playbackInfoOsdProvider.notifier).state = v,
+    );
+  }
+
   void _showPlayerEnginePicker(
       BuildContext context, WidgetRef ref, PlayerEngine current) {
     showDialog(

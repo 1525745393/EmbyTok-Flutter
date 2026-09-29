@@ -327,6 +327,9 @@ extension _VideoPageItemBuild on _VideoPageItemState {
 
         // NextUp 自动播放提示条和下一集按钮已移除
         // 用户需要手动滑动切换到下一个视频
+
+        // 播放信息 OSD（多播放器 PRD：显示引擎/编码/分辨率/HDR，设置开关控制）
+        PlaybackInfoOsd(item: widget.item),
       ],
     );
 
