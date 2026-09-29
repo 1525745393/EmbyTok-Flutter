@@ -612,9 +612,8 @@ extension _SettingsBuilders on SettingsView {
       title: 'MPV 解码方式',
       subtitle: names[hwDec],
       helpText: '仅默认播放器选择 MPV 时生效。\n\n'
-          '· 自动 → 优先硬解，失败自动回退软解\n'
-          '· 强制硬解 → 耗电低，但部分设备可能花屏\n'
-          '· 强制软解 → 兼容性最好，但 CPU 占用高',
+          'mpv 默认使用 auto-safe 硬解（优先硬解，失败自动回退软解），\n'
+          '当前 media_kit 版本自动管理解码，此选项预留供未来扩展。',
       onTap: () async {
         final selected = await showDialog<MpvHwDec>(
           context: context,
