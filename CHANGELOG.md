@@ -1,3 +1,36 @@
+# [2.248.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.247.0...v2.248.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* CI analyze错误(dandanplay_api缺失import/sleepTimerProvider未barrel导出/danmaku_overlay缺Ticker/VLC setRate→setPlaybackSpeed) ([4af0bd1](https://github.com/1525745393/EmbyTok-Flutter/commit/4af0bd19a6c0d87e3ca5da4938a6e9e8f015379c))
+* MPV/VLC引擎位置同步到外层进度条+错误自动降级 ([62db008](https://github.com/1525745393/EmbyTok-Flutter/commit/62db0081c437581f83714dc001d8cc190db9358c))
+* PiP MethodChannel result.support→success(Kotlin编译错误) ([9edb8ed](https://github.com/1525745393/EmbyTok-Flutter/commit/9edb8ed01c0eb716ebd0973dc61c922a040bc81c))
+* Watchlist 404降级-旧版Emby不支持时用UserData代替 ([65c0de0](https://github.com/1525745393/EmbyTok-Flutter/commit/65c0de0c70de271b8da96687046c2d568b8c61bf))
+* Watchlist降级UserData参数名body改为data修复编译错误 ([162faaa](https://github.com/1525745393/EmbyTok-Flutter/commit/162faaa63f468370f5713456f90a9dd7fac5cdaa))
+* 横屏画面比例切换无响应(通知videoFitModeProvider+initState同步+16:9/4:3固定比例AspectRatio包裹三引擎) ([e46e050](https://github.com/1525745393/EmbyTok-Flutter/commit/e46e0509d9f4be07acc6f319ae649f9deb317eab))
+* 设置页画面缩放补全16:9/4:3选项label(原来新枚举显示空白) ([366b5be](https://github.com/1525745393/EmbyTok-Flutter/commit/366b5bee5b84cce1d32c0ddfc37e3e4a88d4d38c))
+
+
+### Features
+
+* ISO原盘播放支持-检测.iso文件自动切换Download端点 ([9bd1670](https://github.com/1525745393/EmbyTok-Flutter/commit/9bd167096f946ea73872305857633cb5c7677c70))
+* MPV引擎补全-播放速度/seek接口对齐EXO ([64bf7d0](https://github.com/1525745393/EmbyTok-Flutter/commit/64bf7d0c4a16f92b08903dfb287cdfb63a27675c))
+* P0画中画PiP支持(AndroidManifest声明+MethodChannel+横屏顶部栏入口) ([d492753](https://github.com/1525745393/EmbyTok-Flutter/commit/d492753447e5cac1ffff7567d03fc4da9804c03c))
+* VLC引擎补全-播放速度/seek/播放暂停接口对齐EXO ([cfe771c](https://github.com/1525745393/EmbyTok-Flutter/commit/cfe771c21df96531322d81041dc13597ad934ec1))
+* 地址候选列表-auto模式提供内网/外网多地址供探测 ([9a512da](https://github.com/1525745393/EmbyTok-Flutter/commit/9a512da91d8404a5ce398466e54aadf7fae9d31e))
+* 弹幕基础层-设置开关/弹幕渲染widget/后续接入弹幕源 ([9d82f66](https://github.com/1525745393/EmbyTok-Flutter/commit/9d82f66ee275a925eef4fb496c95fbd54b8cfe43))
+* 接入弹弹Play弹幕源API-搜索影片/获取弹幕列表 ([ce28ccc](https://github.com/1525745393/EmbyTok-Flutter/commit/ce28cccf274b2cc0256b0b7512418ce97d6074cf))
+* 横屏字幕Tab接入真实轨道列表(关闭/选择/语言偏好)+音轨Tab显示轨道 ([6bf56cb](https://github.com/1525745393/EmbyTok-Flutter/commit/6bf56cb048dde73daa9c42bbffaaaa154a40fc70))
+* 横屏左上角接入PlaybackInfoOsd(引擎/编码/分辨率,开关控制) ([b79c7df](https://github.com/1525745393/EmbyTok-Flutter/commit/b79c7df842e396094dc031b357fab5b27719cec8))
+* 横屏底部栏加章节导航按钮(有章节时显示,点击跳转) ([bc9e60a](https://github.com/1525745393/EmbyTok-Flutter/commit/bc9e60ae9c8b88f0bc4bcfacb4edce7b63679626))
+* 横屏接入弹幕层DanmakuOverlay(根据danmakuEnabledProvider开关,数据待接dandanplay) ([5911297](https://github.com/1525745393/EmbyTok-Flutter/commit/5911297a5bc2c2cf4aea554903ebe690c9f5f07a))
+* 横屏设置面板扩展5Tab(倍速/画面/字幕/音轨/清晰度)+下一集按钮+倍速0.25档 ([d1948eb](https://github.com/1525745393/EmbyTok-Flutter/commit/d1948eb199d5e3de01e3ef94a2f19466dbdb9e26))
+* 横屏音轨Tab点击实际切换(selectedAudioStreamIndexProvider驱动player重建) ([80b9561](https://github.com/1525745393/EmbyTok-Flutter/commit/80b9561ddce23bce0e65bd28275bb5cddcaff6ae))
+* 横屏顶部栏加睡眠定时器入口(15/30/45/60分钟+当前集结束后暂停) ([5e36409](https://github.com/1525745393/EmbyTok-Flutter/commit/5e364096e98b63fdc81b3e2ad75b08d7cf51e24c))
+* 自适应模式智能选BoxFit(横屏全屏contain;竖屏feed竖屏视频cover/横屏视频contain) ([fd7bf98](https://github.com/1525745393/EmbyTok-Flutter/commit/fd7bf98bfa706d8565e9e95243b9b4c449718d6e))
+* 进度条加缓冲进度指示(LinearProgressIndicator叠加在Slider下层) ([7eb031d](https://github.com/1525745393/EmbyTok-Flutter/commit/7eb031d9e8840c2227121e41b76e3f427bd7975d))
+
 # [2.247.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.246.0...v2.247.0) (2026-09-29)
 
 
