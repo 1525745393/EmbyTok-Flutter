@@ -423,10 +423,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // - VLC 仍失败则显示错误提示
     final engineSettings = ref.watch(playerEngineSettingsProvider);
     final fitMode = ref.watch(videoFitModeProvider);
+    final isFullscreen = ref.watch(isFullscreenProvider);
     // 根据用户设置的缩放模式映射到 BoxFit
+    // 自适应（fit）模式：智能根据屏幕方向 + 视频方向选择最佳显示
+    //   - 横屏全屏：contain（电影完整显示，不裁剪）
+    //   - 竖屏 feed：竖屏视频 cover（TikTok 风格铺满），横屏视频 contain（黑边）
     // 固定比例（16:9 / 4:3）模式下，内部视频强制 contain，外层用 AspectRatio 限制显示区域
+    final isLandscapeVideo = widget.item.isLandscape;
     final boxFit = switch (fitMode) {
-      VideoFitMode.fit => BoxFit.contain,
+      VideoFitMode.fit => isFullscreen
+          ? BoxFit.contain
+          : (isLandscapeVideo ? BoxFit.contain : BoxFit.cover),
       VideoFitMode.fill => BoxFit.cover,
       VideoFitMode.stretch => BoxFit.fill,
       VideoFitMode.sixteenNine => BoxFit.contain,
@@ -497,7 +504,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,
         fit: switch (fitMode) {
-          VideoFitMode.fit => VlcVideoFit.contain,
+          VideoFitMode.fit => isFullscreen
+              ? VlcVideoFit.contain
+              : (isLandscapeVideo ? VlcVideoFit.contain : VlcVideoFit.cover),
           VideoFitMode.fill => VlcVideoFit.cover,
           VideoFitMode.stretch => VlcVideoFit.fill,
           VideoFitMode.sixteenNine => VlcVideoFit.contain,
