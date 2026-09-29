@@ -1,3 +1,19 @@
+# [2.244.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.243.1...v2.244.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* Watchlist API路径修正为/Users/{userId}/Items/{itemId}/Watchlist ([9ce610e](https://github.com/1525745393/EmbyTok-Flutter/commit/9ce610e1f92f9efacc5b98e4313868b9e946faa3))
+* 修复analyze错误-移除part文件导出/AppLogger.w改为warn ([64c8d89](https://github.com/1525745393/EmbyTok-Flutter/commit/64c8d89f98098650ae54feb37a3d1478967d61c5))
+* 修复CI analyze错误-删除ListTile helpText参数/Logger改为AppLogger ([d3823aa](https://github.com/1525745393/EmbyTok-Flutter/commit/d3823aa132c4998cacbea664116ea1c1ab259115))
+* 画面缩放模式实际应用到EXO/MPV/VLC三个引擎渲染层 ([266b9ac](https://github.com/1525745393/EmbyTok-Flutter/commit/266b9acf003c0a2dcde1b787bc88a355ea78bcee))
+
+
+### Features
+
+* 多引擎自动降级-MPV失败切EXO-EXO失败切VLC ([a08ae3a](https://github.com/1525745393/EmbyTok-Flutter/commit/a08ae3a95c387896a2c9131fb89a62e32a21af0c))
+* 画面缩放模式设置-适应/填充/拉伸 ([ed5ee15](https://github.com/1525745393/EmbyTok-Flutter/commit/ed5ee15a0644c755b2e93a687087292ebc49b480))
+
 ## [2.243.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.243.0...v2.243.1) (2026-09-29)
 
 
