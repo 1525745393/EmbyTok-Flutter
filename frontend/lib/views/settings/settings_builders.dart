@@ -704,10 +704,8 @@ extension _SettingsBuilders on SettingsView {
       leading: const Icon(Icons.graphic_eq, color: Colors.purple),
       title: const Text('音频延迟微调'),
       subtitle: Text(
-          offset == 0 ? '关闭' : '${offset > 0 ? '+' : ''}${offset}ms'),
+          offset == 0 ? '关闭（音画不同步时可手动微调）' : '${offset > 0 ? '+' : ''}${offset}ms'),
       onTap: () => _showAudioOffsetDialog(context, ref, offset),
-      helpText:
-          '音画不同步时手动微调音频延迟。\n\n正值 = 音频延迟播放（声音慢于画面）\n负值 = 音频提前播放（声音快于画面）\n范围 -500ms ~ +500ms，步进 50ms。\n\nMPV 引擎支持精确延迟；EXO 引擎通过微调视频播放位置实现近似效果。',
     );
   }
 

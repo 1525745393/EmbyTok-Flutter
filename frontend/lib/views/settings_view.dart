@@ -20,6 +20,7 @@ import '../providers/artist_metadata_provider.dart';
 import '../providers/demo_mode_provider.dart';
 import '../providers/player_engine_provider.dart';
 import '../providers/server_registry_provider.dart';
+import '../widgets/video/playback_info_osd.dart';
 import 'settings/cache_management_page.dart';
 import 'settings/feedback_page.dart';
 import 'settings/network_diagnostic_page.dart';
