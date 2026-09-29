@@ -101,6 +101,15 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   void setMuted(bool muted) =>
       _player?.setVolume(muted ? 0 : 100);
 
+  /// 外部调用：获取当前播放位置
+  Duration get position => _player?.state.position ?? Duration.zero;
+
+  /// 外部调用：获取视频总时长
+  Duration get duration => _player?.state.duration ?? Duration.zero;
+
+  /// 外部调用：是否正在播放
+  bool get isPlaying => _player?.state.playing ?? false;
+
   Future<void> _init() async {
     try {
       // 创建 MPV 播放器，应用用户配置的缓冲大小

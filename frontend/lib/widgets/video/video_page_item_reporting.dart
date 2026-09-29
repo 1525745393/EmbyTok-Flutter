@@ -50,10 +50,15 @@ extension _VideoPlaybackReporting on _VideoPageItemState {
         return;
     }
     _lastProgressReport = now;
+    // 统一获取位置：优先 ExoPlayer controller，MPV 模式下从 VideoPlayerWidget 统一接口获取
     final controller = _videoController;
-    final position = controller?.value.position;
+    final mpvPos = _videoPlayerKey.currentState?.currentPosition;
+    final position = controller?.value.position ??
+        (mpvPos != Duration.zero ? mpvPos : null);
     final positionTicks = (position?.inMilliseconds ?? 0) * 10000;
-    final isPaused = controller != null && !controller.value.isPlaying;
+    final isPaused = controller != null
+        ? !controller.value.isPlaying
+        : !(_videoPlayerKey.currentState?.isPlaying ?? false);
     final volume = controller?.value.volume;
     final volumeLevel = volume != null ? (volume * 100).round() : null;
     _safeReport(
@@ -86,7 +91,9 @@ extension _VideoPlaybackReporting on _VideoPageItemState {
     if (_hasStoppedReported) return;
     _hasStoppedReported = true;
     final controller = _videoController;
-    final position = controller?.value.position;
+    final mpvPos = _videoPlayerKey.currentState?.currentPosition;
+    final position = controller?.value.position ??
+        (mpvPos != Duration.zero ? mpvPos : null);
     final positionTicks =
         position != null ? position.inMilliseconds * 10000 : 0;
     _safeReport(

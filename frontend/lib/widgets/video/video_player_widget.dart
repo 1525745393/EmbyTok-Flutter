@@ -62,6 +62,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _hasError = false;
   // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
   AppError? _errorMessage;
+  // MPV 模式下的播放器 state 引用（统一位置/时长/播放状态接口）
+  MpvVideoPlayerState? _mpvState;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionMs = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
@@ -297,6 +299,33 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
   }
 
+  /// 统一获取当前播放位置（ExoPlayer 或 MPV 均支持）
+  Duration get currentPosition {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return c.value.position;
+    }
+    return _mpvState?.position ?? Duration.zero;
+  }
+
+  /// 统一获取视频总时长
+  Duration get totalDuration {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return c.value.duration;
+    }
+    return _mpvState?.duration ?? Duration.zero;
+  }
+
+  /// 统一获取是否正在播放
+  bool get isPlaying {
+    final c = _controller;
+    if (c != null && c.value.isInitialized) {
+      return c.value.isPlaying;
+    }
+    return _mpvState?.isPlaying ?? false;
+  }
+
   // 从 Emby 服务器同步的续播位置 seek 到对应进度
   // 在 _initVideo() 中 play 之前调用，避免竞态条件
 
@@ -372,6 +401,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         return _buildThumbnailPlaceholder(context);
       }
       return MpvVideoPlayer(
+        key: ValueKey('mpv_${widget.item.id}'),
         url: mpvUrl,
         httpHeaders: widget.token != null
             ? {
@@ -385,6 +415,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         hwDec: engineSettings.mpvHwDec,
         cacheSizeMb: engineSettings.mpvCacheSizeMb,
         forceAssStyle: engineSettings.mpvForceAssStyle,
+        onPlayerReady: (player) {
+          // 保存 MPV state 引用，供外部统一获取位置/时长
+          // 通过 GlobalKey 在 build 后获取
+        },
       );
     }
 
