@@ -114,6 +114,24 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   /// 外部调用：是否正在播放
   bool get isPlaying => _player?.state.playing ?? false;
 
+  /// 外部调用：设置播放速度
+  void setRate(double rate) {
+    try {
+      _player?.setRate(rate);
+    } catch (e) {
+      AppLogger.debug('MPV setRate 失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 外部调用：跳转
+  void seekTo(Duration position) {
+    try {
+      _player?.seek(position);
+    } catch (e) {
+      AppLogger.debug('MPV seek 失败', data: {'error': e.toString()});
+    }
+  }
+
   Future<void> _init() async {
     try {
       // 创建 MPV 播放器，应用用户配置的缓冲大小
