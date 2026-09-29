@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 
-import '../models/media_item.dart';
+import '../../models/media_item.dart';
 
 /// 显示章节导航 bottom sheet
 ///
