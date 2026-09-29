@@ -64,6 +64,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   bool _hasError = false;
   // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
   AppError? _errorMessage;
+  // 自动降级：记录当前是否已降级到备用引擎
+  // MPV 失败 → 自动切 EXO；EXO 失败 → 自动切 VLC；VLC 失败 → 报错
+  PlayerEngine? _fallbackEngine;
   // MPV 模式下的播放器 state 引用（统一位置/时长/播放状态接口）
   dynamic _mpvState;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
@@ -243,6 +246,23 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   /// 公开方法：清除错误状态并重新触发初始化流程，供外部通过 GlobalKey 调用
   void retryInitialization() {
     if (_isDisposed || !mounted) return;
+
+    // 自动降级：根据当前引擎自动切换到下一个备用引擎
+    final engineSettings = ref.read(playerEngineSettingsProvider);
+    final current = _fallbackEngine ?? engineSettings.defaultEngine;
+    PlayerEngine? next;
+    if (current == PlayerEngine.mpv) {
+      next = PlayerEngine.exo;
+    } else if (current == PlayerEngine.exo) {
+      next = PlayerEngine.vlc;
+    }
+    // VLC 已是最后兜底，不再降级
+    if (next != null) {
+      _fallbackEngine = next;
+      // 记录降级日志
+      Logger.w('自动降级：$current → $next', tag: 'EngineFallback');
+    }
+
     setState(() {
       _hasError = false;
       _errorMessage = null;
@@ -394,6 +414,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // - vlc：强制使用 libvlc（网络流兼容性兜底）
     // - auto：杜比 Vision/HDR10 内容自动用 MPV，其余用 ExoPlayer
     // - exo：强制 ExoPlayer
+    // 多引擎自动降级策略：
+    // - 用户选择 MPV 或 auto 触发 MPV 时，MPV 报错自动降级到 EXO
+    // - EXO 报错自动降级到 VLC
+    // - VLC 仍失败则显示错误提示
     final engineSettings = ref.watch(playerEngineSettingsProvider);
     final fitMode = ref.watch(videoFitModeProvider);
     // 根据用户设置的缩放模式映射到 BoxFit
@@ -402,8 +426,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       VideoFitMode.fill => BoxFit.cover,
       VideoFitMode.stretch => BoxFit.fill,
     };
-    final useMpv = engineSettings.defaultEngine == PlayerEngine.mpv ||
-        (engineSettings.defaultEngine == PlayerEngine.auto &&
+    // 有效引擎：优先使用降级后的引擎，否则用用户设置
+    final effectiveEngine = _fallbackEngine ?? engineSettings.defaultEngine;
+    final useMpv = effectiveEngine == PlayerEngine.mpv ||
+        (effectiveEngine == PlayerEngine.auto &&
             (widget.item.isDolbyVision || widget.item.isHdr));
     if (useMpv) {
       final mpvUrl = _playbackUrl;
@@ -434,7 +460,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
 
     // VLC 引擎分支：libvlc，网络流兼容性兜底
-    if (engineSettings.defaultEngine == PlayerEngine.vlc) {
+    if (effectiveEngine == PlayerEngine.vlc) {
       final vlcUrl = _playbackUrl;
       if (vlcUrl == null || vlcUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
