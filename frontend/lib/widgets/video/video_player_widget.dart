@@ -359,8 +359,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     // 多播放器 PRD 第三阶段：用户选择 MPV 引擎时使用 libmpv 渲染
-    final engine = ref.watch(playerEngineSettingsProvider).defaultEngine;
-    if (engine == PlayerEngine.mpv) {
+    final engineSettings = ref.watch(playerEngineSettingsProvider);
+    if (engineSettings.defaultEngine == PlayerEngine.mpv) {
       final mpvUrl = _playbackUrl;
       if (mpvUrl == null || mpvUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
@@ -375,6 +375,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             : const {'Accept': 'video/*'},
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
+        hwDec: engineSettings.mpvHwDec,
+        cacheSizeMb: engineSettings.mpvCacheSizeMb,
+        forceAssStyle: engineSettings.mpvForceAssStyle,
       );
     }
 

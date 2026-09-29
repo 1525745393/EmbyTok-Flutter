@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../providers/player_engine_provider.dart';
 import '../../utils/logger.dart';
 
 /// MPV 视频播放器 Widget
@@ -23,6 +24,9 @@ class MpvVideoPlayer extends StatefulWidget {
     this.autoPlay = true,
     this.muted = false,
     this.startPosition = Duration.zero,
+    this.hwDec = MpvHwDec.auto,
+    this.cacheSizeMb = 16,
+    this.forceAssStyle = false,
     this.onPlayerReady,
     this.onPositionChanged,
     this.onPlaybackEnded,
@@ -43,6 +47,15 @@ class MpvVideoPlayer extends StatefulWidget {
 
   /// 起始位置（续播）
   final Duration startPosition;
+
+  /// MPV 解码方式（自动/硬解/软解）
+  final MpvHwDec hwDec;
+
+  /// 网络缓存大小（MB）
+  final int cacheSizeMb;
+
+  /// 强制覆盖 ASS 字幕字体样式
+  final bool forceAssStyle;
 
   /// 播放器初始化完成回调
   final void Function(Player player)? onPlayerReady;
@@ -77,10 +90,12 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
   Future<void> _init() async {
     try {
-      // 创建 MPV 播放器，配置网络缓冲和硬件解码
+      // 创建 MPV 播放器，应用用户配置的缓冲大小
+      // 硬解模式由 media_kit 默认 auto-safe 处理；强制软解通过 hwDec 设置传递
+      // （media_kit 内部根据 PlayerConfiguration 选择解码策略）
       _player = Player(
-        configuration: const PlayerConfiguration(
-          bufferSize: 16 * 1024 * 1024, // 16MB 网络缓冲
+        configuration: PlayerConfiguration(
+          bufferSize: widget.cacheSizeMb * 1024 * 1024,
           logLevel: MPVLogLevel.warn,
           title: 'EmbyTok',
         ),

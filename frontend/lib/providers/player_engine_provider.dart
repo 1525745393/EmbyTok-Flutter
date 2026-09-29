@@ -15,28 +15,52 @@ enum PlayerEngine {
   external,
 }
 
+/// MPV 解码方式（映射 mpv --hwdec 参数）
+enum MpvHwDec {
+  /// 自动（硬解优先，失败回退软解）：--hwdec=auto-safe
+  auto,
+  /// 强制硬解：--hwdec=auto
+  hard,
+  /// 强制软解：--hwdec=copy
+  soft,
+}
+
 /// 播放器引擎设置 State
 class PlayerEngineSettings {
   final PlayerEngine defaultEngine;
   final bool thirdPartyFallback; // 第三方兜底开关
   final String? preferredExternalPlayerPackage; // 首选外部播放器包名
 
+  // MPV 专属设置（PRD R2）
+  final MpvHwDec mpvHwDec; // 解码方式
+  final int mpvCacheSizeMb; // 网络缓存大小（MB）
+  final bool mpvForceAssStyle; // 强制覆盖 ASS 字体样式
+
   const PlayerEngineSettings({
     this.defaultEngine = PlayerEngine.exo,
     this.thirdPartyFallback = true,
     this.preferredExternalPlayerPackage,
+    this.mpvHwDec = MpvHwDec.auto,
+    this.mpvCacheSizeMb = 16,
+    this.mpvForceAssStyle = false,
   });
 
   PlayerEngineSettings copyWith({
     PlayerEngine? defaultEngine,
     bool? thirdPartyFallback,
     String? preferredExternalPlayerPackage,
+    MpvHwDec? mpvHwDec,
+    int? mpvCacheSizeMb,
+    bool? mpvForceAssStyle,
   }) {
     return PlayerEngineSettings(
       defaultEngine: defaultEngine ?? this.defaultEngine,
       thirdPartyFallback: thirdPartyFallback ?? this.thirdPartyFallback,
       preferredExternalPlayerPackage:
           preferredExternalPlayerPackage ?? this.preferredExternalPlayerPackage,
+      mpvHwDec: mpvHwDec ?? this.mpvHwDec,
+      mpvCacheSizeMb: mpvCacheSizeMb ?? this.mpvCacheSizeMb,
+      mpvForceAssStyle: mpvForceAssStyle ?? this.mpvForceAssStyle,
     );
   }
 }
@@ -46,6 +70,9 @@ class PlayerEngineSettingsNotifier
     extends StateNotifier<PlayerEngineSettings> {
   static const _keyDefaultEngine = 'player_default_engine';
   static const _keyThirdPartyFallback = 'player_third_party_fallback';
+  static const _keyMpvHwDec = 'player_mpv_hwdec';
+  static const _keyMpvCacheSize = 'player_mpv_cache_size';
+  static const _keyMpvForceAss = 'player_mpv_force_ass_style';
 
   PlayerEngineSettingsNotifier() : super(const PlayerEngineSettings()) {
     _load();
@@ -58,9 +85,17 @@ class PlayerEngineSettingsNotifier
       (e) => e.name == engineStr,
       orElse: () => PlayerEngine.exo,
     );
+    final hwDecStr = prefs.getString(_keyMpvHwDec) ?? 'auto';
+    final hwDec = MpvHwDec.values.firstWhere(
+      (e) => e.name == hwDecStr,
+      orElse: () => MpvHwDec.auto,
+    );
     state = PlayerEngineSettings(
       defaultEngine: engine,
       thirdPartyFallback: prefs.getBool(_keyThirdPartyFallback) ?? true,
+      mpvHwDec: hwDec,
+      mpvCacheSizeMb: prefs.getInt(_keyMpvCacheSize) ?? 16,
+      mpvForceAssStyle: prefs.getBool(_keyMpvForceAss) ?? false,
     );
   }
 
@@ -74,6 +109,24 @@ class PlayerEngineSettingsNotifier
     state = state.copyWith(thirdPartyFallback: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyThirdPartyFallback, enabled);
+  }
+
+  Future<void> setMpvHwDec(MpvHwDec mode) async {
+    state = state.copyWith(mpvHwDec: mode);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMpvHwDec, mode.name);
+  }
+
+  Future<void> setMpvCacheSizeMb(int mb) async {
+    state = state.copyWith(mpvCacheSizeMb: mb);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyMpvCacheSize, mb);
+  }
+
+  Future<void> setMpvForceAssStyle(bool enabled) async {
+    state = state.copyWith(mpvForceAssStyle: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyMpvForceAss, enabled);
   }
 }
 
