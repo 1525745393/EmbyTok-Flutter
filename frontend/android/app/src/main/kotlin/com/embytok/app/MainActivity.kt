@@ -99,10 +99,10 @@ class MainActivity : AudioServiceFragmentActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "isPipSupported" -> {
-                        result.support(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                        result.success(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                     }
                     "isInPip" -> {
-                        result.support(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        result.success(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             isInPictureInPictureMode
                         } else false)
                     }
