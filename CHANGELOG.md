@@ -1,3 +1,10 @@
+## [2.243.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.243.0...v2.243.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* minSdk提升到29适配vlc_player ([f346054](https://github.com/1525745393/EmbyTok-Flutter/commit/f34605496dfc1b08cd21a0767106b4423d3d1e61))
+
 # [2.243.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.242.1...v2.243.0) (2026-09-29)
 
 
