@@ -126,8 +126,8 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     bool isCancelled() => _reinitToken != token || _isDisposed;
     // 播放前预检：检测网络连接状态
     try {
-      final results = await Connectivity().checkConnectivity();
-      if (results.contains(ConnectivityResult.none)) {
+      final result = await Connectivity().checkConnectivity();
+      if (result == ConnectivityResult.none) {
         if (isCancelled()) return;
         setState(() {
           _hasError = true;
