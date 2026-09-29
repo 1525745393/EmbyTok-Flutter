@@ -454,9 +454,11 @@ final audioOffsetProvider =
 
 /// 画面缩放模式
 enum VideoFitMode {
-  fit,      // 适应（contain，黑边）
-  fill,     // 填充（cover，裁剪）
-  stretch,  // 拉伸（fill，变形）
+  fit,         // 适应（contain，黑边）
+  fill,        // 填充（cover，裁剪）
+  stretch,      // 拉伸（fill，变形）
+  sixteenNine, // 16:9 固定比例
+  fourThree,   // 4:3 固定比例
 }
 
 class VideoFitModeNotifier extends StateNotifier<VideoFitMode> {

@@ -221,6 +221,16 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    // 同步竖屏已设置的画面比例，避免横屏选中态与渲染不一致
+    final currentFit = ref.read(videoFitModeProvider);
+    _aspectMode = switch (currentFit) {
+      VideoFitMode.fit => _AspectRatioMode.contain,
+      VideoFitMode.fill => _AspectRatioMode.cover,
+      VideoFitMode.stretch => _AspectRatioMode.fill,
+      VideoFitMode.sixteenNine => _AspectRatioMode.sixteenNine,
+      VideoFitMode.fourThree => _AspectRatioMode.fourThree,
+    };
+
     // 同步初始化 controller listener，确保首帧时 listener 已正确设置
     // （避免 build 中有副作用）
     final initialController = ref.read(currentVideoControllerProvider);

@@ -545,6 +545,17 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
           selected: selected,
           onTap: () {
             setState(() => _aspectMode = m.$1);
+            // 通过全局 Provider 通知底层 VideoPlayerWidget 应用画面比例
+            // 横屏为覆盖层，视频由底层渲染，必须经 provider 才能生效
+            final fitMode = switch (m.$1) {
+              _AspectRatioMode.auto => VideoFitMode.fit,
+              _AspectRatioMode.contain => VideoFitMode.fit,
+              _AspectRatioMode.cover => VideoFitMode.fill,
+              _AspectRatioMode.fill => VideoFitMode.stretch,
+              _AspectRatioMode.sixteenNine => VideoFitMode.sixteenNine,
+              _AspectRatioMode.fourThree => VideoFitMode.fourThree,
+            };
+            ref.read(videoFitModeProvider.notifier).setMode(fitMode);
             _startHideTimer();
           },
         );

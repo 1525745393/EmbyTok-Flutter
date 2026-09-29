@@ -424,11 +424,26 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final engineSettings = ref.watch(playerEngineSettingsProvider);
     final fitMode = ref.watch(videoFitModeProvider);
     // 根据用户设置的缩放模式映射到 BoxFit
+    // 固定比例（16:9 / 4:3）模式下，内部视频强制 contain，外层用 AspectRatio 限制显示区域
     final boxFit = switch (fitMode) {
       VideoFitMode.fit => BoxFit.contain,
       VideoFitMode.fill => BoxFit.cover,
       VideoFitMode.stretch => BoxFit.fill,
+      VideoFitMode.sixteenNine => BoxFit.contain,
+      VideoFitMode.fourThree => BoxFit.contain,
     };
+    // 固定比例辅助：非空时用 Center + AspectRatio 包裹播放器
+    double? fixedAspectRatio = switch (fitMode) {
+      VideoFitMode.sixteenNine => 16 / 9,
+      VideoFitMode.fourThree => 4 / 3,
+      _ => null,
+    };
+    Widget wrapFixedRatio(Widget child) {
+      if (fixedAspectRatio == null) return child;
+      return Center(
+        child: AspectRatio(aspectRatio: fixedAspectRatio!, child: child),
+      );
+    }
     // 有效引擎：优先使用降级后的引擎，否则用用户设置
     final effectiveEngine = _fallbackEngine ?? engineSettings.defaultEngine;
     final useMpv = effectiveEngine == PlayerEngine.mpv ||
@@ -439,7 +454,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (mpvUrl == null || mpvUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
       }
-      return MpvVideoPlayer(
+      return wrapFixedRatio(MpvVideoPlayer(
         key: ValueKey('mpv_${widget.item.id}'),
         url: mpvUrl,
         httpHeaders: widget.token != null
@@ -460,7 +475,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           _positionMs.value = pos.inMilliseconds;
         },
         onError: (msg) => retryInitialization(),
-      );
+      ));
     }
 
     // VLC 引擎分支：libvlc，网络流兼容性兜底
@@ -469,7 +484,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
       if (vlcUrl == null || vlcUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
       }
-      return VlcVideoPlayer(
+      return wrapFixedRatio(VlcVideoPlayer(
         key: ValueKey('vlc_${widget.item.id}'),
         url: vlcUrl,
         httpHeaders: widget.token != null
@@ -485,13 +500,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           VideoFitMode.fit => VlcVideoFit.contain,
           VideoFitMode.fill => VlcVideoFit.cover,
           VideoFitMode.stretch => VlcVideoFit.fill,
+          VideoFitMode.sixteenNine => VlcVideoFit.contain,
+          VideoFitMode.fourThree => VlcVideoFit.contain,
         },
         onPositionChanged: (pos) {
           // 同步 VLC 播放位置到外层进度条
           _positionMs.value = pos.inMilliseconds;
         },
         onError: (e) => retryInitialization(),
-      );
+      ));
     }
 
     final vc = _controller;
@@ -528,7 +545,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     final displayCues = _subtitleCues.isNotEmpty
         ? _subtitleCues
         : (widget.item.subtitleCues ?? const <SubtitleCue>[]);
-    return SizedBox.expand(
+    return wrapFixedRatio(SizedBox.expand(
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -563,7 +580,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             ),
         ],
       ),
-    );
+    ));
   }
 
   // 根据 selectedSubtitleProvider 的最新值异步加载字幕
