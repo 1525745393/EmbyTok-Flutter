@@ -763,14 +763,16 @@ extension _SettingsBuilders on SettingsView {
   Widget _buildVideoFitTile(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(videoFitModeProvider);
     final names = {
-      VideoFitMode.fit: '适应（黑边）',
+      VideoFitMode.fit: '自适应（推荐）',
       VideoFitMode.fill: '填充（裁剪）',
       VideoFitMode.stretch: '拉伸（变形）',
+      VideoFitMode.sixteenNine: '16:9 固定比例',
+      VideoFitMode.fourThree: '4:3 固定比例',
     };
     return ListTile(
       leading: const Icon(Icons.aspect_ratio, color: Colors.teal),
       title: const Text('画面缩放模式'),
-      subtitle: Text('${names[mode] ?? ''}（适应/填充/拉伸）'),
+      subtitle: Text(names[mode] ?? ''),
       onTap: () => _showVideoFitPicker(context, ref, mode),
     );
   }
@@ -800,9 +802,11 @@ extension _SettingsBuilders on SettingsView {
   void _showVideoFitPicker(
       BuildContext context, WidgetRef ref, VideoFitMode current) {
     final names = {
-      VideoFitMode.fit: '适应（黑边）',
+      VideoFitMode.fit: '自适应（推荐）',
       VideoFitMode.fill: '填充（裁剪）',
       VideoFitMode.stretch: '拉伸（变形）',
+      VideoFitMode.sixteenNine: '16:9 固定比例',
+      VideoFitMode.fourThree: '4:3 固定比例',
     };
     showDialog(
       context: context,
