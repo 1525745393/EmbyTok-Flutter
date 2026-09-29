@@ -83,6 +83,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 非当前页延迟释放计时器（2秒后释放 controller 节省解码资源）
   // 缩短自 5 秒：平衡快速来回滑动的体验与内存占用
   Timer? _backgroundReleaseTimer;
+  /// 断网自动重试计数（播放出错后自动重试，最多 2 次）
+  int _autoRetryCount = 0;
   // 非当前页 controller 释放延迟（800ms，快速滑动时由 isPageScrollingProvider 触发即时释放）
   static const Duration _backgroundReleaseDelay = Duration(milliseconds: 800);
   // 字幕选择变化监听订阅（在 initState 中注册，dispose 时关闭）

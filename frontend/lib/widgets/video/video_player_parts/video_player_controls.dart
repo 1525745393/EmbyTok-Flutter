@@ -71,6 +71,7 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
       _initialized = false;
       _hasError = false;
       _errorMessage = null;
+      _autoRetryCount = 0; // 重试成功后重置计数
       _subtitleCues = const <SubtitleCue>[]; // 清空旧字幕，避免新视频初始时显示旧字幕
     });
     // 重新初始化
@@ -94,6 +95,16 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
         _hasError = true;
         _errorMessage = AppError.playback(message: '播放出错');
       });
+      // 断网自动恢复：5 秒后自动重试一次，最多重试 2 次
+      _autoRetryCount++;
+      if (_autoRetryCount <= 2) {
+        AppLogger.info('播放出错，5 秒后自动重试', data: {'retry': _autoRetryCount});
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && !_isDisposed && _hasError) {
+            retryInitialization();
+          }
+        });
+      }
     }
     // 位置变化：更新字幕
     final ms = controller.value.position.inMilliseconds;
