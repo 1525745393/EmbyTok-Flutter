@@ -126,8 +126,8 @@ Future<void> showSpeedControlPanel(
                               .state = selectedSpeed;
                           // 持久化播放速度，新视频自动应用
                           container
-                              .read(playbackSpeedProvider.notifier)
-                              .setSpeed(selectedSpeed);
+                              .read(defaultPlaybackRateProvider.notifier)
+                              .set(selectedSpeed);
                         }
                       });
                       Navigator.pop(context);

@@ -384,33 +384,3 @@ final favoriteIncludeTypesProvider =
     StateNotifierProvider<FavoriteIncludeTypesNotifier, Set<String>>(
   (ref) => FavoriteIncludeTypesNotifier(),
 );
-
-// ---------------- 播放速度持久化 ----------------
-
-/// 全局播放速度（持久化到 SharedPreferences）
-///
-/// 用户在速度选择面板选了新速度后自动保存，
-/// 新视频加载完成时自动应用此速度。
-class PlaybackSpeedNotifier extends StateNotifier<double> {
-  PlaybackSpeedNotifier() : super(1.0) {
-    _load();
-  }
-
-  static const _key = 'playback_speed';
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    state = prefs.getDouble(_key) ?? 1.0;
-  }
-
-  Future<void> setSpeed(double speed) async {
-    state = speed;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_key, speed);
-  }
-}
-
-final playbackSpeedProvider =
-    StateNotifierProvider<PlaybackSpeedNotifier, double>(
-  (ref) => PlaybackSpeedNotifier(),
-);

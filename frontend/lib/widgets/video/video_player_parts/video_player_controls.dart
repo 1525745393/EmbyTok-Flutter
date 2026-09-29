@@ -278,7 +278,7 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
           // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
           _applyInitialVolume(c);
           // 应用用户上次保存的播放速度
-          final savedSpeed = ref.read(playbackSpeedProvider);
+          final savedSpeed = ref.read(defaultPlaybackRateProvider);
           if (savedSpeed != 1.0) {
             c.setPlaybackSpeed(savedSpeed);
           }
