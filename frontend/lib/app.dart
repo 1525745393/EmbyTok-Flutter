@@ -170,6 +170,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
   /// 失败时不影响主流程，仅记录日志（用户仍可在 App 内正常播放）。
   Future<void> _initAudioService() async {
     try {
+      // 等待 FlutterEngine 完全 attach 到 Activity，否则 audio_service 报
+      // "The Activity class declared in your AndroidManifest.xml is wrong..."
+      await WidgetsBinding.instance.endOfFrame;
       await AudioService.init(
         builder: () => ref.read(audioHandlerProvider),
         config: const AudioServiceConfig(
