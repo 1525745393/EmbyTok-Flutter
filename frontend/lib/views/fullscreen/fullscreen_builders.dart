@@ -472,7 +472,7 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
     );
   }
 
-  /// 音轨列表（PRD P1：横屏设置面板内嵌音轨选择）
+  /// 音轨列表（PRD P1：横屏设置面板内嵌音轨选择，点击切换）
   Widget _buildAudioTrackList(MediaItem? playingItem) {
     final tracks = playingItem?.audioTracks ?? [];
     if (tracks.isEmpty) {
@@ -481,14 +481,18 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
         child: Text('本片无多音轨', style: TextStyle(color: Colors.white54)),
       );
     }
-    // TODO: 接入 controller.setAudioTrack 实际切换（EXO/MPV/VLC 接口待补）
+    final selectedIdx = ref.watch(selectedAudioStreamIndexProvider);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: tracks
           .map((t) => _SettingsListItem(
                 label: t.displayTitle ?? t.language ?? '音轨 ${t.index}',
-                selected: t.isDefault,
-                onTap: () => _startHideTimer(),
+                selected: t.index == selectedIdx,
+                onTap: () {
+                  // 切换音轨：player_widget 监听 selectedAudioStreamIndexProvider 重建 controller
+                  ref.read(selectedAudioStreamIndexProvider.notifier).state = t.index;
+                  _startHideTimer();
+                },
               ))
           .toList(),
     );
