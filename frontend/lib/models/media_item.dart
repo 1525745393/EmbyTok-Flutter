@@ -385,6 +385,23 @@ class MediaItem {
   // 文件名/路径（从 rawJson 读取 Path）
   String? get path => rawJson?['Path'] as String?;
 
+  /// 是否为 ISO 原盘文件（Emby 的 /Videos/{id}/stream 端点对 ISO 会挂起，
+  /// 需要改用 /Items/{id}/Download 并由支持 ISO 的引擎（VLC）播放）
+  bool get isIso {
+    final p = path?.toLowerCase() ?? '';
+    final name = (rawJson?['Name'] as String? ?? '').toLowerCase();
+    return p.endsWith('.iso') || name.endsWith('.iso');
+  }
+
+  /// 构造 ISO 原盘的 Download URL（不走 stream 端点）
+  String? computeIsoDownloadUrl(String? serverUrl, String? token) {
+    if (serverUrl == null || serverUrl.isEmpty) return null;
+    final base = serverUrl.endsWith('/')
+        ? serverUrl.substring(0, serverUrl.length - 1)
+        : serverUrl;
+    return '$base/Items/$id/Download?api_key=$token';
+  }
+
   // 排序用名称（从 rawJson 读取 SortName）
   String? get sortName => rawJson?['SortName'] as String?;
 

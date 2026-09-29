@@ -146,8 +146,10 @@ class VideoPoolService {
       final connectivity = await Connectivity().checkConnectivity();
       final isMobile = connectivity == ConnectivityResult.mobile;
       final maxBitrate = isMobile ? 2000000 : 20000000;
+      // ISO 原盘：/Videos/{id}/stream 会挂起，改用 /Items/{id}/Download
+      final isoUrl = item.isIso ? item.computeIsoDownloadUrl(serverUrl, token) : null;
       final urls = <int, String?>{
-        0: item.computePlaybackUrl(serverUrl, token),
+        0: isoUrl ?? item.computePlaybackUrl(serverUrl, token),
         1: item.computeDirectStreamUrl(serverUrl, token),
         2: item.computeHlsUrl(serverUrl, token,
             playSessionId: playSessionId, maxVideoBitrate: maxBitrate),
