@@ -92,6 +92,30 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
     widget.onPositionChanged?.call(_controller!.value.position);
   }
 
+  /// 播放速度控制（与 EXO/MPV 对齐）
+  void setSpeed(double speed) {
+    try {
+      _controller?.setRate(speed);
+    } catch (e) {
+      AppLogger.debug('VLC setSpeed 失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 跳转
+  void seekTo(Duration position) {
+    try {
+      _controller?.seekTo(position);
+    } catch (e) {
+      AppLogger.debug('VLC seekTo 失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 播放
+  void play() => _controller?.play();
+
+  /// 暂停
+  void pause() => _controller?.pause();
+
   @override
   void didUpdateWidget(covariant VlcVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
