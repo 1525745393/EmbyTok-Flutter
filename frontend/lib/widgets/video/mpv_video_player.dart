@@ -113,13 +113,13 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   Future<void> _init() async {
     try {
       // 创建 MPV 播放器，应用用户配置的缓冲大小
-      // libass=true：启用 libmpv 自带 ASS 字幕渲染（比 Flutter Widget 渲染更准确）
+      // 字幕使用 media_kit 默认的 Flutter Widget 渲染；
+      // 若启用 libass=true，Android 必须额外配置 libassAndroidFont 字体文件，否则字幕崩溃
       _player = Player(
         configuration: PlayerConfiguration(
           bufferSize: widget.cacheSizeMb * 1024 * 1024,
           logLevel: MPVLogLevel.warn,
           title: 'EmbyTok',
-          libass: true,
         ),
       );
       _controller = VideoController(_player!);
