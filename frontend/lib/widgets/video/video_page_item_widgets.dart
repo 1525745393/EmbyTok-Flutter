@@ -22,6 +22,7 @@ class _RightActionButtons extends ConsumerWidget {
     this.onSubtitleTap,
     this.onAudioTap,
     this.onChapterTap,
+    this.onWatchlistTap,
   });
   final MediaItem item;
   final VideoPlayerController? controller;
@@ -39,6 +40,7 @@ class _RightActionButtons extends ConsumerWidget {
   final VoidCallback? onSubtitleTap;
   final VoidCallback? onAudioTap;
   final VoidCallback? onChapterTap;
+  final VoidCallback? onWatchlistTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -175,6 +177,20 @@ class _RightActionButtons extends ConsumerWidget {
                         color: scheme.error,
                         onTap: onDeleteTap,
                       ),
+                      // 书签（稍后观看）：加入后高亮
+                      SizedBox(height: rs(16, 1.5)),
+                      Builder(builder: (context) {
+                        final override =
+                            ref.watch(watchlistNotifierProvider)[item.id];
+                        final isWl = override ??
+                            (item.userData?.isWatchlisted ?? false);
+                        return PressableActionButton(
+                          icon: isWl ? Icons.bookmark : Icons.bookmark_border,
+                          label: '书签',
+                          color: isWl ? scheme.primary : scheme.onSurface,
+                          onTap: onWatchlistTap ?? () {},
+                        );
+                      }),
                       SizedBox(height: rs(16, 1.5)),
                       SpeedControlButton(
                         controller: controller,

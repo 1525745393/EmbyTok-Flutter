@@ -281,6 +281,30 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                 _videoController?.seekTo(Duration(milliseconds: (seconds * 1000).round()));
               },
             ),
+            onWatchlistTap: () async {
+              final notifier = ref.read(watchlistNotifierProvider.notifier);
+              final localOverride =
+                  notifier.localOverride(widget.item.id);
+              final current = localOverride ??
+                  (widget.item.userData?.isWatchlisted ?? false);
+              try {
+                await notifier.toggle(widget.item, current);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(current ? '已取消书签' : '已加入书签'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('书签操作失败: $e')),
+                  );
+                }
+              }
+            },
           ),
 
         // 片尾"下一集"按钮
