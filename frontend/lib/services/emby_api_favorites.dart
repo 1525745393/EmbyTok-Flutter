@@ -435,7 +435,7 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     try {
       await _apiClient.post<dynamic>(
         '$userItemPath/UserData',
-        body: {'Played': false},
+        data: {'Played': false},
       );
     } catch (e) {
       AppLogger.error('Watchlist 降级 UserData 也失败', data: {'error': e.toString()});
