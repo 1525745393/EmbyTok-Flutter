@@ -1,3 +1,10 @@
+# [2.245.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.244.0...v2.245.0) (2026-09-29)
+
+
+### Features
+
+* 自动连播下一集-设置可开关/播放结束自动切下一页 ([09b0a95](https://github.com/1525745393/EmbyTok-Flutter/commit/09b0a95935c70c5ceeed44915e458b3bb60e4098))
+
 # [2.244.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.243.1...v2.244.0) (2026-09-29)
 
 
