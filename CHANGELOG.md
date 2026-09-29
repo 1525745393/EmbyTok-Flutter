@@ -1,3 +1,10 @@
+## [2.239.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.0...v2.239.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* MPV播放器安全问题 - late final改可空防dispose崩溃 + 暴露pause/play/setMuted接口 ([d7e6ef3](https://github.com/1525745393/EmbyTok-Flutter/commit/d7e6ef320174d96333fc0fc99ab101ec31057b7c))
+
 # [2.239.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.238.1...v2.239.0) (2026-09-29)
 
 
