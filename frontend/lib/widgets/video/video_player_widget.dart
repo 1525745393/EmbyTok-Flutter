@@ -524,15 +524,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
     // 场景 1：无法播放视频，显示缩略图占位
     if (!_canPlayVideo) {
-      return _buildThumbnailPlaceholder(context);
+      return wrapFixedRatio(_buildThumbnailPlaceholder(context));
     }
 
     // 场景 2：视频正在初始化，显示加载指示器
     if (vc == null || !_initialized) {
-      return Center(
+      return wrapFixedRatio(Center(
         child: CircularProgressIndicator(
             color: Theme.of(context).colorScheme.primary),
-      );
+      ));
     }
 
     // 场景 3：正常播放视频（带字幕叠加）
@@ -549,7 +549,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     }
     // 监听选中的字幕轨道 ID，变化时异步加载
     final selectedSubId = ref.watch(selectedSubtitleProvider);
-    final isFullscreen = ref.watch(isFullscreenProvider);
+    // isFullscreen 已在上方 boxFit 计算处 watch，此处复用，避免重复 watch
     // 当前实际显示的字幕（优先用异步加载的 _subtitleCues，否则用 item 自带的）
     final displayCues = _subtitleCues.isNotEmpty
         ? _subtitleCues
