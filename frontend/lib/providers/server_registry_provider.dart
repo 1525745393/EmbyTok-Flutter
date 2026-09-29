@@ -122,6 +122,27 @@ class ServerProfile {
     return _ensureScheme(raw);
   }
 
+  /// auto 模式下的候选地址列表（内网优先，外网兜底）
+  List<String> resolveCandidates() {
+    final list = <String>[];
+    switch (networkMode) {
+      case NetworkMode.internal:
+        if (internalUrl?.isNotEmpty ?? false) list.add(_ensureScheme(internalUrl!));
+        list.add(_ensureScheme(url));
+        break;
+      case NetworkMode.external:
+        if (externalUrl?.isNotEmpty ?? false) list.add(_ensureScheme(externalUrl!));
+        list.add(_ensureScheme(url));
+        break;
+      case NetworkMode.auto:
+        if (internalUrl?.isNotEmpty ?? false) list.add(_ensureScheme(internalUrl!));
+        if (externalUrl?.isNotEmpty ?? false) list.add(_ensureScheme(externalUrl!));
+        list.add(_ensureScheme(url));
+    }
+    // 去重
+    return list.toSet().toList();
+  }
+
   /// 无协议前缀时补 http://（端口由各 API 层按类型补默认值）
   static String _ensureScheme(String url) {
     final u = url.trim();
