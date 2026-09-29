@@ -401,11 +401,12 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
     }
     _ensureConfig(serverUrl, token);
     final effectiveUserId = userId ?? _defaultUserId;
-    final params = <String, dynamic>{
-      if (effectiveUserId != null && effectiveUserId.isNotEmpty)
-        'UserId': effectiveUserId,
-    };
-    final path = '/Items/$itemId/Watchlist';
+    final params = <String, dynamic>{};
+    // Emby Watchlist 正确路径：/Users/{userId}/Items/{itemId}/Watchlist
+    // 旧写法 /Items/{itemId}/Watchlist 在部分服务器版本会 404
+    final path = effectiveUserId != null && effectiveUserId.isNotEmpty
+        ? '/Users/$effectiveUserId/Items/$itemId/Watchlist'
+        : '/Items/$itemId/Watchlist';
     if (isWatchlisted) {
       await _apiClient.post<dynamic>(path, queryParameters: params);
     } else {
