@@ -1,3 +1,10 @@
+# [2.240.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.2...v2.240.0) (2026-09-29)
+
+
+### Features
+
+* 设置页MPV子分组 - 解码方式/缓存大小/ASS样式可配置 ([7853fe2](https://github.com/1525745393/EmbyTok-Flutter/commit/7853fe264f10576a6199624c833798d594192d9c))
+
 ## [2.239.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.1...v2.239.2) (2026-09-29)
 
 
