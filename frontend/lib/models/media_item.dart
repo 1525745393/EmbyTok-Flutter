@@ -356,6 +356,16 @@ class MediaItem {
   // 视频高度（主媒体源）
   int? get videoHeight => primaryMediaSource?.height;
 
+  // 多播放器 PRD R4：自动检测杜比 Vision（主媒体源的视频流）
+  bool get isDolbyVision => primaryMediaSource?.mediaStreams
+          .any((s) => s.isDolbyVision && s.type == 'Video') ??
+      false;
+
+  // 多播放器 PRD R4：自动检测 HDR10（主媒体源的视频流）
+  bool get isHdr => primaryMediaSource?.mediaStreams
+          .any((s) => s.isHdr && s.type == 'Video') ??
+      false;
+
   // 视频分辨率（像素数，用于排序比较）
   int get videoResolutionPixels {
     final w = videoWidth ?? 0;

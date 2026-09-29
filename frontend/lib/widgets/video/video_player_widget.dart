@@ -358,9 +358,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 多播放器 PRD 第三阶段：用户选择 MPV 引擎时使用 libmpv 渲染
+    // 多播放器 PRD：根据用户设置和视频元数据选择渲染引擎
+    // - mpv：强制使用 libmpv
+    // - auto：杜比 Vision/HDR10 内容自动用 MPV（ExoPlayer 解码失败率高），其余用 ExoPlayer
+    // - exo：强制 ExoPlayer
     final engineSettings = ref.watch(playerEngineSettingsProvider);
-    if (engineSettings.defaultEngine == PlayerEngine.mpv) {
+    final useMpv = engineSettings.defaultEngine == PlayerEngine.mpv ||
+        (engineSettings.defaultEngine == PlayerEngine.auto &&
+            (widget.item.isDolbyVision || widget.item.isHdr));
+    if (useMpv) {
       final mpvUrl = _playbackUrl;
       if (mpvUrl == null || mpvUrl.isEmpty) {
         return _buildThumbnailPlaceholder(context);
