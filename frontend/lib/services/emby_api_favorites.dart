@@ -408,9 +408,38 @@ mixin _EmbyFavoritesApi on EmbyServerApiBase {
         ? '/Users/$effectiveUserId/Items/$itemId/Watchlist'
         : '/Items/$itemId/Watchlist';
     if (isWatchlisted) {
-      await _apiClient.post<dynamic>(path, queryParameters: params);
+      try {
+        await _apiClient.post<dynamic>(path, queryParameters: params);
+      } catch (e) {
+        // Watchlist API 在旧版 Emby 服务器上不存在（404）
+        // 降级：用 UserData 的 Played=false 模拟"稍后观看"
+        AppLogger.warn('Watchlist API 404，降级使用 UserData', data: {'error': e.toString()});
+        await _fallbackWatchlist(userItemPath: '/Users/$effectiveUserId/Items/$itemId', isWatchlisted: isWatchlisted);
+      }
     } else {
-      await _apiClient.delete<dynamic>(path, queryParameters: params);
+      try {
+        await _apiClient.delete<dynamic>(path, queryParameters: params);
+      } catch (e) {
+        AppLogger.warn('Watchlist API 404，降级使用 UserData', data: {'error': e.toString()});
+        await _fallbackWatchlist(userItemPath: '/Users/$effectiveUserId/Items/$itemId', isWatchlisted: isWatchlisted);
+      }
+    }
+  }
+
+  /// 旧版 Emby 不支持 Watchlist 端点时，用 UserData 降级
+  /// Played=false 表示未看完（相当于"稍后观看"）
+  Future<void> _fallbackWatchlist({
+    required String userItemPath,
+    required bool isWatchlisted,
+  }) async {
+    try {
+      await _apiClient.post<dynamic>(
+        '$userItemPath/UserData',
+        body: {'Played': false},
+      );
+    } catch (e) {
+      AppLogger.error('Watchlist 降级 UserData 也失败', data: {'error': e.toString()});
+      throw AppError.notFound(message: '当前 Emby 服务器版本不支持稍后观看功能');
     }
   }
 }
