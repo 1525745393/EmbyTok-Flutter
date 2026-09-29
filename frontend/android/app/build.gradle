@@ -60,7 +60,7 @@ android {
 
     defaultConfig {
         applicationId "com.embytok.app"
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 29 // vlc_player 要求 minSdk 29
         targetSdk 34
         // 从 pubspec.yaml 显式解析：version: X.Y.Z+B
         // versionName "2.243.0"
