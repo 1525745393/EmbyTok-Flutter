@@ -1,3 +1,10 @@
+# [2.239.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.238.1...v2.239.0) (2026-09-29)
+
+
+### Features
+
+* R4自动杜比识别 - auto引擎下HDR/杜比Vision内容自动用MPV渲染 ([c82ba7b](https://github.com/1525745393/EmbyTok-Flutter/commit/c82ba7bd10c27fa741abbdaf6394444c73150ba4))
+
 ## [2.238.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.238.0...v2.238.1) (2026-09-29)
 
 
