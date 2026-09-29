@@ -786,6 +786,17 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildDanmakuTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(danmakuEnabledProvider);
+    return SwitchListTile(
+      secondary: const Icon(Icons.subtitles, color: Colors.pink),
+      title: const Text('弹幕'),
+      subtitle: const Text('在视频上叠加显示弹幕（后续接入弹幕源）'),
+      value: enabled,
+      onChanged: (v) => ref.read(danmakuEnabledProvider.notifier).state = v,
+    );
+  }
+
   void _showVideoFitPicker(
       BuildContext context, WidgetRef ref, VideoFitMode current) {
     final names = {

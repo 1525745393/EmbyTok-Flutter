@@ -511,3 +511,6 @@ final autoPlayNextProvider =
 
 /// 自动连播事件触发器：播放结束时自增，外层监听后切到下一页
 final autoPlayNextTriggerProvider = StateProvider<int>((ref) => 0);
+
+/// 弹幕开关（默认关闭）
+final danmakuEnabledProvider = StateProvider<bool>((ref) => false);
