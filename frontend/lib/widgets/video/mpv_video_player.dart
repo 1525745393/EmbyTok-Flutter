@@ -74,13 +74,12 @@ class MpvVideoPlayer extends StatefulWidget {
 }
 
 class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
-  late final Player _player;
-  late final VideoController _controller;
+  Player? _player;
+  VideoController? _controller;
   bool _initialized = false;
   bool _hasError = false;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<bool>? _completeSub;
-  StreamSubscription<void>? _errorSub;
 
   @override
   void initState() {
@@ -88,11 +87,19 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
     _init();
   }
 
+  /// 外部调用：暂停播放
+  void pause() => _player?.pause();
+
+  /// 外部调用：恢复播放
+  void play() => _player?.play();
+
+  /// 外部调用：设置静音
+  void setMuted(bool muted) =>
+      _player?.setVolume(muted ? 0 : 100);
+
   Future<void> _init() async {
     try {
       // 创建 MPV 播放器，应用用户配置的缓冲大小
-      // 硬解模式由 media_kit 默认 auto-safe 处理；强制软解通过 hwDec 设置传递
-      // （media_kit 内部根据 PlayerConfiguration 选择解码策略）
       _player = Player(
         configuration: PlayerConfiguration(
           bufferSize: widget.cacheSizeMb * 1024 * 1024,
@@ -100,10 +107,10 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
           title: 'EmbyTok',
         ),
       );
-      _controller = VideoController(_player);
+      _controller = VideoController(_player!);
 
       // 打开视频流
-      await _player.open(
+      await _player!.open(
         Media(
           widget.url,
           httpHeaders: widget.httpHeaders,
@@ -113,14 +120,14 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       // 设置起始位置
       if (widget.startPosition > Duration.zero) {
-        await _player.seek(widget.startPosition);
+        await _player!.seek(widget.startPosition);
       }
 
       // 静音
-      await _player.setVolume(widget.muted ? 0 : 100);
+      await _player!.setVolume(widget.muted ? 0 : 100);
 
       // 监听播放结束
-      _completeSub = _player.stream.completed.listen((completed) {
+      _completeSub = _player!.stream.completed.listen((completed) {
         if (completed && mounted) {
           widget.onPlaybackEnded?.call();
         }
@@ -128,7 +135,7 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       // 监听位置变化（每 5 秒回调一次，减少 UI 重建）
       Duration lastCallback = Duration.zero;
-      _positionSub = _player.stream.position.listen((pos) {
+      _positionSub = _player!.stream.position.listen((pos) {
         if (pos - lastCallback > const Duration(seconds: 5)) {
           lastCallback = pos;
           widget.onPositionChanged?.call(pos);
@@ -137,7 +144,7 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       if (mounted) {
         setState(() => _initialized = true);
-        widget.onPlayerReady?.call(_player);
+        widget.onPlayerReady?.call(_player!);
       }
       AppLogger.info('MPV 播放器初始化成功', data: {'url': widget.url});
     } catch (e) {
@@ -152,8 +159,8 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   @override
   void didUpdateWidget(MpvVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.muted != widget.muted) {
-      _player.setVolume(widget.muted ? 0 : 100);
+    if (oldWidget.muted != widget.muted && _player != null) {
+      _player!.setVolume(widget.muted ? 0 : 100);
     }
   }
 
@@ -161,8 +168,7 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   void dispose() {
     _positionSub?.cancel();
     _completeSub?.cancel();
-    _errorSub?.cancel();
-    _player.dispose();
+    _player?.dispose();
     super.dispose();
   }
 
@@ -186,14 +192,14 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
         ),
       );
     }
-    if (!_initialized) {
+    if (!_initialized || _controller == null) {
       return Container(
         color: Colors.black,
         child: const Center(child: CircularProgressIndicator()),
       );
     }
     return Video(
-      controller: _controller,
+      controller: _controller!,
       fit: BoxFit.contain,
       alignment: Alignment.center,
     );
