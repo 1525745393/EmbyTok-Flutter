@@ -5,6 +5,36 @@ import 'person.dart';
 import 'subtitle_track.dart';
 import 'user_data.dart';
 
+/// 章节信息（Emby /Items/{id} 的 Chapters 字段）
+class VideoChapter {
+  const VideoChapter({
+    required this.startPositionTicks,
+    required this.name,
+    this.imagePath,
+  });
+
+  /// 起始时间（ticks，1 tick = 100ns）
+  final int startPositionTicks;
+
+  /// 章节名称
+  final String name;
+
+  /// 章节缩略图路径（Emby 相对路径，可拼 serverUrl/Items/{itemId}/Images/Chapter/{index}）
+  final String? imagePath;
+
+  /// 起始时间（秒）
+  double get startPositionSeconds => startPositionTicks / 10000000.0;
+
+  factory VideoChapter.fromJson(Map<String, dynamic> json) {
+    return VideoChapter(
+      startPositionTicks:
+          (json['StartPositionTicks'] as num?)?.toInt() ?? 0,
+      name: (json['Name'] as String?) ?? '章节',
+      imagePath: json['ImagePath'] as String?,
+    );
+  }
+}
+
 // 类型安全转换：将动态值解析为 int，支持 String 形式的数字（如 "2023"）
 // 避免脏数据导致 type 'String' is not a subtype of type 'int?' 崩溃
 int? _parseIntDynamic(dynamic value) {
@@ -50,6 +80,7 @@ class MediaItem {
     this.isFavorite,
     this.mediaSources,
     this.playbackUrl,
+    this.chapters,
     this.rawJson,
   });
 
@@ -190,6 +221,16 @@ class MediaItem {
     final playbackUrl =
         json['playback_url'] as String? ?? json['playbackUrl'] as String?;
 
+    // 章节列表（Emby Chapters 字段）
+    List<VideoChapter>? chapters;
+    final chaptersDynamic = json['Chapters'];
+    if (chaptersDynamic is List) {
+      chapters = chaptersDynamic
+          .whereType<Map<String, dynamic>>()
+          .map(VideoChapter.fromJson)
+          .toList();
+    }
+
     return MediaItem(
       id: id,
       title: title,
@@ -216,6 +257,7 @@ class MediaItem {
       isFavorite: isFavorite,
       mediaSources: mediaSources,
       playbackUrl: playbackUrl,
+      chapters: chapters,
       rawJson: json,
     );
   }
@@ -252,6 +294,9 @@ class MediaItem {
   // 播放
   final List<MediaSource>? mediaSources;
   final String? playbackUrl; // 兼容字段
+
+  /// 章节列表（Emby Chapters 字段，无章节时为 null/空）
+  final List<VideoChapter>? chapters;
 
   // 原始 JSON（用于访问未映射字段，如 PlaylistItemId）
   final Map<String, dynamic>? rawJson;

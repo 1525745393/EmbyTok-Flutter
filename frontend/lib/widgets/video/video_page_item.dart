@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
 import 'playback_info_osd.dart';
+import 'chapter_picker.dart';
 import '../../providers/sleep_timer_provider.dart';
 import '../../providers/video_comments_provider.dart';
 import '../../services/embytok_service.dart';

@@ -274,6 +274,13 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                 context, widget.item.subtitleTracks),
             onAudioTap: () => sheet_utils.showAudioTrackSelector(
                 context, widget.item.audioTracks),
+            onChapterTap: () => showChapterPicker(
+              context: context,
+              chapters: widget.item.chapters ?? [],
+              onSeek: (seconds) {
+                _videoController?.seekTo(Duration(milliseconds: (seconds * 1000).round()));
+              },
+            ),
           ),
 
         // 片尾"下一集"按钮

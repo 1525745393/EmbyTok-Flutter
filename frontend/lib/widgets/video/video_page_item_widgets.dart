@@ -21,6 +21,7 @@ class _RightActionButtons extends ConsumerWidget {
     this.onSpeedTap,
     this.onSubtitleTap,
     this.onAudioTap,
+    this.onChapterTap,
   });
   final MediaItem item;
   final VideoPlayerController? controller;
@@ -37,6 +38,7 @@ class _RightActionButtons extends ConsumerWidget {
   final VoidCallback? onSpeedTap;
   final VoidCallback? onSubtitleTap;
   final VoidCallback? onAudioTap;
+  final VoidCallback? onChapterTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,6 +158,16 @@ class _RightActionButtons extends ConsumerWidget {
                         color: scheme.onSurface,
                         onTap: onInfoTap,
                       ),
+                      // 章节导航：仅当 Emby 返回了章节列表时显示
+                      if (item.chapters != null && item.chapters!.isNotEmpty) ...[
+                        SizedBox(height: rs(16, 1.5)),
+                        PressableActionButton(
+                          icon: Icons.list_alt_outlined,
+                          label: '章节',
+                          color: scheme.onSurface,
+                          onTap: onChapterTap ?? () {},
+                        ),
+                      ],
                       SizedBox(height: rs(16, 1.5)),
                       PressableActionButton(
                         icon: Icons.delete_outline,
