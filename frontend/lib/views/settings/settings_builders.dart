@@ -770,10 +770,8 @@ extension _SettingsBuilders on SettingsView {
     return ListTile(
       leading: const Icon(Icons.aspect_ratio, color: Colors.teal),
       title: const Text('画面缩放模式'),
-      subtitle: Text(names[mode] ?? ''),
+      subtitle: Text('${names[mode] ?? ''}（适应/填充/拉伸）'),
       onTap: () => _showVideoFitPicker(context, ref, mode),
-      helpText:
-          '控制视频画面在屏幕中的显示方式。\n\n适应：完整显示视频，可能有黑边。\n填充：填满屏幕，可能裁剪上下/左右。\n拉伸：拉伸到全屏，画面可能变形。',
     );
   }
 
