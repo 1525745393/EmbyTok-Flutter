@@ -27,7 +27,7 @@ dependencies:
   video_player: ^2.9.0
   # MPV 引擎（多播放器 PRD 第三阶段）：基于 libmpv，支持 HDR/杜比/ASS 字幕/全格式
   media_kit: ^1.2.6
-  media_kit_video: ^1.4.0
+  media_kit_video: ^2.0.1
   screen_brightness: ^0.2.2+1
   package_info_plus: ^8.0.0
   url_launcher: ^6.2.0
