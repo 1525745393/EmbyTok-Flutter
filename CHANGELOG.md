@@ -1,3 +1,29 @@
+# [2.243.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.242.1...v2.243.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* chapter_picker.dart import路径错误导致编译失败 ([3c551ca](https://github.com/1525745393/EmbyTok-Flutter/commit/3c551ca2bce7b1230af782f3730879338c8558e3))
+* CI错误-import playbackInfoOsd+去掉ListTile helpText+AppLogger.error ([418f494](https://github.com/1525745393/EmbyTok-Flutter/commit/418f494e59c904f50c3729797daa28bd35dd8d48))
+* VLC logger改用AppLogger ([430e280](https://github.com/1525745393/EmbyTok-Flutter/commit/430e280c131f0fe6e9b7a59fcafcd623a1bf162b))
+* VLC widget API适配+修复lifecycleState调用 ([467d89e](https://github.com/1525745393/EmbyTok-Flutter/commit/467d89e6f11605dc40e1f536998e775ec3485540))
+* 修正OSD注释；帧预览1s节流避免拖动时每帧发请求 ([cbf84f1](https://github.com/1525745393/EmbyTok-Flutter/commit/cbf84f1310e9f1f2817c49b0819922061ad564cf))
+
+
+### Features
+
+* PIN锁-设置4位数字PIN，启动App时要求验证 ([8895da5](https://github.com/1525745393/EmbyTok-Flutter/commit/8895da5f30d0ad38595015d69d9939b35dc5d81a))
+* 内置VLC引擎-vlc_player包-libvlc网络流兜底 ([9c4bba0](https://github.com/1525745393/EmbyTok-Flutter/commit/9c4bba06312d37ab5ae93e9065e14ac8981443cc))
+* 屏幕常亮抑制-播放视频时防止息屏 ([0b81098](https://github.com/1525745393/EmbyTok-Flutter/commit/0b81098438c6ac35b66d04e94861dcffc0810c24))
+* 播放速度持久化-选择后保存，新视频自动应用 ([cd7de73](https://github.com/1525745393/EmbyTok-Flutter/commit/cd7de7384b63abcf86d0962885ccba7c79b18292))
+* 新增播放信息OSD浮层(引擎/编码/分辨率/HDR)，设置开关控制 ([fc54b4e](https://github.com/1525745393/EmbyTok-Flutter/commit/fc54b4e5d369e30f8bfa90e3b600ea59d3592cf0))
+* 杜比视界内容直接走HLS转码，跳过DirectPlay避免黑屏 ([2d8b8c9](https://github.com/1525745393/EmbyTok-Flutter/commit/2d8b8c97eaca5db030c76b6597a8e3c8b04bafeb))
+* 视频流右侧栏加书签(稍后观看)按钮，对接WatchlistNotifier ([4e061c7](https://github.com/1525745393/EmbyTok-Flutter/commit/4e061c7001d416b84afeee65a8f9dd0ae81a4804))
+* 视频详情页技术参数卡片显示当前播放器引擎 ([2c20e14](https://github.com/1525745393/EmbyTok-Flutter/commit/2c20e145614577e7ca65b7496592955fefad46f3))
+* 进度条拖动帧预览-对接Emby trickplay缩略图API ([86344a5](https://github.com/1525745393/EmbyTok-Flutter/commit/86344a5e1d6cba82847f2b4505e0d5da64f6fa68))
+* 音频延迟微调-设置页滑块-500~+500ms步进50ms ([51363a7](https://github.com/1525745393/EmbyTok-Flutter/commit/51363a7bf98337bbd00c9cbf679cccec9c1ee42a))
+* 章节导航-解析Emby Chapters字段，右侧栏章节按钮跳转 ([bbe264b](https://github.com/1525745393/EmbyTok-Flutter/commit/bbe264b51f9ad3426b0cc5a507fc0b980b24265c))
+
 ## [2.242.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.242.0...v2.242.1) (2026-09-29)
 
 
