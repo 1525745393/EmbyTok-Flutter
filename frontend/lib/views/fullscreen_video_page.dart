@@ -26,6 +26,7 @@ import '../utils/logger.dart';
 import '../utils/safe_insets.dart';
 import '../utils/system_gesture_exclusion.dart';
 import '../widgets/video/episode_list_panel.dart';
+import '../widgets/video/danmaku_overlay.dart';
 import '../widgets/video/subtitle_renderer.dart';
 import '../widgets/video/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
@@ -470,6 +471,21 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                         ),
                       );
                     },
+                  ),
+
+                // 弹幕层（PRD P1：danmaku_overlay 接入横屏）
+                if (isControllerReady &&
+                    !hasError &&
+                    ref.watch(danmakuEnabledProvider))
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DanmakuOverlay(
+                        positionMs: _positionMsNotifier,
+                        // TODO: 接入 dandanplay_api.dart 根据影片名拉取弹幕
+                        danmakus: const [],
+                        enabled: true,
+                      ),
+                    ),
                   ),
 
                 // 字幕渲染层
