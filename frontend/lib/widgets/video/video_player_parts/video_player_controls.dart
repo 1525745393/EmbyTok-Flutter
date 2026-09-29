@@ -124,6 +124,20 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     if (_isDisposed) return;
 
     bool isCancelled() => _reinitToken != token || _isDisposed;
+    // 播放前预检：检测网络连接状态
+    try {
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity.contains(ConnectivityResult.none)) {
+        if (isCancelled()) return;
+        setState(() {
+          _hasError = true;
+          _errorMessage = AppError.network(message: '无网络连接，请检查网络设置');
+        });
+        return;
+      }
+    } catch (_) {
+      // 网络检测失败不阻断播放，继续尝试
+    }
     // 同步当前 item.id，供 didUpdateWidget 后续对比
     _currentItemId = widget.item.id;
 
