@@ -19,7 +19,7 @@ class VideoControls extends ConsumerStatefulWidget {
     required this.controller,
     this.subtitleTracks = const <SubtitleTrack>[],
     this.onPrevEpisode,
-    this.playbackRates = const <double>[0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
+    this.playbackRates = const <double>[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0],
     this.onToggleFullscreen,
     this.isInFullscreen = false,
     this.onSeekStart,
