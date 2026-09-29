@@ -1,3 +1,15 @@
+# [2.241.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.240.0...v2.241.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* MpvVideoPlayerState是私有类，改用dynamic避免编译错误 ([b815643](https://github.com/1525745393/EmbyTok-Flutter/commit/b8156436dcedba0fb0a6129f7fe187476ef65c8a))
+
+
+### Features
+
+* MPV模式播放位置上报到Emby - 统一currentPosition接口 ([edfdd13](https://github.com/1525745393/EmbyTok-Flutter/commit/edfdd13f81363bc85dabe98030e30b242a152512))
+
 # [2.240.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.2...v2.240.0) (2026-09-29)
 
 
