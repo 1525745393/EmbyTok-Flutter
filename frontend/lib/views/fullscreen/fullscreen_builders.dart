@@ -310,6 +310,15 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
                           : null,
                       tooltip: '字幕',
                     ),
+                    // PRD P1：章节导航按钮（有章节时才显示）
+                    if (playingItem?.chapters != null &&
+                        playingItem!.chapters!.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.list,
+                            color: Colors.white, size: 22),
+                        onPressed: () => _showChapterPicker(playingItem, controller),
+                        tooltip: '章节',
+                      ),
                     IconButton(
                       icon: ValueListenableBuilder<VideoPlayerValue>(
                         valueListenable: controller,
@@ -642,6 +651,17 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
           ),
         ),
       ),
+    );
+  }
+
+  /// PRD P1：章节导航弹窗（复用竖屏 chapter_picker.dart）
+  void _showChapterPicker(MediaItem item, VideoPlayerController controller) {
+    showChapterPicker(
+      context: context,
+      chapters: item.chapters ?? [],
+      onSeek: (seconds) {
+        controller.seekTo(Duration(seconds: seconds.round()));
+      },
     );
   }
 

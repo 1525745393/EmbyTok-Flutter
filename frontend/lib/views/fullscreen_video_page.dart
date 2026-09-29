@@ -26,6 +26,7 @@ import '../utils/logger.dart';
 import '../utils/safe_insets.dart';
 import '../utils/system_gesture_exclusion.dart';
 import '../widgets/video/episode_list_panel.dart';
+import '../widgets/video/chapter_picker.dart';
 import '../widgets/video/danmaku_overlay.dart';
 import '../widgets/video/playback_info_osd.dart';
 import '../widgets/video/subtitle_renderer.dart';
