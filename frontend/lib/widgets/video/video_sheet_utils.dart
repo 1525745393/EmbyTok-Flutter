@@ -12,6 +12,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/disliked_items_provider.dart';
+import '../../providers/player_engine_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
 import '../person_avatar_image.dart';
@@ -1400,6 +1401,17 @@ Widget _buildTechInfoSection(BuildContext context, MediaItem item) {
 
   // 收集参数行
   final rows = <Widget>[];
+
+  // 播放器引擎
+  final engine = ProviderScope.containerOf(context).read(playerEngineSettingsProvider).defaultEngine;
+  final engineNames = {
+    PlayerEngine.auto: '自动选择',
+    PlayerEngine.exo: 'EXO',
+    PlayerEngine.mpv: 'MPV',
+    PlayerEngine.vlc: 'VLC',
+    PlayerEngine.external: '外部播放器',
+  };
+  rows.add(_techRow(context, '播放器', engineNames[engine] ?? engine.name));
 
   // 视频编码 + Profile
   if (videoStream?.codec != null) {
