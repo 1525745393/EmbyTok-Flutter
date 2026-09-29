@@ -123,6 +123,13 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
                   onPressed: _showSleepTimerMenu,
                   tooltip: '睡眠定时器',
                 ),
+                // PRD P0：画中画 PiP 按钮
+                IconButton(
+                  icon: const Icon(Icons.picture_in_picture_alt,
+                      color: Colors.white, size: 24),
+                  onPressed: () => PipUtil.enterPip(),
+                  tooltip: '画中画',
+                ),
                 IconButton(
                   icon:
                       const Icon(Icons.settings, color: Colors.white, size: 24),

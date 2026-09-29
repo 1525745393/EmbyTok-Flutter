@@ -4,6 +4,8 @@ import android.graphics.Rect
 import android.media.audiofx.Equalizer
 import android.os.Build
 import android.os.Bundle
+import android.app.PictureInPictureParams
+import android.util.Rational
 import android.view.View
 import androidx.core.view.WindowCompat
 import com.ryanheise.audioservice.AudioServiceFragmentActivity
@@ -29,6 +31,7 @@ class MainActivity : AudioServiceFragmentActivity() {
     private var equalizer: Equalizer? = null
     private val eqChannel = "com.embytok/equalizer"
     private val gestureChannel = "com.embytok/system_gesture"
+    private val pipChannel = "embytok/pip"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,6 +89,33 @@ class MainActivity : AudioServiceFragmentActivity() {
                         val enabled = call.argument<Boolean>("enabled") ?: false
                         runOnUiThread { applyFullscreenGestureExclusion(enabled) }
                         result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // P0：画中画 PiP MethodChannel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, pipChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isPipSupported" -> {
+                        result.support(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    }
+                    "isInPip" -> {
+                        result.support(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            isInPictureInPictureMode
+                        } else false)
+                    }
+                    "enterPip" -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val params = PictureInPictureParams.Builder()
+                                .setAspectRatio(Rational(16, 9))
+                                .build()
+                            enterPictureInPictureMode(params)
+                            result.success(true)
+                        } else {
+                            result.error("PIP_UNSUPPORTED", "Android O+ required", null)
+                        }
                     }
                     else -> result.notImplemented()
                 }
