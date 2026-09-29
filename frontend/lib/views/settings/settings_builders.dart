@@ -698,6 +698,70 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildAudioOffsetTile(BuildContext context, WidgetRef ref) {
+    final offset = ref.watch(audioOffsetProvider);
+    return ListTile(
+      leading: const Icon(Icons.graphic_eq, color: Colors.purple),
+      title: const Text('音频延迟微调'),
+      subtitle: Text(
+          offset == 0 ? '关闭' : '${offset > 0 ? '+' : ''}${offset}ms'),
+      onTap: () => _showAudioOffsetDialog(context, ref, offset),
+      helpText:
+          '音画不同步时手动微调音频延迟。\n\n正值 = 音频延迟播放（声音慢于画面）\n负值 = 音频提前播放（声音快于画面）\n范围 -500ms ~ +500ms，步进 50ms。\n\nMPV 引擎支持精确延迟；EXO 引擎通过微调视频播放位置实现近似效果。',
+    );
+  }
+
+  void _showAudioOffsetDialog(
+      BuildContext context, WidgetRef ref, int current) {
+    int temp = current;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('音频延迟微调'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${temp > 0 ? '+' : ''}$temp ms',
+                style: const TextStyle(
+                    fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              Slider(
+                min: -500,
+                max: 500,
+                divisions: 20,
+                value: temp.toDouble(),
+                label: '${temp}ms',
+                onChanged: (v) => setState(() => temp = v.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                ref.read(audioOffsetProvider.notifier).setOffset(0);
+                Navigator.pop(ctx);
+              },
+              child: const Text('重置'),
+            ),
+            TextButton(
+              onPressed: () {
+                ref.read(audioOffsetProvider.notifier).setOffset(temp);
+                Navigator.pop(ctx);
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showPlayerEnginePicker(
       BuildContext context, WidgetRef ref, PlayerEngine current) {
     showDialog(

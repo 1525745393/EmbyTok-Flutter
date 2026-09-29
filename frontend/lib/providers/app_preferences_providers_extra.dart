@@ -422,3 +422,30 @@ final pinLockProvider =
 
 /// PIN 是否已解锁（本次会话内）
 final pinUnlockedProvider = StateProvider<bool>((ref) => false);
+
+// ---------------- 音频延迟微调 ----------------
+
+/// 音频延迟偏移（毫秒），正值=音频延迟播放，负值=音频提前
+class AudioOffsetNotifier extends StateNotifier<int> {
+  AudioOffsetNotifier() : super(0) {
+    _load();
+  }
+
+  static const _key = 'audio_offset_ms';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getInt(_key) ?? 0;
+  }
+
+  Future<void> setOffset(int ms) async {
+    state = ms;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_key, ms);
+  }
+}
+
+final audioOffsetProvider =
+    StateNotifierProvider<AudioOffsetNotifier, int>(
+  (ref) => AudioOffsetNotifier(),
+);
