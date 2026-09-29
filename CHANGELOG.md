@@ -1,3 +1,10 @@
+## [2.241.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.1...v2.241.2) (2026-09-29)
+
+
+### Bug Fixes
+
+* 添加media_kit_libs_android_video包，打包libmpv.so native库进APK ([ea73475](https://github.com/1525745393/EmbyTok-Flutter/commit/ea73475613ededd99b24a3e91bb51906295738a3))
+
 ## [2.241.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.0...v2.241.1) (2026-09-29)
 
 
