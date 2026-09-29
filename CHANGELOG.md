@@ -1,3 +1,10 @@
+## [2.242.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.242.0...v2.242.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* 回退libass=true，Android需配置字体否则字幕崩溃 ([490dc10](https://github.com/1525745393/EmbyTok-Flutter/commit/490dc103387d18194f83835a9a3fae9057ee3cc1))
+
 # [2.242.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.241.2...v2.242.0) (2026-09-29)
 
 
