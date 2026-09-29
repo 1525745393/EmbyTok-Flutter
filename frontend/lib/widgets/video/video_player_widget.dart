@@ -15,6 +15,7 @@ import '../../services/external_player_service.dart';
 import '../../utils/image_cache_manager.dart';
 import '../../utils/logger.dart';
 import 'mpv_video_player.dart';
+import 'vlc_video_player.dart';
 import 'subtitle_renderer.dart';
 part 'video_player_parts/video_player_controls.dart';
 
@@ -389,7 +390,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   Widget build(BuildContext context) {
     // 多播放器 PRD：根据用户设置和视频元数据选择渲染引擎
     // - mpv：强制使用 libmpv
-    // - auto：杜比 Vision/HDR10 内容自动用 MPV（ExoPlayer 解码失败率高），其余用 ExoPlayer
+    // - vlc：强制使用 libvlc（网络流兼容性兜底）
+    // - auto：杜比 Vision/HDR10 内容自动用 MPV，其余用 ExoPlayer
     // - exo：强制 ExoPlayer
     final engineSettings = ref.watch(playerEngineSettingsProvider);
     final useMpv = engineSettings.defaultEngine == PlayerEngine.mpv ||
@@ -419,6 +421,27 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           // 保存 MPV state 引用，供外部统一获取位置/时长
           // 通过 GlobalKey 在 build 后获取
         },
+      );
+    }
+
+    // VLC 引擎分支：libvlc，网络流兼容性兜底
+    if (engineSettings.defaultEngine == PlayerEngine.vlc) {
+      final vlcUrl = _playbackUrl;
+      if (vlcUrl == null || vlcUrl.isEmpty) {
+        return _buildThumbnailPlaceholder(context);
+      }
+      return VlcVideoPlayer(
+        key: ValueKey('vlc_${widget.item.id}'),
+        url: vlcUrl,
+        httpHeaders: widget.token != null
+            ? {
+                'X-Emby-Token': widget.token!,
+                'Accept': 'video/*',
+              }
+            : const {'Accept': 'video/*'},
+        autoPlay: widget.autoPlay,
+        muted: !widget.isCurrentPage,
+        isCurrentPage: widget.isCurrentPage,
       );
     }
 
