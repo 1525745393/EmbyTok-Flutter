@@ -455,10 +455,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         cacheSizeMb: engineSettings.mpvCacheSizeMb,
         forceAssStyle: engineSettings.mpvForceAssStyle,
         fit: boxFit,
-        onPlayerReady: (player) {
-          // 保存 MPV state 引用，供外部统一获取位置/时长
-          // 通过 GlobalKey 在 build 后获取
+        onPositionChanged: (pos) {
+          // 同步 MPV 播放位置到外层进度条
+          _positionMs.value = pos.inMilliseconds;
         },
+        onError: (msg) => retryInitialization(),
       );
     }
 
@@ -485,6 +486,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
           VideoFitMode.fill => VlcVideoFit.cover,
           VideoFitMode.stretch => VlcVideoFit.fill,
         },
+        onPositionChanged: (pos) {
+          // 同步 VLC 播放位置到外层进度条
+          _positionMs.value = pos.inMilliseconds;
+        },
+        onError: (e) => retryInitialization(),
       );
     }
 
