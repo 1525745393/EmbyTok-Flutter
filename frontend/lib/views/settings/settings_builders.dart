@@ -597,6 +597,95 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  /// MPV 解码方式选择（仅 MPV 引擎生效）
+  Widget _buildMpvHwDecTile(BuildContext context, WidgetRef ref) {
+    final hwDec = ref.watch(
+        playerEngineSettingsProvider.select((s) => s.mpvHwDec));
+    const names = {
+      MpvHwDec.auto: '自动（推荐）',
+      MpvHwDec.hard: '强制硬解',
+      MpvHwDec.soft: '强制软解',
+    };
+    return settingsTapTile(
+      icon: Icons.hardware_outlined,
+      iconColor: Colors.purple,
+      title: 'MPV 解码方式',
+      subtitle: names[hwDec],
+      helpText: '仅默认播放器选择 MPV 时生效。\n\n'
+          '· 自动 → 优先硬解，失败自动回退软解\n'
+          '· 强制硬解 → 耗电低，但部分设备可能花屏\n'
+          '· 强制软解 → 兼容性最好，但 CPU 占用高',
+      onTap: () async {
+        final selected = await showDialog<MpvHwDec>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: const Text('MPV 解码方式'),
+            children: MpvHwDec.values.map((m) {
+              return RadioListTile<MpvHwDec>(
+                value: m,
+                groupValue: hwDec,
+                title: Text(names[m] ?? ''),
+                onChanged: (v) => Navigator.pop(ctx, v),
+              );
+            }).toList(),
+          ),
+        );
+        if (selected != null) {
+          ref.read(playerEngineSettingsProvider.notifier).setMpvHwDec(selected);
+        }
+      },
+    );
+  }
+
+  /// MPV 网络缓存大小
+  Widget _buildMpvCacheTile(BuildContext context, WidgetRef ref) {
+    final cacheMb = ref.watch(
+        playerEngineSettingsProvider.select((s) => s.mpvCacheSizeMb));
+    return settingsTapTile(
+      icon: Icons.storage_outlined,
+      iconColor: Colors.blueGrey,
+      title: 'MPV 网络缓存',
+      subtitle: '$cacheMb MB',
+      helpText: '视频流预缓存大小。\n\n'
+          '· 网络好：8-16 MB 足够，起播快\n'
+          '· 网络差：32-64 MB，减少卡顿\n'
+          '· 过大增加内存占用和首帧延迟',
+      onTap: () async {
+        final selected = await showDialog<int>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: const Text('MPV 网络缓存 (MB)'),
+            children: [8, 16, 32, 64].map((mb) {
+              return RadioListTile<int>(
+                value: mb,
+                groupValue: cacheMb,
+                title: Text('$mb MB'),
+                onChanged: (v) => Navigator.pop(ctx, v),
+              );
+            }).toList(),
+          ),
+        );
+        if (selected != null) {
+          ref.read(playerEngineSettingsProvider.notifier).setMpvCacheSizeMb(selected);
+        }
+      },
+    );
+  }
+
+  /// MPV 强制 ASS 字幕样式
+  Widget _buildMpvAssStyleTile(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(
+        playerEngineSettingsProvider.select((s) => s.mpvForceAssStyle));
+    return SwitchListTile(
+      secondary: const Icon(Icons.subtitles_outlined, color: Colors.teal),
+      title: const Text('MPV 强制统一字幕样式'),
+      subtitle: const Text('覆盖 ASS 字幕内嵌字体，统一显示'),
+      value: enabled,
+      onChanged: (v) =>
+          ref.read(playerEngineSettingsProvider.notifier).setMpvForceAssStyle(v),
+    );
+  }
+
   void _showPlayerEnginePicker(
       BuildContext context, WidgetRef ref, PlayerEngine current) {
     showDialog(
