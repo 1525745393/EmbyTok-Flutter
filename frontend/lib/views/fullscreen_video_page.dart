@@ -697,21 +697,35 @@ class SliderSeekHandler {
   /// 当前预览位置（毫秒）；null 表示未在拖动，UI 应回退到真实 position。
   double? get seekPreviewMs => _seekPreviewMs;
 
+  // 帧预览节流：仅当预览位置变化超过 1 秒时才生成新缩略图 URL，
+  // 避免拖动时每帧发 HTTP 请求。
+  double? _lastThrottledPreviewMs;
+
+  /// 帧预览用的节流位置（毫秒），与 [seekPreviewMs] 偏差 < 1s 时保持不变。
+  double? get throttledPreviewMs => _lastThrottledPreviewMs ?? _seekPreviewMs;
+
   /// 拖动开始：标记进入拖动状态。
   void startDrag() {
     _seekPreviewMs = 0.0;
+    _lastThrottledPreviewMs = 0.0;
   }
 
   /// 拖动中：仅更新预览位置，不调用 seekTo。
   void updateDrag(double v, Duration duration) {
     if (duration.inMilliseconds <= 0) return;
     _seekPreviewMs = v * duration.inMilliseconds;
+    // 帧预览节流：位置变化超过 1 秒才更新缩略图 URL
+    final last = _lastThrottledPreviewMs;
+    if (last == null || (_seekPreviewMs! - last).abs() > 1000) {
+      _lastThrottledPreviewMs = _seekPreviewMs;
+    }
   }
 
   /// 拖动结束：清除预览状态，并触发一次 seekTo。
   /// duration 无效或 seekTo 未绑定时安全跳过。
   void endDrag(double v, Duration duration) {
     _seekPreviewMs = null;
+    _lastThrottledPreviewMs = null;
     final fn = seekTo;
     if (fn == null || duration.inMilliseconds <= 0) return;
     final target = Duration(

@@ -175,8 +175,9 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // 帧预览缩略图：拖动进度条时在进度条上方显示
+                // 使用 throttledPreviewMs 避免每帧发 HTTP 请求（1s 节流）
                 if (_sliderSeekHandler.seekPreviewMs != null)
-                  _buildFramePreview(context, _sliderSeekHandler.seekPreviewMs!),
+                  _buildFramePreview(context, _sliderSeekHandler.throttledPreviewMs!),
                 ValueListenableBuilder<VideoPlayerValue>(
                   valueListenable: controller,
                   builder: (context, value, child) {

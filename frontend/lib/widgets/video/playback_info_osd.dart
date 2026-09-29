@@ -9,9 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/media_item.dart';
 import '../../providers/player_engine_provider.dart';
 
-/// 播放信息 OSD 显示开关
+/// 播放信息 OSD 显示开关（内存开关，重启 App 后重置为关闭）
 ///
-/// 持久化到 SharedPreferences，用户可在设置中切换。
+/// 用户可在设置中切换，便于临时排查解码问题。
 final playbackInfoOsdProvider = StateProvider<bool>((ref) => false);
 
 /// 播放信息 OSD 浮层
