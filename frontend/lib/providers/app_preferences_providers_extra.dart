@@ -449,3 +449,37 @@ final audioOffsetProvider =
     StateNotifierProvider<AudioOffsetNotifier, int>(
   (ref) => AudioOffsetNotifier(),
 );
+
+// ---------------- 画面缩放模式 ----------------
+
+/// 画面缩放模式
+enum VideoFitMode {
+  fit,      // 适应（contain，黑边）
+  fill,     // 填充（cover，裁剪）
+  stretch,  // 拉伸（fill，变形）
+}
+
+class VideoFitModeNotifier extends StateNotifier<VideoFitMode> {
+  VideoFitModeNotifier() : super(VideoFitMode.fit) {
+    _load();
+  }
+
+  static const _key = 'video_fit_mode';
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idx = prefs.getInt(_key) ?? 0;
+    state = VideoFitMode.values[idx.clamp(0, VideoFitMode.values.length - 1)];
+  }
+
+  Future<void> setMode(VideoFitMode mode) async {
+    state = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_key, mode.index);
+  }
+}
+
+final videoFitModeProvider =
+    StateNotifierProvider<VideoFitModeNotifier, VideoFitMode>(
+  (ref) => VideoFitModeNotifier(),
+);

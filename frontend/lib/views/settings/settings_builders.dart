@@ -760,6 +760,54 @@ extension _SettingsBuilders on SettingsView {
     );
   }
 
+  Widget _buildVideoFitTile(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(videoFitModeProvider);
+    final names = {
+      VideoFitMode.fit: '适应（黑边）',
+      VideoFitMode.fill: '填充（裁剪）',
+      VideoFitMode.stretch: '拉伸（变形）',
+    };
+    return ListTile(
+      leading: const Icon(Icons.aspect_ratio, color: Colors.teal),
+      title: const Text('画面缩放模式'),
+      subtitle: Text(names[mode] ?? ''),
+      onTap: () => _showVideoFitPicker(context, ref, mode),
+      helpText:
+          '控制视频画面在屏幕中的显示方式。\n\n适应：完整显示视频，可能有黑边。\n填充：填满屏幕，可能裁剪上下/左右。\n拉伸：拉伸到全屏，画面可能变形。',
+    );
+  }
+
+  void _showVideoFitPicker(
+      BuildContext context, WidgetRef ref, VideoFitMode current) {
+    final names = {
+      VideoFitMode.fit: '适应（黑边）',
+      VideoFitMode.fill: '填充（裁剪）',
+      VideoFitMode.stretch: '拉伸（变形）',
+    };
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('画面缩放模式'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: VideoFitMode.values.map((m) {
+            return RadioListTile<VideoFitMode>(
+              value: m,
+              groupValue: current,
+              title: Text(names[m] ?? ''),
+              onChanged: (v) {
+                if (v != null) {
+                  ref.read(videoFitModeProvider.notifier).setMode(v);
+                }
+                Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   void _showPlayerEnginePicker(
       BuildContext context, WidgetRef ref, PlayerEngine current) {
     showDialog(
