@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
+import 'package:vlc_player/vlc_player.dart' show VlcVideoFit;
 
 import '../../models/models.dart';
 import '../../providers/player_engine_provider.dart';
@@ -394,6 +395,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     // - auto：杜比 Vision/HDR10 内容自动用 MPV，其余用 ExoPlayer
     // - exo：强制 ExoPlayer
     final engineSettings = ref.watch(playerEngineSettingsProvider);
+    final fitMode = ref.watch(videoFitModeProvider);
+    // 根据用户设置的缩放模式映射到 BoxFit
+    final boxFit = switch (fitMode) {
+      VideoFitMode.fit => BoxFit.contain,
+      VideoFitMode.fill => BoxFit.cover,
+      VideoFitMode.stretch => BoxFit.fill,
+    };
     final useMpv = engineSettings.defaultEngine == PlayerEngine.mpv ||
         (engineSettings.defaultEngine == PlayerEngine.auto &&
             (widget.item.isDolbyVision || widget.item.isHdr));
@@ -417,6 +425,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         hwDec: engineSettings.mpvHwDec,
         cacheSizeMb: engineSettings.mpvCacheSizeMb,
         forceAssStyle: engineSettings.mpvForceAssStyle,
+        fit: boxFit,
         onPlayerReady: (player) {
           // 保存 MPV state 引用，供外部统一获取位置/时长
           // 通过 GlobalKey 在 build 后获取
@@ -442,6 +451,11 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,
+        fit: switch (fitMode) {
+          VideoFitMode.fit => VlcVideoFit.contain,
+          VideoFitMode.fill => VlcVideoFit.cover,
+          VideoFitMode.stretch => VlcVideoFit.fill,
+        },
       );
     }
 
@@ -485,7 +499,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         children: [
           RepaintBoundary(
             child: FittedBox(
-              fit: isLandscape ? BoxFit.contain : BoxFit.cover,
+              fit: boxFit,
               child: SizedBox(
                 width: hasValidSize ? videoSize.width : 1,
                 height: hasValidSize ? videoSize.height : 1,

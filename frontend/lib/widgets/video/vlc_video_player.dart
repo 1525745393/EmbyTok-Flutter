@@ -25,6 +25,7 @@ class VlcVideoPlayer extends StatefulWidget {
     this.onPositionChanged,
     this.onPlaybackEnded,
     this.onError,
+    this.fit = VlcVideoFit.contain,
   });
 
   final String url;
@@ -37,6 +38,9 @@ class VlcVideoPlayer extends StatefulWidget {
   final void Function(Duration position)? onPositionChanged;
   final VoidCallback? onPlaybackEnded;
   final void Function(Object error)? onError;
+
+  /// 画面缩放模式
+  final VlcVideoFit fit;
 
   @override
   State<VlcVideoPlayer> createState() => _VlcVideoPlayerState();
@@ -116,7 +120,7 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
     return VlcPlayer(
       controller: _controller!,
       backgroundColor: Colors.black,
-      fit: VlcVideoFit.contain,
+      fit: widget.fit,
     );
   }
 }

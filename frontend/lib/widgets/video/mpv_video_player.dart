@@ -28,6 +28,7 @@ class MpvVideoPlayer extends StatefulWidget {
     this.hwDec = MpvHwDec.auto,
     this.cacheSizeMb = 16,
     this.forceAssStyle = false,
+    this.fit = BoxFit.contain,
     this.onPlayerReady,
     this.onPositionChanged,
     this.onPlaybackEnded,
@@ -60,6 +61,9 @@ class MpvVideoPlayer extends StatefulWidget {
 
   /// 强制覆盖 ASS 字幕字体样式
   final bool forceAssStyle;
+
+  /// 画面缩放模式
+  final BoxFit fit;
 
   /// 播放器初始化完成回调
   final void Function(Player player)? onPlayerReady;
@@ -225,7 +229,7 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
     }
     return Video(
       controller: _controller!,
-      fit: BoxFit.contain,
+      fit: widget.fit,
       alignment: Alignment.center,
     );
   }
