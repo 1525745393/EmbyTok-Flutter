@@ -63,7 +63,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 错误信息统一使用 AppError，便于按类型展示和区分重试按钮
   AppError? _errorMessage;
   // MPV 模式下的播放器 state 引用（统一位置/时长/播放状态接口）
-  MpvVideoPlayerState? _mpvState;
+  dynamic _mpvState;
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionMs = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
