@@ -265,6 +265,11 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
         if (mounted && !_isDisposed) {
           // 修复：先 play 再 setState，确保 VideoPlayer 构建时 controller 已在播放
           _applyInitialVolume(c);
+          // 应用用户上次保存的播放速度
+          final savedSpeed = ref.read(playbackSpeedProvider);
+          if (savedSpeed != 1.0) {
+            c.setPlaybackSpeed(savedSpeed);
+          }
           _autoLoadDefaultSubtitle();
           // 续播位置 seek：在 play 之前执行，避免与 autoPlay 产生竞态条件
           await _seekToResumePosition();

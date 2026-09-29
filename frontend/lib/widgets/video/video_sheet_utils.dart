@@ -118,9 +118,16 @@ Future<void> showSpeedControlPanel(
                       controller?.setPlaybackSpeed(selectedSpeed);
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (context.mounted) {
-                          ProviderScope.containerOf(context, listen: false)
+                          final container = ProviderScope.containerOf(
+                              context,
+                              listen: false);
+                          container
                               .read(playbackRateProvider.notifier)
                               .state = selectedSpeed;
+                          // 持久化播放速度，新视频自动应用
+                          container
+                              .read(playbackSpeedProvider.notifier)
+                              .setSpeed(selectedSpeed);
                         }
                       });
                       Navigator.pop(context);
