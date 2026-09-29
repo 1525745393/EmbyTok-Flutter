@@ -18,6 +18,7 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"
+        android:extractNativeLibs="true"
         android:theme="@style/LaunchTheme">
         <service
             android:name="com.ryanheise.audioservice.AudioService"

@@ -18,7 +18,13 @@ import 'utils/logger.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // 初始化 MPV 引擎（多播放器 PRD 第三阶段）
-  MediaKit.ensureInitialized();
+  // 包 try-catch：原生库加载失败不阻塞 App 启动，回退到 ExoPlayer
+  try {
+    MediaKit.ensureInitialized();
+  } catch (e) {
+    // MPV 初始化失败不影响基本功能
+    debugPrint('MediaKit init failed: $e');
+  }
   await AppLogger.init();
   // 记录启动会话信息（App 版本、运行模式），导出日志时自动附带
   try {
