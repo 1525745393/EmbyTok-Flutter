@@ -1,3 +1,10 @@
+## [2.239.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.1...v2.239.2) (2026-09-29)
+
+
+### Bug Fixes
+
+* MPV模式非当前页自动暂停/静音，滑动不耗电 ([4b31bdc](https://github.com/1525745393/EmbyTok-Flutter/commit/4b31bdcb3f27ab63959c93248f36ba5e8b7b6641))
+
 ## [2.239.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.239.0...v2.239.1) (2026-09-29)
 
 
