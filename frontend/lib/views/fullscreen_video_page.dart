@@ -27,6 +27,7 @@ import '../utils/safe_insets.dart';
 import '../utils/system_gesture_exclusion.dart';
 import '../widgets/video/episode_list_panel.dart';
 import '../widgets/video/danmaku_overlay.dart';
+import '../widgets/video/playback_info_osd.dart';
 import '../widgets/video/subtitle_renderer.dart';
 import '../widgets/video/subtitle_selector.dart';
 import '../widgets/video/video_gesture_mixin.dart';
@@ -471,6 +472,14 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
                         ),
                       );
                     },
+                  ),
+
+                // 播放信息 OSD（PRD P1：多播放器引擎/编码/分辨率显示，左上角半透明）
+                if (isControllerReady && !hasError && playingItem != null)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: PlaybackInfoOsd(item: playingItem!),
                   ),
 
                 // 弹幕层（PRD P1：danmaku_overlay 接入横屏）
