@@ -200,26 +200,47 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
                         ),
                         const SizedBox(width: _kSpacingMedium),
                         Expanded(
-                          child: Slider(
-                            value: progress.clamp(0.0, 1.0),
-                            // 拖动开始：标记进入拖动状态，初始化预览
-                            onChangeStart: (_) {
-                              _sliderSeekHandler.startDrag();
-                              setState(() {});
-                            },
-                            // 拖动中：仅更新预览时间，不发起 seek（防抖核心）
-                            onChanged: (v) {
-                              setState(() {
-                                _sliderSeekHandler.updateDrag(v, duration);
-                              });
-                            },
-                            // 拖动结束：触发一次 seekTo 并清除预览
-                            onChangeEnd: (v) {
-                              _sliderSeekHandler.endDrag(v, duration);
-                              setState(() {});
-                            },
-                            activeColor: Theme.of(context).colorScheme.primary,
-                            inactiveColor: Colors.white24,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // PRD P1：缓冲进度指示（Slider 下层叠加灰色缓冲条）
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: duration.inMilliseconds > 0 &&
+                                          value.buffered.isNotEmpty
+                                      ? value.buffered.last.end.inMilliseconds /
+                                          duration.inMilliseconds
+                                      : 0.0,
+                                  minHeight: 2,
+                                  backgroundColor: Colors.white12,
+                                  valueColor:
+                                      const AlwaysStoppedAnimation(Colors.white38),
+                                ),
+                              ),
+                              Slider(
+                                value: progress.clamp(0.0, 1.0),
+                                // 拖动开始：标记进入拖动状态，初始化预览
+                                onChangeStart: (_) {
+                                  _sliderSeekHandler.startDrag();
+                                  setState(() {});
+                                },
+                                // 拖动中：仅更新预览时间，不发起 seek（防抖核心）
+                                onChanged: (v) {
+                                  setState(() {
+                                    _sliderSeekHandler.updateDrag(v, duration);
+                                  });
+                                },
+                                // 拖动结束：触发一次 seekTo 并清除预览
+                                onChangeEnd: (v) {
+                                  _sliderSeekHandler.endDrag(v, duration);
+                                  setState(() {});
+                                },
+                                activeColor:
+                                    Theme.of(context).colorScheme.primary,
+                                inactiveColor: Colors.transparent,
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: _kSpacingMedium),
