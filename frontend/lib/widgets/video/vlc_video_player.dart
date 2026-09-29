@@ -3,8 +3,6 @@
 // 基于 libvlc，网络流兼容性最好。作为 EXO/MPV 之外的兜底引擎，
 // 在设置页选择 VLC 后使用。适合播放某些 EXO/MPV 无法硬解的特殊编码流。
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:vlc_player/vlc_player.dart';
 
@@ -29,34 +27,15 @@ class VlcVideoPlayer extends StatefulWidget {
     this.onError,
   });
 
-  /// Emby 视频流 URL
   final String url;
-
-  /// HTTP 请求头（含 X-Emby-Token）
   final Map<String, String>? httpHeaders;
-
-  /// 自动播放
   final bool autoPlay;
-
-  /// 静音（非当前页时静音）
   final bool muted;
-
-  /// 是否为当前可见页
   final bool isCurrentPage;
-
-  /// 起始位置（续播）
   final Duration startPosition;
-
-  /// 播放器初始化完成回调
   final void Function(VlcPlayerController controller)? onPlayerReady;
-
-  /// 位置变化回调
   final void Function(Duration position)? onPositionChanged;
-
-  /// 播放结束回调
   final VoidCallback? onPlaybackEnded;
-
-  /// 错误回调
   final void Function(Object error)? onError;
 
   @override
@@ -65,7 +44,6 @@ class VlcVideoPlayer extends StatefulWidget {
 
 class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
   VlcPlayerController? _controller;
-  StreamSubscription? _positionSub;
   bool _isDisposed = false;
 
   @override
@@ -93,23 +71,21 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
 
       _controller = controller;
       widget.onPlayerReady?.call(controller);
-
-      // 位置回调
-      _positionSub = controller.positionStream.listen((pos) {
-        if (!_isDisposed) {
-          widget.onPositionChanged?.call(pos);
-        }
-      });
+      controller.addListener(_onValueChanged);
 
       if (!widget.isCurrentPage || widget.muted) {
         await controller.pause();
       }
-
       if (mounted) setState(() {});
     } catch (e, st) {
       logger.severe('VLC 初始化失败', error: e, stackTrace: st);
       widget.onError?.call(e);
     }
+  }
+
+  void _onValueChanged() {
+    if (_isDisposed || _controller == null) return;
+    widget.onPositionChanged?.call(_controller!.value.position);
   }
 
   @override
@@ -127,7 +103,7 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
   @override
   void dispose() {
     _isDisposed = true;
-    _positionSub?.cancel();
+    _controller?.removeListener(_onValueChanged);
     _controller?.dispose();
     super.dispose();
   }
@@ -135,14 +111,12 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     if (_controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
     return VlcPlayer(
       controller: _controller!,
       backgroundColor: Colors.black,
-      fit: BoxFit.contain,
+      fit: VlcVideoFit.contain,
     );
   }
 }

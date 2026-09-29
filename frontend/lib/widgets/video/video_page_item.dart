@@ -206,7 +206,7 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
     super.initState();
     _service = ref.read(embytokServiceProvider);
     WidgetsBinding.instance.addObserver(this);
-    _lastLifecycleState = WidgetsBinding.instance.lifecycleState();
+    _lastLifecycleState = WidgetsBinding.instance.lifecycleState;
 
     // 播放视频时保持屏幕常亮
     WakelockPlus.enable();
