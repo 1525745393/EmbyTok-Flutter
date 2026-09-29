@@ -1,3 +1,17 @@
+# [2.247.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.246.0...v2.247.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* connectivity_plus 5.0.2返回单个ConnectivityResult不是List ([0dbe409](https://github.com/1525745393/EmbyTok-Flutter/commit/0dbe409dfa1ca614101a26a0f9fc548b1816c668))
+* 修复connectivity返回值类型-checkConnectivity返回List ([52ea194](https://github.com/1525745393/EmbyTok-Flutter/commit/52ea1946fd8f7d1f98a07460018ac1042a742de4))
+
+
+### Features
+
+* 播放前预检-检测网络连接状态/无网络直接显示友好提示 ([a13817f](https://github.com/1525745393/EmbyTok-Flutter/commit/a13817f8202838aa90f6cf38fc6fd2605cd7ed67))
+* 断网自动恢复续播-播放出错5秒后自动重试最多2次 ([dbd6e99](https://github.com/1525745393/EmbyTok-Flutter/commit/dbd6e99b31dc66176d5e6447fe8b0029a472d47e))
+
 # [2.246.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.245.0...v2.246.0) (2026-09-29)
 
 
