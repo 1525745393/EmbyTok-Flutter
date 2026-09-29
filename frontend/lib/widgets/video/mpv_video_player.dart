@@ -23,6 +23,7 @@ class MpvVideoPlayer extends StatefulWidget {
     this.httpHeaders,
     this.autoPlay = true,
     this.muted = false,
+    this.isCurrentPage = true,
     this.startPosition = Duration.zero,
     this.hwDec = MpvHwDec.auto,
     this.cacheSizeMb = 16,
@@ -44,6 +45,9 @@ class MpvVideoPlayer extends StatefulWidget {
 
   /// 静音（非当前页时静音）
   final bool muted;
+
+  /// 是否为当前可见页（PageView 滑动时自动暂停/恢复）
+  final bool isCurrentPage;
 
   /// 起始位置（续播）
   final Duration startPosition;
@@ -159,7 +163,17 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   @override
   void didUpdateWidget(MpvVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.muted != widget.muted && _player != null) {
+    if (_player == null) return;
+    // PageView 滑动：非当前页暂停+静音，当前页恢复
+    if (oldWidget.isCurrentPage != widget.isCurrentPage) {
+      if (widget.isCurrentPage) {
+        _player!.play();
+        _player!.setVolume(widget.muted ? 0 : 100);
+      } else {
+        _player!.pause();
+        _player!.setVolume(0);
+      }
+    } else if (oldWidget.muted != widget.muted) {
       _player!.setVolume(widget.muted ? 0 : 100);
     }
   }

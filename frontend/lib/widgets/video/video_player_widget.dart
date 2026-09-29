@@ -381,6 +381,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
             : const {'Accept': 'video/*'},
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
+        isCurrentPage: widget.isCurrentPage,
         hwDec: engineSettings.mpvHwDec,
         cacheSizeMb: engineSettings.mpvCacheSizeMb,
         forceAssStyle: engineSettings.mpvForceAssStyle,
