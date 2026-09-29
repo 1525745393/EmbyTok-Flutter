@@ -315,7 +315,7 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
     );
   }
 
-  Widget _buildSettingsPanel(VideoPlayerController controller) {
+  Widget _buildSettingsPanel(VideoPlayerController controller, MediaItem? playingItem) {
     // 沉浸式下 SafeArea 失效（padding 被置 0），改用 SafeInsets 避让物理刘海
     final safeInsets = SafeInsets.of(context);
     return Positioned(
@@ -336,7 +336,7 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
             children: [
               _buildSettingsTabBar(),
               const Divider(color: Colors.white24, height: 1),
-              _buildSettingsContent(controller),
+              _buildSettingsContent(controller, playingItem),
             ],
           ),
         ),
@@ -373,45 +373,90 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
     );
   }
 
-  Widget _buildSettingsContent(VideoPlayerController controller) {
+  Widget _buildSettingsContent(
+      VideoPlayerController controller, MediaItem? playingItem) {
     switch (_settingsTab) {
       case _SettingsTab.speed:
         return _buildSpeedList(controller);
       case _SettingsTab.ratio:
         return _buildRatioList();
       case _SettingsTab.subtitle:
-        return _buildSubtitleList(controller);
+        return _buildSubtitleList(playingItem);
       case _SettingsTab.audio:
-        return _buildAudioTrackList(controller);
+        return _buildAudioTrackList(playingItem);
       case _SettingsTab.quality:
         return _buildQualityList();
     }
   }
 
-  /// 字幕列表（PRD P1：复用竖屏字幕选择能力，横屏接入）
-  Widget _buildSubtitleList(VideoPlayerController controller) {
-    // TODO: 接入 subtitle_selector.dart 的轨道列表，当前先显示占位
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: Text('字幕轨道（接入中）', style: TextStyle(color: Colors.white70)),
+  /// 字幕列表（PRD P1：横屏设置面板内嵌字幕轨道选择）
+  Widget _buildSubtitleList(MediaItem? playingItem) {
+    final tracks = playingItem?.subtitleTracks ?? [];
+    final selectedId = ref.watch(selectedSubtitleProvider);
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('本片无字幕轨道', style: TextStyle(color: Colors.white54)),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 关闭字幕选项
+        _SettingsListItem(
+          label: '关闭字幕',
+          selected: selectedId == null,
+          onTap: () {
+            ref.read(subtitleSettingsProvider.notifier).setLanguage('');
+            ref.read(selectedSubtitleProvider.notifier).state = null;
+            _startHideTimer();
+          },
+        ),
+        ...tracks.map((t) => _SettingsListItem(
+              label: t.displayName,
+              selected: t.id == selectedId,
+              onTap: () {
+                if (t.language != 'local') {
+                  ref
+                      .read(subtitleSettingsProvider.notifier)
+                      .setLanguage(t.language);
+                }
+                ref.read(selectedSubtitleProvider.notifier).state = t.id;
+                _startHideTimer();
+              },
+            )),
+      ],
     );
   }
 
-  /// 音轨列表（PRD P1：复用竖屏 audio_track_selector.dart，横屏接入）
-  Widget _buildAudioTrackList(VideoPlayerController controller) {
-    // TODO: 接入 audio_track_selector.dart 的轨道列表
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: Text('音轨轨道（接入中）', style: TextStyle(color: Colors.white70)),
+  /// 音轨列表（PRD P1：横屏设置面板内嵌音轨选择）
+  Widget _buildAudioTrackList(MediaItem? playingItem) {
+    final tracks = playingItem?.audioTracks ?? [];
+    if (tracks.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('本片无多音轨', style: TextStyle(color: Colors.white54)),
+      );
+    }
+    // TODO: 接入 controller.setAudioTrack 实际切换（EXO/MPV/VLC 接口待补）
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: tracks
+          .map((t) => _SettingsListItem(
+                label: t.displayTitle ?? t.language ?? '音轨 ${t.index}',
+                selected: t.isDefault,
+                onTap: () => _startHideTimer(),
+              ))
+          .toList(),
     );
   }
 
-  /// 清晰度列表（PRD P1：复用竖屏 quality_button.dart，横屏接入）
+  /// 清晰度列表（PRD P1：横屏设置面板内嵌码率切换）
   Widget _buildQualityList() {
-    // TODO: 接入 quality_button.dart 的码率切换
+    // TODO: 接入 quality_button.dart 的码率切换逻辑
     return const Padding(
       padding: EdgeInsets.all(16),
-      child: Text('清晰度（自动 / 接入中）', style: TextStyle(color: Colors.white70)),
+      child: Text('自动（清晰度切换接入中）', style: TextStyle(color: Colors.white70)),
     );
   }
 

@@ -520,7 +520,7 @@ class _FullscreenVideoPageState extends ConsumerState<FullscreenVideoPage>
             hasValidSize &&
             controller != null &&
             !_isScreenLocked)
-          _buildSettingsPanel(controller),
+          _buildSettingsPanel(controller, playingItem),
 
         // 锁屏 UI
         if (_isScreenLocked) _buildLockUI(),
