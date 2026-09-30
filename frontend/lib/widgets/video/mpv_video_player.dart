@@ -178,10 +178,12 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
       // 静音
       await _player!.setVolume(widget.muted ? 0.0 : 1.0);
 
-      // 加载外挂字幕（本地模式 P3）
+      // 加载外挂字幕（本地模式 P3）：media_kit 用 setSubtitleTrack(uri) 加载
       for (final subPath in widget.externalSubtitlePaths) {
         try {
-          await _player!.setProperty('sub-file', subPath);
+          await _player!.setSubtitleTrack(SubtitleTrack.uri(subPath));
+          // 只加载第一个外挂字幕，避免覆盖前一个
+          break;
         } catch (e) {
           AppLogger.debug('MPV 加载外挂字幕失败',
               data: {'path': subPath, 'error': e.toString()});
