@@ -12,6 +12,7 @@ import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
 import 'local_player_page.dart';
+import 'tmdb_search_page.dart';
 
 class LocalVideoView extends ConsumerStatefulWidget {
   const LocalVideoView({super.key});
@@ -333,7 +334,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               _playVideo(items[i]);
             }
           },
-          onLongPress: () => notifier.enterSelecting(),
+          onLongPress: () {
+            if (state.selecting) {
+              notifier.enterSelecting();
+            } else {
+              _showLongPressMenu(items[i]);
+            }
+          },
           onFavoriteToggle: () => notifier.toggleFavorite(items[i].pathHash),
         ),
       ),
@@ -366,6 +373,50 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         ),
       ),
     );
+  }
+
+  /// 长按菜单：手动匹配 TMDB（P1）
+  Future<void> _showLongPressMenu(LocalVideoItem item) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.search),
+              title: const Text('手动匹配 TMDB 元数据'),
+              subtitle: Text(item.name, maxLines: 1),
+              onTap: () => Navigator.pop(context, 'scrape'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_box),
+              title: const Text('多选模式'),
+              onTap: () => Navigator.pop(context, 'select'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'scrape') {
+      if (!mounted) return;
+      final done = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TmdbSearchPage(
+            initialQuery: item.name,
+            pathHash: item.pathHash,
+            filename: item.name,
+          ),
+        ),
+      );
+      if (done == true && mounted) {
+        // 重新加载缓存
+        ref.read(localVideoProvider.notifier).refresh();
+      }
+    } else if (action == 'select') {
+      ref.read(localVideoProvider.notifier).enterSelecting();
+    }
   }
 
   void _playVideo(LocalVideoItem item) {
