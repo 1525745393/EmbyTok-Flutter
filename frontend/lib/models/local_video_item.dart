@@ -37,6 +37,9 @@ class LocalVideoItem {
   /// photo_manager assetId（系统媒体库资产删除用；App 目录文件为 null）
   final String? assetId;
 
+  /// 同目录下同名字幕文件绝对路径列表（.srt/.ass/.vtt）
+  final List<String> subtitlePaths;
+
   const LocalVideoItem({
     required this.id,
     required this.name,
@@ -50,6 +53,7 @@ class LocalVideoItem {
     required this.isAppDirFile,
     this.relativePath,
     this.assetId,
+    this.subtitlePaths = const [],
   });
 
   /// 路径哈希 key（用于续播 SharedPreferences key）
@@ -88,6 +92,7 @@ class LocalVideoItem {
         'modifiedAt': modifiedAt.millisecondsSinceEpoch,
         'isAppDirFile': isAppDirFile,
         'assetId': assetId,
+        'subtitlePaths': subtitlePaths,
       };
 
   factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
@@ -104,5 +109,6 @@ class LocalVideoItem {
             json['modifiedAt'] as int? ?? 0),
         isAppDirFile: json['isAppDirFile'] as bool? ?? false,
         assetId: json['assetId'] as String?,
+        subtitlePaths: (json['subtitlePaths'] as List?)?.cast<String>() ?? const [],
       );
 }

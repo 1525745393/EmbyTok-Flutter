@@ -19,6 +19,9 @@ class LocalVideoService {
     '.3gp', '.wmv', '.m4v',
   };
 
+  /// 已声明的字幕扩展名
+  static const _subtitleExt = {'.srt', '.ass', '.vtt'};
+
   /// 请求媒体权限（Android 13+ photo_manager 自动分版本）
   /// 返回授权状态；用户拒绝后调用方引导去设置
   static Future<PermissionState> requestPermission() =>
@@ -86,9 +89,26 @@ class LocalVideoService {
           try {
             final stat = entity.statSync();
             final hash = md5.convert(utf8.encode(entity.path)).toString();
+            // 扫描同目录下同名字幕文件（.srt/.ass/.vtt）
+            final subtitlePaths = <String>[];
+            final dirName = entity.parent.path;
+            final baseName = entity.path.split('/').last.replaceAll(ext, '');
+            try {
+              final dirEntities = Directory(dirName).listSync();
+              for (final e in dirEntities) {
+                if (e is! File) continue;
+                final se = _ext(e.path);
+                if (!_subtitleExt.contains(se)) continue;
+                final sBase = e.path.split('/').last.replaceAll(se, '');
+                // 匹配 "视频名" 或 "视频名.zh" / "视频名.en" 等
+                if (sBase == baseName || sBase.startsWith('$baseName.')) {
+                  subtitlePaths.add(e.path);
+                }
+              }
+            } catch (_) {}
             result.add(LocalVideoItem(
               id: 'app_$hash',
-              name: entity.path.split('/').last.replaceAll(ext, ''),
+              name: baseName,
               path: entity.path,
               sizeBytes: stat.size,
               duration: Duration.zero, // App 目录文件时长需 MediaMetadataRetriever，懒取
@@ -97,6 +117,7 @@ class LocalVideoService {
               mimeType: 'video/$ext',
               modifiedAt: stat.modified,
               isAppDirFile: true,
+              subtitlePaths: subtitlePaths,
             ));
           } catch (_) {
             // 单个文件读取失败跳过
