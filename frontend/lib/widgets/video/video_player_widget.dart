@@ -59,7 +59,8 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   ConsumerState<VideoPlayerWidget> createState() => VideoPlayerWidgetState();
 }
 
-class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
+class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
+    implements PlayerControlHandle {
   VideoPlayerController? _controller;
   bool _initialized = false;
   bool _hasError = false;
@@ -68,8 +69,12 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   // 自动降级：记录当前是否已降级到备用引擎
   // MPV 失败 → 自动切 EXO；EXO 失败 → 自动切 VLC；VLC 失败 → 报错
   PlayerEngine? _fallbackEngine;
-  // MPV 模式下的播放器 state 引用（统一位置/时长/播放状态接口）
-  dynamic _mpvState;
+  // MPV 公开 State 的 GlobalKey（统一控制通道：seek/setRate/setVolume）
+  final GlobalKey<MpvVideoPlayerState> _mpvKey =
+      GlobalKey<MpvVideoPlayerState>();
+  // VLC 公开 State 的 GlobalKey（统一控制通道）
+  final GlobalKey<VlcVideoPlayerState> _vlcKey =
+      GlobalKey<VlcVideoPlayerState>();
   // 使用 ValueNotifier 减少字幕重绘频率（只在跨秒时更新）
   final ValueNotifier<int> _positionMs = ValueNotifier<int>(0);
   // 异步加载的字幕 Cues（从 Emby 服务器获取）
@@ -169,6 +174,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (_canPlayVideo) {
       _initVideo();
     }
+    // 注册统一控制句柄：横屏覆盖层通过 currentPlayerControlProvider
+    // 调用 seekTo/setRate/setVolume，三引擎同步生效
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isDisposed && mounted) {
+        ref.read(currentPlayerControlProvider.notifier).state = this;
+      }
+    });
   }
 
   // 跟踪当前 widget.item.id，用于检测 item 切换
@@ -297,40 +309,50 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
   //   2. 检查 mounted 避免在已释放的 widget 上 setState
   //   3. 控制器引用仅在本类内部使用，外部通过 onControllerReady 获取
 
-  // 外部控制 API：播放
+  // 外部控制 API：播放（三引擎同步）
+  @override
   void play() {
     try {
       _controller?.play();
+      _mpvKey.currentState?.play();
+      _vlcKey.currentState?.play();
     } catch (e) {
       AppLogger.debug('play error', data: {'error': e.toString()});
     }
   }
 
-  // 外部控制 API：暂停
+  // 外部控制 API：暂停（三引擎同步）
+  @override
   void pause() {
     try {
       _controller?.pause();
+      _mpvKey.currentState?.pause();
+      _vlcKey.currentState?.pause();
     } catch (e) {
       AppLogger.debug('pause error', data: {'error': e.toString()});
     }
   }
 
-  // 外部控制 API：跳转（内部由手势层调用）
+  // 外部控制 API：跳转（三引擎同步）
+  @override
   Future<void> seekTo(Duration position) async {
     try {
       await _controller?.seekTo(position);
+      _mpvKey.currentState?.seekTo(position);
+      _vlcKey.currentState?.seekTo(position);
     } catch (e) {
       AppLogger.debug('seekTo error', data: {'error': e.toString()});
     }
   }
 
-  /// 统一获取当前播放位置（ExoPlayer 或 MPV 均支持）
+  /// 统一获取当前播放位置（ExoPlayer 或 MPV/VLC 均支持）
   Duration get currentPosition {
     final c = _controller;
     if (c != null && c.value.isInitialized) {
       return c.value.position;
     }
-    return _mpvState?.position ?? Duration.zero;
+    // MPV/VLC 分支：onPositionChanged 回调写入 _positionMs
+    return Duration(milliseconds: _positionMs.value);
   }
 
   /// 统一获取视频总时长
@@ -339,7 +361,10 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (c != null && c.value.isInitialized) {
       return c.value.duration;
     }
-    return _mpvState?.duration ?? Duration.zero;
+    // MPV 分支：从 GlobalKey 读取
+    final mpvDur = _mpvKey.currentState?.duration;
+    if (mpvDur != null && mpvDur > Duration.zero) return mpvDur;
+    return Duration.zero;
   }
 
   /// 统一获取是否正在播放
@@ -348,24 +373,44 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
     if (c != null && c.value.isInitialized) {
       return c.value.isPlaying;
     }
-    return _mpvState?.isPlaying ?? false;
+    return _mpvKey.currentState?.isPlaying ??
+        _vlcKey.currentState != null;
   }
 
   // 从 Emby 服务器同步的续播位置 seek 到对应进度
   // 在 _initVideo() 中 play 之前调用，避免竞态条件
 
-  // 外部控制 API：设置倍速
+  // 外部控制 API：设置倍速（三引擎同步）
+  @override
   Future<void> setRate(double rate) async {
     try {
       await _controller?.setPlaybackSpeed(rate);
+      _mpvKey.currentState?.setRate(rate);
+      _vlcKey.currentState?.setSpeed(rate);
     } catch (e) {
       AppLogger.debug('setRate error', data: {'error': e.toString()});
+    }
+  }
+
+  // 外部控制 API：设置音量 0.0 ~ 1.0（三引擎同步）
+  @override
+  void setVolume(double value) {
+    try {
+      _controller?.setVolume(value);
+      _mpvKey.currentState?.setVolume(value);
+      _vlcKey.currentState?.setVolume(value);
+    } catch (e) {
+      AppLogger.debug('setVolume error', data: {'error': e.toString()});
     }
   }
 
   @override
   void dispose() {
     _isDisposed = true;
+    // 注销统一控制句柄（避免横屏持有已 dispose 的 State）
+    try {
+      ref.read(currentPlayerControlProvider.notifier).state = null;
+    } catch (_) {}
     _backgroundReleaseTimer?.cancel();
     _positionMs.dispose();
     _subtitleSubscription?.close();
@@ -462,7 +507,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         return _buildThumbnailPlaceholder(context);
       }
       return wrapFixedRatio(MpvVideoPlayer(
-        key: ValueKey('mpv_${widget.item.id}'),
+        key: _mpvKey,
         url: mpvUrl,
         httpHeaders: widget.token != null
             ? {
@@ -492,7 +537,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget> {
         return _buildThumbnailPlaceholder(context);
       }
       return wrapFixedRatio(VlcVideoPlayer(
-        key: ValueKey('vlc_${widget.item.id}'),
+        key: _vlcKey,
         url: vlcUrl,
         httpHeaders: widget.token != null
             ? {

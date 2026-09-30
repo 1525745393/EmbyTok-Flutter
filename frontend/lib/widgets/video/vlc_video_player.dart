@@ -43,10 +43,11 @@ class VlcVideoPlayer extends StatefulWidget {
   final VlcVideoFit fit;
 
   @override
-  State<VlcVideoPlayer> createState() => _VlcVideoPlayerState();
+  State<VlcVideoPlayer> createState() => VlcVideoPlayerState();
 }
 
-class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
+/// VLC 播放器公开 State，供 VideoPlayerWidget 通过 GlobalKey 统一控制
+class VlcVideoPlayerState extends State<VlcVideoPlayer> {
   VlcPlayerController? _controller;
   bool _isDisposed = false;
 
@@ -108,6 +109,16 @@ class _VlcVideoPlayerState extends State<VlcVideoPlayer> {
       _controller?.seekTo(position);
     } catch (e) {
       AppLogger.debug('VLC seekTo 失败', data: {'error': e.toString()});
+    }
+  }
+
+  /// 设置音量（0.0 ~ 1.0，VLC 原生音量范围 0 ~ 100）
+  void setVolume(double value) {
+    try {
+      final v = (value.clamp(0.0, 1.0) * 100).round();
+      _controller?.setVolume(v);
+    } catch (e) {
+      AppLogger.debug('VLC setVolume 失败', data: {'error': e.toString()});
     }
   }
 

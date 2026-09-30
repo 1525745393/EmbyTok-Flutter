@@ -78,6 +78,21 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   @override
   bool get handleLeftVerticalDrag => true;
 
+  // 统一控制通道：横屏手势 seek/音量走 currentPlayerControlProvider，
+  // 确保 MPV/VLC 引擎下手势生效（原 videoController 是隐藏的 EXO 实例）
+  @override
+  void onSeekTo(Duration target) {
+    ref.read(currentPlayerControlProvider)?.seekTo(target);
+    // fallback：直接调 EXO controller
+    widget.controller?.seekTo(target);
+  }
+
+  @override
+  void onSetVolume(double value) {
+    ref.read(currentPlayerControlProvider)?.setVolume(value);
+    widget.controller?.setVolume(value);
+  }
+
   @override
   void onLeftVerticalDragUpdate(double delta) {
     // 左侧垂直拖动：调节亮度

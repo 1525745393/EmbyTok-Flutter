@@ -519,6 +519,11 @@ extension _FullscreenBuilders on _FullscreenVideoPageState {
               '${rate.toStringAsFixed(rate.truncateToDouble() == rate ? 0 : 2)}x',
           selected: selected,
           onTap: () {
+            // 统一控制通道：三引擎（EXO/MPV/VLC）同步倍速
+            // 横屏为覆盖层，controller 参数是隐藏的 EXO 实例，
+            // 必须走 currentPlayerControlProvider 才能作用于 MPV/VLC
+            ref.read(currentPlayerControlProvider)?.setRate(rate);
+            // 兼容：直接调 EXO controller 作为 fallback
             controller.setPlaybackSpeed(rate);
             ref.read(playbackRateProvider.notifier).state = rate;
             _startHideTimer();

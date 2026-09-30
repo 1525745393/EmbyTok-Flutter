@@ -78,10 +78,11 @@ class MpvVideoPlayer extends StatefulWidget {
   final void Function(String message)? onError;
 
   @override
-  State<MpvVideoPlayer> createState() => _MpvVideoPlayerState();
+  State<MpvVideoPlayer> createState() => MpvVideoPlayerState();
 }
 
-class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
+/// MPV 播放器公开 State，供 VideoPlayerWidget 通过 GlobalKey 统一控制
+class MpvVideoPlayerState extends State<MpvVideoPlayer> {
   Player? _player;
   VideoController? _controller;
   bool _initialized = false;
@@ -104,6 +105,16 @@ class _MpvVideoPlayerState extends State<MpvVideoPlayer> {
   /// 外部调用：设置静音
   void setMuted(bool muted) =>
       _player?.setVolume(muted ? 0 : 100);
+
+  /// 外部调用：设置音量（0.0 ~ 1.0，映射到 0 ~ 100）
+  void setVolume(double value) {
+    try {
+      final v = (value.clamp(0.0, 1.0) * 100).round();
+      _player?.setVolume(v);
+    } catch (e) {
+      AppLogger.debug('MPV setVolume 失败', data: {'error': e.toString()});
+    }
+  }
 
   /// 外部调用：获取当前播放位置
   Duration get position => _player?.state.position ?? Duration.zero;

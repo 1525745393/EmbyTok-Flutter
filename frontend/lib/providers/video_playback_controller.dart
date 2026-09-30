@@ -224,3 +224,34 @@ final isAutoPlayProvider = StateNotifierProvider<IsAutoPlayNotifier, bool>(
 /// - VideoPageItem 处理完成后立即 reset 为 null（避免重复触发）
 /// - 不传 controller 引用，避免 widget 重建时引用错位
 final videoRetryRequestProvider = StateProvider<String?>((ref) => null);
+
+/// 统一播放器控制句柄抽象接口
+///
+/// 横屏覆盖层通过 [currentPlayerControlProvider] 拿到当前正在渲染的
+/// [VideoPlayerWidgetState]，调用此接口的方法可同时作用于 EXO / MPV / VLC
+/// 三个引擎（PRD：横屏控制链路统一通道）。
+abstract class PlayerControlHandle {
+  /// 跳转到指定位置（三引擎同步）
+  Future<void> seekTo(Duration position);
+
+  /// 设置播放倍速（三引擎同步）
+  Future<void> setRate(double rate);
+
+  /// 设置音量 0.0 ~ 1.0
+  void setVolume(double value);
+
+  /// 播放
+  void play();
+
+  /// 暂停
+  void pause();
+}
+
+/// 当前正在渲染的 [VideoPlayerWidgetState] 控制句柄
+///
+/// - VideoPlayerWidgetState.initState 注册
+/// - VideoPlayerWidgetState.dispose 注销
+/// - 横屏设置面板 / 手势层通过此 provider 调用统一控制 API，
+///   避免拿到隐藏的 EXO controller 而导致 MPV/VLC 下"无响应"
+final currentPlayerControlProvider =
+    StateProvider<PlayerControlHandle?>((ref) => null);
