@@ -146,6 +146,26 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   Text('已选 ${state.selected.length} 项',
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const Spacer(),
+                  // 批量收藏（P2 #12）
+                  TextButton(
+                    onPressed: () async {
+                      // 找到选中项对应的 pathHash
+                      final selectedItems = state.items
+                          .where((e) => state.selected.contains(e.id))
+                          .toList();
+                      for (final it in selectedItems) {
+                        await notifier.toggleFavorite(it.pathHash);
+                      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  '已收藏 ${selectedItems.length} 个视频')),
+                        );
+                      }
+                    },
+                    child: const Text('收藏'),
+                  ),
                   TextButton(
                     onPressed: () async {
                       // 删除确认对话框（P1：避免误删）
@@ -704,6 +724,26 @@ class _GridCardState extends State<_GridCard> {
                       color: Colors.amber,
                       fontSize: 10,
                       fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          // 季集角标右上（P2 #10）
+          if (widget.scraped?.type == 'tv' &&
+              widget.scraped?.season != null &&
+              widget.scraped?.episode != null)
+            Positioned(
+              top: 24,
+              right: 4,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'S${widget.scraped!.season}E${widget.scraped!.episode}',
+                  style: const TextStyle(color: Colors.white, fontSize: 9),
                 ),
               ),
             ),
