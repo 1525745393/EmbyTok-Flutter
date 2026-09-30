@@ -289,32 +289,6 @@ extension _SettingsBuilders2 on SettingsView {
     );
   }
 
-  Widget _buildFeedbackTile(BuildContext context, WidgetRef ref) {
-    return settingsTapTile(
-      icon: Icons.feedback_outlined,
-      iconColor: Colors.orange,
-      title: '意见反馈',
-      subtitle: '通过邮件反馈问题或建议',
-      onTap: () async {
-        final uri = Uri(
-          scheme: 'mailto',
-          path: 'support@embytok.app',
-          queryParameters: {'subject': 'EmbyTok 意见反馈'},
-        );
-        try {
-          await launchUrl(uri);
-        } catch (_) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('未找到邮件应用')),
-            );
-          }
-        }
-      },
-      helpText: '提交使用反馈或问题报告。\n\n建议附上：设备型号、App 版本、操作步骤、是否可复现，以及导出日志内容，便于快速定位。',
-    );
-  }
-
   Widget _buildVersionTile(BuildContext context, WidgetRef ref) {
     final versionAsync = ref.watch(appVersionProvider);
     final subtitle = versionAsync.when(

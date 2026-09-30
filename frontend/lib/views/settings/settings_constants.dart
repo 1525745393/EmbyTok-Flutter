@@ -93,18 +93,6 @@ const double _kDividerIndent = 56.0;
 
 // ===== 设置项组件常量 =====
 
-/// 设置项图标容器尺寸
-const double _kTileIconContainerSize = 36.0;
-
-/// 设置项图标容器圆角
-const double _kTileIconContainerRadius = 8.0;
-
-/// 设置项图标容器背景透明度
-const double _kTileIconContainerBgAlpha = 0.12;
-
-/// 设置项图标尺寸
-const double _kTileIconSize = 20.0;
-
 /// 设置项副标题透明度
 const double _kTileSubtitleAlpha = 0.8;
 
