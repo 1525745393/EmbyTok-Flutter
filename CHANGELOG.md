@@ -1,3 +1,10 @@
+# [2.263.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.262.0...v2.263.0) (2026-09-30)
+
+
+### Features
+
+* 本地UI优化第二批 - 继续观看缩略图+统计+三点菜单+评分排序 ([cfde848](https://github.com/1525745393/EmbyTok-Flutter/commit/cfde84828d64df7d9fe276f3b299e3804994ad22)), closes [#1](https://github.com/1525745393/EmbyTok-Flutter/issues/1) [#5](https://github.com/1525745393/EmbyTok-Flutter/issues/5) [#8](https://github.com/1525745393/EmbyTok-Flutter/issues/8) [#11](https://github.com/1525745393/EmbyTok-Flutter/issues/11)
+
 # [2.262.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.261.0...v2.262.0) (2026-09-30)
 
 
