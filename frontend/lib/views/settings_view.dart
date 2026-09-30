@@ -116,64 +116,22 @@ class SettingsView extends ConsumerWidget {
                 _buildFeedExcludePlayedTile(context, ref),
               ],
             ),
-          // 规则筛选（保留主页面折叠面板：推荐/关注/发现分区）
+          // 规则筛选（二级页面：推荐/关注/发现 三个 Tab）
           if (!isMusicMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '规则筛选',
               Icons.rule_outlined,
               Colors.pink,
-              [
-                _buildRuleScopeHint(context, ref),
-                // 推荐页（默认展开）
-                _RuleSection(
-                  icon: Icons.recommend_outlined,
-                  title: '推荐页',
-                  initiallyExpanded: true,
-                  childrenBuilder: () => [
-                    _buildRecommendLibraryTile(context, ref),
-                    _buildRecommendMinRatingTile(context, ref),
-                    _buildRecommendExcludePlayedTile(context, ref),
-                    _buildRecommendMinRuntimeTile(context, ref),
-                    _buildRecommendIncludeTypesTile(context, ref),
-                    // 高级选项折叠区：完播率门控、时间衰减、反疲劳、用户评分
-                    _RecommendAdvancedTile(
-                      advancedTilesBuilder: () => [
-                        _buildRecommendUseWatchHistoryTile(context, ref),
-                        _buildRecommendHalfLifeDaysTile(context, ref),
-                        _buildRecommendAntiFatigueEnabledTile(context, ref),
-                        _buildRecommendAntiFatigueDaysTile(context, ref),
-                        _buildRecommendUserRatingEnabledTile(context, ref),
-                        _buildRecommendUserRatingMinTile(context, ref),
-                      ],
-                    ),
-                    // 推荐标签数据源映射（用户可自定义每个标签绑定的数据源）
-                    const _RecommendTagMappingTile(),
-                  ],
-                ),
-                // 关注页
-                _RuleSection(
-                  icon: Icons.person_pin_outlined,
-                  title: '关注页',
-                  childrenBuilder: () => [
-                    _buildRecommendNextUpSeriesCountTile(context, ref),
-                    _buildFollowActorVideoCountTile(context, ref),
-                    _buildFollowOnlyUnwatchedTile(context, ref),
-                    _buildFollowMaxActorsTile(context, ref),
-                    _buildSharedRuleHint(context, ref),
-                  ],
-                ),
-                // 发现页（默认展开，用户可分别设置类型/标签/合集对接 Emby 元数据）
-                _RuleSection(
-                  icon: Icons.explore_outlined,
-                  title: '发现页',
-                  initiallyExpanded: true,
-                  childrenBuilder: () => [
-                    _buildDiscoverGenresTile(context, ref),
-                    _buildDiscoverTagsTile(context, ref),
-                    _buildDiscoverCollectionsTile(context, ref),
-                  ],
+              '推荐/关注/发现页的数据源、类型、评分等规则',
+              (context, ref) => [
+                ListTile(
+                  leading: const Icon(Icons.tune_outlined, color: Colors.pink),
+                  title: const Text('规则配置'),
+                  subtitle: const Text('推荐页 / 关注页 / 发现页的筛选规则'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openRulesPage(context),
                 ),
               ],
             ),
@@ -410,6 +368,83 @@ class SettingsView extends ConsumerWidget {
           _buildLogoutButton(context, ref),
           const SizedBox(height: _kSpacingXXXXLarge),
         ],
+      ),
+    );
+  }
+
+  /// 打开规则筛选二级页面（推荐/关注/发现 三个 Tab）
+  void _openRulesPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('规则筛选'),
+              bottom: const TabBar(
+                tabs: [
+                  Tab(icon: Icon(Icons.recommend_outlined), text: '推荐页'),
+                  Tab(icon: Icon(Icons.person_pin_outlined), text: '关注页'),
+                  Tab(icon: Icon(Icons.explore_outlined), text: '发现页'),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                // 推荐页
+                Consumer(
+                  builder: (context, ref, _) => ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      _buildRuleScopeHint(context, ref),
+                      _buildRecommendLibraryTile(context, ref),
+                      _buildRecommendMinRatingTile(context, ref),
+                      _buildRecommendExcludePlayedTile(context, ref),
+                      _buildRecommendMinRuntimeTile(context, ref),
+                      _buildRecommendIncludeTypesTile(context, ref),
+                      _RecommendAdvancedTile(
+                        advancedTilesBuilder: () => [
+                          _buildRecommendUseWatchHistoryTile(context, ref),
+                          _buildRecommendHalfLifeDaysTile(context, ref),
+                          _buildRecommendAntiFatigueEnabledTile(context, ref),
+                          _buildRecommendAntiFatigueDaysTile(context, ref),
+                          _buildRecommendUserRatingEnabledTile(context, ref),
+                          _buildRecommendUserRatingMinTile(context, ref),
+                        ],
+                      ),
+                      const _RecommendTagMappingTile(),
+                    ],
+                  ),
+                ),
+                // 关注页
+                Consumer(
+                  builder: (context, ref, _) => ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      _buildRecommendNextUpSeriesCountTile(context, ref),
+                      _buildFollowActorVideoCountTile(context, ref),
+                      _buildFollowOnlyUnwatchedTile(context, ref),
+                      _buildFollowMaxActorsTile(context, ref),
+                      _buildSharedRuleHint(context, ref),
+                    ],
+                  ),
+                ),
+                // 发现页
+                Consumer(
+                  builder: (context, ref, _) => ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      _buildDiscoverGenresTile(context, ref),
+                      _buildDiscoverTagsTile(context, ref),
+                      _buildDiscoverCollectionsTile(context, ref),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
