@@ -45,6 +45,11 @@ void main() {
     await tester.pumpWidget(wrap());
     await tester.pumpAndSettle();
 
+    // 「重置设置」在"存储与缓存"二级页里，先点入口进入
+    await scrollToText(tester, '存储与缓存');
+    await tester.tap(find.text('存储与缓存'));
+    await tester.pumpAndSettle();
+
     // 定位「重置设置」设置项
     await scrollToText(tester, '重置设置');
     expect(find.text('重置设置'), findsWidgets);
