@@ -1,3 +1,10 @@
+# [2.255.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.254.0...v2.255.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P2 - 文件夹分组 ([6aa4a1d](https://github.com/1525745393/EmbyTok-Flutter/commit/6aa4a1dcda151466ef7d21710ae949dcadb3065d))
+
 # [2.254.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.253.0...v2.254.0) (2026-09-30)
 
 
