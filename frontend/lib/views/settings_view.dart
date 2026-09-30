@@ -57,7 +57,6 @@ part 'settings/settings_constants.dart';
 // 设置页面辅助组件（分离到单独文件）
 part 'settings/settings_widgets.dart';
 part 'settings/settings_search_sheet.dart';
-part 'settings/settings_rule_section.dart';
 part 'settings/settings_recommend_advanced.dart';
 part 'settings/settings_about.dart';
 
