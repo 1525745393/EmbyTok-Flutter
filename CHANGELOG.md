@@ -1,3 +1,10 @@
+# [2.257.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.256.0...v2.257.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P3 - 本地收藏 ([eb2cd59](https://github.com/1525745393/EmbyTok-Flutter/commit/eb2cd59a82e6dded6d497845f8c1c180c970ceb6))
+
 # [2.256.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.255.0...v2.256.0) (2026-09-30)
 
 
