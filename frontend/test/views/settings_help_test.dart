@@ -86,8 +86,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 规则筛选已改为二级页面（推荐/关注/发现 3 Tab），先点入口进入
-    await scrollToText(tester, '规则配置');
-    await tester.tap(find.text('规则配置'));
+    await scrollToText(tester, '规则筛选');
+    await tester.tap(find.text('规则筛选'));
     await tester.pumpAndSettle();
 
     // 在"推荐页"Tab 里定位「排除已观看」开关项
