@@ -364,9 +364,14 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   }
 
   void _playVideo(LocalVideoItem item) {
+    final list = ref.read(localVideoProvider).filtered;
+    final idx = list.indexWhere((e) => e.id == item.id);
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => LocalPlayerPage(item: item),
+        builder: (_) => LocalPlayerPage(
+          items: list,
+          initialIndex: idx < 0 ? 0 : idx,
+        ),
       ),
     );
   }

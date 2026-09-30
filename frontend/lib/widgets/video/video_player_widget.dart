@@ -40,12 +40,15 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.isCurrentPage = true,
     this.isLocal = false,
     this.externalSubtitlePaths = const [],
+    this.onPlaybackEnded,
   });
   final MediaItem item;
   // 本地模式标记：true=播放手机本地文件（file:///），跳过 Emby 认证头与 AudioStreamIndex 追加
   final bool isLocal;
   // 本地模式：外挂字幕文件绝对路径列表（P3）
   final List<String> externalSubtitlePaths;
+  // 播放结束回调（本地连播 P3）
+  final VoidCallback? onPlaybackEnded;
   // Emby 服务器认证信息（用于动态构造播放 URL）
   final String? embyServerUrl;
   final String? token;
@@ -545,6 +548,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
           _positionMs.value = pos.inMilliseconds;
         },
         onError: (msg) => retryInitialization(),
+        onPlaybackEnded: () {
+          widget.onPlaybackEnded?.call();
+        },
       ));
     }
 
