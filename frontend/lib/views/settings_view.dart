@@ -248,24 +248,7 @@ class SettingsView extends ConsumerWidget {
               if (!isMusicMode) _buildOrientationTile(context, ref),
             ],
           ),
-          // 存储与缓存设置
-          _buildSectionEntry(
-            context,
-            ref,
-            '存储与缓存',
-            Icons.storage_outlined,
-            Colors.grey,
-            '缓存管理、日志、重置设置',
-            (context, ref) => [
-              _buildCacheTile(context, ref),
-              _buildCacheManagementTile(context, ref),
-              _buildSmartCacheTile(context, ref),
-              _buildResetSettingsTile(context, ref),
-              _buildExportLogsTile(context, ref),
-              _buildClearLogsTile(context, ref),
-            ],
-          ),
-          // 服务器与账户设置
+          // 服务器与账户设置（配置服务器是进入 App 的前提，放在靠前位置）
           _buildSectionEntry(
             context,
             ref,
@@ -285,6 +268,23 @@ class SettingsView extends ConsumerWidget {
                   context, ref, '账户', Icons.account_circle_outlined),
               _buildProfileTile(context, ref),
               _buildSelfSignedCertificateTile(context, ref),
+            ],
+          ),
+          // 存储与缓存设置
+          _buildSectionEntry(
+            context,
+            ref,
+            '存储与缓存',
+            Icons.storage_outlined,
+            Colors.grey,
+            '缓存管理、日志、重置设置',
+            (context, ref) => [
+              _buildCacheTile(context, ref),
+              _buildCacheManagementTile(context, ref),
+              _buildSmartCacheTile(context, ref),
+              _buildResetSettingsTile(context, ref),
+              _buildExportLogsTile(context, ref),
+              _buildClearLogsTile(context, ref),
             ],
           ),
           // 音乐库设置
