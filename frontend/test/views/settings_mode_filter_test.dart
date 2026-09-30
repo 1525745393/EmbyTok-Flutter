@@ -54,10 +54,14 @@ void main() {
     await tester.pumpWidget(wrap());
     await tester.pumpAndSettle();
 
+    // 设置页分组已重排：
+    // - 视频库/规则筛选(二级)/播放/字幕/音乐库 保留
+    // - "统计"已并入"通用工具"（不再独立分组）
+    // - "服务器"+"账户"合并为"服务器与账户"
     final found = await collectVisibleSections(
-        tester, ['视频库', '规则筛选', '播放', '字幕', '统计', '音乐库']);
+        tester, ['视频库', '规则筛选', '播放', '字幕', '音乐库']);
 
-    for (final section in ['视频库', '规则筛选', '播放', '字幕', '统计', '音乐库']) {
+    for (final section in ['视频库', '规则筛选', '播放', '字幕', '音乐库']) {
       expect(found, contains(section), reason: '视频模式应显示「$section」');
     }
   });
@@ -69,17 +73,17 @@ void main() {
     await tester.pumpAndSettle();
 
     final found = await collectVisibleSections(tester, [
-      '视频库', '规则筛选', '播放', '字幕', '统计', '视频方向',
-      '音乐库', '服务器', '存储', '外观', '主题', '关于',
+      '视频库', '规则筛选', '播放', '字幕', '视频方向',
+      '音乐库', '服务器与账户', '存储与缓存', '外观', '关于',
     ]);
 
     // 视频相关分组隐藏
-    for (final section in ['视频库', '规则筛选', '播放', '字幕', '统计', '视频方向']) {
+    for (final section in ['视频库', '规则筛选', '播放', '字幕', '视频方向']) {
       expect(found, isNot(contains(section)),
           reason: '音乐模式不应显示「$section」');
     }
     // 音乐库与通用分组保留
-    for (final section in ['音乐库', '服务器', '存储', '外观', '主题', '关于']) {
+    for (final section in ['音乐库', '服务器与账户', '存储与缓存', '外观', '关于']) {
       expect(found, contains(section), reason: '音乐模式应保留「$section」');
     }
   });
