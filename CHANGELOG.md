@@ -1,3 +1,10 @@
+# [2.260.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.259.0...v2.260.0) (2026-09-30)
+
+
+### Features
+
+* 刮削 P1 - 手动修正 TMDB 搜索选择页 ([170d1f9](https://github.com/1525745393/EmbyTok-Flutter/commit/170d1f9c36cf4a4022f5f83a5d2a1152bedc1eeb))
+
 # [2.259.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.258.0...v2.259.0) (2026-09-30)
 
 
