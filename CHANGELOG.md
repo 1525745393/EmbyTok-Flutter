@@ -1,3 +1,10 @@
+# [2.264.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.263.0...v2.264.0) (2026-09-30)
+
+
+### Features
+
+* 本地UI优化第三批 - 刮削进度条 ([0e3428f](https://github.com/1525745393/EmbyTok-Flutter/commit/0e3428f38f4073b2ed454f7a7a3de837882666e3)), closes [#4](https://github.com/1525745393/EmbyTok-Flutter/issues/4)
+
 # [2.263.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.262.0...v2.263.0) (2026-09-30)
 
 
