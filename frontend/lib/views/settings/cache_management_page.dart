@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../utils/logger.dart';
+import '../../services/scrape_service.dart';
 
 class CacheManagementPage extends StatefulWidget {
   const CacheManagementPage({super.key});
@@ -107,6 +108,19 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
     await _scanCache();
   }
 
+  /// 清除 TMDB 刮削元数据缓存（P2）
+  Future<void> _clearScrapeCache(BuildContext context) async {
+    try {
+      await ScrapeService.clearCache();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('刮削元数据缓存已清除')));
+      }
+    } catch (e) {
+      AppLogger.error('清除刮削缓存失败', error: e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final total = _imageCacheSize + _logSize;
@@ -141,6 +155,16 @@ class _CacheManagementPageState extends State<CacheManagementPage> {
                   trailing: TextButton(
                     onPressed: () => _clearLogs(context),
                     child: const Text('清理'),
+                  ),
+                ),
+                // 刮削元数据缓存（P2）
+                ListTile(
+                  leading: const Icon(Icons.cloud_download, color: Colors.purple),
+                  title: const Text('TMDB 刮削元数据'),
+                  subtitle: const Text('本地视频自动匹配的海报/简介/评分'),
+                  trailing: TextButton(
+                    onPressed: () => _clearScrapeCache(context),
+                    child: const Text('清除'),
                   ),
                 ),
                 const Divider(),
