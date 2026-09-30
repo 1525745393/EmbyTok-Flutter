@@ -1,3 +1,10 @@
+## [2.250.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.1...v2.250.2) (2026-09-30)
+
+
+### Bug Fixes
+
+* 设置测试适配二级页—重置设置在存储与缓存二级页内 ([c611577](https://github.com/1525745393/EmbyTok-Flutter/commit/c611577bdf97dd897b1813ac17755380cc5b9886))
+
 ## [2.250.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.0...v2.250.1) (2026-09-30)
 
 
