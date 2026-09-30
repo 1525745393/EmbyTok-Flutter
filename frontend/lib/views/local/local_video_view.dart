@@ -154,12 +154,73 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                         onRefresh: notifier.refresh,
                         hasPermission: state.permission.hasAccess,
                       )
-                    : state.viewMode == LocalVideoViewMode.grid
-                        ? _buildGrid(items, state, notifier)
-                        : _buildList(items, state, notifier),
+                    : Column(
+                        children: [
+                          // 最近观看横滑区块（P2）
+                          if (state.recentItems.isNotEmpty)
+                            _buildRecentRow(state.recentItems),
+                          Expanded(
+                            child: state.viewMode == LocalVideoViewMode.grid
+                                ? _buildGrid(items, state, notifier)
+                                : _buildList(items, state, notifier),
+                          ),
+                        ],
+                      ),
           ),
         ],
       ),
+    );
+  }
+
+  /// 最近观看横滑区块（P2）
+  Widget _buildRecentRow(List<LocalVideoItem> recent) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(12, 12, 12, 6),
+          child: Text('继续观看',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        ),
+        SizedBox(
+          height: 90,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: recent.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final item = recent[i];
+              return GestureDetector(
+                onTap: () => _playVideo(item),
+                child: Container(
+                  width: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 4),
+                      Text(item.durationLabel,
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

@@ -33,6 +33,7 @@ class LocalVideoState {
   final bool selecting;        // 多选模式
   final Set<String> selected;   // 已选 id
   final String? error;
+  final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
 
   const LocalVideoState({
     this.items = const [],
@@ -44,6 +45,7 @@ class LocalVideoState {
     this.selecting = false,
     this.selected = const {},
     this.error,
+    this.recentHashes = const [],
   });
 
   LocalVideoState copyWith({
@@ -56,6 +58,7 @@ class LocalVideoState {
     bool? selecting,
     Set<String>? selected,
     String? error,
+    List<String>? recentHashes,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -67,7 +70,17 @@ class LocalVideoState {
         selecting: selecting ?? this.selecting,
         selected: selected ?? this.selected,
         error: error,
+        recentHashes: recentHashes ?? this.recentHashes,
       );
+
+  /// 最近播放的视频项（按时间倒序，与 items 求交集）
+  List<LocalVideoItem> get recentItems {
+    final map = {for (final e in items) e.id: e};
+    return recentHashes
+        .map((h) => map[h])
+        .whereType<LocalVideoItem>()
+        .toList();
+  }
 
   /// 筛选 + 排序后的展示列表
   List<LocalVideoItem> get filtered {
@@ -126,7 +139,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     try {
       final svc = _ref.read(localVideoServiceProvider);
       final items = await svc.scan();
-      state = state.copyWith(items: items, loading: false);
+      final recent = await svc.getRecentPlayHashes();
+      state = state.copyWith(items: items, recentHashes: recent, loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, error: '$e');
     }

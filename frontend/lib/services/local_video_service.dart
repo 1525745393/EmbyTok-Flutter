@@ -190,15 +190,33 @@ class LocalVideoService {
     return sp.getInt(_resumePrefix + pathHash);
   }
 
-  /// 写本地视频续播位置（毫秒）
+  /// 写本地视频续播位置（毫秒），同时记录最近播放时间戳
   Future<void> writeResumeMs(String pathHash, int ms) async {
     final sp = await SharedPreferences.getInstance();
     await sp.setInt(_resumePrefix + pathHash, ms);
+    // 记录最近播放时间戳（用于"继续观看"横滑区块）
+    await sp.setInt('${_resumePrefix}time_$pathHash',
+        DateTime.now().millisecondsSinceEpoch);
   }
 
   /// 清续播（播放完成后）
   Future<void> clearResume(String pathHash) async {
     final sp = await SharedPreferences.getInstance();
     await sp.remove(_resumePrefix + pathHash);
+    await sp.remove('${_resumePrefix}time_$pathHash');
+  }
+
+  /// 获取最近播放的视频 pathHash 列表（按播放时间倒序，最多 10 条）
+  Future<List<String>> getRecentPlayHashes() async {
+    final sp = await SharedPreferences.getInstance();
+    final prefix = '${_resumePrefix}time_';
+    final entries = <MapEntry<String, int>>[];
+    for (final key in sp.getKeys()) {
+      if (!key.startsWith(prefix)) continue;
+      final v = sp.getInt(key);
+      if (v != null) entries.add(MapEntry(key.substring(prefix.length), v));
+    }
+    entries.sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(10).map((e) => e.key).toList();
   }
 }
