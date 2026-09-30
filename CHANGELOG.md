@@ -1,3 +1,10 @@
+# [2.254.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.253.0...v2.254.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P2 - 继续观看横滑区块 ([83bdd04](https://github.com/1525745393/EmbyTok-Flutter/commit/83bdd04166c6f8394778a7e8d5212d3a830eaea3))
+
 # [2.253.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.252.0...v2.253.0) (2026-09-30)
 
 
