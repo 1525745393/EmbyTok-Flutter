@@ -281,8 +281,16 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               selecting: state.selecting,
               isFavorite: state.favoriteHashes.contains(entry.value[i].pathHash),
               scraped: state.scrapedMap[entry.value[i].pathHash],
-              onTap: () => _playVideo(entry.value[i]),
-              onLongPress: () {},
+              onTap: () {
+                if (state.selecting) {
+                  notifier.toggleSelected(entry.value[i].id);
+                } else {
+                  _playVideo(entry.value[i]);
+                }
+              },
+              onLongPress: () {
+                if (!state.selecting) _showLongPressMenu(entry.value[i]);
+              },
               onFavoriteToggle: () =>
                   notifier.toggleFavorite(entry.value[i].pathHash),
             ),
@@ -362,6 +370,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           item: items[i],
           selected: state.selected.contains(items[i].id),
           selecting: state.selecting,
+          scraped: state.scrapedMap[items[i].pathHash],
           onTap: () {
             if (state.selecting) {
               notifier.toggleSelected(items[i].id);
@@ -369,7 +378,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               _playVideo(items[i]);
             }
           },
-          onLongPress: () => notifier.enterSelecting(),
+          onLongPress: () {
+            if (!state.selecting) _showLongPressMenu(items[i]);
+          },
         ),
       ),
     );
@@ -596,7 +607,7 @@ class _GridCardState extends State<_GridCard> {
           if (widget.scraped?.rating != null)
             Positioned(
               top: 4,
-              left: 4,
+              right: 4,
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -661,14 +672,14 @@ class _GridCardState extends State<_GridCard> {
             )
           else
             Positioned(
-              top: 2,
-              right: 2,
+              bottom: 18,
+              left: 4,
               child: GestureDetector(
                 onTap: widget.onFavoriteToggle,
                 child: Icon(
                   widget.isFavorite ? Icons.favorite : Icons.favorite_border,
                   color: widget.isFavorite ? Colors.pink : Colors.white,
-                  size: 20,
+                  size: 18,
                 ),
               ),
             ),
@@ -676,6 +687,91 @@ class _GridCardState extends State<_GridCard> {
       ),
     );
   }
+}
+
+/// 公共视频缩略图组件（带内存缓存）
+class _VideoThumbnail extends StatefulWidget {
+  final String? assetId;
+  final double width;
+  final double height;
+  final ScrapedMedia? scraped; // 刮削海报优先
+
+  const _VideoThumbnail({
+    required this.assetId,
+    required this.width,
+    required this.height,
+    this.scraped,
+  });
+
+  /// 静态内存缓存：assetId → thumb bytes
+  static final Map<String, Uint8List> _cache = {};
+
+  @override
+  State<_VideoThumbnail> createState() => _VideoThumbnailState();
+}
+
+class _VideoThumbnailState extends State<_VideoThumbnail> {
+  Uint8List? _thumb;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    // 刮削有海报优先
+    if (widget.scraped?.posterPath != null) return;
+    final aid = widget.assetId;
+    if (aid == null) return;
+    final cached = _VideoThumbnail._cache[aid];
+    if (cached != null) {
+      if (mounted) setState(() => _thumb = cached);
+      return;
+    }
+    try {
+      final entity = AssetEntity(
+        id: aid,
+        typeInt: 1,
+        width: 0,
+        height: 0,
+        duration: 0,
+      );
+      final data = await entity.thumbnailDataWithSize(
+        const ThumbnailSize.square(200),
+      );
+      if (data != null) {
+        _VideoThumbnail._cache[aid] = data;
+        if (mounted) setState(() => _thumb = data);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: widget.scraped?.posterPath != null
+            ? CachedNetworkImage(
+                imageUrl: TmdbService.posterUrl(widget.scraped!.posterPath!),
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => _fallback(scheme),
+              )
+            : (_thumb != null
+                ? Image.memory(_thumb!, fit: BoxFit.cover)
+                : _fallback(scheme)),
+      ),
+    );
+  }
+
+  Widget _fallback(ColorScheme scheme) => Container(
+        color: scheme.surfaceContainerHighest,
+        child: const Icon(Icons.movie, size: 20),
+      );
 }
 
 class _ListTileItem extends StatelessWidget {
@@ -690,23 +786,21 @@ class _ListTileItem extends StatelessWidget {
     required this.selecting,
     required this.onTap,
     required this.onLongPress,
+    this.scraped,
   });
+
+  final ScrapedMedia? scraped;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
       onLongPress: onLongPress,
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: SizedBox(
-          width: 64,
-          height: 40,
-          child: Container(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Icon(Icons.movie, size: 20),
-          ),
-        ),
+      leading: _VideoThumbnail(
+        assetId: item.assetId,
+        width: 64,
+        height: 40,
+        scraped: scraped,
       ),
       title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(
