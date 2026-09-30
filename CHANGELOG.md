@@ -1,3 +1,15 @@
+# [2.256.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.255.0...v2.256.0) (2026-09-30)
+
+
+### Bug Fixes
+
+* MPV 外挂字幕加载改用 media_kit setSubtitleTrack ([b178fde](https://github.com/1525745393/EmbyTok-Flutter/commit/b178fde3a3f297b0569296bc0867e1a88baa1d22))
+
+
+### Features
+
+* 本地模式 P3 - MPV 加载外挂字幕 ([d01763e](https://github.com/1525745393/EmbyTok-Flutter/commit/d01763e259b295310940deedb7b6a423b6e31cc3))
+
 # [2.255.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.254.0...v2.255.0) (2026-09-30)
 
 
