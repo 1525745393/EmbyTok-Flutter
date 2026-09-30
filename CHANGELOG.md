@@ -1,3 +1,10 @@
+# [2.252.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.251.0...v2.252.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P1 - 删除确认对话框 + 分享 + 详情弹窗 ([3c750a4](https://github.com/1525745393/EmbyTok-Flutter/commit/3c750a42520ccd6921ec3e955becd68180150c72))
+
 # [2.251.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.4...v2.251.0) (2026-09-30)
 
 
