@@ -35,6 +35,7 @@ class LocalVideoState {
   final String? error;
   final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
   final bool groupByFolder;        // 是否按文件夹分组
+  final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
 
   const LocalVideoState({
     this.items = const [],
@@ -48,6 +49,7 @@ class LocalVideoState {
     this.error,
     this.recentHashes = const [],
     this.groupByFolder = false,
+    this.favoriteHashes = const {},
   });
 
   LocalVideoState copyWith({
@@ -62,6 +64,7 @@ class LocalVideoState {
     String? error,
     List<String>? recentHashes,
     bool? groupByFolder,
+    Set<String>? favoriteHashes,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -75,6 +78,7 @@ class LocalVideoState {
         error: error,
         recentHashes: recentHashes ?? this.recentHashes,
         groupByFolder: groupByFolder ?? this.groupByFolder,
+        favoriteHashes: favoriteHashes ?? this.favoriteHashes,
       );
 
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
@@ -156,10 +160,28 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       final svc = _ref.read(localVideoServiceProvider);
       final items = await svc.scan();
       final recent = await svc.getRecentPlayHashes();
-      state = state.copyWith(items: items, recentHashes: recent, loading: false);
+      final favs = await svc.getFavorites();
+      state = state.copyWith(
+          items: items, recentHashes: recent, favoriteHashes: favs, loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, error: '$e');
     }
+  }
+
+  /// 切换本地收藏（P3）
+  Future<void> toggleFavorite(String pathHash) async {
+    final svc = _ref.read(localVideoServiceProvider);
+    final nowFav = !state.favoriteHashes.contains(pathHash);
+    final favs = Set<String>.from(state.favoriteHashes);
+    if (nowFav) {
+      favs.add(pathHash);
+    } else {
+      favs.remove(pathHash);
+    }
+    state = state.copyWith(favoriteHashes: favs);
+    try {
+      await svc.setFavorite(pathHash, nowFav);
+    } catch (_) {}
   }
 
   void setKeyword(String k) => state = state.copyWith(keyword: k);

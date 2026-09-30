@@ -219,4 +219,27 @@ class LocalVideoService {
     entries.sort((a, b) => b.value.compareTo(a.value));
     return entries.take(10).map((e) => e.key).toList();
   }
+
+  // ---- 本地收藏（P3）----
+  static const _favoritePrefix = 'local_favorite_';
+
+  Future<Set<String>> getFavorites() async {
+    final sp = await SharedPreferences.getInstance();
+    final keys = sp.getKeys().where((k) => k.startsWith(_favoritePrefix));
+    return keys.map((k) => k.substring(_favoritePrefix.length)).toSet();
+  }
+
+  Future<bool> isFavorite(String pathHash) async {
+    final sp = await SharedPreferences.getInstance();
+    return sp.getBool(_favoritePrefix + pathHash) ?? false;
+  }
+
+  Future<void> setFavorite(String pathHash, bool fav) async {
+    final sp = await SharedPreferences.getInstance();
+    if (fav) {
+      await sp.setBool(_favoritePrefix + pathHash, true);
+    } else {
+      await sp.remove(_favoritePrefix + pathHash);
+    }
+  }
 }

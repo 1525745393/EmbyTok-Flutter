@@ -173,7 +173,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                             _buildRecentRow(state.recentItems),
                           Expanded(
                             child: state.groupByFolder
-                                ? _buildGrouped(state)
+                                ? _buildGrouped(state, notifier)
                                 : state.viewMode == LocalVideoViewMode.grid
                                     ? _buildGrid(items, state, notifier)
                                     : _buildList(items, state, notifier),
@@ -239,7 +239,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   }
 
   /// 文件夹分组列表（P2）
-  Widget _buildGrouped(LocalVideoState state) {
+  Widget _buildGrouped(LocalVideoState state, LocalVideoNotifier notifier) {
     final grouped = state.grouped;
     return ListView(
       children: [
@@ -275,8 +275,11 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               item: entry.value[i],
               selected: state.selected.contains(entry.value[i].id),
               selecting: state.selecting,
+              isFavorite: state.favoriteHashes.contains(entry.value[i].pathHash),
               onTap: () => _playVideo(entry.value[i]),
               onLongPress: () {},
+              onFavoriteToggle: () =>
+                  notifier.toggleFavorite(entry.value[i].pathHash),
             ),
           ),
         ],
@@ -317,6 +320,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           item: items[i],
           selected: state.selected.contains(items[i].id),
           selecting: state.selecting,
+          isFavorite: state.favoriteHashes.contains(items[i].pathHash),
           onTap: () {
             if (state.selecting) {
               notifier.toggleSelected(items[i].id);
@@ -325,6 +329,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             }
           },
           onLongPress: () => notifier.enterSelecting(),
+          onFavoriteToggle: () => notifier.toggleFavorite(items[i].pathHash),
         ),
       ),
     );
@@ -443,14 +448,18 @@ class _GridCard extends StatefulWidget {
   final LocalVideoItem item;
   final bool selected;
   final bool selecting;
+  final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final VoidCallback onFavoriteToggle;
   const _GridCard({
     required this.item,
     required this.selected,
     required this.selecting,
+    required this.isFavorite,
     required this.onTap,
     required this.onLongPress,
+    required this.onFavoriteToggle,
   });
 
   @override
@@ -534,7 +543,7 @@ class _GridCardState extends State<_GridCard> {
                 ),
               ),
             ),
-          // 多选勾选
+          // 多选勾选 / 收藏心形（P3）
           if (widget.selecting)
             Positioned(
               top: 4,
@@ -545,6 +554,19 @@ class _GridCardState extends State<_GridCard> {
                     : Icons.radio_button_unchecked,
                 color: widget.selected ? scheme.primary : Colors.white,
                 size: 22,
+              ),
+            )
+          else
+            Positioned(
+              top: 2,
+              right: 2,
+              child: GestureDetector(
+                onTap: widget.onFavoriteToggle,
+                child: Icon(
+                  widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: widget.isFavorite ? Colors.pink : Colors.white,
+                  size: 20,
+                ),
               ),
             ),
         ],
