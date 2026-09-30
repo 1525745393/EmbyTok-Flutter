@@ -364,6 +364,9 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     // MPV 分支：从 GlobalKey 读取
     final mpvDur = _mpvKey.currentState?.duration;
     if (mpvDur != null && mpvDur > Duration.zero) return mpvDur;
+    // VLC 分支：从 GlobalKey 读取
+    final vlcDur = _vlcKey.currentState?.duration;
+    if (vlcDur != null && vlcDur > Duration.zero) return vlcDur;
     return Duration.zero;
   }
 
@@ -374,7 +377,8 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       return c.value.isPlaying;
     }
     return _mpvKey.currentState?.isPlaying ??
-        _vlcKey.currentState != null;
+        _vlcKey.currentState?.isPlaying ??
+        false;
   }
 
   // 从 Emby 服务器同步的续播位置 seek 到对应进度

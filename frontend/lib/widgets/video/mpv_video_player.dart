@@ -181,10 +181,10 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
         }
       });
 
-      // 监听位置变化（每 5 秒回调一次，减少 UI 重建）
+      // 监听位置变化（每 1 秒回调一次，保证进度条流畅）
       Duration lastCallback = Duration.zero;
       _positionSub = _player!.stream.position.listen((pos) {
-        if (pos - lastCallback > const Duration(seconds: 5)) {
+        if (pos - lastCallback > const Duration(seconds: 1)) {
           lastCallback = pos;
           widget.onPositionChanged?.call(pos);
         }

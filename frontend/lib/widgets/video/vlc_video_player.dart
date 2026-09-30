@@ -128,6 +128,15 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
   /// 暂停
   void pause() => _controller?.pause();
 
+  /// 外部调用：获取当前播放位置
+  Duration get position => _controller?.value.position ?? Duration.zero;
+
+  /// 外部调用：获取视频总时长
+  Duration get duration => _controller?.value.duration ?? Duration.zero;
+
+  /// 外部调用：是否正在播放
+  bool get isPlaying => _controller?.value.isPlaying ?? false;
+
   @override
   void didUpdateWidget(covariant VlcVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -137,6 +146,10 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
       } else {
         _controller?.pause();
       }
+    }
+    // 静音状态变化（与 MPV 对齐）
+    if (widget.muted != oldWidget.muted) {
+      _controller?.setVolume(widget.muted ? 0 : 100);
     }
   }
 
