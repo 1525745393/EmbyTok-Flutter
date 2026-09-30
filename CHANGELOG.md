@@ -1,3 +1,11 @@
+## [2.250.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.0...v2.250.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* CI编译错误—MPV setVolume类型int→double; 设置测试适配规则筛选二级页 ([1e348c6](https://github.com/1525745393/EmbyTok-Flutter/commit/1e348c6b78fc21648e0c02bd38e328296262d7db))
+* 横屏播放器三引擎统一控制通道(倍速/音量/seek/进度) ([ae5a947](https://github.com/1525745393/EmbyTok-Flutter/commit/ae5a947d36a5576fea532ec771e2cbaa4acda18b))
+
 # [2.250.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.249.0...v2.250.0) (2026-09-30)
 
 
