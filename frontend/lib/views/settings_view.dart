@@ -241,38 +241,27 @@ class SettingsView extends ConsumerWidget {
               if (!isMusicMode) _buildOrientationTile(context, ref),
             ],
           ),
-          // 存储设置
+          // 存储与缓存设置
           _buildSection(
             context,
             ref,
-            '存储',
+            '存储与缓存',
             Icons.storage_outlined,
             Colors.grey,
             [
               _buildCacheTile(context, ref),
+              _buildCacheManagementTile(context, ref),
+              _buildSmartCacheTile(context, ref),
               _buildResetSettingsTile(context, ref),
               _buildExportLogsTile(context, ref),
               _buildClearLogsTile(context, ref),
             ],
           ),
-          // PR #81：观看统计（视频完播率，音乐模式隐藏）
-          if (!isMusicMode)
-            _buildSection(
-              context,
-              ref,
-              '统计',
-              Icons.analytics_outlined,
-              Colors.deepPurple,
-              [
-                _buildWatchStatsTile(context, ref),
-              ],
-            ),
-          // 服务器设置：服务模式（视频/音乐）+ 视频数据源
-          // 音乐模式仅保留模式切换与服务器管理，隐藏视频数据源信息
+          // 服务器与账户设置
           _buildSection(
             context,
             ref,
-            '服务器',
+            '服务器与账户',
             Icons.cloud_outlined,
             Colors.blue,
             [
@@ -283,6 +272,10 @@ class SettingsView extends ConsumerWidget {
                     context, ref, '视频数据源', Icons.movie_outlined),
                 _buildServerInfoTile(context, ref),
               ],
+              _buildServerGroupLabel(
+                  context, ref, '账户', Icons.account_circle_outlined),
+              _buildProfileTile(context, ref),
+              _buildSelfSignedCertificateTile(context, ref),
             ],
           ),
           // 音乐库设置：群晖 Audio Station 数据源 + 歌手元数据
@@ -304,16 +297,15 @@ class SettingsView extends ConsumerWidget {
               _buildBatchScanTile(context, ref),
             ],
           ),
-          // 通用
+          // 通用工具
           _buildSection(
             context,
             ref,
-            '通用',
+            '通用工具',
             Icons.tune,
             Colors.teal,
             [
-              _buildCacheManagementTile(context, ref),
-              _buildSmartCacheTile(context, ref),
+              if (!isMusicMode) _buildWatchStatsTile(context, ref),
               _buildYearReportTile(context, ref),
               _buildNetworkDiagnosticTile(context, ref),
               _buildFeedbackTile(context, ref),
@@ -400,18 +392,6 @@ class SettingsView extends ConsumerWidget {
                 _buildPerformanceMonitorTile(context, ref),
               ],
             ),
-          // 账户
-          _buildSection(
-            context,
-            ref,
-            '账户',
-            Icons.account_circle_outlined,
-            Colors.blue,
-            [
-              _buildProfileTile(context, ref),
-              _buildSelfSignedCertificateTile(context, ref),
-            ],
-          ),
           const SizedBox(height: _kSpacingXXLarge),
           _buildLogoutButton(context, ref),
           const SizedBox(height: _kSpacingXXXXLarge),
