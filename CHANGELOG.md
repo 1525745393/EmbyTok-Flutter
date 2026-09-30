@@ -1,3 +1,10 @@
+# [2.262.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.261.0...v2.262.0) (2026-09-30)
+
+
+### Features
+
+* 本地UI优化第一批 - 分组多选+列表缩略图+角标+缩略图缓存 ([05b0d1e](https://github.com/1525745393/EmbyTok-Flutter/commit/05b0d1e840f9136b545aa986bde6c8890a5cffff)), closes [#3](https://github.com/1525745393/EmbyTok-Flutter/issues/3) [#2](https://github.com/1525745393/EmbyTok-Flutter/issues/2) [#9](https://github.com/1525745393/EmbyTok-Flutter/issues/9) [#13](https://github.com/1525745393/EmbyTok-Flutter/issues/13)
+
 # [2.261.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.260.0...v2.261.0) (2026-09-30)
 
 
