@@ -80,7 +80,12 @@ void main() {
     await tester.pumpWidget(wrap());
     await tester.pumpAndSettle();
 
-    // 定位「排除已观看」开关项（视频流分区第一个）
+    // 规则筛选已改为二级页面（推荐/关注/发现 3 Tab），先点入口进入
+    await scrollToText(tester, '规则配置');
+    await tester.tap(find.text('规则配置'));
+    await tester.pumpAndSettle();
+
+    // 在"推荐页"Tab 里定位「排除已观看」开关项
     await scrollToText(tester, '排除已观看');
     final tiles = find.ancestor(
       of: find.text('排除已观看').first,

@@ -104,12 +104,12 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
   /// 外部调用：设置静音
   void setMuted(bool muted) =>
-      _player?.setVolume(muted ? 0 : 100);
+      _player?.setVolume(muted ? 0.0 : 1.0);
 
-  /// 外部调用：设置音量（0.0 ~ 1.0，映射到 0 ~ 100）
+  /// 外部调用：设置音量（0.0 ~ 1.0，media_kit setVolume 接受 double）
   void setVolume(double value) {
     try {
-      final v = (value.clamp(0.0, 1.0) * 100).round();
+      final v = value.clamp(0.0, 1.0);
       _player?.setVolume(v);
     } catch (e) {
       AppLogger.debug('MPV setVolume 失败', data: {'error': e.toString()});
@@ -172,7 +172,7 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
       }
 
       // 静音
-      await _player!.setVolume(widget.muted ? 0 : 100);
+      await _player!.setVolume(widget.muted ? 0.0 : 1.0);
 
       // 监听播放结束
       _completeSub = _player!.stream.completed.listen((completed) {
@@ -212,13 +212,13 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
     if (oldWidget.isCurrentPage != widget.isCurrentPage) {
       if (widget.isCurrentPage) {
         _player!.play();
-        _player!.setVolume(widget.muted ? 0 : 100);
+        _player!.setVolume(widget.muted ? 0.0 : 1.0);
       } else {
         _player!.pause();
-        _player!.setVolume(0);
+        _player!.setVolume(0.0);
       }
     } else if (oldWidget.muted != widget.muted) {
-      _player!.setVolume(widget.muted ? 0 : 100);
+      _player!.setVolume(widget.muted ? 0.0 : 1.0);
     }
   }
 
