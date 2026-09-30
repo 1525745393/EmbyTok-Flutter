@@ -1,3 +1,10 @@
+## [2.257.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.257.0...v2.257.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* 本地视频播放 content:// 失败 + P3 连播 ([96f54b2](https://github.com/1525745393/EmbyTok-Flutter/commit/96f54b228a40dee1fcfe39a3f4dcea9b4c0a3847))
+
 # [2.257.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.256.0...v2.257.0) (2026-09-30)
 
 
