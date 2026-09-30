@@ -5,6 +5,7 @@ import 'package:photo_manager/photo_manager.dart';
 
 import '../models/local_video_item.dart';
 import '../services/local_video_service.dart';
+import '../services/scrape_service.dart';
 
 /// 服务单例
 final localVideoServiceProvider = Provider<LocalVideoService>(
@@ -36,6 +37,8 @@ class LocalVideoState {
   final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
   final bool groupByFolder;        // 是否按文件夹分组
   final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
+  final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
+  final bool scraping; // 是否正在批量刮削
 
   const LocalVideoState({
     this.items = const [],
@@ -50,6 +53,8 @@ class LocalVideoState {
     this.recentHashes = const [],
     this.groupByFolder = false,
     this.favoriteHashes = const {},
+    this.scrapedMap = const {},
+    this.scraping = false,
   });
 
   LocalVideoState copyWith({
@@ -65,6 +70,8 @@ class LocalVideoState {
     List<String>? recentHashes,
     bool? groupByFolder,
     Set<String>? favoriteHashes,
+    Map<String, ScrapedMedia>? scrapedMap,
+    bool? scraping,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -79,6 +86,8 @@ class LocalVideoState {
         recentHashes: recentHashes ?? this.recentHashes,
         groupByFolder: groupByFolder ?? this.groupByFolder,
         favoriteHashes: favoriteHashes ?? this.favoriteHashes,
+        scrapedMap: scrapedMap ?? this.scrapedMap,
+        scraping: scraping ?? this.scraping,
       );
 
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
@@ -161,12 +170,43 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
       final items = await svc.scan();
       final recent = await svc.getRecentPlayHashes();
       final favs = await svc.getFavorites();
+      final cached = await ScrapeService.loadCache();
       state = state.copyWith(
-          items: items, recentHashes: recent, favoriteHashes: favs, loading: false);
+          items: items,
+          recentHashes: recent,
+          favoriteHashes: favs,
+          scrapedMap: cached,
+          loading: false);
+      // 后台异步刮削未缓存文件
+      scrapeMissing();
     } catch (e) {
       state = state.copyWith(loading: false, error: '$e');
     }
   }
+
+  /// 后台刮削未缓存的文件（P0）
+  Future<void> scrapeMissing() async {
+    if (state.scraping) return;
+    state = state.copyWith(scraping: true);
+    final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
+    for (final item in state.items) {
+      if (cached.containsKey(item.pathHash)) continue;
+      try {
+        final m = await ScrapeService.scrapeFile(item.pathHash, item.name);
+        if (m != null) {
+          cached[item.pathHash] = m;
+          await ScrapeService.saveCache(item.pathHash, m);
+          if (state.scraping && _mounted) {
+            state = state.copyWith(scrapedMap: cached);
+          }
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+    if (_mounted) state = state.copyWith(scraping: false);
+  }
+
+  bool get _mounted => true;
 
   /// 切换本地收藏（P3）
   Future<void> toggleFavorite(String pathHash) async {

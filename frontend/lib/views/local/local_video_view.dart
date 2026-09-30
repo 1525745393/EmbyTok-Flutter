@@ -4,10 +4,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
 import '../../services/local_video_service.dart';
+import '../../services/scrape_service.dart';
+import '../../services/tmdb_service.dart';
 import 'local_player_page.dart';
 
 class LocalVideoView extends ConsumerStatefulWidget {
@@ -276,6 +279,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               selected: state.selected.contains(entry.value[i].id),
               selecting: state.selecting,
               isFavorite: state.favoriteHashes.contains(entry.value[i].pathHash),
+              scraped: state.scrapedMap[entry.value[i].pathHash],
               onTap: () => _playVideo(entry.value[i]),
               onLongPress: () {},
               onFavoriteToggle: () =>
@@ -321,6 +325,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           selected: state.selected.contains(items[i].id),
           selecting: state.selecting,
           isFavorite: state.favoriteHashes.contains(items[i].pathHash),
+          scraped: state.scrapedMap[items[i].pathHash],
           onTap: () {
             if (state.selecting) {
               notifier.toggleSelected(items[i].id);
@@ -454,6 +459,7 @@ class _GridCard extends StatefulWidget {
   final bool selected;
   final bool selecting;
   final bool isFavorite;
+  final ScrapedMedia? scraped; // 刮削结果（P0）
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onFavoriteToggle;
@@ -462,6 +468,7 @@ class _GridCard extends StatefulWidget {
     required this.selected,
     required this.selecting,
     required this.isFavorite,
+    this.scraped,
     required this.onTap,
     required this.onLongPress,
     required this.onFavoriteToggle,
@@ -508,13 +515,53 @@ class _GridCardState extends State<_GridCard> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: _thumb != null
-                ? Image.memory(_thumb!, fit: BoxFit.cover)
-                : Container(
-                    color: scheme.surfaceContainerHighest,
-                    child: const Icon(Icons.movie, size: 32),
-                  ),
+            child: widget.scraped?.posterPath != null
+                ? CachedNetworkImage(
+                    imageUrl: TmdbService.posterUrl(widget.scraped!.posterPath!),
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: scheme.surfaceContainerHighest,
+                      child: const Center(
+                          child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2))),
+                    ),
+                    errorWidget: (_, __, ___) => _thumb != null
+                        ? Image.memory(_thumb!, fit: BoxFit.cover)
+                        : Container(
+                            color: scheme.surfaceContainerHighest,
+                            child: const Icon(Icons.movie, size: 32),
+                          ),
+                  )
+                : _thumb != null
+                    ? Image.memory(_thumb!, fit: BoxFit.cover)
+                    : Container(
+                        color: scheme.surfaceContainerHighest,
+                        child: const Icon(Icons.movie, size: 32),
+                      ),
           ),
+          // 评分角标右上（刮削 P0）
+          if (widget.scraped?.rating != null)
+            Positioned(
+              top: 4,
+              left: 4,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  widget.scraped!.rating!.toStringAsFixed(1),
+                  style: const TextStyle(
+                      color: Colors.amber,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
           // 时长角标右下
           Positioned(
             right: 4,

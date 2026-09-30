@@ -200,4 +200,56 @@ class TmdbService {
       return [];
     }
   }
+
+  // ---- 本地模式刮削扩展（P0）----
+
+  /// 搜索剧集
+  static Future<List<Map<String, dynamic>>> searchTv(String query,
+      {int? year}) async {
+    if (!isConfigured || query.isEmpty) return [];
+    try {
+      final encoded = Uri.encodeQueryComponent(query);
+      final yp = year != null ? '&first_air_date_year=$year' : '';
+      final r = await http
+          .get(Uri.parse(
+              '$_base/search/tv?api_key=$_apiKey&query=$encoded$yp&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 电影详情（含演职员）
+  static Future<Map<String, dynamic>> getMovieDetails(int movieId) async {
+    if (!isConfigured) return {};
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/movie/$movieId?api_key=$_apiKey&append_to_response=credits&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return {};
+      return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// 剧集详情（含演职员）
+  static Future<Map<String, dynamic>> getTvDetails(int tvId) async {
+    if (!isConfigured) return {};
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/tv/$tvId?api_key=$_apiKey&append_to_response=credits&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return {};
+      return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
 }
