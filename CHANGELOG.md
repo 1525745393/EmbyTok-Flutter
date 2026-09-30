@@ -1,3 +1,10 @@
+# [2.261.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.260.0...v2.261.0) (2026-09-30)
+
+
+### Features
+
+* 刮削 P2 - 缓存管理页加 TMDB 刮削元数据清除按钮 ([36b6528](https://github.com/1525745393/EmbyTok-Flutter/commit/36b6528b8b09af126d13d726c4a78ee226708cd1))
+
 # [2.260.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.259.0...v2.260.0) (2026-09-30)
 
 
