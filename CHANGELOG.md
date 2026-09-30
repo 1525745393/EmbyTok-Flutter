@@ -1,3 +1,10 @@
+## [2.250.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.3...v2.250.4) (2026-09-30)
+
+
+### Bug Fixes
+
+* 设置页二级入口卡片包 Material 消除 ListTile DecoratedBox 断言 ([b2412df](https://github.com/1525745393/EmbyTok-Flutter/commit/b2412dfcbb9b23abffc7e6c1fc6dda2fc966f85e))
+
 ## [2.250.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.2...v2.250.3) (2026-09-30)
 
 
