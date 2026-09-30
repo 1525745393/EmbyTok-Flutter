@@ -1,3 +1,10 @@
+# [2.250.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.249.0...v2.250.0) (2026-09-30)
+
+
+### Features
+
+* 规则筛选改二级页面(推荐/关注/发现3Tab)，主页只留入口tile ([eb19e2d](https://github.com/1525745393/EmbyTok-Flutter/commit/eb19e2dea5c8f3a9f3cf3d3e80d3716afcc0c7fb))
+
 # [2.249.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.248.0...v2.249.0) (2026-09-30)
 
 
