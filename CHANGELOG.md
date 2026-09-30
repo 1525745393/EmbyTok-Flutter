@@ -1,3 +1,10 @@
+# [2.253.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.252.0...v2.253.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P1 - 扫描同目录字幕文件（.srt/.ass/.vtt） ([a10e0c2](https://github.com/1525745393/EmbyTok-Flutter/commit/a10e0c2318375bd31dca61760719f09dcae389e5))
+
 # [2.252.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.251.0...v2.252.0) (2026-09-30)
 
 
