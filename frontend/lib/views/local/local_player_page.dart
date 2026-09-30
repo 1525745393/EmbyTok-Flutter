@@ -85,6 +85,7 @@ class LocalPlayerPage extends ConsumerWidget {
           autoPlay: true,
           loop: false,
           isCurrentPage: true,
+          externalSubtitlePaths: item.subtitlePaths,
         ),
       ),
     );

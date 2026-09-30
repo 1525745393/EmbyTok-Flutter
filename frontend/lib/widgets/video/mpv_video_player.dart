@@ -29,6 +29,7 @@ class MpvVideoPlayer extends StatefulWidget {
     this.cacheSizeMb = 16,
     this.forceAssStyle = false,
     this.fit = BoxFit.contain,
+    this.externalSubtitlePaths = const [],
     this.onPlayerReady,
     this.onPositionChanged,
     this.onPlaybackEnded,
@@ -64,6 +65,9 @@ class MpvVideoPlayer extends StatefulWidget {
 
   /// 画面缩放模式
   final BoxFit fit;
+
+  /// 外挂字幕文件路径列表（本地模式 P3）
+  final List<String> externalSubtitlePaths;
 
   /// 播放器初始化完成回调
   final void Function(Player player)? onPlayerReady;
@@ -173,6 +177,16 @@ class MpvVideoPlayerState extends State<MpvVideoPlayer> {
 
       // 静音
       await _player!.setVolume(widget.muted ? 0.0 : 1.0);
+
+      // 加载外挂字幕（本地模式 P3）
+      for (final subPath in widget.externalSubtitlePaths) {
+        try {
+          await _player!.setProperty('sub-file', subPath);
+        } catch (e) {
+          AppLogger.debug('MPV 加载外挂字幕失败',
+              data: {'path': subPath, 'error': e.toString()});
+        }
+      }
 
       // 监听播放结束
       _completeSub = _player!.stream.completed.listen((completed) {
