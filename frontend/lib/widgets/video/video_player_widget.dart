@@ -1,6 +1,7 @@
 // 视频播放器 Widget：仅使用 Direct Play 模式
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -37,8 +38,11 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.loop = true,
     this.startFromResumePosition = false,
     this.isCurrentPage = true,
+    this.isLocal = false,
   });
   final MediaItem item;
+  // 本地模式标记：true=播放手机本地文件（file:///），跳过 Emby 认证头与 AudioStreamIndex 追加
+  final bool isLocal;
   // Emby 服务器认证信息（用于动态构造播放 URL）
   final String? embyServerUrl;
   final String? token;
@@ -109,10 +113,13 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
     }
     if (url == null || url.isEmpty) return null;
     // 追加音轨参数（用户选择非默认音轨时）
-    final audioIndex = ref.read(selectedAudioStreamIndexProvider);
-    if (audioIndex != null) {
-      final sep = url.contains('?') ? '&' : '?';
-      url = '$url${sep}AudioStreamIndex=$audioIndex';
+    // 本地文件跳过：AudioStreamIndex 是 Emby 服务端参数，会破坏本地 file:// URL
+    if (!widget.isLocal) {
+      final audioIndex = ref.read(selectedAudioStreamIndexProvider);
+      if (audioIndex != null) {
+        final sep = url.contains('?') ? '&' : '?';
+        url = '$url${sep}AudioStreamIndex=$audioIndex';
+      }
     }
     return url;
   }
@@ -513,12 +520,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       return wrapFixedRatio(MpvVideoPlayer(
         key: _mpvKey,
         url: mpvUrl,
-        httpHeaders: widget.token != null
-            ? {
-                'X-Emby-Token': widget.token!,
-                'Accept': 'video/*',
-              }
-            : const {'Accept': 'video/*'},
+        // 本地文件不传 Emby 认证头；MPV 原生支持 file:/// 绝对路径
+        httpHeaders: widget.isLocal
+            ? const {}
+            : (widget.token != null
+                ? {
+                    'X-Emby-Token': widget.token!,
+                    'Accept': 'video/*',
+                  }
+                : const {'Accept': 'video/*'}),
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,
@@ -543,12 +553,15 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       return wrapFixedRatio(VlcVideoPlayer(
         key: _vlcKey,
         url: vlcUrl,
-        httpHeaders: widget.token != null
-            ? {
-                'X-Emby-Token': widget.token!,
-                'Accept': 'video/*',
-              }
-            : const {'Accept': 'video/*'},
+        // 本地文件不传 Emby 认证头；VLC 原生支持 file:/// 绝对路径
+        httpHeaders: widget.isLocal
+            ? const {}
+            : (widget.token != null
+                ? {
+                    'X-Emby-Token': widget.token!,
+                    'Accept': 'video/*',
+                  }
+                : const {'Accept': 'video/*'}),
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,

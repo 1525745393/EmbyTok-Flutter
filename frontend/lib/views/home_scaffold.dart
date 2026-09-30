@@ -33,6 +33,7 @@ import 'history_view.dart';
 import 'settings_view.dart';
 import 'actors_view.dart';
 import 'libraries_browse_view.dart';
+import 'libraries_tab_view.dart';
 
 // 主骨架：包含底部导航的入口页
 class HomeScaffold extends ConsumerStatefulWidget {
@@ -261,12 +262,12 @@ class _HomeScaffoldState extends ConsumerState<HomeScaffold>
                     ),
                     child: const FavoritesView(),
                   ),
-                  // 索引 2: 媒体库浏览页面
+                  // 索引 2: 媒体库浏览页面（在线 Emby / 本地视频 双入口切换）
                   Padding(
                     padding: EdgeInsets.only(
                       bottom: kBottomNavHeight + bottomPadding,
                     ),
-                    child: const LibrariesBrowseView(),
+                    child: const LibrariesTabView(),
                   ),
                   // 索引 3: 演员页面（需要 SafeArea 顶部留白 + 底部导航栏高度）
                   Padding(

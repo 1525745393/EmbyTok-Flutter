@@ -46,6 +46,8 @@ dependencies:
 
   http: any
   share_plus: ^12.0.2
+  # 本地模式 PRD：扫描手机系统媒体库视频（photo_manager 官方包）
+  photo_manager: ^3.6.0
   crypto: ^3.0.7
   speech_to_text: ^7.0.0
 dev_dependencies:

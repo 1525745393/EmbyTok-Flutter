@@ -229,6 +229,58 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     if (preloadedInitSucceeded) return;
     if (_isDisposed) return;
 
+    // ---- 路径 0：本地文件（isLocal）直接用 VideoPlayerController.file ----
+    // 本地模式不走 Emby URL 降级链；playbackUrl 形如 file:///storage/.../xxx.mp4
+    if (widget.isLocal) {
+      final url = _playbackUrl;
+      if (url == null || url.isEmpty) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = AppError.playback(message: '无法获取本地文件路径');
+        });
+        return;
+      }
+      try {
+        final uri = Uri.parse(url);
+        // file:// URI 转 File；同时兼容直接传绝对路径
+        final file = uri.scheme == 'file'
+            ? File(uri.toFilePath())
+            : File(url);
+        final c = VideoPlayerController.file(file);
+        _controller = c;
+        c.addListener(_onControllerChanged);
+        await c.initialize().timeout(
+          const Duration(seconds: 20),
+          onTimeout: () => throw TimeoutException('本地视频初始化超时'),
+        );
+        if (isCancelled() || _isDisposed) {
+          try { c.dispose(); } catch (_) {}
+          return;
+        }
+        c.setLooping(widget.loop);
+        _applyInitialVolume(c);
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _initialized = true;
+            _hasError = false;
+          });
+          if (widget.autoPlay) await c.play();
+          widget.onControllerReady?.call(c);
+        }
+        return;
+      } catch (e) {
+        AppLogger.warn('本地视频 EXO 初始化失败', data: {'error': '$e'});
+        // 本地文件 EXO 失败不降级到网络 URL；让上层引擎选择（MPV/VLC 兜底）
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = AppError.playback(message: '本地视频播放失败：$e');
+          });
+        }
+        return;
+      }
+    }
+
     // ---- 路径 2：动态创建控制器（含 DirectPlay → DirectStream → HLS 降级链）----
     // OOM 防护：PageView 缓存的相邻页面若也创建控制器，每个 1080p 控制器
     // 解码缓冲区约 30-50MB，快速滑动时 3-5 个控制器同时存在可导致 OOM。
