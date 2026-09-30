@@ -25,31 +25,38 @@ extension _SettingsRecommendRules on SettingsView {
           color: scheme.onSurface.withValues(alpha: 0.08),
         ),
       ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: sectionColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(sectionIcon, color: sectionColor, size: 22),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => SettingsSectionPage(
-                title: title,
-                icon: sectionIcon,
-                color: sectionColor,
-                childrenBuilder: childrenBuilder,
-              ),
+      // 包一层 transparency Material：避免 Flutter debug 断言
+      // "ListTile wrapped in DecoratedBox with background color"，
+      // 同时保留 ListTile 的 ink splash 点击波纹。
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(12),
+        child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: sectionColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-          );
-        },
+            child: Icon(sectionIcon, color: sectionColor, size: 22),
+          ),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SettingsSectionPage(
+                  title: title,
+                  icon: sectionIcon,
+                  color: sectionColor,
+                  childrenBuilder: childrenBuilder,
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
