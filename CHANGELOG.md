@@ -1,3 +1,10 @@
+# [2.259.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.258.0...v2.259.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式刮削 P0 - 文件名解析+TMDB匹配+缓存+海报墙 ([d50b90d](https://github.com/1525745393/EmbyTok-Flutter/commit/d50b90d398484708c389dcc8f6e5da5a4943ae9b))
+
 # [2.258.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.257.1...v2.258.0) (2026-09-30)
 
 
