@@ -84,27 +84,41 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                       PopupMenuItem(value: s, child: Text(_sortLabel(s))),
                   ],
                 ),
-                // 网格/列表切换
-                IconButton(
-                  icon: Icon(
-                    state.viewMode == LocalVideoViewMode.grid
-                        ? Icons.view_list
-                        : Icons.grid_view,
-                    size: 20,
-                  ),
-                  onPressed: notifier.toggleViewMode,
-                ),
-                // 文件夹分组切换（P2）
-                IconButton(
-                  icon: Icon(
-                    state.groupByFolder
-                        ? Icons.folder_special
-                        : Icons.folder_outlined,
-                    size: 20,
-                    color: state.groupByFolder ? scheme.primary : null,
-                  ),
-                  tooltip: state.groupByFolder ? '退出文件夹分组' : '按文件夹分组',
-                  onPressed: notifier.toggleGroupByFolder,
+                // 三点菜单（P1 #8）：视图/分组/重扫/刮削/全选
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'grid':
+                        notifier.setViewMode(LocalVideoViewMode.grid);
+                      case 'list':
+                        notifier.setViewMode(LocalVideoViewMode.list);
+                      case 'folder':
+                        notifier.toggleGroupByFolder();
+                      case 'rescan':
+                        notifier.refresh();
+                      case 'scrape':
+                        notifier.scrapeMissing();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('开始刮削未识别视频…')),
+                        );
+                      case 'selectall':
+                        notifier.enterSelecting();
+                        notifier.selectAll();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                        value: 'grid', child: Text('网格视图')),
+                    const PopupMenuItem(value: 'list', child: Text('列表视图')),
+                    PopupMenuItem(
+                        value: 'folder',
+                        child: Text(state.groupByFolder ? '退出文件夹分组' : '按文件夹分组')),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
+                    const PopupMenuItem(value: 'scrape', child: Text('刮削未识别')),
+                    const PopupMenuItem(value: 'selectall', child: Text('全选')),
+                  ],
                 ),
               ],
             ),
@@ -182,12 +196,49 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                                     ? _buildGrid(items, state, notifier)
                                     : _buildList(items, state, notifier),
                           ),
+                          // 媒体库统计行（P1 #5）
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 12),
+                            child: Text(
+                              _buildStatsLine(state),
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ),
                         ],
                       ),
           ),
         ],
       ),
     );
+  }
+
+  /// 统计行（P1 #5）
+  String _buildStatsLine(LocalVideoState state) {
+    int movies = 0, tvs = 0, unscraped = 0;
+    int totalBytes = 0;
+    for (final it in state.items) {
+      totalBytes += it.sizeBytes;
+      final s = state.scrapedMap[it.pathHash];
+      if (s == null) {
+        unscraped++;
+      } else if (s.type == 'tv') {
+        tvs++;
+      } else {
+        movies++;
+      }
+    }
+    String sizeLabel;
+    if (totalBytes < 1024 * 1024) {
+      sizeLabel = '${(totalBytes / 1024).toStringAsFixed(1)} MB';
+    } else if (totalBytes < 1024 * 1024 * 1024) {
+      sizeLabel = '${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB';
+    } else {
+      sizeLabel =
+          '${(totalBytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
+    }
+    return '$movies 部电影 · $tvs 部剧集 · $unscraped 未识别 · 占用 $sizeLabel';
   }
 
   /// 最近观看横滑区块（P2）
@@ -209,28 +260,50 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             separatorBuilder: (_, __) => const SizedBox(width: 8),
             itemBuilder: (_, i) {
               final item = recent[i];
+              final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
               return GestureDetector(
                 onTap: () => _playVideo(item),
                 child: Container(
                   width: 150,
                   decoration: BoxDecoration(
-                    color: Colors.grey[900],
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  clipBehavior: Clip.antiAlias,
+                  child: Row(
                     children: [
-                      Text(item.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 4),
-                      Text(item.durationLabel,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey)),
+                      // 左侧缩略图
+                      SizedBox(
+                        width: 96,
+                        child: _VideoThumbnail(
+                          assetId: item.assetId,
+                          width: 96,
+                          height: 90,
+                          scraped: scraped,
+                        ),
+                      ),
+                      // 右侧信息
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(item.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 4),
+                              Text(item.durationLabel,
+                                  style: const TextStyle(
+                                      fontSize: 10, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -310,6 +383,8 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         return '时长最长';
       case LocalVideoSort.sizeDesc:
         return '文件最大';
+      case LocalVideoSort.ratingDesc:
+        return '评分最高';
     }
   }
 

@@ -18,6 +18,7 @@ enum LocalVideoSort {
   nameAsc,       // 名称 A→Z
   durationDesc,  // 时长倒序
   sizeDesc,      // 文件大小倒序
+  ratingDesc,    // 评分高到低（需刮削）
 }
 
 /// 视图模式
@@ -131,6 +132,14 @@ class LocalVideoState {
       case LocalVideoSort.sizeDesc:
         list = [...list]..sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
         break;
+      case LocalVideoSort.ratingDesc:
+        // 评分高到低，无评分排最后
+        list = [...list]..sort((a, b) {
+          final ra = scrapedMap[a.pathHash]?.rating ?? -1;
+          final rb = scrapedMap[b.pathHash]?.rating ?? -1;
+          return rb.compareTo(ra);
+        });
+        break;
     }
     return list;
   }
@@ -233,6 +242,14 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
             ? LocalVideoViewMode.list
             : LocalVideoViewMode.grid,
       );
+  void setViewMode(LocalVideoViewMode m) =>
+      state = state.copyWith(viewMode: m);
+
+  /// 全选当前 filtered（P2 #12）
+  void selectAll() {
+    final ids = state.filtered.map((e) => e.id).toSet();
+    state = state.copyWith(selected: ids);
+  }
 
   void enterSelecting() => state = state.copyWith(selecting: true, selected: {});
   void exitSelecting() => state = state.copyWith(selecting: false, selected: {});
