@@ -1,3 +1,10 @@
+# [2.251.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.4...v2.251.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P0 - 媒体库 Tab 在线/本地双入口 + 三引擎播放 ([0c01be9](https://github.com/1525745393/EmbyTok-Flutter/commit/0c01be9e777c089e0f9c286854d8d8917c0934a8))
+
 ## [2.250.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.3...v2.250.4) (2026-09-30)
 
 
