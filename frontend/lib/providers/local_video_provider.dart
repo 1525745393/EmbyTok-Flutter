@@ -34,6 +34,7 @@ class LocalVideoState {
   final Set<String> selected;   // 已选 id
   final String? error;
   final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
+  final bool groupByFolder;        // 是否按文件夹分组
 
   const LocalVideoState({
     this.items = const [],
@@ -46,6 +47,7 @@ class LocalVideoState {
     this.selected = const {},
     this.error,
     this.recentHashes = const [],
+    this.groupByFolder = false,
   });
 
   LocalVideoState copyWith({
@@ -59,6 +61,7 @@ class LocalVideoState {
     Set<String>? selected,
     String? error,
     List<String>? recentHashes,
+    bool? groupByFolder,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -71,6 +74,7 @@ class LocalVideoState {
         selected: selected ?? this.selected,
         error: error,
         recentHashes: recentHashes ?? this.recentHashes,
+        groupByFolder: groupByFolder ?? this.groupByFolder,
       );
 
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
@@ -80,6 +84,18 @@ class LocalVideoState {
         .map((h) => map[h])
         .whereType<LocalVideoItem>()
         .toList();
+  }
+
+  /// 按文件夹分组（P2）：返回 {文件夹名: 视频列表}，按文件夹名排序
+  Map<String, List<LocalVideoItem>> get grouped {
+    final map = <String, List<LocalVideoItem>>{};
+    for (final e in filtered) {
+      final folder = e.relativePath?.trim() ?? '未分类';
+      map.putIfAbsent(folder, () => []).add(e);
+    }
+    return Map.fromEntries(
+      map.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+    );
   }
 
   /// 筛选 + 排序后的展示列表
@@ -148,6 +164,8 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
 
   void setKeyword(String k) => state = state.copyWith(keyword: k);
   void setSort(LocalVideoSort s) => state = state.copyWith(sort: s);
+  void toggleGroupByFolder() =>
+      state = state.copyWith(groupByFolder: !state.groupByFolder);
   void toggleViewMode() => state = state.copyWith(
         viewMode: state.viewMode == LocalVideoViewMode.grid
             ? LocalVideoViewMode.list
