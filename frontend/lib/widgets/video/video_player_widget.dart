@@ -589,6 +589,7 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
           _positionMs.value = pos.inMilliseconds;
         },
         onError: (e) => retryInitialization(),
+        externalSubtitlePaths: widget.externalSubtitlePaths,
       ));
     }
 

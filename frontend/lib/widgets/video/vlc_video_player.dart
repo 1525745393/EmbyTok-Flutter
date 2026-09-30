@@ -21,6 +21,7 @@ class VlcVideoPlayer extends StatefulWidget {
     this.muted = false,
     this.isCurrentPage = true,
     this.startPosition = Duration.zero,
+    this.externalSubtitlePaths = const [],
     this.onPlayerReady,
     this.onPositionChanged,
     this.onPlaybackEnded,
@@ -34,6 +35,8 @@ class VlcVideoPlayer extends StatefulWidget {
   final bool muted;
   final bool isCurrentPage;
   final Duration startPosition;
+  /// 外挂字幕文件路径列表（本地模式 P3）
+  final List<String> externalSubtitlePaths;
   final void Function(VlcPlayerController controller)? onPlayerReady;
   final void Function(Duration position)? onPositionChanged;
   final VoidCallback? onPlaybackEnded;
@@ -80,6 +83,15 @@ class VlcVideoPlayerState extends State<VlcVideoPlayer> {
 
       if (!widget.isCurrentPage || widget.muted) {
         await controller.pause();
+      }
+      // 加载外挂字幕（本地模式 P3）
+      for (final subPath in widget.externalSubtitlePaths) {
+        try {
+          await controller.addSubtitle(Uri.file(subPath));
+        } catch (e) {
+          AppLogger.debug('VLC 加载外挂字幕失败',
+              data: {'path': subPath, 'error': e.toString()});
+        }
       }
       if (mounted) setState(() {});
     } catch (e, st) {
