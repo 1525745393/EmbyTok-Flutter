@@ -110,6 +110,28 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   const Spacer(),
                   TextButton(
                     onPressed: () async {
+                      // 删除确认对话框（P1：避免误删）
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('删除视频'),
+                          content: Text(
+                              '确定删除选中的 ${state.selected.length} 个视频吗？此操作不可恢复。'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('取消'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: scheme.error),
+                              child: const Text('删除'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true || !mounted) return;
                       final ok = await notifier.deleteByIds(state.selected);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
