@@ -1,3 +1,10 @@
+# [2.258.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.257.1...v2.258.0) (2026-09-30)
+
+
+### Features
+
+* 本地模式 P3 - VLC 外挂字幕加载 ([32d68f9](https://github.com/1525745393/EmbyTok-Flutter/commit/32d68f9b3ee336e5862291aff23388e11b436855))
+
 ## [2.257.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.257.0...v2.257.1) (2026-09-30)
 
 
