@@ -1,3 +1,10 @@
+# [2.265.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.264.0...v2.265.0) (2026-09-30)
+
+
+### Features
+
+* 本地UI优化第四批 - 季集角标+批量收藏 ([89ef5a3](https://github.com/1525745393/EmbyTok-Flutter/commit/89ef5a325b0e241657fcde8134f2386cc5175999)), closes [#10](https://github.com/1525745393/EmbyTok-Flutter/issues/10) [#12](https://github.com/1525745393/EmbyTok-Flutter/issues/12)
+
 # [2.264.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.263.0...v2.264.0) (2026-09-30)
 
 
