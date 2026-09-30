@@ -40,6 +40,8 @@ class LocalVideoState {
   final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
   final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
   final bool scraping; // 是否正在批量刮削
+  final int scrapeDone; // 刮削进度（P1 #4）
+  final int scrapeTotal;
 
   const LocalVideoState({
     this.items = const [],
@@ -56,6 +58,8 @@ class LocalVideoState {
     this.favoriteHashes = const {},
     this.scrapedMap = const {},
     this.scraping = false,
+    this.scrapeDone = 0,
+    this.scrapeTotal = 0,
   });
 
   LocalVideoState copyWith({
@@ -73,6 +77,8 @@ class LocalVideoState {
     Set<String>? favoriteHashes,
     Map<String, ScrapedMedia>? scrapedMap,
     bool? scraping,
+    int? scrapeDone,
+    int? scrapeTotal,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -89,6 +95,8 @@ class LocalVideoState {
         favoriteHashes: favoriteHashes ?? this.favoriteHashes,
         scrapedMap: scrapedMap ?? this.scrapedMap,
         scraping: scraping ?? this.scraping,
+        scrapeDone: scrapeDone ?? this.scrapeDone,
+        scrapeTotal: scrapeTotal ?? this.scrapeTotal,
       );
 
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
@@ -196,20 +204,24 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
   /// 后台刮削未缓存的文件（P0）
   Future<void> scrapeMissing() async {
     if (state.scraping) return;
-    state = state.copyWith(scraping: true);
+    final todo = state.items
+        .where((e) => !state.scrapedMap.containsKey(e.pathHash))
+        .toList();
+    state = state.copyWith(scraping: true, scrapeDone: 0, scrapeTotal: todo.length);
     final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
-    for (final item in state.items) {
-      if (cached.containsKey(item.pathHash)) continue;
+    var done = 0;
+    for (final item in todo) {
       try {
         final m = await ScrapeService.scrapeFile(item.pathHash, item.name);
         if (m != null) {
           cached[item.pathHash] = m;
           await ScrapeService.saveCache(item.pathHash, m);
-          if (state.scraping && _mounted) {
-            state = state.copyWith(scrapedMap: cached);
-          }
         }
       } catch (_) {}
+      done++;
+      if (_mounted) {
+        state = state.copyWith(scrapedMap: cached, scrapeDone: done);
+      }
       await Future.delayed(const Duration(milliseconds: 300));
     }
     if (_mounted) state = state.copyWith(scraping: false);

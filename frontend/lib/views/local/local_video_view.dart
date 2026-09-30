@@ -123,6 +123,14 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               ],
             ),
           ),
+          // 刮削进度条（P1 #4）
+          if (state.scraping)
+            LinearProgressIndicator(
+              value: state.scrapeTotal > 0
+                  ? state.scrapeDone / state.scrapeTotal
+                  : null,
+              minHeight: 2,
+            ),
           // 多选模式顶栏
           if (state.selecting)
             Container(
