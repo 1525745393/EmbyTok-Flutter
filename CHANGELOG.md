@@ -1,3 +1,10 @@
+## [2.250.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.2...v2.250.3) (2026-09-30)
+
+
+### Bug Fixes
+
+* MPV/VLC 三引擎适配补全 ([ac6c372](https://github.com/1525745393/EmbyTok-Flutter/commit/ac6c372434dd6a05fa94d078e6433315719d3488))
+
 ## [2.250.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.250.1...v2.250.2) (2026-09-30)
 
 
