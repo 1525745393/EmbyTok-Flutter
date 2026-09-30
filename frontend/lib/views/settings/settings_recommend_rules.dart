@@ -5,6 +5,55 @@ part of '../settings_view.dart';
 // ==================== _SettingsRecommendRules ====================
 
 extension _SettingsRecommendRules on SettingsView {
+  /// 设置分组入口列表项（主页面显示，点击进入二级页面）
+  Widget _buildSectionEntry(
+    BuildContext context,
+    WidgetRef ref,
+    String title,
+    IconData sectionIcon,
+    Color sectionColor,
+    String subtitle,
+    List<Widget> Function(BuildContext context, WidgetRef ref) childrenBuilder,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: scheme.onSurface.withValues(alpha: 0.08),
+        ),
+      ),
+      child: ListTile(
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: sectionColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(sectionIcon, color: sectionColor, size: 22),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SettingsSectionPage(
+                title: title,
+                icon: sectionIcon,
+                color: sectionColor,
+                childrenBuilder: childrenBuilder,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildSection(
     BuildContext context,
     WidgetRef ref,

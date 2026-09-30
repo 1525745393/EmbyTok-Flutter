@@ -40,6 +40,8 @@ import '../test_mode/test_mode_switch.dart';
 import '../widgets/library_selector.dart';
 import 'music/artist_batch_scan_dialog.dart';
 import 'settings/settings_components.dart';
+import 'settings/settings_section_page.dart';
+
 part 'settings/settings_recommend_rules.dart';
 part 'settings/settings_recommend_rules_ext.dart';
 part 'settings/settings_builders.dart';
@@ -102,18 +104,19 @@ class SettingsView extends ConsumerWidget {
         children: [
           // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
           if (!isMusicMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '视频库',
               Icons.video_library_outlined,
               Colors.deepPurple,
-              [
+              '选择媒体库、排除已观看',
+              (context, ref) => [
                 _buildFeedLibraryTile(context, ref),
                 _buildFeedExcludePlayedTile(context, ref),
               ],
             ),
-          // 规则筛选（PR：按 推荐/关注/发现 分区，让用户清楚每项规则作用于哪个页面）
+          // 规则筛选（保留主页面折叠面板：推荐/关注/发现分区）
           if (!isMusicMode)
             _buildSection(
               context,
@@ -176,13 +179,14 @@ class SettingsView extends ConsumerWidget {
             ),
           // 播放设置（音乐模式隐藏：均为视频播放器设置）
           if (!isMusicMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '播放',
               Icons.play_circle_outline,
               Colors.green,
-              [
+              '自动播放、倍速、手势控制',
+              (context, ref) => [
                 _buildAutoPlayTile(context, ref),
                 _buildAutoResumeAfterInterruptionTile(context, ref),
                 _buildFullscreenGestureBackTile(context, ref),
@@ -192,13 +196,14 @@ class SettingsView extends ConsumerWidget {
             ),
           // 播放器引擎设置（音乐模式隐藏）
           if (!isMusicMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '播放器',
               Icons.movie_outlined,
               Colors.orange,
-              [
+              '引擎选择、硬解、画面缩放、弹幕',
+              (context, ref) => [
                 _buildPlayerEngineTile(context, ref),
                 _buildThirdPartyFallbackTile(context, ref),
                 _buildMpvHwDecTile(context, ref),
@@ -213,13 +218,14 @@ class SettingsView extends ConsumerWidget {
             ),
           // 字幕设置（音乐模式隐藏）
           if (!isMusicMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '字幕',
               Icons.closed_caption_outlined,
               Colors.teal,
-              [
+              '语言、字号、颜色、位置、时间偏移',
+              (context, ref) => [
                 _buildSubtitleLanguageTile(context, ref),
                 _buildSubtitleSizeTile(context, ref),
                 _buildSubtitleColorTile(context, ref),
@@ -228,27 +234,29 @@ class SettingsView extends ConsumerWidget {
                 _buildSubtitleTimeOffsetTile(context, ref),
               ],
             ),
-          // 外观设置（主题通用保留；视频方向仅视频模式）
-          _buildSection(
+          // 外观设置
+          _buildSectionEntry(
             context,
             ref,
             '外观',
             Icons.palette_outlined,
             Colors.indigo,
-            [
+            '主题、语言、屏幕方向',
+            (context, ref) => [
               _buildThemeTile(context, ref),
               _buildLanguageTile(context, ref),
               if (!isMusicMode) _buildOrientationTile(context, ref),
             ],
           ),
           // 存储与缓存设置
-          _buildSection(
+          _buildSectionEntry(
             context,
             ref,
             '存储与缓存',
             Icons.storage_outlined,
             Colors.grey,
-            [
+            '缓存管理、日志、重置设置',
+            (context, ref) => [
               _buildCacheTile(context, ref),
               _buildCacheManagementTile(context, ref),
               _buildSmartCacheTile(context, ref),
@@ -258,13 +266,14 @@ class SettingsView extends ConsumerWidget {
             ],
           ),
           // 服务器与账户设置
-          _buildSection(
+          _buildSectionEntry(
             context,
             ref,
             '服务器与账户',
             Icons.cloud_outlined,
             Colors.blue,
-            [
+            'Emby 服务器、服务模式、账户证书',
+            (context, ref) => [
               _buildServiceModeSelector(context, ref),
               _buildServerRegistryTile(context, ref),
               if (!isMusicMode) ...[
@@ -278,14 +287,15 @@ class SettingsView extends ConsumerWidget {
               _buildSelfSignedCertificateTile(context, ref),
             ],
           ),
-          // 音乐库设置：群晖 Audio Station 数据源 + 歌手元数据
-          _buildSection(
+          // 音乐库设置
+          _buildSectionEntry(
             context,
             ref,
             '音乐库',
             Icons.library_music_outlined,
             const Color(0xFF2C8EF4),
-            [
+            '群晖 Audio Station、歌手元数据',
+            (context, ref) => [
               _buildServerGroupLabel(
                   context, ref, '音乐数据源', Icons.library_music_outlined),
               _buildSynologyMusicTile(context, ref),
@@ -298,13 +308,14 @@ class SettingsView extends ConsumerWidget {
             ],
           ),
           // 通用工具
-          _buildSection(
+          _buildSectionEntry(
             context,
             ref,
             '通用工具',
             Icons.tune,
             Colors.teal,
-            [
+            '观看统计、年度报告、网络诊断、反馈',
+            (context, ref) => [
               if (!isMusicMode) _buildWatchStatsTile(context, ref),
               _buildYearReportTile(context, ref),
               _buildNetworkDiagnosticTile(context, ref),
@@ -313,13 +324,14 @@ class SettingsView extends ConsumerWidget {
             ],
           ),
           // 家长控制
-          _buildSection(
+          _buildSectionEntry(
             context,
             ref,
             '家长控制',
             Icons.family_restroom,
             Colors.green,
-            [
+            '儿童模式、评分限制、PIN 锁',
+            (context, ref) => [
               SwitchListTile(
                 title: const Text('儿童模式'),
                 subtitle: const Text('启用后仅显示适合儿童的内容'),
@@ -367,13 +379,14 @@ class SettingsView extends ConsumerWidget {
             ],
           ),
           // 关于
-          _buildSection(
+          _buildSectionEntry(
             context,
             ref,
             '关于',
             Icons.info_outline,
             Colors.blueGrey,
-            [
+            '版本、检查更新、打赏支持',
+            (context, ref) => [
               _buildAboutTile(context, ref),
               _buildCheckUpdateTile(context, ref),
               _buildDonateTile(context, ref),
@@ -382,13 +395,14 @@ class SettingsView extends ConsumerWidget {
           ),
           // 开发者选项（仅开发模式显示）
           if (kDebugMode)
-            _buildSection(
+            _buildSectionEntry(
               context,
               ref,
               '开发者选项',
               Icons.developer_mode,
               Colors.purple,
-              [
+              '性能监控等调试工具',
+              (context, ref) => [
                 _buildPerformanceMonitorTile(context, ref),
               ],
             ),
