@@ -1,3 +1,10 @@
+# [2.249.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.248.0...v2.249.0) (2026-09-30)
+
+
+### Features
+
+* 设置页分组改为二级页面(主页面只显示分组入口列表,点击进入对应分组详细设置) ([32471c0](https://github.com/1525745393/EmbyTok-Flutter/commit/32471c0d7f9c326eb7159986336e8b5b5f14957c))
+
 # [2.248.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.247.0...v2.248.0) (2026-09-29)
 
 
