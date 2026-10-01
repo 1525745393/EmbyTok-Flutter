@@ -1,3 +1,11 @@
+# [2.286.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.285.0...v2.286.0) (2026-10-01)
+
+
+### Features
+
+* 文件源菜单加'重命名媒体库' ([887906e](https://github.com/1525745393/EmbyTok-Flutter/commit/887906e2b803b817463e27de786e220ee9887e30))
+* 本地媒体库剧集自动分组 ([a656421](https://github.com/1525745393/EmbyTok-Flutter/commit/a656421562df774819bd47a3b166621f0b719747))
+
 # [2.285.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.284.0...v2.285.0) (2026-10-01)
 
 
