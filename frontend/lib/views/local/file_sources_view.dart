@@ -174,6 +174,42 @@ class FileSourcesView extends ConsumerWidget {
                 ],
               ),
             ),
+            // 挂载路径列表（多文件夹）
+            Builder(builder: (_) {
+              final paths = <String>[];
+              final raw = s.config['paths'];
+              if (raw != null && raw.isNotEmpty) {
+                paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+              }
+              final old = s.config['path'];
+              if (old != null && old.isNotEmpty && !paths.contains(old)) paths.add(old);
+              if (paths.isEmpty) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final p in paths)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Row(
+                          children: [
+                            Icon(Icons.folder, size: 12, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                p,
+                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
             // 底部信息行：视频数 + 上次扫描时间
             if (s.videoCount > 0 || s.lastScanAt != null)
               Padding(
