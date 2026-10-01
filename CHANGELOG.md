@@ -1,3 +1,10 @@
+# [2.280.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.279.0...v2.280.0) (2026-10-01)
+
+
+### Features
+
+* 文件源卡片支持启用开关+重扫+刮削+换目录+删除 ([cd9f981](https://github.com/1525745393/EmbyTok-Flutter/commit/cd9f981092dcbb8d017661c8c362eaec91d8f9c4))
+
 # [2.279.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.278.0...v2.279.0) (2026-10-01)
 
 
