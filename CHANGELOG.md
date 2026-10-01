@@ -1,3 +1,10 @@
+# [2.295.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.2...v2.295.0) (2026-10-01)
+
+
+### Features
+
+* 详情页加重刮削按钮（修复旧缓存无演员头像） ([2913bc7](https://github.com/1525745393/EmbyTok-Flutter/commit/2913bc739d506da09de3894c51252c1a445b8749))
+
 ## [2.294.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.1...v2.294.2) (2026-10-01)
 
 
