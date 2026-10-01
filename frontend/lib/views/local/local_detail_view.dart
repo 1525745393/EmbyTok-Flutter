@@ -6,6 +6,7 @@ import '../../providers/local_video_provider.dart';
 import '../../models/local_video_item.dart';
 import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/scrape_service.dart';
 import 'person_detail_view.dart';
 
 /// 本地视频详情页（P1 #7）
@@ -38,6 +39,28 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
             expandedHeight: 280,
             pinned: true,
             backgroundColor: scheme.surface,
+            actions: [
+              // 重新刮削（解决旧缓存无演员头像问题）
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                tooltip: '重新刮削元数据',
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
+                  final result = await ScrapeService.scrapeFile(
+                    widget.item.pathHash,
+                    widget.item.name,
+                  );
+                  if (result != null) {
+                    final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                    cached[widget.item.pathHash] = result;
+                    ref.read(localVideoProvider.notifier).state =
+                        ref.read(localVideoProvider).copyWith(scrapedMap: cached);
+                    messenger.showSnackBar(const SnackBar(content: Text('刮削完成')));
+                  }
+                },
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
