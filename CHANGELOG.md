@@ -1,3 +1,10 @@
+## [2.294.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.1...v2.294.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* 演员头像用 CachedNetworkImage + 演员详情页空状态 ([a7d1145](https://github.com/1525745393/EmbyTok-Flutter/commit/a7d11453463a50b4d00334c8ef9ab389cb0a0506))
+
 ## [2.294.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.0...v2.294.1) (2026-10-01)
 
 
