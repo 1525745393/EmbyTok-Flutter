@@ -1,3 +1,10 @@
+# [2.293.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.292.0...v2.293.0) (2026-10-01)
+
+
+### Features
+
+* 本地详情页简介展开+演员头像横滑 ([8d58ad6](https://github.com/1525745393/EmbyTok-Flutter/commit/8d58ad6912cc68683d97c60f597f669182587701))
+
 # [2.292.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.291.0...v2.292.0) (2026-10-01)
 
 
