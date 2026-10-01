@@ -1,3 +1,10 @@
+# [2.288.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.287.0...v2.288.0) (2026-10-01)
+
+
+### Features
+
+* 本地媒体库点卡片进详情页对齐在线 ([dddd6d5](https://github.com/1525745393/EmbyTok-Flutter/commit/dddd6d55fc732687103218feea5773c7ee669668))
+
 # [2.287.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.286.0...v2.287.0) (2026-10-01)
 
 
