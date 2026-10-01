@@ -744,7 +744,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           crossAxisCount: 3,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 0.72,
+          childAspectRatio: 0.62,
         ),
         itemCount: grouped.length,
         itemBuilder: (_, i) {
@@ -1034,12 +1034,17 @@ class _GridCardState extends State<_GridCard> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final title = widget.scraped?.title ?? widget.item.name;
     return GestureDetector(
       onTap: widget.onTap,
       onLongPress: widget.onLongPress,
-      child: Stack(
-        fit: StackFit.expand,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: widget.scraped?.posterPath != null
@@ -1185,6 +1190,19 @@ class _GridCardState extends State<_GridCard> {
                 ),
               ),
             ),
+        ],
+      ),
+          ),
+          // 标题（对齐在线媒体库：海报下方显示名称）
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 2, right: 2),
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
