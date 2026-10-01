@@ -73,9 +73,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           items = [];
           break;
         case FileSourceType.localDir:
-          final path = widget.source.config['path'] ?? '';
-          if (path.isEmpty) throw Exception('未配置文件夹路径');
-          items = await LocalDirScanner().scan(path);
+          // 支持多文件夹挂载
+          final paths = <String>[];
+          final rawPaths = widget.source.config['paths'];
+          if (rawPaths != null && rawPaths.isNotEmpty) {
+            paths.addAll(rawPaths.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+          }
+          final oldPath = widget.source.config['path'] ?? '';
+          if (oldPath.isNotEmpty && !paths.contains(oldPath)) paths.add(oldPath);
+          if (paths.isEmpty) throw Exception('未配置文件夹路径');
+          items = await LocalDirScanner().scan(paths);
           break;
       }
       if (mounted) {

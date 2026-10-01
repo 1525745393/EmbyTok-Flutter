@@ -126,6 +126,29 @@ class FileSourcesView extends ConsumerWidget {
                               builder: (_) => FileSourceBrowseView(source: s),
                             ),
                           );
+                        } else if (v == 'addfolder') {
+                          // 添加另一个文件夹到此媒体库（多文件夹挂载）
+                          final path = await Navigator.push<String>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
+                            ),
+                          );
+                          if (path != null) {
+                            final paths = <String>[];
+                            final raw = s.config['paths'];
+                            if (raw != null && raw.isNotEmpty) {
+                              paths.addAll(raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+                            }
+                            final old = s.config['path'];
+                            if (old != null && old.isNotEmpty && !paths.contains(old)) {
+                              paths.add(old);
+                            }
+                            if (!paths.contains(path)) paths.add(path);
+                            ref.read(fileSourcesProvider.notifier).update(
+                                  s.copyWith(config: {...s.config, 'paths': paths.join(',')}),
+                                );
+                          }
                         } else if (v == 'scrape') {
                           // 刮削此文件夹：打开浏览页自动触发刮削
                           if (context.mounted) {
@@ -142,7 +165,8 @@ class FileSourcesView extends ConsumerWidget {
                       },
                       itemBuilder: (_) => [
                         const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
-                        const PopupMenuItem(value: 'scrape', child: Text('刮削此文件夹')),
+                        const PopupMenuItem(value: 'addfolder', child: Text('添加文件夹到此媒体库')),
+                        const PopupMenuItem(value: 'scrape', child: Text('刮削此媒体库')),
                         const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
                         const PopupMenuItem(value: 'delete', child: Text('删除')),
                       ],

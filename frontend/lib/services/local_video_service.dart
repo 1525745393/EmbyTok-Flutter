@@ -167,11 +167,19 @@ class LocalVideoService {
             }
             break;
           case 'localDir':
-            final path = s['config'] is Map
-                ? (s['config'] as Map)['path'] as String?
-                : null;
-            if (path != null && path.isNotEmpty) {
-              for (final it in await LocalDirScanner().scan(path)) {
+            final cfg = s['config'] is Map ? (s['config'] as Map) : const {};
+            // 支持多文件夹挂载：config['paths'] 逗号分隔；兼容旧 config['path']
+            final paths = <String>[];
+            final rawPaths = cfg['paths'] as String?;
+            if (rawPaths != null && rawPaths.isNotEmpty) {
+              paths.addAll(rawPaths.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+            }
+            final oldPath = cfg['path'] as String?;
+            if (oldPath != null && oldPath.isNotEmpty && !paths.contains(oldPath)) {
+              paths.add(oldPath);
+            }
+            if (paths.isNotEmpty) {
+              for (final it in await LocalDirScanner().scan(paths)) {
                 all.add(it.copyWith(sourceId: sid));
               }
             }

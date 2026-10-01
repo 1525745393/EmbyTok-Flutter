@@ -11,44 +11,44 @@ class LocalDirScanner {
     '.webm', '.m4v', '.mpg', '.mpeg', '.3gp', '.rmvb', '.rm', '.asf',
   };
 
-  /// 递归扫描 [rootPath] 下所有视频文件
+  /// 递归扫描 [rootPaths] 下所有视频文件（支持多文件夹挂载）
   ///
   /// 最多收集 5000 个视频，避免用户误选根目录时扫描过久。
-  Future<List<LocalVideoItem>> scan(String rootPath) async {
+  Future<List<LocalVideoItem>> scan(List<String> rootPaths) async {
     final result = <LocalVideoItem>[];
-    final root = Directory(rootPath);
-    if (!await root.exists()) return result;
-
     const maxFiles = 5000;
-    await for (final entity in root.list(recursive: true, followLinks: false)) {
+    for (final rootPath in rootPaths) {
+      final root = Directory(rootPath);
+      if (!await root.exists()) continue;
+      await for (final entity in root.list(recursive: true, followLinks: false)) {
+        if (result.length >= maxFiles) break;
+        if (entity is! File) continue;
+        final name = entity.path.split('/').last;
+        if (name.startsWith('.')) continue;
+        final dot = name.lastIndexOf('.');
+        if (dot < 0) continue;
+        final ext = name.substring(dot).toLowerCase();
+        if (!_videoExts.contains(ext)) continue;
+        try {
+          final stat = await entity.stat();
+          final parent = entity.path.substring(0, entity.path.lastIndexOf('/'));
+          result.add(LocalVideoItem(
+            id: 'localdir:${entity.path}',
+            name: name.substring(0, dot),
+            path: entity.path,
+            sizeBytes: stat.size,
+            duration: Duration.zero,
+            width: 0,
+            height: 0,
+            mimeType: 'video/*',
+            modifiedAt: stat.modified,
+            isAppDirFile: true,
+            relativePath: parent,
+          ));
+        } catch (_) {}
+      }
       if (result.length >= maxFiles) break;
-      if (entity is! File) continue;
-      final name = entity.path.split('/').last;
-      if (name.startsWith('.')) continue;
-      final dot = name.lastIndexOf('.');
-      if (dot < 0) continue;
-      final ext = name.substring(dot).toLowerCase();
-      if (!_videoExts.contains(ext)) continue;
-      try {
-        final stat = await entity.stat();
-        // 实际父目录（用于剧集分组：西游记/01.mp4 → relativePath=.../西游记）
-        final parent = entity.path.substring(0, entity.path.lastIndexOf('/'));
-        result.add(LocalVideoItem(
-          id: 'localdir:${entity.path}',
-          name: name.substring(0, dot),
-          path: entity.path,
-          sizeBytes: stat.size,
-          duration: Duration.zero,
-          width: 0,
-          height: 0,
-          mimeType: 'video/*',
-          modifiedAt: stat.modified,
-          isAppDirFile: true,
-          relativePath: parent,
-        ));
-      } catch (_) {}
     }
-    // 按修改时间倒序
     result.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
     return result;
   }
