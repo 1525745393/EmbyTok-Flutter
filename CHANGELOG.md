@@ -1,3 +1,10 @@
+# [2.268.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.2...v2.268.0) (2026-10-01)
+
+
+### Features
+
+* 登录界面本地媒体库模式入口（P0第一批） ([d9fcf77](https://github.com/1525745393/EmbyTok-Flutter/commit/d9fcf77028919facaf8e2a2f41caa79402038ebc))
+
 ## [2.267.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.1...v2.267.2) (2026-10-01)
 
 
