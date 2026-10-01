@@ -1,3 +1,10 @@
+## [2.295.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.1...v2.295.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* 本地媒体库横滑区块紧凑化避免重叠 ([9b2c104](https://github.com/1525745393/EmbyTok-Flutter/commit/9b2c104b77b32dd11e42b60d766a01ea423026fe))
+
 ## [2.295.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.0...v2.295.1) (2026-10-01)
 
 
