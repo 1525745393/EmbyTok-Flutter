@@ -1,3 +1,10 @@
+# [2.273.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.272.0...v2.273.0) (2026-10-01)
+
+
+### Features
+
+* P1 本地媒体库首页 — 最近添加 + 未观看横滑分区 ([d3adba8](https://github.com/1525745393/EmbyTok-Flutter/commit/d3adba8cf94aee8b1ce65e43d9cb4a9490353f1b))
+
 # [2.272.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.271.1...v2.272.0) (2026-10-01)
 
 
