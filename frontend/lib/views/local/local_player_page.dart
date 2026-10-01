@@ -40,7 +40,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   /// 系统媒体库视频：用 photo_manager AssetEntity 拿真实文件路径
   /// content:// URI EXO/MPV 都不支持，必须拿到 file:// 路径
+  /// 网络源（WebDAV）不需要解析本地路径
   Future<void> _resolvePath() async {
+    if (item.networkUrl != null && item.networkUrl!.isNotEmpty) return;
     if (item.isAppDirFile || item.assetId == null) return;
     try {
       final asset = AssetEntity(
@@ -101,10 +103,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   @override
   Widget build(BuildContext context) {
     // 把 LocalVideoItem 转成 MediaItem
+    // 网络源（WebDAV）：直接用 networkUrl
     // App 目录文件：直接用 file:// 路径
     // 系统媒体库：异步拿真实文件路径（content:// 播放器不支持）
-    String playbackUrl;
-    if (item.isAppDirFile) {
+    String? playbackUrl;
+    if (item.networkUrl != null && item.networkUrl!.isNotEmpty) {
+      playbackUrl = item.networkUrl;
+    } else if (item.isAppDirFile) {
       playbackUrl = 'file://${item.path}';
     } else if (_resolvedPath != null) {
       playbackUrl = 'file://$_resolvedPath';

@@ -6,6 +6,7 @@ import '../../models/local_video_item.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/webdav_scanner.dart';
+import 'local_player_page.dart';
 
 /// 源内浏览页（P1 第三批 + P0 增强）
 ///
@@ -155,10 +156,16 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                         leading: const Icon(Icons.movie_outlined),
                         title: Text(_items[i].name),
                         subtitle: Text(_items[i].sizeLabel),
+                        trailing: const Icon(Icons.play_arrow, size: 20),
                         onTap: () {
-                          // TODO: P2 接入播放器
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('播放: ${_items[i].name}')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LocalPlayerPage(
+                                items: _items,
+                                initialIndex: i,
+                              ),
+                            ),
                           );
                         },
                       ),
