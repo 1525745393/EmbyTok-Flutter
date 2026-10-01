@@ -164,21 +164,23 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   Text('已选 ${state.selected.length} 项',
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                   const Spacer(),
-                  // 批量收藏（P2 #12）
+                  // 批量收藏（P2 #12）：只收藏未收藏项
                   TextButton(
                     onPressed: () async {
-                      // 找到选中项对应的 pathHash
                       final selectedItems = state.items
                           .where((e) => state.selected.contains(e.id))
                           .toList();
+                      var added = 0;
                       for (final it in selectedItems) {
-                        await notifier.toggleFavorite(it.pathHash);
+                        // 已收藏则跳过，未收藏才收藏
+                        if (!state.favoriteHashes.contains(it.pathHash)) {
+                          await notifier.toggleFavorite(it.pathHash);
+                          added++;
+                        }
                       }
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  '已收藏 ${selectedItems.length} 个视频')),
+                          SnackBar(content: Text('已收藏 $added 个视频')),
                         );
                       }
                     },
@@ -551,7 +553,12 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       if (!mounted) return;
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => LocalDetailPage(item: item)),
+        MaterialPageRoute(
+          builder: (_) => LocalDetailPage(
+            item: item,
+            onPlay: () => _playVideo(item),
+          ),
+        ),
       );
     } else if (action == 'scrape') {
       if (!mounted) return;

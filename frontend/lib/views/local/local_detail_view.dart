@@ -8,7 +8,8 @@ import '../../services/tmdb_service.dart';
 /// 本地视频详情页（P1 #7）
 class LocalDetailPage extends ConsumerWidget {
   final LocalVideoItem item;
-  const LocalDetailPage({super.key, required this.item});
+  final VoidCallback? onPlay; // 播放回调（列表页注入）
+  const LocalDetailPage({super.key, required this.item, this.onPlay});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -117,7 +118,10 @@ class LocalDetailPage extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: () => Navigator.pop(context, true),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            onPlay?.call();
+                          },
                           icon: const Icon(Icons.play_arrow),
                           label: const Text('播放'),
                         ),
