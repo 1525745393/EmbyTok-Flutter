@@ -112,7 +112,21 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
                     padding: EdgeInsets.all(40),
                     child: Center(child: CircularProgressIndicator()),
                   )
-                : Padding(
+                : (_details == null && _credits == null)
+                    ? Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              const Icon(Icons.person_off, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text('暂无法获取演员信息',
+                                  style: TextStyle(color: Colors.grey[600])),
+                            ],
+                          ),
+                        ),
+                      )
+                    : Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

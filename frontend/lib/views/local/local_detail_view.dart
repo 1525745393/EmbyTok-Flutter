@@ -292,15 +292,27 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                             },
                             child: Column(
                               children: [
-                                CircleAvatar(
-                                  radius: 32,
-                                  backgroundColor: scheme.surfaceContainerHighest,
-                                  backgroundImage: profile != null && profile.isNotEmpty
-                                      ? NetworkImage(TmdbService.personUrl(profile))
-                                      : null,
-                                  child: profile == null || profile.isEmpty
-                                      ? const Icon(Icons.person, size: 32)
-                                      : null,
+                                ClipOval(
+                                  child: SizedBox(
+                                    width: 64,
+                                    height: 64,
+                                    child: profile != null && profile.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: TmdbService.personUrl(profile),
+                                            fit: BoxFit.cover,
+                                            placeholder: (_, __) => Container(
+                                              color: scheme.surfaceContainerHighest,
+                                            ),
+                                            errorWidget: (_, __, ___) => Container(
+                                              color: scheme.surfaceContainerHighest,
+                                              child: const Icon(Icons.person, size: 32),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: scheme.surfaceContainerHighest,
+                                            child: const Icon(Icons.person, size: 32),
+                                          ),
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 SizedBox(
