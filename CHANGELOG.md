@@ -1,3 +1,10 @@
+# [2.277.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.276.0...v2.277.0) (2026-10-01)
+
+
+### Features
+
+* P2 继续观看卡片加进度条显示 ([008ef26](https://github.com/1525745393/EmbyTok-Flutter/commit/008ef2636c5eb47bc648dff3e23027e5dd6e860e))
+
 # [2.276.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.275.0...v2.276.0) (2026-10-01)
 
 
