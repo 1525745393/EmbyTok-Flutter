@@ -131,6 +131,23 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   : null,
               minHeight: 2,
             ),
+          // 类型筛选 Chip 行（P1 #6）
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              children: [
+                _buildTypeChip(null, '全部'),
+                const SizedBox(width: 6),
+                _buildTypeChip('movie', '电影'),
+                const SizedBox(width: 6),
+                _buildTypeChip('tv', '剧集'),
+                const SizedBox(width: 6),
+                _buildTypeChip('none', '未识别'),
+              ],
+            ),
+          ),
           // 多选模式顶栏
           if (state.selecting)
             Container(
@@ -239,6 +256,18 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ),
         ],
       ),
+    );
+  }
+
+  /// 类型筛选 Chip（P1 #6）
+  Widget _buildTypeChip(String? value, String label) {
+    final selected = ref.read(localVideoProvider).typeFilter == value;
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: selected,
+      onSelected: (_) => ref.read(localVideoProvider.notifier).setTypeFilter(value),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 

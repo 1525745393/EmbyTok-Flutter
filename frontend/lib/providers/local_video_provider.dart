@@ -42,6 +42,7 @@ class LocalVideoState {
   final bool scraping; // 是否正在批量刮削
   final int scrapeDone; // 刮削进度（P1 #4）
   final int scrapeTotal;
+  final String? typeFilter; // 类型筛选（P1 #6）：null=全部/movie/tv/none
 
   const LocalVideoState({
     this.items = const [],
@@ -60,6 +61,7 @@ class LocalVideoState {
     this.scraping = false,
     this.scrapeDone = 0,
     this.scrapeTotal = 0,
+    this.typeFilter,
   });
 
   LocalVideoState copyWith({
@@ -79,6 +81,7 @@ class LocalVideoState {
     bool? scraping,
     int? scrapeDone,
     int? scrapeTotal,
+    String? typeFilter,
   }) =>
       LocalVideoState(
         items: items ?? this.items,
@@ -97,6 +100,7 @@ class LocalVideoState {
         scraping: scraping ?? this.scraping,
         scrapeDone: scrapeDone ?? this.scrapeDone,
         scrapeTotal: scrapeTotal ?? this.scrapeTotal,
+        typeFilter: typeFilter ?? this.typeFilter,
       );
 
   /// 最近播放的视频项（按时间倒序，与 items 求交集）
@@ -126,6 +130,14 @@ class LocalVideoState {
     if (keyword.trim().isNotEmpty) {
       final k = keyword.toLowerCase();
       list = list.where((e) => e.name.toLowerCase().contains(k)).toList();
+    }
+    // 类型筛选（P1 #6）
+    if (typeFilter != null) {
+      list = list.where((e) {
+        final s = scrapedMap[e.pathHash];
+        if (typeFilter == 'none') return s == null;
+        return s?.type == typeFilter;
+      }).toList();
     }
     switch (sort) {
       case LocalVideoSort.modifiedDesc:
@@ -247,6 +259,7 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
 
   void setKeyword(String k) => state = state.copyWith(keyword: k);
   void setSort(LocalVideoSort s) => state = state.copyWith(sort: s);
+  void setTypeFilter(String? t) => state = state.copyWith(typeFilter: t);
   void toggleGroupByFolder() =>
       state = state.copyWith(groupByFolder: !state.groupByFolder);
   void toggleViewMode() => state = state.copyWith(
