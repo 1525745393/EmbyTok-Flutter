@@ -1,3 +1,10 @@
+# [2.270.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.269.0...v2.270.0) (2026-10-01)
+
+
+### Features
+
+* WebDAV 扫描与源内浏览（P1第三批） ([61e6af6](https://github.com/1525745393/EmbyTok-Flutter/commit/61e6af6842273bb554c2cde4114bfb5605d8909b))
+
 # [2.269.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.268.0...v2.269.0) (2026-10-01)
 
 
