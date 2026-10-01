@@ -3,6 +3,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'local_detail_view.dart';
@@ -883,12 +884,27 @@ class _EmptyState extends StatelessWidget {
         const Icon(Icons.video_library_outlined, size: 64, color: Colors.grey),
         const SizedBox(height: 16),
         const Center(child: Text('没有找到本地视频')),
+        const SizedBox(height: 8),
+        const Center(
+          child: Text(
+            '请先在设置中添加文件源并扫描',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ),
         const SizedBox(height: 16),
         Center(
           child: OutlinedButton.icon(
             onPressed: onRefresh,
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('重新扫描'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => context.push('/file-sources'),
+            icon: const Icon(Icons.folder_open, size: 18),
+            label: const Text('管理文件源'),
           ),
         ),
       ],
