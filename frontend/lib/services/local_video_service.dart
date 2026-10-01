@@ -1,4 +1,4 @@
-// 本地视频服务：扫描手机系统媒体库 + App 专属目录，缓存到 SharedPreferences
+// 本地视频服务：根据启用的文件源聚合扫描，缓存到 SharedPreferences
 // 对应 PRD《本地模式》§4.2 / §5.5
 import 'dart:convert';
 import 'dart:io';
@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
+import 'local_dir_scanner.dart';
 
 class LocalVideoService {
   static const _cacheKey = 'local_video_cache_v1';
@@ -136,11 +137,49 @@ class LocalVideoService {
   }
 
   /// 全量扫描（媒体库 + App 目录），写缓存并返回
+  /// 根据启用的文件源聚合扫描
+  ///
+  /// 文件源存储在 SharedPreferences（key: file_sources_v1），
+  /// local 源走 photo_manager，localDir 走 LocalDirScanner，禁用源跳过。
   Future<List<LocalVideoItem>> scan() async {
-    final media = await _scanMediaStore();
-    final app = await _scanAppDir();
-    final all = [...media, ...app];
-    // 按修改时间倒序
+    final sp = await SharedPreferences.getInstance();
+    final raw = sp.getString('file_sources_v1');
+    final List<Map<String, dynamic>> sources = raw == null
+        ? [
+            // 默认：手机媒体库
+            {'id': 'local_default', 'type': 'local', 'name': '手机媒体库', 'enabled': true}
+          ]
+        : (json.decode(raw) as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+
+    final all = <LocalVideoItem>[];
+    for (final s in sources) {
+      final enabled = s['enabled'] as bool? ?? true;
+      if (!enabled) continue;
+      final type = s['type'] as String? ?? 'local';
+      try {
+        switch (type) {
+          case 'local':
+            all.addAll(await _scanMediaStore());
+            break;
+          case 'localDir':
+            final path = s['config'] is Map
+                ? (s['config'] as Map)['path'] as String?
+                : null;
+            if (path != null && path.isNotEmpty) {
+              all.addAll(await LocalDirScanner().scan(path));
+            }
+            break;
+          // webdav/smb 源的视频通过文件源浏览页单独管理，不合并到首页
+        }
+      } catch (_) {}
+    }
+    // App 专属目录始终包含（用户下载的视频）
+    all.addAll(await _scanAppDir());
+    // 去重（按 path）
+    final seen = <String>{};
+    all.retainWhere((e) => seen.add(e.path));
     all.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
     await _writeCache(all);
     return all;
