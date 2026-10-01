@@ -378,14 +378,15 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Text(title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ),
         SizedBox(
-          height: 160,
+          height: 130,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -397,28 +398,29 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               return GestureDetector(
                 onTap: () => onTap(item),
                 child: SizedBox(
-                  width: 100,
+                  width: 88,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: SizedBox(
-                          width: 100,
-                          height: 140,
+                          width: 88,
+                          height: 118,
                           child: _VideoThumbnail(
                             assetId: item.assetId,
-                            width: 100,
-                            height: 140,
+                            width: 88,
+                            height: 118,
                             scraped: scraped,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(item.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11)),
+                          style: const TextStyle(fontSize: 10)),
                     ],
                   ),
                 ),
@@ -434,14 +436,15 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   Widget _buildRecentRow(List<LocalVideoItem> recent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(12, 12, 12, 6),
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Text('继续观看',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ),
         SizedBox(
-          height: 90,
+          height: 72,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -453,7 +456,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               return GestureDetector(
                 onTap: () => _playVideo(item),
                 child: Container(
-                  width: 150,
+                  width: 130,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
@@ -463,11 +466,11 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                     children: [
                       // 左侧缩略图
                       SizedBox(
-                        width: 96,
+                        width: 80,
                         child: _VideoThumbnail(
                           assetId: item.assetId,
-                          width: 96,
-                          height: 90,
+                          width: 80,
+                          height: 72,
                           scraped: scraped,
                         ),
                       ),
