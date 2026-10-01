@@ -31,6 +31,8 @@ class LocalDirScanner {
       if (!_videoExts.contains(ext)) continue;
       try {
         final stat = await entity.stat();
+        // 实际父目录（用于剧集分组：西游记/01.mp4 → relativePath=.../西游记）
+        final parent = entity.path.substring(0, entity.path.lastIndexOf('/'));
         result.add(LocalVideoItem(
           id: 'localdir:${entity.path}',
           name: name.substring(0, dot),
@@ -42,7 +44,7 @@ class LocalDirScanner {
           mimeType: 'video/*',
           modifiedAt: stat.modified,
           isAppDirFile: true,
-          relativePath: rootPath,
+          relativePath: parent,
         ));
       } catch (_) {}
     }
