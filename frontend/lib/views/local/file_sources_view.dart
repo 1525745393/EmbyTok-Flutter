@@ -90,16 +90,35 @@ class FileSourcesView extends ConsumerWidget {
                     onChanged: (_) =>
                         ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id),
                   ),
-                  if (!isLocal)
+                  // local_default（手机媒体库）不显示菜单，其他源都有
+                  if (s.id != 'local_default')
                     PopupMenuButton<String>(
-                      onSelected: (v) {
+                      onSelected: (v) async {
                         if (v == 'edit') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FileSourceEditView(existing: s),
-                            ),
-                          );
+                          if (s.type == FileSourceType.localDir) {
+                            // 重新选目录
+                            final path = await Navigator.push<String>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LocalDirectoryBrowserView(
+                                  pickMode: true,
+                                  initialPath: s.config['path'],
+                                ),
+                              ),
+                            );
+                            if (path != null) {
+                              ref.read(fileSourcesProvider.notifier).update(
+                                    s.copyWith(config: {...s.config, 'path': path}),
+                                  );
+                            }
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FileSourceEditView(existing: s),
+                              ),
+                            );
+                          }
                         } else if (v == 'rescan') {
                           Navigator.push(
                             context,
@@ -107,14 +126,25 @@ class FileSourcesView extends ConsumerWidget {
                               builder: (_) => FileSourceBrowseView(source: s),
                             ),
                           );
+                        } else if (v == 'scrape') {
+                          // 刮削此文件夹：打开浏览页自动触发刮削
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FileSourceBrowseView(source: s),
+                              ),
+                            );
+                          }
                         } else if (v == 'delete') {
                           _confirmDelete(context, ref, s);
                         }
                       },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
-                        PopupMenuItem(value: 'edit', child: Text('编辑')),
-                        PopupMenuItem(value: 'delete', child: Text('删除')),
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
+                        const PopupMenuItem(value: 'scrape', child: Text('刮削此文件夹')),
+                        const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
+                        const PopupMenuItem(value: 'delete', child: Text('删除')),
                       ],
                     ),
                 ],
