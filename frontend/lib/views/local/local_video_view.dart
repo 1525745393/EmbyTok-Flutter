@@ -80,7 +80,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withOpacity(0.5),
+                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
                     ),
                     onChanged: notifier.setKeyword,
                   ),
@@ -158,10 +158,10 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             ),
           // 文件源（媒体库）筛选 Chip 行
           SizedBox(
-            height: 36,
+            height: 32,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _buildSourceChip(null, '全部'),
                 for (final s in sources) ...[
@@ -173,10 +173,10 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ),
           // 类型筛选 Chip 行（P1 #6）
           SizedBox(
-            height: 36,
+            height: 32,
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 _buildTypeChip(null, '全部'),
                 const SizedBox(width: 6),
@@ -502,64 +502,6 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             },
           ),
         ),
-      ],
-    );
-  }
-
-  /// 文件夹分组列表（P2）
-  Widget _buildGrouped(LocalVideoState state, LocalVideoNotifier notifier) {
-    final grouped = state.grouped;
-    return ListView(
-      children: [
-        for (final entry in grouped.entries) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-            child: Row(
-              children: [
-                const Icon(Icons.folder, size: 16, color: Colors.grey),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(entry.key,
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600)),
-                ),
-                Text('${entry.value.length} 个',
-                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              ],
-            ),
-          ),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 0.72,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: entry.value.length,
-            itemBuilder: (_, i) => _GridCard(
-              item: entry.value[i],
-              selected: state.selected.contains(entry.value[i].id),
-              selecting: state.selecting,
-              isFavorite: state.favoriteHashes.contains(entry.value[i].pathHash),
-              scraped: state.scrapedMap[entry.value[i].pathHash],
-              onTap: () {
-                if (state.selecting) {
-                  notifier.toggleSelected(entry.value[i].id);
-                } else {
-                  _playVideo(entry.value[i]);
-                }
-              },
-              onLongPress: () {
-                if (!state.selecting) _showLongPressMenu(entry.value[i]);
-              },
-              onFavoriteToggle: () =>
-                  notifier.toggleFavorite(entry.value[i].pathHash),
-            ),
-          ),
-        ],
       ],
     );
   }
