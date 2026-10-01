@@ -1,3 +1,15 @@
+# [2.279.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.278.0...v2.279.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* 目录浏览 mounted 检查 + 扫描文件数上限 ([be813ff](https://github.com/1525745393/EmbyTok-Flutter/commit/be813ffd15ab0a910650d546509a6612574552b8))
+
+
+### Features
+
+* 本地媒体库按启用文件源聚合扫描 ([2c13df7](https://github.com/1525745393/EmbyTok-Flutter/commit/2c13df7e0116f8f33a99c2d99ca165f033df978a))
+
 # [2.278.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.277.1...v2.278.0) (2026-10-01)
 
 
