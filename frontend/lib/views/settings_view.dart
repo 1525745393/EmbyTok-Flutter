@@ -13,6 +13,8 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../providers/local_mode_provider.dart';
+import '../providers/file_sources_provider.dart';
+import '../services/local_video_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -110,22 +112,44 @@ class SettingsView extends ConsumerWidget {
               '本地媒体库',
               Icons.smartphone_outlined,
               Colors.purple,
-              '文件源管理、退出本地模式',
-              (context, ref) => [
-                ListTile(
-                  leading: const Icon(Icons.folder_special_outlined, color: Colors.purple),
-                  title: const Text('文件源管理'),
-                  subtitle: const Text('手机本地 / SMB / WebDAV'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/file-sources'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text('退出本地模式'),
-                  subtitle: const Text('返回登录页，连接 Emby 服务器'),
-                  onTap: () => _exitLocalMode(context, ref),
-                ),
-              ],
+              '文件源管理、扫描、退出本地模式',
+              (context, ref) {
+                final sources = ref.watch(fileSourcesProvider);
+                final enabledCount = sources.where((s) => s.enabled).length;
+                final totalVideos = sources.fold<int>(0, (sum, s) => sum + s.videoCount);
+                return [
+                  ListTile(
+                    leading: const Icon(Icons.folder_special_outlined, color: Colors.purple),
+                    title: const Text('文件源管理'),
+                    subtitle: Text('$enabledCount 个启用源 · $totalVideos 个视频'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/file-sources'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.refresh, color: Colors.blue),
+                    title: const Text('立即扫描媒体库'),
+                    subtitle: const Text('重新扫描所有启用的文件源'),
+                    onTap: () async {
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('开始扫描…')),
+                      );
+                      await LocalVideoService().scan();
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('扫描完成')),
+                      );
+                      navigator.pop();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: const Text('退出本地模式'),
+                    subtitle: const Text('返回登录页，连接 Emby 服务器'),
+                    onTap: () => _exitLocalMode(context, ref),
+                  ),
+                ];
+              },
             ),
           ],
           // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
