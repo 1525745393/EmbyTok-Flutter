@@ -126,6 +126,34 @@ class FileSourcesView extends ConsumerWidget {
                               builder: (_) => FileSourceBrowseView(source: s),
                             ),
                           );
+                        } else if (v == 'rename') {
+                          final ctrl = TextEditingController(text: s.name);
+                          final newName = await showDialog<String>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('重命名媒体库'),
+                              content: TextField(
+                                controller: ctrl,
+                                autofocus: true,
+                                decoration: const InputDecoration(hintText: '输入新名称'),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('取消'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, ctrl.text.trim()),
+                                  child: const Text('确定'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (newName != null && newName.isNotEmpty) {
+                            ref.read(fileSourcesProvider.notifier).update(
+                                  s.copyWith(name: newName),
+                                );
+                          }
                         } else if (v == 'addfolder') {
                           // 添加另一个文件夹到此媒体库（多文件夹挂载）
                           final path = await Navigator.push<String>(
@@ -166,6 +194,7 @@ class FileSourcesView extends ConsumerWidget {
                       itemBuilder: (_) => [
                         const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
                         const PopupMenuItem(value: 'addfolder', child: Text('添加文件夹到此媒体库')),
+                        const PopupMenuItem(value: 'rename', child: Text('重命名媒体库')),
                         const PopupMenuItem(value: 'scrape', child: Text('刮削此媒体库')),
                         const PopupMenuItem(value: 'edit', child: Text('编辑/换目录')),
                         const PopupMenuItem(value: 'delete', child: Text('删除')),
