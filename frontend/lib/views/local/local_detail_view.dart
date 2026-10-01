@@ -156,39 +156,49 @@ class LocalDetailPage extends ConsumerWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
-                            width: 90,
-                            height: 135,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => Container(
+                        // 海报（点击放大）
+                        GestureDetector(
+                          onTap: () => _openImageViewer(context, TmdbService.posterUrl(scraped!.posterPath!)),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
                               width: 90,
                               height: 135,
-                              color: scheme.surfaceContainerHighest,
-                              child: const Icon(Icons.movie),
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Container(
+                                width: 90,
+                                height: 135,
+                                color: scheme.surfaceContainerHighest,
+                                child: const Icon(Icons.movie),
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
+                        // 缩略图（点击放大）
                         Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: scraped?.backdropPath != null
-                                ? CachedNetworkImage(
-                                    imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
-                                    height: 135,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => Container(
+                          child: GestureDetector(
+                            onTap: scraped?.backdropPath != null
+                                ? () => _openImageViewer(context, TmdbService.backdropUrl(scraped!.backdropPath!))
+                                : null,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: scraped?.backdropPath != null
+                                  ? CachedNetworkImage(
+                                      imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
+                                      height: 135,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Container(
+                                        height: 135,
+                                        color: scheme.surfaceContainerHighest,
+                                      ),
+                                    )
+                                  : Container(
                                       height: 135,
                                       color: scheme.surfaceContainerHighest,
                                     ),
-                                  )
-                                : Container(
-                                    height: 135,
-                                    color: scheme.surfaceContainerHighest,
-                                  ),
+                            ),
                           ),
                         ),
                       ],
@@ -261,6 +271,24 @@ class LocalDetailPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 全屏查看图片（点击海报/缩略图放大）
+  void _openImageViewer(BuildContext context, String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
+          body: Center(
+            child: InteractiveViewer(
+              child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+            ),
+          ),
+        ),
       ),
     );
   }
