@@ -1,3 +1,10 @@
+## [2.281.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.281.1...v2.281.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* 剧集文件名解析增强 ([76a4ffb](https://github.com/1525745393/EmbyTok-Flutter/commit/76a4ffbdd22a340190cfdd6ed4a9a3fbffa549f5))
+
 ## [2.281.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.281.0...v2.281.1) (2026-10-01)
 
 
