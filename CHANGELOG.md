@@ -1,3 +1,10 @@
+# [2.278.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.277.1...v2.278.0) (2026-10-01)
+
+
+### Features
+
+* 文件源管理支持手机文件夹浏览与添加 ([267ac25](https://github.com/1525745393/EmbyTok-Flutter/commit/267ac25f27bd9624f639ac2f4c7147f2c1b0871f))
+
 ## [2.277.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.277.0...v2.277.1) (2026-10-01)
 
 
