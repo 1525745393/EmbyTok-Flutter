@@ -1,5 +1,5 @@
 // 本地视频全屏播放页：复用 VideoPlayerWidget（三引擎），isLocal=true
-// 对应 PRD《本地模式》§4.4；支持连播（P3）
+// 对应 PRD《本地模式》§4.4；支持连播（P3）+ 续播位置保存（P2）
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
+import '../../services/local_video_service.dart';
 import '../../widgets/video/video_player_widget.dart';
 
 class LocalPlayerPage extends ConsumerStatefulWidget {
@@ -28,6 +29,8 @@ class LocalPlayerPage extends ConsumerStatefulWidget {
 class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   late int _index;
   String? _resolvedPath; // 系统媒体库视频的真实文件路径（异步获取）
+  final _playerKey = GlobalKey<VideoPlayerWidgetState>();
+  bool _initialized = false; // 是否已 seek 到续播位置
 
   @override
   void initState() {
@@ -86,17 +89,51 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   /// 切换索引（上一个/下一个/连播）
   void _jumpTo(int newIndex) {
+    // 切换前保存当前视频的播放进度
+    _saveResume();
     setState(() {
       _index = newIndex.clamp(0, widget.items.length - 1);
       _resolvedPath = null;
+      _initialized = false;
     });
     _resolvePath();
   }
 
   /// 连播：播放完自动播下一个（P3）
   void _onPlaybackEnded() {
+    // 播放完成：清除续播记录
+    LocalVideoService().clearResume(item.pathHash);
     if (_index < widget.items.length - 1) {
       _jumpTo(_index + 1);
+    }
+  }
+
+  /// 保存当前播放位置到 SharedPreferences（续播用）
+  void _saveResume() {
+    try {
+      final pos = _playerKey.currentState?.currentPosition;
+      if (pos != null && pos.inSeconds > 5) {
+        LocalVideoService().writeResumeMs(item.pathHash, pos.inMilliseconds);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _saveResume();
+    super.dispose();
+  }
+
+  /// 播放器初始化后 seek 到上次续播位置（P2）
+  void _seekToResume() async {
+    if (_initialized) return;
+    _initialized = true;
+    final ms = await LocalVideoService().readResumeMs(item.pathHash);
+    if (ms != null && ms > 5000 && mounted) {
+      await Future.delayed(const Duration(milliseconds: 800));
+      try {
+        await _playerKey.currentState?.seekTo(Duration(milliseconds: ms));
+      } catch (_) {}
     }
   }
 
@@ -128,6 +165,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       playbackUrl: playbackUrl,
       durationSeconds: item.duration.inSeconds.toDouble(),
     );
+
+    // 播放器构建后 seek 到上次续播位置（P2）
+    if (!_initialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _seekToResume());
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -177,7 +219,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       ),
       body: Center(
         child: VideoPlayerWidget(
-          key: ValueKey('local_$_index'),
+          key: _playerKey,
           item: mediaItem,
           isLocal: true,
           extraHttpHeaders: item.networkHeaders,
