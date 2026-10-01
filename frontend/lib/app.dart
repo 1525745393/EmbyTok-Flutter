@@ -28,6 +28,7 @@ import 'views/boxset_detail_view.dart';
 import 'views/favorites_view.dart';
 import 'views/watchlist_view.dart';
 import 'views/history_view.dart';
+import 'views/local/file_sources_view.dart';
 import 'views/pin_lock_screen.dart';
 import 'views/home_scaffold.dart';
 import 'views/item_detail_view.dart';
@@ -309,6 +310,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
           },
           child: const WatchlistView(),
         ),
+      ),
+      // 文件源管理（P0 第二批）
+      GoRoute(
+        path: '/file-sources',
+        builder: (context, state) => const FileSourcesView(),
       ),
       // 收藏分类详情
       GoRoute(
