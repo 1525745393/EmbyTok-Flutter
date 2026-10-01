@@ -1,3 +1,10 @@
+## [2.267.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.1...v2.267.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* FeedView dispose 时 ref 已 disposed 报错 ([ca39c4c](https://github.com/1525745393/EmbyTok-Flutter/commit/ca39c4c5e53f309a8a05b958308b639196cb7321))
+
 ## [2.267.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.0...v2.267.1) (2026-10-01)
 
 
