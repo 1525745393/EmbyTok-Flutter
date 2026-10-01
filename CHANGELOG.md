@@ -1,3 +1,10 @@
+# [2.269.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.268.0...v2.269.0) (2026-10-01)
+
+
+### Features
+
+* 文件源管理（P0第二批） ([7b35560](https://github.com/1525745393/EmbyTok-Flutter/commit/7b35560c7a404aa0ac50f5c755eca3f124b750c9))
+
 # [2.268.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.2...v2.268.0) (2026-10-01)
 
 
