@@ -1,3 +1,10 @@
+# [2.284.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.283.0...v2.284.0) (2026-10-01)
+
+
+### Features
+
+* 媒体库支持挂载多个文件夹 ([1b4058f](https://github.com/1525745393/EmbyTok-Flutter/commit/1b4058f69d08916a9e16b0227bc01fc38cdaf767))
+
 # [2.283.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.282.0...v2.283.0) (2026-10-01)
 
 
