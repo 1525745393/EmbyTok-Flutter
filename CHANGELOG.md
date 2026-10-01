@@ -1,3 +1,10 @@
+# [2.289.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.288.0...v2.289.0) (2026-10-01)
+
+
+### Features
+
+* 本地详情页操作行对齐在线 ([a167818](https://github.com/1525745393/EmbyTok-Flutter/commit/a167818879fefd49b36cf6efee840540830ede55))
+
 # [2.288.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.287.0...v2.288.0) (2026-10-01)
 
 
