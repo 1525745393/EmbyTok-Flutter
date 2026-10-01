@@ -713,11 +713,29 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     }
   }
 
+  /// 剧集聚合：同剧名的多集合并为一个卡片
+  List<LocalVideoItem> _groupTvEpisodes(
+      List<LocalVideoItem> items, LocalVideoState state) {
+    final seen = <String>{};
+    final out = <LocalVideoItem>[];
+    for (final it in items) {
+      final s = state.scrapedMap[it.pathHash];
+      if (s != null && s.type == 'tv') {
+        final key = 'tv:${s.title}';
+        if (seen.contains(key)) continue;
+        seen.add(key);
+      }
+      out.add(it);
+    }
+    return out;
+  }
+
   Widget _buildGrid(
     List<LocalVideoItem> items,
     LocalVideoState state,
     LocalVideoNotifier notifier,
   ) {
+    final grouped = _groupTvEpisodes(items, state);
     return RefreshIndicator(
       onRefresh: notifier.refresh,
       child: GridView.builder(
@@ -728,29 +746,43 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           crossAxisSpacing: 8,
           childAspectRatio: 0.72,
         ),
-        itemCount: items.length,
-        itemBuilder: (_, i) => _GridCard(
-          item: items[i],
-          selected: state.selected.contains(items[i].id),
-          selecting: state.selecting,
-          isFavorite: state.favoriteHashes.contains(items[i].pathHash),
-          scraped: state.scrapedMap[items[i].pathHash],
-          onTap: () {
-            if (state.selecting) {
-              notifier.toggleSelected(items[i].id);
-            } else {
-              _playVideo(items[i]);
-            }
-          },
-          onLongPress: () {
-            if (state.selecting) {
-              notifier.enterSelecting();
-            } else {
-              _showLongPressMenu(items[i]);
-            }
-          },
-          onFavoriteToggle: () => notifier.toggleFavorite(items[i].pathHash),
-        ),
+        itemCount: grouped.length,
+        itemBuilder: (_, i) {
+          final it = grouped[i];
+          // 计算该剧集的总集数
+          final s = state.scrapedMap[it.pathHash];
+          int epCount = 1;
+          if (s != null && s.type == 'tv') {
+            epCount = items
+                .where((e) =>
+                    state.scrapedMap[e.pathHash]?.type == 'tv' &&
+                    state.scrapedMap[e.pathHash]?.title == s.title)
+                .length;
+          }
+          return _GridCard(
+            item: it,
+            selected: state.selected.contains(it.id),
+            selecting: state.selecting,
+            isFavorite: state.favoriteHashes.contains(it.pathHash),
+            scraped: state.scrapedMap[it.pathHash],
+            episodeCount: epCount > 1 ? epCount : null,
+            onTap: () {
+              if (state.selecting) {
+                notifier.toggleSelected(it.id);
+              } else {
+                _playVideo(it);
+              }
+            },
+            onLongPress: () {
+              if (state.selecting) {
+                notifier.enterSelecting();
+              } else {
+                _showLongPressMenu(it);
+              }
+            },
+            onFavoriteToggle: () => notifier.toggleFavorite(it.pathHash),
+          );
+        },
       ),
     );
   }
@@ -953,6 +985,7 @@ class _GridCard extends StatefulWidget {
   final bool selecting;
   final bool isFavorite;
   final ScrapedMedia? scraped; // 刮削结果（P0）
+  final int? episodeCount; // 剧集总集数（聚合显示）
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onFavoriteToggle;
@@ -962,6 +995,7 @@ class _GridCard extends StatefulWidget {
     required this.selecting,
     required this.isFavorite,
     this.scraped,
+    this.episodeCount,
     required this.onTap,
     required this.onLongPress,
     required this.onFavoriteToggle,
@@ -1055,8 +1089,25 @@ class _GridCardState extends State<_GridCard> {
                 ),
               ),
             ),
-          // 季集角标右上（P2 #10）
-          if (widget.scraped?.type == 'tv' &&
+          // 剧集角标：聚合时显示"N 集"，单集显示 S01E01
+          if (widget.scraped?.type == 'tv' && widget.episodeCount != null)
+            Positioned(
+              top: 24,
+              right: 4,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${widget.episodeCount} 集',
+                  style: const TextStyle(color: Colors.white, fontSize: 9),
+                ),
+              ),
+            )
+          else if (widget.scraped?.type == 'tv' &&
               widget.scraped?.season != null &&
               widget.scraped?.episode != null)
             Positioned(
