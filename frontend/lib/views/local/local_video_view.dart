@@ -770,7 +770,16 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               if (state.selecting) {
                 notifier.toggleSelected(it.id);
               } else {
-                _playVideo(it);
+                // 对齐在线媒体库：点卡片进详情页，详情页里再点播放
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LocalDetailPage(
+                      item: it,
+                      onPlay: () => _playVideo(it),
+                    ),
+                  ),
+                );
               }
             },
             onLongPress: () {
