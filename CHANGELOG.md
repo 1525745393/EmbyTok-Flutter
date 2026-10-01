@@ -1,3 +1,10 @@
+# [2.281.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.280.1...v2.281.0) (2026-10-01)
+
+
+### Features
+
+* 设置页本地媒体库分区优化 ([54e579d](https://github.com/1525745393/EmbyTok-Flutter/commit/54e579da9319affab5c89dcbb7b2404749e5a0e9))
+
 ## [2.280.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.280.0...v2.280.1) (2026-10-01)
 
 
