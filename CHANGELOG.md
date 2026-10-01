@@ -1,3 +1,10 @@
+## [2.267.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.267.0...v2.267.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 详情页播放按钮+批量收藏逻辑 ([24e8efb](https://github.com/1525745393/EmbyTok-Flutter/commit/24e8efb0ed9d2ec9a386a347e7b398951b33770c))
+
 # [2.267.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.266.0...v2.267.0) (2026-10-01)
 
 
