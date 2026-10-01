@@ -434,9 +434,11 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500)),
                               const SizedBox(height: 4),
-                              Text(item.durationLabel,
-                                  style: const TextStyle(
-                                      fontSize: 10, color: Colors.grey)),
+                              // 续播进度条（P2）
+                              _ResumeProgress(
+                                pathHash: item.pathHash,
+                                totalMs: item.duration.inMilliseconds,
+                              ),
                             ],
                           ),
                         ),
@@ -933,6 +935,57 @@ class _GridCardState extends State<_GridCard> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// 续播进度条组件（P2）：异步读取播放位置，显示进度百分比
+class _ResumeProgress extends StatefulWidget {
+  final String pathHash;
+  final int totalMs;
+  const _ResumeProgress({required this.pathHash, required this.totalMs});
+
+  @override
+  State<_ResumeProgress> createState() => _ResumeProgressState();
+}
+
+class _ResumeProgressState extends State<_ResumeProgress> {
+  int? _resumeMs;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final ms = await LocalVideoService().readResumeMs(widget.pathHash);
+    if (mounted) setState(() => _resumeMs = ms);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_resumeMs == null || widget.totalMs <= 0) {
+      return Text('${Duration(milliseconds: widget.totalMs).inMinutes}:${(Duration(milliseconds: widget.totalMs).inSeconds % 60).toString().padLeft(2, '0')}',
+          style: const TextStyle(fontSize: 10, color: Colors.grey));
+    }
+    final frac = (_resumeMs! / widget.totalMs).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: frac,
+            minHeight: 3,
+            backgroundColor: Colors.white24,
+            valueColor: const AlwaysStoppedAnimation(Color(0xFFFF6B6B)),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text('${(frac * 100).toStringAsFixed(0)}%',
+            style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
     );
   }
 }
