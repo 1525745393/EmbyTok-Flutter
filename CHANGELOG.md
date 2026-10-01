@@ -1,3 +1,10 @@
+# [2.291.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.290.0...v2.291.0) (2026-10-01)
+
+
+### Features
+
+* 本地详情页加海报+缩略图并排布局 ([6283554](https://github.com/1525745393/EmbyTok-Flutter/commit/6283554c62868c5c0df055436234caab4e98031b))
+
 # [2.290.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.289.0...v2.290.0) (2026-10-01)
 
 
