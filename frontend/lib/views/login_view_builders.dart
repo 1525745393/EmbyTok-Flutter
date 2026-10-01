@@ -8,27 +8,40 @@ extension _LoginViewBuilders on _LoginViewState {
   Widget _buildServerTypeSelector(ColorScheme scheme) {
     // 注意：登录表单在 SingleChildScrollView 内，垂直方向无界，
     // 不能使用 crossAxisAlignment.stretch（需要有限高度），用默认 center
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
       children: [
-        Expanded(
-          child: _buildServerTypeCard(
-            scheme: scheme,
-            type: ServerType.emby,
-            title: 'Emby 视频',
-            subtitle: 'Emby / Plex 视频流',
-            icon: Icons.movie_outlined,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _buildServerTypeCard(
+                scheme: scheme,
+                type: ServerType.emby,
+                title: 'Emby 视频',
+                subtitle: 'Emby / Plex 视频流',
+                icon: Icons.movie_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildServerTypeCard(
+                scheme: scheme,
+                type: ServerType.synology,
+                title: '群晖音乐',
+                subtitle: 'Audio Station 音乐库',
+                icon: Icons.library_music_outlined,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildServerTypeCard(
-            scheme: scheme,
-            type: ServerType.synology,
-            title: '群晖音乐',
-            subtitle: 'Audio Station 音乐库',
-            icon: Icons.library_music_outlined,
-          ),
+        const SizedBox(height: 12),
+        // 本地媒体库模式（P0）
+        _buildServerTypeCard(
+          scheme: scheme,
+          type: ServerType.local,
+          title: '本地媒体库',
+          subtitle: '直接管理手机视频，无需服务器',
+          icon: Icons.smartphone_outlined,
         ),
       ],
     );
@@ -297,6 +310,17 @@ extension _LoginViewBuilders on _LoginViewState {
           ),
           child: const Icon(Icons.library_music_outlined,
               size: 18, color: Color(0xFF2C8EF4)),
+        );
+      case ServerType.local:
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFF9C27B0).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.smartphone_outlined,
+              size: 18, color: Color(0xFF9C27B0)),
         );
     }
   }

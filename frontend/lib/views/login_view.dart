@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/demo_mode_provider.dart';
+import '../providers/local_mode_provider.dart';
 import '../providers/providers.dart';
 import '../providers/server_registry_provider.dart';
 import '../models/models.dart';
@@ -34,6 +35,7 @@ enum ServerType {
   emby,
   plex,
   synology,
+  local, // 本地媒体库模式（P0）
 }
 
 /// 服务器历史记录条目
@@ -166,6 +168,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
         ServerType.emby => ServerKind.emby,
         ServerType.plex => ServerKind.plex,
         ServerType.synology => ServerKind.synology,
+        ServerType.local => ServerKind.emby, // 本地模式不写注册表，兜底
       };
       final registry = ref.read(serverRegistryProvider.notifier);
       final host = _hostOf(server);
@@ -417,35 +420,58 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   const SizedBox(height: 24),
 
                   // 登录按钮
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: (isLoading || _isSubmitting) ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  if (_serverType == ServerType.local) ...[
+                    // 本地媒体库模式：直接进入，无需表单
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _enterLocalMode(context, ref),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.primary,
+                          foregroundColor: scheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        textStyle: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        child: const Text('进入本地媒体库'),
                       ),
-                      child: (isLoading || _isSubmitting)
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    scheme.onPrimary),
-                              ),
-                            )
-                          : const Text('登录'),
                     ),
-                  ),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (isLoading || _isSubmitting) ? null : _submit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.primary,
+                          foregroundColor: scheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: (isLoading || _isSubmitting)
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    scheme.onPrimary),
+                                ),
+                              )
+                            : const Text('登录'),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   // 演示模式：无服务器浏览完整 UI
                   TextButton(
@@ -477,6 +503,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
       AppLogger.info('TMDB 演示数据加载完成: ${DemoTmdbCache.movies.length} 部电影, ${DemoTmdbCache.tvShows.length} 部剧集');
     });
     AppLogger.info('进入演示模式');
+    context.go('/');
+  }
+
+  /// 进入本地媒体库模式（P0）：无需服务器，直接管理手机本地视频
+  void _enterLocalMode(BuildContext context, WidgetRef ref) {
+    ref.read(localModeProvider.notifier).state = true;
+    // 注入 mock 登录状态，让路由守卫/顶栏正常工作
+    ref.read(authProvider.notifier).state = AuthState(
+      isAuthenticated: true,
+      user: const User(id: 'local_user', name: '本地用户', accessToken: 'local_token'),
+      embyServerUrl: 'local://',
+      token: 'local_token',
+    );
+    AppLogger.info('进入本地媒体库模式');
     context.go('/');
   }
 

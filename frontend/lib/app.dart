@@ -21,6 +21,7 @@ import 'theme/app_theme.dart';
 import 'l10n/app_translations.dart';
 import 'providers/providers.dart';
 import 'providers/demo_mode_provider.dart';
+import 'providers/local_mode_provider.dart';
 import 'providers/service_mode_provider.dart';
 import 'views/actors_view.dart';
 import 'views/boxset_detail_view.dart';
@@ -117,7 +118,9 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         final synoLoggedIn = ref.read(
           synologyAuthProvider.select((s) => s.isLoggedIn),
         );
-        final isLoggedIn = embyLoggedIn || synoLoggedIn;
+        // 本地媒体库模式（P0）：视为已登录
+        final localMode = ref.read(localModeProvider);
+        final isLoggedIn = embyLoggedIn || synoLoggedIn || localMode;
         final goingToLogin = state.matchedLocation == '/login';
         // 测试模式路由绕过登录守卫（仅 debug 构建注册）
         final goingToTestMode = state.matchedLocation == '/test-mode';

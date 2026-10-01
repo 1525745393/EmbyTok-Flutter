@@ -136,6 +136,8 @@ extension _LoginViewActions on _LoginViewState {
             ))
                 .statusCode ==
             200,
+        // 本地模式：无需连接测试
+        ServerType.local => true,
       };
       if (!mounted || seq != _testConnSeq) return; // 过期或已卸载，丢弃
       setState(() {

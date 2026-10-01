@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/local_mode_provider.dart';
 import 'libraries_browse_view.dart';
 import 'local/local_video_view.dart';
 
@@ -17,47 +18,50 @@ class LibrariesTabView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(librariesModeProvider);
+    // 本地媒体库模式下自动切到本地视频视图
+    final localMode = ref.watch(localModeProvider);
+    final mode = localMode ? LibrariesTabMode.local : ref.watch(librariesModeProvider);
     final scheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
-        // 顶部胶囊切换：在线媒体库 / 本地视频
-        Padding(
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            bottom: 4,
-          ),
-          child: SegmentedButton<LibrariesTabMode>(
-            segments: const [
-              ButtonSegment(
-                value: LibrariesTabMode.online,
-                icon: Icon(Icons.cloud_outlined, size: 18),
-                label: Text('在线媒体库'),
+        // 顶部胶囊切换：本地模式下隐藏（只有本地视频）
+        if (!localMode)
+          Padding(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
+              bottom: 4,
+            ),
+            child: SegmentedButton<LibrariesTabMode>(
+              segments: const [
+                ButtonSegment(
+                  value: LibrariesTabMode.online,
+                  icon: Icon(Icons.cloud_outlined, size: 18),
+                  label: Text('在线媒体库'),
+                ),
+                ButtonSegment(
+                  value: LibrariesTabMode.local,
+                  icon: Icon(Icons.sd_storage_outlined, size: 18),
+                  label: Text('本地视频'),
+                ),
+              ],
+              selected: {mode},
+              onSelectionChanged: (s) {
+                ref.read(librariesModeProvider.notifier).state = s.first;
+              },
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return scheme.primaryContainer;
+                  }
+                  return Colors.transparent;
+                }),
               ),
-              ButtonSegment(
-                value: LibrariesTabMode.local,
-                icon: Icon(Icons.sd_storage_outlined, size: 18),
-                label: Text('本地视频'),
-              ),
-            ],
-            selected: {mode},
-            onSelectionChanged: (s) {
-              ref.read(librariesModeProvider.notifier).state = s.first;
-            },
-            style: ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              backgroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return scheme.primaryContainer;
-                }
-                return Colors.transparent;
-              }),
             ),
           ),
-        ),
         // 内容区
         Expanded(
           child: mode == LibrariesTabMode.online
