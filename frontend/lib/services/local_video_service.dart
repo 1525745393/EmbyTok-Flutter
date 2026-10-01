@@ -158,17 +158,22 @@ class LocalVideoService {
       final enabled = s['enabled'] as bool? ?? true;
       if (!enabled) continue;
       final type = s['type'] as String? ?? 'local';
+      final sid = s['id'] as String? ?? 'local_default';
       try {
         switch (type) {
           case 'local':
-            all.addAll(await _scanMediaStore());
+            for (final it in await _scanMediaStore()) {
+              all.addAll([it.copyWith(sourceId: sid)]);
+            }
             break;
           case 'localDir':
             final path = s['config'] is Map
                 ? (s['config'] as Map)['path'] as String?
                 : null;
             if (path != null && path.isNotEmpty) {
-              all.addAll(await LocalDirScanner().scan(path));
+              for (final it in await LocalDirScanner().scan(path)) {
+                all.add(it.copyWith(sourceId: sid));
+              }
             }
             break;
           // webdav/smb 源的视频通过文件源浏览页单独管理，不合并到首页

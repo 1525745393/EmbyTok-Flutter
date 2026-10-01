@@ -68,6 +68,26 @@ class LocalVideoItem {
     this.networkHeaders = const {},
   });
 
+  /// 复制并覆盖字段（用于扫描时回填 sourceId）
+  LocalVideoItem copyWith({String? sourceId}) => LocalVideoItem(
+        id: id,
+        name: name,
+        path: path,
+        sizeBytes: sizeBytes,
+        duration: duration,
+        width: width,
+        height: height,
+        mimeType: mimeType,
+        modifiedAt: modifiedAt,
+        isAppDirFile: isAppDirFile,
+        relativePath: relativePath,
+        assetId: assetId,
+        subtitlePaths: subtitlePaths,
+        sourceId: sourceId ?? this.sourceId,
+        networkUrl: networkUrl,
+        networkHeaders: networkHeaders,
+      );
+
   /// 路径哈希 key（用于续播 SharedPreferences key）
   String get pathHash => id;
 

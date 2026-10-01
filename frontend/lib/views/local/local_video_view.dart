@@ -9,7 +9,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'local_detail_view.dart';
 
 import '../../models/local_video_item.dart';
+import '../../models/file_source.dart';
 import '../../providers/local_video_provider.dart';
+import '../../providers/file_sources_provider.dart';
 import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
@@ -27,6 +29,7 @@ class LocalVideoView extends ConsumerStatefulWidget {
 class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   final _searchCtrl = TextEditingController();
   String? _browsingFolder; // 正在浏览的文件夹名（null = 全部）
+  String? _selectedSourceId; // 选中的文件源 ID（null = 全部）
 
   @override
   void dispose() {
@@ -48,7 +51,12 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       );
     }
 
-    final items = state.filtered;
+    var items = state.filtered;
+    // 按选中的文件源过滤
+    if (_selectedSourceId != null) {
+      items = items.where((e) => e.sourceId == _selectedSourceId).toList();
+    }
+    final sources = ref.watch(fileSourcesProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -148,6 +156,21 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   : null,
               minHeight: 2,
             ),
+          // 文件源（媒体库）筛选 Chip 行
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              children: [
+                _buildSourceChip(null, '全部'),
+                for (final s in sources) ...[
+                  const SizedBox(width: 6),
+                  _buildSourceChip(s.id, s.name),
+                ],
+              ],
+            ),
+          ),
           // 类型筛选 Chip 行（P1 #6）
           SizedBox(
             height: 36,
@@ -303,6 +326,17 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       label: Text(label, style: const TextStyle(fontSize: 12)),
       selected: selected,
       onSelected: (_) => ref.read(localVideoProvider.notifier).setTypeFilter(value),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
+  /// 文件源（媒体库）筛选 chip
+  Widget _buildSourceChip(String? sourceId, String label) {
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      selected: _selectedSourceId == sourceId,
+      onSelected: (_) => setState(() => _selectedSourceId = sourceId),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );

@@ -237,6 +237,35 @@ class FileSourcesView extends ConsumerWidget {
     );
   }
 
+  /// 输入媒体库名称
+  Future<String?> _showNameDialog(BuildContext context, String defaultName) {
+    final ctrl = TextEditingController(text: defaultName);
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('媒体库名称'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '例如：我的电影、收藏剧集',
+          ),
+          onSubmitted: (v) => Navigator.pop(context, v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ctrl.text),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddTypeDialog(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -262,11 +291,15 @@ class FileSourcesView extends ConsumerWidget {
                 if (!context.mounted) return;
                 final mediaType = await _showMediaTypeDialog(context);
                 if (mediaType == null || !context.mounted) return;
-                final name = path.split('/').last;
+                // 输入媒体库名称
+                if (!context.mounted) return;
+                final defaultName = path.split('/').last;
+                final name = await _showNameDialog(context, defaultName);
+                if (name == null || !context.mounted) return;
                 ref.read(fileSourcesProvider.notifier).add(FileSource(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       type: FileSourceType.localDir,
-                      name: name.isEmpty ? '手机文件夹' : name,
+                      name: name.trim().isEmpty ? (defaultName.isEmpty ? '手机文件夹' : defaultName) : name.trim(),
                       config: {'path': path, 'mediaType': mediaType},
                     ));
               },
