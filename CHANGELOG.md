@@ -1,3 +1,10 @@
+# [2.266.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.265.0...v2.266.0) (2026-10-01)
+
+
+### Features
+
+* 本地UI优化 [#6](https://github.com/1525745393/EmbyTok-Flutter/issues/6) 类型分区筛选 ([fe4ff9f](https://github.com/1525745393/EmbyTok-Flutter/commit/fe4ff9f9d40ebd0afdee947a8ce8cab1fb453292))
+
 # [2.265.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.264.0...v2.265.0) (2026-09-30)
 
 
