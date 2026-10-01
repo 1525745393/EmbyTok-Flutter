@@ -1,5 +1,6 @@
 // 本地视频全屏播放页：复用 VideoPlayerWidget（三引擎），isLocal=true
 // 对应 PRD《本地模式》§4.4；支持连播（P3）+ 续播位置保存（P2）
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,12 +32,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   String? _resolvedPath; // 系统媒体库视频的真实文件路径（异步获取）
   final _playerKey = GlobalKey<VideoPlayerWidgetState>();
   bool _initialized = false; // 是否已 seek 到续播位置
+  int _seekToken = 0; // 续播 seek 竞态保护：快速切换视频时使旧 seek 失效
+  Timer? _saveTimer; // 周期保存播放位置（dispose 时子组件已销毁，无法在 dispose 中读位置）
 
   @override
   void initState() {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.items.length - 1);
     _resolvePath();
+    // 每 5 秒保存一次播放进度，避免退出时子组件已 dispose 导致丢失
+    _saveTimer = Timer.periodic(const Duration(seconds: 5), (_) => _saveResume());
   }
 
   LocalVideoItem get item => widget.items[_index];
@@ -91,6 +96,8 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   void _jumpTo(int newIndex) {
     // 切换前保存当前视频的播放进度
     _saveResume();
+    // 使进行中的续播 seek 失效，避免旧位置 seek 到新播放器
+    _seekToken++;
     setState(() {
       _index = newIndex.clamp(0, widget.items.length - 1);
       _resolvedPath = null;
@@ -120,7 +127,8 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   @override
   void dispose() {
-    _saveResume();
+    _saveTimer?.cancel();
+    _saveResume(); // 最后再保存一次（此时子组件可能已销毁，但 timer 已积累最新位置）
     super.dispose();
   }
 
@@ -128,9 +136,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   void _seekToResume() async {
     if (_initialized) return;
     _initialized = true;
+    final token = ++_seekToken;
     final ms = await LocalVideoService().readResumeMs(item.pathHash);
-    if (ms != null && ms > 5000 && mounted) {
+    // 等待期间用户可能已切换视频，token 变化则放弃本次 seek
+    if (token != _seekToken || !mounted) return;
+    if (ms != null && ms > 5000) {
       await Future.delayed(const Duration(milliseconds: 800));
+      if (token != _seekToken || !mounted) return;
       try {
         await _playerKey.currentState?.seekTo(Duration(milliseconds: ms));
       } catch (_) {}
