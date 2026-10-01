@@ -18,6 +18,8 @@ class TmdbService {
       '$_imgBase/$size$path';
   static String backdropUrl(String path, {String size = 'w780'}) =>
       '$_imgBase/$size$path';
+  static String personUrl(String path, {String size = 'w185'}) =>
+      '$_imgBase/$size$path';
 
   /// 获取 Trending 电影（演示模式用）
   static Future<List<Map<String, dynamic>>> getTrendingMovies() async {

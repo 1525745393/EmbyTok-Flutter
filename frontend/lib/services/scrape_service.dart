@@ -272,6 +272,7 @@ class ScrapeService {
           .map((c) => {
                 'name': c['name'] as String? ?? '',
                 'role': c['character'] as String? ?? '',
+                'profilePath': c['profile_path'] as String? ?? '',
               })
           .toList(),
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
@@ -312,6 +313,7 @@ class ScrapeService {
           .map((c) => {
                 'name': c['name'] as String? ?? '',
                 'role': c['character'] as String? ?? '',
+                'profilePath': c['profile_path'] as String? ?? '',
               })
           .toList(),
       scrapedAt: DateTime.now().millisecondsSinceEpoch,

@@ -244,27 +244,58 @@ class LocalDetailPage extends ConsumerWidget {
                       ],
                     ),
                   const SizedBox(height: 16),
-                  // 简介
+                  // 简介（可展开/收起）
                   if (scraped?.overview != null && scraped!.overview!.isNotEmpty) ...[
-                    const Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Text(
-                      scraped.overview!,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.5),
-                    ),
+                    _ExpandableOverview(text: scraped.overview!),
                     const SizedBox(height: 20),
                   ],
-                  // 演员
+                  // 演员（横滑头像列表，对齐在线）
                   if (scraped != null && scraped.cast.isNotEmpty) ...[
                     const Text('演员', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
-                    ...scraped.cast.map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Text(
-                            '${c['name']} · ${c['role'] ?? ''}',
-                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                          ),
-                        )),
+                    SizedBox(
+                      height: 110,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: scraped.cast.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        itemBuilder: (_, i) {
+                          final c = scraped.cast[i];
+                          final profile = c['profilePath'];
+                          return GestureDetector(
+                            onTap: () => _openImageViewer(
+                              context,
+                              TmdbService.personUrl(profile ?? ''),
+                            ),
+                            child: Column(
+                              children: [
+                                CircleAvatar(
+                                  radius: 32,
+                                  backgroundColor: scheme.surfaceContainerHighest,
+                                  backgroundImage: profile != null && profile.isNotEmpty
+                                      ? NetworkImage(TmdbService.personUrl(profile))
+                                      : null,
+                                  child: profile == null || profile.isEmpty
+                                      ? const Icon(Icons.person, size: 32)
+                                      : null,
+                                ),
+                                const SizedBox(height: 4),
+                                SizedBox(
+                                  width: 72,
+                                  child: Text(
+                                    c['name'] ?? '',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -290,6 +321,44 @@ class LocalDetailPage extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 可展开/收起的简介（对齐在线详情）
+class _ExpandableOverview extends StatefulWidget {
+  final String text;
+  const _ExpandableOverview({required this.text});
+
+  @override
+  State<_ExpandableOverview> createState() => _ExpandableOverviewState();
+}
+
+class _ExpandableOverviewState extends State<_ExpandableOverview> {
+  bool _expanded = false;
+  static const _maxLines = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.5);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Text(
+          widget.text,
+          style: style,
+          maxLines: _expanded ? null : _maxLines,
+          overflow: _expanded ? null : TextOverflow.ellipsis,
+        ),
+        if (widget.text.length > 120)
+          TextButton(
+            onPressed: () => setState(() => _expanded = !_expanded),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+            child: Text(_expanded ? '收起' : '展开', style: const TextStyle(fontSize: 13)),
+          ),
+      ],
     );
   }
 }
