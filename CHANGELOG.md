@@ -1,3 +1,10 @@
+# [2.290.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.289.0...v2.290.0) (2026-10-01)
+
+
+### Features
+
+* 本地详情页对齐在线 Emby 详情布局 ([7556130](https://github.com/1525745393/EmbyTok-Flutter/commit/75561303cf9710cedcc15c9811c23922a5386606))
+
 # [2.289.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.288.0...v2.289.0) (2026-10-01)
 
 
