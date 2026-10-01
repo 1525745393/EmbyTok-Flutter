@@ -9,17 +9,26 @@ import '../../services/tmdb_service.dart';
 import 'person_detail_view.dart';
 
 /// 本地视频详情页（P1 #7）
-class LocalDetailPage extends ConsumerWidget {
+class LocalDetailPage extends ConsumerStatefulWidget {
   final LocalVideoItem item;
   final VoidCallback? onPlay; // 播放回调（列表页注入）
   const LocalDetailPage({super.key, required this.item, this.onPlay});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LocalDetailPage> createState() => _LocalDetailPageState();
+}
+
+class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
+  /// 缓存继续观看进度 future，避免 ref.watch 触发 rebuild 时重新请求
+  late final Future<int?> _resumeFuture =
+      LocalVideoService().readResumeMs(widget.item.pathHash);
+
+  @override
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final scraped = ref.watch(localVideoProvider).scrapedMap[item.pathHash];
-    final isFav = ref.watch(localVideoProvider).favoriteHashes.contains(item.pathHash);
-    final totalMs = item.duration.inMilliseconds;
+    final scraped = ref.watch(localVideoProvider).scrapedMap[widget.item.pathHash];
+    final isFav = ref.watch(localVideoProvider).favoriteHashes.contains(widget.item.pathHash);
+    final totalMs = widget.item.duration.inMilliseconds;
 
     return Scaffold(
       body: CustomScrollView(
@@ -57,7 +66,7 @@ class LocalDetailPage extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          scraped?.title ?? item.name,
+                          scraped?.title ?? widget.item.name,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -69,7 +78,7 @@ class LocalDetailPage extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${scraped?.year ?? ''} · ${item.durationLabel}${scraped?.rating != null ? ' · ★${scraped!.rating!.toStringAsFixed(1)}' : ''}',
+                          '${scraped?.year ?? ''} · ${widget.item.durationLabel}${scraped?.rating != null ? ' · ★${scraped!.rating!.toStringAsFixed(1)}' : ''}',
                           style: const TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                         const SizedBox(height: 12),
@@ -77,7 +86,7 @@ class LocalDetailPage extends ConsumerWidget {
                         Row(
                           children: [
                             FutureBuilder<int?>(
-                              future: LocalVideoService().readResumeMs(item.pathHash),
+                              future: _resumeFuture,
                               builder: (_, snap) {
                                 final ms = snap.data;
                                 final progress = totalMs > 0 && ms != null ? (ms / totalMs).clamp(0.0, 1.0) : 0.0;
@@ -95,20 +104,20 @@ class LocalDetailPage extends ConsumerWidget {
                                   ),
                                   onPressed: () {
                                     Navigator.pop(context);
-                                    onPlay?.call();
+                                    widget.onPlay?.call();
                                   },
                                 );
                               },
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(item.pathHash),
+                              onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(widget.item.pathHash),
                               icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
                                   color: isFav ? Colors.pink : Colors.white),
                               tooltip: isFav ? '取消收藏' : '收藏',
                             ),
                             IconButton(
-                              onPressed: () => Share.shareXFiles([XFile(item.path)], subject: item.name),
+                              onPressed: () => Share.shareXFiles([XFile(widget.item.path)], subject: widget.item.name),
                               icon: const Icon(Icons.share, color: Colors.white),
                               tooltip: '分享',
                             ),
@@ -118,7 +127,7 @@ class LocalDetailPage extends ConsumerWidget {
                                   context: context,
                                   builder: (_) => AlertDialog(
                                     title: const Text('删除视频'),
-                                    content: Text('确定删除 ${item.name} 吗？此操作不可恢复。'),
+                                    content: Text('确定删除 ${widget.item.name} 吗？此操作不可恢复。'),
                                     actions: [
                                       TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
                                       TextButton(
@@ -130,7 +139,7 @@ class LocalDetailPage extends ConsumerWidget {
                                   ),
                                 );
                                 if (ok == true) {
-                                  await ref.read(localVideoProvider.notifier).deleteByIds({item.id});
+                                  await ref.read(localVideoProvider.notifier).deleteByIds({widget.item.id});
                                   if (context.mounted) Navigator.pop(context);
                                 }
                               },
