@@ -1,3 +1,10 @@
+# [2.274.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.273.0...v2.274.0) (2026-10-01)
+
+
+### Features
+
+* P2 WebDAV源视频接入播放器 ([f231937](https://github.com/1525745393/EmbyTok-Flutter/commit/f231937a2c6c7ab104af2b20bf6f65c37bc965a8))
+
 # [2.273.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.272.0...v2.273.0) (2026-10-01)
 
 
