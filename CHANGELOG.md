@@ -1,3 +1,10 @@
+# [2.285.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.284.0...v2.285.0) (2026-10-01)
+
+
+### Features
+
+* 文件源卡片显示挂载路径列表 ([14127dc](https://github.com/1525745393/EmbyTok-Flutter/commit/14127dc71fc03289e98981ecc689f966dc0465e8))
+
 # [2.284.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.283.0...v2.284.0) (2026-10-01)
 
 
