@@ -147,25 +147,91 @@ class LocalDetailPage extends ConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 类型标签
+                  // Primary 海报 + Thumb 缩略图并排（对齐在线）
+                  if (scraped?.posterPath != null)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
+                            width: 90,
+                            height: 135,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Container(
+                              width: 90,
+                              height: 135,
+                              color: scheme.surfaceContainerHighest,
+                              child: const Icon(Icons.movie),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: scraped?.backdropPath != null
+                                ? CachedNetworkImage(
+                                    imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
+                                    height: 135,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => Container(
+                                      height: 135,
+                                      color: scheme.surfaceContainerHighest,
+                                    ),
+                                  )
+                                : Container(
+                                    height: 135,
+                                    color: scheme.surfaceContainerHighest,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 12),
+                  // 类型标签 + 年份 + 评分 + 时长
                   if (scraped != null && scraped.genres.isNotEmpty)
                     Wrap(
                       spacing: 6,
                       runSpacing: 4,
-                      children: scraped.genres
-                          .map((g) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: scheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(g, style: const TextStyle(fontSize: 11)),
-                              ))
-                          .toList(),
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ...scraped.genres.map((g) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(g, style: const TextStyle(fontSize: 11)),
+                            )),
+                        if (scraped.year != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('${scraped.year}', style: const TextStyle(fontSize: 11)),
+                          ),
+                        if (scraped.rating != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.star, size: 12, color: Colors.amber),
+                              const SizedBox(width: 2),
+                              Text(scraped.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
+                            ]),
+                          ),
+                      ],
                     ),
                   const SizedBox(height: 16),
                   // 简介
