@@ -1,3 +1,10 @@
+## [2.281.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.281.0...v2.281.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 本地媒体库空状态加'管理文件源'引导按钮 ([62aa88c](https://github.com/1525745393/EmbyTok-Flutter/commit/62aa88c52521beb205c8e140c722b8f0560393fe))
+
 # [2.281.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.280.1...v2.281.0) (2026-10-01)
 
 
