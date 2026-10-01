@@ -112,6 +112,19 @@ class LocalVideoState {
         .toList();
   }
 
+  /// 最近添加的视频（P1）：按修改时间倒序，取前 10 个，排除已在"继续观看"中的
+  List<LocalVideoItem> get recentlyAdded {
+    final playing = recentHashes.toSet();
+    final list = [...items]..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return list.where((e) => !playing.contains(e.pathHash)).take(10).toList();
+  }
+
+  /// 未观看的视频（P1）：从未播放过（不在 recentHashes 中），取前 10
+  List<LocalVideoItem> get unwatchedItems {
+    final played = recentHashes.toSet();
+    return items.where((e) => !played.contains(e.pathHash)).take(10).toList();
+  }
+
   /// 按文件夹分组（P2）：返回 {文件夹名: 视频列表}，按文件夹名排序
   Map<String, List<LocalVideoItem>> get grouped {
     final map = <String, List<LocalVideoItem>>{};

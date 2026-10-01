@@ -237,6 +237,22 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                           // 最近观看横滑区块（P2）
                           if (state.recentItems.isNotEmpty)
                             _buildRecentRow(state.recentItems),
+                          // 最近添加横滑海报墙（P1）
+                          if (state.recentlyAdded.isNotEmpty)
+                            _buildPosterRow(
+                              title: '最近添加',
+                              items: state.recentlyAdded,
+                              state: state,
+                              onTap: (item) => _playVideo(item),
+                            ),
+                          // 未观看横滑（P1）
+                          if (state.unwatchedItems.isNotEmpty)
+                            _buildPosterRow(
+                              title: '未观看',
+                              items: state.unwatchedItems,
+                              state: state,
+                              onTap: (item) => _playVideo(item),
+                            ),
                           Expanded(
                             child: state.groupByFolder
                                 ? _buildGrouped(state, notifier)
@@ -299,6 +315,67 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           '${(totalBytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
     }
     return '$movies 部电影 · $tvs 部剧集 · $unscraped 未识别 · 占用 $sizeLabel';
+  }
+
+  /// 海报横滑区块（P1）：最近添加 / 未观看
+  Widget _buildPosterRow({
+    required String title,
+    required List<LocalVideoItem> items,
+    required LocalVideoState state,
+    required void Function(LocalVideoItem) onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          child: Text(title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        ),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final item = items[i];
+              final scraped = state.scrapedMap[item.pathHash];
+              return GestureDetector(
+                onTap: () => onTap(item),
+                child: SizedBox(
+                  width: 100,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          width: 100,
+                          height: 140,
+                          child: _VideoThumbnail(
+                            assetId: item.assetId,
+                            width: 100,
+                            height: 140,
+                            scraped: scraped,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(item.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   /// 最近观看横滑区块（P2）
