@@ -5,6 +5,7 @@ import '../../models/file_source.dart';
 import '../../models/local_video_item.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../services/local_dir_scanner.dart';
+import '../../services/scrape_service.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/webdav_scanner.dart';
 import 'local_player_page.dart';
@@ -24,6 +25,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   List<LocalVideoItem> _items = [];
   bool _loading = true;
   String? _error;
+  bool _scraping = false;
+  int _scrapedCount = 0;
 
   @override
   void initState() {
@@ -100,6 +103,29 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
+  /// 对当前列表中未刮削的视频调用 TMDB 刮削
+  Future<void> _scrapeAll() async {
+    if (_items.isEmpty || _scraping) return;
+    setState(() {
+      _scraping = true;
+      _scrapedCount = 0;
+    });
+    for (final item in _items) {
+      try {
+        final pathHash = item.path.hashCode.toString();
+        await ScrapeService.scrapeFile(pathHash, item.name);
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() => _scrapedCount++);
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('刮削完成：共 $_scrapedCount 个视频')),
+      );
+      setState(() => _scraping = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +133,17 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         title: Text(widget.source.name),
         actions: [
           IconButton(onPressed: _scan, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _scraping ? null : _scrapeAll,
+            icon: _scraping
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome),
+            tooltip: '刮削此文件夹',
+          ),
         ],
       ),
       body: _loading

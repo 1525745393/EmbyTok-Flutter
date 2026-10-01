@@ -102,7 +102,7 @@ class FileSourcesView extends ConsumerWidget {
                               MaterialPageRoute(
                                 builder: (_) => LocalDirectoryBrowserView(
                                   pickMode: true,
-                                  initialPath: s.config['path'],
+                                  initialPath: s.config['path'] as String? ?? '',
                                 ),
                               ),
                             );
