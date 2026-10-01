@@ -1,3 +1,10 @@
+## [2.280.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.280.0...v2.280.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 文件源浏览页加刮削按钮，真正触发 TMDB 刮削 ([f00a391](https://github.com/1525745393/EmbyTok-Flutter/commit/f00a3911439121647f9cedf7634b6ab2ca661d03))
+
 # [2.280.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.279.0...v2.280.0) (2026-10-01)
 
 
