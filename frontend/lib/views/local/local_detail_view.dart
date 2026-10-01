@@ -6,6 +6,7 @@ import '../../providers/local_video_provider.dart';
 import '../../models/local_video_item.dart';
 import '../../services/local_video_service.dart';
 import '../../services/tmdb_service.dart';
+import 'person_detail_view.dart';
 
 /// 本地视频详情页（P1 #7）
 class LocalDetailPage extends ConsumerWidget {
@@ -262,11 +263,24 @@ class LocalDetailPage extends ConsumerWidget {
                         itemBuilder: (_, i) {
                           final c = scraped.cast[i];
                           final profile = c['profilePath'];
+                          final personId = int.tryParse(c['id'] ?? '');
                           return GestureDetector(
-                            onTap: () => _openImageViewer(
-                              context,
-                              TmdbService.personUrl(profile ?? ''),
-                            ),
+                            onTap: () {
+                              if (personId != null && personId > 0) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PersonDetailPage(
+                                      personId: personId,
+                                      name: c['name'] ?? '',
+                                      profilePath: profile,
+                                    ),
+                                  ),
+                                );
+                              } else if (profile != null && profile.isNotEmpty) {
+                                _openImageViewer(context, TmdbService.personUrl(profile));
+                              }
+                            },
                             child: Column(
                               children: [
                                 CircleAvatar(

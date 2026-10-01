@@ -21,6 +21,28 @@ class TmdbService {
   static String personUrl(String path, {String size = 'w185'}) =>
       '$_imgBase/$size$path';
 
+  /// 获取演员详情
+  static Future<Map<String, dynamic>?> getPersonDetails(int personId) async {
+    if (!isConfigured) return null;
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/person/$personId?api_key=$_apiKey'));
+      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
+  /// 获取演员作品（combined credits，电影+电视剧）
+  static Future<Map<String, dynamic>?> getPersonCredits(int personId) async {
+    if (!isConfigured) return null;
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/person/$personId/combined_credits?api_key=$_apiKey'));
+      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    return null;
+  }
+
   /// 获取 Trending 电影（演示模式用）
   static Future<List<Map<String, dynamic>>> getTrendingMovies() async {
     if (!isConfigured) return [];

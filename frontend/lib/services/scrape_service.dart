@@ -270,6 +270,7 @@ class ScrapeService {
       cast: ((d['credits']?['cast'] as List?) ?? [])
           .take(10)
           .map((c) => {
+                'id': (c['id'] as num?)?.toString() ?? '',
                 'name': c['name'] as String? ?? '',
                 'role': c['character'] as String? ?? '',
                 'profilePath': c['profile_path'] as String? ?? '',
@@ -311,6 +312,7 @@ class ScrapeService {
       cast: ((d['credits']?['cast'] as List?) ?? [])
           .take(10)
           .map((c) => {
+                'id': (c['id'] as num?)?.toString() ?? '',
                 'name': c['name'] as String? ?? '',
                 'role': c['character'] as String? ?? '',
                 'profilePath': c['profile_path'] as String? ?? '',
