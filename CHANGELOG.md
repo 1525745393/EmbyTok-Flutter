@@ -1,3 +1,10 @@
+## [2.294.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.0...v2.294.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 详情页 FutureBuilder 缓存 resume future ([63918d7](https://github.com/1525745393/EmbyTok-Flutter/commit/63918d79f5bc7669e69378af8a1bf97df14a39b5))
+
 # [2.294.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.293.0...v2.294.0) (2026-10-01)
 
 
