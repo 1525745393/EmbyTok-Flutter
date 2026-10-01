@@ -12,12 +12,16 @@ class LocalDirScanner {
   };
 
   /// 递归扫描 [rootPath] 下所有视频文件
+  ///
+  /// 最多收集 5000 个视频，避免用户误选根目录时扫描过久。
   Future<List<LocalVideoItem>> scan(String rootPath) async {
     final result = <LocalVideoItem>[];
     final root = Directory(rootPath);
     if (!await root.exists()) return result;
 
+    const maxFiles = 5000;
     await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (result.length >= maxFiles) break;
       if (entity is! File) continue;
       final name = entity.path.split('/').last;
       if (name.startsWith('.')) continue;

@@ -70,6 +70,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
   }
 
   Future<void> _listDir() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -77,6 +78,7 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
     try {
       final dir = Directory(_currentPath);
       if (!await dir.exists()) {
+        if (!mounted) return;
         setState(() {
           _error = '目录不存在: $_currentPath';
           _loading = false;
@@ -111,11 +113,13 @@ class _LocalDirectoryBrowserViewState extends State<LocalDirectoryBrowserView> {
       }
       dirs.sort((a, b) => a.name.compareTo(b.name));
       videos.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+      if (!mounted) return;
       setState(() {
         _entries = [...dirs, ...videos];
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '无法访问目录: $e';
         _loading = false;
