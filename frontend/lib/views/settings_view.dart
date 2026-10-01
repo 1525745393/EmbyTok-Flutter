@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import '../providers/local_mode_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -101,6 +102,32 @@ class SettingsView extends ConsumerWidget {
         padding: EdgeInsets.fromLTRB(
             0, 8, 0, 8 + MediaQuery.paddingOf(context).bottom),
         children: [
+          // 本地媒体库模式入口（P2）：文件源管理 + 退出本地模式
+          if (ref.watch(localModeProvider)) ...[
+            _buildSectionEntry(
+              context,
+              ref,
+              '本地媒体库',
+              Icons.smartphone_outlined,
+              Colors.purple,
+              '文件源管理、退出本地模式',
+              (context, ref) => [
+                ListTile(
+                  leading: const Icon(Icons.folder_special_outlined, color: Colors.purple),
+                  title: const Text('文件源管理'),
+                  subtitle: const Text('手机本地 / SMB / WebDAV'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/file-sources'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('退出本地模式'),
+                  subtitle: const Text('返回登录页，连接 Emby 服务器'),
+                  onTap: () => _exitLocalMode(context, ref),
+                ),
+              ],
+            ),
+          ],
           // 视频库设置（PR #66：视频流 / 推荐可分别设置；音乐模式隐藏）
           if (!isMusicMode)
             _buildSectionEntry(
@@ -366,6 +393,33 @@ class SettingsView extends ConsumerWidget {
           const SizedBox(height: _kSpacingXXLarge),
           _buildLogoutButton(context, ref),
           const SizedBox(height: _kSpacingXXXXLarge),
+        ],
+      ),
+    );
+  }
+
+  /// 退出本地媒体库模式（P2）：重置状态并返回登录页
+  void _exitLocalMode(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('退出本地模式'),
+        content: const Text('确定退出本地媒体库模式并返回登录页？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(localModeProvider.notifier).state = false;
+              // 重置认证状态
+              ref.read(authProvider.notifier).state = const AuthState();
+              Navigator.pop(context);
+              context.go('/login');
+            },
+            child: const Text('退出', style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
