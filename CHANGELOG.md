@@ -1,3 +1,10 @@
+# [2.272.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.271.1...v2.272.0) (2026-10-01)
+
+
+### Features
+
+* P0 文件源增强 — 启用/禁用开关、SMB连接测试、单独扫描 ([2f979cb](https://github.com/1525745393/EmbyTok-Flutter/commit/2f979cbebc897bef2fd43bbbea11c74e129bdc13))
+
 ## [2.271.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.271.0...v2.271.1) (2026-10-01)
 
 
