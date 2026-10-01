@@ -1,3 +1,10 @@
+## [2.271.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.271.0...v2.271.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 登录页本地模式隐藏服务器字段 + WebDAV 扫描资源清理 ([8510454](https://github.com/1525745393/EmbyTok-Flutter/commit/8510454bb6fcf122eb2a2d4d9618804535dd426e))
+
 # [2.271.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.270.0...v2.271.0) (2026-10-01)
 
 
