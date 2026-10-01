@@ -1,3 +1,15 @@
+# [2.283.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.282.0...v2.283.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* localDir扫描relativePath改为实际父目录 ([b8e90d1](https://github.com/1525745393/EmbyTok-Flutter/commit/b8e90d15d09c484a55a18000057e4b9e2f1d0e85))
+
+
+### Features
+
+* 本地媒体库按文件源分组筛选 ([2f92ee6](https://github.com/1525745393/EmbyTok-Flutter/commit/2f92ee6f53fc0124d830beb3907c16adfbb1c8fd))
+
 # [2.282.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.281.2...v2.282.0) (2026-10-01)
 
 
