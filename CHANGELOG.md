@@ -1,3 +1,10 @@
+## [2.277.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.277.0...v2.277.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* P1 续播竞态 + P2 进度周期保存 ([1bc56ad](https://github.com/1525745393/EmbyTok-Flutter/commit/1bc56ad935f9baf6623046e8468709a6d9366149))
+
 # [2.277.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.276.0...v2.277.0) (2026-10-01)
 
 
