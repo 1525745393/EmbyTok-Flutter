@@ -1,3 +1,10 @@
+# [2.271.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.270.0...v2.271.0) (2026-10-01)
+
+
+### Features
+
+* 设置页本地模式分区（P2第四批） ([94af583](https://github.com/1525745393/EmbyTok-Flutter/commit/94af5833af350e579c0a66c7e433b4869d3e49a5))
+
 # [2.270.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.269.0...v2.270.0) (2026-10-01)
 
 
