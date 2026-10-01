@@ -13,6 +13,7 @@ import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/tmdb_service.dart';
 import 'local_player_page.dart';
+import 'local_directory_browser_view.dart';
 import 'tmdb_search_page.dart';
 
 class LocalVideoView extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class LocalVideoView extends ConsumerStatefulWidget {
 
 class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
   final _searchCtrl = TextEditingController();
+  String? _browsingFolder; // 正在浏览的文件夹名（null = 全部）
 
   @override
   void dispose() {
@@ -75,6 +77,19 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // 浏览本地文件夹（P0：文件管理器式目录浏览）
+                IconButton(
+                  icon: const Icon(Icons.folder, size: 22),
+                  tooltip: '浏览文件夹',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LocalDirectoryBrowserView(),
+                      ),
+                    );
+                  },
+                ),
                 // 排序菜单
                 PopupMenuButton<LocalVideoSort>(
                   icon: const Icon(Icons.sort, size: 20),
@@ -254,11 +269,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                               onTap: (item) => _playVideo(item),
                             ),
                           Expanded(
-                            child: state.groupByFolder
-                                ? _buildGrouped(state, notifier)
-                                : state.viewMode == LocalVideoViewMode.grid
-                                    ? _buildGrid(items, state, notifier)
-                                    : _buildList(items, state, notifier),
+                            child: _browsingFolder != null
+                                ? _buildFolderView(state, notifier, _browsingFolder!)
+                                : state.groupByFolder
+                                    ? _buildFolderGrid(state)
+                                    : state.viewMode == LocalVideoViewMode.grid
+                                        ? _buildGrid(items, state, notifier)
+                                        : _buildList(items, state, notifier),
                           ),
                           // 媒体库统计行（P1 #5）
                           Padding(
@@ -508,6 +525,140 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  /// 文件夹网格视图（VidHub 风格）：显示所有文件夹，点击进入
+  Widget _buildFolderGrid(LocalVideoState state) {
+    final grouped = state.grouped;
+    if (grouped.isEmpty) return const SizedBox.shrink();
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.4,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: grouped.length,
+      itemBuilder: (_, i) {
+        final entry = grouped.entries.elementAt(i);
+        final firstItem = entry.value.first;
+        final scraped = state.scrapedMap[firstItem.pathHash];
+        return GestureDetector(
+          onTap: () => setState(() => _browsingFolder = entry.key),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // 背景缩略图
+                _VideoThumbnail(
+                  assetId: firstItem.assetId,
+                  width: double.infinity,
+                  height: double.infinity,
+                  scraped: scraped,
+                ),
+                // 底部渐变遮罩 + 文件夹名
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black87],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  right: 10,
+                  bottom: 8,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(entry.key,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                      Text('${entry.value.length} 个视频',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 文件夹内视频视图：带返回按钮
+  Widget _buildFolderView(
+      LocalVideoState state, LocalVideoNotifier notifier, String folder) {
+    final items = state.grouped[folder] ?? [];
+    return Column(
+      children: [
+        // 文件夹标题栏 + 返回
+        Container(
+          padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => _browsingFolder = null),
+              ),
+              Expanded(
+                child: Text(folder,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
+              ),
+              Text('${items.length} 个',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.72,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: items.length,
+            itemBuilder: (_, i) => _GridCard(
+              item: items[i],
+              selected: state.selected.contains(items[i].id),
+              selecting: state.selecting,
+              isFavorite: state.favoriteHashes.contains(items[i].pathHash),
+              scraped: state.scrapedMap[items[i].pathHash],
+              onTap: () {
+                if (state.selecting) {
+                  notifier.toggleSelected(items[i].id);
+                } else {
+                  _playVideo(items[i]);
+                }
+              },
+              onLongPress: () => _showLongPressMenu(items[i]),
+              onFavoriteToggle: () =>
+                  notifier.toggleFavorite(items[i].pathHash),
+            ),
+          ),
+        ),
       ],
     );
   }

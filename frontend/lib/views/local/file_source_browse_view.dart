@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/file_source.dart';
 import '../../models/local_video_item.dart';
 import '../../providers/file_sources_provider.dart';
+import '../../services/local_dir_scanner.dart';
 import '../../services/smb_scanner.dart';
 import '../../services/webdav_scanner.dart';
 import 'local_player_page.dart';
@@ -67,6 +68,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
           break;
         case FileSourceType.local:
           items = [];
+          break;
+        case FileSourceType.localDir:
+          final path = widget.source.config['path'] ?? '';
+          if (path.isEmpty) throw Exception('未配置文件夹路径');
+          items = await LocalDirScanner().scan(path);
           break;
       }
       if (mounted) {

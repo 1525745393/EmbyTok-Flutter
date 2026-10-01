@@ -5,6 +5,7 @@ import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
 import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
+import 'local_directory_browser_view.dart';
 
 /// 文件源列表页（P0 第二批 + P0 增强）
 ///
@@ -22,7 +23,7 @@ class FileSourcesView extends ConsumerWidget {
         title: const Text('文件源'),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddTypeDialog(context),
+        onPressed: () => _showAddTypeDialog(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('添加文件源'),
       ),
@@ -61,6 +62,7 @@ class FileSourcesView extends ConsumerWidget {
               leading: Icon(
                 switch (s.type) {
                   FileSourceType.local => Icons.phone_iphone,
+                  FileSourceType.localDir => Icons.folder,
                   FileSourceType.smb => Icons.lan,
                   FileSourceType.webdav => Icons.cloud_outlined,
                 },
@@ -71,9 +73,11 @@ class FileSourcesView extends ConsumerWidget {
               subtitle: Text(
                 isLocal
                     ? '手机媒体库'
-                    : (s.type == FileSourceType.webdav
-                        ? s.config['url'] ?? ''
-                        : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
+                    : (s.type == FileSourceType.localDir
+                        ? s.config['path'] ?? ''
+                        : s.type == FileSourceType.webdav
+                            ? s.config['url'] ?? ''
+                            : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -167,13 +171,36 @@ class FileSourcesView extends ConsumerWidget {
     );
   }
 
-  void _showAddTypeDialog(BuildContext context) {
+  void _showAddTypeDialog(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 手机文件夹：用文件浏览器选目录
+            ListTile(
+              leading: const Icon(Icons.folder),
+              title: const Text('手机文件夹'),
+              subtitle: const Text('浏览手机本地目录并加入媒体库'),
+              onTap: () async {
+                Navigator.pop(context);
+                final path = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const LocalDirectoryBrowserView(pickMode: true),
+                  ),
+                );
+                if (path == null || !context.mounted) return;
+                final name = path.split('/').last;
+                ref.read(fileSourcesProvider.notifier).add(FileSource(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      type: FileSourceType.localDir,
+                      name: name.isEmpty ? '手机文件夹' : name,
+                      config: {'path': path},
+                    ));
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.lan),
               title: const Text('SMB 共享'),

@@ -69,7 +69,8 @@ class FileSource {
 }
 
 enum FileSourceType {
-  local, // 手机媒体库（默认，不可删）
+  local, // 手机媒体库（默认，photo_manager 扫描，不可删）
+  localDir, // 指定的手机文件夹（用户从文件浏览器选路径）
   smb, // 网络共享
   webdav, // WebDAV 网盘
 }
