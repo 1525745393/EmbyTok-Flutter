@@ -106,7 +106,7 @@ class ScrapeService {
     // 替换分隔符为空格
     name = name.replaceAll(RegExp(r'[.\[\]_]'), ' ').trim();
 
-    // 剧集：S01E01
+    // 剧集：S01E01 或 s01e01
     final seMatch = RegExp(r'[Ss](\d{1,2})\s*[Ee](\d{1,2})').firstMatch(name);
     if (seMatch != null) {
       final season = int.tryParse(seMatch.group(1)!);
@@ -117,13 +117,27 @@ class ScrapeService {
           type: 'tv', title: title, season: season, episode: episode);
     }
 
-    // 中文剧集：第一季第一集
+    // 剧集：1x01 / 1X01
+    final xMatch = RegExp(r'(?<!\d)(\d{1,2})[xX](\d{1,2})(?!\d)').firstMatch(name);
+    if (xMatch != null) {
+      final season = int.tryParse(xMatch.group(1)!);
+      final episode = int.tryParse(xMatch.group(2)!);
+      var title = name.substring(0, xMatch.start).trim();
+      title = _cleanNoise(title);
+      return ParsedName(
+          type: 'tv', title: title, season: season, episode: episode);
+    }
+
+    // 中文剧集：第一季第一集 / 第1季第1集
     final cnMatch = RegExp(r'第([一二三四五六七八九十\d]+)季第([一二三四五六七八九十\d]+)集')
         .firstMatch(name);
     if (cnMatch != null) {
-      final title = _cleanNoise(name.substring(0, cnMatch.start));
+      final season = _cnToInt(cnMatch.group(1)!);
+      final episode = _cnToInt(cnMatch.group(2)!);
+      var title = name.substring(0, cnMatch.start).trim();
+      title = _cleanNoise(title);
       return ParsedName(
-          type: 'tv', title: title, season: 1, episode: 1);
+          type: 'tv', title: title, season: season, episode: episode);
     }
 
     // 电影：提取年份
@@ -141,20 +155,33 @@ class ScrapeService {
     return ParsedName(type: 'movie', title: title, year: year);
   }
 
+  /// 中文数字转 int（支持 一~十 和阿拉伯数字）
+  static int _cnToInt(String s) {
+    final n = int.tryParse(s);
+    if (n != null) return n;
+    const map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10};
+    if (s.length == 1) return map[s] ?? 1;
+    if (s.startsWith('十')) return 10 + (map[s.substring(1)] ?? 0);
+    if (s.endsWith('十')) return (map[s.substring(0, 1)] ?? 1) * 10;
+    return 1;
+  }
+
   /// 清洗噪音：分辨率、编码、来源、音频
   static String _cleanNoise(String s) {
     return s
         .replaceAll(
-            RegExp(r'\b(1080p|1080i|720p|4K|2160p|2160i|480p|REMUX|WEB)\b',
+            RegExp(r'\b(1080p|1080i|720p|4K|2160p|2160i|480p|REMUX|WEB|HD|SD)\b',
                 caseSensitive: false),
             '')
         .replaceAll(
-            RegExp(r'\b(x264|x265|h264|h265|HEVC|HDR|BluRay|BLURAY|AMZN|NF|NETFLIX|DSNP|WEB-DL|WEBDL)\b',
+            RegExp(r'\b(x264|x265|h264|h265|HEVC|HDR|BluRay|BLURAY|AMZN|NF|NETFLIX|DSNP|WEB-DL|WEBDL|WEBRip|Blu-Ray)\b',
                 caseSensitive: false),
             '')
-        .replaceAll(RegExp(r'\b(DDP?\d\.?\d?|AAC|AC3|DTS|5\.1|7\.1)\b',
+        .replaceAll(RegExp(r'\b(DDP?\d\.?\d?|AAC|AC3|DTS|5\.1|7\.1|Atmos)\b',
             caseSensitive: false),
             '')
+        .replaceAll(RegExp(r'\b(EP?\d{1,4}|EP\s*\d+)\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'[【】\[\]()（）]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
