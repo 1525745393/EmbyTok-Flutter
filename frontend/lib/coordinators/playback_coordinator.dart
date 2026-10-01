@@ -122,7 +122,11 @@ class PlaybackCoordinator {
 
   /// 释放所有预加载会话（用于切换 FeedType、退出页面等场景）
   Future<void> disposeAllPreloads() async {
-    await _ref.read(videoPoolProvider).disposeAll();
+    try {
+      await _ref.read(videoPoolProvider).disposeAll();
+    } catch (_) {
+      // widget 已 disposed 时 ref 不可用，忽略
+    }
   }
 
   // ==================== 播放 ID 同步 ====================
