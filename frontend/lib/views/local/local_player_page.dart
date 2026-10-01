@@ -180,6 +180,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           key: ValueKey('local_$_index'),
           item: mediaItem,
           isLocal: true,
+          extraHttpHeaders: item.networkHeaders,
           autoPlay: true,
           loop: false,
           isCurrentPage: true,

@@ -40,6 +40,7 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
     this.isCurrentPage = true,
     this.isLocal = false,
     this.externalSubtitlePaths = const [],
+    this.extraHttpHeaders = const {},
     this.onPlaybackEnded,
   });
   final MediaItem item;
@@ -47,6 +48,8 @@ class VideoPlayerWidget extends ConsumerStatefulWidget {
   final bool isLocal;
   // 本地模式：外挂字幕文件绝对路径列表（P3）
   final List<String> externalSubtitlePaths;
+  // 额外 HTTP 请求头（P2：WebDAV Basic Auth 等），合并到播放器请求中
+  final Map<String, String> extraHttpHeaders;
   // 播放结束回调（本地连播 P3）
   final VoidCallback? onPlaybackEnded;
   // Emby 服务器认证信息（用于动态构造播放 URL）
@@ -526,15 +529,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       return wrapFixedRatio(MpvVideoPlayer(
         key: _mpvKey,
         url: mpvUrl,
-        // 本地文件不传 Emby 认证头；MPV 原生支持 file:/// 绝对路径
+        // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
         httpHeaders: widget.isLocal
-            ? const {}
+            ? {...widget.extraHttpHeaders}
             : (widget.token != null
                 ? {
                     'X-Emby-Token': widget.token!,
                     'Accept': 'video/*',
+                    ...widget.extraHttpHeaders,
                   }
-                : const {'Accept': 'video/*'}),
+                : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,
@@ -563,15 +567,16 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
       return wrapFixedRatio(VlcVideoPlayer(
         key: _vlcKey,
         url: vlcUrl,
-        // 本地文件不传 Emby 认证头；VLC 原生支持 file:/// 绝对路径
+        // 本地文件不传 Emby 认证头；WebDAV 等网络源合并 extraHttpHeaders
         httpHeaders: widget.isLocal
-            ? const {}
+            ? {...widget.extraHttpHeaders}
             : (widget.token != null
                 ? {
                     'X-Emby-Token': widget.token!,
                     'Accept': 'video/*',
+                    ...widget.extraHttpHeaders,
                   }
-                : const {'Accept': 'video/*'}),
+                : {'Accept': 'video/*', ...widget.extraHttpHeaders}),
         autoPlay: widget.autoPlay,
         muted: !widget.isCurrentPage,
         isCurrentPage: widget.isCurrentPage,

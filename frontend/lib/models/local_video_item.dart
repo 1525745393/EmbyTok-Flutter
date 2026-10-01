@@ -46,6 +46,9 @@ class LocalVideoItem {
   /// 网络播放 URL（P1）：WebDAV/SMB 源的可直接播放地址；本地为 null
   final String? networkUrl;
 
+  /// 网络请求头（P2）：WebDAV Basic Auth 等，播放器加载 networkUrl 时使用
+  final Map<String, String> networkHeaders;
+
   const LocalVideoItem({
     required this.id,
     required this.name,
@@ -62,6 +65,7 @@ class LocalVideoItem {
     this.subtitlePaths = const [],
     this.sourceId = 'local_default',
     this.networkUrl,
+    this.networkHeaders = const {},
   });
 
   /// 路径哈希 key（用于续播 SharedPreferences key）
@@ -103,6 +107,7 @@ class LocalVideoItem {
         'subtitlePaths': subtitlePaths,
         'sourceId': sourceId,
         'networkUrl': networkUrl,
+        'networkHeaders': networkHeaders,
       };
 
   factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
@@ -122,5 +127,6 @@ class LocalVideoItem {
         subtitlePaths: (json['subtitlePaths'] as List?)?.cast<String>() ?? const [],
         sourceId: json['sourceId'] as String? ?? 'local_default',
         networkUrl: json['networkUrl'] as String?,
+        networkHeaders: (json['networkHeaders'] as Map?)?.map((k, v) => MapEntry(k as String, v as String)) ?? const {},
       );
 }

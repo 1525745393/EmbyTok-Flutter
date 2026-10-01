@@ -87,6 +87,11 @@ class WebdavScanner {
                 isAppDirFile: false,
                 sourceId: sourceId,
                 networkUrl: fileUrl,
+                // 播放器需要 Basic Auth 头才能访问 WebDAV 文件
+                networkHeaders: {
+                  'Authorization': auth,
+                  'Accept': 'video/*',
+                },
               ));
             }
           }

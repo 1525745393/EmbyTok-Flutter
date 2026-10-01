@@ -316,7 +316,10 @@ extension _VideoPlayerControls on VideoPlayerWidgetState {
     for (int level = 0; level < 3; level++) {
       final url = urls[level];
       if (url == null || url.isEmpty) continue;
-      final headers = widget.item.authHeaders(widget.token);
+      final headers = {
+        ...widget.item.authHeaders(widget.token),
+        ...widget.extraHttpHeaders,
+      };
 
       VideoPlayerController? c;
       try {
