@@ -1,3 +1,10 @@
+# [2.267.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.266.0...v2.267.0) (2026-10-01)
+
+
+### Features
+
+* 本地UI优化 [#7](https://github.com/1525745393/EmbyTok-Flutter/issues/7) 本地视频详情页 ([0324e3e](https://github.com/1525745393/EmbyTok-Flutter/commit/0324e3edfcc4c820303d2246a27d233d7fb3a489))
+
 # [2.266.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.265.0...v2.266.0) (2026-10-01)
 
 
