@@ -1,3 +1,10 @@
+# [2.275.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.274.0...v2.275.0) (2026-10-01)
+
+
+### Features
+
+* P2 WebDAV Basic Auth 头传递给播放器 ([f716ae6](https://github.com/1525745393/EmbyTok-Flutter/commit/f716ae6cf76d66a584c57bdf373d8baa94d41dc2))
+
 # [2.274.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.273.0...v2.274.0) (2026-10-01)
 
 
