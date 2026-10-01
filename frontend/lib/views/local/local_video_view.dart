@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'local_detail_view.dart';
 
 import '../../models/local_video_item.dart';
 import '../../providers/local_video_provider.dart';
@@ -527,6 +528,11 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('详情'),
+              onTap: () => Navigator.pop(context, 'detail'),
+            ),
+            ListTile(
               leading: const Icon(Icons.search),
               title: const Text('手动匹配 TMDB 元数据'),
               subtitle: Text(item.name, maxLines: 1),
@@ -541,7 +547,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         ),
       ),
     );
-    if (action == 'scrape') {
+    if (action == 'detail') {
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => LocalDetailPage(item: item)),
+      );
+    } else if (action == 'scrape') {
       if (!mounted) return;
       final done = await Navigator.push<bool>(
         context,
