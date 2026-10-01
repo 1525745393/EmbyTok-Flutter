@@ -10,6 +10,9 @@ class FileSource {
   final int videoCount;
   final DateTime? lastScanAt;
 
+  /// 是否启用（P0 增强）：禁用后媒体库隐藏该源影片，不删除数据
+  final bool enabled;
+
   const FileSource({
     required this.id,
     required this.type,
@@ -18,6 +21,7 @@ class FileSource {
     this.status = FileSourceStatus.idle,
     this.videoCount = 0,
     this.lastScanAt,
+    this.enabled = true,
   });
 
   FileSource copyWith({
@@ -26,6 +30,7 @@ class FileSource {
     FileSourceStatus? status,
     int? videoCount,
     DateTime? lastScanAt,
+    bool? enabled,
   }) =>
       FileSource(
         id: id,
@@ -35,6 +40,7 @@ class FileSource {
         status: status ?? this.status,
         videoCount: videoCount ?? this.videoCount,
         lastScanAt: lastScanAt ?? this.lastScanAt,
+        enabled: enabled ?? this.enabled,
       );
 
   Map<String, dynamic> toJson() => {
@@ -45,6 +51,7 @@ class FileSource {
         'status': status.name,
         'videoCount': videoCount,
         'lastScanAt': lastScanAt?.toIso8601String(),
+        'enabled': enabled,
       };
 
   factory FileSource.fromJson(Map<String, dynamic> json) => FileSource(
@@ -57,6 +64,7 @@ class FileSource {
         lastScanAt: json['lastScanAt'] == null
             ? null
             : DateTime.parse(json['lastScanAt'] as String),
+        enabled: json['enabled'] as bool? ?? true,
       );
 }
 

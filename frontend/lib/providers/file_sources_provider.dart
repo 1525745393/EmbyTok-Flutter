@@ -69,6 +69,31 @@ class FileSourcesNotifier extends StateNotifier<List<FileSource>> {
     state = state.where((s) => s.id != id).toList();
     await _save();
   }
+
+  /// 切换启用/禁用（P0 增强）：禁用后媒体库隐藏该源影片
+  Future<void> toggleEnabled(String id) async {
+    state = [
+      for (final s in state)
+        if (s.id == id) s.copyWith(enabled: !s.enabled) else s,
+    ];
+    await _save();
+  }
+
+  /// 更新扫描状态（P0 增强）
+  Future<void> updateScanStatus(String id, FileSourceStatus status, {int? videoCount}) async {
+    state = [
+      for (final s in state)
+        if (s.id == id)
+          s.copyWith(
+            status: status,
+            videoCount: videoCount ?? s.videoCount,
+            lastScanAt: status == FileSourceStatus.connected ? DateTime.now() : s.lastScanAt,
+          )
+        else
+          s,
+    ];
+    await _save();
+  }
 }
 
 final fileSourcesProvider =

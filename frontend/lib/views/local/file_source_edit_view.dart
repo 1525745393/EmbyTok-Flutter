@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
+import '../../services/smb_scanner.dart';
 
 /// 文件源添加/编辑表单（P0 第二批）
 ///
@@ -114,11 +115,50 @@ class _FileSourceEditViewState extends ConsumerState<FileSourceEditView> {
             obscureText: true,
           ),
           const SizedBox(height: 24),
+          // SMB 连接测试按钮
+          if (!isWebdav)
+            OutlinedButton.icon(
+              onPressed: _testSmbConnection,
+              icon: const Icon(Icons.wifi_tethering),
+              label: const Text('测试连接'),
+            ),
+          const SizedBox(height: 12),
           FilledButton(
             onPressed: _save,
             child: const Text('保存'),
           ),
         ],
+      ),
+    );
+  }
+
+  /// 测试 SMB 连通性（P0 增强）
+  Future<void> _testSmbConnection() async {
+    final host = _host.text.trim();
+    if (host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先填写主机地址')),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final err = await SmbScanner.testConnection(
+      host: host,
+      port: int.tryParse(_port.text.trim()) ?? 445,
+      username: _user.text.trim(),
+      password: _password.text,
+      share: _share.text.trim(),
+    );
+    if (!mounted) return;
+    Navigator.pop(context); // 关闭 loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(err == null ? '连接成功' : '连接失败: $err'),
+        backgroundColor: err == null ? Colors.green : Colors.red,
       ),
     );
   }

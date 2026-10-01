@@ -6,9 +6,9 @@ import '../../providers/file_sources_provider.dart';
 import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
 
-/// 文件源列表页（P0 第二批）
+/// 文件源列表页（P0 第二批 + P0 增强）
 ///
-/// 参考 VidHub：本地/SMB/WebDAV 源卡片，FAB 添加。
+/// 参考 VidHub：本地/SMB/WebDAV 源卡片，支持启用/禁用、重扫、编辑、删除。
 class FileSourcesView extends ConsumerWidget {
   const FileSourcesView({super.key});
 
@@ -42,55 +42,104 @@ class FileSourcesView extends ConsumerWidget {
     ColorScheme scheme,
   ) {
     final isLocal = s.type == FileSourceType.local;
-    return Card(
-      child: ListTile(
-        onTap: s.type == FileSourceType.local
-            ? null
-            : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => FileSourceBrowseView(source: s),
-                  ),
-                ),
-        leading: Icon(
-          switch (s.type) {
-            FileSourceType.local => Icons.phone_iphone,
-            FileSourceType.smb => Icons.lan,
-            FileSourceType.webdav => Icons.cloud_outlined,
-          },
-          color: scheme.primary,
-          size: 28,
-        ),
-        title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-          isLocal
-              ? '手机媒体库'
-              : (s.type == FileSourceType.webdav
-                  ? s.config['url'] ?? ''
-                  : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: isLocal
-            ? const Icon(Icons.lock, size: 16, color: Colors.grey)
-            : PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'edit') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FileSourceEditView(existing: s),
+    // 禁用的源整体变暗
+    final opacity = s.enabled ? 1.0 : 0.45;
+    return Opacity(
+      opacity: opacity,
+      child: Card(
+        child: Column(
+          children: [
+            ListTile(
+              onTap: s.type == FileSourceType.local || !s.enabled
+                  ? null
+                  : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FileSourceBrowseView(source: s),
+                        ),
                       ),
-                    );
-                  } else if (v == 'delete') {
-                    _confirmDelete(context, ref, s);
-                  }
+              leading: Icon(
+                switch (s.type) {
+                  FileSourceType.local => Icons.phone_iphone,
+                  FileSourceType.smb => Icons.lan,
+                  FileSourceType.webdav => Icons.cloud_outlined,
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('编辑')),
-                  PopupMenuItem(value: 'delete', child: Text('删除')),
+                color: scheme.primary,
+                size: 28,
+              ),
+              title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                isLocal
+                    ? '手机媒体库'
+                    : (s.type == FileSourceType.webdav
+                        ? s.config['url'] ?? ''
+                        : '${s.config['host'] ?? ''}:${s.config['port'] ?? '445'}'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // 启用/禁用开关（本地源也允许切换，用于临时隐藏手机相册）
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Switch(
+                    value: s.enabled,
+                    onChanged: (_) =>
+                        ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id),
+                  ),
+                  if (!isLocal)
+                    PopupMenuButton<String>(
+                      onSelected: (v) {
+                        if (v == 'edit') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FileSourceEditView(existing: s),
+                            ),
+                          );
+                        } else if (v == 'rescan') {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FileSourceBrowseView(source: s),
+                            ),
+                          );
+                        } else if (v == 'delete') {
+                          _confirmDelete(context, ref, s);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
+                        PopupMenuItem(value: 'edit', child: Text('编辑')),
+                        PopupMenuItem(value: 'delete', child: Text('删除')),
+                      ],
+                    ),
                 ],
               ),
+            ),
+            // 底部信息行：视频数 + 上次扫描时间
+            if (s.videoCount > 0 || s.lastScanAt != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.movie_outlined, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text('${s.videoCount} 个视频',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    const SizedBox(width: 12),
+                    if (s.lastScanAt != null) ...[
+                      Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${s.lastScanAt!.month}/${s.lastScanAt!.day} ${s.lastScanAt!.hour}:${s.lastScanAt!.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -100,7 +149,7 @@ class FileSourcesView extends ConsumerWidget {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('删除文件源'),
-        content: Text('确定删除「${s.name}」？'),
+        content: Text('确定删除「${s.name}」？\n该源下的影片将从媒体库移除。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
