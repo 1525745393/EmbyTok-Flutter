@@ -38,58 +38,61 @@ class WebdavScanner {
 
     try {
       final client = http.Client();
-      final req = http.Request('PROPFIND', Uri.parse(url));
-      req.headers.addAll({
-        'Authorization': auth,
-        'Depth': '1',
-        'Content-Type': 'application/xml; charset=utf-8',
-      });
-      req.body = '<?xml version="1.0"?>'
-          '<d:propfind xmlns:d="DAV:">'
-          '<d:prop><d:displayname/><d:resourcetype/>'
-          '<d:getcontentlength/><d:getlastmodified/></d:prop>'
-          '</d:propfind>';
-      final streamed = await client.send(req).timeout(const Duration(seconds: 15));
-      final resp = await http.Response.fromStream(streamed);
-      client.close();
+      try {
+        final req = http.Request('PROPFIND', Uri.parse(url));
+        req.headers.addAll({
+          'Authorization': auth,
+          'Depth': '1',
+          'Content-Type': 'application/xml; charset=utf-8',
+        });
+        req.body = '<?xml version="1.0"?>'
+            '<d:propfind xmlns:d="DAV:">'
+            '<d:prop><d:displayname/><d:resourcetype/>'
+            '<d:getcontentlength/><d:getlastmodified/></d:prop>'
+            '</d:propfind>';
+        final streamed = await client.send(req).timeout(const Duration(seconds: 15));
+        final resp = await http.Response.fromStream(streamed);
 
-      if (resp.statusCode != 207) return;
+        if (resp.statusCode != 207) return;
 
-      final xml = resp.body;
-      // 简单解析 <response> 块
-      final responses = RegExp(r'<response>(.*?)</response>', dotAll: true).allMatches(xml);
-      for (final r in responses) {
-        final block = r.group(1) ?? '';
-        final href = RegExp(r'<href>(.*?)</href>', dotAll: true).firstMatch(block)?.group(1) ?? '';
-        final isCollection = block.contains('<collection/>');
-        final name = RegExp(r'<displayname>(.*?)</displayname>', dotAll: true).firstMatch(block)?.group(1) ?? href;
-        final size = int.tryParse(RegExp(r'<getcontentlength>(.*?)</getcontentlength>').firstMatch(block)?.group(1) ?? '0') ?? 0;
+        final xml = resp.body;
+        // 简单解析 <response> 块
+        final responses = RegExp(r'<response>(.*?)</response>', dotAll: true).allMatches(xml);
+        for (final r in responses) {
+          final block = r.group(1) ?? '';
+          final href = RegExp(r'<href>(.*?)</href>', dotAll: true).firstMatch(block)?.group(1) ?? '';
+          final isCollection = block.contains('<collection/>');
+          final size = int.tryParse(RegExp(r'<getcontentlength>(.*?)</getcontentlength>').firstMatch(block)?.group(1) ?? '0') ?? 0;
 
-        if (isCollection) {
-          // 递归子目录
-          final childUrl = _joinUrl(url, href);
-          await _walk(childUrl, auth, sourceId, out, depth: depth + 1);
-        } else {
-          // 视频文件
-          final lower = name.toLowerCase();
-          if (_videoExts.any(lower.endsWith)) {
-            final fileUrl = _joinUrl(url, href);
-            out.add(LocalVideoItem(
-              id: '$sourceId:$href',
-              name: name.replaceAll(RegExp(r'\.[^.]+$'), ''),
-              path: fileUrl,
-              sizeBytes: size,
-              duration: Duration.zero,
-              width: 0,
-              height: 0,
-              mimeType: 'video/*',
-              modifiedAt: DateTime.now(),
-              isAppDirFile: false,
-              sourceId: sourceId,
-              networkUrl: fileUrl,
-            ));
+          if (isCollection) {
+            // 递归子目录
+            final childUrl = _joinUrl(url, href);
+            await _walk(childUrl, auth, sourceId, out, depth: depth + 1);
+          } else {
+            // 从 href 路径取 basename 判断扩展名
+            final basename = Uri.decodeComponent(href.split('/').last);
+            final lower = basename.toLowerCase();
+            if (_videoExts.any(lower.endsWith)) {
+              final fileUrl = _joinUrl(url, href);
+              out.add(LocalVideoItem(
+                id: '$sourceId:$href',
+                name: basename.replaceAll(RegExp(r'\.[^.]+$'), ''),
+                path: fileUrl,
+                sizeBytes: size,
+                duration: Duration.zero,
+                width: 0,
+                height: 0,
+                mimeType: 'video/*',
+                modifiedAt: DateTime.now(),
+                isAppDirFile: false,
+                sourceId: sourceId,
+                networkUrl: fileUrl,
+              ));
+            }
           }
         }
+      } finally {
+        client.close();
       }
     } catch (_) {
       // 单个目录失败跳过

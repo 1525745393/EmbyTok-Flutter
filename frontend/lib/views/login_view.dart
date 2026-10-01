@@ -293,55 +293,57 @@ class _LoginViewState extends ConsumerState<LoginView> {
                   _buildServerTypeSelector(scheme),
                   const SizedBox(height: 16),
 
-                  // 服务器地址
-                  _buildServerField(scheme),
-                  if (_serverHistory.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _buildServerHistory(scheme),
-                  ],
-                  const SizedBox(height: 16),
+                  // 服务器地址（本地模式隐藏）
+                  if (_serverType != ServerType.local) ...[
+                    _buildServerField(scheme),
+                    if (_serverHistory.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildServerHistory(scheme),
+                    ],
+                    const SizedBox(height: 16),
 
-                  // 用户名
-                  _buildTextField(
-                    scheme: scheme,
-                    controller: _usernameController,
-                    label: '用户名',
-                    icon: Icons.person_outline,
-                    focusNode: _usernameFocusNode,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.username],
-                    onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
-                    onChanged: (_) => _clearError(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 密码
-                  _buildTextField(
-                    scheme: scheme,
-                    controller: _passwordController,
-                    label: '密码',
-                    icon: Icons.lock_outline,
-                    focusNode: _passwordFocusNode,
-                    obscureText: !_passwordVisible,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.password],
-                    onFieldSubmitted: (_) => _submit(),
-                    onChanged: (_) => _clearError(),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _passwordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _passwordVisible = !_passwordVisible;
-                        });
-                      },
+                    // 用户名
+                    _buildTextField(
+                      scheme: scheme,
+                      controller: _usernameController,
+                      label: '用户名',
+                      icon: Icons.person_outline,
+                      focusNode: _usernameFocusNode,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.username],
+                      onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+                      onChanged: (_) => _clearError(),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+
+                    // 密码
+                    _buildTextField(
+                      scheme: scheme,
+                      controller: _passwordController,
+                      label: '密码',
+                      icon: Icons.lock_outline,
+                      focusNode: _passwordFocusNode,
+                      obscureText: !_passwordVisible,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) => _submit(),
+                      onChanged: (_) => _clearError(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
 
                   // 群晖两步验证码（开启后显示）
                   if (_serverType == ServerType.synology && _otpRequired) ...[
