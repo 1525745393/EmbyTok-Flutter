@@ -1,3 +1,10 @@
+## [2.295.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.0...v2.295.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* 本地媒体库页面显示优化 ([ed38ac3](https://github.com/1525745393/EmbyTok-Flutter/commit/ed38ac390ca8c62450b83fa763b6d7ff2bb67ade))
+
 # [2.295.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.294.2...v2.295.0) (2026-10-01)
 
 
