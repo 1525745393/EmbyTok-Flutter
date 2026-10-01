@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
+import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
 
 /// 文件源列表页（P0 第二批）
@@ -43,6 +44,14 @@ class FileSourcesView extends ConsumerWidget {
     final isLocal = s.type == FileSourceType.local;
     return Card(
       child: ListTile(
+        onTap: s.type == FileSourceType.local
+            ? null
+            : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FileSourceBrowseView(source: s),
+                  ),
+                ),
         leading: Icon(
           switch (s.type) {
             FileSourceType.local => Icons.phone_iphone,

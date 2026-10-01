@@ -40,6 +40,12 @@ class LocalVideoItem {
   /// 同目录下同名字幕文件绝对路径列表（.srt/.ass/.vtt）
   final List<String> subtitlePaths;
 
+  /// 所属文件源 ID（P1）：'local_default' 为手机本地，其余为 WebDAV/SMB 源
+  final String sourceId;
+
+  /// 网络播放 URL（P1）：WebDAV/SMB 源的可直接播放地址；本地为 null
+  final String? networkUrl;
+
   const LocalVideoItem({
     required this.id,
     required this.name,
@@ -54,6 +60,8 @@ class LocalVideoItem {
     this.relativePath,
     this.assetId,
     this.subtitlePaths = const [],
+    this.sourceId = 'local_default',
+    this.networkUrl,
   });
 
   /// 路径哈希 key（用于续播 SharedPreferences key）
@@ -93,6 +101,8 @@ class LocalVideoItem {
         'isAppDirFile': isAppDirFile,
         'assetId': assetId,
         'subtitlePaths': subtitlePaths,
+        'sourceId': sourceId,
+        'networkUrl': networkUrl,
       };
 
   factory LocalVideoItem.fromJson(Map<String, dynamic> json) => LocalVideoItem(
@@ -110,5 +120,7 @@ class LocalVideoItem {
         isAppDirFile: json['isAppDirFile'] as bool? ?? false,
         assetId: json['assetId'] as String?,
         subtitlePaths: (json['subtitlePaths'] as List?)?.cast<String>() ?? const [],
+        sourceId: json['sourceId'] as String? ?? 'local_default',
+        networkUrl: json['networkUrl'] as String?,
       );
 }
