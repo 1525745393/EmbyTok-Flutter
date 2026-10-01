@@ -1,3 +1,10 @@
+# [2.276.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.275.0...v2.276.0) (2026-10-01)
+
+
+### Features
+
+* P2 本地/WebDAV 视频续播位置保存 ([cd5e998](https://github.com/1525745393/EmbyTok-Flutter/commit/cd5e998084aea0f3851476ee0c4ef7bd5e298920))
+
 # [2.275.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.274.0...v2.275.0) (2026-10-01)
 
 
