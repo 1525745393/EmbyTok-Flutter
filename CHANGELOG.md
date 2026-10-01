@@ -1,3 +1,10 @@
+# [2.294.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.293.0...v2.294.0) (2026-10-01)
+
+
+### Features
+
+* 演员详情页（TMDB 简介+电影+电视剧） ([9155f94](https://github.com/1525745393/EmbyTok-Flutter/commit/9155f9417e2214eff53f028ca27d6d8b7c73a338))
+
 # [2.293.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.292.0...v2.293.0) (2026-10-01)
 
 
