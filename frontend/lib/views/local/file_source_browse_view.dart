@@ -113,7 +113,15 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     for (final item in _items) {
       try {
         final pathHash = item.path.hashCode.toString();
-        await ScrapeService.scrapeFile(pathHash, item.name);
+        // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
+        final rp = item.relativePath;
+        final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;
+        await ScrapeService.scrapeFile(
+          pathHash,
+          item.name,
+          parentDir: parentDir,
+          mediaTypeHint: widget.source.config['mediaType'],
+        );
       } catch (_) {}
       if (!mounted) return;
       setState(() => _scrapedCount++);

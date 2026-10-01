@@ -237,7 +237,10 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     var done = 0;
     for (final item in todo) {
       try {
-        final m = await ScrapeService.scrapeFile(item.pathHash, item.name);
+        // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
+        final rp = item.relativePath;
+        final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;
+        final m = await ScrapeService.scrapeFile(item.pathHash, item.name, parentDir: parentDir);
         if (m != null) {
           cached[item.pathHash] = m;
           await ScrapeService.saveCache(item.pathHash, m);

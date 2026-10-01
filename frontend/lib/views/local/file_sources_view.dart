@@ -201,6 +201,42 @@ class FileSourcesView extends ConsumerWidget {
     );
   }
 
+  /// 选择媒体类型：电影 / 电视剧 / 短视频
+  Future<String?> _showMediaTypeDialog(BuildContext context) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: const Text('选择媒体类型'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'movie'),
+            child: const ListTile(
+              leading: Icon(Icons.movie, color: Colors.blue),
+              title: Text('电影'),
+              subtitle: Text('单个影片，按年份刮削'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'tv'),
+            child: const ListTile(
+              leading: Icon(Icons.tv, color: Colors.green),
+              title: Text('电视剧'),
+              subtitle: Text('按剧名+集数刮削，支持 01/02/03 编号'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'short'),
+            child: const ListTile(
+              leading: Icon(Icons.videocam, color: Colors.orange),
+              title: Text('短视频'),
+              subtitle: Text('不刮削，按文件名显示'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddTypeDialog(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -222,12 +258,16 @@ class FileSourcesView extends ConsumerWidget {
                   ),
                 );
                 if (path == null || !context.mounted) return;
+                // 选媒体类型
+                if (!context.mounted) return;
+                final mediaType = await _showMediaTypeDialog(context);
+                if (mediaType == null || !context.mounted) return;
                 final name = path.split('/').last;
                 ref.read(fileSourcesProvider.notifier).add(FileSource(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       type: FileSourceType.localDir,
                       name: name.isEmpty ? '手机文件夹' : name,
-                      config: {'path': path},
+                      config: {'path': path, 'mediaType': mediaType},
                     ));
               },
             ),

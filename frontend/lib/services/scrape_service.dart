@@ -97,7 +97,7 @@ class ScrapeService {
   static const _prefix = 'scrape_';
 
   /// 文件名解析：提取片名、年份、季集号
-  static ParsedName parseFilename(String filename) {
+  static ParsedName parseFilename(String filename, {String? parentDir}) {
     // 去扩展名
     var name = filename;
     final dotIdx = name.lastIndexOf('.');
@@ -138,6 +138,18 @@ class ScrapeService {
       title = _cleanNoise(title);
       return ParsedName(
           type: 'tv', title: title, season: season, episode: episode);
+    }
+
+    // 纯数字文件名（如 01.mp4、02.mp4）：当作剧集单集，标题用父目录名
+    final pureNum = RegExp(r'^\s*(\d{1,3})\s*$').firstMatch(name);
+    if (pureNum != null) {
+      final episode = int.tryParse(pureNum.group(1)!);
+      var title = parentDir ?? '';
+      // 清理父目录名中的 "Season X"、"第X季" 等
+      title = title.replaceAll(RegExp(r'[Ss]eason\s*\d+'), '').trim();
+      title = title.replaceAll(RegExp(r'第[一二三四五六七八九十\d]+季'), '').trim();
+      title = _cleanNoise(title);
+      return ParsedName(type: 'tv', title: title, season: 1, episode: episode);
     }
 
     // 电影：提取年份
@@ -187,9 +199,29 @@ class ScrapeService {
   }
 
   /// 刮削单个文件
+  /// [parentDir] 父目录名（用作剧名兜底）
+  /// [mediaTypeHint] 文件源指定的媒体类型（movie/tv/short）
   static Future<ScrapedMedia?> scrapeFile(
-      String pathHash, String filename) async {
-    final parsed = parseFilename(filename);
+      String pathHash, String filename,
+      {String? parentDir, String? mediaTypeHint}) async {
+    if (mediaTypeHint == 'short') return null; // 短视频不刮削
+    var parsed = parseFilename(filename, parentDir: parentDir);
+    // 文件源指定为电视剧时，补充纯数字编号（01.02.03）作为集数
+    if (mediaTypeHint == 'tv' && parsed.type != 'tv') {
+      final numMatch =
+          RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
+      if (numMatch != null) {
+        final ep = int.tryParse(numMatch.group(1)!);
+        if (ep != null && ep > 0 && ep <= 999) {
+          var title = parentDir ?? filename;
+          final dotIdx = title.lastIndexOf('.');
+          if (dotIdx > 0) title = title.substring(0, dotIdx);
+          title = title.replaceAll(RegExp(r'[.\[\]_]'), ' ').trim();
+          title = _cleanNoise(title);
+          parsed = ParsedName(type: 'tv', title: title, season: 1, episode: ep);
+        }
+      }
+    }
     if (parsed.title.isEmpty) return null;
 
     if (parsed.type == 'tv') {
