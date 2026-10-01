@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import '../../providers/local_video_provider.dart';
 import '../../models/local_video_item.dart';
 import '../../services/tmdb_service.dart';
@@ -113,10 +115,11 @@ class LocalDetailPage extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // 播放 + 收藏按钮
+                  // 操作行：播放 + 收藏 + 分享 + 删除（对齐在线详情）
                   Row(
                     children: [
                       Expanded(
+                        flex: 3,
                         child: FilledButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
@@ -126,14 +129,53 @@ class LocalDetailPage extends ConsumerWidget {
                           label: const Text('播放'),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      IconButton(
+                      const SizedBox(width: 8),
+                      // 收藏
+                      IconButton.filledTonal(
                         onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(item.pathHash),
                         icon: Icon(
                           isFav ? Icons.favorite : Icons.favorite_border,
                           color: isFav ? Colors.pink : null,
-                          size: 28,
                         ),
+                        tooltip: isFav ? '取消收藏' : '收藏',
+                      ),
+                      // 分享
+                      IconButton.filledTonal(
+                        onPressed: () => Share.shareXFiles(
+                          [XFile(item.path)],
+                          subject: item.name,
+                        ),
+                        icon: const Icon(Icons.share),
+                        tooltip: '分享',
+                      ),
+                      // 删除
+                      IconButton.filledTonal(
+                        onPressed: () async {
+                          final ok = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('删除视频'),
+                              content: Text('确定删除 ${item.name} 吗？此操作不可恢复。'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('取消'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                  child: const Text('删除'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (ok == true) {
+                            await ref.read(localVideoProvider.notifier).deleteByIds({item.id});
+                            if (context.mounted) Navigator.pop(context);
+                          }
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: '删除',
                       ),
                     ],
                   ),
