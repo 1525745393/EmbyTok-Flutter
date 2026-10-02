@@ -43,25 +43,37 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
       items = items.where((it) => it.sourceId == widget.sourceId).toList();
     }
     if (items.isEmpty) {
+      if (widget.embedded) {
+        return const Center(
+          child: Text('暂无本地视频，请先在设置里添加文件源并刮削',
+              style: TextStyle(color: Colors.white54)),
+        );
+      }
       return Scaffold(
         appBar: AppBar(title: const Text('本地视频流')),
         body: const Center(child: Text('暂无本地视频，请先在设置里添加文件源并刮削')),
       );
     }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          PageView.builder(
-            scrollDirection: Axis.vertical,
-            controller: _controller,
-            itemCount: items.length,
-            physics: const PageScrollPhysics(),
-            onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
-            itemBuilder: (_, i) => LocalPlayerPage(items: items, initialIndex: i),
-          ),
-          // 嵌入主 feed 时左上角悬浮返回按钮，点击切回 Emby 推荐流
-          if (widget.embedded)
+    // 嵌入模式：不包 Scaffold，直接返回 PageView，让主 feed 的 Stack 接管 chrome
+    final pageView = PageView.builder(
+      scrollDirection: Axis.vertical,
+      controller: _controller,
+      itemCount: items.length,
+      physics: const PageScrollPhysics(),
+      onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
+      itemBuilder: (_, i) => LocalPlayerPage(
+        items: items,
+        initialIndex: i,
+        embedded: widget.embedded,
+      ),
+    );
+    if (widget.embedded) {
+      return Container(
+        color: Colors.black,
+        child: Stack(
+          children: [
+            pageView,
+            // 嵌入主 feed 时左上角悬浮按钮：切回 Emby 推荐流
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
               left: 8,
@@ -71,13 +83,38 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
                   shape: const CircleBorder(),
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    tooltip: '返回推荐流',
+                    tooltip: '切回推荐流',
                     onPressed: () =>
                         ref.read(localFeedSourceIdProvider.notifier).set(null),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      );
+    }
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          pageView,
+          // 独立打开时左上角返回按钮
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: SafeArea(
+              child: Material(
+                color: Colors.black54,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  tooltip: '返回',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

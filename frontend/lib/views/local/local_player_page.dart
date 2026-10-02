@@ -18,10 +18,14 @@ class LocalPlayerPage extends ConsumerStatefulWidget {
   final List<LocalVideoItem> items;
   /// 起始索引
   final int initialIndex;
+  /// embedded=true 时由 LocalFeedPage 嵌入：不包 Scaffold/AppBar，
+  /// 让外层 PageView 直接看到播放器画面（抖音式上下滑）
+  final bool embedded;
   const LocalPlayerPage({
     super.key,
     required this.items,
     this.initialIndex = 0,
+    this.embedded = false,
   });
 
   @override
@@ -197,6 +201,25 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _seekToResume());
     }
 
+    final playerBody = Center(
+      child: VideoPlayerWidget(
+        key: _playerKey,
+        item: mediaItem,
+        isLocal: true,
+        extraHttpHeaders: item.networkHeaders,
+        autoPlay: true,
+        loop: false,
+        isCurrentPage: true,
+        externalSubtitlePaths: item.subtitlePaths,
+        onPlaybackEnded: _onPlaybackEnded,
+      ),
+    );
+
+    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面
+    if (widget.embedded) {
+      return Container(color: Colors.black, child: playerBody);
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -243,19 +266,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           ),
         ],
       ),
-      body: Center(
-        child: VideoPlayerWidget(
-          key: _playerKey,
-          item: mediaItem,
-          isLocal: true,
-          extraHttpHeaders: item.networkHeaders,
-          autoPlay: true,
-          loop: false,
-          isCurrentPage: true,
-          externalSubtitlePaths: item.subtitlePaths,
-          onPlaybackEnded: _onPlaybackEnded,
-        ),
-      ),
+      body: playerBody,
     );
   }
 
