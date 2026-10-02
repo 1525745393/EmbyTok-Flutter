@@ -296,4 +296,19 @@ class LocalVideoService {
       await sp.remove(_favoritePrefix + pathHash);
     }
   }
+
+  /// 重命名本地文件（仅 isAppDirFile=true 的真实文件路径可用）
+  /// 返回新的路径；失败抛异常
+  Future<String> renameFile(LocalVideoItem item, String newName) async {
+    if (!item.isAppDirFile) {
+      throw Exception('系统媒体库文件不支持重命名');
+    }
+    final oldFile = File(item.path);
+    if (!await oldFile.exists()) throw Exception('文件不存在');
+    final ext = item.path.contains('.') ? item.path.substring(item.path.lastIndexOf('.')) : '';
+    final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+    final newPath = '$parent/$newName$ext';
+    await oldFile.rename(newPath);
+    return newPath;
+  }
 }

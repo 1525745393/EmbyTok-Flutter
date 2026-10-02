@@ -176,6 +176,56 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     final srcItems =
         state.items.where((e) => e.sourceId == src.id).toList();
     if (srcItems.isEmpty) return const SizedBox.shrink();
+
+    // TV 类型源：按剧集文件夹分组显示
+    final isTv = src.config['mediaType'] == 'tv';
+    if (isTv) {
+      final groups = <String, List<LocalVideoItem>>{};
+      for (final it in srcItems) {
+        final folder = it.relativePath?.split('/').first ?? '未分组';
+        groups.putIfAbsent(folder, () => []).add(it);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(
+            '📁 ${src.name}',
+            actionLabel: '查看所有',
+            onAction: () => _openSourceFullList(src.id, src.name, state),
+          ),
+          for (final entry in groups.entries)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.folder, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(entry.key,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                  Text('${entry.value.length}集',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                ],
+              ),
+            ),
+          SizedBox(
+            height: 180,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: srcItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (_, i) =>
+                  _buildPosterCard(srcItems[i], state, notifier),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -389,13 +439,32 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               child: SizedBox(
                 width: 100,
                 height: 145,
-                child: scraped?.posterPath != null
-                    ? CachedNetworkImage(
-                        imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => _thumbPlaceholder(item),
-                      )
-                    : _thumbPlaceholder(item),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    scraped?.posterPath != null
+                        ? CachedNetworkImage(
+                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _thumbPlaceholder(item),
+                          )
+                        : _thumbPlaceholder(item),
+                    // 刮削成功角标
+                    if (scraped != null)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.check, size: 12, color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -1025,6 +1094,13 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               onTap: () => Navigator.pop(context, 'scrape'),
             ),
             ListTile(
+              leading: const Icon(Icons.drive_file_rename_outline),
+              title: const Text('重命名'),
+              subtitle: Text(item.name, maxLines: 1),
+              enabled: item.isAppDirFile,
+              onTap: () => Navigator.pop(context, 'rename'),
+            ),
+            ListTile(
               leading: const Icon(Icons.check_box),
               title: const Text('多选模式'),
               onTap: () => Navigator.pop(context, 'select'),
@@ -1044,6 +1120,37 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ),
         ),
       );
+    } else if (action == 'rename') {
+      if (!mounted) return;
+      final ctrl = TextEditingController(text: item.name);
+      final newName = await showDialog<String>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('重命名'),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: '输入新文件名（不含扩展名）'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+          ],
+        ),
+      );
+      if (newName != null && newName.isNotEmpty && mounted) {
+        try {
+          await LocalVideoService().renameFile(item, newName);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+            ref.read(localVideoProvider.notifier).refresh();
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+          }
+        }
+      }
     } else if (action == 'scrape') {
       if (!mounted) return;
       final done = await Navigator.push<bool>(
