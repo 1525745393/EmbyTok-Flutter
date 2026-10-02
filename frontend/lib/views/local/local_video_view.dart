@@ -2789,7 +2789,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: CachedNetworkImage(
-                        imageUrl: TmdbService.posterUrl(meta.posterPath!),
+                        imageUrl: TmdbService.posterUrl(meta!.posterPath!),
                         width: 90, height: 135, fit: BoxFit.cover,
                       ),
                     ),
@@ -2797,11 +2797,11 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: meta.backdropPath != null ? () => _openImageViewer(TmdbService.backdropUrl(meta.backdropPath!)) : null,
+                      onTap: meta!.backdropPath != null ? () => _openImageViewer(TmdbService.backdropUrl(meta!.backdropPath!)) : null,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: meta.backdropPath != null
-                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta.backdropPath!), height: 135, fit: BoxFit.cover)
+                        child: meta!.backdropPath != null
+                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), height: 135, fit: BoxFit.cover)
                             : Container(height: 135, color: Colors.grey[800]),
                       ),
                     ),
