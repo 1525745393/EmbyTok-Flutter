@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
+import '../../providers/local_video_provider.dart';
 import '../../widgets/video/video_player_widget.dart';
 
 class LocalPlayerPage extends ConsumerStatefulWidget {
@@ -151,6 +152,19 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 本地视频流模式：监听当前可见页，非当前页暂停
+    final playingIdx = ref.watch(localFeedPlayingIndexProvider);
+    final isCurrent = playingIdx < 0 || playingIdx == widget.initialIndex;
+    if (playingIdx >= 0 && !isCurrent) {
+      // 后台页：延迟一帧暂停，避免构建中改状态
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _playerKey.currentState?.pause();
+      });
+    } else if (playingIdx >= 0 && isCurrent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _playerKey.currentState?.play();
+      });
+    }
     // 把 LocalVideoItem 转成 MediaItem
     // 网络源（WebDAV）：直接用 networkUrl
     // App 目录文件：直接用 file:// 路径

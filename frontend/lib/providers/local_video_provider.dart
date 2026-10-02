@@ -375,3 +375,7 @@ final localVideoProvider =
     StateNotifierProvider<LocalVideoNotifier, LocalVideoState>(
   (ref) => LocalVideoNotifier(ref),
 );
+
+/// 本地视频流中当前可见页索引（用于滑动时暂停其他页）
+/// -1 表示独立使用 LocalPlayerPage，始终播放
+final localFeedPlayingIndexProvider = StateProvider<int>((_) => -1);

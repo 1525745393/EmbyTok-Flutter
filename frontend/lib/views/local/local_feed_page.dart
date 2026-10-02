@@ -17,7 +17,18 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
   final _controller = PageController();
 
   @override
+  void initState() {
+    super.initState();
+    // 初始第一页播放
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(localFeedPlayingIndexProvider.notifier).state = 0;
+    });
+  }
+
+  @override
   void dispose() {
+    // 退出本地视频流时重置为 -1，避免影响独立打开的 LocalPlayerPage
+    ref.read(localFeedPlayingIndexProvider.notifier).state = -1;
     _controller.dispose();
     super.dispose();
   }
@@ -41,6 +52,7 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
         controller: _controller,
         itemCount: items.length,
         physics: const PageScrollPhysics(),
+        onPageChanged: (i) => ref.read(localFeedPlayingIndexProvider.notifier).state = i,
         itemBuilder: (_, i) => LocalPlayerPage(items: items, initialIndex: i),
       ),
     );
