@@ -2648,6 +2648,13 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     return n.trim().isEmpty ? filename : n.trim();
   }
 
+  Widget _stillFallback(ScrapedMedia? meta) {
+    if (meta?.backdropPath != null) {
+      return CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]));
+    }
+    return Container(color: Colors.grey[800]);
+  }
+
   void _openImageViewer(String url) {
     Navigator.push(
       context,
@@ -2933,15 +2940,15 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
               final it = sorted[i];
               final ep = ScrapeService.extractEpisode(it.name);
               final info = ep != null ? _epInfo[ep.episode] : null;
-              final stillPath = info?['stillPath'];
-              final epName = (info?['name'] as String?)?.isNotEmpty == true
-                  ? info!['name'] as String
-                  : _episodeTitle(it.name);
+              final stillPath = info?['stillPath'] as String?;
+              final epName = (info?['name'] as String?)?.isNotEmpty == true ? info!['name'] as String : _episodeTitle(it.name);
               final airDate = info?['airDate'] as String?;
               final runtime = info?['runtime'] as int?;
               final overview = info?['overview'] as String?;
+              final epNum = ep?.episode ?? i + 1;
               return InkWell(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
                   decoration: BoxDecoration(color: Colors.grey[850], borderRadius: BorderRadius.circular(10)),
                   clipBehavior: Clip.antiAlias,
@@ -2949,25 +2956,41 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: stillPath != null && stillPath.isNotEmpty
-                            ? CachedNetworkImage(imageUrl: TmdbService.stillUrl(stillPath as String), fit: BoxFit.cover, errorWidget: (_, __, ___) => meta?.backdropPath != null ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover) : Container(color: Colors.grey[800]))
-                            : meta?.backdropPath != null
-                                ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
-                                : Container(color: Colors.grey[800]),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            stillPath != null && stillPath.isNotEmpty
+                                ? CachedNetworkImage(imageUrl: TmdbService.stillUrl(stillPath), fit: BoxFit.cover, errorWidget: (_, __, ___) => _stillFallback(meta))
+                                : _stillFallback(meta),
+                            // 底部渐变
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black54]),
+                              ),
+                            ),
+                            // 集号角标
+                            Positioned(
+                              left: 8, bottom: 6,
+                              child: Text('$epNum', style: const TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.w900, shadows: [Shadow(blurRadius: 3, color: Colors.black)])),
+                            ),
+                            // 播放按钮
+                            Positioned(
+                              right: 6, bottom: 4,
+                              child: Icon(Icons.play_circle_fill, color: Colors.white.withOpacity(0.9), size: 22),
+                            ),
+                          ],
+                        ),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${ep?.episode ?? i + 1}. $epName', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            Text(epName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                             if (airDate != null || runtime != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  [if (airDate != null && airDate.isNotEmpty) airDate, if (runtime != null) '${runtime}m'].join('  ·  '),
-                                  style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-                                ),
+                                child: Text([if (airDate != null && airDate.isNotEmpty) airDate, if (runtime != null) '${runtime}m'].join('  ·  '), style: TextStyle(fontSize: 10, color: Colors.grey[500])),
                               ),
                             if (overview != null && overview.isNotEmpty)
                               Padding(
