@@ -1,3 +1,10 @@
+## [2.309.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.1...v2.309.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* 文件源浏览页刮削结果未保存到缓存 ([72ea010](https://github.com/1525745393/EmbyTok-Flutter/commit/72ea0103feff09c92a61dabaa74f5d215c346f8b))
+
 ## [2.309.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.0...v2.309.1) (2026-10-02)
 
 
