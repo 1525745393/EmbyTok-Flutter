@@ -1846,7 +1846,12 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     final allItems =
         state.items.where((e) => e.sourceId == widget.sourceId).toList();
 
-    // 按 Tab 过滤
+    // 查找当前源的媒体类型
+    final sources = ref.watch(fileSourcesProvider);
+    final src = sources.where((s) => s.id == widget.sourceId).cast<FileSource?>().firstWhere((_) => true, orElse: () => null);
+    final isTv = src?.config['mediaType'] == 'tv';
+
+    // TV 源按剧名分组
     List<LocalVideoItem> items;
     switch (_tab) {
       case 1: // 播放记录
@@ -1858,75 +1863,154 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     }
     items = _applySort(items, state);
 
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    // TV 源默认 Tab（0）按剧名分组显示海报网格
+    if (isTv && _tab == 0) {
+      final groups = <String, List<LocalVideoItem>>{};
+      for (final it in items) {
+        final folder = ScrapeService.extractSeriesName(it.relativePath) ??
+            (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ?? '未分组');
+        groups.putIfAbsent(folder, () => []).add(it);
+      }
+      return Scaffold(
+        appBar: _buildAppBar(allItems.length),
+        body: Column(
           children: [
-            Text(widget.sourceName,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            Text('当前项目数: ${allItems.length}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
-            tooltip: _gridMode ? '切换列表' : '切换网格',
-            onPressed: () => setState(() => _gridMode = !_gridMode),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            tooltip: '排序',
-            onSelected: (v) => setState(() => _sortBy = v),
-            itemBuilder: (_) => _sortOptions.entries
-                .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
-                .toList(),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Tab 栏
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                for (var i = 0; i < 5; i++)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _tab = i),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            ['电影', '播放记录', '分类', '合集', '文件夹'][i],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: _tab == i ? FontWeight.w700 : FontWeight.normal,
-                              color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Container(
-                            height: 2,
-                            width: 24,
-                            color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.transparent,
-                          ),
-                        ],
+            _buildTabBar(isTv),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.55,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 16,
+                ),
+                itemCount: groups.length,
+                itemBuilder: (_, i) {
+                  final entry = groups.entries.elementAt(i);
+                  final eps = entry.value;
+                  final s = state.scrapedMap[eps.first.pathHash];
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => _FolderEpisodePage(folderName: entry.key, items: eps),
                       ),
                     ),
-                  ),
-              ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: s?.posterPath != null
+                                    ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                                    : Container(color: Colors.grey[800], child: const Icon(Icons.tv, size: 32, color: Colors.white24)),
+                              ),
+                              Positioned(
+                                top: 6, right: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(color: Colors.pinkAccent, borderRadius: BorderRadius.circular(10)),
+                                  child: Text('${eps.length}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(s?.title ?? entry.key, maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(s?.year != null ? '${s!.year}-现在' : '${eps.length} 集',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: _buildTabBody(items, state),
-          ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: _buildAppBar(allItems.length),
+      body: Column(
+        children: [
+          _buildTabBar(isTv),
+          Expanded(child: _buildTabBody(items, state)),
+        ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(int count) {
+    return AppBar(
+      titleSpacing: 0,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.sourceName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          Text('当前项目数: $count', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
+          tooltip: _gridMode ? '切换列表' : '切换网格',
+          onPressed: () => setState(() => _gridMode = !_gridMode),
+        ),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.sort),
+          tooltip: '排序',
+          onSelected: (v) => setState(() => _sortBy = v),
+          itemBuilder: (_) => _sortOptions.entries
+              .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabBar(bool isTv) {
+    final labels = isTv ? ['电视剧', '播放记录', '分类', '合集', '文件夹'] : ['电影', '播放记录', '分类', '合集', '文件夹'];
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (var i = 0; i < labels.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: GestureDetector(
+                onTap: () => setState(() => _tab = i),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      labels[i],
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: _tab == i ? FontWeight.w700 : FontWeight.normal,
+                        color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 2,
+                      width: 24,
+                      color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
