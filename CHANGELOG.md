@@ -1,3 +1,11 @@
+## [2.300.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.300.0...v2.300.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 媒体库详情页播放按钮接通播放器（原来传空闭包导致只关页面不播放） ([f4882c8](https://github.com/1525745393/EmbyTok-Flutter/commit/f4882c859f4609a282fd058411587a013199ff29))
+* 详情页重新刮削结果写入磁盘缓存（原来只更新内存，重启后演员头像丢失） ([ff304cd](https://github.com/1525745393/EmbyTok-Flutter/commit/ff304cd2ce7d80459e54aff7811a23b246c921d1))
+
 # [2.300.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.299.0...v2.300.0) (2026-10-02)
 
 
