@@ -150,6 +150,16 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                 onRefresh: notifier.refresh,
                 hasPermission: state.permission.hasAccess,
               ),
+
+            // 底部统计行
+            if (state.items.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  _buildStatsLine(state),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ),
           ],
         ),
       ),
