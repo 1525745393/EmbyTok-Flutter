@@ -52,6 +52,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     widget.item.name,
                   );
                   if (result != null) {
+                    // 写入磁盘缓存，避免重启后演员头像/元数据丢失
+                    await ScrapeService.saveCache(widget.item.pathHash, result);
                     final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
                     cached[widget.item.pathHash] = result;
                     ref.read(localVideoProvider.notifier).state =
