@@ -1,3 +1,10 @@
+# [2.304.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.303.1...v2.304.0) (2026-10-02)
+
+
+### Features
+
+* 本地文件管理增强 ([4239415](https://github.com/1525745393/EmbyTok-Flutter/commit/4239415a65b0b390292077adb9441ea8b7bff719))
+
 ## [2.303.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.303.0...v2.303.1) (2026-10-02)
 
 
