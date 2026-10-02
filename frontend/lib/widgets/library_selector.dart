@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../providers/file_sources_provider.dart';
+import '../providers/local_video_provider.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'loading_state_card.dart';
 import 'tv_focusable.dart';
@@ -394,13 +395,14 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           const SizedBox(height: 12),
           Builder(builder: (_) {
             final localSources = ref.watch(fileSourcesProvider);
+            final localVideos = ref.watch(localVideoProvider);
             final nav = Navigator.of(context);
             final cards = <Widget>[
               _buildLibraryCard(
                 scheme: scheme,
                 icon: Icons.smartphone,
                 name: '全部本地视频',
-                count: localSources.fold<int>(0, (s, f) => s + (f.config['enabled'] == '1' ? 1 : 0)),
+                count: localVideos.items.length,
                 isSelected: false,
                 onTap: () {
                   nav.pop();
@@ -413,12 +415,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               ),
             ];
             for (final src in localSources) {
-              if (src.config['enabled'] != '1') continue;
+              // 显示所有文件源（无论是否启用），用户可直接选择进入
+              final srcCount = localVideos.items
+                  .where((it) => it.sourceId == src.id)
+                  .length;
               cards.add(_buildLibraryCard(
                 scheme: scheme,
                 icon: Icons.folder,
                 name: src.name,
-                count: null,
+                count: srcCount,
                 isSelected: false,
                 onTap: () {
                   nav.pop();
