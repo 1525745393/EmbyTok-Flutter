@@ -2641,7 +2641,8 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
     final first = sorted.first;
     final meta = state.scrapedMap[first.pathHash];
     final cast = meta?.cast ?? [];
-    final isFav = state.favoriteHashes.contains(first.pathHash);
+    // 整剧收藏：所有集都收藏才算收藏
+    final allFaved = sorted.every((e) => state.favoriteHashes.contains(e.pathHash));
 
     return Scaffold(
       body: ListView(
@@ -2685,10 +2686,13 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
                     final result = await ScrapeService.scrapeTvSeries(widget.folderName);
                     if (result != null) {
-                      await ScrapeService.saveCache(first.pathHash, result);
-                      final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
-                      cached[first.pathHash] = result;
-                      ref.read(localVideoProvider.notifier).state = state.copyWith(scrapedMap: cached);
+                      // 整剧所有集共享系列元数据
+                      final cached = Map<String, ScrapedMedia>.from(ref.read(localVideoProvider).scrapedMap);
+                      for (final it in sorted) {
+                        cached[it.pathHash] = result;
+                      }
+                      ref.read(localVideoProvider.notifier).state =
+                          ref.read(localVideoProvider).copyWith(scrapedMap: cached);
                       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削完成')));
                     }
                   },
@@ -2730,8 +2734,17 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(first.pathHash),
-                          icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.pink : Colors.white),
+                          onPressed: () {
+                            // 整剧收藏/取消：切换所有集
+                            for (final it in sorted) {
+                              if (allFaved) {
+                                ref.read(localVideoProvider.notifier).toggleFavorite(it.pathHash);
+                              } else if (!state.favoriteHashes.contains(it.pathHash)) {
+                                ref.read(localVideoProvider.notifier).toggleFavorite(it.pathHash);
+                              }
+                            }
+                          },
+                          icon: Icon(allFaved ? Icons.favorite : Icons.favorite_border, color: allFaved ? Colors.pink : Colors.white),
                         ),
                         IconButton(
                           onPressed: () => Share.shareXFiles([XFile(first.path)], subject: first.name),
