@@ -227,16 +227,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     final isTv = widget.source.config['mediaType'] == 'tv';
     // TV 类型按文件夹分组
     if (isTv) {
-      // 同时记录文件夹完整路径，用于重命名
+      // 按剧名分组（自动跳过 Season 子目录）
       final groups = <String, List<LocalVideoItem>>{};
       final groupDir = <String, String>{};
       for (final it in _items) {
-        final parent = it.relativePath ?? '';
-        final folder = parent.isEmpty
-            ? '未分组'
-            : parent.split('/').where((s) => s.isNotEmpty).last;
+        final folder = ScrapeService.extractSeriesName(it.relativePath) ??
+            (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ?? '未分组');
         groups.putIfAbsent(folder, () => []).add(it);
-        groupDir[folder] = parent;
+        groupDir[folder] = it.relativePath ?? '';
       }
       return ListView(
         padding: const EdgeInsets.all(16),

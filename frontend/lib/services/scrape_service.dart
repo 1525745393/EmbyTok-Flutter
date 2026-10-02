@@ -248,6 +248,15 @@ class ScrapeService {
         }
       }
     }
+    // 文件名只有 SxxExx（如 S01E01.mp4）时，用父目录剧名兜底
+    if (parsed.type == 'tv' && parsed.title.isEmpty && seriesName != null && seriesName.isNotEmpty) {
+      parsed = ParsedName(
+        type: 'tv',
+        title: seriesName,
+        season: parsed.season,
+        episode: parsed.episode,
+      );
+    }
     if (parsed.title.isEmpty) return null;
 
     if (parsed.type == 'tv') {

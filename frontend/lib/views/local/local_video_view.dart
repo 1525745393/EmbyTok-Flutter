@@ -182,10 +182,8 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     if (isTv) {
       final groups = <String, List<LocalVideoItem>>{};
       for (final it in srcItems) {
-        final parent = it.relativePath ?? '';
-        final folder = parent.isEmpty
-            ? '未分组'
-            : parent.split('/').where((s) => s.isNotEmpty).last;
+        final folder = ScrapeService.extractSeriesName(it.relativePath) ??
+            (it.relativePath?.split('/').where((s) => s.isNotEmpty).last ?? '未分组');
         groups.putIfAbsent(folder, () => []).add(it);
       }
       return Column(
