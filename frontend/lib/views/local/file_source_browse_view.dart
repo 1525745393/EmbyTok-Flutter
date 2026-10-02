@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -222,44 +224,60 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     );
   }
 
+  Set<String> _expandedFolders = {};
+
   Widget _buildBody() {
     final isTv = widget.source.config['mediaType'] == 'tv';
     // TV 类型按文件夹分组
     if (isTv) {
+      // 同时记录文件夹完整路径，用于重命名
       final groups = <String, List<LocalVideoItem>>{};
+      final groupDir = <String, String>{};
       for (final it in _items) {
-        // relativePath 是完整父目录路径，取最后一段作为剧集文件夹名
         final parent = it.relativePath ?? '';
         final folder = parent.isEmpty
             ? '未分组'
             : parent.split('/').where((s) => s.isNotEmpty).last;
         groups.putIfAbsent(folder, () => []).add(it);
+        groupDir[folder] = parent;
       }
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          for (final entry in groups.entries) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.folder, size: 18, color: Colors.grey),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(entry.key,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                  ),
-                  Text('${entry.value.length}集',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                ],
+          for (final entry in groups.entries)
+            Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ExpansionTile(
+                initiallyExpanded: _expandedFolders.contains(entry.key),
+                onExpansionChanged: (v) {
+                  setState(() {
+                    if (v) {
+                      _expandedFolders.add(entry.key);
+                    } else {
+                      _expandedFolders.remove(entry.key);
+                    }
+                  });
+                },
+                leading: const Icon(Icons.folder, color: Colors.amber),
+                title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text('${entry.value.length}集'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.drive_file_rename_outline, size: 18),
+                      tooltip: '重命名文件夹',
+                      onPressed: () => _renameFolder(entry.key, groupDir[entry.key] ?? ''),
+                    ),
+                    const Icon(Icons.keyboard_arrow_down),
+                  ],
+                ),
+                children: entry.value.map((it) {
+                  final realIndex = _items.indexOf(it);
+                  return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
+                }).toList(),
               ),
             ),
-            ...entry.value.map((it) {
-              final realIndex = _items.indexOf(it);
-              return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
-            }),
-            const SizedBox(height: 16),
-          ],
         ],
       );
     }
@@ -268,6 +286,38 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (_, i) => _buildItemTile(_items[i], i),
     );
+  }
+
+  Future<void> _renameFolder(String oldName, String dirPath) async {
+    final ctrl = TextEditingController(text: oldName);
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('重命名剧集文件夹'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '输入新文件夹名'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+        ],
+      ),
+    );
+    if (newName == null || newName.isEmpty || newName == oldName) return;
+    try {
+      final newPath = dirPath.substring(0, dirPath.lastIndexOf('/')) + '/$newName';
+      await Directory(dirPath).rename(newPath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('文件夹重命名成功')));
+        _scan();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+      }
+    }
   }
 
   Widget _buildItemTile(LocalVideoItem item, int index) {
