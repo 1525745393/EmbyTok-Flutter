@@ -129,12 +129,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       try {
         final pathHash = item.pathHash;
         // parentDir 传完整父目录路径，extractSeriesName 自动跳过 Season 文件夹
-        await ScrapeService.scrapeFile(
+        final m = await ScrapeService.scrapeFile(
           pathHash,
           item.name,
           parentDir: item.relativePath,
           mediaTypeHint: widget.source.config['mediaType'],
         );
+        if (m != null) await ScrapeService.saveCache(pathHash, m);
       } catch (_) {}
       if (!mounted) return;
       setState(() => _scrapedCount++);
@@ -308,12 +309,13 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     int done = 0;
     for (final item in eps) {
       try {
-        await ScrapeService.scrapeFile(
+        final m = await ScrapeService.scrapeFile(
           item.pathHash,
           item.name,
           parentDir: item.relativePath,
           mediaTypeHint: widget.source.config['mediaType'],
         );
+        if (m != null) await ScrapeService.saveCache(item.pathHash, m);
       } catch (_) {}
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);
