@@ -1,3 +1,10 @@
+## [2.308.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.308.1...v2.308.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* 多季剧集分组与刮削修复 ([caf333a](https://github.com/1525745393/EmbyTok-Flutter/commit/caf333a954781eb00bf721fcc82b0978c6d76732))
+
 ## [2.308.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.308.0...v2.308.1) (2026-10-02)
 
 
