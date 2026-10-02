@@ -228,7 +228,11 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     if (isTv) {
       final groups = <String, List<LocalVideoItem>>{};
       for (final it in _items) {
-        final folder = it.relativePath?.split('/').first ?? '未分组';
+        // relativePath 是完整父目录路径，取最后一段作为剧集文件夹名
+        final parent = it.relativePath ?? '';
+        final folder = parent.isEmpty
+            ? '未分组'
+            : parent.split('/').where((s) => s.isNotEmpty).last;
         groups.putIfAbsent(folder, () => []).add(it);
       }
       return ListView(
