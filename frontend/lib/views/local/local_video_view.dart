@@ -2100,6 +2100,15 @@ class LocalFavoritesPage extends ConsumerWidget {
       }
     }
 
+    // 电视剧按 tvId 去重，每个系列只显示一张海报，角标显示集数
+    final tvGroups = <String, List<LocalVideoItem>>{};
+    for (final it in tvs) {
+      final s = state.scrapedMap[it.pathHash];
+      final key = s?.tvId != null ? 'tv_${s!.tvId}' : it.name;
+      tvGroups.putIfAbsent(key, () => []).add(it);
+    }
+    final tvReps = tvGroups.values.map((g) => g.first).toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('收藏')),
       body: favs.isEmpty
@@ -2108,8 +2117,8 @@ class LocalFavoritesPage extends ConsumerWidget {
               children: [
                 if (movies.isNotEmpty)
                   _FavSection(title: '电影', items: movies, state: state),
-                if (tvs.isNotEmpty)
-                  _FavSection(title: '电视剧', items: tvs, state: state, isTv: true),
+                if (tvReps.isNotEmpty)
+                  _FavSection(title: '电视剧', items: tvReps, state: state, isTv: true, tvGroups: tvGroups),
                 if (episodes.isNotEmpty)
                   _FavSection(title: '集', items: episodes, state: state, useBackdrop: true),
               ],
@@ -2124,12 +2133,14 @@ class _FavSection extends StatelessWidget {
   final LocalVideoState state;
   final bool isTv;
   final bool useBackdrop;
+  final Map<String, List<LocalVideoItem>>? tvGroups;
   const _FavSection({
     required this.title,
     required this.items,
     required this.state,
     this.isTv = false,
     this.useBackdrop = false,
+    this.tvGroups,
   });
 
   @override
@@ -2161,7 +2172,7 @@ class _FavSection extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => LocalDetailPage(item: it, onPlay: () {
-                      Navigator.pop(context);
+                      // LocalDetailPage 内部已先 pop 自己，这里直接 push 播放器
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -2195,21 +2206,26 @@ class _FavSection extends StatelessWidget {
                                     ),
                             ),
                           ),
-                          if (isTv && s?.episode != null)
+                          if (isTv && tvGroups != null)
                             Positioned(
                               top: 6,
                               right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black54,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  '${s!.episode}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 11),
-                                ),
-                              ),
+                              child: Builder(builder: (_) {
+                                final s2 = state.scrapedMap[it.pathHash];
+                                final key = s2?.tvId != null ? 'tv_${s2!.tvId}' : it.name;
+                                final count = tvGroups?[key]?.length ?? 1;
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$count',
+                                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                                  ),
+                                );
+                              }),
                             ),
                         ],
                       ),
