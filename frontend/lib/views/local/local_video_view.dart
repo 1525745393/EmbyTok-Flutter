@@ -1617,6 +1617,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   int _tab = 0; // 电影/播放记录/分类/合集/文件夹
   bool _gridMode = true; // true=3列海报, false=2列backdrop
   String _sortBy = 'name';
+  String? _genreFilter; // 分类 Tab 当前选中类型
 
   static const _sortOptions = {
     'name': '按名称',
@@ -1756,15 +1757,130 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             ),
           ),
           Expanded(
-            child: items.isEmpty
-                ? const Center(child: Text('暂无内容'))
-                : _gridMode
-                    ? _buildGrid(items, state)
-                    : _buildBackdropList(items, state),
+            child: _buildTabBody(items, state),
           ),
         ],
       ),
     );
+  }
+
+  /// 按当前 Tab 渲染内容
+  Widget _buildTabBody(List<LocalVideoItem> items, LocalVideoState state) {
+    switch (_tab) {
+      case 2: // 分类：顶部类型 chips + 网格
+        final genres = <String>{};
+        for (final it in items) {
+          final s = state.scrapedMap[it.pathHash];
+          if (s != null) genres.addAll(s.genres);
+        }
+        final filtered = _genreFilter == null
+            ? items
+            : items.where((it) {
+                final s = state.scrapedMap[it.pathHash];
+                return s?.genres.contains(_genreFilter) ?? false;
+              }).toList();
+        return Column(
+          children: [
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  ChoiceChip(
+                    label: const Text('全部'),
+                    selected: _genreFilter == null,
+                    onSelected: (_) => setState(() => _genreFilter = null),
+                  ),
+                  const SizedBox(width: 8),
+                  ...genres.map((g) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(g),
+                          selected: _genreFilter == g,
+                          onSelected: (_) => setState(() => _genreFilter = g),
+                        ),
+                      )),
+                ],
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(child: Text('暂无内容'))
+                  : _gridMode
+                      ? _buildGrid(filtered, state)
+                      : _buildBackdropList(filtered, state),
+            ),
+          ],
+        );
+      case 3: // 合集：按 tvId / 标题分组
+        final groups = <String, List<LocalVideoItem>>{};
+        for (final it in items) {
+          final s = state.scrapedMap[it.pathHash];
+          final key = s?.tvId != null ? 'tv_${s!.tvId}' : (s?.title ?? it.name);
+          groups.putIfAbsent(key, () => []).add(it);
+        }
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: groups.entries.map((e) {
+            final first = e.value.first;
+            final s = state.scrapedMap[first.pathHash];
+            return ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: SizedBox(
+                  width: 48,
+                  height: 72,
+                  child: s?.posterPath != null
+                      ? CachedNetworkImage(
+                          imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                      : Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+                ),
+              ),
+              title: Text(s?.title ?? first.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text('${e.value.length} 个项目'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => _GroupListPage(title: s?.title ?? first.name, items: e.value, state: state),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      case 4: // 文件夹：按相对路径目录分组
+        final folders = <String, List<LocalVideoItem>>{};
+        for (final it in items) {
+          final dir = (it.relativePath != null && it.relativePath!.contains('/'))
+              ? it.relativePath!.substring(0, it.relativePath!.lastIndexOf('/'))
+              : '根目录';
+          folders.putIfAbsent(dir, () => []).add(it);
+        }
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: folders.entries.map((e) {
+            return ListTile(
+              leading: const Icon(Icons.folder, color: Colors.amber),
+              title: Text(e.key, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text('${e.value.length} 个视频'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => _GroupListPage(title: e.key, items: e.value, state: state),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      default: // 0 电影 / 1 播放记录
+        return items.isEmpty
+            ? const Center(child: Text('暂无内容'))
+            : _gridMode
+                ? _buildGrid(items, state)
+                : _buildBackdropList(items, state);
+    }
   }
 
   /// 3列竖版海报网格
@@ -1905,6 +2021,50 @@ class _BackdropCard extends StatelessWidget {
               maxLines: 1, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
         ],
+      ),
+    );
+  }
+}
+
+/// 合集/文件夹分组下的视频列表页
+class _GroupListPage extends StatelessWidget {
+  final String title;
+  final List<LocalVideoItem> items;
+  final LocalVideoState state;
+  const _GroupListPage({required this.title, required this.items, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title),
+            Text('${items.length} 个项目', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.58,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: items.length,
+        itemBuilder: (_, i) => _GridPosterCard(
+          item: items[i],
+          state: state,
+          onPlay: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => LocalPlayerPage(items: items, initialIndex: i),
+            ),
+          ),
+        ),
       ),
     );
   }
