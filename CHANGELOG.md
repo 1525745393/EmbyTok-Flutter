@@ -1,3 +1,10 @@
+# [2.320.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.319.1...v2.320.0) (2026-10-02)
+
+
+### Features
+
+* 本地流复用主视频流布局（embedded 模式） ([8d9fe34](https://github.com/1525745393/EmbyTok-Flutter/commit/8d9fe34aec085635970e239afb89afe990ae664a))
+
 ## [2.319.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.319.0...v2.319.1) (2026-10-02)
 
 
