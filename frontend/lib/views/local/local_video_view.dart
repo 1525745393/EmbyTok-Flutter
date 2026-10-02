@@ -1616,6 +1616,42 @@ class _SourceFullListPage extends ConsumerStatefulWidget {
 class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   int _tab = 0; // 电影/播放记录/分类/合集/文件夹
   bool _gridMode = true; // true=3列海报, false=2列backdrop
+  String _sortBy = 'name';
+
+  static const _sortOptions = {
+    'name': '按名称',
+    'time': '按时间',
+    'rating': '按评分',
+    'year': '年份',
+    'duration': '播放时长',
+    'size': '大小',
+    'random': '随机',
+  };
+
+  List<LocalVideoItem> _applySort(List<LocalVideoItem> items, LocalVideoState state) {
+    final list = [...items];
+    switch (_sortBy) {
+      case 'name':
+        list.sort((a, b) => (state.scrapedMap[a.pathHash]?.title ?? a.name)
+            .compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name));
+      case 'time':
+      case 'added':
+        list.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+      case 'year':
+        list.sort((a, b) => (state.scrapedMap[b.pathHash]?.year ?? 0)
+            .compareTo(state.scrapedMap[a.pathHash]?.year ?? 0));
+      case 'rating':
+        list.sort((a, b) => (state.scrapedMap[b.pathHash]?.rating ?? 0)
+            .compareTo(state.scrapedMap[a.pathHash]?.rating ?? 0));
+      case 'duration':
+        list.sort((a, b) => b.duration.inSeconds.compareTo(a.duration.inSeconds));
+      case 'size':
+        list.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+      case 'random':
+        list.shuffle();
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1633,6 +1669,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       default:
         items = allItems;
     }
+    items = _applySort(items, state);
 
     return Scaffold(
       appBar: AppBar(
@@ -1647,6 +1684,14 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           ],
         ),
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort),
+            tooltip: '排序',
+            onSelected: (v) => setState(() => _sortBy = v),
+            itemBuilder: (_) => _sortOptions.entries
+                .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+                .toList(),
+          ),
           IconButton(
             icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
             tooltip: _gridMode ? '切换列表' : '切换网格',
