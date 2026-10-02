@@ -23,6 +23,8 @@ import 'package:go_router/go_router.dart';
 
 import '../coordinators/playback_coordinator.dart';
 import '../providers/providers.dart';
+import '../providers/local_video_provider.dart';
+import 'local/local_feed_page.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
 import '../utils/fullscreen_navigator.dart';
@@ -337,6 +339,15 @@ class _FeedViewState extends ConsumerState<FeedView>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    // 用户在"视频流使用"里选了本地文件源：直接嵌入本地抖音式流
+    final localSource = ref.watch(localFeedSourceIdProvider);
+    if (localSource != null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: LocalFeedPage(sourceId: localSource.isEmpty ? null : localSource),
+      );
+    }
 
     final videoState = ref.watch(videoListProvider);
     final authState = ref.watch(authProvider);

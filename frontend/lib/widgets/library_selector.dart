@@ -396,6 +396,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
           Builder(builder: (_) {
             final localSources = ref.watch(fileSourcesProvider);
             final localVideos = ref.watch(localVideoProvider);
+            final selectedLocal = ref.watch(localFeedSourceIdProvider);
             final nav = Navigator.of(context);
             final cards = <Widget>[
               _buildLibraryCard(
@@ -403,10 +404,11 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 icon: Icons.smartphone,
                 name: '全部本地视频',
                 count: localVideos.items.length,
-                isSelected: false,
+                isSelected: selectedLocal == '',
                 onTap: () {
+                  // 选中后写入 provider，主 feed 切到本地流；不跳页
+                  ref.read(localFeedSourceIdProvider.notifier).state = '';
                   nav.pop();
-                  nav.pushNamed('/local-feed');
                 },
                 gradientColors: [
                   Colors.teal.withValues(alpha: 0.6),
@@ -415,7 +417,6 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               ),
             ];
             for (final src in localSources) {
-              // 显示所有文件源（无论是否启用），用户可直接选择进入
               final srcCount = localVideos.items
                   .where((it) => it.sourceId == src.id)
                   .length;
@@ -424,10 +425,10 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 icon: Icons.folder,
                 name: src.name,
                 count: srcCount,
-                isSelected: false,
+                isSelected: selectedLocal == src.id,
                 onTap: () {
+                  ref.read(localFeedSourceIdProvider.notifier).state = src.id;
                   nav.pop();
-                  nav.pushNamed('/local-feed?sourceId=${src.id}');
                 },
                 gradientColors: [
                   Colors.green.withValues(alpha: 0.5),

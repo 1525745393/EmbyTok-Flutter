@@ -379,3 +379,9 @@ final localVideoProvider =
 /// 本地视频流中当前可见页索引（用于滑动时暂停其他页）
 /// -1 表示独立使用 LocalPlayerPage，始终播放
 final localFeedPlayingIndexProvider = StateProvider<int>((_) => -1);
+
+/// 用户在"视频流使用"选择器中选中的本地文件源 ID
+/// - null：未选本地源（走 Emby 推荐流）
+/// - 非空：主 feed 直接显示该本地源的抖音式上下滑
+///   （空字符串 '' 表示"全部本地视频"）
+final localFeedSourceIdProvider = StateProvider<String?>((_) => null);
