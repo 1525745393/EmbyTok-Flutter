@@ -1,3 +1,15 @@
+# [2.317.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.316.1...v2.317.0) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地视频流选择修复 ([39965ea](https://github.com/1525745393/EmbyTok-Flutter/commit/39965ea8343abdd63e139d8dbb676445cda86df6))
+
+
+### Features
+
+* 本地视频流滑动时自动暂停非当前页 ([fd906e2](https://github.com/1525745393/EmbyTok-Flutter/commit/fd906e2e959c1588961cc1bd091df60578d4fb15))
+
 ## [2.316.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.316.0...v2.316.1) (2026-10-02)
 
 
