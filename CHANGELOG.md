@@ -1,3 +1,10 @@
+# [2.301.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.300.1...v2.301.0) (2026-10-02)
+
+
+### Features
+
+* 媒体库Tab补全分类/合集/文件夹 ([4a30205](https://github.com/1525745393/EmbyTok-Flutter/commit/4a30205b1828fb1dba1f51fca019d0333e842b83))
+
 ## [2.300.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.300.0...v2.300.1) (2026-10-02)
 
 
