@@ -1,3 +1,10 @@
+## [2.316.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.316.0...v2.316.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地视频流去掉双层AppBar ([27f915c](https://github.com/1525745393/EmbyTok-Flutter/commit/27f915c6605830fa13cfbe5807a6e869dcdb27ec))
+
 # [2.316.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.315.0...v2.316.0) (2026-10-02)
 
 
