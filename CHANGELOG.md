@@ -1,3 +1,10 @@
+# [2.305.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.304.0...v2.305.0) (2026-10-02)
+
+
+### Features
+
+* TV 源剧集文件夹可点击，进入单剧集数列表页 ([07369df](https://github.com/1525745393/EmbyTok-Flutter/commit/07369df8235d3655a510eff1de07aa4bf4b078d7))
+
 # [2.304.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.303.1...v2.304.0) (2026-10-02)
 
 
