@@ -1,3 +1,10 @@
+# [2.311.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.310.1...v2.311.0) (2026-10-02)
+
+
+### Features
+
+* TV 媒体库浏览页改为 3 列海报网格 ([efb04d6](https://github.com/1525745393/EmbyTok-Flutter/commit/efb04d69b17c6a96c24bb16af5189d353e897813))
+
 ## [2.310.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.310.0...v2.310.1) (2026-10-02)
 
 
