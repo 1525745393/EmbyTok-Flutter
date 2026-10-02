@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'local_detail_view.dart';
+import 'person_detail_view.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/file_source.dart';
@@ -2109,9 +2110,24 @@ class LocalFavoritesPage extends ConsumerWidget {
     }
     final tvReps = tvGroups.values.map((g) => g.first).toList();
 
+    // 演员收藏：从所有刮削结果里找已收藏演员的姓名和头像
+    final actorInfo = <String, Map<String, String>>{};
+    for (final s in state.scrapedMap.values) {
+      for (final c in s.cast) {
+        final id = c['id'];
+        if (id != null && id.isNotEmpty && state.favoriteActorIds.contains(id)) {
+          actorInfo.putIfAbsent(id, () => c);
+        }
+      }
+    }
+    final favActors = state.favoriteActorIds
+        .where((id) => actorInfo.containsKey(id))
+        .map((id) => actorInfo[id]!)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('收藏')),
-      body: favs.isEmpty
+      body: favs.isEmpty && favActors.isEmpty
           ? const Center(child: Text('暂无收藏'))
           : ListView(
               children: [
@@ -2121,6 +2137,8 @@ class LocalFavoritesPage extends ConsumerWidget {
                   _FavSection(title: '电视剧', items: tvReps, state: state, isTv: true, tvGroups: tvGroups),
                 if (episodes.isNotEmpty)
                   _FavSection(title: '集', items: episodes, state: state, useBackdrop: true),
+                if (favActors.isNotEmpty)
+                  _FavActorsSection(actors: favActors),
               ],
             ),
     );
@@ -2238,6 +2256,81 @@ class _FavSection extends StatelessWidget {
                       ),
                       if (s?.year != null)
                         Text('${s!.year}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 收藏演员分区：圆形头像横滑
+class _FavActorsSection extends StatelessWidget {
+  final List<Map<String, String>> actors;
+  const _FavActorsSection({required this.actors});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('演员', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: actors.length,
+            itemBuilder: (_, i) {
+              final a = actors[i];
+              final id = int.tryParse(a['id'] ?? '');
+              return GestureDetector(
+                onTap: id == null
+                    ? null
+                    : () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PersonDetailPage(
+                            personId: id,
+                            name: a['name'] ?? '',
+                            profilePath: a['profilePath'],
+                          ),
+                        ),
+                      ),
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundImage: a['profilePath'] != null && a['profilePath']!.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                TmdbService.personUrl(a['profilePath']!))
+                            : null,
+                        child: a['profilePath'] == null || a['profilePath']!.isEmpty
+                            ? const Icon(Icons.person, size: 32)
+                            : null,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        a['name'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ],
                   ),
                 ),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
 
 /// 演员详情页（本地模式，基于 TMDB）
-class PersonDetailPage extends StatefulWidget {
+class PersonDetailPage extends ConsumerStatefulWidget {
   final int personId;
   final String name;
   final String? profilePath;
@@ -16,10 +18,10 @@ class PersonDetailPage extends StatefulWidget {
   });
 
   @override
-  State<PersonDetailPage> createState() => _PersonDetailPageState();
+  ConsumerState<PersonDetailPage> createState() => _PersonDetailPageState();
 }
 
-class _PersonDetailPageState extends State<PersonDetailPage> {
+class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   Map<String, dynamic>? _details;
   Map<String, dynamic>? _credits;
   bool _loading = true;
@@ -70,6 +72,24 @@ class _PersonDetailPageState extends State<PersonDetailPage> {
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
+            actions: [
+              Consumer(
+                builder: (_, ref, __) {
+                  final isFav = ref
+                      .watch(localVideoProvider)
+                      .favoriteActorIds
+                      .contains('${widget.personId}');
+                  return IconButton(
+                    icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                        color: isFav ? Colors.pink : Colors.white),
+                    tooltip: isFav ? '取消收藏' : '收藏演员',
+                    onPressed: () => ref
+                        .read(localVideoProvider.notifier)
+                        .toggleFavoriteActor('${widget.personId}'),
+                  );
+                },
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,

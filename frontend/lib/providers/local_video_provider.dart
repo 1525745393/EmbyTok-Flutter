@@ -2,6 +2,7 @@
 // 对应 PRD《本地模式》§5.3
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
 import '../services/local_video_service.dart';
@@ -38,6 +39,7 @@ class LocalVideoState {
   final List<String> recentHashes; // 最近播放 pathHash（按时间倒序）
   final bool groupByFolder;        // 是否按文件夹分组
   final Set<String> favoriteHashes; // 已收藏 pathHash（P3）
+  final Set<String> favoriteActorIds; // 已收藏演员 TMDB id
   final Map<String, ScrapedMedia> scrapedMap; // 刮削结果 pathHash→media（刮削 P0）
   final bool scraping; // 是否正在批量刮削
   final int scrapeDone; // 刮削进度（P1 #4）
@@ -57,6 +59,7 @@ class LocalVideoState {
     this.recentHashes = const [],
     this.groupByFolder = false,
     this.favoriteHashes = const {},
+    this.favoriteActorIds = const {},
     this.scrapedMap = const {},
     this.scraping = false,
     this.scrapeDone = 0,
@@ -77,6 +80,7 @@ class LocalVideoState {
     List<String>? recentHashes,
     bool? groupByFolder,
     Set<String>? favoriteHashes,
+    Set<String>? favoriteActorIds,
     Map<String, ScrapedMedia>? scrapedMap,
     bool? scraping,
     int? scrapeDone,
@@ -96,6 +100,7 @@ class LocalVideoState {
         recentHashes: recentHashes ?? this.recentHashes,
         groupByFolder: groupByFolder ?? this.groupByFolder,
         favoriteHashes: favoriteHashes ?? this.favoriteHashes,
+        favoriteActorIds: favoriteActorIds ?? this.favoriteActorIds,
         scrapedMap: scrapedMap ?? this.scrapedMap,
         scraping: scraping ?? this.scraping,
         scrapeDone: scrapeDone ?? this.scrapeDone,
@@ -189,7 +194,9 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     // 先读缓存，再后台刷新
     final cached = await svc.loadCache();
     final ps = await LocalVideoService.currentPermission();
-    state = state.copyWith(items: cached, permission: ps);
+    final sp = await SharedPreferences.getInstance();
+    final favActors = sp.getStringList('favorite_actors')?.toSet() ?? {};
+    state = state.copyWith(items: cached, permission: ps, favoriteActorIds: favActors);
     if (ps.hasAccess) {
       refresh();
     }
@@ -271,6 +278,20 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     try {
       await svc.setFavorite(pathHash, nowFav);
     } catch (_) {}
+  }
+
+  /// 切换本地收藏演员（TMDB id）
+  Future<void> toggleFavoriteActor(String personId) async {
+    final sp = await SharedPreferences.getInstance();
+    final nowFav = !state.favoriteActorIds.contains(personId);
+    final ids = Set<String>.from(state.favoriteActorIds);
+    if (nowFav) {
+      ids.add(personId);
+    } else {
+      ids.remove(personId);
+    }
+    state = state.copyWith(favoriteActorIds: ids);
+    await sp.setStringList('favorite_actors', ids.toList());
   }
 
   void setKeyword(String k) => state = state.copyWith(keyword: k);
