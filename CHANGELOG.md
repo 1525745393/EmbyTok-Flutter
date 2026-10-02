@@ -1,3 +1,10 @@
+# [2.303.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.302.1...v2.303.0) (2026-10-02)
+
+
+### Features
+
+* 本地演员收藏 ([9b8caef](https://github.com/1525745393/EmbyTok-Flutter/commit/9b8caef58a9b1b332f95050c29629cd60c932845))
+
 ## [2.302.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.302.0...v2.302.1) (2026-10-02)
 
 
