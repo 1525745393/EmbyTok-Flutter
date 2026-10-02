@@ -1,3 +1,10 @@
+# [2.315.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.314.0...v2.315.0) (2026-10-02)
+
+
+### Features
+
+* 推荐流接入本地媒体库 ([db80b10](https://github.com/1525745393/EmbyTok-Flutter/commit/db80b10d84a07dae8e0f4550361c0f403b510554))
+
 # [2.314.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.313.0...v2.314.0) (2026-10-02)
 
 
