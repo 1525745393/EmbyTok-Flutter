@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../providers/file_sources_provider.dart';
 import '../utils/app_preferences.dart' show FeedType;
 import 'loading_state_card.dart';
 import 'tv_focusable.dart';
@@ -424,31 +425,54 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.2,
-            children: [
+          Builder(builder: (_) {
+            final localSources = ref.watch(fileSourcesProvider);
+            final nav = Navigator.of(context);
+            final cards = <Widget>[
               _buildLibraryCard(
                 scheme: scheme,
                 icon: Icons.smartphone,
-                name: '本地视频流',
-                count: null,
+                name: '全部本地视频',
+                count: localSources.fold<int>(0, (s, f) => s + (f.config['enabled'] == '1' ? 1 : 0)),
                 isSelected: false,
                 onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pushNamed('/local-feed');
+                  nav.pop();
+                  nav.pushNamed('/local-feed');
                 },
                 gradientColors: [
                   Colors.teal.withValues(alpha: 0.6),
                   Colors.teal.withValues(alpha: 0.2),
                 ],
               ),
-            ],
-          ),
+            ];
+            for (final src in localSources) {
+              if (src.config['enabled'] != '1') continue;
+              cards.add(_buildLibraryCard(
+                scheme: scheme,
+                icon: Icons.folder,
+                name: src.name,
+                count: null,
+                isSelected: false,
+                onTap: () {
+                  nav.pop();
+                  nav.pushNamed('/local-feed?sourceId=${src.id}');
+                },
+                gradientColors: [
+                  Colors.green.withValues(alpha: 0.5),
+                  Colors.green.withValues(alpha: 0.15),
+                ],
+              ));
+            }
+            return GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.2,
+              children: cards,
+            );
+          }),
           const SizedBox(height: 20),
           Divider(height: 1, color: scheme.onSurface.withValues(alpha: 0.1)),
           const SizedBox(height: 20),

@@ -373,10 +373,12 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
         path: '/discover',
         builder: (context, state) => const DiscoverView(),
       ),
-      // 本地视频流：抖音式上下滑播放本地媒体库
+      // 本地视频流：抖音式上下滑播放本地媒体库（可选 ?sourceId=xx 过滤某个文件源）
       GoRoute(
         path: '/local-feed',
-        builder: (context, state) => const LocalFeedPage(),
+        builder: (context, state) => LocalFeedPage(
+          sourceId: state.uri.queryParameters['sourceId'],
+        ),
       ),
       // 类型影片列表：按 Emby Genres API 精确筛选
       GoRoute(

@@ -6,8 +6,10 @@ import '../../providers/local_video_provider.dart';
 import 'local_player_page.dart';
 
 /// 本地视频流：抖音式上下滑播放本地媒体库视频
+/// 可选 sourceId 只播放某个文件源
 class LocalFeedPage extends ConsumerStatefulWidget {
-  const LocalFeedPage({super.key});
+  final String? sourceId;
+  const LocalFeedPage({super.key, this.sourceId});
 
   @override
   ConsumerState<LocalFeedPage> createState() => _LocalFeedPageState();
@@ -19,7 +21,6 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
   @override
   void initState() {
     super.initState();
-    // 初始第一页播放
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) ref.read(localFeedPlayingIndexProvider.notifier).state = 0;
     });
@@ -27,7 +28,6 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
 
   @override
   void dispose() {
-    // 退出本地视频流时重置为 -1，避免影响独立打开的 LocalPlayerPage
     ref.read(localFeedPlayingIndexProvider.notifier).state = -1;
     _controller.dispose();
     super.dispose();
@@ -36,15 +36,17 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
-    // 按最近添加倒序，新刮削的视频在前面
-    final items = List<LocalVideoItem>.from(state.items);
+    var items = List<LocalVideoItem>.from(state.items);
+    // 按文件源过滤
+    if (widget.sourceId != null) {
+      items = items.where((it) => it.sourceId == widget.sourceId).toList();
+    }
     if (items.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('本地视频流')),
         body: const Center(child: Text('暂无本地视频，请先在设置里添加文件源并刮削')),
       );
     }
-    // 直接全屏，LocalPlayerPage 自带 AppBar；避免双层标题栏
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
