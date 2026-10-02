@@ -49,6 +49,9 @@ class LocalVideoItem {
   /// 网络请求头（P2）：WebDAV Basic Auth 等，播放器加载 networkUrl 时使用
   final Map<String, String> networkHeaders;
 
+  /// 媒体类型（来自文件源配置）：movie/tv/short，null=自动
+  final String? mediaType;
+
   const LocalVideoItem({
     required this.id,
     required this.name,
@@ -66,10 +69,11 @@ class LocalVideoItem {
     this.sourceId = 'local_default',
     this.networkUrl,
     this.networkHeaders = const {},
+    this.mediaType,
   });
 
-  /// 复制并覆盖字段（用于扫描时回填 sourceId）
-  LocalVideoItem copyWith({String? sourceId}) => LocalVideoItem(
+  /// 复制并覆盖字段（用于扫描时回填 sourceId / mediaType）
+  LocalVideoItem copyWith({String? sourceId, String? mediaType}) => LocalVideoItem(
         id: id,
         name: name,
         path: path,
@@ -86,6 +90,7 @@ class LocalVideoItem {
         sourceId: sourceId ?? this.sourceId,
         networkUrl: networkUrl,
         networkHeaders: networkHeaders,
+        mediaType: mediaType ?? this.mediaType,
       );
 
   /// 路径哈希 key（用于续播 SharedPreferences key）

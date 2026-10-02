@@ -5,8 +5,10 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
+import '../models/file_source.dart';
 import '../services/local_video_service.dart';
 import '../services/scrape_service.dart';
+import 'file_sources_provider.dart';
 
 /// 服务单例
 final localVideoServiceProvider = Provider<LocalVideoService>(
@@ -226,6 +228,18 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           favoriteHashes: favs,
           scrapedMap: cached,
           loading: false);
+      // 更新每个文件源的视频计数
+      final sources = _ref.read(fileSourcesProvider);
+      for (final s in sources) {
+        final count = items.where((e) => e.sourceId == s.id).length;
+        if (count != s.videoCount) {
+          _ref.read(fileSourcesProvider.notifier).updateScanStatus(
+                s.id,
+                FileSourceStatus.connected,
+                videoCount: count,
+              );
+        }
+      }
       // 后台异步刮削未缓存文件
       scrapeMissing();
     } catch (e) {
@@ -244,6 +258,11 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
     var done = 0;
     for (final item in todo) {
       try {
+        // 短视频源不刮削，直接跳过（按文件名显示）
+        if (item.mediaType == 'short') {
+          done++;
+          continue;
+        }
         // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
         final rp = item.relativePath;
         final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;

@@ -163,7 +163,7 @@ class LocalVideoService {
         switch (type) {
           case 'local':
             for (final it in await _scanMediaStore()) {
-              all.addAll([it.copyWith(sourceId: sid)]);
+              all.add(it.copyWith(sourceId: sid));
             }
             break;
           case 'localDir':
@@ -178,9 +178,11 @@ class LocalVideoService {
             if (oldPath != null && oldPath.isNotEmpty && !paths.contains(oldPath)) {
               paths.add(oldPath);
             }
+            // 用户指定的媒体类型（movie/tv/short）
+            final mediaType = cfg['mediaType'] as String?;
             if (paths.isNotEmpty) {
               for (final it in await LocalDirScanner().scan(paths)) {
-                all.add(it.copyWith(sourceId: sid));
+                all.add(it.copyWith(sourceId: sid, mediaType: mediaType));
               }
             }
             break;

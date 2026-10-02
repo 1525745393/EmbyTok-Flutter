@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/file_source.dart';
 import '../../providers/file_sources_provider.dart';
+import '../../providers/local_video_provider.dart';
 import 'file_source_browse_view.dart';
 import 'file_source_edit_view.dart';
 import 'local_directory_browser_view.dart';
@@ -87,8 +88,10 @@ class FileSourcesView extends ConsumerWidget {
                 children: [
                   Switch(
                     value: s.enabled,
-                    onChanged: (_) =>
-                        ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id),
+                    onChanged: (_) {
+                      ref.read(fileSourcesProvider.notifier).toggleEnabled(s.id);
+                      ref.read(localVideoProvider.notifier).refresh();
+                    },
                   ),
                   // local_default（手机媒体库）不显示菜单，其他源都有
                   if (s.id != 'local_default')
@@ -176,6 +179,10 @@ class FileSourcesView extends ConsumerWidget {
                             ref.read(fileSourcesProvider.notifier).update(
                                   s.copyWith(config: {...s.config, 'paths': paths.join(',')}),
                                 );
+                            // 自动重扫媒体库
+                            if (context.mounted) {
+                              ref.read(localVideoProvider.notifier).refresh();
+                            }
                           }
                         } else if (v == 'scrape') {
                           // 刮削此文件夹：打开浏览页自动触发刮削
@@ -281,6 +288,7 @@ class FileSourcesView extends ConsumerWidget {
           TextButton(
             onPressed: () {
               ref.read(fileSourcesProvider.notifier).remove(s.id);
+              ref.read(localVideoProvider.notifier).refresh();
               Navigator.pop(context);
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
@@ -391,6 +399,9 @@ class FileSourcesView extends ConsumerWidget {
                       name: name.trim().isEmpty ? (defaultName.isEmpty ? '手机文件夹' : defaultName) : name.trim(),
                       config: {'path': path, 'mediaType': mediaType},
                     ));
+                if (context.mounted) {
+                  ref.read(localVideoProvider.notifier).refresh();
+                }
               },
             ),
             ListTile(
