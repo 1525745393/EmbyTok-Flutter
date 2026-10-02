@@ -1,3 +1,10 @@
+## [2.303.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.303.0...v2.303.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 文件源管理三个问题 ([abf14b3](https://github.com/1525745393/EmbyTok-Flutter/commit/abf14b37e981f0883949253c48daf9f8ba560c77))
+
 # [2.303.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.302.1...v2.303.0) (2026-10-02)
 
 
