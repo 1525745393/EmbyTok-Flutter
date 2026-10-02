@@ -2516,39 +2516,220 @@ class _FolderEpisodePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(localVideoProvider);
-    // 按文件名排序（集数顺序）
     final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    // 取第一集的刮削信息作为整剧元数据
+    final meta = state.scrapedMap[sorted.first.pathHash];
+    final cast = meta?.cast ?? [];
+
     return Scaffold(
-      appBar: AppBar(title: Text(folderName)),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: sorted.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, i) {
-          final it = sorted[i];
-          final s = state.scrapedMap[it.pathHash];
-          return ListTile(
-            leading: SizedBox(
-              width: 48,
-              height: 68,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: s?.posterPath != null
-                    ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
-                    : Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+      body: ListView(
+        children: [
+          // 顶部 backdrop 大图
+          Stack(
+            children: [
+              SizedBox(
+                height: 280,
+                width: double.infinity,
+                child: meta?.backdropPath != null
+                    ? CachedNetworkImage(
+                        imageUrl: TmdbService.backdropUrl(meta!.backdropPath!),
+                        fit: BoxFit.cover,
+                      )
+                    : Container(color: Colors.grey[900]),
+              ),
+              Container(
+                height: 280,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top,
+                left: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(meta?.title ?? folderName,
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (meta?.year != null) '${meta!.year}',
+                        if (meta?.rating != null) '★ ${meta!.rating!.toStringAsFixed(1)}',
+                        '${sorted.length} 集',
+                      ].join('  ·  '),
+                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // 类型标签
+          if (meta?.genres != null && meta!.genres!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Wrap(
+                spacing: 8,
+                children: meta.genres!.map((g) => Chip(
+                  label: Text(g, style: const TextStyle(fontSize: 11)),
+                  visualDensity: VisualDensity.compact,
+                )).toList(),
               ),
             ),
-            title: Text(it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text('第 ${i + 1} 集 · ${it.duration.inMinutes} 分钟'),
-            trailing: const Icon(Icons.play_circle_outline),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
+          // 播放按钮
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LocalPlayerPage(items: sorted, initialIndex: 0),
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [Icon(Icons.play_arrow), SizedBox(width: 8), Text('播放', style: TextStyle(fontSize: 16))],
+                ),
               ),
             ),
-          );
-        },
+          ),
+          // 简介
+          if (meta?.overview != null && meta!.overview!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(meta.overview!,
+                  style: TextStyle(color: Colors.grey[300], fontSize: 13, height: 1.5)),
+            ),
+          const SizedBox(height: 20),
+          // 季标题
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('第 1 季', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 12),
+          // 剧集网格（2列）
+          GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.5,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: sorted.length,
+            itemBuilder: (_, i) {
+              final it = sorted[i];
+              return InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: meta?.backdropPath != null
+                            ? CachedNetworkImage(
+                                imageUrl: TmdbService.backdropUrl(meta!.backdropPath!),
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(color: Colors.grey[800]),
+                              )
+                            : Container(color: Colors.grey[800]),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Text('${i + 1}. ${it.name.split('.').first}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          // 演员
+          if (cast.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('演职人员', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 110,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: cast.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (_, i) {
+                  final c = cast[i];
+                  final profile = c['profilePath'];
+                  return SizedBox(
+                    width: 70,
+                    child: Column(
+                      children: [
+                        ClipOval(
+                          child: SizedBox(
+                            width: 56, height: 56,
+                            child: profile != null
+                                ? CachedNetworkImage(
+                                    imageUrl: TmdbService.personUrl(profile),
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: Colors.grey[800],
+                                      child: const Icon(Icons.person, color: Colors.white24),
+                                    ),
+                                  )
+                                : Container(
+                                    color: Colors.grey[800],
+                                    child: const Icon(Icons.person, color: Colors.white24),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(c['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 10)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 32),
+        ],
       ),
     );
   }
