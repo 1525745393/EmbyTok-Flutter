@@ -25,6 +25,7 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
+    // 按最近添加倒序，新刮削的视频在前面
     final items = List<LocalVideoItem>.from(state.items);
     if (items.isEmpty) {
       return Scaffold(
@@ -32,17 +33,14 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
         body: const Center(child: Text('暂无本地视频，请先在设置里添加文件源并刮削')),
       );
     }
+    // 直接全屏，LocalPlayerPage 自带 AppBar；避免双层标题栏
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text('本地视频流 · ${items.length}', style: const TextStyle(color: Colors.white)),
-      ),
       body: PageView.builder(
         scrollDirection: Axis.vertical,
         controller: _controller,
         itemCount: items.length,
+        physics: const PageScrollPhysics(),
         itemBuilder: (_, i) => LocalPlayerPage(items: items, initialIndex: i),
       ),
     );
