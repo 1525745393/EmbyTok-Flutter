@@ -304,41 +304,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
     List<Library> libraries,
     List<String> selectedIds,
   ) {
-    if (libraries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.video_library_outlined,
-                size: 48,
-                color: scheme.onSurface.withValues(alpha: 0.3),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '暂无可用媒体库',
-                style: TextStyle(
-                  color: scheme.onSurface,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '请在 Emby 服务器上创建媒体库后重试',
-                style: TextStyle(
-                  color: scheme.onSurface.withValues(alpha: 0.6),
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
+    // 注意：libraries 为空（本地模式或未连服务器）时不能 early return，
+    // 否则会跳过下面的"本地媒体库"分区。改为始终渲染滚动内容。
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -490,6 +457,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             ),
           ),
           const SizedBox(height: 12),
+          if (libraries.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '（未连接 Emby 服务器，无服务器媒体库）',
+                style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.4), fontSize: 12),
+              ),
+            )
+          else
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
