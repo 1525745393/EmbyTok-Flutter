@@ -1,3 +1,10 @@
+# [2.296.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.3...v2.296.0) (2026-10-02)
+
+
+### Features
+
+* 本地媒体库首页改版为Emby Web风格 ([bc05137](https://github.com/1525745393/EmbyTok-Flutter/commit/bc051378e0c39e786f649e20b14174b657e23d99))
+
 ## [2.295.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.2...v2.295.3) (2026-10-02)
 
 
