@@ -58,6 +58,17 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
     }
     final sources = ref.watch(fileSourcesProvider);
 
+    // 横滑区块也按选中文件源过滤
+    var recentItems = state.recentItems;
+    var recentlyAdded = state.recentlyAdded;
+    var unwatchedItems = state.unwatchedItems;
+    if (_selectedSourceId != null) {
+      bool match(LocalVideoItem e) => e.sourceId == _selectedSourceId;
+      recentItems = recentItems.where(match).toList();
+      recentlyAdded = recentlyAdded.where(match).toList();
+      unwatchedItems = unwatchedItems.where(match).toList();
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
@@ -274,21 +285,21 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                     : Column(
                         children: [
                           // 最近观看横滑区块（P2）
-                          if (state.recentItems.isNotEmpty)
-                            _buildRecentRow(state.recentItems),
+                          if (recentItems.isNotEmpty)
+                            _buildRecentRow(recentItems),
                           // 最近添加横滑海报墙（P1）
-                          if (state.recentlyAdded.isNotEmpty)
+                          if (recentlyAdded.isNotEmpty)
                             _buildPosterRow(
                               title: '最近添加',
-                              items: state.recentlyAdded,
+                              items: recentlyAdded,
                               state: state,
                               onTap: (item) => _playVideo(item),
                             ),
                           // 未观看横滑（P1）
-                          if (state.unwatchedItems.isNotEmpty)
+                          if (unwatchedItems.isNotEmpty)
                             _buildPosterRow(
                               title: '未观看',
-                              items: state.unwatchedItems,
+                              items: unwatchedItems,
                               state: state,
                               onTap: (item) => _playVideo(item),
                             ),
@@ -304,9 +315,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
                           // 媒体库统计行（P1 #5）
                           Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 6, horizontal: 12),
+                                vertical: 4, horizontal: 12),
                             child: Text(
-                              _buildStatsLine(state),
+                              _buildStatsLineFor(items, state),
                               style: TextStyle(
                                   fontSize: 11, color: Colors.grey[600]),
                             ),
@@ -340,6 +351,33 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
+  }
+
+  /// 统计行（P1 #5）：基于当前过滤后的列表
+  String _buildStatsLineFor(List<LocalVideoItem> items, LocalVideoState state) {
+    int movies = 0, tvs = 0, unscraped = 0;
+    int totalBytes = 0;
+    for (final it in items) {
+      totalBytes += it.sizeBytes;
+      final s = state.scrapedMap[it.pathHash];
+      if (s == null) {
+        unscraped++;
+      } else if (s.type == 'tv') {
+        tvs++;
+      } else {
+        movies++;
+      }
+    }
+    String sizeLabel;
+    if (totalBytes < 1024 * 1024) {
+      sizeLabel = '${(totalBytes / 1024).toStringAsFixed(1)} MB';
+    } else if (totalBytes < 1024 * 1024 * 1024) {
+      sizeLabel = '${(totalBytes / 1024 / 1024).toStringAsFixed(1)} MB';
+    } else {
+      sizeLabel =
+          '${(totalBytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
+    }
+    return '$movies 部电影 · $tvs 部剧集 · $unscraped 未识别 · 占用 $sizeLabel';
   }
 
   /// 统计行（P1 #5）
