@@ -1088,6 +1088,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
 
   /// 长按菜单：手动匹配 TMDB（P1）
   Future<void> _showLongPressMenu(LocalVideoItem item) async {
+    final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => SafeArea(
@@ -1105,9 +1106,17 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               subtitle: Text(item.name, maxLines: 1),
               onTap: () => Navigator.pop(context, 'scrape'),
             ),
+            if (scraped != null)
+              ListTile(
+                leading: const Icon(Icons.auto_fix_high, color: Colors.green),
+                title: const Text('按刮削信息重命名'),
+                subtitle: Text('→ ${scraped.title}${scraped.year != null ? " (${scraped.year})" : ""}', maxLines: 1),
+                enabled: item.isAppDirFile,
+                onTap: () => Navigator.pop(context, 'autoRename'),
+              ),
             ListTile(
               leading: const Icon(Icons.drive_file_rename_outline),
-              title: const Text('重命名'),
+              title: const Text('手动重命名'),
               subtitle: Text(item.name, maxLines: 1),
               enabled: item.isAppDirFile,
               onTap: () => Navigator.pop(context, 'rename'),
@@ -1132,6 +1141,19 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           ),
         ),
       );
+    } else if (action == 'autoRename' && scraped != null) {
+      if (!mounted) return;
+      try {
+        await LocalVideoService().renameByScraped(item, scraped);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+          ref.read(localVideoProvider.notifier).refresh();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+        }
+      }
     } else if (action == 'rename') {
       if (!mounted) return;
       final ctrl = TextEditingController(text: item.name);

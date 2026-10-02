@@ -305,15 +305,24 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   void _showLongPressMenu(LocalVideoItem item) async {
+    final s = _scraped[item.path.hashCode.toString()] ?? _scraped[item.pathHash];
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (s != null)
+              ListTile(
+                leading: const Icon(Icons.auto_fix_high, color: Colors.green),
+                title: const Text('按刮削信息重命名'),
+                subtitle: Text('→ ${s.title}${s.year != null ? " (${s.year})" : ""}', maxLines: 1),
+                enabled: item.isAppDirFile,
+                onTap: () => Navigator.pop(context, 'autoRename'),
+              ),
             ListTile(
               leading: const Icon(Icons.drive_file_rename_outline),
-              title: const Text('重命名'),
+              title: const Text('手动重命名'),
               subtitle: Text(item.name, maxLines: 1),
               enabled: item.isAppDirFile,
               onTap: () => Navigator.pop(context, 'rename'),
@@ -327,7 +336,19 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ),
       ),
     );
-    if (action == 'rename') {
+    if (action == 'autoRename' && s != null) {
+      try {
+        await LocalVideoService().renameByScraped(item, s);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+          _scan();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+        }
+      }
+    } else if (action == 'rename') {
       final ctrl = TextEditingController(text: item.name);
       final newName = await showDialog<String>(
         context: context,

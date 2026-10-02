@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/local_video_item.dart';
 import 'local_dir_scanner.dart';
+import 'scrape_service.dart' show ScrapedMedia;
 
 class LocalVideoService {
   static const _cacheKey = 'local_video_cache_v1';
@@ -310,5 +311,29 @@ class LocalVideoService {
     final newPath = '$parent/$newName$ext';
     await oldFile.rename(newPath);
     return newPath;
+  }
+
+  /// 根据刮削元数据一键重命名文件
+  /// 电影: "标题 (年份).ext"
+  /// 剧集: "标题 S01E01.ext"（从文件名/父目录解析集数）
+  Future<String> renameByScraped(LocalVideoItem item, ScrapedMedia s) async {
+    if (!item.isAppDirFile) throw Exception('系统媒体库文件不支持重命名');
+    final safeTitle = (s.title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+    String newName;
+    if (s.type == 'tv') {
+      // 从原文件名或父目录提取 SxxExx
+      final epMatch = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+      if (epMatch != null) {
+        final se = 'S${epMatch.group(1)!.padLeft(2, '0')}E${epMatch.group(2)!.padLeft(2, '0')}';
+        newName = '$safeTitle $se';
+      } else {
+        newName = safeTitle;
+      }
+    } else if (s.year != null) {
+      newName = '$safeTitle (${s.year})';
+    } else {
+      newName = safeTitle;
+    }
+    return renameFile(item, newName);
   }
 }
