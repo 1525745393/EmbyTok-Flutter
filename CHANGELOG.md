@@ -1,3 +1,10 @@
+## [2.308.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.308.0...v2.308.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* TV 刮削剧名提取修复 ([1b1542c](https://github.com/1525745393/EmbyTok-Flutter/commit/1b1542c6b9a295c15914dcbcef7ac87537eae17b))
+
 # [2.308.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.307.2...v2.308.0) (2026-10-02)
 
 
