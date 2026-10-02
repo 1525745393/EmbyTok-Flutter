@@ -1,3 +1,10 @@
+# [2.316.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.315.0...v2.316.0) (2026-10-02)
+
+
+### Features
+
+* 媒体库选择器加入本地媒体库入口 ([4a44cd0](https://github.com/1525745393/EmbyTok-Flutter/commit/4a44cd0717ef12aa76a6b2d760a70bc1c44c230e))
+
 # [2.315.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.314.0...v2.315.0) (2026-10-02)
 
 
