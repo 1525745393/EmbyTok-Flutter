@@ -529,6 +529,8 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                     : () {
                         // PR #66：根据 scope 写到对应 provider
                         if (widget.scope == LibraryScope.feed) {
+                          // 选了 Emby 收藏夹/服务器库：清掉本地源选择，避免主 feed 仍被本地流拦截
+                          ref.read(localFeedSourceIdProvider.notifier).set(null);
                           if (_localIsFavorites) {
                             // 选中收藏夹：设置 feedType 为 favorites
                             ref
