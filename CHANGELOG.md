@@ -1,3 +1,10 @@
+## [2.317.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.2...v2.317.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地媒体库卡片显示真实视频数并列出所有文件源 ([f8f3a38](https://github.com/1525745393/EmbyTok-Flutter/commit/f8f3a38d7c85a9009733540a1a831c37a03b3e76))
+
 ## [2.317.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.1...v2.317.2) (2026-10-02)
 
 
