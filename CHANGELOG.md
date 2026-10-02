@@ -1,3 +1,10 @@
+## [2.307.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.307.1...v2.307.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* TV 剧集文件夹分组取最后一段目录名 ([70201d7](https://github.com/1525745393/EmbyTok-Flutter/commit/70201d7751993e03abd4dc019527295f7182062a))
+
 ## [2.307.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.307.0...v2.307.1) (2026-10-02)
 
 
