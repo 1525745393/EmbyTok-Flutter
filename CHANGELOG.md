@@ -1,3 +1,10 @@
+# [2.299.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.298.0...v2.299.0) (2026-10-02)
+
+
+### Features
+
+* 媒体库页加排序按钮（按名称/时间/评分/年份/时长/大小/随机） ([c21ee63](https://github.com/1525745393/EmbyTok-Flutter/commit/c21ee6355711dc3af28596df14410691bae04ba8))
+
 # [2.298.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.297.1...v2.298.0) (2026-10-02)
 
 
