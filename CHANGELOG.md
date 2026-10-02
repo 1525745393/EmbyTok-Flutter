@@ -1,3 +1,10 @@
+## [2.320.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.0...v2.320.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地文件源卡片：禁用态灰显+锁图标，计数改 groupBy ([bd05a66](https://github.com/1525745393/EmbyTok-Flutter/commit/bd05a66ff16d1d340fb799a7051bde18fa911042))
+
 # [2.320.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.319.1...v2.320.0) (2026-10-02)
 
 
