@@ -276,4 +276,25 @@ class TmdbService {
       return {};
     }
   }
+
+  /// 获取单集详情（集标题、简介、剧照）
+  static Future<Map<String, dynamic>> getTvEpisodeDetails(
+      int tvId, int season, int episode) async {
+    if (!isConfigured) return {};
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/tv/$tvId/season/$season/episode/$episode?api_key=$_apiKey&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return {};
+      return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// 剧照 URL（episode still_path）
+  static String stillUrl(String path, {String size = 'w300'}) {
+    return 'https://image.tmdb.org/t/p/$size$path';
+  }
 }

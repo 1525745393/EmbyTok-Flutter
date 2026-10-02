@@ -2604,6 +2604,39 @@ class _FolderEpisodePage extends ConsumerStatefulWidget {
 
 class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
   bool _overviewExpanded = false;
+  /// 每集详情缓存：episodeNumber -> {name, overview, stillPath}
+  final Map<int, Map<String, dynamic>> _epInfo = {};
+  bool _loadedEpInfo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEpisodeInfo();
+  }
+
+  Future<void> _loadEpisodeInfo() async {
+    final state = ref.read(localVideoProvider);
+    final sorted = [...widget.items]..sort((a, b) => a.name.compareTo(b.name));
+    if (sorted.isEmpty) return;
+    final meta = state.scrapedMap[sorted.first.pathHash];
+    final tvId = meta?.tvId;
+    if (tvId == null || tvId <= 0) return;
+    for (final it in sorted) {
+      final ep = ScrapeService.extractEpisode(it.name);
+      if (ep == null) continue;
+      final details = await TmdbService.getTvEpisodeDetails(tvId, ep.season, ep.episode);
+      if (details.isNotEmpty) {
+        _epInfo[ep.episode] = {
+          'name': details['name'] ?? '',
+          'overview': details['overview'] ?? '',
+          'stillPath': details['still_path'],
+          'airDate': details['air_date'] ?? '',
+          'runtime': details['runtime'],
+        };
+      }
+    }
+    if (mounted) setState(() => _loadedEpInfo = true);
+  }
 
   /// 从文件名提取干净的集标题，去掉 SxxEyy、扩展名
   String _episodeTitle(String filename) {
@@ -2879,6 +2912,15 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
             itemCount: sorted.length,
             itemBuilder: (_, i) {
               final it = sorted[i];
+              final ep = ScrapeService.extractEpisode(it.name);
+              final info = ep != null ? _epInfo[ep.episode] : null;
+              final stillPath = info?['stillPath'];
+              final epName = (info?['name'] as String?)?.isNotEmpty == true
+                  ? info!['name'] as String
+                  : _episodeTitle(it.name);
+              final airDate = info?['airDate'] as String?;
+              final runtime = info?['runtime'] as int?;
+              final overview = info?['overview'] as String?;
               return InkWell(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
                 child: Container(
@@ -2888,13 +2930,33 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: meta?.backdropPath != null
-                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
-                            : Container(color: Colors.grey[800]),
+                        child: stillPath != null && stillPath.isNotEmpty
+                            ? CachedNetworkImage(imageUrl: TmdbService.stillUrl(stillPath as String), fit: BoxFit.cover, errorWidget: (_, __, ___) => meta?.backdropPath != null ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover) : Container(color: Colors.grey[800]))
+                            : meta?.backdropPath != null
+                                ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
+                                : Container(color: Colors.grey[800]),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
-                        child: Text('${i + 1}. ${_episodeTitle(it.name)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${ep?.episode ?? i + 1}. $epName', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            if (airDate != null || runtime != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  [if (airDate != null && airDate.isNotEmpty) airDate, if (runtime != null) '${runtime}m'].join('  ·  '),
+                                  style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                                ),
+                              ),
+                            if (overview != null && overview.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(overview, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, color: Colors.grey[400], height: 1.3)),
+                              ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
