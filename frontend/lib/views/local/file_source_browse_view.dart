@@ -256,15 +256,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 leading: const Icon(Icons.folder, color: Colors.amber),
                 title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text('${entry.value.length}集'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.drive_file_rename_outline, size: 18),
-                      tooltip: '重命名文件夹',
-                      onPressed: () => _renameFolder(entry.key, groupDir[entry.key] ?? ''),
-                    ),
-                    const Icon(Icons.keyboard_arrow_down),
+                trailing: PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_horiz, size: 20),
+                  onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
+                    const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
+                    const PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
+                    const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
                   ],
                 ),
                 children: entry.value.map((it) {
@@ -281,6 +280,118 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (_, i) => _buildItemTile(_items[i], i),
     );
+  }
+
+  Future<void> _onGroupAction(String action, String seriesName, String dirPath, List<LocalVideoItem> eps) async {
+    switch (action) {
+      case 'scrape':
+        await _scrapeGroup(eps);
+        break;
+      case 'renameAll':
+        await _renameAllEpisodes(seriesName, eps);
+        break;
+      case 'organize':
+        await _organizeStructure(seriesName, eps);
+        break;
+      case 'renameFolder':
+        await _renameFolder(seriesName, dirPath);
+        break;
+    }
+  }
+
+  /// 刮削某部剧的所有集
+  Future<void> _scrapeGroup(List<LocalVideoItem> eps) async {
+    setState(() => _scraping = true);
+    int done = 0;
+    for (final item in eps) {
+      try {
+        await ScrapeService.scrapeFile(
+          item.pathHash,
+          item.name,
+          parentDir: item.relativePath,
+          mediaTypeHint: widget.source.config['mediaType'],
+        );
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() => _scrapedCount = ++done);
+    }
+    final cache = await ScrapeService.loadCache();
+    if (!mounted) return;
+    setState(() {
+      _scraped = cache;
+      _scraping = false;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集')));
+    }
+  }
+
+  /// 一键重命名某部剧的所有集为 "剧名 S01E01.ext"
+  Future<void> _renameAllEpisodes(String seriesName, List<LocalVideoItem> eps) async {
+    int ok = 0;
+    int fail = 0;
+    for (final item in eps) {
+      try {
+        final s = _scraped[item.pathHash];
+        if (s != null) {
+          await LocalVideoService().renameByScraped(item, s);
+        } else {
+          // 没有刮削数据，从文件名提取 SxxExx
+          final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+          if (m != null) {
+            final se = 'S${m.group(1)!.padLeft(2, '0')}E${m.group(2)!.padLeft(2, '0')}';
+            final safe = seriesName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '').trim();
+            await LocalVideoService().renameFile(item, '$safe $se');
+          }
+        }
+        ok++;
+      } catch (_) {
+        fail++;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名完成：成功 $ok，失败 $fail')));
+      _scan();
+    }
+  }
+
+  /// 整理文件结构：把扁平集数移动到 Season X 子文件夹
+  /// 如 西游记/S01E01.mp4 → 西游记/Season 1/S01E01.mp4
+  Future<void> _organizeStructure(String seriesName, List<LocalVideoItem> eps) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('整理文件结构'),
+        content: Text('将按 SxxEyy 把集数移动到对应 "Season X" 子文件夹。\n\n例：$seriesName/S01E01.mp4 → $seriesName/Season 1/S01E01.mp4\n\n是否继续？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('开始整理')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    int ok = 0, fail = 0;
+    for (final item in eps) {
+      try {
+        final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(item.name);
+        if (m == null) continue;
+        final season = int.tryParse(m.group(1)!) ?? 1;
+        final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        final seasonDir = Directory('$parent/Season $season');
+        if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
+        final newPath = '$parent/Season $season/${item.name}';
+        if (!await File(newPath).exists()) {
+          await File(item.path).rename(newPath);
+          ok++;
+        }
+      } catch (_) {
+        fail++;
+      }
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('整理完成：移动 $ok 个文件，失败 $fail')));
+      _scan();
+    }
   }
 
   Future<void> _renameFolder(String oldName, String dirPath) async {
