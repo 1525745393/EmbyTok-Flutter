@@ -345,7 +345,10 @@ class _FeedViewState extends ConsumerState<FeedView>
     if (localSource != null) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: LocalFeedPage(sourceId: localSource.isEmpty ? null : localSource),
+        body: LocalFeedPage(
+          sourceId: localSource.isEmpty ? null : localSource,
+          embedded: true,
+        ),
       );
     }
 
