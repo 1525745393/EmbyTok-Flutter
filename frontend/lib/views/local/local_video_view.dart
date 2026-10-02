@@ -194,21 +194,33 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             onAction: () => _openSourceFullList(src.id, src.name, state),
           ),
           for (final entry in groups.entries)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.folder, size: 16, color: Colors.grey),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(entry.key,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            InkWell(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => _FolderEpisodePage(
+                    folderName: entry.key,
+                    items: entry.value,
                   ),
-                  Text('${entry.value.length}集',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-                ],
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.folder, size: 16, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(entry.key,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                    Text('${entry.value.length}集',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                  ],
+                ),
               ),
             ),
           SizedBox(
@@ -2446,6 +2458,53 @@ class _FavActorsSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 剧集文件夹内页：显示某部剧的所有集
+class _FolderEpisodePage extends ConsumerWidget {
+  final String folderName;
+  final List<LocalVideoItem> items;
+  const _FolderEpisodePage({required this.folderName, required this.items});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localVideoProvider);
+    // 按文件名排序（集数顺序）
+    final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    return Scaffold(
+      appBar: AppBar(title: Text(folderName)),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: sorted.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, i) {
+          final it = sorted[i];
+          final s = state.scrapedMap[it.pathHash];
+          return ListTile(
+            leading: SizedBox(
+              width: 48,
+              height: 68,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: s?.posterPath != null
+                    ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                    : Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+              ),
+            ),
+            title: Text(it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text('第 ${i + 1} 集 · ${it.duration.inMinutes} 分钟'),
+            trailing: const Icon(Icons.play_circle_outline),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
