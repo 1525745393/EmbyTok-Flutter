@@ -382,6 +382,33 @@ final localFeedPlayingIndexProvider = StateProvider<int>((_) => -1);
 
 /// 用户在"视频流使用"选择器中选中的本地文件源 ID
 /// - null：未选本地源（走 Emby 推荐流）
-/// - 非空：主 feed 直接显示该本地源的抖音式上下滑
-///   （空字符串 '' 表示"全部本地视频"）
-final localFeedSourceIdProvider = StateProvider<String?>((_) => null);
+/// - 空字符串 ''：全部本地视频
+/// - 非空：只播该文件源
+/// 持久化到 SharedPreferences，重启 App 后恢复
+class LocalFeedSourceIdNotifier extends StateNotifier<String?> {
+  static const _key = 'local_feed_source_id';
+  LocalFeedSourceIdNotifier() : super(null) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getString(_key);
+    // 区分 null（未设置/走 Emby）与 ''（全部本地）
+    state = v;
+  }
+
+  Future<void> set(String? value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    if (value == null) {
+      await prefs.remove(_key);
+    } else {
+      await prefs.setString(_key, value);
+    }
+  }
+}
+
+final localFeedSourceIdProvider =
+    StateNotifierProvider<LocalFeedSourceIdNotifier, String?>(
+        (_) => LocalFeedSourceIdNotifier());

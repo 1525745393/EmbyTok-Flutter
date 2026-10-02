@@ -407,7 +407,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 isSelected: selectedLocal == '',
                 onTap: () {
                   // 选中后写入 provider，主 feed 切到本地流；不跳页
-                  ref.read(localFeedSourceIdProvider.notifier).state = '';
+                  ref.read(localFeedSourceIdProvider.notifier).set('');
                   nav.pop();
                 },
                 gradientColors: [
@@ -427,7 +427,7 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                 count: srcCount,
                 isSelected: selectedLocal == src.id,
                 onTap: () {
-                  ref.read(localFeedSourceIdProvider.notifier).state = src.id;
+                  ref.read(localFeedSourceIdProvider.notifier).set(src.id);
                   nav.pop();
                 },
                 gradientColors: [
