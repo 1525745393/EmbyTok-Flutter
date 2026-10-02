@@ -1,3 +1,10 @@
+# [2.297.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.296.0...v2.297.0) (2026-10-02)
+
+
+### Features
+
+* 本地媒体库首页底部恢复统计行 ([cd22c7f](https://github.com/1525745393/EmbyTok-Flutter/commit/cd22c7f20f186a3be8aab99d330a1d7b807b3b2c))
+
 # [2.296.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.3...v2.296.0) (2026-10-02)
 
 
