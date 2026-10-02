@@ -263,10 +263,13 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
           done++;
           continue;
         }
-        // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
-        final rp = item.relativePath;
-        final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;
-        final m = await ScrapeService.scrapeFile(item.pathHash, item.name, parentDir: parentDir);
+        // parentDir 传完整父目录路径，extractSeriesName 自动跳过 Season 文件夹
+        final m = await ScrapeService.scrapeFile(
+          item.pathHash,
+          item.name,
+          parentDir: item.relativePath,
+          mediaTypeHint: item.mediaType,
+        );
         if (m != null) {
           cached[item.pathHash] = m;
           await ScrapeService.saveCache(item.pathHash, m);

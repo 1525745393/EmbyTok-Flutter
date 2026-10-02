@@ -127,15 +127,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     for (final item in _items) {
       try {
-        // 与全局缓存 key 保持一致：使用 item.pathHash（即 item.id）
         final pathHash = item.pathHash;
-        // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
-        final rp = item.relativePath;
-        final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;
+        // parentDir 传完整父目录路径，extractSeriesName 自动跳过 Season 文件夹
         await ScrapeService.scrapeFile(
           pathHash,
           item.name,
-          parentDir: parentDir,
+          parentDir: item.relativePath,
           mediaTypeHint: widget.source.config['mediaType'],
         );
       } catch (_) {}

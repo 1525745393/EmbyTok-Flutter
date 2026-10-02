@@ -198,14 +198,40 @@ class ScrapeService {
         .trim();
   }
 
+  /// 从完整父目录路径提取剧名文件夹名
+  /// 若直接父目录是 "Season X"/"第X季"，则向上取一级作为剧名
+  static String? extractSeriesName(String? parentPath) {
+    if (parentPath == null || parentPath.isEmpty) return null;
+    final segments = parentPath.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.isEmpty) return null;
+    // 从最后一段开始找，跳过 Season X / 第X季 / S01 等季文件夹
+    int i = segments.length - 1;
+    while (i >= 0) {
+      final seg = segments[i];
+      final cleaned = _cleanNoise(seg.replaceAll(RegExp(r'[.\[\]_]'), ' '));
+      if (cleaned.isEmpty) { i--; continue; }
+      // 是季文件夹吗？
+      if (RegExp(r'^[Ss]eason\s*\d+').hasMatch(seg) ||
+          RegExp(r'^第[一二三四五六七八九十\d]+季').hasMatch(seg) ||
+          RegExp(r'^[Ss]\d{1,2}$').hasMatch(seg)) {
+        i--;
+        continue;
+      }
+      return cleaned;
+    }
+    return segments.isNotEmpty ? _cleanNoise(segments.last.replaceAll(RegExp(r'[.\[\]_]'), ' ')) : null;
+  }
+
   /// 刮削单个文件
-  /// [parentDir] 父目录名（用作剧名兜底）
+  /// [parentDir] 父目录路径（用作剧名兜底，自动跳过 Season 文件夹）
   /// [mediaTypeHint] 文件源指定的媒体类型（movie/tv/short）
   static Future<ScrapedMedia?> scrapeFile(
       String pathHash, String filename,
       {String? parentDir, String? mediaTypeHint}) async {
     if (mediaTypeHint == 'short') return null; // 短视频不刮削
-    var parsed = parseFilename(filename, parentDir: parentDir);
+    // 从父目录路径提取剧名（跳过 Season 子目录）
+    final seriesName = extractSeriesName(parentDir);
+    var parsed = parseFilename(filename, parentDir: seriesName);
     // 文件源指定为电视剧时，补充纯数字编号（01.02.03）作为集数
     if (mediaTypeHint == 'tv' && parsed.type != 'tv') {
       final numMatch =
@@ -213,7 +239,7 @@ class ScrapeService {
       if (numMatch != null) {
         final ep = int.tryParse(numMatch.group(1)!);
         if (ep != null && ep > 0 && ep <= 999) {
-          var title = parentDir ?? filename;
+          var title = seriesName ?? filename;
           final dotIdx = title.lastIndexOf('.');
           if (dotIdx > 0) title = title.substring(0, dotIdx);
           title = title.replaceAll(RegExp(r'[.\[\]_]'), ' ').trim();
