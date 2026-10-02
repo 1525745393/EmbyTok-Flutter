@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,8 +6,10 @@ import '../../models/file_source.dart';
 import '../../models/local_video_item.dart';
 import '../../providers/file_sources_provider.dart';
 import '../../services/local_dir_scanner.dart';
+import '../../services/local_video_service.dart';
 import '../../services/scrape_service.dart';
 import '../../services/smb_scanner.dart';
+import '../../services/tmdb_service.dart';
 import '../../services/webdav_scanner.dart';
 import 'local_player_page.dart';
 
@@ -23,6 +26,7 @@ class FileSourceBrowseView extends ConsumerStatefulWidget {
 
 class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   List<LocalVideoItem> _items = [];
+  Map<String, ScrapedMedia> _scraped = {};
   bool _loading = true;
   String? _error;
   bool _scraping = false;
@@ -92,8 +96,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               items.isEmpty ? FileSourceStatus.failed : FileSourceStatus.connected,
               videoCount: items.length,
             );
+        final cache = await ScrapeService.loadCache();
         setState(() {
           _items = items;
+          _scraped = cache;
           _loading = false;
         });
       }
@@ -134,10 +140,14 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       setState(() => _scrapedCount++);
     }
     if (mounted) {
+      final cache = await ScrapeService.loadCache();
+      setState(() {
+        _scraped = cache;
+        _scraping = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('刮削完成：共 $_scrapedCount 个视频')),
       );
-      setState(() => _scraping = false);
     }
   }
 
@@ -207,27 +217,142 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                         ),
                       ),
                     )
-                  : ListView.separated(
-                      itemCount: _items.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (_, i) => ListTile(
-                        leading: const Icon(Icons.movie_outlined),
-                        title: Text(_items[i].name),
-                        subtitle: Text(_items[i].sizeLabel),
-                        trailing: const Icon(Icons.play_arrow, size: 20),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => LocalPlayerPage(
-                                items: _items,
-                                initialIndex: i,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                  : _buildBody(),
     );
+  }
+
+  Widget _buildBody() {
+    final isTv = widget.source.config['mediaType'] == 'tv';
+    // TV 类型按文件夹分组
+    if (isTv) {
+      final groups = <String, List<LocalVideoItem>>{};
+      for (final it in _items) {
+        final folder = it.relativePath?.split('/').first ?? '未分组';
+        groups.putIfAbsent(folder, () => []).add(it);
+      }
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          for (final entry in groups.entries) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.folder, size: 18, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(entry.key,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  ),
+                  Text('${entry.value.length}集',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                ],
+              ),
+            ),
+            ...entry.value.asMap().entries.map((e) => _buildItemTile(e.value, e.key)),
+            const SizedBox(height: 16),
+          ],
+        ],
+      );
+    }
+    return ListView.separated(
+      itemCount: _items.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (_, i) => _buildItemTile(_items[i], i),
+    );
+  }
+
+  Widget _buildItemTile(LocalVideoItem item, int index) {
+    final s = _scraped[item.path.hashCode.toString()] ??
+        _scraped[item.pathHash];
+    return ListTile(
+      leading: SizedBox(
+        width: 48,
+        height: 68,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: s?.posterPath != null
+              ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+              : Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+                    if (s != null)
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(1),
+                          decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
+                          child: const Icon(Icons.check, size: 10, color: Colors.white),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ),
+      title: Text(s?.title ?? item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(s?.year != null ? '${s!.year} · ${item.sizeLabel}' : item.sizeLabel),
+      trailing: const Icon(Icons.play_arrow, size: 20),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LocalPlayerPage(items: _items, initialIndex: index),
+        ),
+      ),
+      onLongPress: () => _showLongPressMenu(item),
+    );
+  }
+
+  void _showLongPressMenu(LocalVideoItem item) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.drive_file_rename_outline),
+              title: const Text('重命名'),
+              subtitle: Text(item.name, maxLines: 1),
+              enabled: item.isAppDirFile,
+              onTap: () => Navigator.pop(context, 'rename'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('删除'),
+              onTap: () => Navigator.pop(context, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'rename') {
+      final ctrl = TextEditingController(text: item.name);
+      final newName = await showDialog<String>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('重命名'),
+          content: TextField(controller: ctrl, autofocus: true, decoration: const InputDecoration(hintText: '新文件名')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('确定')),
+          ],
+        ),
+      );
+      if (newName != null && newName.isNotEmpty) {
+        try {
+          await LocalVideoService().renameFile(item, newName);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('重命名成功')));
+            _scan();
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('重命名失败: $e')));
+          }
+        }
+      }
+    }
   }
 }
