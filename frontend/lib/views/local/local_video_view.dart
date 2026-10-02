@@ -2513,10 +2513,26 @@ class _FolderEpisodePage extends ConsumerWidget {
   final List<LocalVideoItem> items;
   const _FolderEpisodePage({required this.folderName, required this.items});
 
+  /// 从文件名提取干净的集标题，去掉 SxxEyy、扩展名
+  String _episodeTitle(String filename) {
+    var n = filename;
+    final dot = n.lastIndexOf('.');
+    if (dot > 0) n = n.substring(0, dot);
+    n = n.replaceFirst(RegExp(r'^[Ss]\d{1,2}[._ -]?[Ee]\d{1,2}[._ -]*'), '');
+    n = n.replaceFirst(RegExp(r'^第?\d{1,3}[集話][._ -]*'), '');
+    return n.trim().isEmpty ? filename : n.trim();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(localVideoProvider);
     final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    if (sorted.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(folderName)),
+        body: const Center(child: Text('没有视频')),
+      );
+    }
     // 取第一集的刮削信息作为整剧元数据
     final meta = state.scrapedMap[sorted.first.pathHash];
     final cast = meta?.cast ?? [];
@@ -2668,9 +2684,11 @@ class _FolderEpisodePage extends ConsumerWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
-                        child: Text('${i + 1}. ${it.name.split('.').first}',
-                            maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: Text(
+                          '${i + 1}. ${_episodeTitle(it.name)}',
+                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ],
                   ),
