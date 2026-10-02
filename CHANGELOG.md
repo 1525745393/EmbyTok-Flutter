@@ -1,3 +1,10 @@
+## [2.317.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.1...v2.317.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地模式下选择器显示本地文件源，不再early-return ([ebaf7cb](https://github.com/1525745393/EmbyTok-Flutter/commit/ebaf7cba48328d75dc4231450946560cce3a62ce))
+
 ## [2.317.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.0...v2.317.1) (2026-10-02)
 
 
