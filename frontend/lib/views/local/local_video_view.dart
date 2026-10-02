@@ -177,7 +177,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         state.items.where((e) => e.sourceId == src.id).toList();
     if (srcItems.isEmpty) return const SizedBox.shrink();
 
-    // TV 类型源：按剧集文件夹分组显示
+    // TV 类型源：每部剧一张海报卡，点击进入剧集列表
     final isTv = src.config['mediaType'] == 'tv';
     if (isTv) {
       final groups = <String, List<LocalVideoItem>>{};
@@ -194,45 +194,49 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
             actionLabel: '查看所有',
             onAction: () => _openSourceFullList(src.id, src.name, state),
           ),
-          for (final entry in groups.entries)
-            InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => _FolderEpisodePage(
-                    folderName: entry.key,
-                    items: entry.value,
-                  ),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.folder, size: 16, color: Colors.grey),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(entry.key,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    ),
-                    Text('${entry.value.length}集',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500])),
-                    const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-                  ],
-                ),
-              ),
-            ),
           SizedBox(
-            height: 180,
+            height: 200,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: srcItems.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (_, i) =>
-                  _buildPosterCard(srcItems[i], state, notifier),
+              itemCount: groups.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (_, i) {
+                final entry = groups.entries.elementAt(i);
+                final first = entry.value.first;
+                return GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _FolderEpisodePage(
+                        folderName: entry.key,
+                        items: entry.value,
+                      ),
+                    ),
+                  ),
+                  child: SizedBox(
+                    width: 110,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _buildSeriesPoster(first, state),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(entry.key,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text('${entry.value.length}集',
+                            style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -424,6 +428,24 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       ),
     );
   }
+
+  /// 剧集海报：取第一部集的刮削海报
+  Widget _buildSeriesPoster(LocalVideoItem first, LocalVideoState state) {
+    final s = state.scrapedMap[first.pathHash];
+    if (s?.posterPath != null) {
+      return CachedNetworkImage(
+        imageUrl: TmdbService.posterUrl(s!.posterPath!),
+        fit: BoxFit.cover,
+        errorWidget: (_, __, ___) => _posterPlaceholder(),
+      );
+    }
+    return _posterPlaceholder();
+  }
+
+  Widget _posterPlaceholder() => Container(
+        color: Colors.grey[800],
+        child: const Icon(Icons.tv, color: Colors.white24, size: 32),
+      );
 
   /// 分区海报卡片
   Widget _buildPosterCard(LocalVideoItem item, LocalVideoState state,
