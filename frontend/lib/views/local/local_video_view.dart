@@ -2892,10 +2892,29 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
               ),
             ),
           const SizedBox(height: 20),
-          // 季标题
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('第 1 季', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          // 季标题 + 查看全部
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('第 1 季 · ${sorted.length} 集', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _AllEpisodesPage(
+                        items: sorted,
+                        meta: meta,
+                        epInfo: _epInfo,
+                        episodeTitle: _episodeTitle,
+                      ),
+                    ),
+                  ),
+                  child: const Text('查看全部'),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           // 剧集网格（2列）
@@ -3015,6 +3034,62 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
           ],
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+}
+
+/// 全部剧集页：完整列表展示所有集
+class _AllEpisodesPage extends StatelessWidget {
+  final List<LocalVideoItem> items;
+  final ScrapedMedia? meta;
+  final Map<int, Map<String, dynamic>> epInfo;
+  final String Function(String) episodeTitle;
+  const _AllEpisodesPage({required this.items, required this.meta, required this.epInfo, required this.episodeTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    return Scaffold(
+      appBar: AppBar(title: Text('全部剧集 · ${sorted.length} 集')),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: sorted.length,
+        itemBuilder: (_, i) {
+          final it = sorted[i];
+          final ep = ScrapeService.extractEpisode(it.name);
+          final info = ep != null ? epInfo[ep.episode] : null;
+          final stillPath = info?['stillPath'] as String?;
+          final epName = (info?['name'] as String?)?.isNotEmpty == true ? info!['name'] as String : episodeTitle(it.name);
+          final airDate = info?['airDate'] as String?;
+          final runtime = info?['runtime'] as int?;
+          final overview = info?['overview'] as String?;
+          return ListTile(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                width: 100, height: 60,
+                child: stillPath != null && stillPath.isNotEmpty
+                    ? CachedNetworkImage(imageUrl: TmdbService.stillUrl(stillPath), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
+                    : meta?.backdropPath != null
+                        ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
+                        : Container(color: Colors.grey[800]),
+              ),
+            ),
+            title: Text('${ep?.episode ?? i + 1}. $epName', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (airDate != null || runtime != null)
+                  Text([if (airDate != null && airDate.isNotEmpty) airDate, if (runtime != null) '${runtime}m'].join('  ·  '), style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                if (overview != null && overview.isNotEmpty)
+                  Text(overview, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Colors.grey[400], height: 1.3)),
+              ],
+            ),
+            trailing: const Icon(Icons.play_arrow, size: 20),
+          );
+        },
       ),
     );
   }
