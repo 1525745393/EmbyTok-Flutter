@@ -1,3 +1,21 @@
+# [2.312.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.311.1...v2.312.0) (2026-10-02)
+
+
+### Bug Fixes
+
+* 修复 CI 分析报错 — meta 可空类型在 if 块内未提升 ([bd7b5a4](https://github.com/1525745393/EmbyTok-Flutter/commit/bd7b5a49c97bf40f5472aefbe6e57de2d95b03b1))
+* 剧集详情页审查修复 ([727ddbc](https://github.com/1525745393/EmbyTok-Flutter/commit/727ddbc1464c3fdf24bb99d17a3ce4ce7fa8dfb1))
+
+
+### Features
+
+* 剧集详情页补齐电影详情页全部功能 ([6f9f91e](https://github.com/1525745393/EmbyTok-Flutter/commit/6f9f91e04ad1f7faa99933c03825dbd9f8efd87e))
+
+
+### Reverts
+
+* 文件源浏览页 TV 分支恢复为 ExpansionTile 列表 ([b9aeea5](https://github.com/1525745393/EmbyTok-Flutter/commit/b9aeea59fd74101efa0457b95736acfd488d0f29))
+
 ## [2.311.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.311.0...v2.311.1) (2026-10-02)
 
 
