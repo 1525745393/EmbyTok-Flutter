@@ -301,7 +301,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
 
   /// 刮削某部剧的所有集
   Future<void> _scrapeGroup(List<LocalVideoItem> eps) async {
-    setState(() => _scraping = true);
+    setState(() {
+      _scraping = true;
+      _scrapedCount = 0;
+    });
     int done = 0;
     for (final item in eps) {
       try {
@@ -377,6 +380,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         if (m == null) continue;
         final season = int.tryParse(m.group(1)!) ?? 1;
         final parent = item.path.substring(0, item.path.lastIndexOf('/'));
+        // 已在 Season X 子文件夹里就跳过，避免重复嵌套
+        if (RegExp(r'[\/\\][Ss]eason\s*\d+$', caseSensitive: false).hasMatch(parent)) continue;
         final seasonDir = Directory('$parent/Season $season');
         if (!await seasonDir.exists()) await seasonDir.create(recursive: true);
         final newPath = '$parent/Season $season/${item.name}';
@@ -412,6 +417,12 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       ),
     );
     if (newName == null || newName.isEmpty || newName == oldName) return;
+    if (dirPath.isEmpty || dirPath.lastIndexOf('/') < 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('无法定位文件夹路径')));
+      }
+      return;
+    }
     try {
       final newPath = dirPath.substring(0, dirPath.lastIndexOf('/')) + '/$newName';
       await Directory(dirPath).rename(newPath);
