@@ -1,3 +1,10 @@
+# [2.307.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.306.0...v2.307.0) (2026-10-02)
+
+
+### Features
+
+* 刮削成功后一键重命名 ([3b506bf](https://github.com/1525745393/EmbyTok-Flutter/commit/3b506bf24c1d6249b128196d780794d6d4535246))
+
 # [2.306.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.305.0...v2.306.0) (2026-10-02)
 
 
