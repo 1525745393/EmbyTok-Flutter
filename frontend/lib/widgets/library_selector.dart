@@ -398,6 +398,11 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             final localVideos = ref.watch(localVideoProvider);
             final selectedLocal = ref.watch(localFeedSourceIdProvider);
             final nav = Navigator.of(context);
+            // 一次性按 sourceId 分组计数，避免每个源 O(n) 遍历
+            final countBySource = <String, int>{};
+            for (final it in localVideos.items) {
+              countBySource[it.sourceId] = (countBySource[it.sourceId] ?? 0) + 1;
+            }
             final cards = <Widget>[
               _buildLibraryCard(
                 scheme: scheme,
@@ -417,12 +422,12 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
               ),
             ];
             for (final src in localSources) {
-              final srcCount = localVideos.items
-                  .where((it) => it.sourceId == src.id)
-                  .length;
+              final srcCount = countBySource[src.id] ?? 0;
+              // 禁用源灰显，仍可点击（方便用户在选择器里临时切到该源）
+              final disabled = !src.enabled;
               cards.add(_buildLibraryCard(
                 scheme: scheme,
-                icon: Icons.folder,
+                icon: disabled ? Icons.folder_off : Icons.folder,
                 name: src.name,
                 count: srcCount,
                 isSelected: selectedLocal == src.id,
@@ -430,10 +435,15 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
                   ref.read(localFeedSourceIdProvider.notifier).set(src.id);
                   nav.pop();
                 },
-                gradientColors: [
-                  Colors.green.withValues(alpha: 0.5),
-                  Colors.green.withValues(alpha: 0.15),
-                ],
+                gradientColors: disabled
+                    ? [
+                        Colors.grey.withValues(alpha: 0.3),
+                        Colors.grey.withValues(alpha: 0.1),
+                      ]
+                    : [
+                        Colors.green.withValues(alpha: 0.5),
+                        Colors.green.withValues(alpha: 0.15),
+                      ],
               ));
             }
             return GridView.count(
