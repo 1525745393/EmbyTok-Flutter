@@ -1,3 +1,10 @@
+# [2.313.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.312.0...v2.313.0) (2026-10-02)
+
+
+### Features
+
+* 剧集详情页每集显示真实标题/剧照/简介/日期 ([638410c](https://github.com/1525745393/EmbyTok-Flutter/commit/638410cb556dae61b640861bc1265be367031eb5))
+
 # [2.312.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.311.1...v2.312.0) (2026-10-02)
 
 
