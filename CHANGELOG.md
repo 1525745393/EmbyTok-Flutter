@@ -1,3 +1,10 @@
+# [2.314.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.313.0...v2.314.0) (2026-10-02)
+
+
+### Features
+
+* 剧集详情页季标题加'查看全部'按钮 ([20e8b65](https://github.com/1525745393/EmbyTok-Flutter/commit/20e8b65b06540944bd0126850a23c784e44d2fe7))
+
 # [2.313.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.312.0...v2.313.0) (2026-10-02)
 
 
