@@ -1,3 +1,10 @@
+# [2.319.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.318.0...v2.319.0) (2026-10-02)
+
+
+### Features
+
+* 本地视频流选择持久化到 SharedPreferences ([89c4905](https://github.com/1525745393/EmbyTok-Flutter/commit/89c49051393bd068354c103ac773924d66965006))
+
 # [2.318.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.3...v2.318.0) (2026-10-02)
 
 
