@@ -1,3 +1,10 @@
+## [2.317.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.0...v2.317.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地模式下媒体库选择器不再加载 Emby 库 ([20b3c45](https://github.com/1525745393/EmbyTok-Flutter/commit/20b3c45d543f58f5e425f7097378b80d1b73b7bd))
+
 # [2.317.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.316.1...v2.317.0) (2026-10-02)
 
 
