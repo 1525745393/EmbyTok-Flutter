@@ -1622,31 +1622,49 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     'name': '按名称',
     'time': '按时间',
     'rating': '按评分',
+    'added': '加入时间',
     'year': '年份',
+    'criticRating': '影评人评分',
+    'playDate': '播放日期',
     'duration': '播放时长',
+    'lastAdded': '最后一集添加日期',
+    'resolution': '分辨率',
     'size': '大小',
+    'bitrate': '比特率',
     'random': '随机',
   };
 
   List<LocalVideoItem> _applySort(List<LocalVideoItem> items, LocalVideoState state) {
     final list = [...items];
+    double gR(String h) => state.scrapedMap[h]?.rating ?? 0;
+    int gY(String h) => state.scrapedMap[h]?.year ?? 0;
     switch (_sortBy) {
       case 'name':
         list.sort((a, b) => (state.scrapedMap[a.pathHash]?.title ?? a.name)
             .compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name));
       case 'time':
+      case 'playDate':
+        list.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
       case 'added':
+      case 'lastAdded':
         list.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
       case 'year':
-        list.sort((a, b) => (state.scrapedMap[b.pathHash]?.year ?? 0)
-            .compareTo(state.scrapedMap[a.pathHash]?.year ?? 0));
+        list.sort((a, b) => gY(b.pathHash).compareTo(gY(a.pathHash)));
       case 'rating':
-        list.sort((a, b) => (state.scrapedMap[b.pathHash]?.rating ?? 0)
-            .compareTo(state.scrapedMap[a.pathHash]?.rating ?? 0));
+      case 'criticRating':
+        list.sort((a, b) => gR(b.pathHash).compareTo(gR(a.pathHash)));
       case 'duration':
         list.sort((a, b) => b.duration.inSeconds.compareTo(a.duration.inSeconds));
       case 'size':
         list.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+      case 'resolution':
+        // 无分辨率字段，按文件大小近似
+        list.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
+      case 'bitrate':
+        // 比特率 = 大小/时长
+        int bps(LocalVideoItem e) =>
+            e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
+        list.sort((a, b) => bps(b).compareTo(bps(a)));
       case 'random':
         list.shuffle();
     }
