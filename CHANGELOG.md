@@ -1,3 +1,10 @@
+# [2.310.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.4...v2.310.0) (2026-10-02)
+
+
+### Features
+
+* 剧集详情页对齐参考设计 ([d0dfb7d](https://github.com/1525745393/EmbyTok-Flutter/commit/d0dfb7d16e9c2b56ada927b10ae999ec5e86c322))
+
 ## [2.309.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.3...v2.309.4) (2026-10-02)
 
 
