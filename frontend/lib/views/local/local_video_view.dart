@@ -51,281 +51,412 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       );
     }
 
-    var items = state.filtered;
-    // 按选中的文件源过滤
-    if (_selectedSourceId != null) {
-      items = items.where((e) => e.sourceId == _selectedSourceId).toList();
-    }
     final sources = ref.watch(fileSourcesProvider);
-
-    // 横滑区块也按选中文件源过滤
-    var recentItems = state.recentItems;
-    var recentlyAdded = state.recentlyAdded;
-    var unwatchedItems = state.unwatchedItems;
-    if (_selectedSourceId != null) {
-      bool match(LocalVideoItem e) => e.sourceId == _selectedSourceId;
-      recentItems = recentItems.where(match).toList();
-      recentlyAdded = recentlyAdded.where(match).toList();
-      unwatchedItems = unwatchedItems.where(match).toList();
-    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Column(
-        children: [
-          // 顶部搜索 + 排序 + 视图切换
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: '搜索本地视频…',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                    ),
-                    onChanged: notifier.setKeyword,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                // 浏览本地文件夹（P0：文件管理器式目录浏览）
-                IconButton(
-                  icon: const Icon(Icons.folder, size: 22),
-                  tooltip: '浏览文件夹',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LocalDirectoryBrowserView(),
-                      ),
-                    );
-                  },
-                ),
-                // 排序菜单
-                PopupMenuButton<LocalVideoSort>(
-                  icon: const Icon(Icons.sort, size: 20),
-                  tooltip: '排序',
-                  onSelected: notifier.setSort,
-                  itemBuilder: (_) => [
-                    for (final s in LocalVideoSort.values)
-                      PopupMenuItem(value: s, child: Text(_sortLabel(s))),
-                  ],
-                ),
-                // 三点菜单（P1 #8）：视图/分组/重扫/刮削/全选
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, size: 20),
-                  onSelected: (v) {
-                    switch (v) {
-                      case 'grid':
-                        notifier.setViewMode(LocalVideoViewMode.grid);
-                      case 'list':
-                        notifier.setViewMode(LocalVideoViewMode.list);
-                      case 'folder':
-                        notifier.toggleGroupByFolder();
-                      case 'rescan':
-                        notifier.refresh();
-                      case 'scrape':
-                        notifier.scrapeMissing();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('开始刮削未识别视频…')),
-                        );
-                      case 'selectall':
-                        notifier.enterSelecting();
-                        notifier.selectAll();
-                    }
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                        value: 'grid', child: Text('网格视图')),
-                    const PopupMenuItem(value: 'list', child: Text('列表视图')),
-                    PopupMenuItem(
-                        value: 'folder',
-                        child: Text(state.groupByFolder ? '退出文件夹分组' : '按文件夹分组')),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
-                    const PopupMenuItem(value: 'scrape', child: Text('刮削未识别')),
-                    const PopupMenuItem(value: 'selectall', child: Text('全选')),
-                  ],
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: const Text('我的媒体库',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_border),
+            tooltip: '收藏',
+            onPressed: () => context.push('/local-favorites'),
           ),
-          // 刮削进度条（P1 #4）
-          if (state.scraping)
-            LinearProgressIndicator(
-              value: state.scrapeTotal > 0
-                  ? state.scrapeDone / state.scrapeTotal
-                  : null,
-              minHeight: 2,
-            ),
-          // 文件源（媒体库）筛选 Chip 行
-          SizedBox(
-            height: 32,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildSourceChip(null, '全部'),
-                for (final s in sources) ...[
-                  const SizedBox(width: 6),
-                  _buildSourceChip(s.id, s.name),
-                ],
-              ],
-            ),
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: '搜索',
+            onPressed: () => _showSearchSheet(context, state, notifier),
           ),
-          // 类型筛选 Chip 行（P1 #6）
-          SizedBox(
-            height: 32,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildTypeChip(null, '全部'),
-                const SizedBox(width: 6),
-                _buildTypeChip('movie', '电影'),
-                const SizedBox(width: 6),
-                _buildTypeChip('tv', '剧集'),
-                const SizedBox(width: 6),
-                _buildTypeChip('none', '未识别'),
-              ],
-            ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (v) {
+              switch (v) {
+                case 'rescan':
+                  notifier.refresh();
+                case 'scrape':
+                  notifier.scrapeMissing();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('开始刮削未识别视频…')),
+                  );
+                case 'sources':
+                  context.push('/file-sources');
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'rescan', child: Text('重新扫描')),
+              PopupMenuItem(value: 'scrape', child: Text('刮削未识别')),
+              PopupMenuItem(value: 'sources', child: Text('管理文件源')),
+            ],
           ),
-          // 多选模式顶栏
-          if (state.selecting)
-            Container(
-              color: scheme.primaryContainer,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                children: [
-                  TextButton(
-                    onPressed: notifier.exitSelecting,
-                    child: const Text('取消'),
-                  ),
-                  const Spacer(),
-                  Text('已选 ${state.selected.length} 项',
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                  const Spacer(),
-                  // 批量收藏（P2 #12）：只收藏未收藏项
-                  TextButton(
-                    onPressed: () async {
-                      final selectedItems = state.items
-                          .where((e) => state.selected.contains(e.id))
-                          .toList();
-                      var added = 0;
-                      for (final it in selectedItems) {
-                        // 已收藏则跳过，未收藏才收藏
-                        if (!state.favoriteHashes.contains(it.pathHash)) {
-                          await notifier.toggleFavorite(it.pathHash);
-                          added++;
-                        }
-                      }
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('已收藏 $added 个视频')),
-                        );
-                      }
-                    },
-                    child: const Text('收藏'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      // 删除确认对话框（P1：避免误删）
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('删除视频'),
-                          content: Text(
-                              '确定删除选中的 ${state.selected.length} 个视频吗？此操作不可恢复。'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('取消'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              style: TextButton.styleFrom(
-                                  foregroundColor: scheme.error),
-                              child: const Text('删除'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true || !mounted) return;
-                      final ok = await notifier.deleteByIds(state.selected);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('已删除 $ok 个视频')),
-                        );
-                      }
-                    },
-                    child: Text('删除',
-                        style: TextStyle(color: scheme.error)),
-                  ),
-                ],
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: notifier.refresh,
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            // 刮削进度条
+            if (state.scraping)
+              LinearProgressIndicator(
+                value: state.scrapeTotal > 0
+                    ? state.scrapeDone / state.scrapeTotal
+                    : null,
+                minHeight: 2,
               ),
-            ),
-          // 内容区
-          Expanded(
-            child: state.loading && items.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : items.isEmpty
-                    ? _EmptyState(
-                        onRefresh: notifier.refresh,
-                        hasPermission: state.permission.hasAccess,
-                      )
-                    : Column(
+
+            // ── 播放记录（继续观看）──
+            if (state.recentItems.isNotEmpty) ...[
+              const _SectionTitle('播放记录'),
+              SizedBox(
+                height: 200,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: state.recentItems.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) =>
+                      _buildResumeCard(state.recentItems[i], state),
+                ),
+              ),
+            ],
+
+            // ── 资源库（文件源横滑卡片）──
+            if (sources.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const _SectionTitle('资源库', actionLabel: '查看所有'),
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: sources.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) =>
+                      _buildSourceCard(sources[i], state),
+                ),
+              ),
+            ],
+
+            // ── 每个文件源分区：海报横滑 ──
+            for (final src in sources)
+              _buildSourceSection(src, state),
+
+            // 空状态
+            if (state.items.isEmpty && !state.loading)
+              _EmptyState(
+                onRefresh: notifier.refresh,
+                hasPermission: state.permission.hasAccess,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 单个文件源分区：标题 + 海报横滑
+  Widget _buildSourceSection(FileSource src, LocalVideoState state) {
+    final notifier = ref.read(localVideoProvider.notifier);
+    final srcItems =
+        state.items.where((e) => e.sourceId == src.id).toList();
+    if (srcItems.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(
+          '📁 ${src.name}',
+          actionLabel: '查看所有',
+          onAction: () => _openSourceFullList(src.id, src.name, state),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: srcItems.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) =>
+                _buildPosterCard(srcItems[i], state, notifier),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 播放记录大卡片：backdrop + ▶ + 进度条 + 剩余时间
+  Widget _buildResumeCard(LocalVideoItem item, LocalVideoState state) {
+    final scraped = state.scrapedMap[item.pathHash];
+    return GestureDetector(
+      onTap: () => _playVideo(item),
+      child: SizedBox(
+        width: 260,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 260,
+                height: 150,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // backdrop 或缩略图
+                    scraped?.backdropPath != null
+                        ? CachedNetworkImage(
+                            imageUrl: TmdbService.backdropUrl(scraped!.backdropPath!),
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) =>
+                                _thumbPlaceholder(item),
+                          )
+                        : _thumbPlaceholder(item),
+                    // 中间播放按钮
+                    const Center(
+                      child: Icon(Icons.play_circle_fill,
+                          size: 48, color: Colors.white70),
+                    ),
+                    // 底部渐变 + 进度条
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // 最近观看横滑区块（P2）
-                          if (recentItems.isNotEmpty)
-                            _buildRecentRow(recentItems),
-                          // 最近添加横滑海报墙（P1）
-                          if (recentlyAdded.isNotEmpty)
-                            _buildPosterRow(
-                              title: '最近添加',
-                              items: recentlyAdded,
-                              state: state,
-                              onTap: (item) => _playVideo(item),
-                            ),
-                          // 未观看横滑（P1）
-                          if (unwatchedItems.isNotEmpty)
-                            _buildPosterRow(
-                              title: '未观看',
-                              items: unwatchedItems,
-                              state: state,
-                              onTap: (item) => _playVideo(item),
-                            ),
-                          Expanded(
-                            child: _browsingFolder != null
-                                ? _buildFolderView(state, notifier, _browsingFolder!)
-                                : state.groupByFolder
-                                    ? _buildFolderGrid(state)
-                                    : state.viewMode == LocalVideoViewMode.grid
-                                        ? _buildGrid(items, state, notifier)
-                                        : _buildList(items, state, notifier),
-                          ),
-                          // 媒体库统计行（P1 #5）
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 12),
-                            child: Text(
-                              _buildStatsLineFor(items, state),
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[600]),
+                          Container(
+                            height: 3,
+                            color: Colors.white24,
+                            child: FutureBuilder<int?>(
+                                                  future: LocalVideoService().readResumeMs(item.pathHash),
+                              builder: (_, snap) {
+                                final ms = snap.data ?? 0;
+                                final total = item.duration.inMilliseconds;
+                                final frac = total > 0
+                                    ? (ms / total).clamp(0.0, 1.0)
+                                    : 0.0;
+                                return FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: frac,
+                                  child: Container(color: const Color(0xFFFF6B6B)),
+                                );
+                              },
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(scraped?.title ?? item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            FutureBuilder<int?>(
+              future: LocalVideoService().readResumeMs(item.pathHash),
+              builder: (_, snap) {
+                final played = snap.data ?? 0;
+                final remaining = item.duration.inMilliseconds - played;
+                if (remaining <= 0) return const SizedBox.shrink();
+                final h = remaining ~/ 3600000;
+                final m = (remaining % 3600000) ~/ 60000;
+                return Text('剩余时间: ${h > 0 ? '${h}h ' : ''}${m.toString().padLeft(2, '0')}m',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _thumbPlaceholder(LocalVideoItem item) {
+    return Container(
+      color: Colors.grey[800],
+      child: const Icon(Icons.movie, size: 40, color: Colors.white30),
+    );
+  }
+
+  /// 资源库卡片：拼贴封面 + 库名
+  Widget _buildSourceCard(FileSource src, LocalVideoState state) {
+    final srcItems =
+        state.items.where((e) => e.sourceId == src.id).toList();
+    // 取前3张海报拼贴
+    final posters = <String?>[];
+    for (final e in srcItems.take(3)) {
+      posters.add(state.scrapedMap[e.pathHash]?.posterPath);
+    }
+    return GestureDetector(
+      onTap: () => _openSourceFullList(src.id, src.name, state),
+      child: Container(
+        width: 130,
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // 拼贴
+            if (posters.isNotEmpty)
+              Row(
+                children: [
+                  for (final p in posters)
+                    Expanded(
+                      child: p != null
+                          ? CachedNetworkImage(
+                              imageUrl: TmdbService.posterUrl(p, size: 'w185'),
+                              fit: BoxFit.cover,
+                            )
+                          : Container(color: Colors.grey[700]),
+                    ),
+                ],
+              ),
+            // 底部渐变 + 名称
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black87],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: Text(
+                src.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 分区海报卡片
+  Widget _buildPosterCard(LocalVideoItem item, LocalVideoState state,
+      LocalVideoNotifier notifier) {
+    final scraped = state.scrapedMap[item.pathHash];
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LocalDetailPage(
+              item: item,
+              onPlay: () => _playVideo(item),
+            ),
           ),
-        ],
+        );
+      },
+      onLongPress: () => _showLongPressMenu(item),
+      child: SizedBox(
+        width: 100,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 100,
+                height: 145,
+                child: scraped?.posterPath != null
+                    ? CachedNetworkImage(
+                        imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => _thumbPlaceholder(item),
+                      )
+                    : _thumbPlaceholder(item),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(scraped?.title ?? item.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            if (scraped?.year != null)
+              Text('${scraped!.year}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 打开某个文件源的完整列表页
+  void _openSourceFullList(
+      String sourceId, String sourceName, LocalVideoState state) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _SourceFullListPage(
+          sourceId: sourceId,
+          sourceName: sourceName,
+        ),
+      ),
+    );
+  }
+
+  /// 搜索底部弹窗
+  void _showSearchSheet(
+      BuildContext context, LocalVideoState state, LocalVideoNotifier notifier) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: TextField(
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: '搜索本地视频…',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: notifier.setKeyword,
+              ),
+            ),
+            SizedBox(
+              height: 300,
+              child: state.filtered.isEmpty
+                  ? const Center(child: Text('无结果'))
+                  : ListView.builder(
+                      itemCount: state.filtered.length,
+                      itemBuilder: (_, i) {
+                        final it = state.filtered[i];
+                        return ListTile(
+                          title: Text(it.name, maxLines: 1),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _playVideo(it);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1379,6 +1510,96 @@ class _ListTileItem extends StatelessWidget {
                   : Colors.grey,
             )
           : const Icon(Icons.chevron_right),
+    );
+  }
+}
+
+/// 分区标题行
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  const _SectionTitle(this.title, {this.actionLabel, this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ),
+          if (actionLabel != null)
+            TextButton(
+              onPressed: onAction,
+              child: Text(actionLabel!,
+                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 单个文件源完整列表页（点"查看所有"进入）
+class _SourceFullListPage extends ConsumerWidget {
+  final String sourceId;
+  final String sourceName;
+  const _SourceFullListPage({required this.sourceId, required this.sourceName});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localVideoProvider);
+    final items = state.items.where((e) => e.sourceId == sourceId).toList();
+    return Scaffold(
+      appBar: AppBar(title: Text(sourceName)),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.62,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: items.length,
+        itemBuilder: (_, i) {
+          final item = items[i];
+          final scraped = state.scrapedMap[item.pathHash];
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: scraped?.posterPath != null
+                        ? CachedNetworkImage(
+                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            color: Colors.grey[800],
+                            child: const Icon(Icons.movie, color: Colors.white30),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(scraped?.title ?? item.name,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11)),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
