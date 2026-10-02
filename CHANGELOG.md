@@ -1,3 +1,10 @@
+## [2.302.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.302.0...v2.302.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 收藏页修复双击退出+电视剧按tvId分组 ([8312f85](https://github.com/1525745393/EmbyTok-Flutter/commit/8312f85ec7cf656efdf9f9cc40985da91cd06e01))
+
 # [2.302.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.301.0...v2.302.0) (2026-10-02)
 
 
