@@ -1,3 +1,10 @@
+# [2.298.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.297.1...v2.298.0) (2026-10-02)
+
+
+### Features
+
+* 媒体库详情页对齐Emby风格 ([670c8e4](https://github.com/1525745393/EmbyTok-Flutter/commit/670c8e47fe8722520b380c32048112150dd624e6))
+
 ## [2.297.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.297.0...v2.297.1) (2026-10-02)
 
 
