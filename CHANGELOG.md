@@ -1,3 +1,10 @@
+## [2.319.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.319.0...v2.319.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 选 Emby 库时清掉本地源选择，避免主 feed 被本地流永久拦截 ([dda2ce9](https://github.com/1525745393/EmbyTok-Flutter/commit/dda2ce9dd16f142c78579b03b7ce20b6a587831a))
+
 # [2.319.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.318.0...v2.319.0) (2026-10-02)
 
 
