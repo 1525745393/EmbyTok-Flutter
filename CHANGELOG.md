@@ -1,3 +1,10 @@
+## [2.295.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.2...v2.295.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* 选中文件源chip后横滑区块和统计同步过滤 ([f98254b](https://github.com/1525745393/EmbyTok-Flutter/commit/f98254b405a3a7aefe855a0ae4d808ea9e3b738d))
+
 ## [2.295.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.295.1...v2.295.2) (2026-10-01)
 
 
