@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import 'local_detail_view.dart';
 import 'person_detail_view.dart';
 
@@ -2592,10 +2593,17 @@ class _FavActorsSection extends StatelessWidget {
 }
 
 /// 剧集文件夹内页：显示某部剧的所有集
-class _FolderEpisodePage extends ConsumerWidget {
+class _FolderEpisodePage extends ConsumerStatefulWidget {
   final String folderName;
   final List<LocalVideoItem> items;
   const _FolderEpisodePage({required this.folderName, required this.items});
+
+  @override
+  ConsumerState<_FolderEpisodePage> createState() => _FolderEpisodePageState();
+}
+
+class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
+  bool _overviewExpanded = false;
 
   /// 从文件名提取干净的集标题，去掉 SxxEyy、扩展名
   String _episodeTitle(String filename) {
@@ -2607,19 +2615,33 @@ class _FolderEpisodePage extends ConsumerWidget {
     return n.trim().isEmpty ? filename : n.trim();
   }
 
+  void _openImageViewer(String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: const IconThemeData(color: Colors.white)),
+          body: Center(child: InteractiveViewer(child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain))),
+        ),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
-    final sorted = [...items]..sort((a, b) => a.name.compareTo(b.name));
+    final sorted = [...widget.items]..sort((a, b) => a.name.compareTo(b.name));
     if (sorted.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text(folderName)),
+        appBar: AppBar(title: Text(widget.folderName)),
         body: const Center(child: Text('没有视频')),
       );
     }
-    // 取第一集的刮削信息作为整剧元数据
-    final meta = state.scrapedMap[sorted.first.pathHash];
+    final first = sorted.first;
+    final meta = state.scrapedMap[first.pathHash];
     final cast = meta?.cast ?? [];
+    final isFav = state.favoriteHashes.contains(first.pathHash);
 
     return Scaffold(
       body: ListView(
@@ -2631,10 +2653,7 @@ class _FolderEpisodePage extends ConsumerWidget {
                 height: 280,
                 width: double.infinity,
                 child: meta?.backdropPath != null
-                    ? CachedNetworkImage(
-                        imageUrl: TmdbService.backdropUrl(meta!.backdropPath!),
-                        fit: BoxFit.cover,
-                      )
+                    ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover)
                     : Container(color: Colors.grey[900]),
               ),
               Container(
@@ -2643,7 +2662,7 @@ class _FolderEpisodePage extends ConsumerWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.85)],
                   ),
                 ),
               ),
@@ -2655,6 +2674,26 @@ class _FolderEpisodePage extends ConsumerWidget {
                   onPressed: () => Navigator.pop(context),
                 ),
               ),
+              // 顶部右侧：重新刮削
+              Positioned(
+                top: MediaQuery.of(context).padding.top,
+                right: 0,
+                child: IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  tooltip: '重新刮削',
+                  onPressed: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('正在重新刮削…')));
+                    final result = await ScrapeService.scrapeTvSeries(widget.folderName);
+                    if (result != null) {
+                      await ScrapeService.saveCache(first.pathHash, result);
+                      final cached = Map<String, ScrapedMedia>.from(state.scrapedMap);
+                      cached[first.pathHash] = result;
+                      ref.read(localVideoProvider.notifier).state = state.copyWith(scrapedMap: cached);
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('刮削完成')));
+                    }
+                  },
+                ),
+              ),
               Positioned(
                 bottom: 16,
                 left: 16,
@@ -2662,8 +2701,9 @@ class _FolderEpisodePage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(meta?.title ?? folderName,
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    Text(meta?.title ?? widget.folderName,
+                        maxLines: 2,
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, shadows: [Shadow(blurRadius: 4, color: Colors.black54)])),
                     const SizedBox(height: 4),
                     Text(
                       [
@@ -2671,54 +2711,139 @@ class _FolderEpisodePage extends ConsumerWidget {
                         if (meta?.rating != null) '★ ${meta!.rating!.toStringAsFixed(1)}',
                         '${sorted.length} 集',
                       ].join('  ·  '),
-                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    // 操作行：播放 + 收藏 + 分享 + 删除
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          icon: const Icon(Icons.play_arrow, size: 18),
+                          label: const Text('播放', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: 0))),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => ref.read(localVideoProvider.notifier).toggleFavorite(first.pathHash),
+                          icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, color: isFav ? Colors.pink : Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: () => Share.shareXFiles([XFile(first.path)], subject: first.name),
+                          icon: const Icon(Icons.share, color: Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: () async {
+                            final ok = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text('删除整剧'),
+                                content: Text('确定删除 ${widget.folderName} 共 ${sorted.length} 集吗？此操作不可恢复。'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
+                                  TextButton(onPressed: () => Navigator.pop(context, true), style: TextButton.styleFrom(foregroundColor: Colors.red), child: const Text('删除')),
+                                ],
+                              ),
+                            );
+                            if (ok == true) {
+                              await ref.read(localVideoProvider.notifier).deleteByIds(sorted.map((e) => e.id).toSet());
+                              if (mounted) Navigator.pop(context);
+                            }
+                          },
+                          icon: const Icon(Icons.delete_outline, color: Colors.white),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          // 类型标签
-          if (meta?.genres != null && meta!.genres!.isNotEmpty)
+          // 海报 + backdrop 并排
+          if (meta?.posterPath != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Wrap(
-                spacing: 8,
-                children: meta.genres!.map((g) => Chip(
-                  label: Text(g, style: const TextStyle(fontSize: 11)),
-                  visualDensity: VisualDensity.compact,
-                )).toList(),
-              ),
-            ),
-          // 播放按钮
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LocalPlayerPage(items: sorted, initialIndex: 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () => _openImageViewer(TmdbService.posterUrl(meta!.posterPath!)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedNetworkImage(
+                        imageUrl: TmdbService.posterUrl(meta.posterPath!),
+                        width: 90, height: 135, fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [Icon(Icons.play_arrow), SizedBox(width: 8), Text('播放', style: TextStyle(fontSize: 16))],
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: meta.backdropPath != null ? () => _openImageViewer(TmdbService.backdropUrl(meta.backdropPath!)) : null,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: meta.backdropPath != null
+                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta.backdropPath!), height: 135, fit: BoxFit.cover)
+                            : Container(height: 135, color: Colors.grey[800]),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          // 简介
+          const SizedBox(height: 12),
+          // 类型标签 + 评分
+          if (meta?.genres != null && meta!.genres!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Wrap(
+                spacing: 6, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  ...meta.genres!.map((g) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(4)),
+                        child: Text(g, style: const TextStyle(fontSize: 11)),
+                      )),
+                  if (meta.rating != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: Colors.amber.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.star, size: 12, color: Colors.amber),
+                        const SizedBox(width: 2),
+                        Text(meta.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 11)),
+                      ]),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
+          // 简介（可展开）
           if (meta?.overview != null && meta!.overview!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(meta.overview!,
-                  style: TextStyle(color: Colors.grey[300], fontSize: 13, height: 1.5)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('简介', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text(meta.overview!,
+                      maxLines: _overviewExpanded ? null : 4,
+                      overflow: _overviewExpanded ? null : TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.grey[300], fontSize: 13, height: 1.5)),
+                  if (meta.overview!.length > 120)
+                    TextButton(
+                      onPressed: () => setState(() => _overviewExpanded = !_overviewExpanded),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 32)),
+                      child: Text(_overviewExpanded ? '收起' : '展开', style: const TextStyle(fontSize: 13)),
+                    ),
+                ],
+              ),
             ),
           const SizedBox(height: 20),
           // 季标题
@@ -2742,37 +2867,21 @@ class _FolderEpisodePage extends ConsumerWidget {
             itemBuilder: (_, i) {
               final it = sorted[i];
               return InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
-                  ),
-                ),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i))),
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[850],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                  decoration: BoxDecoration(color: Colors.grey[850], borderRadius: BorderRadius.circular(10)),
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         child: meta?.backdropPath != null
-                            ? CachedNetworkImage(
-                                imageUrl: TmdbService.backdropUrl(meta!.backdropPath!),
-                                fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => Container(color: Colors.grey[800]),
-                              )
+                            ? CachedNetworkImage(imageUrl: TmdbService.backdropUrl(meta!.backdropPath!), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800]))
                             : Container(color: Colors.grey[800]),
                       ),
                       Padding(
                         padding: const EdgeInsets.all(8),
-                        child: Text(
-                          '${i + 1}. ${_episodeTitle(it.name)}',
-                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
+                        child: Text('${i + 1}. ${_episodeTitle(it.name)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),
@@ -2798,32 +2907,31 @@ class _FolderEpisodePage extends ConsumerWidget {
                 itemBuilder: (_, i) {
                   final c = cast[i];
                   final profile = c['profilePath'];
-                  return SizedBox(
-                    width: 70,
-                    child: Column(
-                      children: [
-                        ClipOval(
-                          child: SizedBox(
-                            width: 56, height: 56,
-                            child: profile != null
-                                ? CachedNetworkImage(
-                                    imageUrl: TmdbService.personUrl(profile),
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => Container(
-                                      color: Colors.grey[800],
-                                      child: const Icon(Icons.person, color: Colors.white24),
-                                    ),
-                                  )
-                                : Container(
-                                    color: Colors.grey[800],
-                                    child: const Icon(Icons.person, color: Colors.white24),
-                                  ),
+                  final personId = int.tryParse(c['id'] ?? '');
+                  return GestureDetector(
+                    onTap: () {
+                      if (personId != null && personId > 0) {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => PersonDetailPage(personId: personId, name: c['name'] ?? '', profilePath: profile)));
+                      } else if (profile != null && profile.isNotEmpty) {
+                        _openImageViewer(TmdbService.personUrl(profile));
+                      }
+                    },
+                    child: SizedBox(
+                      width: 70,
+                      child: Column(
+                        children: [
+                          ClipOval(
+                            child: SizedBox(
+                              width: 56, height: 56,
+                              child: profile != null
+                                  ? CachedNetworkImage(imageUrl: TmdbService.personUrl(profile), fit: BoxFit.cover, errorWidget: (_, __, ___) => Container(color: Colors.grey[800], child: const Icon(Icons.person, color: Colors.white24)))
+                                  : Container(color: Colors.grey[800], child: const Icon(Icons.person, color: Colors.white24)),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(c['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 10)),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(c['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10)),
+                        ],
+                      ),
                     ),
                   );
                 },
