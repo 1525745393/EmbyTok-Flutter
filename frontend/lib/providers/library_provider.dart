@@ -14,6 +14,7 @@ import '../utils/logger.dart';
 import 'app_preferences_providers.dart';
 import 'auth_provider.dart';
 import 'cache_providers.dart';
+import 'local_mode_provider.dart';
 
 // ==================== 基础数据 Provider ====================
 
@@ -23,10 +24,19 @@ import 'cache_providers.dart';
 /// 通过缓存仓库获取，媒体库列表极少变更，缓存 TTL 30 分钟。
 final libraryListProvider = FutureProvider<List<Library>>((ref) async {
   final auth = ref.watch(authProvider);
+  // 本地模式：不请求 Emby，直接返回空列表（选择器只显示本地文件源）
+  final localMode = ref.watch(localModeProvider);
+  if (localMode) return const <Library>[];
+
   final serverUrl = auth.embyServerUrl;
   final token = auth.token;
 
   if (!auth.isAuthenticated || serverUrl == null || token == null) {
+    return const <Library>[];
+  }
+  // 防御：serverUrl 不是合法 http(s)（例如本地模式残留 local://），不发请求
+  final uri = Uri.tryParse(serverUrl);
+  if (uri == null || !uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
     return const <Library>[];
   }
 
