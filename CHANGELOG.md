@@ -1,3 +1,10 @@
+# [2.306.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.305.0...v2.306.0) (2026-10-02)
+
+
+### Features
+
+* 文件源浏览页对齐首页体验 ([1f31de3](https://github.com/1525745393/EmbyTok-Flutter/commit/1f31de392ebf2bfd7b67ef15dd3fc30133abc4d0))
+
 # [2.305.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.304.0...v2.305.0) (2026-10-02)
 
 
