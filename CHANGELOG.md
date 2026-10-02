@@ -1,3 +1,10 @@
+# [2.300.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.299.0...v2.300.0) (2026-10-02)
+
+
+### Features
+
+* 补全排序规则（按名称/时间/评分/加入时间/年份/影评人评分/播放日期/时长/最后添加/分辨率/大小/比特率/随机） ([1fca1cb](https://github.com/1525745393/EmbyTok-Flutter/commit/1fca1cbb6f19827d1c0ee24d2531f36a11759177))
+
 # [2.299.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.298.0...v2.299.0) (2026-10-02)
 
 
