@@ -1,3 +1,10 @@
+## [2.311.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.311.0...v2.311.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 本地媒体库 TV 源按剧分组显示 ([1affeda](https://github.com/1525745393/EmbyTok-Flutter/commit/1affeda515abf470e45f2d524eeb2b31370d0633))
+
 # [2.311.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.310.1...v2.311.0) (2026-10-02)
 
 
