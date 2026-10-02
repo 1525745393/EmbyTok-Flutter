@@ -1684,6 +1684,11 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
+            tooltip: _gridMode ? '切换列表' : '切换网格',
+            onPressed: () => setState(() => _gridMode = !_gridMode),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.sort),
             tooltip: '排序',
@@ -1691,11 +1696,6 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             itemBuilder: (_) => _sortOptions.entries
                 .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
                 .toList(),
-          ),
-          IconButton(
-            icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
-            tooltip: _gridMode ? '切换列表' : '切换网格',
-            onPressed: () => setState(() => _gridMode = !_gridMode),
           ),
         ],
       ),
