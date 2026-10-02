@@ -1,3 +1,10 @@
+# [2.308.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.307.2...v2.308.0) (2026-10-02)
+
+
+### Features
+
+* TV 剧集文件夹可折叠展开 + 文件夹重命名 ([5e832fd](https://github.com/1525745393/EmbyTok-Flutter/commit/5e832fd76e8b6cb91c0d549a7283b6be143520ab))
+
 ## [2.307.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.307.1...v2.307.2) (2026-10-02)
 
 
