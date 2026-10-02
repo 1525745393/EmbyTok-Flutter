@@ -1,3 +1,10 @@
+## [2.310.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.310.0...v2.310.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 剧集详情页审查修复 ([fdb89cc](https://github.com/1525745393/EmbyTok-Flutter/commit/fdb89cc21f69699d8be48bbde46531674fe11b9e))
+
 # [2.310.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.4...v2.310.0) (2026-10-02)
 
 
