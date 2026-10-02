@@ -237,43 +237,65 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         groups.putIfAbsent(folder, () => []).add(it);
         groupDir[folder] = it.relativePath ?? '';
       }
-      return ListView(
+      return GridView.builder(
         padding: const EdgeInsets.all(16),
-        children: [
-          for (final entry in groups.entries)
-            Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ExpansionTile(
-                initiallyExpanded: _expandedFolders.contains(entry.key),
-                onExpansionChanged: (v) {
-                  setState(() {
-                    if (v) {
-                      _expandedFolders.add(entry.key);
-                    } else {
-                      _expandedFolders.remove(entry.key);
-                    }
-                  });
-                },
-                leading: const Icon(Icons.folder, color: Colors.amber),
-                title: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('${entry.value.length}集'),
-                trailing: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_horiz, size: 20),
-                  onSelected: (v) => _onGroupAction(v, entry.key, groupDir[entry.key] ?? '', entry.value),
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
-                    const PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
-                    const PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
-                    const PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
-                  ],
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.55,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: groups.length,
+        itemBuilder: (_, i) {
+          final entry = groups.entries.elementAt(i);
+          final eps = entry.value;
+          final s = _scraped[eps.first.pathHash];
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _SeriesEpisodePage(
+                  seriesName: entry.key,
+                  episodes: eps,
+                  onMenu: (action) => _onGroupAction(action, entry.key, groupDir[entry.key] ?? '', eps),
                 ),
-                children: entry.value.map((it) {
-                  final realIndex = _items.indexOf(it);
-                  return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
-                }).toList(),
               ),
             ),
-        ],
+            onLongPress: () => _onGroupAction('scrape', entry.key, groupDir[entry.key] ?? '', eps),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: s?.posterPath != null
+                            ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                            : Container(color: Colors.grey[800], child: const Icon(Icons.tv, size: 32, color: Colors.white24)),
+                      ),
+                      Positioned(
+                        top: 6, right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.pinkAccent, borderRadius: BorderRadius.circular(10)),
+                          child: Text('${eps.length}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(s?.title ?? entry.key, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(s?.year != null ? '${s!.year}-现在' : '${eps.length} 集',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              ],
+            ),
+          );
+        },
       );
     }
     return ListView.separated(
@@ -557,5 +579,53 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         }
       }
     }
+  }
+}
+
+/// 单部剧的剧集列表页
+class _SeriesEpisodePage extends StatelessWidget {
+  final String seriesName;
+  final List<LocalVideoItem> episodes;
+  final void Function(String action) onMenu;
+  const _SeriesEpisodePage({required this.seriesName, required this.episodes, required this.onMenu});
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...episodes]..sort((a, b) => a.name.compareTo(b.name));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(seriesName),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: onMenu,
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'scrape', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text('刮削本剧')])),
+              PopupMenuItem(value: 'renameAll', child: Row(children: [Icon(Icons.auto_fix_high, size: 18, color: Colors.green), SizedBox(width: 8), Text('一键重命名集数')])),
+              PopupMenuItem(value: 'organize', child: Row(children: [Icon(Icons.folder_special, size: 18), SizedBox(width: 8), Text('整理文件结构')])),
+              PopupMenuItem(value: 'renameFolder', child: Row(children: [Icon(Icons.drive_file_rename_outline, size: 18), SizedBox(width: 8), Text('重命名文件夹')])),
+            ],
+          ),
+        ],
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: sorted.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, i) {
+          final it = sorted[i];
+          return ListTile(
+            leading: Text('${i + 1}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            title: Text(it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: const Icon(Icons.play_arrow),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => LocalPlayerPage(items: sorted, initialIndex: i),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
