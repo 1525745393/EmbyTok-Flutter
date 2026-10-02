@@ -1778,7 +1778,11 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
         mainAxisSpacing: 12,
       ),
       itemCount: items.length,
-      itemBuilder: (_, i) => _GridPosterCard(item: items[i], state: state),
+      itemBuilder: (_, i) => _GridPosterCard(
+        item: items[i],
+        state: state,
+        onPlay: () => _openPlayer(items, i),
+      ),
     );
   }
 
@@ -1793,7 +1797,23 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
         mainAxisSpacing: 16,
       ),
       itemCount: items.length,
-      itemBuilder: (_, i) => _BackdropCard(item: items[i], state: state),
+      itemBuilder: (_, i) => _BackdropCard(
+        item: items[i],
+        state: state,
+        onPlay: () => _openPlayer(items, i),
+      ),
+    );
+  }
+
+  void _openPlayer(List<LocalVideoItem> items, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocalPlayerPage(
+          items: items,
+          initialIndex: index,
+        ),
+      ),
     );
   }
 }
@@ -1802,7 +1822,8 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
 class _GridPosterCard extends StatelessWidget {
   final LocalVideoItem item;
   final LocalVideoState state;
-  const _GridPosterCard({required this.item, required this.state});
+  final VoidCallback? onPlay;
+  const _GridPosterCard({required this.item, required this.state, this.onPlay});
 
   @override
   Widget build(BuildContext context) {
@@ -1811,7 +1832,7 @@ class _GridPosterCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
+          builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
       child: Column(
@@ -1848,7 +1869,8 @@ class _GridPosterCard extends StatelessWidget {
 class _BackdropCard extends StatelessWidget {
   final LocalVideoItem item;
   final LocalVideoState state;
-  const _BackdropCard({required this.item, required this.state});
+  final VoidCallback? onPlay;
+  const _BackdropCard({required this.item, required this.state, this.onPlay});
 
   @override
   Widget build(BuildContext context) {
@@ -1857,7 +1879,7 @@ class _BackdropCard extends StatelessWidget {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
+          builder: (_) => LocalDetailPage(item: item, onPlay: onPlay),
         ),
       ),
       child: Column(
