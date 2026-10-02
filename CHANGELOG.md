@@ -1,3 +1,10 @@
+# [2.318.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.3...v2.318.0) (2026-10-02)
+
+
+### Features
+
+* 视频流使用选择本地源后主 feed 直接显示本地内容 ([76a6b8b](https://github.com/1525745393/EmbyTok-Flutter/commit/76a6b8bc19a78b83a61cbef0a29a33e9c3e436a6))
+
 ## [2.317.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.317.2...v2.317.3) (2026-10-02)
 
 
