@@ -63,7 +63,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           IconButton(
             icon: const Icon(Icons.favorite_border),
             tooltip: '收藏',
-            onPressed: () => context.push('/local-favorites'),
+            onPressed: () => _showLocalFavorites(context, state),
           ),
           IconButton(
             icon: const Icon(Icons.search),
@@ -417,6 +417,56 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
         builder: (_) => _SourceFullListPage(
           sourceId: sourceId,
           sourceName: sourceName,
+        ),
+      ),
+    );
+  }
+
+  /// 本地收藏列表弹窗
+  void _showLocalFavorites(BuildContext context, LocalVideoState state) {
+    final favs =
+        state.items.where((e) => state.favoriteHashes.contains(e.pathHash)).toList();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, scrollController) => Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('我的收藏', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            Expanded(
+              child: favs.isEmpty
+                  ? const Center(child: Text('暂无收藏'))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: favs.length,
+                      itemBuilder: (_, i) {
+                        final it = favs[i];
+                        final s = state.scrapedMap[it.pathHash];
+                        return ListTile(
+                          leading: SizedBox(
+                            width: 40,
+                            height: 60,
+                            child: s?.posterPath != null
+                                ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                                : const Icon(Icons.movie),
+                          ),
+                          title: Text(s?.title ?? it.name, maxLines: 1),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _playVideo(it);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
