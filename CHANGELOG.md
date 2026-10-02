@@ -1,3 +1,10 @@
+## [2.309.4](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.3...v2.309.4) (2026-10-02)
+
+
+### Bug Fixes
+
+* TV 源每部剧一张海报卡，不再每集一张 ([54fbccd](https://github.com/1525745393/EmbyTok-Flutter/commit/54fbccd3e64d738ae316fc85300a66f37dfbdd07))
+
 ## [2.309.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.2...v2.309.3) (2026-10-02)
 
 
