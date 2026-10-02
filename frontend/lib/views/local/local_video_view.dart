@@ -1603,62 +1603,223 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// 单个文件源完整列表页（点"查看所有"进入）
-class _SourceFullListPage extends ConsumerWidget {
+/// 单个文件源完整列表页（点"查看所有"进入）：对齐 Emby 资源库页
+class _SourceFullListPage extends ConsumerStatefulWidget {
   final String sourceId;
   final String sourceName;
   const _SourceFullListPage({required this.sourceId, required this.sourceName});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SourceFullListPage> createState() => _SourceFullListPageState();
+}
+
+class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
+  int _tab = 0; // 电影/播放记录/分类/合集/文件夹
+  bool _gridMode = true; // true=3列海报, false=2列backdrop
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(localVideoProvider);
-    final items = state.items.where((e) => e.sourceId == sourceId).toList();
+    final allItems =
+        state.items.where((e) => e.sourceId == widget.sourceId).toList();
+
+    // 按 Tab 过滤
+    List<LocalVideoItem> items;
+    switch (_tab) {
+      case 1: // 播放记录
+        final played = state.recentHashes.toSet();
+        items = allItems.where((e) => played.contains(e.pathHash)).toList();
+        break;
+      default:
+        items = allItems;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(sourceName)),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          childAspectRatio: 0.62,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.sourceName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text('当前项目数: ${allItems.length}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          ],
         ),
-        itemCount: items.length,
-        itemBuilder: (_, i) {
-          final item = items[i];
-          final scraped = state.scrapedMap[item.pathHash];
-          return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        actions: [
+          IconButton(
+            icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
+            tooltip: _gridMode ? '切换列表' : '切换网格',
+            onPressed: () => setState(() => _gridMode = !_gridMode),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Tab 栏
+          SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: scraped?.posterPath != null
-                        ? CachedNetworkImage(
-                            imageUrl: TmdbService.posterUrl(scraped!.posterPath!),
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: Colors.grey[800],
-                            child: const Icon(Icons.movie, color: Colors.white30),
+                for (var i = 0; i < 5; i++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: GestureDetector(
+                      onTap: () => setState(() => _tab = i),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            ['电影', '播放记录', '分类', '合集', '文件夹'][i],
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: _tab == i ? FontWeight.w700 : FontWeight.normal,
+                              color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.grey,
+                            ),
                           ),
+                          const SizedBox(height: 4),
+                          Container(
+                            height: 2,
+                            width: 24,
+                            color: _tab == i ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(scraped?.title ?? item.name,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11)),
               ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: items.isEmpty
+                ? const Center(child: Text('暂无内容'))
+                : _gridMode
+                    ? _buildGrid(items, state)
+                    : _buildBackdropList(items, state),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 3列竖版海报网格
+  Widget _buildGrid(List<LocalVideoItem> items, LocalVideoState state) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.58,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _GridPosterCard(item: items[i], state: state),
+    );
+  }
+
+  /// 2列横版 backdrop 卡片
+  Widget _buildBackdropList(List<LocalVideoItem> items, LocalVideoState state) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.4,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: items.length,
+      itemBuilder: (_, i) => _BackdropCard(item: items[i], state: state),
+    );
+  }
+}
+
+/// 竖版海报卡片
+class _GridPosterCard extends StatelessWidget {
+  final LocalVideoItem item;
+  final LocalVideoState state;
+  const _GridPosterCard({required this.item, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state.scrapedMap[item.pathHash];
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: s?.posterPath != null
+                  ? CachedNetworkImage(
+                      imageUrl: TmdbService.posterUrl(s!.posterPath!),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    )
+                  : Container(
+                      color: Colors.grey[800],
+                      child: const Icon(Icons.movie, color: Colors.white30),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(s?.title ?? item.name,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+          if (s?.year != null)
+            Text('${s!.year}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        ],
+      ),
+    );
+  }
+}
+
+/// 横版 backdrop 卡片
+class _BackdropCard extends StatelessWidget {
+  final LocalVideoItem item;
+  final LocalVideoState state;
+  const _BackdropCard({required this.item, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = state.scrapedMap[item.pathHash];
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LocalDetailPage(item: item, onPlay: () {}),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: s?.backdropPath != null
+                  ? CachedNetworkImage(
+                      imageUrl: TmdbService.backdropUrl(s!.backdropPath!),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                    )
+                  : Container(
+                      color: Colors.grey[800],
+                      child: const Icon(Icons.movie, size: 40, color: Colors.white30),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(s?.title ?? item.name,
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }
