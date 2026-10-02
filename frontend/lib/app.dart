@@ -36,6 +36,7 @@ import 'views/login_view.dart';
 import 'views/person_detail_view.dart';
 import 'views/recommend_view.dart';
 import 'views/discover_view.dart';
+import 'views/local/local_feed_page.dart';
 import 'views/follow_view.dart';
 import 'views/genre_items_view.dart';
 import 'views/search_view.dart';
@@ -371,6 +372,11 @@ class _EmbyTokAppState extends ConsumerState<EmbyTokApp> {
       GoRoute(
         path: '/discover',
         builder: (context, state) => const DiscoverView(),
+      ),
+      // 本地视频流：抖音式上下滑播放本地媒体库
+      GoRoute(
+        path: '/local-feed',
+        builder: (context, state) => const LocalFeedPage(),
       ),
       // 类型影片列表：按 Emby Genres API 精确筛选
       GoRoute(

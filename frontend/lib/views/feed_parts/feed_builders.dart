@@ -70,6 +70,11 @@ extension _FeedBuilders on _FeedViewState {
             onTap: () => context.push('/discover'),
           ),
           _buildTopBarButton(
+            icon: Icons.folder_open,
+            label: '本地',
+            onTap: () => Navigator.pushNamed(context, '/local-feed'),
+          ),
+          _buildTopBarButton(
             icon: Icons.play_circle_outline,
             label: '视频流',
             onTap: () {
