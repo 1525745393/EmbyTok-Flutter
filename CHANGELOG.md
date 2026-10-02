@@ -1,3 +1,10 @@
+## [2.309.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.2...v2.309.3) (2026-10-02)
+
+
+### Performance Improvements
+
+* 剧集刮削只搜一次 TMDB ([264bab7](https://github.com/1525745393/EmbyTok-Flutter/commit/264bab7715b4af9ebcbe56272012a0efba437d48))
+
 ## [2.309.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.309.1...v2.309.2) (2026-10-02)
 
 
