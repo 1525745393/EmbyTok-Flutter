@@ -1,3 +1,10 @@
+# [2.309.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.308.2...v2.309.0) (2026-10-02)
+
+
+### Features
+
+* 剧集文件夹操作菜单 ([ca461be](https://github.com/1525745393/EmbyTok-Flutter/commit/ca461beae3a955bf0e5127c2d794fa8e0fcbb7a9))
+
 ## [2.308.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.308.1...v2.308.2) (2026-10-02)
 
 
