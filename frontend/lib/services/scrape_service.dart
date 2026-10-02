@@ -222,6 +222,52 @@ class ScrapeService {
     return segments.isNotEmpty ? _cleanNoise(segments.last.replaceAll(RegExp(r'[.\[\]_]'), ' ')) : null;
   }
 
+  /// 刮削一部电视剧（只搜一次 TMDB），返回基础元数据
+  /// 调用方再用 [applyEpisodeInfo] 给每集叠加 SxxExx
+  static Future<ScrapedMedia?> scrapeTvSeries(String seriesName) async {
+    final results = await TmdbService.searchTv(seriesName);
+    if (results.isEmpty) return null;
+    final first = results.first;
+    final tvId = first['id'] as int;
+    final details = await TmdbService.getTvDetails(tvId);
+    final parsed = ParsedName(type: 'tv', title: seriesName);
+    return _fromTvDetails(details, first, parsed, tvId);
+  }
+
+  /// 从文件名提取 SxxExx
+  static ({int season, int episode})? extractEpisode(String filename) {
+    final m = RegExp(r'[Ss](\d{1,2})[._ -]?[Ee](\d{1,2})').firstMatch(filename);
+    if (m != null) {
+      return (season: int.tryParse(m.group(1)!) ?? 1, episode: int.tryParse(m.group(2)!) ?? 1);
+    }
+    final num = RegExp(r'(?:^|[.\s_-])(\d{1,3})(?:[.\s_-]|$)').firstMatch(filename);
+    if (num != null) {
+      final ep = int.tryParse(num.group(1)!);
+      if (ep != null && ep > 0 && ep <= 999) return (season: 1, episode: ep);
+    }
+    return null;
+  }
+
+  /// 给单集生成缓存条目（复用系列元数据，仅替换季集号）
+  static ScrapedMedia applyEpisodeInfo(ScrapedMedia base, int season, int episode) {
+    return ScrapedMedia(
+      tmdbId: base.tmdbId,
+      type: 'tv',
+      title: base.title,
+      year: base.year,
+      posterPath: base.posterPath,
+      backdropPath: base.backdropPath,
+      overview: base.overview,
+      rating: base.rating,
+      genres: base.genres,
+      cast: base.cast,
+      season: season,
+      episode: episode,
+      tvId: base.tvId,
+      scrapedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
   /// 刮削单个文件
   /// [parentDir] 父目录路径（用作剧名兜底，自动跳过 Season 文件夹）
   /// [mediaTypeHint] 文件源指定的媒体类型（movie/tv/short）

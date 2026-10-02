@@ -286,7 +286,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   Future<void> _onGroupAction(String action, String seriesName, String dirPath, List<LocalVideoItem> eps) async {
     switch (action) {
       case 'scrape':
-        await _scrapeGroup(eps);
+        await _scrapeGroup(seriesName, eps);
         break;
       case 'renameAll':
         await _renameAllEpisodes(seriesName, eps);
@@ -300,22 +300,33 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     }
   }
 
-  /// 刮削某部剧的所有集
-  Future<void> _scrapeGroup(List<LocalVideoItem> eps) async {
+  /// 刮削某部剧的所有集（TMDB 只搜一次）
+  Future<void> _scrapeGroup(String seriesName, List<LocalVideoItem> eps) async {
     setState(() {
       _scraping = true;
       _scrapedCount = 0;
     });
+    // 第一步：按剧名搜一次 TMDB
+    ScrapedMedia? base;
+    try {
+      base = await ScrapeService.scrapeTvSeries(seriesName);
+    } catch (_) {}
+    if (base == null) {
+      if (mounted) {
+        setState(() => _scraping = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('未在 TMDB 找到该剧')));
+      }
+      return;
+    }
+    // 第二步：给每集叠加季集号并存缓存
     int done = 0;
     for (final item in eps) {
       try {
-        final m = await ScrapeService.scrapeFile(
-          item.pathHash,
-          item.name,
-          parentDir: item.relativePath,
-          mediaTypeHint: widget.source.config['mediaType'],
-        );
-        if (m != null) await ScrapeService.saveCache(item.pathHash, m);
+        final ep = ScrapeService.extractEpisode(item.name);
+        final media = ep != null
+            ? ScrapeService.applyEpisodeInfo(base, ep.season, ep.episode)
+            : base;
+        await ScrapeService.saveCache(item.pathHash, media);
       } catch (_) {}
       if (!mounted) return;
       setState(() => _scrapedCount = ++done);
@@ -327,7 +338,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
       _scraping = false;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('刮削完成：$done 集共享《${base.title}》元数据')));
     }
   }
 
