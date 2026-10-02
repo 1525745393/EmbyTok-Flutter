@@ -63,7 +63,10 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
           IconButton(
             icon: const Icon(Icons.favorite_border),
             tooltip: '收藏',
-            onPressed: () => _showLocalFavorites(context, state),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LocalFavoritesPage()),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.search),
@@ -2066,6 +2069,167 @@ class _GroupListPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 本地收藏页：按电影/电视剧/集分区横滑
+class LocalFavoritesPage extends ConsumerWidget {
+  const LocalFavoritesPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localVideoProvider);
+    final favs = state.items
+        .where((e) => state.favoriteHashes.contains(e.pathHash))
+        .toList();
+
+    // 按刮削类型分区
+    final movies = <LocalVideoItem>[];
+    final tvs = <LocalVideoItem>[];
+    final episodes = <LocalVideoItem>[];
+    for (final it in favs) {
+      final s = state.scrapedMap[it.pathHash];
+      if (s?.type == 'tv') {
+        // 电视剧：按 tvId 去重，只放代表海报
+        tvs.add(it);
+      } else if (s?.type == 'movie') {
+        movies.add(it);
+      } else {
+        episodes.add(it);
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('收藏')),
+      body: favs.isEmpty
+          ? const Center(child: Text('暂无收藏'))
+          : ListView(
+              children: [
+                if (movies.isNotEmpty)
+                  _FavSection(title: '电影', items: movies, state: state),
+                if (tvs.isNotEmpty)
+                  _FavSection(title: '电视剧', items: tvs, state: state, isTv: true),
+                if (episodes.isNotEmpty)
+                  _FavSection(title: '集', items: episodes, state: state, useBackdrop: true),
+              ],
+            ),
+    );
+  }
+}
+
+class _FavSection extends StatelessWidget {
+  final String title;
+  final List<LocalVideoItem> items;
+  final LocalVideoState state;
+  final bool isTv;
+  final bool useBackdrop;
+  const _FavSection({
+    required this.title,
+    required this.items,
+    required this.state,
+    this.isTv = false,
+    this.useBackdrop = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              Text('查看所有', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: useBackdrop ? 180 : 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final it = items[i];
+              final s = state.scrapedMap[it.pathHash];
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LocalDetailPage(item: it, onPlay: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => LocalPlayerPage(items: [it], initialIndex: 0),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                child: Container(
+                  width: useBackdrop ? 280 : 120,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: useBackdrop ? 280 : 120,
+                              height: useBackdrop ? 150 : 160,
+                              child: s?.posterPath != null
+                                  ? CachedNetworkImage(
+                                      imageUrl: TmdbService.posterUrl(s!.posterPath!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[800],
+                                      child: const Icon(Icons.movie, size: 32, color: Colors.white54),
+                                    ),
+                            ),
+                          ),
+                          if (isTv && s?.episode != null)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${s!.episode}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        s?.title ?? it.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      if (s?.year != null)
+                        Text('${s!.year}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
