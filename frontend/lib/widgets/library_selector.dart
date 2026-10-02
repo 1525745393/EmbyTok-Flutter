@@ -410,8 +410,50 @@ class _LibrarySelectorState extends ConsumerState<LibrarySelector> {
             ),
             const SizedBox(height: 20),
           ],
+          // 本地媒体库入口（特殊卡片）
+          _buildSectionTitle(scheme, '本地媒体库'),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '使用手机本地刮削后的视频，无需 Emby 服务器',
+              style: TextStyle(
+                color: scheme.onSurface.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.2,
+            children: [
+              _buildLibraryCard(
+                scheme: scheme,
+                icon: Icons.smartphone,
+                name: '本地视频流',
+                count: null,
+                isSelected: false,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed('/local-feed');
+                },
+                gradientColors: [
+                  Colors.teal.withValues(alpha: 0.6),
+                  Colors.teal.withValues(alpha: 0.2),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Divider(height: 1, color: scheme.onSurface.withValues(alpha: 0.1)),
+          const SizedBox(height: 20),
           // 媒体库模式
-          _buildSectionTitle(scheme, '媒体库模式'),
+          _buildSectionTitle(scheme, '服务器媒体库'),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
