@@ -1,3 +1,10 @@
+# [2.302.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.301.0...v2.302.0) (2026-10-02)
+
+
+### Features
+
+* 本地收藏页改为独立页面，按电影/电视剧/集分区横滑海报 ([b586b35](https://github.com/1525745393/EmbyTok-Flutter/commit/b586b351274164acb0441613d68562449b1af7af))
+
 # [2.301.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.300.1...v2.301.0) (2026-10-02)
 
 
