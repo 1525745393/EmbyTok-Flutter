@@ -125,7 +125,8 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
     });
     for (final item in _items) {
       try {
-        final pathHash = item.path.hashCode.toString();
+        // 与全局缓存 key 保持一致：使用 item.pathHash（即 item.id）
+        final pathHash = item.pathHash;
         // 用父目录名作剧集标题（如 西游记/01.mp4 → 西游记）
         final rp = item.relativePath;
         final parentDir = rp != null && rp.isNotEmpty ? rp.split('/').last : null;
@@ -249,7 +250,10 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
                 ],
               ),
             ),
-            ...entry.value.asMap().entries.map((e) => _buildItemTile(e.value, e.key)),
+            ...entry.value.map((it) {
+              final realIndex = _items.indexOf(it);
+              return _buildItemTile(it, realIndex < 0 ? 0 : realIndex);
+            }),
             const SizedBox(height: 16),
           ],
         ],
@@ -263,8 +267,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   Widget _buildItemTile(LocalVideoItem item, int index) {
-    final s = _scraped[item.path.hashCode.toString()] ??
-        _scraped[item.pathHash];
+    final s = _scraped[item.pathHash];
     return ListTile(
       leading: SizedBox(
         width: 48,
@@ -305,7 +308,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
   }
 
   void _showLongPressMenu(LocalVideoItem item) async {
-    final s = _scraped[item.path.hashCode.toString()] ?? _scraped[item.pathHash];
+    final s = _scraped[item.pathHash];
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => SafeArea(
@@ -326,11 +329,6 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
               subtitle: Text(item.name, maxLines: 1),
               enabled: item.isAppDirFile,
               onTap: () => Navigator.pop(context, 'rename'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('删除'),
-              onTap: () => Navigator.pop(context, 'delete'),
             ),
           ],
         ),

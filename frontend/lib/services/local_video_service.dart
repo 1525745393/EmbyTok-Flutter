@@ -309,6 +309,8 @@ class LocalVideoService {
     final ext = item.path.contains('.') ? item.path.substring(item.path.lastIndexOf('.')) : '';
     final parent = item.path.substring(0, item.path.lastIndexOf('/'));
     final newPath = '$parent/$newName$ext';
+    final target = File(newPath);
+    if (await target.exists()) throw Exception('目标文件名已存在');
     await oldFile.rename(newPath);
     return newPath;
   }
