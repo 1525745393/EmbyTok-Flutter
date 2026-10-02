@@ -1,3 +1,10 @@
+## [2.297.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.297.0...v2.297.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* 收藏按钮改为本地收藏底部弹窗（原/local-favorites路由不存在会崩溃） ([0c8ffe2](https://github.com/1525745393/EmbyTok-Flutter/commit/0c8ffe2139adc2e00c8db86e42774c19ba7badd6))
+
 # [2.297.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.296.0...v2.297.0) (2026-10-02)
 
 
