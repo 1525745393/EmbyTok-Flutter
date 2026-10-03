@@ -1,3 +1,10 @@
+# [2.330.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.329.0...v2.330.0) (2026-10-03)
+
+
+### Features
+
+* 本地播放页对齐在线-播放信息OSD(分辨率/时长)+统一设置面板(字幕/音轨/倍速/比例) ([1ce7809](https://github.com/1525745393/EmbyTok-Flutter/commit/1ce780944fc88ef6ee23044aead3f5a93680f292))
+
 # [2.329.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.328.0...v2.329.0) (2026-10-03)
 
 
