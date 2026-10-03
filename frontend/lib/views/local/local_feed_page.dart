@@ -68,31 +68,9 @@ class _LocalFeedPageState extends ConsumerState<LocalFeedPage> {
       ),
     );
     if (widget.embedded) {
-      return Container(
-        color: Colors.black,
-        child: Stack(
-          children: [
-            pageView,
-            // 嵌入主 feed 时左上角悬浮按钮：切回 Emby 推荐流
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              left: 8,
-              child: SafeArea(
-                child: Material(
-                  color: Colors.black54,
-                  shape: const CircleBorder(),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    tooltip: '切回推荐流',
-                    onPressed: () =>
-                        ref.read(localFeedSourceIdProvider.notifier).set(null),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      // 嵌入主 feed：直接返回 PageView，由主 feed 的顶部标签/底部导航接管 chrome。
+      // 用户切换顶部标签或在"视频流使用"里选 Emby 库即自动退出本地流。
+      return Container(color: Colors.black, child: pageView);
     }
     return Scaffold(
       backgroundColor: Colors.black,

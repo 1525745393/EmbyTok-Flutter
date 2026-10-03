@@ -173,6 +173,14 @@ class _FeedViewState extends ConsumerState<FeedView>
       }
     });
 
+    // 用户切换顶部标签（推荐/关注/发现等）时自动退出本地流，
+    // 让本地流融入主视频流标签，而不是一个独立播放页。
+    ref.listenManual<FeedType>(feedTypeProvider, (prev, next) {
+      if (prev != null && prev != next && mounted) {
+        ref.read(localFeedSourceIdProvider.notifier).set(null);
+      }
+    });
+
     // 从 build 树移出的副作用：initialItemId 跳转 + 位置恢复 + 首 item 播放初始化
     // F1 修复：三者协调执行，先等位置恢复完成，再决定是否初始化首个视频播放，
     // 避免「先播 index 0 再跳到上次位置」的竞态与完播率统计污染。
