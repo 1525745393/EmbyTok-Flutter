@@ -358,6 +358,58 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       ),
                     ),
                   ],
+                  // 相关推荐
+                  if (scraped.tmdbId > 0) ...[
+                    const SizedBox(height: 20),
+                    const Text('相关推荐', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 180,
+                      child: FutureBuilder<List<Map<String, dynamic>>>(
+                        future: scraped.type == 'tv'
+                            ? TmdbService.getTvRecommendations(scraped.tvId ?? scraped.tmdbId)
+                            : TmdbService.getRecommendations(scraped.tmdbId),
+                        builder: (_, snap) {
+                          if (!snap.hasData || snap.data!.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          final recs = snap.data!.take(10).toList();
+                          return ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: recs.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            itemBuilder: (_, i) {
+                              final r = recs[i];
+                              final poster = r['poster_path'] as String?;
+                              return SizedBox(
+                                width: 110,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: poster != null
+                                          ? CachedNetworkImage(
+                                              imageUrl: TmdbService.posterUrl(poster),
+                                              height: 140, width: 110, fit: BoxFit.cover,
+                                            )
+                                          : Container(height: 140, width: 110, color: Colors.grey[800]),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      r['title'] ?? r['name'] ?? '',
+                                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   // 外部链接（TMDB）
                   if (scraped.tmdbId > 0) ...[
                     const SizedBox(height: 20),

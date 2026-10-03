@@ -175,6 +175,24 @@ class TmdbService {
     }
   }
 
+  /// 电视剧推荐
+  static Future<List<Map<String, dynamic>>> getTvRecommendations(
+      int tvId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse(
+              '$_base/tv/$tvId/recommendations?api_key=$_apiKey'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      final results = data['results'] as List? ?? [];
+      return results.map((m) => m as Map<String, dynamic>).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// 获取影片演职员（导演+演员）
   static Future<Map<String, dynamic>> getMovieCredits(int movieId) async {
     if (!isConfigured) return {};
