@@ -500,11 +500,16 @@ class _FeedViewState extends ConsumerState<FeedView>
             style: TextStyle(color: Colors.white54)),
       );
     }
-    final mediaItems = LocalVideoAdapter.toMediaItems(items.cast());
+    final mediaItems = LocalVideoAdapter.toMediaItems(items);
     return PageView.builder(
       scrollDirection: Axis.vertical,
       itemCount: mediaItems.length,
-      onPageChanged: (i) => setState(() => _currentIndex = i),
+      onPageChanged: (i) {
+        setState(() {
+          _currentIndex = i;
+          _currentIndexNotifier.value = i;
+        });
+      },
       itemBuilder: (_, i) => VideoPageItem(
         key: ValueKey(mediaItems[i].id),
         item: mediaItems[i],

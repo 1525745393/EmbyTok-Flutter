@@ -28,6 +28,11 @@ extension _VideoPageItemActions on _VideoPageItemState {
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
     _resetInfoHideTimer();
 
+    // 本地文件源：跳过 Emby 服务端进度拉取与播放上报
+    if (widget.item.isLocalFile) {
+      return;
+    }
+
     // === 进度双向同步：从服务端拉取最新进度 ===
     int resumePositionTicks = 0;
     try {
