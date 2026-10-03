@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
+import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
 import '../../providers/app_preferences_providers_extra.dart';
 import '../../widgets/video/gesture_overlay.dart';
@@ -181,11 +182,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   }
 
   /// 画中画
-  void _enterPip() {
-    // TODO: 接 PiPUtil
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('画中画即将支持')),
-    );
+  Future<void> _enterPip() async {
+    final ok = await PiPUtil.enterPip();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('画中画不可用')),
+      );
+    }
   }
 
   /// 倍速选择
