@@ -980,6 +980,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           ],
                         ),
                       ),
+                      IconButton(icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white, size: 22), onPressed: () => PipUtil.enterPip()),
                       IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
                       IconButton(icon: const Icon(Icons.bedtime, color: Colors.white, size: 22), onPressed: () => _showSleepTimer(context)),
                       IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 22), onPressed: () => _showInfo(context)),
