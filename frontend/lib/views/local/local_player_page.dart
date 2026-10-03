@@ -112,6 +112,73 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
+  /// 字幕选择
+  void _showSubtitlePicker(BuildContext context) {
+    final subs = item.subtitlePaths ?? const [];
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('字幕')),
+            ListTile(
+              title: const Text('关闭字幕'),
+              onTap: () {
+                // TODO: 通过 player widget 关闭外挂字幕
+                Navigator.pop(context);
+              },
+            ),
+            ...subs.map((p) => ListTile(
+                  title: Text(p.split('/').last),
+                  onTap: () {
+                    // TODO: 切换外挂字幕轨
+                    Navigator.pop(context);
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 音轨选择（本地暂不支持多音轨切换，提示）
+  void _showAudioPicker(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('本地视频暂不支持音轨切换')),
+    );
+  }
+
+  /// 画面比例
+  void _showAspectPicker(BuildContext context) {
+    const options = ['适应', '填充', '16:9', '4:3', '原始'];
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options
+              .map((o) => ListTile(
+                    title: Text(o),
+                    onTap: () {
+                      // TODO: 调 VideoPlayerBox 切换 fit
+                      Navigator.pop(context);
+                    },
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  /// 画中画
+  void _enterPip() {
+    // TODO: 接 PiPUtil
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('画中画即将支持')),
+    );
+  }
+
   /// 倍速选择
   void _showSpeedPicker(BuildContext context) {    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     showModalBottomSheet(
@@ -389,6 +456,30 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: const Icon(Icons.share_outlined,
                             color: Colors.white, size: 26),
                         onPressed: () => _share(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.subtitles,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showSubtitlePicker(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.audiotrack,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showAudioPicker(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.aspect_ratio,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showAspectPicker(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.picture_in_picture_alt,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _enterPip(),
                       ),
                       const SizedBox(height: 8),
                       IconButton(
