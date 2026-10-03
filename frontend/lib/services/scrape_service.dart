@@ -365,6 +365,15 @@ class ScrapeService {
                 'profilePath': c['profile_path'] as String? ?? '',
               })
           .toList(),
+      directors: ((d['credits']?['crew'] as List?) ?? [])
+          .where((c) => c['job'] == 'Director')
+          .map((c) => c['name'] as String)
+          .toList(),
+      studios: (d['production_companies'] as List?)
+              ?.map((c) => c['name'] as String)
+              .take(5)
+              .toList() ??
+          const [],
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
@@ -407,6 +416,16 @@ class ScrapeService {
                 'profilePath': c['profile_path'] as String? ?? '',
               })
           .toList(),
+      directors: ((d['credits']?['crew'] as List?) ?? [])
+          .where((c) => c['job'] == 'Director' || c['job'] == 'Executive Producer')
+          .map((c) => c['name'] as String)
+          .toSet()
+          .toList(),
+      studios: (d['production_companies'] as List?)
+              ?.map((c) => c['name'] as String)
+              .take(5)
+              .toList() ??
+          const [],
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
