@@ -1,3 +1,10 @@
+# [2.329.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.328.0...v2.329.0) (2026-10-03)
+
+
+### Features
+
+* 本地播放页倍速持久化(SharedPreferences读写local_playback_speed) ([ecbc146](https://github.com/1525745393/EmbyTok-Flutter/commit/ecbc1464249467609a047f3fb7a37184c4835f6c))
+
 # [2.328.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.327.0...v2.328.0) (2026-10-03)
 
 
