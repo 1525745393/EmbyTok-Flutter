@@ -264,6 +264,89 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               trailing: const Icon(Icons.chevron_right, color: Colors.white54),
               onTap: () { Navigator.pop(context); _showAspectPicker(context); },
             ),
+            if (widget.items.length > 1)
+              ListTile(
+                leading: const Icon(Icons.list, color: Colors.white),
+                title: Text('剧集列表  (${widget.items.length}集)',
+                    style: const TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                onTap: () { Navigator.pop(context); _showEpisodeList(context); },
+              ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 剧集列表（章节/集数选择，跳转到指定集）
+  void _showEpisodeList(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2A2A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('剧集列表',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: widget.items.length,
+                itemBuilder: (_, i) {
+                  final ep = widget.items[i];
+                  final isCurrent = i == _index;
+                  return ListTile(
+                    leading: Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        color: isCurrent ? Colors.greenAccent : Colors.white54,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    title: Text(
+                      ep.name,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      _formatDur(ep.duration),
+                      style: const TextStyle(color: Colors.white54, fontSize: 11),
+                    ),
+                    trailing: isCurrent
+                        ? const Icon(Icons.play_arrow, color: Colors.greenAccent)
+                        : null,
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (i != _index) _jumpTo(i);
+                    },
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 12),
           ],
         ),
