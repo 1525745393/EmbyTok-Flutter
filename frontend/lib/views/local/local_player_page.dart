@@ -9,6 +9,7 @@ import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
@@ -52,6 +53,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   bool _locked = false; // 屏幕锁定（隐藏控制栏，禁用手势）
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
+  bool _nightMode = false; // 夜间模式（降低屏幕亮度）
 
   @override
   void initState() {
@@ -216,6 +218,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
         const SnackBar(content: Text('画中画不可用')),
       );
     }
+  }
+
+  /// 夜间模式切换（降低屏幕亮度到 0.2，恢复到系统亮度）
+  Future<void> _toggleNightMode() async {
+    setState(() => _nightMode = !_nightMode);
+    try {
+      if (_nightMode) {
+        await ScreenBrightness().setScreenBrightness(0.2);
+      } else {
+        await ScreenBrightness().resetScreenBrightness();
+      }
+    } catch (_) {}
   }
 
   /// 设置面板（统一底部弹层：字幕/音轨/倍速/画面比例）
@@ -451,6 +465,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    // 退出时恢复系统亮度（夜间模式）
+    if (_nightMode) {
+      ScreenBrightness().resetScreenBrightness();
+    }
     super.dispose();
   }
 
@@ -705,9 +723,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       ),
                       const SizedBox(height: 8),
                       IconButton(
-                        icon: const Icon(Icons.info_outline,
+                        icon: Icon(Icons.info_outline,
                             color: Colors.white, size: 26),
                         onPressed: () => _showInfo(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: Icon(
+                          _nightMode ? Icons.bedtime : Icons.bedtime_outlined,
+                          color: _nightMode ? Colors.amber : Colors.white,
+                          size: 26,
+                        ),
+                        onPressed: _toggleNightMode,
                       ),
                     ],
                   ),
