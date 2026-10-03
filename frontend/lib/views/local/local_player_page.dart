@@ -11,6 +11,7 @@ import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
 import '../../providers/local_video_provider.dart';
+import '../../widgets/video/gesture_overlay.dart';
 import '../../widgets/video/video_player_widget.dart';
 
 class LocalPlayerPage extends ConsumerStatefulWidget {
@@ -214,16 +215,23 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     }
 
     final playerBody = Center(
-      child: VideoPlayerWidget(
-        key: _playerKey,
+      child: GestureOverlay(
+        controller: _playerKey.currentState?.controller,
         item: mediaItem,
-        isLocal: true,
-        extraHttpHeaders: item.networkHeaders,
-        autoPlay: true,
-        loop: false,
-        isCurrentPage: true,
-        externalSubtitlePaths: item.subtitlePaths,
-        onPlaybackEnded: _onPlaybackEnded,
+        enableGestures: true,
+        enableVerticalVolumeDrag: true,
+        onSingleTap: () => setState(() {}),
+        child: VideoPlayerWidget(
+          key: _playerKey,
+          item: mediaItem,
+          isLocal: true,
+          extraHttpHeaders: item.networkHeaders,
+          autoPlay: true,
+          loop: false,
+          isCurrentPage: true,
+          externalSubtitlePaths: item.subtitlePaths,
+          onPlaybackEnded: _onPlaybackEnded,
+        ),
       ),
     );
 
