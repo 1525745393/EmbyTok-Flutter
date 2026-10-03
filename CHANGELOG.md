@@ -1,3 +1,23 @@
+# [2.327.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.326.1...v2.327.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* CI测试编译失败-给part文件加library名(unnamed library导致part找不到containing library) ([243bafb](https://github.com/1525745393/EmbyTok-Flutter/commit/243bafb92db04bd873e65d9de20cf161ac2a40ec))
+* CI编译错误-import父文件替代part/用_activeController替代私有controller getter ([7d6cb70](https://github.com/1525745393/EmbyTok-Flutter/commit/7d6cb7026817e5fa4b57c67d9e6d1272c34f40b4))
+* CI编译错误-PiPUtil拼写应为PipUtil ([d1392a9](https://github.com/1525745393/EmbyTok-Flutter/commit/d1392a978e1909f2d3d41cd6096d8e2f830f71c1))
+* 本地播放页审查4项：缓冲监听controller/锁定时禁点/播放图标状态/hideTimer条件 ([fbc6a7d](https://github.com/1525745393/EmbyTok-Flutter/commit/fbc6a7d55144288de7ed0a746e7369067145e24c))
+
+
+### Features
+
+* 本地播放页右侧补字幕/音轨/比例/画中画按钮 ([1c6224b](https://github.com/1525745393/EmbyTok-Flutter/commit/1c6224bcf2efa5046a56b19265f28974ae0578a2))
+* 本地播放页接 PiPUtil 画中画 ([ade6eb3](https://github.com/1525745393/EmbyTok-Flutter/commit/ade6eb3c45f657b0bda1913a9bc08a9a24a61373))
+* 本地播放页接 videoFitModeProvider + 错误状态视觉反馈 ([bbcd6c2](https://github.com/1525745393/EmbyTok-Flutter/commit/bbcd6c2b81e7bd258683b1f31dd6647f2dfc2c9f))
+* 本地播放页补：可拖进度条/锁定按钮/缓冲指示/退出恢复竖屏 ([693dea2](https://github.com/1525745393/EmbyTok-Flutter/commit/693dea2250ee8e8de0059b80da50bc8be14f6375))
+* 本地独立播放页加 GestureOverlay 手势层（亮度/音量/seek/双击） ([f2bd054](https://github.com/1525745393/EmbyTok-Flutter/commit/f2bd054c18625d1e049d73f5801c76ccd0553eae))
+* 本地独立播放页对标在线：顶部返回+底部控制栏(播放/进度/倍速/全屏)+自动隐藏 ([d75dcc5](https://github.com/1525745393/EmbyTok-Flutter/commit/d75dcc5800cb02e3784006a9243006eaef4c1be9))
+
 ## [2.326.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.326.0...v2.326.1) (2026-10-03)
 
 
