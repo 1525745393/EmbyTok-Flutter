@@ -1,3 +1,10 @@
+## [2.325.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.0...v2.325.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流唱片按钮用刮削后的 TMDB 海报 ([474ab89](https://github.com/1525745393/EmbyTok-Flutter/commit/474ab890820069c1e3670a6557355060c68601c8))
+
 # [2.325.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.324.1...v2.325.0) (2026-10-03)
 
 
