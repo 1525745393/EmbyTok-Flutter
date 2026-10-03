@@ -12,6 +12,8 @@ import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
 import '../../providers/disliked_items_provider.dart';
+import '../../providers/local_video_provider.dart';
+import '../../views/local/local_detail_view.dart';
 import '../../providers/player_engine_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
@@ -214,6 +216,23 @@ Future<bool> showDeleteConfirmDialog(
 
 // ===== 视频信息底部面板 =====
 void showVideoInfoSheet(BuildContext context, MediaItem item) {
+  // 本地文件：直接打开本地详情页，不走 Emby 海报/演员接口
+  if (item.isLocalFile) {
+    final container = ProviderScope.containerOf(context);
+    final localState = container.read(localVideoProvider);
+    final pathHash = item.id.replaceFirst('local_', '');
+    final localItem = localState.items.where((e) => e.pathHash == pathHash).isNotEmpty
+        ? localState.items.firstWhere((e) => e.pathHash == pathHash)
+        : null;
+    if (localItem != null) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => LocalDetailPage(item: localItem),
+        ),
+      );
+    }
+    return;
+  }
   final type = item.type;
   final year = item.displayYear;
   final duration = item.formattedDuration;
