@@ -48,9 +48,18 @@ class _RightActionButtons extends ConsumerWidget {
     double rs(double base, [double maxScale = 1.7]) =>
         responsiveSize(context, base, maxScale);
     // 用 select 仅监听当前 item 的收藏状态，避免 favoritesProvider 任意变化触发重建
-    final favorited = ref.watch(
-      favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
-    );
+    // 本地文件源：走 localVideoProvider.favoriteHashes（pathHash）
+    final bool favorited;
+    if (item.isLocalFile) {
+      final pathHash = item.id.replaceFirst('local_', '');
+      favorited = ref.watch(
+        localVideoProvider.select((s) => s.favoriteHashes.contains(pathHash)),
+      );
+    } else {
+      favorited = ref.watch(
+        favoritesProvider.select((s) => s.favoriteIds.contains(item.id)),
+      );
+    }
     // 本地评论数（select 精确监听当前 item，避免其他 item 评论变化触发重建）
     final commentCount = ref.watch(
       videoCommentsProvider.select((s) => s[item.id]?.length ?? 0),
@@ -126,9 +135,16 @@ class _RightActionButtons extends ConsumerWidget {
                             favorited ? Icons.favorite : Icons.favorite_border,
                         label: '点赞',
                         color: favorited ? scheme.primary : scheme.onSurface,
-                        onTap: () => ref
-                            .read(favoritesProvider.notifier)
-                            .toggleFavorite(item),
+                        onTap: () {
+                          if (item.isLocalFile) {
+                            final pathHash = item.id.replaceFirst('local_', '');
+                            ref.read(localVideoProvider.notifier).toggleFavorite(pathHash);
+                          } else {
+                            ref
+                                .read(favoritesProvider.notifier)
+                                .toggleFavorite(item);
+                          }
+                        },
                       ),
                       SizedBox(height: rs(16, 1.5)),
                       PressableActionButton(

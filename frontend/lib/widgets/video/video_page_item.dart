@@ -24,6 +24,7 @@ import 'playback_info_osd.dart';
 import 'chapter_picker.dart';
 import '../../providers/sleep_timer_provider.dart';
 import '../../providers/video_comments_provider.dart';
+import '../../providers/local_video_provider.dart';
 import '../../services/embytok_service.dart';
 import '../../services/external_player_service.dart';
 import '../../utils/logger.dart';
