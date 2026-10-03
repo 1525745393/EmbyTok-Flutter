@@ -1,3 +1,17 @@
+# [2.325.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.324.1...v2.325.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* ViewModeNotifier.set → setMode 修复 analyze 错误 ([af0a578](https://github.com/1525745393/EmbyTok-Flutter/commit/af0a578e201fd7e0e3cc1d777b9cfc592e8326de))
+* 本地流点信息条打开本地详情页（含海报/演员头像） ([103186f](https://github.com/1525745393/EmbyTok-Flutter/commit/103186f61bc5ac861fdbdc76ded237dfdbfe8e3e))
+* 本地流网格视图可切换，显示刮削后视频海报墙 ([f2bfb59](https://github.com/1525745393/EmbyTok-Flutter/commit/f2bfb59df1929174a0295b30cb176b9afdd66be2))
+
+
+### Features
+
+* 本地流底部信息条补全类型标签/评分/简介 ([7baf706](https://github.com/1525745393/EmbyTok-Flutter/commit/7baf706cf5386220d2672e9cf2efe23b67ca0cbe))
+
 ## [2.324.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.324.0...v2.324.1) (2026-10-03)
 
 
