@@ -1,3 +1,13 @@
+# [2.331.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.330.0...v2.331.0) (2026-10-03)
+
+
+### Features
+
+* 本地播放页剧集列表(设置面板-章节列表，列出所有集数可跳转，当前集高亮) ([89c9a4d](https://github.com/1525745393/EmbyTok-Flutter/commit/89c9a4d4c798fb483b9aa0fd1125c624e52dac36))
+* 本地播放页夜间模式(bedtime按钮-亮度0.2，退出恢复系统亮度) ([75103bd](https://github.com/1525745393/EmbyTok-Flutter/commit/75103bd68a878fe20f2730aed1c7f285c626a101))
+* 本地播放页底部栏对齐在线-上一集/大播放/下一集/剧集列表按钮 ([b0c3e56](https://github.com/1525745393/EmbyTok-Flutter/commit/b0c3e56936452b8d0aa57614c8c81617d5ee267d))
+* 本地播放页顶部栏加设置齿轮按钮(打开统一设置面板) ([304d2cd](https://github.com/1525745393/EmbyTok-Flutter/commit/304d2cdb8d366dfbf361702d391f9e3b437254b8))
+
 # [2.330.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.329.0...v2.330.0) (2026-10-03)
 
 
