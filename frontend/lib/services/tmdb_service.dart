@@ -271,7 +271,7 @@ class TmdbService {
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/movie/$movieId?api_key=$_apiKey&append_to_response=credits&language=zh-CN'))
+              '$_base/movie/$movieId?api_key=$_apiKey&append_to_response=credits,external_ids&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;
@@ -286,7 +286,7 @@ class TmdbService {
     try {
       final r = await http
           .get(Uri.parse(
-              '$_base/tv/$tvId?api_key=$_apiKey&append_to_response=credits&language=zh-CN'))
+              '$_base/tv/$tvId?api_key=$_apiKey&append_to_response=credits,external_ids&language=zh-CN'))
           .timeout(const Duration(seconds: 6));
       if (r.statusCode != 200) return {};
       return jsonDecode(r.body) as Map<String, dynamic>;

@@ -431,6 +431,17 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                           label: const Text('TheMovieDb'),
                           onPressed: () => _openTmdbUrl(scraped.tmdbId, scraped.type),
                         ),
+                        if (scraped.imdbId != null && scraped.imdbId!.isNotEmpty)
+                          ActionChip(
+                            avatar: const Icon(Icons.movie, size: 16),
+                            label: const Text('IMDb'),
+                            onPressed: () async {
+                              await launchUrl(
+                                Uri.parse('https://www.imdb.com/title/${scraped.imdbId}'),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ],

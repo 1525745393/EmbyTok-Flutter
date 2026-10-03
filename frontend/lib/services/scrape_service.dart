@@ -35,6 +35,7 @@ class ScrapedMedia {
   final List<Map<String, String>> cast; // {name, role, character, profilePath, id}
   final List<String> directors; // 导演
   final List<String> studios; // 出品公司
+  final String? imdbId; // IMDb ID
   final int? season;
   final int? episode;
   final int? tvId; // 剧集聚合用
@@ -53,6 +54,7 @@ class ScrapedMedia {
     this.cast = const [],
     this.directors = const [],
     this.studios = const [],
+    this.imdbId,
     this.season,
     this.episode,
     this.tvId,
@@ -72,6 +74,7 @@ class ScrapedMedia {
         'cast': cast,
         'directors': directors,
         'studios': studios,
+        'imdbId': imdbId,
         'season': season,
         'episode': episode,
         'tvId': tvId,
@@ -94,6 +97,7 @@ class ScrapedMedia {
             const [],
         directors: (j['directors'] as List?)?.cast<String>() ?? const [],
         studios: (j['studios'] as List?)?.cast<String>() ?? const [],
+        imdbId: j['imdbId'] as String?,
         season: j['season'] as int?,
         episode: j['episode'] as int?,
         tvId: j['tvId'] as int?,
@@ -374,6 +378,7 @@ class ScrapeService {
               .take(5)
               .toList() ??
           const [],
+      imdbId: d['external_ids']?['imdb_id'] as String?,
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
@@ -426,6 +431,7 @@ class ScrapeService {
               .take(5)
               .toList() ??
           const [],
+      imdbId: d['external_ids']?['imdb_id'] as String?,
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
