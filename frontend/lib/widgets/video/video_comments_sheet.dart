@@ -93,11 +93,20 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
     if (widget.title == null || widget.title!.isEmpty) return [];
     try {
       if (widget.isTv) {
-        final results = await TmdbService.searchTv(widget.title!, year: widget.year);
+        var results = await TmdbService.searchTv(widget.title!, year: widget.year);
+        // 年份不匹配时回退无年份搜索
+        if (results.isEmpty && widget.year != null) {
+          results = await TmdbService.searchTv(widget.title!);
+        }
         if (results.isEmpty) return [];
         return TmdbService.getTvReviews(results.first['id'] as int);
       } else {
-        final results = await TmdbService.searchMovies(widget.title!);
+        var results = await TmdbService.searchMovies(widget.title!);
+        // 优先选年份匹配的结果
+        if (widget.year != null && results.length > 1) {
+          final matched = results.where((r) => r['release_date']?.toString().startsWith('${widget.year}') == true).toList();
+          if (matched.isNotEmpty) results = matched;
+        }
         if (results.isEmpty) return [];
         return TmdbService.getMovieReviews(results.first['id'] as int);
       }
