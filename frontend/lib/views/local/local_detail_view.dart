@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/local_video_provider.dart';
 import '../../models/local_video_item.dart';
 import '../../services/local_video_service.dart';
@@ -357,6 +358,22 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       ),
                     ),
                   ],
+                  // 外部链接（TMDB）
+                  if (scraped.tmdbId > 0) ...[
+                    const SizedBox(height: 20),
+                    const Text('外部链接', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.link, size: 16),
+                          label: const Text('TheMovieDb'),
+                          onPressed: () => _openTmdbUrl(scraped.tmdbId, scraped.type),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -364,6 +381,14 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
         ],
       ),
     );
+  }
+
+  /// 打开 TMDB 网页
+  void _openTmdbUrl(int tmdbId, String type) async {
+    final url = type == 'tv'
+        ? 'https://www.themoviedb.org/tv/$tmdbId'
+        : 'https://www.themoviedb.org/movie/$tmdbId';
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 
   /// 全屏查看图片（点击海报/缩略图放大）
