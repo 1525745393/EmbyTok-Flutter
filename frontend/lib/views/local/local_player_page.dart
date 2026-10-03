@@ -360,44 +360,64 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               child: Consumer(
                 builder: (_, ref, __) {
                   final scrapedMap = ref.watch(localVideoProvider).scrapedMap;
+                  // 按季分组（从刮削数据读取 season，无季节归为"第1季"）
+                  final Map<int, List<int>> seasonGroups = {};
+                  for (var i = 0; i < widget.items.length; i++) {
+                    final ep = widget.items[i];
+                    final s = scrapedMap[ep.pathHash]?.season ?? 1;
+                    seasonGroups.putIfAbsent(s, () => []).add(i);
+                  }
+                  final seasons = seasonGroups.keys.toList()..sort();
                   return ListView.builder(
                     shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    itemBuilder: (_, i) {
-                      final ep = widget.items[i];
-                      final isCurrent = i == _index;
-                      final scraped = scrapedMap[ep.pathHash];
-                      final displayTitle = scraped?.title ?? ep.name;
-                      return ListTile(
-                        leading: Text(
-                          '${i + 1}',
-                          style: TextStyle(
-                            color: isCurrent ? Colors.greenAccent : Colors.white54,
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        title: Text(
-                          displayTitle,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          '${_formatDur(ep.duration)}${scraped?.overview != null && scraped!.overview!.isNotEmpty ? '  ·  ${scraped.overview}' : ''}',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: isCurrent
-                            ? const Icon(Icons.play_arrow, color: Colors.greenAccent)
-                            : null,
-                        onTap: () {
-                          Navigator.pop(context);
-                          if (i != _index) _jumpTo(i);
-                        },
+                    itemCount: seasons.length,
+                    itemBuilder: (_, si) {
+                      final season = seasons[si];
+                      final epIndices = seasonGroups[season]!;
+                      return ExpansionTile(
+                        initiallyExpanded: true,
+                        title: Text('第 $season 季（${epIndices.length} 集）',
+                            style: const TextStyle(color: Colors.white, fontSize: 14)),
+                        iconColor: Colors.white,
+                        collapsedIconColor: Colors.white54,
+                        children: epIndices.map((i) {
+                          final ep = widget.items[i];
+                          final isCurrent = i == _index;
+                          final scraped = scrapedMap[ep.pathHash];
+                          final epNum = scraped?.episode ?? (i + 1);
+                          final displayTitle = scraped?.title ?? ep.name;
+                          return ListTile(
+                            leading: Text(
+                              '$epNum',
+                              style: TextStyle(
+                                color: isCurrent ? Colors.greenAccent : Colors.white54,
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            title: Text(
+                              displayTitle,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Text(
+                              '${_formatDur(ep.duration)}${scraped?.overview != null && scraped!.overview!.isNotEmpty ? '  ·  ${scraped.overview}' : ''}',
+                              style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: isCurrent
+                                ? const Icon(Icons.play_arrow, color: Colors.greenAccent)
+                                : null,
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (i != _index) _jumpTo(i);
+                            },
+                          );
+                        }).toList(),
                       );
                     },
                   );
