@@ -1,3 +1,10 @@
+## [2.324.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.324.0...v2.324.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流只显示已刮削视频，使用刮削元数据 ([6e3285f](https://github.com/1525745393/EmbyTok-Flutter/commit/6e3285f114223619ddf2785c99a9768ea06d2e4b))
+
 # [2.324.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.323.1...v2.324.0) (2026-10-03)
 
 
