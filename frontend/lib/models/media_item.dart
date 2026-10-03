@@ -82,7 +82,19 @@ class MediaItem {
     this.playbackUrl,
     this.chapters,
     this.rawJson,
+    this.isLocalFile = false,
+    this.localPath,
+    this.localNetworkUrl,
   });
+
+  /// 本地媒体库视频：不是 Emby 服务器 item
+  final bool isLocalFile;
+
+  /// 本地文件绝对路径（isLocalFile=true 时使用）
+  final String? localPath;
+
+  /// 网络源（WebDAV/SMB）播放地址（本地源但走 HTTP 时使用）
+  final String? localNetworkUrl;
 
   // 从 JSON 解析（同时支持 Emby 原生 PascalCase 与简化 snake_case）
   factory MediaItem.fromJson(Map<String, dynamic> json) {

@@ -72,6 +72,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     } catch (_) {}
   }
 
+  /// 切换本地收藏（右侧操作栏）
+  void _toggleFavorite(BuildContext context) {
+    ref.read(localVideoProvider.notifier).toggleFavorite(item.pathHash);
+    final fav = ref.read(localVideoProvider).favoriteHashes.contains(item.pathHash);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(fav ? '已收藏' : '已取消收藏'),
+        duration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
   /// 分享本地视频文件（P1）
   Future<void> _share(BuildContext context) async {
     try {
@@ -215,18 +227,45 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       ),
     );
 
-    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面 + 底部信息条
-    // 对齐主视频流 VideoPageItem 的底部信息叠加
+    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面 + 底部信息条 + 右侧操作栏
+    // 对齐主视频流 VideoPageItem 的叠加风格
     if (widget.embedded) {
       return Container(
         color: Colors.black,
         child: Stack(
           children: [
             playerBody,
-            // 底部信息条：标题 + 年份 + 简单操作
+            // 右侧操作栏：收藏 / 分享 / 信息（对齐 Emby 右侧竖排）
+            Positioned(
+              right: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 120,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.favorite_border,
+                        color: Colors.white, size: 26),
+                    onPressed: () => _toggleFavorite(context),
+                  ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    icon: const Icon(Icons.share_outlined,
+                        color: Colors.white, size: 26),
+                    onPressed: () => _share(context),
+                  ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    icon: const Icon(Icons.info_outline,
+                        color: Colors.white, size: 26),
+                    onPressed: () => _showInfo(context),
+                  ),
+                ],
+              ),
+            ),
+            // 底部信息条：标题 + 时长
             Positioned(
               left: 12,
-              right: 12,
+              right: 80,
               bottom: MediaQuery.of(context).padding.bottom + 12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,20 +282,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (item.duration > Duration.zero)
-                        Text(item.durationLabel,
-                            style: const TextStyle(
-                                color: Colors.white70, fontSize: 12)),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.share_outlined,
-                            color: Colors.white, size: 20),
-                        onPressed: () => _share(context),
-                      ),
-                    ],
-                  ),
+                  Text(item.durationLabel,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ),
