@@ -434,6 +434,14 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       ],
                     ),
                   ],
+                  // 加入时间
+                  if (scraped.scrapedAt > 0) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      '加入时间: ${DateTime.fromMillisecondsSinceEpoch(scraped.scrapedAt).toString().substring(0, 16)}',
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
                 ],
               ),
             ),
