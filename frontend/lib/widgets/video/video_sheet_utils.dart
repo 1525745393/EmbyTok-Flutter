@@ -13,6 +13,7 @@ import 'package:video_player/video_player.dart';
 import '../../models/models.dart';
 import '../../providers/disliked_items_provider.dart';
 import '../../providers/local_video_provider.dart';
+import '../../views/local/local_player_page.dart';
 import '../../views/local/local_detail_view.dart';
 import '../../providers/player_engine_provider.dart';
 import '../../providers/providers.dart';
@@ -227,7 +228,19 @@ void showVideoInfoSheet(BuildContext context, MediaItem item) {
     if (localItem != null) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => LocalDetailPage(item: localItem),
+          builder: (_) => LocalDetailPage(
+            item: localItem,
+            onPlay: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LocalPlayerPage(
+                    items: [localItem],
+                    initialIndex: 0,
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     }
