@@ -50,6 +50,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   double _playbackSpeed = 1.0;
   bool _locked = false; // 屏幕锁定（隐藏控制栏，禁用手势）
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
+  int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
 
   @override
   void initState() {
@@ -118,10 +119,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
-  /// 字幕选择
+  /// 字幕选择（切换后重建 VideoPlayerWidget 传入新的字幕列表）
   void _showSubtitlePicker(BuildContext context) {
     final subs = item.subtitlePaths ?? const [];
-    // TODO: VideoPlayerWidget 需要暴露 setSubtitlePath 接口，当前仅列出
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -129,17 +129,31 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ListTile(title: Text('字幕轨道')),
+            ListTile(
+              title: const Text('关闭字幕'),
+              trailing: _selectedSubtitleIdx == 0
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                setState(() => _selectedSubtitleIdx = 0);
+                Navigator.pop(context);
+              },
+            ),
+            ...subs.asMap().entries.map((e) {
+              final idx = e.key + 1;
+              return ListTile(
+                title: Text(e.value.split('/').last),
+                trailing: _selectedSubtitleIdx == idx
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedSubtitleIdx = idx);
+                  Navigator.pop(context);
+                },
+              );
+            }),
             if (subs.isEmpty)
               const ListTile(title: Text('无外挂字幕')),
-            ...subs.map((p) => ListTile(
-                  title: Text(p.split('/').last),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('已选择：${p.split('/').last}')),
-                    );
-                    Navigator.pop(context);
-                  },
-                )),
           ],
         ),
       ),
@@ -372,7 +386,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           autoPlay: true,
           loop: false,
           isCurrentPage: true,
-          externalSubtitlePaths: item.subtitlePaths,
+          externalSubtitlePaths: _selectedSubtitleIdx == 0
+              ? const []
+              : (item.subtitlePaths ?? const []),
           onPlaybackEnded: _onPlaybackEnded,
           onControllerReady: (c) => _activeController = c,
         ),
