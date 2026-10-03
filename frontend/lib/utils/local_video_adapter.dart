@@ -15,6 +15,8 @@ class LocalVideoAdapter {
       productionYear: scraped?.year ?? it.modifiedAt.year,
       durationSeconds: it.duration.inSeconds.toDouble(),
       overview: scraped?.overview ?? '',
+      communityRating: scraped?.rating,
+      genres: scraped?.genres,
       imageTags: const {},
       backdropImageTags: const [],
       isLocalFile: true,
