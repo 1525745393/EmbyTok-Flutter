@@ -775,14 +775,20 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                               )
                             : const SizedBox(height: 2),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // 上一集（对齐在线 fullscreen_builders）
+                            IconButton(
+                              icon: const Icon(Icons.skip_previous, color: Colors.white),
+                              onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
+                            ),
                             IconButton(
                               icon: Icon(
                                 _activeController?.value.isPlaying ?? false
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
+                                    ? Icons.pause_circle_filled
+                                    : Icons.play_circle_filled,
                                 color: Colors.white,
-                                size: 28,
+                                size: 44,
                               ),
                               onPressed: () {
                                 final c = _activeController;
@@ -793,7 +799,20 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                                 _scheduleHide();
                               },
                             ),
-                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.skip_next, color: Colors.white),
+                              onPressed: _index < widget.items.length - 1
+                                  ? () => _jumpTo(_index + 1)
+                                  : null,
+                            ),
+                            const Spacer(),
+                            // 剧集列表按钮（多集时显示，对齐在线）
+                            if (widget.items.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.playlist_play,
+                                    color: Colors.white, size: 22),
+                                onPressed: () => _showEpisodeList(context),
+                              ),
                             GestureDetector(
                               onTap: () => _showSpeedPicker(context),
                               child: Container(
@@ -810,7 +829,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                                 ),
                               ),
                             ),
-                            const Spacer(),
+                            const SizedBox(width: 8),
                             // 屏幕锁定
                             IconButton(
                               icon: Icon(
