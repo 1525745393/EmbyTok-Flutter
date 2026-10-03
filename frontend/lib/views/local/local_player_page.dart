@@ -14,7 +14,7 @@ import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
 import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
-import '../../providers/app_preferences_providers_extra.dart';
+import '../../providers/app_preferences_providers.dart';
 import '../../widgets/video/gesture_overlay.dart';
 import '../../widgets/video/video_player_widget.dart';
 import '../../widgets/video/video_progress_bars.dart';
@@ -209,7 +209,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         ? const Icon(Icons.check, color: Colors.green)
                         : null,
                     onTap: () {
-                      final c = _playerKey.currentState?.controller;
+                      final c = _activeController;
                       if (c != null) c.setPlaybackSpeed(s);
                       setState(() => _playbackSpeed = s);
                       Navigator.pop(context);
@@ -359,7 +359,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
     final playerBody = Center(
       child: GestureOverlay(
-        controller: _playerKey.currentState?.controller,
+        controller: _activeController,
         item: mediaItem,
         enableGestures: true,
         enableVerticalVolumeDrag: true,
@@ -546,9 +546,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _playerKey.currentState?.controller != null
+                        _activeController != null
                             ? SeekableProgressBar(
-                                controller: _playerKey.currentState!.controller!,
+                                controller: _activeController!,
                                 formatDuration: _formatDur,
                               )
                             : const SizedBox(height: 2),
@@ -563,7 +563,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                                 size: 28,
                               ),
                               onPressed: () {
-                                final c = _playerKey.currentState?.controller;
+                                final c = _activeController;
                                 if (c == null) return;
                                 setState(() {
                                   c.value.isPlaying ? c.pause() : c.play();
