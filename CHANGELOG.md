@@ -1,3 +1,10 @@
+## [2.331.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.1...v2.331.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* 独立Scaffold播放页加底部控制栏(进度条/上一集/播放/下一集/剧集列表/倍速/锁定) ([80175c8](https://github.com/1525745393/EmbyTok-Flutter/commit/80175c81c2fc841a98abc5564032f50e420419f9))
+
 ## [2.331.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.0...v2.331.1) (2026-10-03)
 
 
