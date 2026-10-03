@@ -232,6 +232,40 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     } catch (_) {}
   }
 
+  /// 睡眠定时器（定时暂停/退出）
+  void _showSleepTimer(BuildContext context) {
+    final options = [15, 30, 45, 60, 90];
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('睡眠定时器')),
+            ...options.map((m) => ListTile(
+                  title: Text('$m 分钟'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Future.delayed(Duration(minutes: m), () {
+                      if (mounted) {
+                        _activeController?.pause();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('已暂停播放（${m}分钟定时）')),
+                        );
+                      }
+                    });
+                  },
+                )),
+            ListTile(
+              title: const Text('关闭定时器'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 设置面板（统一底部弹层：字幕/音轨/倍速/画面比例）
   void _showSettingsPanel(BuildContext context) {
     showModalBottomSheet(
@@ -913,6 +947,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
             icon: const Icon(Icons.share_outlined, color: Colors.white),
             tooltip: '分享',
             onPressed: () => _share(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white, size: 22),
+            tooltip: '设置',
+            onPressed: () => _showSettingsPanel(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.bedtime, color: Colors.white, size: 22),
+            tooltip: '睡眠定时',
+            onPressed: () => _showSleepTimer(context),
           ),
           IconButton(
             icon: const Icon(Icons.info_outline, color: Colors.white),
