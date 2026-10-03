@@ -1,19 +1,20 @@
 import '../models/local_video_item.dart';
 import '../models/media_item.dart';
+import '../services/scrape_service.dart';
 
 /// 本地视频 → Emby MediaItem 适配器
 /// 让本地视频能直接注入主 feed 的 videoListProvider，
 /// 复用 VideoPageItem 的全部叠加（底部信息条、右侧操作栏、进度记忆）。
 class LocalVideoAdapter {
-  static MediaItem toMediaItem(LocalVideoItem it) {
+  static MediaItem toMediaItem(LocalVideoItem it, {ScrapedMedia? scraped}) {
     return MediaItem(
       // id 加 local_ 前缀，避免与 Emby item id 冲突
       id: 'local_${it.id}',
-      title: it.name,
+      title: scraped?.title ?? it.name,
       type: 'Movie',
-      productionYear: _extractYear(it),
+      productionYear: scraped?.year ?? it.modifiedAt.year,
       durationSeconds: it.duration.inSeconds.toDouble(),
-      overview: '',
+      overview: scraped?.overview ?? '',
       imageTags: const {},
       backdropImageTags: const [],
       isLocalFile: true,
@@ -22,11 +23,10 @@ class LocalVideoAdapter {
     );
   }
 
-  static List<MediaItem> toMediaItems(List<LocalVideoItem> items) =>
-      items.map(toMediaItem).toList();
-
-  static int? _extractYear(LocalVideoItem it) {
-    // 从 modifiedAt 兜底年份
-    return it.modifiedAt.year;
+  static List<MediaItem> toMediaItems(List<LocalVideoItem> items,
+      {Map<String, ScrapedMedia>? scrapedMap}) {
+    return items
+        .map((it) => toMediaItem(it, scraped: scrapedMap?[it.pathHash]))
+        .toList();
   }
 }

@@ -491,6 +491,8 @@ class _FeedViewState extends ConsumerState<FeedView>
   Widget _buildLocalPageView(String localSource) {
     final localState = ref.watch(localVideoProvider);
     var items = List.of(localState.items);
+    // 只显示已刮削的视频（有海报/元数据），未刮削的进本地媒体库页面处理
+    items = items.where((it) => localState.scrapedMap.containsKey(it.pathHash)).toList();
     if (localSource.isNotEmpty) {
       items = items.where((it) => it.sourceId == localSource).toList();
     }
@@ -500,7 +502,7 @@ class _FeedViewState extends ConsumerState<FeedView>
             style: TextStyle(color: Colors.white54)),
       );
     }
-    final mediaItems = LocalVideoAdapter.toMediaItems(items);
+    final mediaItems = LocalVideoAdapter.toMediaItems(items, scrapedMap: localState.scrapedMap);
     return PageView.builder(
       scrollDirection: Axis.vertical,
       itemCount: mediaItems.length,
