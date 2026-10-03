@@ -1,3 +1,10 @@
+# [2.328.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.327.0...v2.328.0) (2026-10-03)
+
+
+### Features
+
+* 本地播放页字幕真正切换(关闭/选择轨道，选中后传入VideoPlayerWidget) ([357e076](https://github.com/1525745393/EmbyTok-Flutter/commit/357e076c5d213cec797b47fe372cdeab5616904f))
+
 # [2.327.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.326.1...v2.327.0) (2026-10-03)
 
 
