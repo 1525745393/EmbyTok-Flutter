@@ -24,6 +24,7 @@ import 'package:go_router/go_router.dart';
 import '../coordinators/playback_coordinator.dart';
 import '../providers/providers.dart';
 import '../providers/local_video_provider.dart';
+import '../utils/local_video_adapter.dart';
 import 'local/local_feed_page.dart';
 import '../utils/app_preferences.dart' show ViewMode, FeedType;
 import '../utils/constants.dart';
@@ -376,13 +377,9 @@ class _FeedViewState extends ConsumerState<FeedView>
             IndexedStack(
               index: viewMode == ViewMode.feed ? 0 : 1,
               children: [
-                // 本地流：嵌入本地 PageView，但仍在主 feed 栈内，顶部/底部 chrome 自然叠加
-                isLocalFeed
-                    ? LocalFeedPage(
-                        sourceId: localSource.isEmpty ? null : localSource,
-                        embedded: true,
-                      )
-                    : _buildVideoPageView(videoState),
+                // 本地流：本地视频包装成 MediaItem 后走主 feed 的 PageView + VideoPageItem
+                // 这样右侧操作栏/底部信息条/双击红心/进度条/唱片封面全部与 Emby 流一致
+                isLocalFeed ? _buildLocalPageView(localSource) : _buildVideoPageView(videoState),
                 _buildGridPageView(videoState),
               ],
             ),
@@ -489,6 +486,33 @@ class _FeedViewState extends ConsumerState<FeedView>
   // 顶部栏统一按钮
 
   // 构建网格视图
+
+  // 构建本地视频流 PageView：本地视频包装成 MediaItem 后走 VideoPageItem
+  Widget _buildLocalPageView(String localSource) {
+    final localState = ref.watch(localVideoProvider);
+    var items = List.of(localState.items);
+    if (localSource.isNotEmpty) {
+      items = items.where((it) => it.sourceId == localSource).toList();
+    }
+    if (items.isEmpty) {
+      return const Center(
+        child: Text('暂无本地视频，请先在设置里添加文件源并刮削',
+            style: TextStyle(color: Colors.white54)),
+      );
+    }
+    final mediaItems = LocalVideoAdapter.toMediaItems(items.cast());
+    return PageView.builder(
+      scrollDirection: Axis.vertical,
+      itemCount: mediaItems.length,
+      onPageChanged: (i) => setState(() => _currentIndex = i),
+      itemBuilder: (_, i) => VideoPageItem(
+        key: ValueKey(mediaItems[i].id),
+        item: mediaItems[i],
+        isCurrentPage: i == _currentIndex,
+        source: 'local',
+      ),
+    );
+  }
 
   // 构建视频流 PageView
 }

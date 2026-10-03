@@ -114,6 +114,17 @@ class VideoPlayerWidgetState extends ConsumerState<VideoPlayerWidget>
   // 获取播放 URL：优先使用 item.playbackUrl，否则尝试动态构造
   // 追加 AudioStreamIndex 参数支持多音轨切换
   String? get _playbackUrl {
+    // 本地文件源：优先用 localNetworkUrl / localPath，不走 Emby
+    if (widget.item.isLocalFile) {
+      if (widget.item.localNetworkUrl != null &&
+          widget.item.localNetworkUrl!.isNotEmpty) {
+        return widget.item.localNetworkUrl;
+      }
+      if (widget.item.localPath != null && widget.item.localPath!.isNotEmpty) {
+        return 'file://${widget.item.localPath}';
+      }
+      return null;
+    }
     // 优先使用预置的 playbackUrl
     var url = widget.item.playbackUrl;
     if (url == null || url.isEmpty) {

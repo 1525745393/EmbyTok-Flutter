@@ -87,6 +87,7 @@ extension _VideoPageItemBuild on _VideoPageItemState {
                 key: _videoPlayerKey,
                 item: widget.item,
                 isCurrentPage: widget.isCurrentPage,
+                isLocal: widget.item.isLocalFile,
                 embyServerUrl: embyServerUrl,
                 token: token,
                 preloadedController: widget.preloadedSession?.controller,
