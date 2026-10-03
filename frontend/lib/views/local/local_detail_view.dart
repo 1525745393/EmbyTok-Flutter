@@ -367,7 +367,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     ),
                   ],
                   // 相关推荐
-                  if (scraped.tmdbId > 0) ...[
+                  if (scraped != null && scraped.tmdbId > 0) ...[
                     const SizedBox(height: 20),
                     const Text('相关推荐', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
@@ -418,8 +418,8 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       ),
                     ),
                   ],
-                  // 外部链接（TMDB）
-                  if (scraped.tmdbId > 0) ...[
+                  // 外部链接（TMDB + IMDb）
+                  if (scraped != null && scraped.tmdbId > 0) ...[
                     const SizedBox(height: 20),
                     const Text('外部链接', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
@@ -446,7 +446,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     ),
                   ],
                   // 加入时间
-                  if (scraped.scrapedAt > 0) ...[
+                  if (scraped != null && scraped.scrapedAt > 0) ...[
                     const SizedBox(height: 16),
                     Text(
                       '加入时间: ${DateTime.fromMillisecondsSinceEpoch(scraped.scrapedAt).toString().substring(0, 16)}',
@@ -454,7 +454,7 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                     ),
                   ],
                   // TMDB 评论
-                  if (scraped.tmdbId > 0) ...[
+                  if (scraped != null && scraped.tmdbId > 0) ...[
                     const SizedBox(height: 20),
                     const Text('评论', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
@@ -506,9 +506,9 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                   const SizedBox(height: 16),
                   const Text('媒体信息', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  if (scraped.directors.isNotEmpty)
+                  if (scraped != null && scraped.directors.isNotEmpty)
                     _infoRow('导演', scraped.directors.join(' / ')),
-                  if (scraped.studios.isNotEmpty)
+                  if (scraped != null && scraped.studios.isNotEmpty)
                     _infoRow('出品', scraped.studios.join(' / ')),
                   _infoRow('分辨率', widget.item.resolutionLabel),
                   _infoRow('时长', widget.item.durationLabel),

@@ -279,9 +279,9 @@ extension _VideoPageItemBuild on _VideoPageItemState {
             onCommentTap: () => showVideoCommentsSheet(
               context,
               widget.item.id,
-              title: widget.item.name,
+              title: widget.item.title,
               year: widget.item.year,
-              isTv: widget.item.type == 'Series' || widget.item.type == 'TvEpisode',
+              isTv: widget.item.type == 'Series' || widget.item.type == 'Episode',
             ),
             onSpeedTap: () =>
                 sheet_utils.showSpeedControlPanel(context, _videoController),
