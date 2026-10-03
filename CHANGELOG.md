@@ -1,3 +1,10 @@
+## [2.331.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.0...v2.331.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地详情页立即播放按钮接通LocalPlayerPage(原来空闭包只关页面不播放) ([f794d51](https://github.com/1525745393/EmbyTok-Flutter/commit/f794d51dafaf57c4628463fac952dfd4e3916748))
+
 # [2.331.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.330.0...v2.331.0) (2026-10-03)
 
 
