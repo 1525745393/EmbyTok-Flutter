@@ -1,3 +1,10 @@
+# [2.321.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.2...v2.321.0) (2026-10-03)
+
+
+### Features
+
+* 本地流融入主视频流标签，不弹独立播放页 ([e0eb99a](https://github.com/1525745393/EmbyTok-Flutter/commit/e0eb99a0ff784b058bbaab5d3c8b7cb340d0444e))
+
 ## [2.320.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.1...v2.320.2) (2026-10-03)
 
 
