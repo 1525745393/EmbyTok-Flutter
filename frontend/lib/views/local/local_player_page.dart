@@ -357,39 +357,48 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ),
             ),
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: widget.items.length,
-                itemBuilder: (_, i) {
-                  final ep = widget.items[i];
-                  final isCurrent = i == _index;
-                  return ListTile(
-                    leading: Text(
-                      '${i + 1}',
-                      style: TextStyle(
-                        color: isCurrent ? Colors.greenAccent : Colors.white54,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                    title: Text(
-                      ep.name,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      _formatDur(ep.duration),
-                      style: const TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                    trailing: isCurrent
-                        ? const Icon(Icons.play_arrow, color: Colors.greenAccent)
-                        : null,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (i != _index) _jumpTo(i);
+              child: Consumer(
+                builder: (_, ref, __) {
+                  final scrapedMap = ref.watch(localVideoProvider).scrapedMap;
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    itemBuilder: (_, i) {
+                      final ep = widget.items[i];
+                      final isCurrent = i == _index;
+                      final scraped = scrapedMap[ep.pathHash];
+                      final displayTitle = scraped?.title ?? ep.name;
+                      return ListTile(
+                        leading: Text(
+                          '${i + 1}',
+                          style: TextStyle(
+                            color: isCurrent ? Colors.greenAccent : Colors.white54,
+                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        title: Text(
+                          displayTitle,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${_formatDur(ep.duration)}${scraped?.overview != null && scraped!.overview!.isNotEmpty ? '  ·  ${scraped.overview}' : ''}',
+                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: isCurrent
+                            ? const Icon(Icons.play_arrow, color: Colors.greenAccent)
+                            : null,
+                        onTap: () {
+                          Navigator.pop(context);
+                          if (i != _index) _jumpTo(i);
+                        },
+                      );
                     },
                   );
                 },
