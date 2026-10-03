@@ -187,7 +187,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   /// 画中画
   Future<void> _enterPip() async {
-    final ok = await PiPUtil.enterPip();
+    final ok = await PipUtil.enterPip();
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('画中画不可用')),
