@@ -618,6 +618,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.settings, color: Colors.white, size: 22),
+                          onPressed: () => _showSettingsPanel(context),
+                        ),
                       ],
                     ),
                   ),
