@@ -1,3 +1,28 @@
+# [2.335.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.334.0...v2.335.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* MediaItem用title非name;详情页scraped空安全 ([aeff1fb](https://github.com/1525745393/EmbyTok-Flutter/commit/aeff1fbe81ef1eca489c2d1eb9b44dc129602c11))
+* 评论FutureBuilder缓存future避免重复请求;单集标题单独存不覆盖剧名 ([c2e1118](https://github.com/1525745393/EmbyTok-Flutter/commit/c2e1118981def6e9f54e78304f10a778baeb9daa))
+
+
+### Features
+
+* ScrapedMedia加导演/出品公司字段并在详情页显示 ([20aea58](https://github.com/1525745393/EmbyTok-Flutter/commit/20aea5844e6f1cc04682592c6546b8ad66bad9d7))
+* 刮削拉取external_ids(IMDb)并在详情页加IMDb链接 ([685eefe](https://github.com/1525745393/EmbyTok-Flutter/commit/685eefe6d19d6051f38a6107775a23a6d6395452))
+* 刮削拉取单集标题/简介/剧照,剧集列表显示still缩略图 ([113164b](https://github.com/1525745393/EmbyTok-Flutter/commit/113164b576cf59d8cc37b45d33c784af5aa074e5))
+* 刮削时提取导演和出品公司(电影crew.director+production_companies) ([ceac10c](https://github.com/1525745393/EmbyTok-Flutter/commit/ceac10c774778822df5921b69129ab2fbc9fe302))
+* 剧集列表按季分组折叠显示 ([fc55457](https://github.com/1525745393/EmbyTok-Flutter/commit/fc55457129c2400cc6c4fab9a821f18ccf2ffb9c))
+* 在线Emby视频评论也按标题搜索TMDB拉取评论 ([e83ae9e](https://github.com/1525745393/EmbyTok-Flutter/commit/e83ae9eec74ec1d5b389337d88bcec8cb2b00453))
+* 本地详情页加TMDB外部链接按钮 ([63cfb21](https://github.com/1525745393/EmbyTok-Flutter/commit/63cfb2168fb6ee1b95ed2f28854e59341f0bc7c5))
+* 本地详情页加相关推荐横滑海报(电影/电视剧TMDB推荐) ([226341f](https://github.com/1525745393/EmbyTok-Flutter/commit/226341f3c7a9b0556ac392f8c956be02c75212ca))
+* 演员头像下显示角色名 ([25d2119](https://github.com/1525745393/EmbyTok-Flutter/commit/25d21195b776c5bda2005bcf8ee2bef541f0b13b))
+* 视频流评论弹层对接TMDB评论(作者+评分+内容) ([f83abe5](https://github.com/1525745393/EmbyTok-Flutter/commit/f83abe53089cd72320686049e230e6996503d34c))
+* 详情页内联媒体信息(分辨率/时长/大小) ([a28a66d](https://github.com/1525745393/EmbyTok-Flutter/commit/a28a66d2423ab0d4a3cadce9cda0822f021d6930))
+* 详情页展示TMDB评论(作者+评分+内容,最多3条) ([6a569f5](https://github.com/1525745393/EmbyTok-Flutter/commit/6a569f512bc44997be3cdaf303954296d6622397))
+* 详情页显示刮削加入时间 ([7abf12b](https://github.com/1525745393/EmbyTok-Flutter/commit/7abf12b0aa55f9588e6c939e1682bcbbc753c575))
+
 # [2.334.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.333.0...v2.334.0) (2026-10-03)
 
 
