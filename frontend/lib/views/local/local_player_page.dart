@@ -1044,6 +1044,18 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                             icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white, size: 22),
                             onPressed: () => setState(() => _locked = !_locked),
                           ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.screen_rotation, color: Colors.white, size: 22),
+                            onPressed: () {
+                              final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+                              SystemChrome.setPreferredOrientations(
+                                isLandscape
+                                    ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
+                                    : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ],
