@@ -45,6 +45,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   bool _showControls = true; // 控制栏显隐（单击切换）
   Timer? _hideTimer;
   double _playbackSpeed = 1.0;
+  bool _locked = false; // 屏幕锁定（隐藏控制栏，禁用手势）
 
   @override
   void initState() {
@@ -104,9 +105,15 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     if (_showControls) _scheduleHide();
   }
 
+  String _formatDur(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
   /// 倍速选择
-  void _showSpeedPicker(BuildContext context) {
-    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  void _showSpeedPicker(BuildContext context) {    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -193,7 +200,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   @override
   void dispose() {
     _saveTimer?.cancel();
+    _hideTimer?.cancel();
     _saveResume(); // 最后再保存一次（此时子组件可能已销毁，但 timer 已积累最新位置）
+    // 退出时恢复竖屏
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     super.dispose();
   }
 
@@ -290,6 +303,23 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
         child: Stack(
           children: [
             playerBody,
+            // 缓冲指示
+            Center(
+              child: ValueListenableBuilder<VideoPlayerController?>(
+                valueListenable: ValueNotifier(_playerKey.currentState?.controller),
+                builder: (_, c, __) {
+                  if (c == null || !c.value.isInitialized) {
+                    return const SizedBox.shrink();
+                  }
+                  return ValueListenableBuilder(
+                    valueListenable: c,
+                    builder: (_, value, __) => value.isBuffering
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const SizedBox.shrink(),
+                  );
+                },
+              ),
+            ),
             // 顶部渐变 + 返回 + 标题
             Positioned(
               top: 0,
@@ -398,18 +428,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              item.durationLabel,
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 12),
-                            ),
-                          ],
-                        ),
                         _playerKey.currentState?.controller != null
-                            ? ThinProgressBar(
-                                controller: _playerKey.currentState!.controller!)
+                            ? SeekableProgressBar(
+                                controller: _playerKey.currentState!.controller!,
+                                formatDuration: _formatDur,
+                              )
                             : const SizedBox(height: 2),
                         Row(
                           children: [
@@ -443,6 +466,27 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                               ),
                             ),
                             const Spacer(),
+                            // 屏幕锁定
+                            IconButton(
+                              icon: Icon(
+                                _locked ? Icons.lock : Icons.lock_open,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _locked = !_locked;
+                                  if (_locked) {
+                                    _hideTimer?.cancel();
+                                    _showControls = false;
+                                  } else {
+                                    _showControls = true;
+                                    _scheduleHide();
+                                  }
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 4),
                             IconButton(
                               icon: const Icon(Icons.fullscreen,
                                   color: Colors.white, size: 24),
