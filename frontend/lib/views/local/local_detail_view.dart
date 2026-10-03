@@ -351,6 +351,14 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                                     style: const TextStyle(fontSize: 11),
                                   ),
                                 ),
+                                if (c['character'] != null && c['character']!.isNotEmpty)
+                                  Text(
+                                    c['character']!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 9, color: Colors.white54),
+                                  ),
                               ],
                             ),
                           );
