@@ -1,3 +1,10 @@
+## [2.323.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.323.0...v2.323.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流右侧点赞按钮接通本地收藏 ([8bbb786](https://github.com/1525745393/EmbyTok-Flutter/commit/8bbb786127610668f7214f58fa64ec5ead0965b0))
+
 # [2.323.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.322.0...v2.323.0) (2026-10-03)
 
 
