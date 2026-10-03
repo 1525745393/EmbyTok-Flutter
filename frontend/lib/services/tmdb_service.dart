@@ -315,4 +315,38 @@ class TmdbService {
   static String stillUrl(String path, {String size = 'w300'}) {
     return 'https://image.tmdb.org/t/p/$size$path';
   }
+
+  /// 影片评论（reviews）
+  static Future<List<Map<String, dynamic>>> getMovieReviews(int movieId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/movie/$movieId/reviews?api_key=$_apiKey&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      return (data['results'] as List? ?? [])
+          .map((m) => m as Map<String, dynamic>)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// 剧集评论
+  static Future<List<Map<String, dynamic>>> getTvReviews(int tvId) async {
+    if (!isConfigured) return [];
+    try {
+      final r = await http
+          .get(Uri.parse('$_base/tv/$tvId/reviews?api_key=$_apiKey&language=zh-CN'))
+          .timeout(const Duration(seconds: 6));
+      if (r.statusCode != 200) return [];
+      final data = jsonDecode(r.body);
+      return (data['results'] as List? ?? [])
+          .map((m) => m as Map<String, dynamic>)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

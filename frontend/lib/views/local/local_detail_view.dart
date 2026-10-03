@@ -453,6 +453,55 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                       style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
+                  // TMDB 评论
+                  if (scraped.tmdbId > 0) ...[
+                    const SizedBox(height: 20),
+                    const Text('评论', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: scraped.type == 'tv'
+                          ? TmdbService.getTvReviews(scraped.tvId ?? scraped.tmdbId)
+                          : TmdbService.getMovieReviews(scraped.tmdbId),
+                      builder: (_, snap) {
+                        if (!snap.hasData || snap.data!.isEmpty) {
+                          return const Text('暂无评论', style: TextStyle(color: Colors.white38, fontSize: 12));
+                        }
+                        return Column(
+                          children: snap.data!.take(3).map((r) {
+                            final author = r['author'] ?? '';
+                            final content = r['content'] ?? '';
+                            final rating = r['author_details']?['rating'];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white10,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.person, size: 14, color: Colors.white54),
+                                      const SizedBox(width: 4),
+                                      Text(author, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                      if (rating != null) ...[
+                                        const SizedBox(width: 8),
+                                        Text('★$rating', style: const TextStyle(fontSize: 11, color: Colors.amber)),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(content, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
                   // 媒体信息
                   const SizedBox(height: 16),
                   const Text('媒体信息', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
