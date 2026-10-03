@@ -921,7 +921,107 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           ),
         ],
       ),
-      body: playerBody,
+      body: Stack(
+        children: [
+          playerBody,
+          // 缓冲/错误指示
+          Center(
+            child: _activeController == null
+                ? const CircularProgressIndicator(color: Colors.white)
+                : ValueListenableBuilder(
+                    valueListenable: _activeController!,
+                    builder: (_, value, __) {
+                      if (value.hasError) {
+                        return const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.white, size: 48),
+                            SizedBox(height: 12),
+                            Text('播放失败', style: TextStyle(color: Colors.white)),
+                          ],
+                        );
+                      }
+                      if (!value.isInitialized || value.isBuffering) {
+                        return const CircularProgressIndicator(color: Colors.white);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+          ),
+          // 底部控制栏
+          Positioned(
+            left: 0, right: 0, bottom: 0,
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: AnimatedOpacity(
+                opacity: _showControls ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                      colors: [Colors.black54, Colors.transparent],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _activeController != null
+                          ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
+                          : const SizedBox(height: 2),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.skip_previous, color: Colors.white),
+                            onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              _activeController?.value.isPlaying ?? false
+                                  ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                              color: Colors.white, size: 44,
+                            ),
+                            onPressed: () {
+                              final c = _activeController;
+                              if (c == null) return;
+                              setState(() { c.value.isPlaying ? c.pause() : c.play(); });
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.skip_next, color: Colors.white),
+                            onPressed: _index < widget.items.length - 1 ? () => _jumpTo(_index + 1) : null,
+                          ),
+                          const Spacer(),
+                          if (widget.items.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.playlist_play, color: Colors.white, size: 22),
+                              onPressed: () => _showEpisodeList(context),
+                            ),
+                          GestureDetector(
+                            onTap: () => _showSpeedPicker(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
+                              child: Text('${_playbackSpeed}x', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white, size: 22),
+                            onPressed: () => setState(() => _locked = !_locked),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
