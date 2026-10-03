@@ -1,3 +1,15 @@
+# [2.326.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.2...v2.326.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* favoriteActors → favoriteActorIds 字段名 ([5c3c89b](https://github.com/1525745393/EmbyTok-Flutter/commit/5c3c89be76d8d9a11a30ef70a13c09d19766fe7b))
+
+
+### Features
+
+* 本地流演员头像加收藏角标 ([205c68a](https://github.com/1525745393/EmbyTok-Flutter/commit/205c68a6451b19c7d8766c54ffb291bc300810b6))
+
 ## [2.325.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.1...v2.325.2) (2026-10-03)
 
 
