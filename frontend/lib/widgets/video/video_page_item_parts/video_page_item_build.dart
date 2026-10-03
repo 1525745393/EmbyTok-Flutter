@@ -35,9 +35,17 @@ extension _VideoPageItemBuild on _VideoPageItemState {
         responsiveSize(context, base, maxScale);
 
     // 封面图 URL（用于唱片按钮）
-    final posterUrl =
+    // 本地文件：从刮削缓存里取 TMDB 海报 URL
+    String posterUrl =
         widget.item.primaryUrl(embyServerUrl: embyServerUrl, apiKey: token) ??
             '';
+    if (widget.item.isLocalFile) {
+      final pathHash = widget.item.id.replaceFirst('local_', '');
+      final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
+      if (scraped?.posterPath != null && scraped!.posterPath!.isNotEmpty) {
+        posterUrl = 'https://image.tmdb.org/t/p/w500${scraped.posterPath}';
+      }
+    }
     final posterHeaders = widget.item.authHeaders(token);
 
     // ============ 主 Stack ============
