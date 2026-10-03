@@ -1,3 +1,10 @@
+# [2.322.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.321.0...v2.322.0) (2026-10-03)
+
+
+### Features
+
+* 本地流嵌入时显示底部信息条（标题+时长+分享） ([a76204d](https://github.com/1525745393/EmbyTok-Flutter/commit/a76204dcc3c53a91c5f6acf7671609c1ddc0ce89))
+
 # [2.321.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.2...v2.321.0) (2026-10-03)
 
 
