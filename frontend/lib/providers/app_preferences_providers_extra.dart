@@ -1,6 +1,6 @@
 // 从 app_preferences_providers.dart 拆分（part 文件，无行为变化）
 
-part of 'app_preferences_providers.dart';
+part of app_preferences_providers;
 
 class RecommendNextUpSeriesCountNotifier extends StateNotifier<int> {
   RecommendNextUpSeriesCountNotifier() : super(5) {
