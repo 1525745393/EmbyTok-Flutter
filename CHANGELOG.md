@@ -1,3 +1,12 @@
+# [2.334.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.333.0...v2.334.0) (2026-10-03)
+
+
+### Features
+
+* 剧集列表显示刮削标题和简介(从scrapedMap读取) ([e6e4342](https://github.com/1525745393/EmbyTok-Flutter/commit/e6e434200d19c2c6333302a0f5a79bf911be5e4b))
+* 本地播放页底部栏加横屏/竖屏切换按钮 ([0f2a4ba](https://github.com/1525745393/EmbyTok-Flutter/commit/0f2a4ba338d7b00a90fc184b6331ae3622d08973))
+* 本地播放页顶部栏加画中画PiP按钮 ([09e7b29](https://github.com/1525745393/EmbyTok-Flutter/commit/09e7b291a34c4357d7940f5b6eb6a4539f4e32e2))
+
 # [2.333.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.332.0...v2.333.0) (2026-10-03)
 
 
