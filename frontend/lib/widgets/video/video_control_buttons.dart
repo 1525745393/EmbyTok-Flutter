@@ -174,27 +174,61 @@ class PosterAvatar extends ConsumerWidget {
       );
     }
 
-    // 本地文件：有刮削演员头像时显示圆形头像
+    // 本地文件：有刮削演员头像时显示圆形头像 + 收藏角标
     if (item.isLocalFile && localActorImage != null) {
+      final actorKey = localActorName ?? '';
+      final isFavActor = ref.watch(
+        localVideoProvider.select((s) => s.favoriteActors.contains(actorKey)),
+      );
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             width: rs(48),
             height: rs(48),
-            child: ClipOval(
-              child: PersonAvatarImage(
-                imageUrl: localActorImage,
-                size: rs(48),
-                memCacheWidth: 96,
-              ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: ClipOval(
+                    child: PersonAvatarImage(
+                      imageUrl: localActorImage,
+                      size: rs(48),
+                      memCacheWidth: 96,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: GestureDetector(
+                    onTap: actorKey.isEmpty
+                        ? null
+                        : () => ref
+                            .read(localVideoProvider.notifier)
+                            .toggleFavoriteActor(actorKey),
+                    child: Container(
+                      width: rs(20),
+                      height: rs(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: scheme.tertiary,
+                        border: Border.all(color: scheme.onSurface, width: 1.5),
+                      ),
+                      child: Icon(
+                        isFavActor ? Icons.check : Icons.add,
+                        color: scheme.onTertiary,
+                        size: rs(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           SizedBox(height: rs(4)),
           Text(
-            (localActorName ?? '').length > 4
-                ? '${localActorName!.substring(0, 4)}..'
-                : (localActorName ?? ''),
+            actorKey.length > 4 ? '${actorKey.substring(0, 4)}..' : actorKey,
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.7),
               fontSize: rs(9, 1.3),
