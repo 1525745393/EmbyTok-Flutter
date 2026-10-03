@@ -10,10 +10,12 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:screen_brightness/screen_brightness.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
+import '../../services/tmdb_service.dart';
 import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
 import '../../providers/app_preferences_providers.dart';
@@ -387,13 +389,21 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           final epNum = scraped?.episode ?? (i + 1);
                           final displayTitle = scraped?.title ?? ep.name;
                           return ListTile(
-                            leading: Text(
-                              '$epNum',
-                              style: TextStyle(
-                                color: isCurrent ? Colors.greenAccent : Colors.white54,
-                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
+                            leading: scraped?.stillPath != null && scraped!.stillPath!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: CachedNetworkImage(
+                                      imageUrl: TmdbService.stillUrl(scraped.stillPath!),
+                                      width: 80, height: 45, fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Text(
+                                    '$epNum',
+                                    style: TextStyle(
+                                      color: isCurrent ? Colors.greenAccent : Colors.white54,
+                                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
                             title: Text(
                               displayTitle,
                               style: TextStyle(

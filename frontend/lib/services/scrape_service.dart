@@ -36,6 +36,7 @@ class ScrapedMedia {
   final List<String> directors; // 导演
   final List<String> studios; // 出品公司
   final String? imdbId; // IMDb ID
+  final String? stillPath; // 单集剧照
   final int? season;
   final int? episode;
   final int? tvId; // 剧集聚合用
@@ -55,6 +56,7 @@ class ScrapedMedia {
     this.directors = const [],
     this.studios = const [],
     this.imdbId,
+    this.stillPath,
     this.season,
     this.episode,
     this.tvId,
@@ -75,6 +77,7 @@ class ScrapedMedia {
         'directors': directors,
         'studios': studios,
         'imdbId': imdbId,
+        'stillPath': stillPath,
         'season': season,
         'episode': episode,
         'tvId': tvId,
@@ -98,6 +101,7 @@ class ScrapedMedia {
         directors: (j['directors'] as List?)?.cast<String>() ?? const [],
         studios: (j['studios'] as List?)?.cast<String>() ?? const [],
         imdbId: j['imdbId'] as String?,
+        stillPath: j['stillPath'] as String?,
         season: j['season'] as int?,
         episode: j['episode'] as int?,
         tvId: j['tvId'] as int?,
@@ -323,7 +327,36 @@ class ScrapeService {
       final first = results.first;
       final tvId = first['id'] as int;
       final details = await TmdbService.getTvDetails(tvId);
-      return _fromTvDetails(details, first, parsed, tvId);
+      final base = _fromTvDetails(details, first, parsed, tvId);
+      // 拉取单集剧照和标题
+      if (base != null && parsed.season != null && parsed.episode != null) {
+        try {
+          final ep = await TmdbService.getTvEpisodeDetails(tvId, parsed.season!, parsed.episode!);
+          if (ep.isNotEmpty) {
+            return ScrapedMedia(
+              tmdbId: base.tmdbId,
+              type: base.type,
+              title: (ep['name'] as String?) ?? base.title,
+              year: base.year,
+              posterPath: base.posterPath,
+              backdropPath: base.backdropPath,
+              overview: (ep['overview'] as String?) ?? base.overview,
+              rating: base.rating,
+              genres: base.genres,
+              cast: base.cast,
+              directors: base.directors,
+              studios: base.studios,
+              imdbId: base.imdbId,
+              stillPath: ep['still_path'] as String?,
+              season: base.season,
+              episode: base.episode,
+              tvId: base.tvId,
+              scrapedAt: base.scrapedAt,
+            );
+          }
+        } catch (_) {}
+      }
+      return base;
     } else {
       final results = await TmdbService.searchMovies(parsed.title);
       if (results.isEmpty) return null;
