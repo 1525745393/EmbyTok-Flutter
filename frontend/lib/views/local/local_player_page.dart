@@ -909,63 +909,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              item.name,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (widget.items.length > 1)
-              Text(
-                '${_index + 1} / ${widget.items.length}',
-                style: const TextStyle(color: Colors.white54, fontSize: 11),
-              ),
-          ],
-        ),
-        actions: [
-          // 上一个
-          if (widget.items.length > 1 && _index > 0)
-            IconButton(
-              icon: const Icon(Icons.skip_previous, color: Colors.white),
-              onPressed: () => _jumpTo(_index - 1),
-            ),
-          // 下一个
-          if (widget.items.length > 1 && _index < widget.items.length - 1)
-            IconButton(
-              icon: const Icon(Icons.skip_next, color: Colors.white),
-              onPressed: () => _jumpTo(_index + 1),
-            ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: Colors.white),
-            tooltip: '分享',
-            onPressed: () => _share(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white, size: 22),
-            tooltip: '设置',
-            onPressed: () => _showSettingsPanel(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bedtime, color: Colors.white, size: 22),
-            tooltip: '睡眠定时',
-            onPressed: () => _showSleepTimer(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: Colors.white),
-            tooltip: '详情',
-            onPressed: () => _showInfo(context),
-          ),
-        ],
-      ),
-      body: Stack(
+    // 独立播放页：纯 Stack 覆盖层（无 Scaffold/AppBar），对齐在线 FullscreenVideoPage 沉浸模式
+    return Container(
+      color: Colors.black,
+      child: Stack(
         children: [
           playerBody,
           // 缓冲/错误指示
@@ -991,6 +938,47 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       return const SizedBox.shrink();
                     },
                   ),
+          ),
+          // 顶部栏（透明覆盖，无 AppBar）
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: AnimatedOpacity(
+                opacity: _showControls ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 4, left: 4, right: 4),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                      colors: [Colors.black54, Colors.transparent],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            if (widget.items.length > 1)
+                              Text('${_index + 1} / ${widget.items.length}', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
+                      IconButton(icon: const Icon(Icons.bedtime, color: Colors.white, size: 22), onPressed: () => _showSleepTimer(context)),
+                      IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 22), onPressed: () => _showInfo(context)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
           // 底部控制栏
           Positioned(
