@@ -164,7 +164,7 @@ extension _FeedBuilders on _FeedViewState {
         return GestureDetector(
           onTap: () {
             // 点击切回视频流并定位到该项
-            ref.read(viewModeProvider.notifier).set(ViewMode.feed);
+            ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
