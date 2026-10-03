@@ -12,21 +12,41 @@ import '../../providers/local_video_provider.dart';
 import '../../services/tmdb_service.dart';
 
 /// 打开视频评论弹层
-Future<void> showVideoCommentsSheet(BuildContext context, String itemId) {
+/// [title]/[year]/[isTv] 用于在线 Emby 视频按标题搜索 TMDB 获取评论
+Future<void> showVideoCommentsSheet(
+  BuildContext context,
+  String itemId, {
+  String? title,
+  int? year,
+  bool isTv = false,
+}) {
   final scheme = Theme.of(context).colorScheme;
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: scheme.surface,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) => _VideoCommentsSheet(itemId: itemId),
+    builder: (context) => _VideoCommentsSheet(
+      itemId: itemId,
+      title: title,
+      year: year,
+      isTv: isTv,
+    ),
   );
 }
 
 class _VideoCommentsSheet extends ConsumerStatefulWidget {
-  const _VideoCommentsSheet({required this.itemId});
+  const _VideoCommentsSheet({
+    required this.itemId,
+    this.title,
+    this.year,
+    this.isTv = false,
+  });
 
   final String itemId;
+  final String? title;
+  final int? year;
+  final bool isTv;
 
   @override
   ConsumerState<_VideoCommentsSheet> createState() =>
@@ -56,19 +76,38 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
     }
   }
 
-  Widget _buildList(ColorScheme scheme, ScrollController scrollController, List<VideoComment> localComments) {
+  Future<List<Map<String, dynamic>>> _fetchTmdbReviews() async {
+    // 本地视频：直接用 scraped tmdbId
     final pathHash = widget.itemId.startsWith('local_') ? widget.itemId.substring(6) : null;
-    if (pathHash == null) {
-      return _localCommentsList(scheme, scrollController, localComments);
+    if (pathHash != null) {
+      final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
+      if (scraped != null && scraped.tmdbId > 0) {
+        return scraped.type == 'tv'
+            ? TmdbService.getTvReviews(scraped.tvId ?? scraped.tmdbId)
+            : TmdbService.getMovieReviews(scraped.tmdbId);
+      }
+      return [];
     }
-    final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
-    if (scraped == null || scraped.tmdbId <= 0) {
-      return _localCommentsList(scheme, scrollController, localComments);
+    // 在线 Emby：按标题搜索 TMDB
+    if (widget.title == null || widget.title!.isEmpty) return [];
+    try {
+      if (widget.isTv) {
+        final results = await TmdbService.searchTv(widget.title!, year: widget.year);
+        if (results.isEmpty) return [];
+        return TmdbService.getTvReviews(results.first['id'] as int);
+      } else {
+        final results = await TmdbService.searchMovies(widget.title!);
+        if (results.isEmpty) return [];
+        return TmdbService.getMovieReviews(results.first['id'] as int);
+      }
+    } catch (_) {
+      return [];
     }
+  }
+
+  Widget _buildList(ColorScheme scheme, ScrollController scrollController, List<VideoComment> localComments) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: scraped.type == 'tv'
-          ? TmdbService.getTvReviews(scraped.tvId ?? scraped.tmdbId)
-          : TmdbService.getMovieReviews(scraped.tmdbId),
+      future: _fetchTmdbReviews(),
       builder: (_, snap) {
         final tmdbReviews = snap.data ?? [];
         final children = <Widget>[];
@@ -90,17 +129,6 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
         if (children.isEmpty) return _EmptyComments(scheme: scheme);
         return ListView(controller: scrollController, padding: const EdgeInsets.symmetric(vertical: 8), children: children);
       },
-    );
-  }
-
-  Widget _localCommentsList(ColorScheme scheme, ScrollController scrollController, List<VideoComment> comments) {
-    if (comments.isEmpty) return _EmptyComments(scheme: scheme);
-    return ListView.separated(
-      controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: comments.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) => _CommentTile(comment: comments[i]),
     );
   }
 

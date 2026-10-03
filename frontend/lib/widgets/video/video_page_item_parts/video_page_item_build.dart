@@ -276,7 +276,13 @@ extension _VideoPageItemBuild on _VideoPageItemState {
             },
             onDeleteTap: _showDeleteConfirmDialog,
             onShareTap: _shareItem,
-            onCommentTap: () => showVideoCommentsSheet(context, widget.item.id),
+            onCommentTap: () => showVideoCommentsSheet(
+              context,
+              widget.item.id,
+              title: widget.item.name,
+              year: widget.item.year,
+              isTv: widget.item.type == 'Series' || widget.item.type == 'TvEpisode',
+            ),
             onSpeedTap: () =>
                 sheet_utils.showSpeedControlPanel(context, _videoController),
             onSubtitleTap: () => sheet_utils.showSubtitleSelector(
