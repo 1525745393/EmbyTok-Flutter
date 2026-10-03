@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
@@ -48,6 +49,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   Timer? _hideTimer;
   double _playbackSpeed = 1.0;
   bool _locked = false; // 屏幕锁定（隐藏控制栏，禁用手势）
+  VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
 
   @override
   void initState() {
@@ -95,14 +97,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
 
   /// 控制栏自动隐藏
   void _scheduleHide() {
+    if (!_showControls) return;
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _showControls = false);
     });
   }
 
-  /// 单击切换控制栏
+  /// 单击切换控制栏（锁定时不响应）
   void _toggleControls() {
+    if (_locked) return;
     setState(() => _showControls = !_showControls);
     if (_showControls) _scheduleHide();
   }
@@ -370,6 +374,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           isCurrentPage: true,
           externalSubtitlePaths: item.subtitlePaths,
           onPlaybackEnded: _onPlaybackEnded,
+          onControllerReady: (c) => _activeController = c,
         ),
       ),
     );
@@ -384,34 +389,30 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
             playerBody,
             // 缓冲/错误指示
             Center(
-              child: ValueListenableBuilder<VideoPlayerController?>(
-                valueListenable: ValueNotifier(_playerKey.currentState?.controller),
-                builder: (_, c, __) {
-                  if (c == null || !c.value.isInitialized) {
-                    return const SizedBox.shrink();
-                  }
-                  return ValueListenableBuilder(
-                    valueListenable: c,
-                    builder: (_, value, __) {
-                      if (value.hasError) {
-                        return const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.error_outline,
-                                color: Colors.white, size: 48),
-                            SizedBox(height: 12),
-                            Text('播放失败',
-                                style: TextStyle(color: Colors.white)),
-                          ],
-                        );
-                      }
-                      return value.isBuffering
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const SizedBox.shrink();
-                    },
-                  );
-                },
-              ),
+              child: _activeController == null
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : ValueListenableBuilder(
+                      valueListenable: _activeController!,
+                      builder: (_, value, __) {
+                        if (value.hasError) {
+                          return const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline,
+                                  color: Colors.white, size: 48),
+                              SizedBox(height: 12),
+                              Text('播放失败',
+                                  style: TextStyle(color: Colors.white)),
+                            ],
+                          );
+                        }
+                        if (!value.isInitialized || value.isBuffering) {
+                          return const CircularProgressIndicator(
+                              color: Colors.white);
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
             ),
             // 顶部渐变 + 返回 + 标题
             Positioned(
@@ -554,8 +555,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.play_arrow,
-                                  color: Colors.white, size: 28),
+                              icon: Icon(
+                                _activeController?.value.isPlaying ?? false
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                               onPressed: () {
                                 final c = _playerKey.currentState?.controller;
                                 if (c == null) return;
