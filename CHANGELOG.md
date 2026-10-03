@@ -1,3 +1,10 @@
+## [2.325.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.1...v2.325.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流右侧头像按钮用刮削的 TMDB 演员头像 ([fbf1233](https://github.com/1525745393/EmbyTok-Flutter/commit/fbf12330d45ad09999abcab8a25fc90ad1251bc5))
+
 ## [2.325.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.0...v2.325.1) (2026-10-03)
 
 
