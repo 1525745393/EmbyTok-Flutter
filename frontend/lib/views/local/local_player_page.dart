@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/local_video_item.dart';
@@ -57,8 +58,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     super.initState();
     _index = widget.initialIndex.clamp(0, widget.items.length - 1);
     _resolvePath();
+    _loadPlaybackSpeed();
     // 每 5 秒保存一次播放进度，避免退出时子组件已 dispose 导致丢失
     _saveTimer = Timer.periodic(const Duration(seconds: 5), (_) => _saveResume());
+  }
+
+  /// 加载上次保存的倍速
+  Future<void> _loadPlaybackSpeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final s = prefs.getDouble('local_playback_speed') ?? 1.0;
+    if (mounted) setState(() => _playbackSpeed = s);
   }
 
   LocalVideoItem get item => widget.items[_index];
@@ -222,11 +231,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     trailing: s == _playbackSpeed
                         ? const Icon(Icons.check, color: Colors.green)
                         : null,
-                    onTap: () {
+                    onTap: () async {
                       final c = _activeController;
                       if (c != null) c.setPlaybackSpeed(s);
                       setState(() => _playbackSpeed = s);
-                      Navigator.pop(context);
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setDouble('local_playback_speed', s);
+                      if (mounted) Navigator.pop(context);
                       _scheduleHide();
                     },
                   ))
