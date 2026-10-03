@@ -32,7 +32,9 @@ class ScrapedMedia {
   final String? overview;
   final double? rating;
   final List<String> genres;
-  final List<Map<String, String>> cast; // {name, role}
+  final List<Map<String, String>> cast; // {name, role, character, profilePath, id}
+  final List<String> directors; // 导演
+  final List<String> studios; // 出品公司
   final int? season;
   final int? episode;
   final int? tvId; // 剧集聚合用
@@ -49,6 +51,8 @@ class ScrapedMedia {
     this.rating,
     this.genres = const [],
     this.cast = const [],
+    this.directors = const [],
+    this.studios = const [],
     this.season,
     this.episode,
     this.tvId,
@@ -66,6 +70,8 @@ class ScrapedMedia {
         'rating': rating,
         'genres': genres,
         'cast': cast,
+        'directors': directors,
+        'studios': studios,
         'season': season,
         'episode': episode,
         'tvId': tvId,
@@ -86,6 +92,8 @@ class ScrapedMedia {
                 ?.map((e) => Map<String, String>.from(e as Map))
                 .toList() ??
             const [],
+        directors: (j['directors'] as List?)?.cast<String>() ?? const [],
+        studios: (j['studios'] as List?)?.cast<String>() ?? const [],
         season: j['season'] as int?,
         episode: j['episode'] as int?,
         tvId: j['tvId'] as int?,

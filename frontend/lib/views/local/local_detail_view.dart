@@ -446,6 +446,10 @@ class _LocalDetailPageState extends ConsumerState<LocalDetailPage> {
                   const SizedBox(height: 16),
                   const Text('媒体信息', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
+                  if (scraped.directors.isNotEmpty)
+                    _infoRow('导演', scraped.directors.join(' / ')),
+                  if (scraped.studios.isNotEmpty)
+                    _infoRow('出品', scraped.studios.join(' / ')),
                   _infoRow('分辨率', widget.item.resolutionLabel),
                   _infoRow('时长', widget.item.durationLabel),
                   _infoRow('大小', widget.item.sizeLabel),
