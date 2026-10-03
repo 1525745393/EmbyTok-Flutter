@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
+import '../../providers/local_video_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/image_cache_manager.dart';
 import '../person_avatar_image.dart';
@@ -52,10 +53,26 @@ class PosterAvatar extends ConsumerWidget {
         responsiveSize(context, base, max);
 
     final people = item.people;
-    final Person? firstActor = people != null && people.isNotEmpty
+    Person? firstActor = people != null && people.isNotEmpty
         ? people.firstWhere((p) => p.type.toLowerCase() == 'actor',
             orElse: () => people.first)
         : null;
+
+    // 本地文件：从刮削缓存里取第一个演员头像
+    String? localActorImage;
+    String? localActorName;
+    if (item.isLocalFile) {
+      final pathHash = item.id.replaceFirst('local_', '');
+      final scraped = ref.read(localVideoProvider).scrapedMap[pathHash];
+      if (scraped != null && scraped.cast.isNotEmpty) {
+        final c = scraped.cast.first;
+        localActorName = c['name'];
+        final pp = c['profilePath'];
+        if (pp != null && pp.isNotEmpty) {
+          localActorImage = 'https://image.tmdb.org/t/p/w185$pp';
+        }
+      }
+    }
 
     final actorId = firstActor?.id;
     if (firstActor != null && actorId != null && actorId.isNotEmpty) {
@@ -145,6 +162,39 @@ class PosterAvatar extends ConsumerWidget {
             firstActor.name.length > 4
                 ? '${firstActor.name.substring(0, 4)}..'
                 : firstActor.name,
+            style: TextStyle(
+              color: scheme.onSurface.withValues(alpha: 0.7),
+              fontSize: rs(9, 1.3),
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
+
+    // 本地文件：有刮削演员头像时显示圆形头像
+    if (item.isLocalFile && localActorImage != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: rs(48),
+            height: rs(48),
+            child: ClipOval(
+              child: PersonAvatarImage(
+                imageUrl: localActorImage,
+                size: rs(48),
+                memCacheWidth: 96,
+              ),
+            ),
+          ),
+          SizedBox(height: rs(4)),
+          Text(
+            (localActorName ?? '').length > 4
+                ? '${localActorName!.substring(0, 4)}..'
+                : (localActorName ?? ''),
             style: TextStyle(
               color: scheme.onSurface.withValues(alpha: 0.7),
               fontSize: rs(9, 1.3),
