@@ -218,6 +218,59 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     }
   }
 
+  /// 设置面板（统一底部弹层：字幕/音轨/倍速/画面比例）
+  void _showSettingsPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2A2A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.subtitles, color: Colors.white),
+              title: const Text('字幕', style: TextStyle(color: Colors.white)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () { Navigator.pop(context); _showSubtitlePicker(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.audiotrack, color: Colors.white),
+              title: const Text('音轨', style: TextStyle(color: Colors.white)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () { Navigator.pop(context); _showAudioPicker(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.speed, color: Colors.white),
+              title: Text('播放速度  ${_playbackSpeed}x',
+                  style: const TextStyle(color: Colors.white)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () { Navigator.pop(context); _showSpeedPicker(context); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.aspect_ratio, color: Colors.white),
+              title: const Text('画面比例', style: TextStyle(color: Colors.white)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+              onTap: () { Navigator.pop(context); _showAspectPicker(context); },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 倍速选择
   void _showSpeedPicker(BuildContext context) {    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
     showModalBottomSheet(
@@ -483,6 +536,34 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 播放信息 OSD（左上角半透明：分辨率/时长）
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 12,
+              child: IgnorePointer(
+                ignoring: !_showControls,
+                child: AnimatedOpacity(
+                  opacity: _showControls ? 0.7 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      (_activeController?.value.size != null &&
+                              _activeController!.value.size.width > 0)
+                          ? '${_activeController!.value.size.width.toInt()}×${_activeController!.value.size.height.toInt()}  ${_formatDur(_activeController!.value.duration)}'
+                          : '缓冲中…',
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 11),
                     ),
                   ),
                 ),
