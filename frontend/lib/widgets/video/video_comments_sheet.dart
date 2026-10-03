@@ -56,6 +56,7 @@ class _VideoCommentsSheet extends ConsumerStatefulWidget {
 class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
   final TextEditingController _inputController = TextEditingController();
   bool _submitting = false;
+  late final Future<List<Map<String, dynamic>>> _tmdbFuture = _fetchTmdbReviews();
 
   @override
   void dispose() {
@@ -107,8 +108,11 @@ class _VideoCommentsSheetState extends ConsumerState<_VideoCommentsSheet> {
 
   Widget _buildList(ColorScheme scheme, ScrollController scrollController, List<VideoComment> localComments) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchTmdbReviews(),
+      future: _tmdbFuture,
       builder: (_, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final tmdbReviews = snap.data ?? [];
         final children = <Widget>[];
         if (tmdbReviews.isNotEmpty) {

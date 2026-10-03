@@ -387,7 +387,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           final isCurrent = i == _index;
                           final scraped = scrapedMap[ep.pathHash];
                           final epNum = scraped?.episode ?? (i + 1);
-                          final displayTitle = scraped?.title ?? ep.name;
+                          final displayTitle = scraped?.episodeTitle ?? scraped?.title ?? ep.name;
                           return ListTile(
                             leading: scraped?.stillPath != null && scraped!.stillPath!.isNotEmpty
                                 ? ClipRRect(

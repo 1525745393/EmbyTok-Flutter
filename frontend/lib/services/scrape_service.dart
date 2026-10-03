@@ -37,6 +37,7 @@ class ScrapedMedia {
   final List<String> studios; // 出品公司
   final String? imdbId; // IMDb ID
   final String? stillPath; // 单集剧照
+  final String? episodeTitle; // 单集标题
   final int? season;
   final int? episode;
   final int? tvId; // 剧集聚合用
@@ -57,6 +58,7 @@ class ScrapedMedia {
     this.studios = const [],
     this.imdbId,
     this.stillPath,
+    this.episodeTitle,
     this.season,
     this.episode,
     this.tvId,
@@ -78,6 +80,7 @@ class ScrapedMedia {
         'studios': studios,
         'imdbId': imdbId,
         'stillPath': stillPath,
+        'episodeTitle': episodeTitle,
         'season': season,
         'episode': episode,
         'tvId': tvId,
@@ -102,6 +105,7 @@ class ScrapedMedia {
         studios: (j['studios'] as List?)?.cast<String>() ?? const [],
         imdbId: j['imdbId'] as String?,
         stillPath: j['stillPath'] as String?,
+        episodeTitle: j['episodeTitle'] as String?,
         season: j['season'] as int?,
         episode: j['episode'] as int?,
         tvId: j['tvId'] as int?,
@@ -328,7 +332,7 @@ class ScrapeService {
       final tvId = first['id'] as int;
       final details = await TmdbService.getTvDetails(tvId);
       final base = _fromTvDetails(details, first, parsed, tvId);
-      // 拉取单集剧照和标题
+      // 拉取单集剧照和标题（剧名保留，集名单独存）
       if (base != null && parsed.season != null && parsed.episode != null) {
         try {
           final ep = await TmdbService.getTvEpisodeDetails(tvId, parsed.season!, parsed.episode!);
@@ -336,11 +340,11 @@ class ScrapeService {
             return ScrapedMedia(
               tmdbId: base.tmdbId,
               type: base.type,
-              title: (ep['name'] as String?) ?? base.title,
+              title: base.title, // 保留剧名
               year: base.year,
               posterPath: base.posterPath,
               backdropPath: base.backdropPath,
-              overview: (ep['overview'] as String?) ?? base.overview,
+              overview: ep['overview'] as String? ?? base.overview,
               rating: base.rating,
               genres: base.genres,
               cast: base.cast,
@@ -348,6 +352,7 @@ class ScrapeService {
               studios: base.studios,
               imdbId: base.imdbId,
               stillPath: ep['still_path'] as String?,
+              episodeTitle: ep['name'] as String?,
               season: base.season,
               episode: base.episode,
               tvId: base.tvId,
