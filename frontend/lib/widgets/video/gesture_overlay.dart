@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../models/models.dart';
+import '../../providers/local_video_provider.dart';
 import '../../providers/providers.dart';
 import '../../utils/constants.dart';
 import '../../utils/logger.dart';
@@ -69,7 +70,13 @@ class _GestureOverlayState extends ConsumerState<GestureOverlay>
   void onDoubleTapCenter() {
     triggerHeart();
     try {
-      ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
+      // 本地文件：走本地收藏（pathHash），不调 Emby
+      if (widget.item.isLocalFile) {
+        final pathHash = widget.item.id.replaceFirst('local_', '');
+        ref.read(localVideoProvider.notifier).toggleFavorite(pathHash);
+      } else {
+        ref.read(favoritesProvider.notifier).toggleFavorite(widget.item);
+      }
     } catch (e) {
       AppLogger.warn('双击点赞失败', data: {'error': e.toString()});
     }

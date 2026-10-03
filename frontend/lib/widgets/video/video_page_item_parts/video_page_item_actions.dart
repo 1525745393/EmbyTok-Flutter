@@ -325,40 +325,52 @@ extension _VideoPageItemActions on _VideoPageItemState {
   Future<void> _showDeleteConfirmDialog() async {
     final confirmed =
         await sheet_utils.showDeleteConfirmDialog(context, widget.item.title);
-    if (confirmed) {
-      // 提前获取认证信息并判空，避免 token 过期/丢失时强制断言崩溃
-      final serverUrl = _authServerUrl();
-      final token = _authToken();
-      if (serverUrl == null || token == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('认证信息缺失，请重新登录后再试'),
-              duration: _kSnackBarDuration,
-            ),
-          );
-        }
-        return;
+    if (!confirmed) return;
+
+    // 本地文件：从本地列表移除（不调 Emby 删除接口）
+    if (widget.item.isLocalFile) {
+      final pathHash = widget.item.id.replaceFirst('local_', '');
+      ref.read(localVideoProvider.notifier).removeByPathHash(pathHash);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('已从本地列表移除'), duration: _kSnackBarDuration));
+        widget.onVideoEnded?.call();
       }
-      try {
-        await _service.deleteItem(
-          itemId: widget.item.id,
-          serverUrl: serverUrl,
-          token: token,
+      return;
+    }
+
+    // 提前获取认证信息并判空，避免 token 过期/丢失时强制断言崩溃
+    final serverUrl = _authServerUrl();
+    final token = _authToken();
+    if (serverUrl == null || token == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('认证信息缺失，请重新登录后再试'),
+            duration: _kSnackBarDuration,
+          ),
         );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('已删除'), duration: _kSnackBarDuration));
-          // 从视频列表中移除当前 item，避免用户反向滑回已删除的视频
-          ref.read(videoListProvider.notifier).removeItem(widget.item.id);
-          widget.onVideoEnded?.call();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('删除失败: $e'), duration: _kAnimationNormal),
-          );
-        }
+      }
+      return;
+    }
+    try {
+      await _service.deleteItem(
+        itemId: widget.item.id,
+        serverUrl: serverUrl,
+        token: token,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('已删除'), duration: _kSnackBarDuration));
+        // 从视频列表中移除当前 item，避免用户反向滑回已删除的视频
+        ref.read(videoListProvider.notifier).removeItem(widget.item.id);
+        widget.onVideoEnded?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除失败: $e'), duration: _kAnimationNormal),
+        );
       }
     }
   }

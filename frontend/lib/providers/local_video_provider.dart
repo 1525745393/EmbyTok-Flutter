@@ -1,5 +1,6 @@
 // 本地视频 Provider：列表状态、权限状态、筛选排序、加载状态
 // 对应 PRD《本地模式》§5.3
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -317,6 +318,18 @@ class LocalVideoNotifier extends StateNotifier<LocalVideoState> {
   }
 
   void setKeyword(String k) => state = state.copyWith(keyword: k);
+
+  /// 从本地列表移除指定 pathHash 的视频（不删文件，仅清缓存记录）
+  Future<void> removeByPathHash(String pathHash) async {
+    final items = List.of(state.items)
+      ..removeWhere((it) => it.pathHash == pathHash);
+    state = state.copyWith(items: items);
+    final sp = await SharedPreferences.getInstance();
+    await sp.setStringList(
+      'local_video_cache_v1',
+      items.map((e) => jsonEncode(e.toJson())).toList(),
+    );
+  }
   void setSort(LocalVideoSort s) => state = state.copyWith(sort: s);
   void setTypeFilter(String? t) => state = state.copyWith(typeFilter: t);
   void toggleGroupByFolder() =>
