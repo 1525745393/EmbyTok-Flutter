@@ -348,17 +348,10 @@ class _FeedViewState extends ConsumerState<FeedView>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // 用户在"视频流使用"里选了本地文件源：直接嵌入本地抖音式流
+    // 用户在"视频流使用"里选了本地文件源：本地视频注入主 feed 内容区
+    // 不 early-return，让顶部工具栏/底部导航/位置角标照常叠加
     final localSource = ref.watch(localFeedSourceIdProvider);
-    if (localSource != null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: LocalFeedPage(
-          sourceId: localSource.isEmpty ? null : localSource,
-          embedded: true,
-        ),
-      );
-    }
+    final isLocalFeed = localSource != null;
 
     final videoState = ref.watch(videoListProvider);
     final authState = ref.watch(authProvider);
@@ -383,7 +376,13 @@ class _FeedViewState extends ConsumerState<FeedView>
             IndexedStack(
               index: viewMode == ViewMode.feed ? 0 : 1,
               children: [
-                _buildVideoPageView(videoState),
+                // 本地流：嵌入本地 PageView，但仍在主 feed 栈内，顶部/底部 chrome 自然叠加
+                isLocalFeed
+                    ? LocalFeedPage(
+                        sourceId: localSource.isEmpty ? null : localSource,
+                        embedded: true,
+                      )
+                    : _buildVideoPageView(videoState),
                 _buildGridPageView(videoState),
               ],
             ),
