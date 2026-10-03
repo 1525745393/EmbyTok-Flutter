@@ -1,3 +1,10 @@
+## [2.326.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.326.0...v2.326.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流双击红心/删除/书签对齐 Emby 行为 ([a66ac60](https://github.com/1525745393/EmbyTok-Flutter/commit/a66ac60cacaa581230ed0592f4a47a7aa56b7dc0))
+
 # [2.326.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.325.2...v2.326.0) (2026-10-03)
 
 
