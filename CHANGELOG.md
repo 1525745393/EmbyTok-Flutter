@@ -1,3 +1,18 @@
+# [2.323.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.322.0...v2.323.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* 修复 adapter 类型错误导致 CI 编译失败 ([30c9dc3](https://github.com/1525745393/EmbyTok-Flutter/commit/30c9dc33b5a533747f13fd8e1ed1e2b1ff37aca2))
+* 本地流不再 early-return，融入主 feed 栈 ([f2c7f37](https://github.com/1525745393/EmbyTok-Flutter/commit/f2c7f37c85a3c77714bade23827301f0322df694))
+* 本地流跳过 Emby 服务端进度拉取与播放上报 ([799d188](https://github.com/1525745393/EmbyTok-Flutter/commit/799d1888bf16994e558f59bfcebb3758bd9c9ec0))
+
+
+### Features
+
+* 本地流右侧操作栏适配（收藏/分享/信息） ([1c1d2e6](https://github.com/1525745393/EmbyTok-Flutter/commit/1c1d2e6466f580c50ebb128007374a0ee3bfda7d))
+* 本地流直接走 VideoPageItem，与 Emby 流完全一致 ([28e9ba6](https://github.com/1525745393/EmbyTok-Flutter/commit/28e9ba63b35e0d9edb54f5a9fa5a258485d0f21c))
+
 # [2.322.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.321.0...v2.322.0) (2026-10-03)
 
 
