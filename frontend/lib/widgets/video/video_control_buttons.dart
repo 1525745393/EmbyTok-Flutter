@@ -178,7 +178,7 @@ class PosterAvatar extends ConsumerWidget {
     if (item.isLocalFile && localActorImage != null) {
       final actorKey = localActorName ?? '';
       final isFavActor = ref.watch(
-        localVideoProvider.select((s) => s.favoriteActors.contains(actorKey)),
+        localVideoProvider.select((s) => s.favoriteActorIds.contains(actorKey)),
       );
       return Column(
         mainAxisSize: MainAxisSize.min,
