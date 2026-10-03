@@ -1,3 +1,10 @@
+# [2.324.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.323.1...v2.324.0) (2026-10-03)
+
+
+### Features
+
+* 本地流补齐三项差距 ([c3956ad](https://github.com/1525745393/EmbyTok-Flutter/commit/c3956ad2e3db52c67d59d9387f393662e8d9f69a))
+
 ## [2.323.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.323.0...v2.323.1) (2026-10-03)
 
 
