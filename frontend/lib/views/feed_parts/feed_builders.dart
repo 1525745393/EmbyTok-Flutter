@@ -133,6 +133,65 @@ extension _FeedBuilders on _FeedViewState {
     return PosterGridView(scrollController: _gridScrollController);
   }
 
+  /// 本地流网格视图：刮削后的本地视频海报墙
+  Widget _buildLocalGridPageView(String localSource) {
+    final localState = ref.watch(localVideoProvider);
+    var items = List.of(localState.items);
+    items = items
+        .where((it) => localState.scrapedMap.containsKey(it.pathHash))
+        .toList();
+    if (localSource.isNotEmpty) {
+      items = items.where((it) => it.sourceId == localSource).toList();
+    }
+    final mediaItems = LocalVideoAdapter.toMediaItems(items, scrapedMap: localState.scrapedMap);
+    if (mediaItems.isEmpty) {
+      return const Center(
+        child: Text('暂无本地视频', style: TextStyle(color: Colors.white54)),
+      );
+    }
+    return GridView.builder(
+      controller: _gridScrollController,
+      padding: const EdgeInsets.fromLTRB(12, 90, 12, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: mediaItems.length,
+      itemBuilder: (_, i) {
+        final m = mediaItems[i];
+        return GestureDetector(
+          onTap: () {
+            // 点击切回视频流并定位到该项
+            ref.read(viewModeProvider.notifier).set(ViewMode.feed);
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    color: Colors.grey[900],
+                    child: const Icon(Icons.movie, color: Colors.white24, size: 40),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                m.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildVideoPageView(VideoListState videoState) {
     final error = videoState.error;
     final errorMsg = error?.message;

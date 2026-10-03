@@ -380,7 +380,10 @@ class _FeedViewState extends ConsumerState<FeedView>
                 // 本地流：本地视频包装成 MediaItem 后走主 feed 的 PageView + VideoPageItem
                 // 这样右侧操作栏/底部信息条/双击红心/进度条/唱片封面全部与 Emby 流一致
                 isLocalFeed ? _buildLocalPageView(localSource) : _buildVideoPageView(videoState),
-                _buildGridPageView(videoState),
+                // 本地流时网格视图也显示本地视频
+                isLocalFeed
+                    ? _buildLocalGridPageView(localSource)
+                    : _buildGridPageView(videoState),
               ],
             ),
 
