@@ -1,3 +1,10 @@
+## [2.335.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.335.0...v2.335.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* 在线评论搜索优先年份匹配,减少误匹配 ([3614922](https://github.com/1525745393/EmbyTok-Flutter/commit/36149226fbba8001f239cab1241412d31353fbfc))
+
 # [2.335.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.334.0...v2.335.0) (2026-10-03)
 
 
