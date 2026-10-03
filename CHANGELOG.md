@@ -1,3 +1,10 @@
+# [2.332.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.2...v2.332.0) (2026-10-03)
+
+
+### Features
+
+* 本地Scaffold播放页顶部栏补全-设置齿轮+睡眠定时器 ([a60ea74](https://github.com/1525745393/EmbyTok-Flutter/commit/a60ea74fa5330861e863850f65fafae06236f58b))
+
 ## [2.331.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.1...v2.331.2) (2026-10-03)
 
 
