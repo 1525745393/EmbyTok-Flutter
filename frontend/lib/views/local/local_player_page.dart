@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
@@ -13,6 +14,7 @@ import '../../services/local_video_service.dart';
 import '../../providers/local_video_provider.dart';
 import '../../widgets/video/gesture_overlay.dart';
 import '../../widgets/video/video_player_widget.dart';
+import '../../widgets/video/video_progress_bars.dart';
 
 class LocalPlayerPage extends ConsumerStatefulWidget {
   /// 播放列表（连播用）；单文件播放时传 [items.length=1]
@@ -40,6 +42,9 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   bool _initialized = false; // 是否已 seek 到续播位置
   int _seekToken = 0; // 续播 seek 竞态保护：快速切换视频时使旧 seek 失效
   Timer? _saveTimer; // 周期保存播放位置（dispose 时子组件已销毁，无法在 dispose 中读位置）
+  bool _showControls = true; // 控制栏显隐（单击切换）
+  Timer? _hideTimer;
+  double _playbackSpeed = 1.0;
 
   @override
   void initState() {
@@ -81,6 +86,48 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       SnackBar(
         content: Text(fav ? '已收藏' : '已取消收藏'),
         duration: const Duration(milliseconds: 800),
+      ),
+    );
+  }
+
+  /// 控制栏自动隐藏
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showControls = false);
+    });
+  }
+
+  /// 单击切换控制栏
+  void _toggleControls() {
+    setState(() => _showControls = !_showControls);
+    if (_showControls) _scheduleHide();
+  }
+
+  /// 倍速选择
+  void _showSpeedPicker(BuildContext context) {
+    final speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: speeds
+              .map((s) => ListTile(
+                    title: Text('${s}x'),
+                    trailing: s == _playbackSpeed
+                        ? const Icon(Icons.check, color: Colors.green)
+                        : null,
+                    onTap: () {
+                      final c = _playerKey.currentState?.controller;
+                      if (c != null) c.setPlaybackSpeed(s);
+                      setState(() => _playbackSpeed = s);
+                      Navigator.pop(context);
+                      _scheduleHide();
+                    },
+                  ))
+              .toList(),
+        ),
       ),
     );
   }
@@ -220,7 +267,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
         item: mediaItem,
         enableGestures: true,
         enableVerticalVolumeDrag: true,
-        onSingleTap: () => setState(() {}),
+        onSingleTap: _toggleControls,
         child: VideoPlayerWidget(
           key: _playerKey,
           item: mediaItem,
@@ -235,65 +282,184 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       ),
     );
 
-    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面 + 底部信息条 + 右侧操作栏
-    // 对齐主视频流 VideoPageItem 的叠加风格
+    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面 + 控制栏 + 右侧操作栏
+    // 对齐主视频流 VideoPageItem / FullscreenVideoPage 的叠加风格
     if (widget.embedded) {
       return Container(
         color: Colors.black,
         child: Stack(
           children: [
             playerBody,
-            // 右侧操作栏：收藏 / 分享 / 信息（对齐 Emby 右侧竖排）
+            // 顶部渐变 + 返回 + 标题
             Positioned(
-              right: 12,
-              bottom: MediaQuery.of(context).padding.bottom + 120,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.favorite_border,
-                        color: Colors.white, size: 26),
-                    onPressed: () => _toggleFavorite(context),
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                ignoring: !_showControls,
+                child: AnimatedOpacity(
+                  opacity: _showControls ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 8,
+                      left: 8,
+                      right: 16,
+                      bottom: 8,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.black54, Colors.transparent],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.share_outlined,
-                        color: Colors.white, size: 26),
-                    onPressed: () => _share(context),
-                  ),
-                  const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.info_outline,
-                        color: Colors.white, size: 26),
-                    onPressed: () => _showInfo(context),
-                  ),
-                ],
+                ),
               ),
             ),
-            // 底部信息条：标题 + 时长
+            // 右侧操作栏：收藏 / 分享 / 信息
             Positioned(
-              left: 12,
-              right: 80,
-              bottom: MediaQuery.of(context).padding.bottom + 12,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              right: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 110,
+              child: IgnorePointer(
+                ignoring: !_showControls,
+                child: AnimatedOpacity(
+                  opacity: _showControls ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.favorite_border,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _toggleFavorite(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _share(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showInfo(context),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(item.durationLabel,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12)),
-                ],
+                ),
+              ),
+            ),
+            // 底部控制栏：播放/暂停 + 进度条 + 时间 + 倍速 + 全屏
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                ignoring: !_showControls,
+                child: AnimatedOpacity(
+                  opacity: _showControls ? 1 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: MediaQuery.of(context).padding.bottom + 8,
+                      top: 8,
+                    ),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [Colors.black54, Colors.transparent],
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              item.durationLabel,
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        _playerKey.currentState?.controller != null
+                            ? ThinProgressBar(
+                                controller: _playerKey.currentState!.controller!)
+                            : const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.play_arrow,
+                                  color: Colors.white, size: 28),
+                              onPressed: () {
+                                final c = _playerKey.currentState?.controller;
+                                if (c == null) return;
+                                setState(() {
+                                  c.value.isPlaying ? c.pause() : c.play();
+                                });
+                                _scheduleHide();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _showSpeedPicker(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${_playbackSpeed}x',
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 12),
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen,
+                                  color: Colors.white, size: 24),
+                              onPressed: () {
+                                // 横屏：锁定方向
+                                SystemChrome.setPreferredOrientations([
+                                  DeviceOrientation.landscapeLeft,
+                                  DeviceOrientation.landscapeRight,
+                                ]);
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
