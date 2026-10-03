@@ -28,8 +28,15 @@ extension _VideoPageItemActions on _VideoPageItemState {
     ref.read(currentVideoControllerProvider.notifier).state = _videoController;
     _resetInfoHideTimer();
 
-    // 本地文件源：跳过 Emby 服务端进度拉取与播放上报
+    // 本地文件源：从 SharedPreferences 读取续播位置，跳过 Emby 上报
     if (widget.item.isLocalFile) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final saved = prefs.getInt('local_resume_${widget.item.id}') ?? 0;
+        if (saved > 5000 && controller != null && controller.value.isInitialized) {
+          await controller.seekTo(Duration(milliseconds: saved));
+        }
+      } catch (_) {}
       return;
     }
 

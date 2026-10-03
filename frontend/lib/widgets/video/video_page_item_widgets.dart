@@ -162,14 +162,17 @@ class _RightActionButtons extends ConsumerWidget {
                         onTap: () => _playWithExternalPlayer(context, item),
                       ),
                       SizedBox(height: rs(16, 1.5)),
-                      PressableActionButton(
-                        icon: Icons.chat_bubble_outline,
-                        label: '评论',
-                        color: scheme.onSurface,
-                        badgeCount: commentCount,
-                        onTap: onCommentTap,
-                      ),
-                      SizedBox(height: rs(16, 1.5)),
+                      // 本地文件无评论，隐藏评论按钮
+                      if (!item.isLocalFile) ...[
+                        PressableActionButton(
+                          icon: Icons.chat_bubble_outline,
+                          label: '评论',
+                          color: scheme.onSurface,
+                          badgeCount: commentCount,
+                          onTap: onCommentTap,
+                        ),
+                        SizedBox(height: rs(16, 1.5)),
+                      ],
                       PressableActionButton(
                         icon: Icons.info_outline,
                         label: '信息',

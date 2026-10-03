@@ -504,7 +504,17 @@ class _FeedViewState extends ConsumerState<FeedView>
     return PageView.builder(
       scrollDirection: Axis.vertical,
       itemCount: mediaItems.length,
-      onPageChanged: (i) {
+      onPageChanged: (i) async {
+        // 离开当前本地页时保存播放位置
+        try {
+          final ctrl = ref.read(currentVideoControllerProvider);
+          if (ctrl != null && ctrl.value.isInitialized) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setInt(
+                'local_resume_${mediaItems[_currentIndex].id}',
+                ctrl.value.position.inMilliseconds);
+          }
+        } catch (_) {}
         setState(() {
           _currentIndex = i;
           _currentIndexNotifier.value = i;
