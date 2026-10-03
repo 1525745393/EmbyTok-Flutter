@@ -1,3 +1,10 @@
+## [2.320.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.1...v2.320.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* 本地流嵌入主 feed 时去掉双层 Scaffold/AppBar ([5a8e41e](https://github.com/1525745393/EmbyTok-Flutter/commit/5a8e41e2e9cc06d47ff2667e0fa7112366e0c372))
+
 ## [2.320.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.320.0...v2.320.1) (2026-10-02)
 
 
