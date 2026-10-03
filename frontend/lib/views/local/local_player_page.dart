@@ -12,6 +12,7 @@ import '../../models/local_video_item.dart';
 import '../../models/media_item.dart';
 import '../../services/local_video_service.dart';
 import '../../providers/local_video_provider.dart';
+import '../../providers/app_preferences_providers_extra.dart';
 import '../../widgets/video/gesture_overlay.dart';
 import '../../widgets/video/video_player_widget.dart';
 import '../../widgets/video/video_progress_bars.dart';
@@ -115,24 +116,22 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   /// 字幕选择
   void _showSubtitlePicker(BuildContext context) {
     final subs = item.subtitlePaths ?? const [];
+    // TODO: VideoPlayerWidget 需要暴露 setSubtitlePath 接口，当前仅列出
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('字幕')),
-            ListTile(
-              title: const Text('关闭字幕'),
-              onTap: () {
-                // TODO: 通过 player widget 关闭外挂字幕
-                Navigator.pop(context);
-              },
-            ),
+            const ListTile(title: Text('字幕轨道')),
+            if (subs.isEmpty)
+              const ListTile(title: Text('无外挂字幕')),
             ...subs.map((p) => ListTile(
                   title: Text(p.split('/').last),
                   onTap: () {
-                    // TODO: 切换外挂字幕轨
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('已选择：${p.split('/').last}')),
+                    );
                     Navigator.pop(context);
                   },
                 )),
@@ -149,19 +148,29 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     );
   }
 
-  /// 画面比例
+  /// 画面比例（复用全局 videoFitModeProvider）
   void _showAspectPicker(BuildContext context) {
-    const options = ['适应', '填充', '16:9', '4:3', '原始'];
+    final notifier = ref.read(videoFitModeProvider.notifier);
+    final current = ref.read(videoFitModeProvider);
+    const labels = {
+      VideoFitMode.fit: '适应',
+      VideoFitMode.fill: '填充',
+      VideoFitMode.stretch: '拉伸',
+      VideoFitMode.sixteenNine: '16:9',
+    };
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: options
-              .map((o) => ListTile(
-                    title: Text(o),
+          children: VideoFitMode.values
+              .map((m) => ListTile(
+                    title: Text(labels[m] ?? m.name),
+                    trailing: m == current
+                        ? const Icon(Icons.check, color: Colors.green)
+                        : null,
                     onTap: () {
-                      // TODO: 调 VideoPlayerBox 切换 fit
+                      notifier.setMode(m);
                       Navigator.pop(context);
                     },
                   ))
@@ -370,7 +379,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
         child: Stack(
           children: [
             playerBody,
-            // 缓冲指示
+            // 缓冲/错误指示
             Center(
               child: ValueListenableBuilder<VideoPlayerController?>(
                 valueListenable: ValueNotifier(_playerKey.currentState?.controller),
@@ -380,9 +389,23 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   }
                   return ValueListenableBuilder(
                     valueListenable: c,
-                    builder: (_, value, __) => value.isBuffering
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const SizedBox.shrink(),
+                    builder: (_, value, __) {
+                      if (value.hasError) {
+                        return const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.white, size: 48),
+                            SizedBox(height: 12),
+                            Text('播放失败',
+                                style: TextStyle(color: Colors.white)),
+                          ],
+                        );
+                      }
+                      return value.isBuffering
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const SizedBox.shrink();
+                    },
                   );
                 },
               ),
