@@ -215,9 +215,54 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
       ),
     );
 
-    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面
+    // 嵌入模式：不包 Scaffold/AppBar，直接返回播放器画面 + 底部信息条
+    // 对齐主视频流 VideoPageItem 的底部信息叠加
     if (widget.embedded) {
-      return Container(color: Colors.black, child: playerBody);
+      return Container(
+        color: Colors.black,
+        child: Stack(
+          children: [
+            playerBody,
+            // 底部信息条：标题 + 年份 + 简单操作
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: MediaQuery.of(context).padding.bottom + 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      if (item.duration > Duration.zero)
+                        Text(item.durationLabel,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined,
+                            color: Colors.white, size: 20),
+                        onPressed: () => _share(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Scaffold(
