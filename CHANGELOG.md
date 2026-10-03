@@ -1,3 +1,10 @@
+# [2.333.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.332.0...v2.333.0) (2026-10-03)
+
+
+### Features
+
+* 本地播放页改为无AppBar沉浸Stack覆盖层(对齐在线FullscreenVideoPage) ([df4c4fc](https://github.com/1525745393/EmbyTok-Flutter/commit/df4c4fcbeb7b2488aa179106c893ea8209b97e07))
+
 # [2.332.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.331.2...v2.332.0) (2026-10-03)
 
 
