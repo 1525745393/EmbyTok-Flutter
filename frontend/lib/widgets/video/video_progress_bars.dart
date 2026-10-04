@@ -92,6 +92,14 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
     setState(() {});
   }
 
+  /// 计算缓冲进度（0~1）
+  double _bufferedProgress() {
+    final value = widget.controller.value;
+    if (value.duration.inMilliseconds <= 0 || value.buffered.isEmpty) return 0.0;
+    return (value.buffered.last.end.inMilliseconds / value.duration.inMilliseconds)
+        .clamp(0.0, 1.0);
+  }
+
   /// 根据水平点击/拖拽位置计算进度百分比并执行 seek
   void _seekToPosition(double localDx, double totalWidth) {
     final duration = widget.controller.value.duration;
@@ -174,6 +182,17 @@ class _SeekableProgressBarState extends State<SeekableProgressBar> {
                   ),
                   child: Stack(
                     children: [
+                      // 缓冲进度条（灰色，在线全屏页同款）
+                      FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: _bufferedProgress(),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white38,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
                       FractionallySizedBox(
                         alignment: Alignment.centerLeft,
                         widthFactor: displayProgress,
