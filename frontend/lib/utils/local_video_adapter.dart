@@ -7,12 +7,17 @@ import '../services/scrape_service.dart';
 /// 复用 VideoPageItem 的全部叠加（底部信息条、右侧操作栏、进度记忆）。
 class LocalVideoAdapter {
   static MediaItem toMediaItem(LocalVideoItem it, {ScrapedMedia? scraped}) {
+    final isTv = scraped?.type == 'tv';
     return MediaItem(
       // id 加 local_ 前缀，避免与 Emby item id 冲突
       id: 'local_${it.id}',
-      title: scraped?.title ?? it.name,
-      type: 'Movie',
+      title: scraped?.episodeTitle ?? scraped?.title ?? it.name,
+      type: isTv ? 'Episode' : 'Movie',
+      seriesName: isTv ? scraped?.title : null,
+      parentIndexNumber: isTv ? scraped?.season : null,
+      indexNumber: isTv ? scraped?.episode : null,
       productionYear: scraped?.year ?? it.modifiedAt.year,
+      year: scraped?.year ?? it.modifiedAt.year,
       durationSeconds: it.duration.inSeconds.toDouble(),
       overview: scraped?.overview ?? '',
       communityRating: scraped?.rating,
