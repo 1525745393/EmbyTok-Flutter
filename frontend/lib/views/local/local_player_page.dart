@@ -778,6 +778,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // 按钮顺序对齐在线 feed：点赞→分享→画中画→评论→信息→字幕→音轨→比例→夜间模式
                       IconButton(
                         icon: const Icon(Icons.favorite_border,
                             color: Colors.white, size: 26),
@@ -788,6 +789,24 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: const Icon(Icons.share_outlined,
                             color: Colors.white, size: 26),
                         onPressed: () => _share(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.picture_in_picture_alt,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _enterPip(),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showComments(context),
+                      ),
+                      const SizedBox(height: 8),
+                      IconButton(
+                        icon: Icon(Icons.info_outline,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showInfo(context),
                       ),
                       const SizedBox(height: 8),
                       IconButton(
@@ -806,18 +825,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: const Icon(Icons.aspect_ratio,
                             color: Colors.white, size: 26),
                         onPressed: () => _showAspectPicker(context),
-                      ),
-                      const SizedBox(height: 8),
-                      IconButton(
-                        icon: const Icon(Icons.picture_in_picture_alt,
-                            color: Colors.white, size: 26),
-                        onPressed: () => _enterPip(),
-                      ),
-                      const SizedBox(height: 8),
-                      IconButton(
-                        icon: Icon(Icons.info_outline,
-                            color: Colors.white, size: 26),
-                        onPressed: () => _showInfo(context),
                       ),
                       const SizedBox(height: 8),
                       IconButton(
@@ -1051,6 +1058,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 按钮顺序对齐在线 feed 右侧操作栏：点赞→分享→画中画→评论→信息→字幕→音轨→比例→夜间模式
                     IconButton(
                       icon: const Icon(Icons.favorite_border,
                           color: Colors.white, size: 26),
@@ -1064,9 +1072,21 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     ),
                     const SizedBox(height: 8),
                     IconButton(
+                      icon: const Icon(Icons.picture_in_picture_alt,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _enterPip(),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
                       icon: const Icon(Icons.chat_bubble_outline,
                           color: Colors.white, size: 26),
                       onPressed: () => _showComments(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: Icon(Icons.info_outline,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showInfo(context),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
@@ -1085,18 +1105,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       icon: const Icon(Icons.aspect_ratio,
                           color: Colors.white, size: 26),
                       onPressed: () => _showAspectPicker(context),
-                    ),
-                    const SizedBox(height: 8),
-                    IconButton(
-                      icon: const Icon(Icons.picture_in_picture_alt,
-                          color: Colors.white, size: 26),
-                      onPressed: () => _enterPip(),
-                    ),
-                    const SizedBox(height: 8),
-                    IconButton(
-                      icon: Icon(Icons.info_outline,
-                          color: Colors.white, size: 26),
-                      onPressed: () => _showInfo(context),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
