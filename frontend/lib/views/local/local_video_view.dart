@@ -1793,6 +1793,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     'time': '按时间',
     'rating': '按评分',
     'added': '加入时间',
+    'certification': '家长分级',
     'year': '年份',
     'criticRating': '影评人评分',
     'playDate': '播放日期',
@@ -1823,6 +1824,10 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       case 'rating':
       case 'criticRating':
         list.sort((a, b) => gR(b.pathHash).compareTo(gR(a.pathHash)));
+      case 'certification':
+        String certOf(LocalVideoItem e) =>
+            state.scrapedMap[e.pathHash]?.certification ?? '';
+        list.sort((a, b) => certOf(a).compareTo(certOf(b)));
       case 'duration':
         list.sort((a, b) => b.duration.inSeconds.compareTo(a.duration.inSeconds));
       case 'size':

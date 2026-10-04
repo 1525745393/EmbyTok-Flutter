@@ -41,6 +41,7 @@ class ScrapedMedia {
   final int? season;
   final int? episode;
   final int? tvId; // 剧集聚合用
+  final String? certification; // 家长分级（如 PG-13 / 15+）
   final int scrapedAt;
 
   const ScrapedMedia({
@@ -62,6 +63,7 @@ class ScrapedMedia {
     this.season,
     this.episode,
     this.tvId,
+    this.certification,
     required this.scrapedAt,
   });
 
@@ -84,6 +86,7 @@ class ScrapedMedia {
         'season': season,
         'episode': episode,
         'tvId': tvId,
+        'certification': certification,
         'scrapedAt': scrapedAt,
       };
 
@@ -109,6 +112,7 @@ class ScrapedMedia {
         season: j['season'] as int?,
         episode: j['episode'] as int?,
         tvId: j['tvId'] as int?,
+        certification: j['certification'] as String?,
         scrapedAt: j['scrapedAt'] as int? ?? 0,
       );
 }
@@ -417,8 +421,26 @@ class ScrapeService {
               .toList() ??
           const [],
       imdbId: d['external_ids']?['imdb_id'] as String?,
+      certification: _extractMovieCert(d),
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
+  }
+
+  /// 从 TMDB movie details 提取美国分级
+  static String? _extractMovieCert(Map<String, dynamic> d) {
+    final rd = d['release_dates'] as Map<String, dynamic>?;
+    final results = rd?['results'] as List?;
+    if (results == null) return null;
+    for (final r in results) {
+      if (r['iso_3166_1'] == 'US') {
+        final dates = r['release_dates'] as List?;
+        for (final dd in dates ?? []) {
+          final c = dd['certification'] as String?;
+          if (c != null && c.isNotEmpty) return c;
+        }
+      }
+    }
+    return null;
   }
 
   static ScrapedMedia? _fromTvDetails(Map<String, dynamic> d,
@@ -470,11 +492,23 @@ class ScrapeService {
               .toList() ??
           const [],
       imdbId: d['external_ids']?['imdb_id'] as String?,
+      certification: _extractTvCert(d),
       scrapedAt: DateTime.now().millisecondsSinceEpoch,
     );
   }
 
-  // ---- 缓存 ----
+  /// 从 TMDB TV details 提取美国分级
+  static String? _extractTvCert(Map<String, dynamic> d) {
+    final ratings = d['content_ratings']?['results'] as List?;
+    if (ratings == null) return null;
+    for (final r in ratings) {
+      if (r['iso_3166_1'] == 'US') {
+        final c = r['rating'] as String?;
+        if (c != null && c.isNotEmpty) return c;
+      }
+    }
+    return null;
+  }
 
   static Future<Map<String, ScrapedMedia>> loadCache() async {
     final sp = await SharedPreferences.getInstance();
