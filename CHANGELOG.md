@@ -1,3 +1,11 @@
+## [2.344.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.344.0...v2.344.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* 独立页右侧栏改为全高定位避免溢出重叠 ([ff26a51](https://github.com/1525745393/EmbyTok-Flutter/commit/ff26a512b91b086132f20781f05028269be9f4d5))
+* 补全括号闭合 ([ad4bedd](https://github.com/1525745393/EmbyTok-Flutter/commit/ad4bedd476ea4900611a0a1117222e700689922c))
+
 # [2.344.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.343.0...v2.344.0) (2026-10-04)
 
 
