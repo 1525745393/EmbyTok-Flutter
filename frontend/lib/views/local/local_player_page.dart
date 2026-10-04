@@ -1497,17 +1497,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
                           : const SizedBox(height: 2),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.skip_previous, color: Colors.white),
+                            icon: const Icon(Icons.skip_previous, color: Colors.white, size: 26),
                             onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
                           ),
                           IconButton(
                             icon: Icon(
                               _activeController?.value.isPlaying ?? false
-                                  ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                              color: Colors.white, size: 44,
+                                  ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white, size: 28,
                             ),
                             onPressed: () {
                               final c = _activeController;
@@ -1516,7 +1515,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.skip_next, color: Colors.white),
+                            icon: const Icon(Icons.skip_next, color: Colors.white, size: 26),
                             onPressed: _index < widget.items.length - 1 ? () => _jumpTo(_index + 1) : null,
                           ),
                         ],
