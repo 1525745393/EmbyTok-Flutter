@@ -1,3 +1,10 @@
+## [2.350.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.350.0...v2.350.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* 点按视频切换播放/暂停（抖音风格，不再冲突） ([2de036a](https://github.com/1525745393/EmbyTok-Flutter/commit/2de036a9f461a2c3716e843afb84913ca0d5775e))
+
 # [2.350.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.349.0...v2.350.0) (2026-10-04)
 
 
