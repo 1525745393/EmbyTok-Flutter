@@ -25,6 +25,9 @@ import '../../widgets/video/video_comments_sheet.dart';
 import '../../widgets/video/video_player_widget.dart';
 import '../../widgets/video/video_progress_bars.dart';
 
+/// 方向锁定三态（对齐在线全屏页）
+enum _OrientationPref { landscape, portrait, sensor }
+
 class LocalPlayerPage extends ConsumerStatefulWidget {
   /// 播放列表（连播用）；单文件播放时传 [items.length=1]
   final List<LocalVideoItem> items;
@@ -58,6 +61,8 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   VideoPlayerController? _activeController; // 当前控制器（供缓冲/错误监听）
   int _selectedSubtitleIdx = 0; // 0=关闭, >0=外挂字幕索引（从1开始）
   bool _nightMode = false; // 夜间模式（降低屏幕亮度）
+  // 方向锁定三态：landscape=横屏锁定, portrait=竖屏锁定, sensor=自动旋转
+  _OrientationPref _orientationPref = _OrientationPref.landscape;
 
   @override
   void initState() {
@@ -1388,14 +1393,50 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.screen_rotation, color: Colors.white, size: 22),
+                            icon: Icon(
+                              _orientationPref == _OrientationPref.landscape
+                                  ? Icons.screen_lock_rotation
+                                  : _orientationPref == _OrientationPref.portrait
+                                      ? Icons.stay_current_portrait
+                                      : Icons.screen_rotation,
+                              color: Colors.white, size: 22,
+                            ),
                             onPressed: () {
-                              final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-                              SystemChrome.setPreferredOrientations(
-                                isLandscape
-                                    ? [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]
-                                    : [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
-                              );
+                              setState(() {
+                                switch (_orientationPref) {
+                                  case _OrientationPref.landscape:
+                                    _orientationPref = _OrientationPref.portrait;
+                                    break;
+                                  case _OrientationPref.portrait:
+                                    _orientationPref = _OrientationPref.sensor;
+                                    break;
+                                  case _OrientationPref.sensor:
+                                    _orientationPref = _OrientationPref.landscape;
+                                    break;
+                                }
+                              });
+                              switch (_orientationPref) {
+                                case _OrientationPref.landscape:
+                                  SystemChrome.setPreferredOrientations([
+                                    DeviceOrientation.landscapeLeft,
+                                    DeviceOrientation.landscapeRight,
+                                  ]);
+                                  break;
+                                case _OrientationPref.portrait:
+                                  SystemChrome.setPreferredOrientations([
+                                    DeviceOrientation.portraitUp,
+                                    DeviceOrientation.portraitDown,
+                                  ]);
+                                  break;
+                                case _OrientationPref.sensor:
+                                  SystemChrome.setPreferredOrientations([
+                                    DeviceOrientation.portraitUp,
+                                    DeviceOrientation.landscapeLeft,
+                                    DeviceOrientation.landscapeRight,
+                                    DeviceOrientation.portraitDown,
+                                  ]);
+                                  break;
+                              }
                             },
                           ),
                         ],
