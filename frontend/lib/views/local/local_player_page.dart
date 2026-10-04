@@ -900,7 +900,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 ),
               ),
             ),
-            // 右侧操作栏：收藏 / 分享 / 信息
+            // 右侧操作栏：与独立页一致
             Positioned(
               right: 12,
               bottom: MediaQuery.of(context).padding.bottom + 110,
@@ -912,7 +912,10 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 按钮顺序对齐在线 feed：点赞→分享→画中画→评论→信息→字幕→音轨→比例→夜间模式
+                      // 演员头像
+                      _buildActorAvatar(context),
+                      const SizedBox(height: 12),
+                      // 收藏
                       Consumer(
                         builder: (_, ref, __) {
                           final isFav = ref.watch(localVideoProvider
@@ -931,6 +934,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         onPressed: () => _share(context),
                       ),
                       const SizedBox(height: 8),
+                      // 外部播放
+                      IconButton(
+                        icon: const Icon(Icons.open_in_new,
+                            color: Colors.white, size: 26),
+                        onPressed: _playWithExternal,
+                      ),
+                      const SizedBox(height: 8),
                       IconButton(
                         icon: const Icon(Icons.picture_in_picture_alt,
                             color: Colors.white, size: 26),
@@ -947,6 +957,20 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: Icon(Icons.info_outline,
                             color: Colors.white, size: 26),
                         onPressed: () => _showInfo(context),
+                      ),
+                      const SizedBox(height: 8),
+                      // 章节
+                      IconButton(
+                        icon: const Icon(Icons.list_alt_outlined,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _showChapters(context),
+                      ),
+                      const SizedBox(height: 8),
+                      // 删除
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.white, size: 26),
+                        onPressed: () => _deleteVideo(context),
                       ),
                       const SizedBox(height: 8),
                       IconButton(
