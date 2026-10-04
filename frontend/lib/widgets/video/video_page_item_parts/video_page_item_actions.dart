@@ -159,7 +159,6 @@ extension _VideoPageItemActions on _VideoPageItemState {
           ref.read(autoPlayNextTriggerProvider.notifier).state++;
         }
       }
-    }
   }
 
   String _newPlaySessionId() =>
