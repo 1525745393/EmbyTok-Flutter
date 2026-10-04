@@ -1,3 +1,10 @@
+# [2.344.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.343.0...v2.344.0) (2026-10-04)
+
+
+### Features
+
+* 嵌入式feed右侧栏与独立页统一（补演员头像/外部播放/章节/删除） ([420f383](https://github.com/1525745393/EmbyTok-Flutter/commit/420f383c06d49787edf3491a5b9f3d9a3bb3bc26))
+
 # [2.343.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.342.1...v2.343.0) (2026-10-04)
 
 
