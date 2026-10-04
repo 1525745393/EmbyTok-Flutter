@@ -101,7 +101,9 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
       body: RefreshIndicator(
         onRefresh: notifier.refresh,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).padding.bottom + 24,
+          ),
           children: [
             // 刮削进度条
             if (state.scraping)
@@ -2691,6 +2693,7 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
 
     return Scaffold(
       body: ListView(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 24),
         children: [
           // 顶部 backdrop 大图
           Stack(
