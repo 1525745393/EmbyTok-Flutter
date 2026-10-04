@@ -214,6 +214,126 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
     );
   }
 
+  /// 统一设置面板（对齐在线全屏页：倍速/比例/字幕/音轨）
+  void _showSettingsPanel(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => DefaultTabController(
+        length: 4,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TabBar(
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white54,
+                indicatorColor: Colors.white,
+                tabs: [
+                  Tab(icon: Icon(Icons.speed, size: 20), text: '倍速'),
+                  Tab(icon: Icon(Icons.aspect_ratio, size: 20), text: '比例'),
+                  Tab(icon: Icon(Icons.subtitles, size: 20), text: '字幕'),
+                  Tab(icon: Icon(Icons.audiotrack, size: 20), text: '音轨'),
+                ],
+              ),
+              SizedBox(
+                height: 280,
+                child: TabBarView(
+                  children: [
+                    // 倍速
+                    ListView(
+                      children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((s) {
+                        return ListTile(
+                          title: Text('${s}x', style: const TextStyle(color: Colors.white)),
+                          trailing: _playbackSpeed == s
+                              ? const Icon(Icons.check, color: Colors.green)
+                              : null,
+                          onTap: () {
+                            setState(() => _playbackSpeed = s);
+                            _activeController?.setPlaybackSpeed(s);
+                            Navigator.pop(context);
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    // 比例
+                    Consumer(builder: (_, ref, __) {
+                      final current = ref.watch(videoFitModeProvider);
+                      return ListView(
+                        children: VideoFitMode.values.map((m) {
+                          const labels = {
+                            VideoFitMode.fit: '适应',
+                            VideoFitMode.fill: '填充',
+                            VideoFitMode.stretch: '拉伸',
+                            VideoFitMode.sixteenNine: '16:9',
+                          };
+                          return ListTile(
+                            title: Text(labels[m] ?? m.name, style: const TextStyle(color: Colors.white)),
+                            trailing: m == current
+                                ? const Icon(Icons.check, color: Colors.green)
+                                : null,
+                            onTap: () {
+                              ref.read(videoFitModeProvider.notifier).setMode(m);
+                              Navigator.pop(context);
+                            },
+                          );
+                        }).toList(),
+                      );
+                    }),
+                    // 字幕
+                    Builder(builder: (_) {
+                      final subs = item.subtitlePaths ?? const [];
+                      return ListView(
+                        children: [
+                          ListTile(
+                            title: const Text('关闭字幕', style: TextStyle(color: Colors.white)),
+                            trailing: _selectedSubtitleIdx == 0
+                                ? const Icon(Icons.check, color: Colors.green)
+                                : null,
+                            onTap: () {
+                              setState(() => _selectedSubtitleIdx = 0);
+                              Navigator.pop(context);
+                            },
+                          ),
+                          ...subs.asMap().entries.map((e) {
+                            final idx = e.key + 1;
+                            return ListTile(
+                              title: Text(e.value.split('/').last, style: const TextStyle(color: Colors.white)),
+                              trailing: _selectedSubtitleIdx == idx
+                                  ? const Icon(Icons.check, color: Colors.green)
+                                  : null,
+                              onTap: () {
+                                setState(() => _selectedSubtitleIdx = idx);
+                                Navigator.pop(context);
+                              },
+                            );
+                          }),
+                          if (subs.isEmpty)
+                            const ListTile(title: Text('无外挂字幕', style: TextStyle(color: Colors.white54))),
+                        ],
+                      );
+                    }),
+                    // 音轨
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Text('本地视频暂不支持音轨切换',
+                            style: TextStyle(color: Colors.white54)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 评论（TMDB 评论）
   void _showComments(BuildContext context) {
     final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
@@ -1204,6 +1324,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
                       IconButton(icon: const Icon(Icons.bedtime, color: Colors.white, size: 22), onPressed: () => _showSleepTimer(context)),
                       IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 22), onPressed: () => _showInfo(context)),
+                      IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
                     ],
                   ),
                 ),
