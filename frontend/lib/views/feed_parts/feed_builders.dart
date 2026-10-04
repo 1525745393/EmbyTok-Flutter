@@ -173,9 +173,9 @@ extension _FeedBuilders on _FeedViewState {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: m.imagePath != null
+                  child: (m.imageTags?['Primary'] != null)
                       ? CachedNetworkImage(
-                          imageUrl: m.imagePath!,
+                          imageUrl: m.imageTags!['Primary']!,
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => Container(
                             color: Colors.grey[900],

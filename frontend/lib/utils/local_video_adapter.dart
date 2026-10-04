@@ -22,7 +22,10 @@ class LocalVideoAdapter {
       overview: scraped?.overview ?? '',
       communityRating: scraped?.rating,
       genres: scraped?.genres,
-      imageTags: const {},
+      // 本地刮削后：把 TMDB poster URL 放进 imageTags['Primary']，复用现有海报渲染
+      imageTags: scraped?.posterPath != null
+          ? {'Primary': 'https://image.tmdb.org/t/p/w300${scraped!.posterPath}'}
+          : const {},
       backdropImageTags: const [],
       isLocalFile: true,
       localPath: it.networkUrl != null && it.networkUrl!.isNotEmpty ? null : it.path,
