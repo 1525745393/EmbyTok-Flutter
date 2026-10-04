@@ -1,3 +1,15 @@
+# [2.346.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.345.0...v2.346.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 删除重复的设置面板方法 ([0e2869e](https://github.com/1525745393/EmbyTok-Flutter/commit/0e2869edc47e5a9b414335b7a54b06ede9ef5680))
+
+
+### Features
+
+* 补全设置面板（倍速/比例/字幕/音轨统一面板） ([7e3626d](https://github.com/1525745393/EmbyTok-Flutter/commit/7e3626dac080fdb7d28ba3fc44dd06f1b7582219))
+
 # [2.345.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.344.1...v2.345.0) (2026-10-04)
 
 
