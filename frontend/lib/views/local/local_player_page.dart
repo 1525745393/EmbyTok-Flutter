@@ -279,11 +279,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 shrinkWrap: true,
                 itemCount: chapters.length,
                 itemBuilder: (_, i) => ListTile(
-                  leading: Text('${chapters[i].startTime.inSeconds}s', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  title: Text(chapters[i].title, style: const TextStyle(color: Colors.white)),
+                  leading: Text('${chapters[i].startPositionSeconds.toInt()}s', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  title: Text(chapters[i].name, style: const TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(context);
-                    _playerKey.currentState?.seekTo(chapters[i].startTime);
+                    _playerKey.currentState?.seekTo(Duration(seconds: chapters[i].startPositionSeconds.toInt()));
                   },
                 ),
               ),
@@ -306,7 +306,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await LocalVideoService().deleteVideo(item.pathHash);
+              await LocalVideoService().delete(item);
               if (mounted) Navigator.pop(context);
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
