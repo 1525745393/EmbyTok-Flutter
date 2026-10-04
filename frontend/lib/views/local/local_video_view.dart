@@ -11,6 +11,7 @@ import 'local_detail_view.dart';
 import 'person_detail_view.dart';
 
 import '../../models/local_video_item.dart';
+import '../../providers/app_preferences_providers.dart';
 import '../../models/file_source.dart';
 import '../../providers/local_video_provider.dart';
 import '../../providers/file_sources_provider.dart';
@@ -2716,7 +2717,10 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
                 ),
               ),
               Positioned(
-                top: MediaQuery.of(context).padding.top,
+                top: (ref.watch(notchAvoidanceProvider)
+                        ? MediaQuery.of(context).padding.top
+                        : 0) +
+                    4,
                 left: 0,
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -2725,7 +2729,10 @@ class _FolderEpisodePageState extends ConsumerState<_FolderEpisodePage> {
               ),
               // 顶部右侧：重新刮削
               Positioned(
-                top: MediaQuery.of(context).padding.top,
+                top: (ref.watch(notchAvoidanceProvider)
+                        ? MediaQuery.of(context).padding.top
+                        : 0) +
+                    4,
                 right: 0,
                 child: IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.white),

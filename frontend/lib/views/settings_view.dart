@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../providers/local_mode_provider.dart';
+import '../providers/app_preferences_providers.dart';
 import '../providers/file_sources_provider.dart';
 import '../services/local_video_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -254,6 +255,14 @@ class SettingsView extends ConsumerWidget {
               _buildThemeTile(context, ref),
               _buildLanguageTile(context, ref),
               if (!isMusicMode) _buildOrientationTile(context, ref),
+              SwitchListTile(
+                secondary: const Icon(Icons.phonelink_setup_outlined, color: Colors.indigo),
+                title: const Text('避开刘海屏'),
+                subtitle: const Text('顶部预留状态栏空间，避免内容被刘海遮挡'),
+                value: ref.watch(notchAvoidanceProvider),
+                onChanged: (v) =>
+                    ref.read(notchAvoidanceProvider.notifier).set(v),
+              ),
             ],
           ),
           // 服务器与账户设置（配置服务器是进入 App 的前提，放在靠前位置）

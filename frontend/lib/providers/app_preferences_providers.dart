@@ -488,3 +488,28 @@ final recommendAntiFatigueDaysProvider =
 );
 
 // 推荐 - 追剧：取最近几部剧的下一集（默认 5，范围 [1,10]）
+
+// ---------------- notchAvoidance ----------------
+
+/// 是否避开刘海屏（顶部预留状态栏空间）
+class NotchAvoidanceNotifier extends StateNotifier<bool> {
+  NotchAvoidanceNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final sp = await SharedPreferences.getInstance();
+    state = sp.getBool('notchAvoidance') ?? true;
+  }
+
+  Future<void> set(bool v) async {
+    state = v;
+    final sp = await SharedPreferences.getInstance();
+    await sp.setBool('notchAvoidance', v);
+  }
+}
+
+final notchAvoidanceProvider =
+    StateNotifierProvider<NotchAvoidanceNotifier, bool>(
+  (ref) => NotchAvoidanceNotifier(),
+);
