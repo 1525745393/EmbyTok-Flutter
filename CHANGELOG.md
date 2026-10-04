@@ -1,3 +1,10 @@
+# [2.339.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.338.0...v2.339.0) (2026-10-04)
+
+
+### Features
+
+* 刮削TMDB家长分级数据并支持按分级排序 ([d56d6f2](https://github.com/1525745393/EmbyTok-Flutter/commit/d56d6f248d3a74ba667e71a6e326f69608574f96))
+
 # [2.338.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.337.0...v2.338.0) (2026-10-04)
 
 
