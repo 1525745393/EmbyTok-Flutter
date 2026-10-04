@@ -192,14 +192,40 @@ class _RightActionButtons extends ConsumerWidget {
                         color: scheme.onSurface,
                         onTap: onInfoTap,
                       ),
-                      // 章节导航：仅当 Emby 返回了章节列表时显示
-                      if (item.chapters != null && item.chapters!.isNotEmpty) ...[
+                      // 章节导航：Emby 有章节数据直接显示；本地文件点击时异步加载
+                      if ((item.chapters != null && item.chapters!.isNotEmpty) ||
+                          item.isLocalFile) ...[
                         SizedBox(height: rs(16, 1.5)),
                         PressableActionButton(
                           icon: Icons.list_alt_outlined,
                           label: '章节',
                           color: scheme.onSurface,
-                          onTap: onChapterTap ?? () {},
+                          onTap: () async {
+                            if (item.chapters != null &&
+                                item.chapters!.isNotEmpty) {
+                              onChapterTap?.call();
+                              return;
+                            }
+                            // 本地文件：异步读取章节
+                            final path = item.localNetworkUrl ?? item.localPath;
+                            if (path == null) return;
+                            final chapters =
+                                await LocalChapterService.getChapters(path);
+                            if (chapters.isNotEmpty &&
+                                context.mounted) {
+                              showChapterPicker(
+                                context: context,
+                                chapters: chapters,
+                                onSelect: (sec) {
+                                  // seek
+                                },
+                              );
+                            } else if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('该文件无内嵌章节')),
+                              );
+                            }
+                          },
                         ),
                       ],
                       SizedBox(height: rs(16, 1.5)),
