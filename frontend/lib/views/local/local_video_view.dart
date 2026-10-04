@@ -2,6 +2,7 @@
 // 对应 PRD《本地模式》§4.3 / §6
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -56,7 +57,17 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
 
     final sources = ref.watch(fileSourcesProvider);
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: Theme.of(context).brightness == Brightness.dark
+            ? Brightness.dark
+            : Brightness.light,
+      ),
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -170,6 +181,7 @@ class _LocalVideoViewState extends ConsumerState<LocalVideoView> {
               ),
           ],
         ),
+      ),
       ),
     );
   }
