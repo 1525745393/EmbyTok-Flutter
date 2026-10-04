@@ -1799,9 +1799,14 @@ class _SourceFullListPage extends ConsumerStatefulWidget {
 
 class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
   int _tab = 0; // 电影/播放记录/分类/合集/文件夹
-  bool _gridMode = true; // true=3列海报, false=2列backdrop
+  int _viewMode = 0; // 0=竖版海报, 1=横版backdrop, 2=列表
   String _sortBy = 'name';
+  bool _sortAscending = true;
   String? _genreFilter; // 分类 Tab 当前选中类型
+  String _watchFilter = '全部'; // 全部/续看/未观看/已观看
+  bool _showSearch = false;
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
 
   static const _sortOptions = {
     'name': '按名称',
@@ -1820,44 +1825,47 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     'random': '随机',
   };
 
+  static const _watchFilters = ['全部', '续看', '未观看', '已观看'];
+
   List<LocalVideoItem> _applySort(List<LocalVideoItem> items, LocalVideoState state) {
     final list = [...items];
     double gR(String h) => state.scrapedMap[h]?.rating ?? 0;
     int gY(String h) => state.scrapedMap[h]?.year ?? 0;
-    switch (_sortBy) {
-      case 'name':
-        list.sort((a, b) => (state.scrapedMap[a.pathHash]?.title ?? a.name)
-            .compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name));
-      case 'time':
-      case 'playDate':
-        list.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-      case 'added':
-      case 'lastAdded':
-        list.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-      case 'year':
-        list.sort((a, b) => gY(b.pathHash).compareTo(gY(a.pathHash)));
-      case 'rating':
-      case 'criticRating':
-        list.sort((a, b) => gR(b.pathHash).compareTo(gR(a.pathHash)));
-      case 'certification':
-        String certOf(LocalVideoItem e) =>
-            state.scrapedMap[e.pathHash]?.certification ?? '';
-        list.sort((a, b) => certOf(a).compareTo(certOf(b)));
-      case 'duration':
-        list.sort((a, b) => b.duration.inSeconds.compareTo(a.duration.inSeconds));
-      case 'size':
-        list.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
-      case 'resolution':
-        // 无分辨率字段，按文件大小近似
-        list.sort((a, b) => b.sizeBytes.compareTo(a.sizeBytes));
-      case 'bitrate':
-        // 比特率 = 大小/时长
-        int bps(LocalVideoItem e) =>
-            e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
-        list.sort((a, b) => bps(b).compareTo(bps(a)));
-      case 'random':
-        list.shuffle();
-    }
+    int cmp(dynamic a, dynamic b) => Comparable.compare(a is Comparable ? a : 0, b is Comparable ? b : 0);
+    void r() => list.sort((a, b) {
+      int r;
+      switch (_sortBy) {
+        case 'name':
+          r = (state.scrapedMap[a.pathHash]?.title ?? a.name).compareTo(state.scrapedMap[b.pathHash]?.title ?? b.name);
+        case 'time':
+        case 'playDate':
+          r = b.modifiedAt.compareTo(a.modifiedAt);
+        case 'added':
+        case 'lastAdded':
+          r = b.modifiedAt.compareTo(a.modifiedAt);
+        case 'year':
+          r = gY(b.pathHash).compareTo(gY(a.pathHash));
+        case 'rating':
+        case 'criticRating':
+          r = gR(b.pathHash).compareTo(gR(a.pathHash));
+        case 'certification':
+          r = (state.scrapedMap[a.pathHash]?.certification ?? '').compareTo(state.scrapedMap[b.pathHash]?.certification ?? '');
+        case 'duration':
+          r = b.duration.inSeconds.compareTo(a.duration.inSeconds);
+        case 'size':
+          r = b.sizeBytes.compareTo(a.sizeBytes);
+        case 'resolution':
+          r = b.sizeBytes.compareTo(a.sizeBytes);
+        case 'bitrate':
+          int bps(LocalVideoItem e) => e.duration.inSeconds > 0 ? e.sizeBytes ~/ e.duration.inSeconds : 0;
+          r = bps(b).compareTo(bps(a));
+        default:
+          r = 0;
+      }
+      return _sortAscending ? r : -r;
+    });
+    if (_sortBy == 'random') { list.shuffle(); return list; }
+    r();
     return list;
   }
 
@@ -1881,6 +1889,28 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
         break;
       default:
         items = allItems;
+    }
+    // 观看状态筛选
+    if (_watchFilter != '全部') {
+      final resumeMap = state.resumeMs;
+      items = items.where((e) {
+        final ms = resumeMap[e.pathHash] ?? 0;
+        switch (_watchFilter) {
+          case '续看': return ms > 0;
+          case '未观看': return ms == 0;
+          case '已观看': return ms > 0 && state.completedHashes.contains(e.pathHash);
+          default: return true;
+        }
+      }).toList();
+    }
+    // 搜索
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      items = items.where((e) {
+        final s = state.scrapedMap[e.pathHash];
+        final title = (s?.title ?? e.name).toLowerCase();
+        return title.contains(q);
+      }).toList();
     }
     items = _applySort(items, state);
 
@@ -1964,6 +1994,45 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       body: Column(
         children: [
           _buildTabBar(isTv),
+          if (_showSearch)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '在${widget.sourceName}中搜索…',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() { _showSearch = false; _searchQuery = ''; _searchCtrl.clear(); }),
+                  ),
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onChanged: (v) => setState(() => _searchQuery = v.trim()),
+              ),
+            ),
+          // 观看状态筛选
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: _watchFilters.map((f) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: ChoiceChip(
+                    label: Text(f, style: const TextStyle(fontSize: 12)),
+                    selected: _watchFilter == f,
+                    onSelected: (_) => setState(() => _watchFilter = f),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
           Expanded(child: _buildTabBody(items, state)),
         ],
       ),
@@ -1981,18 +2050,38 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
         ],
       ),
       actions: [
+        // 视图切换：竖版海报→横版backdrop→列表
         IconButton(
-          icon: Icon(_gridMode ? Icons.grid_view : Icons.view_agenda_outlined),
-          tooltip: _gridMode ? '切换列表' : '切换网格',
-          onPressed: () => setState(() => _gridMode = !_gridMode),
+          icon: Icon(
+            _viewMode == 0 ? Icons.grid_view : _viewMode == 1 ? Icons.rectangle : Icons.view_list,
+            size: 22,
+          ),
+          tooltip: _viewMode == 0 ? '竖版海报' : _viewMode == 1 ? '横版海报' : '列表',
+          onPressed: () => setState(() => _viewMode = (_viewMode + 1) % 3),
         ),
+        // 搜索
+        IconButton(
+          icon: Icon(_showSearch ? Icons.filter_alt : Icons.search, size: 22),
+          onPressed: () => setState(() => _showSearch = !_showSearch),
+        ),
+        // 排序
         PopupMenuButton<String>(
-          icon: const Icon(Icons.sort),
+          icon: const Icon(Icons.sort, size: 22),
           tooltip: '排序',
           onSelected: (v) => setState(() => _sortBy = v),
           itemBuilder: (_) => _sortOptions.entries
-              .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+              .map((e) => PopupMenuItem(value: e.key, child: Row(children: [
+                if (e.key == _sortBy) const Icon(Icons.check, size: 16, color: Colors.green),
+                const SizedBox(width: 8),
+                Text(e.value),
+              ])))
               .toList(),
+        ),
+        // 升/降序
+        IconButton(
+          icon: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward, size: 20),
+          tooltip: _sortAscending ? '升序' : '降序',
+          onPressed: () => setState(() => _sortAscending = !_sortAscending),
         ),
       ],
     );
@@ -2080,9 +2169,7 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
             Expanded(
               child: filtered.isEmpty
                   ? const Center(child: Text('暂无内容'))
-                  : _gridMode
-                      ? _buildGrid(filtered, state)
-                      : _buildBackdropList(filtered, state),
+                  : _buildBody(filtered, state),
             ),
           ],
         );
@@ -2150,10 +2237,46 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
       default: // 0 电影 / 1 播放记录
         return items.isEmpty
             ? const Center(child: Text('暂无内容'))
-            : _gridMode
-                ? _buildGrid(items, state)
-                : _buildBackdropList(items, state);
+            : _buildBody(items, state);
     }
+  }
+
+  /// 根据视图模式渲染
+  Widget _buildBody(List<LocalVideoItem> items, LocalVideoState state) {
+    switch (_viewMode) {
+      case 1: return _buildBackdropList(items, state);
+      case 2: return _buildListView(items, state);
+      default: return _buildGrid(items, state);
+    }
+  }
+
+  /// 单列列表视图
+  Widget _buildListView(List<LocalVideoItem> items, LocalVideoState state) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final it = items[i];
+        final s = state.scrapedMap[it.pathHash];
+        return ListTile(
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              width: 48, height: 72,
+              child: s?.posterPath != null
+                  ? CachedNetworkImage(imageUrl: TmdbService.posterUrl(s!.posterPath!), fit: BoxFit.cover)
+                  : Container(color: Colors.grey[800], child: const Icon(Icons.movie, size: 20)),
+            ),
+          ),
+          title: Text(s?.title ?? it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text([
+            if (s?.year != null) '${s!.year}',
+            if (it.duration.inMinutes > 0) '${it.duration.inMinutes}分钟',
+          ].join(' · '), style: const TextStyle(fontSize: 12)),
+          onTap: () => _openPlayer(items, i),
+        );
+      },
+    );
   }
 
   /// 3列竖版海报网格
