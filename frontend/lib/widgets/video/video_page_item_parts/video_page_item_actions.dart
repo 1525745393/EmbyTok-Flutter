@@ -133,24 +133,10 @@ extension _VideoPageItemActions on _VideoPageItemState {
           controller.value.position;
     }
 
-    // 片尾"下一集"按钮：最后 90 秒显示
-    final pos = controller.value.position;
-    final dur = controller.value.duration;
-    final remaining = dur - pos;
-    final shouldShowEndButton = dur.inSeconds > 0 &&
-        remaining.inSeconds <= 90 &&
-        remaining.inSeconds > 3;
-    if (shouldShowEndButton != _showEndCreditsButton) {
-      _showEndCreditsButton = shouldShowEndButton;
-      if (mounted) setState(() {});
-    }
-    // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
-    // 使“3 秒自动隐藏”永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
-    // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
-    // 使"3 秒自动隐藏"永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。hHistory 中已播放条目会更新，需失效以反映最新观看进度
+      // History 中已播放条目会更新，需失效以反映最新观看进度
         final serverUrl = _authServerUrl();
         final token = _authToken();
         if (serverUrl != null && token != null) {
