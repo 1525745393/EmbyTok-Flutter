@@ -1892,13 +1892,12 @@ class _SourceFullListPageState extends ConsumerState<_SourceFullListPage> {
     }
     // 观看状态筛选
     if (_watchFilter != '全部') {
-      final resumeMap = state.resumeMs;
+      final played = state.recentHashes.toSet();
       items = items.where((e) {
-        final ms = resumeMap[e.pathHash] ?? 0;
         switch (_watchFilter) {
-          case '续看': return ms > 0;
-          case '未观看': return ms == 0;
-          case '已观看': return ms > 0 && state.completedHashes.contains(e.pathHash);
+          case '续看': return played.contains(e.pathHash);
+          case '未观看': return !played.contains(e.pathHash);
+          case '已观看': return played.contains(e.pathHash);
           default: return true;
         }
       }).toList();
