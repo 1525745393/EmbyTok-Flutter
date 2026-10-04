@@ -177,17 +177,15 @@ class _RightActionButtons extends ConsumerWidget {
                         },
                       ),
                       SizedBox(height: rs(16, 1.5)),
-                      // 本地文件无评论，隐藏评论按钮
-                      if (!item.isLocalFile) ...[
-                        PressableActionButton(
-                          icon: Icons.chat_bubble_outline,
-                          label: '评论',
-                          color: scheme.onSurface,
-                          badgeCount: commentCount,
-                          onTap: onCommentTap,
-                        ),
-                        SizedBox(height: rs(16, 1.5)),
-                      ],
+                      // 评论（TMDB 评论，本地也支持）
+                      PressableActionButton(
+                        icon: Icons.chat_bubble_outline,
+                        label: '评论',
+                        color: scheme.onSurface,
+                        badgeCount: commentCount,
+                        onTap: onCommentTap,
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
                       PressableActionButton(
                         icon: Icons.info_outline,
                         label: '信息',
