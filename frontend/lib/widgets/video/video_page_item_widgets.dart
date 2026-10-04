@@ -162,6 +162,21 @@ class _RightActionButtons extends ConsumerWidget {
                         onTap: () => _playWithExternalPlayer(context, item),
                       ),
                       SizedBox(height: rs(16, 1.5)),
+                      // 画中画 PiP
+                      PressableActionButton(
+                        icon: Icons.picture_in_picture_alt_outlined,
+                        label: '画中画',
+                        color: scheme.onSurface,
+                        onTap: () async {
+                          final ok = await PipUtil.enterPip();
+                          if (!ok && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('当前设备不支持画中画')),
+                            );
+                          }
+                        },
+                      ),
+                      SizedBox(height: rs(16, 1.5)),
                       // 本地文件无评论，隐藏评论按钮
                       if (!item.isLocalFile) ...[
                         PressableActionButton(
