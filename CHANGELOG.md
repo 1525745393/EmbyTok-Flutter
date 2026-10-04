@@ -1,3 +1,21 @@
+# [2.336.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.335.2...v2.336.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 修复video_page_item_actions重复声明和括号错误 ([40f86a8](https://github.com/1525745393/EmbyTok-Flutter/commit/40f86a8acca64420abd11fb11af530f23a28c060))
+* 本地流演员头像可点击进详情页 ([ffdc024](https://github.com/1525745393/EmbyTok-Flutter/commit/ffdc024427e549bacfce2ddae8da291a6b75747b))
+* 本地流网格显示海报图+点击定位到该项 ([d0677ab](https://github.com/1525745393/EmbyTok-Flutter/commit/d0677ab3e3ad66e5355a9cc6be38d4eb4b741afe))
+* 本地流网格海报改用imageTags[Primary] ([2336fa2](https://github.com/1525745393/EmbyTok-Flutter/commit/2336fa23ec56e426cbc9269091ba9e67be613125))
+* 本地流适配器正确设置TV类型/季集号/年份/集名 ([27c197b](https://github.com/1525745393/EmbyTok-Flutter/commit/27c197b61cd2bbd791f03b1a352022a0634d3a49))
+* 移除_showEndCreditsButton残留引用 ([4783c7c](https://github.com/1525745393/EmbyTok-Flutter/commit/4783c7c4c9fab541b2b282db0b53d9acd705469e))
+* 移除多余的右括号 ([760b01c](https://github.com/1525745393/EmbyTok-Flutter/commit/760b01cbf3408ffb47492baac6f28de87eaa99f5))
+
+
+### Features
+
+* 视频流右侧操作栏新增画中画PiP按钮 ([653f986](https://github.com/1525745393/EmbyTok-Flutter/commit/653f9869a419b5fb2656ab7e09ac87f6a72ea20e))
+
 ## [2.335.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.335.1...v2.335.2) (2026-10-04)
 
 
