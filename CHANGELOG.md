@@ -1,3 +1,10 @@
+## [2.335.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.335.1...v2.335.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* 整理文件结构await dialog后加mounted检查 ([9ebf191](https://github.com/1525745393/EmbyTok-Flutter/commit/9ebf19123bc0d2cae398a1fef3d98064baf34eb1))
+
 ## [2.335.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.335.0...v2.335.1) (2026-10-03)
 
 
