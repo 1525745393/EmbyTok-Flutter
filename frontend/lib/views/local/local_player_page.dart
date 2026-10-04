@@ -1195,21 +1195,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            if (widget.items.length > 1)
-                              Text('${_index + 1} / ${widget.items.length}', style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                          ],
-                        ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.fullscreen, color: Colors.white, size: 22),
+                        onPressed: () => _toggleOrientation(),
                       ),
-                      IconButton(icon: const Icon(Icons.picture_in_picture_alt, color: Colors.white, size: 22), onPressed: () => PipUtil.enterPip()),
-                      IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
-                      IconButton(icon: const Icon(Icons.bedtime, color: Colors.white, size: 22), onPressed: () => _showSleepTimer(context)),
-                      IconButton(icon: const Icon(Icons.info_outline, color: Colors.white, size: 22), onPressed: () => _showInfo(context)),
-                      IconButton(icon: const Icon(Icons.settings, color: Colors.white, size: 22), onPressed: () => _showSettingsPanel(context)),
                     ],
                   ),
                 ),
@@ -1345,7 +1335,85 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 信息卡（对齐在线 feed：类型标签+标题+评分+简介+导演主演）
+                      Consumer(
+                        builder: (_, ref, __) {
+                          final scraped = ref.watch(localVideoProvider
+                              .select((s) => s.scrapedMap[item.pathHash]));
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (scraped != null && scraped.genres.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.pinkAccent.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    scraped.genres.first,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      scraped?.title ?? item.name,
+                                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (scraped != null && scraped.year > 0)
+                                    Text(' (${scraped.year})', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                                ],
+                              ),
+                              if (scraped != null && (scraped.rating > 0 || item.durationSeconds > 0))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    children: [
+                                      if (scraped.rating > 0) ...[
+                                        const Icon(Icons.star, color: Colors.pinkAccent, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text(scraped.rating.toStringAsFixed(1), style: const TextStyle(color: Colors.pinkAccent, fontSize: 14, fontWeight: FontWeight.w600)),
+                                        const SizedBox(width: 12),
+                                      ],
+                                      if (item.durationSeconds > 0)
+                                        Text(_formatDuration(Duration(seconds: item.durationSeconds)),
+                                            style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                    ],
+                                  ),
+                                ),
+                              if (scraped != null && scraped.overview.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    scraped.overview,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              if (scraped != null && (scraped.directors.isNotEmpty || scraped.cast.isNotEmpty))
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    '导演：${scraped.directors.take(1).join("")} ｜ 主演：${scraped.cast.take(3).join("、")}',
+                                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       _activeController != null
                           ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
                           : const SizedBox(height: 2),
