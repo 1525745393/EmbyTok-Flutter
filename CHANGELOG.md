@@ -1,3 +1,10 @@
+## [2.339.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.339.0...v2.339.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* 本地媒体库适配全面屏底部安全区 ([55d904b](https://github.com/1525745393/EmbyTok-Flutter/commit/55d904b078d9b90018a5ba53c8487270371a3895))
+
 # [2.339.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.338.0...v2.339.0) (2026-10-04)
 
 
