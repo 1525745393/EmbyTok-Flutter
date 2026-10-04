@@ -216,8 +216,8 @@ class _RightActionButtons extends ConsumerWidget {
                               showChapterPicker(
                                 context: context,
                                 chapters: chapters,
-                                onSelect: (sec) {
-                                  // seek
+                                onSeek: (sec) {
+                                  // TODO: seek to chapter
                                 },
                               );
                             } else if (context.mounted) {
