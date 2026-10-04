@@ -1,3 +1,10 @@
+## [2.340.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.2...v2.340.3) (2026-10-04)
+
+
+### Bug Fixes
+
+* 独立播放页补右侧操作栏+底部安全区避让 ([845f02e](https://github.com/1525745393/EmbyTok-Flutter/commit/845f02e3261622813265907c894cf6d7b705c6c5))
+
 ## [2.340.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.1...v2.340.2) (2026-10-04)
 
 

@@ -2,7 +2,7 @@
 name: embytok_flutter
 description: "EmbyTok Flutter - 为 Emby 媒体服务器设计的竖屏视频浏览客户端"
 publish_to: 'none'
-version: 2.340.2+1541
+version: 2.340.3+1542
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
