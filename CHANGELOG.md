@@ -1,3 +1,10 @@
+# [2.341.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.3...v2.341.0) (2026-10-04)
+
+
+### Features
+
+* 本地独立播放页添加TMDB评论按钮 ([a605ae7](https://github.com/1525745393/EmbyTok-Flutter/commit/a605ae7ae5d9f0aa130b459d7fff1ff34d3ad8aa))
+
 ## [2.340.3](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.2...v2.340.3) (2026-10-04)
 
 
