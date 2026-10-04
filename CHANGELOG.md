@@ -1,3 +1,11 @@
+# [2.349.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.348.0...v2.349.0) (2026-10-04)
+
+
+### Features
+
+* 剧集列表/倍速/锁屏/旋转移到右侧栏 ([d17592c](https://github.com/1525745393/EmbyTok-Flutter/commit/d17592cb40849b7df3d939a647a24facbb318b0c))
+* 播放按钮对齐在线feed（小图标非大圆按钮） ([16a7cf5](https://github.com/1525745393/EmbyTok-Flutter/commit/16a7cf5ee6f20c31089cdd62e3868178ba8698e7))
+
 # [2.348.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.347.0...v2.348.0) (2026-10-04)
 
 
