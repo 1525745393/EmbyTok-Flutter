@@ -1,3 +1,15 @@
+# [2.342.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.341.0...v2.342.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 章节字段名和删除方法名修正 ([2c451c7](https://github.com/1525745393/EmbyTok-Flutter/commit/2c451c7eda292d56c59c53bbb854431f4ade613c))
+
+
+### Features
+
+* 本地播放页右侧栏补全演员头像/外部播放/章节/删除 ([355b8b4](https://github.com/1525745393/EmbyTok-Flutter/commit/355b8b45f68b3a41a7a658b2af2013e1c3adc978))
+
 # [2.341.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.3...v2.341.0) (2026-10-04)
 
 
