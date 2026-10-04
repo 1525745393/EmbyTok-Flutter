@@ -1,3 +1,15 @@
+# [2.338.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.337.0...v2.338.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 本地章节改用ffprobe,修复onSeek参数名 ([9a3a982](https://github.com/1525745393/EmbyTok-Flutter/commit/9a3a982c868eda6923bfe12879b4d09cc6028b2e))
+
+
+### Features
+
+* 本地视频支持读取内嵌章节(media_kit) ([5b80165](https://github.com/1525745393/EmbyTok-Flutter/commit/5b80165ac4add028c87be93dd7852f1f75f4867a))
+
 # [2.337.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.336.0...v2.337.0) (2026-10-04)
 
 
