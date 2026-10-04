@@ -385,7 +385,7 @@ class _FileSourceBrowseViewState extends ConsumerState<FileSourceBrowseView> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
     int ok = 0, fail = 0;
     for (final item in eps) {
       try {
