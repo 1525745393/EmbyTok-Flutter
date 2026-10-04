@@ -1198,7 +1198,13 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       const Spacer(),
                       IconButton(
                         icon: const Icon(Icons.fullscreen, color: Colors.white, size: 22),
-                        onPressed: () => _toggleOrientation(),
+                        onPressed: () {
+                          setState(() {
+                            _orientationPref = _orientationPref == _OrientationPref.landscape
+                                ? _OrientationPref.portrait
+                                : _OrientationPref.landscape;
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -1368,32 +1374,32 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  if (scraped != null && scraped.year > 0)
+                                  if (scraped != null && scraped.year != null && scraped.year! > 0)
                                     Text(' (${scraped.year})', style: const TextStyle(color: Colors.white70, fontSize: 14)),
                                 ],
                               ),
-                              if (scraped != null && (scraped.rating > 0 || item.durationSeconds > 0))
+                              if (scraped != null && (scraped.rating != null && scraped.rating! > 0 || item.duration.inSeconds > 0))
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Row(
                                     children: [
-                                      if (scraped.rating > 0) ...[
+                                      if (scraped.rating != null && scraped.rating! > 0) ...[
                                         const Icon(Icons.star, color: Colors.pinkAccent, size: 16),
                                         const SizedBox(width: 4),
-                                        Text(scraped.rating.toStringAsFixed(1), style: const TextStyle(color: Colors.pinkAccent, fontSize: 14, fontWeight: FontWeight.w600)),
+                                        Text(scraped.rating!.toStringAsFixed(1), style: const TextStyle(color: Colors.pinkAccent, fontSize: 14, fontWeight: FontWeight.w600)),
                                         const SizedBox(width: 12),
                                       ],
-                                      if (item.durationSeconds > 0)
-                                        Text(_formatDuration(Duration(seconds: item.durationSeconds)),
+                                      if (item.duration.inSeconds > 0)
+                                        Text(_formatDur(item.duration),
                                             style: const TextStyle(color: Colors.white70, fontSize: 13)),
                                     ],
                                   ),
                                 ),
-                              if (scraped != null && scraped.overview.isNotEmpty)
+                              if (scraped != null && scraped.overview != null && scraped.overview!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Text(
-                                    scraped.overview,
+                                    scraped.overview!,
                                     style: const TextStyle(color: Colors.white70, fontSize: 13),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -1403,7 +1409,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
-                                    '导演：${scraped.directors.take(1).join("")} ｜ 主演：${scraped.cast.take(3).join("、")}',
+                                    '导演：${scraped.directors.take(1).join("")} ｜ 主演：${scraped.cast.take(3).map((c) => c["name"] ?? "").join("、")}',
                                     style: const TextStyle(color: Colors.white54, fontSize: 12),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
