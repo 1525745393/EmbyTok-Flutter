@@ -1,3 +1,10 @@
+## [2.342.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.342.0...v2.342.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* 收藏按钮实时反映收藏状态 ([f1b5a2c](https://github.com/1525745393/EmbyTok-Flutter/commit/f1b5a2c27e2ab9404a4e58dd3ab6f1468d68c7f0))
+
 # [2.342.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.341.0...v2.342.0) (2026-10-04)
 
 
