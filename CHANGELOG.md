@@ -1,3 +1,15 @@
+# [2.348.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.347.0...v2.348.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 修复信息卡空安全和字段名 ([ed6058c](https://github.com/1525745393/EmbyTok-Flutter/commit/ed6058c0112bfe1aafb3ebebe80b69a28bfe620c))
+
+
+### Features
+
+* 本地独立页对齐在线 feed 布局（简化顶栏+底部信息卡） ([49373f2](https://github.com/1525745393/EmbyTok-Flutter/commit/49373f287b4d31d328c966d8b155b95b50b7623f))
+
 # [2.347.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.346.0...v2.347.0) (2026-10-04)
 
 
