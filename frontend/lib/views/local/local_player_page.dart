@@ -20,6 +20,7 @@ import '../../utils/pip_util.dart';
 import '../../providers/local_video_provider.dart';
 import '../../providers/app_preferences_providers.dart';
 import '../../widgets/video/gesture_overlay.dart';
+import '../../widgets/video/video_comments_sheet.dart';
 import '../../widgets/video/video_player_widget.dart';
 import '../../widgets/video/video_progress_bars.dart';
 
@@ -209,6 +210,24 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               .toList(),
         ),
       ),
+    );
+  }
+
+  /// 评论（TMDB 评论）
+  void _showComments(BuildContext context) {
+    final scraped = ref.read(localVideoProvider).scrapedMap[item.pathHash];
+    if (scraped == null || scraped.tmdbId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('该视频未刮削，暂无评论')),
+      );
+      return;
+    }
+    showVideoCommentsSheet(
+      context,
+      'local_${item.id}',
+      title: scraped.title ?? item.name,
+      year: scraped.year,
+      isTv: scraped.type == 'tv',
     );
   }
 
@@ -1042,6 +1061,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       icon: const Icon(Icons.share_outlined,
                           color: Colors.white, size: 26),
                       onPressed: () => _share(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showComments(context),
                     ),
                     const SizedBox(height: 8),
                     IconButton(
