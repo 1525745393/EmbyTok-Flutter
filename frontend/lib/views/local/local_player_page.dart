@@ -1312,6 +1312,79 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       onPressed: _toggleNightMode,
                     ),
                     const SizedBox(height: 8),
+                    // 剧集列表
+                    if (widget.items.length > 1)
+                      IconButton(
+                        icon: const Icon(Icons.playlist_play, color: Colors.white, size: 26),
+                        onPressed: () => _showEpisodeList(context),
+                      ),
+                    if (widget.items.length > 1) const SizedBox(height: 8),
+                    // 倍速
+                    GestureDetector(
+                      onTap: () => _showSpeedPicker(context),
+                      child: Container(
+                        width: 44, height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(22)),
+                        child: Text('${_playbackSpeed}x', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // 锁屏
+                    IconButton(
+                      icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white, size: 26),
+                      onPressed: () => setState(() => _locked = !_locked),
+                    ),
+                    const SizedBox(height: 8),
+                    // 旋转
+                    IconButton(
+                      icon: Icon(
+                        _orientationPref == _OrientationPref.landscape
+                            ? Icons.screen_lock_rotation
+                            : _orientationPref == _OrientationPref.portrait
+                                ? Icons.stay_current_portrait
+                                : Icons.screen_rotation,
+                        color: Colors.white, size: 26,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          switch (_orientationPref) {
+                            case _OrientationPref.landscape:
+                              _orientationPref = _OrientationPref.portrait;
+                              break;
+                            case _OrientationPref.portrait:
+                              _orientationPref = _OrientationPref.sensor;
+                              break;
+                            case _OrientationPref.sensor:
+                              _orientationPref = _OrientationPref.landscape;
+                              break;
+                          }
+                        });
+                        switch (_orientationPref) {
+                          case _OrientationPref.landscape:
+                            SystemChrome.setPreferredOrientations([
+                              DeviceOrientation.landscapeLeft,
+                              DeviceOrientation.landscapeRight,
+                            ]);
+                            break;
+                          case _OrientationPref.portrait:
+                            SystemChrome.setPreferredOrientations([
+                              DeviceOrientation.portraitUp,
+                              DeviceOrientation.portraitDown,
+                            ]);
+                            break;
+                          case _OrientationPref.sensor:
+                            SystemChrome.setPreferredOrientations([
+                              DeviceOrientation.portraitUp,
+                              DeviceOrientation.landscapeLeft,
+                              DeviceOrientation.landscapeRight,
+                              DeviceOrientation.portraitDown,
+                            ]);
+                            break;
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -1445,73 +1518,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           IconButton(
                             icon: const Icon(Icons.skip_next, color: Colors.white),
                             onPressed: _index < widget.items.length - 1 ? () => _jumpTo(_index + 1) : null,
-                          ),
-                          const Spacer(),
-                          if (widget.items.length > 1)
-                            IconButton(
-                              icon: const Icon(Icons.playlist_play, color: Colors.white, size: 22),
-                              onPressed: () => _showEpisodeList(context),
-                            ),
-                          GestureDetector(
-                            onTap: () => _showSpeedPicker(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
-                              child: Text('${_playbackSpeed}x', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(_locked ? Icons.lock : Icons.lock_open, color: Colors.white, size: 22),
-                            onPressed: () => setState(() => _locked = !_locked),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: Icon(
-                              _orientationPref == _OrientationPref.landscape
-                                  ? Icons.screen_lock_rotation
-                                  : _orientationPref == _OrientationPref.portrait
-                                      ? Icons.stay_current_portrait
-                                      : Icons.screen_rotation,
-                              color: Colors.white, size: 22,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                switch (_orientationPref) {
-                                  case _OrientationPref.landscape:
-                                    _orientationPref = _OrientationPref.portrait;
-                                    break;
-                                  case _OrientationPref.portrait:
-                                    _orientationPref = _OrientationPref.sensor;
-                                    break;
-                                  case _OrientationPref.sensor:
-                                    _orientationPref = _OrientationPref.landscape;
-                                    break;
-                                }
-                              });
-                              switch (_orientationPref) {
-                                case _OrientationPref.landscape:
-                                  SystemChrome.setPreferredOrientations([
-                                    DeviceOrientation.landscapeLeft,
-                                    DeviceOrientation.landscapeRight,
-                                  ]);
-                                  break;
-                                case _OrientationPref.portrait:
-                                  SystemChrome.setPreferredOrientations([
-                                    DeviceOrientation.portraitUp,
-                                    DeviceOrientation.portraitDown,
-                                  ]);
-                                  break;
-                                case _OrientationPref.sensor:
-                                  SystemChrome.setPreferredOrientations([
-                                    DeviceOrientation.portraitUp,
-                                    DeviceOrientation.landscapeLeft,
-                                    DeviceOrientation.landscapeRight,
-                                    DeviceOrientation.portraitDown,
-                                  ]);
-                                  break;
-                              }
-                            },
                           ),
                         ],
                       ),
