@@ -1020,6 +1020,73 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ),
             ),
           ),
+          // 右侧操作栏：收藏 / 分享 / 字幕 / 音轨 / 画面比例 / PiP / 信息 / 夜间模式
+          Positioned(
+            right: 12,
+            bottom: MediaQuery.of(context).padding.bottom + 110,
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: AnimatedOpacity(
+                opacity: _showControls ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.favorite_border,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _toggleFavorite(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _share(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.subtitles,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showSubtitlePicker(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.audiotrack,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showAudioPicker(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.aspect_ratio,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showAspectPicker(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: const Icon(Icons.picture_in_picture_alt,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _enterPip(),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: Icon(Icons.info_outline,
+                          color: Colors.white, size: 26),
+                      onPressed: () => _showInfo(context),
+                    ),
+                    const SizedBox(height: 8),
+                    IconButton(
+                      icon: Icon(
+                        _nightMode ? Icons.bedtime : Icons.bedtime_outlined,
+                        color: _nightMode ? Colors.amber : Colors.white,
+                        size: 26,
+                      ),
+                      onPressed: _toggleNightMode,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // 底部控制栏
           Positioned(
             left: 0, right: 0, bottom: 0,
@@ -1029,7 +1096,12 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                 opacity: _showControls ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 8,
+                    top: 8,
+                  ),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter, end: Alignment.topCenter,
