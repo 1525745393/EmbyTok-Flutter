@@ -163,7 +163,8 @@ extension _FeedBuilders on _FeedViewState {
         final m = mediaItems[i];
         return GestureDetector(
           onTap: () {
-            // 点击切回视频流并定位到该项
+            // 切回视频流并定位到该项
+            _animateToPage(i);
             ref.read(viewModeProvider.notifier).setMode(ViewMode.feed);
           },
           child: Column(
@@ -172,10 +173,19 @@ extension _FeedBuilders on _FeedViewState {
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    color: Colors.grey[900],
-                    child: const Icon(Icons.movie, color: Colors.white24, size: 40),
-                  ),
+                  child: m.imagePath != null
+                      ? CachedNetworkImage(
+                          imageUrl: m.imagePath!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => Container(
+                            color: Colors.grey[900],
+                            child: const Icon(Icons.movie, color: Colors.white24, size: 40),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey[900],
+                          child: const Icon(Icons.movie, color: Colors.white24, size: 40),
+                        ),
                 ),
               ),
               const SizedBox(height: 6),
