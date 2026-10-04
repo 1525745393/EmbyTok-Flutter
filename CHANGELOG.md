@@ -1,3 +1,10 @@
+# [2.347.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.346.0...v2.347.0) (2026-10-04)
+
+
+### Features
+
+* 方向锁定三态循环（横屏/竖屏/自动，对齐在线全屏页） ([f00c365](https://github.com/1525745393/EmbyTok-Flutter/commit/f00c365169dca0acc1c31c6f439c8d3faa44fdc0))
+
 # [2.346.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.345.0...v2.346.0) (2026-10-04)
 
 
