@@ -1210,21 +1210,24 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
               ),
             ),
           ),
-          // 右侧操作栏：收藏 / 分享 / 字幕 / 音轨 / 画面比例 / PiP / 信息 / 夜间模式
+          // 右侧操作栏
           Positioned(
-            right: 12,
-            bottom: MediaQuery.of(context).padding.bottom + 110,
+            right: 8,
+            top: MediaQuery.of(context).padding.top + 50,
+            bottom: MediaQuery.of(context).padding.bottom + 100,
             child: IgnorePointer(
               ignoring: !_showControls,
               child: AnimatedOpacity(
                 opacity: _showControls ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 演员头像（对齐在线 feed PosterAvatar）
-                    _buildActorAvatar(context),
-                    const SizedBox(height: 12),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 演员头像
+                      _buildActorAvatar(context),
+                      const SizedBox(height: 8),
                     // 按钮顺序对齐在线 feed：点赞→分享→外部播放→画中画→评论→信息→章节→删除→字幕→音轨→比例→夜间模式
                     Consumer(
                       builder: (_, ref, __) {
@@ -1306,6 +1309,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       ),
                       onPressed: _toggleNightMode,
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
