@@ -190,11 +190,21 @@ class PosterAvatar extends ConsumerWidget {
               clipBehavior: Clip.none,
               children: [
                 Positioned.fill(
-                  child: ClipOval(
-                    child: PersonAvatarImage(
-                      imageUrl: localActorImage,
-                      size: rs(48),
-                      memCacheWidth: 96,
+                  child: GestureDetector(
+                    onTap: actorKey.isEmpty
+                        ? null
+                        : () => context.push('/person/$actorKey',
+                            extra: MediaItem(
+                              id: 'local_person_$actorKey',
+                              title: actorKey,
+                              type: 'Person',
+                            )),
+                    child: ClipOval(
+                      child: PersonAvatarImage(
+                        imageUrl: localActorImage,
+                        size: rs(48),
+                        memCacheWidth: 96,
+                      ),
                     ),
                   ),
                 ),
