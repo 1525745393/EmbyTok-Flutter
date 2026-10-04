@@ -1,3 +1,10 @@
+# [2.340.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.339.1...v2.340.0) (2026-10-04)
+
+
+### Features
+
+* 设置新增避开刘海屏开关 ([31540d3](https://github.com/1525745393/EmbyTok-Flutter/commit/31540d3c265bb78a7bb9e659e8564f8b98d066c1))
+
 ## [2.339.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.339.0...v2.339.1) (2026-10-04)
 
 
