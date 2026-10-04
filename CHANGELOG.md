@@ -1,3 +1,10 @@
+## [2.340.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.0...v2.340.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* 本地媒体库页状态栏图标跟随主题 ([abbaa36](https://github.com/1525745393/EmbyTok-Flutter/commit/abbaa36fe709d2d6640ad04f98ab185b6a14e467))
+
 # [2.340.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.339.1...v2.340.0) (2026-10-04)
 
 
