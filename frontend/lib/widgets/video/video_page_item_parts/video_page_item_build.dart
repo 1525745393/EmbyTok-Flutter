@@ -322,22 +322,6 @@ extension _VideoPageItemBuild on _VideoPageItemState {
             },
           ),
 
-        // 片尾"下一集"按钮
-        if (_showEndCreditsButton)
-          Positioned(
-            right: 16,
-            bottom: bottomPadding + 160,
-            child: FloatingActionButton.extended(
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              icon: const Icon(Icons.skip_next, size: 20),
-              label: const Text('下一集', style: TextStyle(fontSize: 14)),
-              onPressed: () {
-                widget.onVideoEnded?.call();
-              },
-            ),
-          ),
-
         // 纯净模式：可拖动按钮组
         if (isAutoPlay && !isInFullscreen)
           Positioned.fill(

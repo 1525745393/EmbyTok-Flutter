@@ -167,9 +167,6 @@ class _VideoPageItemState extends ConsumerState<VideoPageItem>
   Timer? _infoHideTimer;
   bool _isInfoVisible = true;
 
-  // 片尾"下一集"按钮（最后 90 秒显示）
-  bool _showEndCreditsButton = false;
-
   // 播放上报相关
   late final EmbytokService _service;
   Timer? _progressTimer;
