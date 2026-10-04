@@ -1,3 +1,15 @@
+# [2.343.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.342.1...v2.343.0) (2026-10-04)
+
+
+### Bug Fixes
+
+* 观看筛选使用现有recentHashes字段 ([10db885](https://github.com/1525745393/EmbyTok-Flutter/commit/10db885f8eb7faa184ede3bb1eedc7c288508b60))
+
+
+### Features
+
+* 本地媒体库浏览页对齐在线——3种视图/升序降序/观看筛选/搜索 ([4b7f601](https://github.com/1525745393/EmbyTok-Flutter/commit/4b7f60166a76bb548fd49a6d42ed6bcc2162b164))
+
 ## [2.342.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.342.0...v2.342.1) (2026-10-04)
 
 
