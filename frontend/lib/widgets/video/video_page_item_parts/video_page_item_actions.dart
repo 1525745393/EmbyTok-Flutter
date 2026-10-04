@@ -149,20 +149,8 @@ extension _VideoPageItemActions on _VideoPageItemState {
     if (!_hasNotifiedEnded) {
       final pos = controller.value.position;
       final dur = controller.value.duration;
-      if (dur.inMilliseconds > 0 && (dur - pos).inMilliseconds < 1000) {
-        _hasNotifiedEnded = true;
-        _reportPlaybackStopped();
-        _safeReport(
-          () => _service.markAsPlayed(
-            widget.item.id,
-            serverUrl: _authServerUrl(),
-            token: _authToken(),
-          ),
-          'markAsPlayed',
-        );
-        // 视频播完标记已看后，失效续播、详情、NextUp 和观看历史缓存
-        // NextUp 列表在看完一集后会变化，必须失效避免下次看到旧数据
-        // watchHistory 中已播放条目会更新，需失效以反映最新观看进度
+    // 注意：不再在每帧里重置信息条隐藏计时器（原逻辑会导致隐藏 1 帧后又被重新显示，
+    // 使"3 秒自动隐藏"永远不生效）。信息条的显隐由 _resetInfoHideTimer 在合适时机触发。hHistory 中已播放条目会更新，需失效以反映最新观看进度
         final serverUrl = _authServerUrl();
         final token = _authToken();
         if (serverUrl != null && token != null) {
