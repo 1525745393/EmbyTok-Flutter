@@ -1,3 +1,10 @@
+# [2.350.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.349.0...v2.350.0) (2026-10-04)
+
+
+### Features
+
+* 抖音风格交互（移除底部按钮+暂停中央大图标） ([fe8fab6](https://github.com/1525745393/EmbyTok-Flutter/commit/fe8fab6438b50b62f50c8d0b9194868fadf1c0f6))
+
 # [2.349.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.348.0...v2.349.0) (2026-10-04)
 
 
