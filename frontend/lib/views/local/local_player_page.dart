@@ -822,6 +822,11 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                           return const CircularProgressIndicator(
                               color: Colors.white);
                         }
+                        // 暂停时中央显示大播放图标（抖音风格）
+                        if (!value.isPlaying && !_showControls) {
+                          return const Icon(Icons.play_arrow,
+                              color: Colors.white54, size: 64);
+                        }
                         return const SizedBox.shrink();
                       },
                     ),
@@ -1496,30 +1501,6 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                       _activeController != null
                           ? SeekableProgressBar(controller: _activeController!, formatDuration: _formatDur)
                           : const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.skip_previous, color: Colors.white, size: 26),
-                            onPressed: _index > 0 ? () => _jumpTo(_index - 1) : null,
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              _activeController?.value.isPlaying ?? false
-                                  ? Icons.pause : Icons.play_arrow,
-                              color: Colors.white, size: 28,
-                            ),
-                            onPressed: () {
-                              final c = _activeController;
-                              if (c == null) return;
-                              setState(() { c.value.isPlaying ? c.pause() : c.play(); });
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.skip_next, color: Colors.white, size: 26),
-                            onPressed: _index < widget.items.length - 1 ? () => _jumpTo(_index + 1) : null,
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
