@@ -1,3 +1,10 @@
+# [2.345.0](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.344.1...v2.345.0) (2026-10-04)
+
+
+### Features
+
+* 进度条补缓冲进度条（对齐在线全屏页） ([5b769a6](https://github.com/1525745393/EmbyTok-Flutter/commit/5b769a6d8ac79351d03a9f075163d91cdf6c9369))
+
 ## [2.344.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.344.0...v2.344.1) (2026-10-04)
 
 
