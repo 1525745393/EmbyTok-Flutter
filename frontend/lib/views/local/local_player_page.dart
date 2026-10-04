@@ -126,9 +126,23 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
   }
 
   /// 单击切换控制栏（锁定时不响应）
+  /// 点按视频：抖音风格——切换播放/暂停，暂停时显示控制栏，播放时自动隐藏
   void _toggleControls() {
     if (_locked) return;
-    setState(() => _showControls = !_showControls);
+    final c = _activeController;
+    if (c != null && c.value.isInitialized) {
+      setState(() {
+        if (c.value.isPlaying) {
+          c.pause();
+          _showControls = true; // 暂停时显示控制栏
+        } else {
+          c.play();
+          _showControls = false; // 播放时隐藏控制栏
+        }
+      });
+    } else {
+      setState(() => _showControls = !_showControls);
+    }
     if (_showControls) _scheduleHide();
   }
 
