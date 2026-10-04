@@ -1313,6 +1313,7 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                   ],
                 ),
               ),
+              ),
             ),
           ),
           // 底部控制栏
