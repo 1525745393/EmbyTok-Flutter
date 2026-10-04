@@ -913,10 +913,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // 按钮顺序对齐在线 feed：点赞→分享→画中画→评论→信息→字幕→音轨→比例→夜间模式
-                      IconButton(
-                        icon: const Icon(Icons.favorite_border,
-                            color: Colors.white, size: 26),
-                        onPressed: () => _toggleFavorite(context),
+                      Consumer(
+                        builder: (_, ref, __) {
+                          final isFav = ref.watch(localVideoProvider
+                              .select((s) => s.favoriteHashes.contains(item.pathHash)));
+                          return IconButton(
+                            icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                                color: isFav ? Colors.red : Colors.white, size: 26),
+                            onPressed: () => _toggleFavorite(context),
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       IconButton(
@@ -1196,10 +1202,16 @@ class _LocalPlayerPageState extends ConsumerState<LocalPlayerPage> {
                     _buildActorAvatar(context),
                     const SizedBox(height: 12),
                     // 按钮顺序对齐在线 feed：点赞→分享→外部播放→画中画→评论→信息→章节→删除→字幕→音轨→比例→夜间模式
-                    IconButton(
-                      icon: const Icon(Icons.favorite_border,
-                          color: Colors.white, size: 26),
-                      onPressed: () => _toggleFavorite(context),
+                    Consumer(
+                      builder: (_, ref, __) {
+                        final isFav = ref.watch(localVideoProvider
+                            .select((s) => s.favoriteHashes.contains(item.pathHash)));
+                        return IconButton(
+                          icon: Icon(isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav ? Colors.red : Colors.white, size: 26),
+                          onPressed: () => _toggleFavorite(context),
+                        );
+                      },
                     ),
                     const SizedBox(height: 8),
                     IconButton(
