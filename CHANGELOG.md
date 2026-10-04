@@ -1,3 +1,10 @@
+## [2.340.2](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.1...v2.340.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* 本地视频传入宽高,竖屏短视频用cover铺满 ([0ccb942](https://github.com/1525745393/EmbyTok-Flutter/commit/0ccb942bbbcbc93257fc1bc8569f7c71f480b95b))
+
 ## [2.340.1](https://github.com/1525745393/EmbyTok-Flutter/compare/v2.340.0...v2.340.1) (2026-10-04)
 
 
