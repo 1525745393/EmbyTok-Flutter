@@ -1,5 +1,6 @@
 import '../models/local_video_item.dart';
 import '../models/media_item.dart';
+import '../models/media_source.dart';
 import '../services/scrape_service.dart';
 
 /// 本地视频 → Emby MediaItem 适配器
@@ -30,6 +31,10 @@ class LocalVideoAdapter {
       isLocalFile: true,
       localPath: it.networkUrl != null && it.networkUrl!.isNotEmpty ? null : it.path,
       localNetworkUrl: it.networkUrl,
+      // 传入视频宽高，让 BoxFit 根据横竖屏正确选择 contain/cover
+      mediaSources: it.width > 0 && it.height > 0
+          ? [MediaSource(id: 'local', name: 'local', width: it.width, height: it.height)]
+          : null,
     );
   }
 
